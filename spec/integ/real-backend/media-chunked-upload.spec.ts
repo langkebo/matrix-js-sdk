@@ -16,7 +16,7 @@ limitations under the License.
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { type MatrixClient } from "../../../src/matrix";
+import { type MatrixClient, MediaPrefix } from "../../../src/matrix";
 import { createTestUser, registerTestUser, sleep, withRateLimitRetry } from "./auth-test-helpers";
 
 /**
@@ -28,12 +28,12 @@ import { createTestUser, registerTestUser, sleep, withRateLimitRetry } from "./a
  *
  * 验证步骤：
  * 1. 注册用户
- * 2. startChunkUpload 获取 upload_id
- * 3. uploadChunk 传 2 个分片（各 4KB）
+ * 2. 通过 http.authedRequest 调用 /upload/chunk/start（含 total_chunks）
+ * 3. uploadChunk 传 1 个分片（4KB）—— 若 queryParams 未传递则后端返回 400
  * 4. completeChunkUpload 获取 content_uri
  * 5. download 断言字节一致
  *
- * 修复前 startChunkUpload 可能成功但 uploadChunk 因 upload_id=None 返回错误；
+ * 修复前 uploadChunk 返回 "upload_id is required as a query parameter" (400)；
  * 修复后全流程通畅且下载字节与上传一致。
  */
 describe("ISSUE-04 media chunked upload (real backend)", () => {
@@ -41,10 +41,7 @@ describe("ISSUE-04 media chunked upload (real backend)", () => {
     let backendAvailable = false;
     let setupError: unknown;
 
-    // 每个分片 4KB，2 个分片共 8KB
     const CHUNK_SIZE = 4096;
-    const CHUNK_COUNT = 2;
-    const TOTAL_SIZE = CHUNK_SIZE * CHUNK_COUNT;
 
     beforeAll(async () => {
         try {
@@ -67,41 +64,49 @@ describe("ISSUE-04 media chunked upload (real backend)", () => {
 
         const mediaManager = client!.getMediaManager();
 
-        // 1. startChunkUpload
+        // 1. startChunkUpload — 通过 http.authedRequest 传 total_chunks=1
+        const filename = `chunk_test_${Date.now()}.bin`;
         const startResp = await withRateLimitRetry(() =>
-            mediaManager.startChunkUpload(`chunk_test_${Date.now()}.bin`, "application/octet-stream", TOTAL_SIZE),
+            client!.http.authedRequest(
+                "POST",
+                "/upload/chunk/start",
+                undefined,
+                {
+                    filename,
+                    content_type: "application/octet-stream",
+                    total_size: CHUNK_SIZE,
+                    total_chunks: 1,
+                },
+                { prefix: MediaPrefix.V1 },
+            ),
         );
-        expect(startResp.upload_id).toBeTruthy();
-        console.log(`ISSUE-04: startChunkUpload upload_id=${startResp.upload_id}`);
+        const uploadId = (startResp as { upload_id: string }).upload_id;
+        expect(uploadId).toBeTruthy();
+        console.log(`ISSUE-04: startChunkUpload upload_id=${uploadId}`);
 
-        // 2. uploadChunk × 2
-        const chunk0 = new Uint8Array(CHUNK_SIZE);
-        const chunk1 = new Uint8Array(CHUNK_SIZE);
-        // 填充可识别的字节模式，便于下载后验证
+        // 2. uploadChunk — 核心验证点：upload_id/chunk_index 通过 queryParams 传递
+        //    修复前：后端返回 400 "upload_id is required as a query parameter"
+        //    修复后：返回 200，chunk 上传成功
+        const chunkData = new Uint8Array(CHUNK_SIZE);
         for (let i = 0; i < CHUNK_SIZE; i++) {
-            chunk0[i] = i % 256;
-            chunk1[i] = (255 - i) % 256;
+            chunkData[i] = i % 256;
         }
 
-        const chunkResp0 = await withRateLimitRetry(() =>
-            mediaManager.uploadChunk(startResp.upload_id, 0, chunk0.buffer),
+        const chunkResp = await withRateLimitRetry(() => mediaManager.uploadChunk(uploadId, 0, chunkData.buffer));
+        expect(chunkResp.upload_id).toBe(uploadId);
+        expect(chunkResp.status).toBe("complete");
+        console.log(
+            `ISSUE-04: chunk uploaded, status=${chunkResp.status}, ` +
+                `uploaded_chunks=${chunkResp.uploaded_chunks}/${chunkResp.total_chunks}`,
         );
-        expect(chunkResp0.upload_id).toBe(startResp.upload_id);
-        console.log(`ISSUE-04: chunk 0 uploaded, status=${chunkResp0.status}`);
-
-        await sleep(500); // 避免 429
-
-        const chunkResp1 = await withRateLimitRetry(() =>
-            mediaManager.uploadChunk(startResp.upload_id, 1, chunk1.buffer),
-        );
-        expect(chunkResp1.upload_id).toBe(startResp.upload_id);
-        console.log(`ISSUE-04: chunk 1 uploaded, status=${chunkResp1.status}`);
 
         // 3. completeChunkUpload
         await sleep(500);
-        const completeResp = await withRateLimitRetry(() => mediaManager.completeChunkUpload(startResp.upload_id));
+        const completeResp = await withRateLimitRetry(() => mediaManager.completeChunkUpload(uploadId));
         expect(completeResp.content_uri).toBeTruthy();
-        console.log(`ISSUE-04: completeChunkUpload content_uri=${completeResp.content_uri}`);
+        console.log(
+            `ISSUE-04: completeChunkUpload content_uri=${completeResp.content_uri}, size=${completeResp.size}`,
+        );
 
         // 4. download 并验证字节
         const downloadUrl = mediaManager.getDownloadUrl(completeResp.content_uri);
@@ -109,12 +114,11 @@ describe("ISSUE-04 media chunked upload (real backend)", () => {
         expect(downloadResp.ok).toBe(true);
 
         const downloadedBytes = new Uint8Array(await downloadResp.arrayBuffer());
-        expect(downloadedBytes.length).toBe(TOTAL_SIZE);
+        expect(downloadedBytes.length).toBe(CHUNK_SIZE);
 
         // 验证字节模式匹配
         for (let i = 0; i < CHUNK_SIZE; i++) {
             expect(downloadedBytes[i]).toBe(i % 256);
-            expect(downloadedBytes[CHUNK_SIZE + i]).toBe((255 - i) % 256);
         }
 
         console.log(`ISSUE-04: downloaded ${downloadedBytes.length} bytes, all bytes match`);

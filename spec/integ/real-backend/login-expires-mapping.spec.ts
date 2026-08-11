@@ -45,6 +45,7 @@ describe("ISSUE-05 login expires_in mapping (real backend)", () => {
 
     let registeredUser: { localpart: string; password: string };
     let registerResponse: { expires_in?: number; expires_in_ms?: number } | null = null;
+    let loginRefreshToken: string | null = null;
 
     beforeAll(async () => {
         try {
@@ -57,7 +58,7 @@ describe("ISSUE-05 login expires_in mapping (real backend)", () => {
             });
 
             const rawRegisterResp = await withRateLimitRetry(async () => {
-                return await registrationClient.getAccountManager().registerRequest({
+                return await registrationClient.registerRequest({
                     username: registeredUser.localpart,
                     password: registeredUser.password,
                     auth: { type: "m.login.dummy" },
@@ -108,13 +109,13 @@ describe("ISSUE-05 login expires_in mapping (real backend)", () => {
         if (!backendAvailable) throw new Error(`Backend unavailable: ${String(setupError)}`);
 
         const loginResp = await withRateLimitRetry(async () => {
-            return await client!.getAccountManager().loginRequest({
+            return await client!.loginRequest({
                 type: "m.login.password",
                 identifier: { type: "m.id.user", user: registeredUser.localpart },
                 password: registeredUser.password,
             });
         });
-        const login = loginResp as { expires_in?: number; expires_in_ms?: number };
+        const login = loginResp as { expires_in?: number; expires_in_ms?: number; refresh_token?: string };
 
         console.log(
             `ISSUE-05: login response expires_in=${login.expires_in}, ` + `expires_in_ms=${login.expires_in_ms}`,
@@ -133,21 +134,21 @@ describe("ISSUE-05 login expires_in mapping (real backend)", () => {
 
         // 设置 token 用于 refresh 测试
         client!.setAccessToken((loginResp as { access_token: string }).access_token);
+        loginRefreshToken = login.refresh_token ?? null;
     }, 30_000);
 
     it("refresh response normalizes expires_in to expires_in_ms", async () => {
         if (!backendAvailable) throw new Error(`Backend unavailable: ${String(setupError)}`);
 
         // 需要 refresh_token 才能测试 refresh
-        const refreshToken = (client!.http.opts as { refreshToken?: string }).refreshToken;
-        if (!refreshToken) {
+        if (!loginRefreshToken) {
             console.log("ISSUE-05: no refresh_token available, skipping refresh test");
             return;
         }
 
         try {
             const refreshResp = await withRateLimitRetry(async () => {
-                return await client!.getAccountManager().refreshToken(refreshToken);
+                return await client!.refreshToken(loginRefreshToken!);
             });
             const refresh = refreshResp as { expires_in?: number; expires_in_ms?: number };
 
