@@ -476,6 +476,14 @@ export abstract class BaseManager<
         }
     }
 
+    /**
+     * 清理 manager 持有的资源（监听器、定时器等）。
+     *
+     * 默认 no-op。子类按需 override——在 `client.stop()` 时由
+     * `stopClientLifecycleServices` 统一遍历调用。
+     */
+    public stop(): void {}
+
     public getRequestStats(): RequestStats {
         return { ...this.requestStats };
     }

@@ -30,6 +30,16 @@ export function clearManagerRegistry(client: MatrixClient): void {
     getRegistry(client).clear();
 }
 
+/**
+ * 返回当前 client 上所有已创建的 manager 实例。
+ * 用于 `stopClientLifecycleServices` 统一调用 `stop()`。
+ */
+export function getAllManagersForClient(client: MatrixClient): unknown[] {
+    const carrier = client as ManagerRegistryCarrier;
+    const registry = carrier[MANAGER_REGISTRY];
+    return registry ? Array.from(registry.values()) : [];
+}
+
 // ── Class / factory registry (for manager() accessor) ──────────
 
 type ManagerClass = new (client: MatrixClient) => unknown;
