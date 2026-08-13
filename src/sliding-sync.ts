@@ -753,13 +753,18 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 if ((<HTTPError>err).httpStatus) {
                     this.invokeLifecycleListeners(SlidingSyncState.RequestFinished, null, <Error>err);
                     if ((<HTTPError>err).httpStatus === 400) {
-                        // Known limitation: session-expiry handling is inferred from status only; no dedicated errcode yet.
-                        // so drop state and re-request
-                        this.resetup();
-                        currentPos = undefined;
-                        this.initialPos = undefined; // Clear persisted pos so stop+start doesn't reuse it
-                        await sleep(50); // in case the 400 was for something else; don't tightloop
-                        continue;
+                        // MSC4186: 仅当 errcode 为 M_UNKNOWN_POS（pos 过期/非法）时才
+                        // resetup 并清 pos；其他 400（如 list 定义非法）落到 generic
+                        // 退避，避免把无关错误误判为 pos 过期而反复 resetup 空转。
+                        const errcode = (err as { errcode?: string }).errcode;
+                        if (errcode === "M_UNKNOWN_POS") {
+                            this.resetup();
+                            currentPos = undefined;
+                            this.initialPos = undefined; // Clear persisted pos so stop+start doesn't reuse it
+                            await sleep(50); // don't tightloop on an expired pos
+                            continue;
+                        }
+                        // fallthrough to generic error handling
                     } else if ((<HTTPError>err).httpStatus === 429) {
                         // Rate limited: use server's retry_after_ms if available, with exponential backoff
                         const backoffMs = safeGetRetryAfterMs(err, 5000);
