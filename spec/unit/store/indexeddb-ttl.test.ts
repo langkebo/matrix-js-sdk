@@ -116,4 +116,52 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         expect(tuples[0][0]).toBe("@alice:server");
         await b2.destroy();
     });
+
+    it("OOB 成员超过 room_members TTL 后过期，返回 null 触发重新拉取", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        const dbName = "ttl-oob-" + Math.random().toString(36).slice(2);
+
+        const member = {
+            room_id: "!r:server",
+            state_key: "@u:server",
+            type: "m.room.member",
+            content: { membership: "join" },
+        };
+        const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b1.connect();
+        await b1.setOutOfBandMembers("!r:server", [member as any]);
+        await b1.destroy();
+
+        vi.advanceTimersByTime(CacheTtl.ROOM_MEMBERS * 1000 + 1000); // 超过 900s
+
+        const b2 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b2.connect();
+        expect(await b2.getOutOfBandMembers("!r:server")).toBeNull();
+        await b2.destroy();
+    });
+
+    it("OOB 成员未过期则恢复", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        const dbName = "ttl-oob-fresh-" + Math.random().toString(36).slice(2);
+
+        const member = {
+            room_id: "!r:server",
+            state_key: "@u:server",
+            type: "m.room.member",
+            content: { membership: "join" },
+        };
+        const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b1.connect();
+        await b1.setOutOfBandMembers("!r:server", [member as any]);
+        await b1.destroy();
+
+        vi.advanceTimersByTime(60_000); // 只过 1 分钟
+
+        const b2 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b2.connect();
+        const members = await b2.getOutOfBandMembers("!r:server");
+        expect(members).not.toBeNull();
+        expect(members).toHaveLength(1);
+        await b2.destroy();
+    });
 });

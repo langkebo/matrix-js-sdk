@@ -244,7 +244,16 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
      * @returns the events, potentially an empty array if OOB loading didn't yield any new members
      * @returns in case the members for this room haven't been stored yet
      */
-    public getOutOfBandMembers(roomId: string): Promise<IStateEventWithRoomId[] | null> {
+    public async getOutOfBandMembers(roomId: string): Promise<IStateEventWithRoomId[] | null> {
+        // 判活：OOB 成员超过 room_members 900s 过期（对齐后端），返回 null 表示「未拉取过」，
+        // 触发客户端重新拉取。过期数据一并清理（含 deadline）。
+        const deadline = await this.getExpiryDeadline("oob:" + roomId);
+        if (deadline !== undefined && Date.now() > deadline) {
+            logger.log(`LL: OOB members for ${roomId} expired, clearing`);
+            await this.clearOutOfBandMembers(roomId);
+            return null;
+        }
+
         return new Promise<IStateEventWithRoomId[] | null>((resolve, reject) => {
             const tx = this.db!.transaction(["oob_membership_events"], "readonly");
             const store = tx.objectStore("oob_membership_events");
@@ -294,7 +303,7 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
      */
     public async setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
         logger.log(`LL: backend about to store ${membershipEvents.length}` + ` members for ${roomId}`);
-        const tx = this.db!.transaction(["oob_membership_events"], "readwrite");
+        const tx = this.db!.transaction(["oob_membership_events", "expiry"], "readwrite");
         const store = tx.objectStore("oob_membership_events");
         membershipEvents.forEach((e) => {
             store.put(e);
@@ -310,6 +319,11 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
             state_key: 0,
         };
         store.put(markerObject);
+        // 记录 OOB 成员 deadline（对齐后端 room_members 900s），供读路径判活。
+        tx.objectStore("expiry").put({
+            key: "oob:" + roomId,
+            deadlineMs: Date.now() + CacheTtl.ROOM_MEMBERS * 1000,
+        });
         await txnAsPromise(tx);
         logger.log(`LL: backend done storing for ${roomId}!`);
     }
@@ -334,7 +348,7 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
         );
         const [minStateKey, maxStateKey] = await Promise.all([minStateKeyProm, maxStateKeyProm]);
 
-        const writeTx = this.db!.transaction(["oob_membership_events"], "readwrite");
+        const writeTx = this.db!.transaction(["oob_membership_events", "expiry"], "readwrite");
         const writeStore = writeTx.objectStore("oob_membership_events");
         const membersKeyRange = IDBKeyRange.bound([roomId, minStateKey], [roomId, maxStateKey]);
 
@@ -343,7 +357,10 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
             [roomId, minStateKey],
             [roomId, maxStateKey],
         );
-        await reqAsPromise(writeStore.delete(membersKeyRange));
+        writeStore.delete(membersKeyRange);
+        // 同步删除该 room 的 deadline，避免残留过期元数据。
+        writeTx.objectStore("expiry").delete("oob:" + roomId);
+        await txnAsPromise(writeTx);
     }
 
     /**
