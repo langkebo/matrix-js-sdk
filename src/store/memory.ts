@@ -34,6 +34,8 @@ import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../model
 import { type IStoredClientOpts } from "../client";
 import { MapWithDefault } from "../common/collections";
 import { KnownMembership } from "../@types/membership";
+import { StoreStatsCollector, type StoreStats } from "./stats";
+import { DEFAULT_STORE_CAPACITY, LruMap, type StoreCapacityConfig } from "./capacity";
 
 function isValidFilterId(filterId?: string | number | null): boolean {
     const isValidStr =
@@ -46,22 +48,24 @@ function isValidFilterId(filterId?: string | number | null): boolean {
 }
 
 /**
- * Maximum number of pending events kept per room in MemoryStore.
- * Events beyond this count are trimmed (oldest first) to bound memory.
- * ISSUE-11b.
+ * 内存占用估算常量（字节/条）。仅作 advisory 估值，用于对齐后端 `memory_usage_bytes`
+ * 指标，不参与淘汰决策。deep 序列化 Room/User（含循环引用与监听器）开销大且不安全，
+ * 故采用按条目数 × 经验均值的粗估。
  */
-const MAX_PENDING_EVENTS_PER_ROOM = 100;
-
-/**
- * Maximum number of rooms for which out-of-band members are cached in MemoryStore.
- * When the cap is exceeded, the oldest entries are evicted (LRU).
- * ISSUE-11b.
- */
-const MAX_OOB_MEMBERS_ROOMS = 50;
+const ESTIMATED_ROOM_BYTES = 50 * 1024; // room 含 timeline，均摊约 50KB
+const ESTIMATED_USER_BYTES = 2 * 1024; // user profile 约 2KB
+const ESTIMATED_OOB_MEMBER_BYTES = 1 * 1024; // OOB 成员事件数组约 1KB
+const ESTIMATED_ACCOUNT_DATA_BYTES = 1 * 1024;
+const ESTIMATED_EVENT_BYTES = 1 * 1024; // pending 事件约 1KB
+const ESTIMATED_TO_DEVICE_BYTES = 1 * 1024;
 
 export interface IOpts {
     /** The local storage instance to persist some forms of data such as tokens. Rooms will NOT be stored. */
     localStorage?: Storage;
+    /**
+     * 可选容量预算覆盖项。未提供的字段回落到 {@link DEFAULT_STORE_CAPACITY}。
+     */
+    capacity?: Partial<StoreCapacityConfig>;
 }
 
 export class MemoryStore implements IStore {
@@ -74,12 +78,18 @@ export class MemoryStore implements IStore {
     private filters: MapWithDefault<string, Map<string, Filter>> = new MapWithDefault(() => new Map());
     public accountData: Map<string, MatrixEvent> = new Map(); // type: content
     protected readonly localStorage?: Storage;
-    private oobMembers: Map<string, IStateEventWithRoomId[]> = new Map(); // roomId: [member events]
+    private oobMembers: LruMap<string, IStateEventWithRoomId[]>; // roomId: [member events]
     private pendingEvents: { [roomId: string]: Partial<IEvent>[] } = {};
     private clientOptions?: IStoredClientOpts;
     private pendingToDeviceBatches: IndexedToDeviceBatch[] = [];
     private nextToDeviceBatchId = 0;
     protected createUser?: UserCreator;
+
+    /** 整体容量预算（对齐后端 max_capacity + 分区容量）。 */
+    private readonly capacity: StoreCapacityConfig;
+
+    /** 无锁统计收集器（对齐后端 AtomicCacheStats）。 */
+    private readonly stats = new StoreStatsCollector();
 
     /**
      * Construct a new in-memory data store for the Matrix Client.
@@ -87,6 +97,10 @@ export class MemoryStore implements IStore {
      */
     public constructor(opts: IOpts = {}) {
         this.localStorage = opts.localStorage;
+        this.capacity = { ...DEFAULT_STORE_CAPACITY, ...opts.capacity };
+        this.oobMembers = new LruMap<string, IStateEventWithRoomId[]>(this.capacity.maxOutOfBandMembersRooms, () => {
+            this.stats.recordEvictions(1);
+        });
     }
 
     /**
@@ -159,7 +173,10 @@ export class MemoryStore implements IStore {
      * @returns The room or null.
      */
     public getRoom(roomId: string): Room | null {
-        return this.rooms[roomId] || null;
+        const room = this.rooms[roomId];
+        if (room) this.stats.recordHit();
+        else this.stats.recordMiss();
+        return room || null;
     }
 
     /**
@@ -204,7 +221,10 @@ export class MemoryStore implements IStore {
      * @returns The user or null.
      */
     public getUser(userId: string): User | null {
-        return this.users[userId] || null;
+        const user = this.users[userId];
+        if (user) this.stats.recordHit();
+        else this.stats.recordMiss();
+        return user || null;
     }
 
     /**
@@ -390,6 +410,11 @@ export class MemoryStore implements IStore {
         this.syncToken = null;
         this.filters = new MapWithDefault(() => new Map());
         this.accountData = new Map(); // type : content
+        this.oobMembers.clear();
+        this.pendingEvents = {};
+        this.pendingToDeviceBatches = [];
+        this.nextToDeviceBatchId = 0;
+        this.stats.reset();
         return Promise.resolve();
     }
 
@@ -400,7 +425,13 @@ export class MemoryStore implements IStore {
      * @returns in case the members for this room haven't been stored yet
      */
     public getOutOfBandMembers(roomId: string): Promise<IStateEventWithRoomId[] | null> {
-        return Promise.resolve(this.oobMembers.get(roomId) || null);
+        const members = this.oobMembers.get(roomId);
+        if (members !== undefined) {
+            this.stats.recordHit();
+            return Promise.resolve(members);
+        }
+        this.stats.recordMiss();
+        return Promise.resolve(null);
     }
 
     /**
@@ -411,14 +442,9 @@ export class MemoryStore implements IStore {
      * @returns when all members have been stored
      */
     public setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
+        // LruMap 内部做容量预算 + LRU 淘汰，超出上限时自动淘汰最久未访问条目，
+        // 并经 onEvict 回调上报统计。
         this.oobMembers.set(roomId, membershipEvents);
-        // LRU eviction: if exceeding max rooms, delete oldest entries first.
-        // Map preserves insertion order, so the first key is the oldest.
-        while (this.oobMembers.size > MAX_OOB_MEMBERS_ROOMS) {
-            const firstKey = this.oobMembers.keys().next().value;
-            if (firstKey === undefined) break;
-            this.oobMembers.delete(firstKey);
-        }
         return Promise.resolve();
     }
 
@@ -441,10 +467,10 @@ export class MemoryStore implements IStore {
     }
 
     public async setPendingEvents(roomId: string, events: Partial<IEvent>[]): Promise<void> {
-        // Trim to the most recent MAX_PENDING_EVENTS_PER_ROOM entries (drop oldest).
+        // Trim to the most recent `maxPendingEventsPerRoom` entries (drop oldest).
         // ISSUE-11b: bound memory usage for rooms with very long pending backlogs.
-        this.pendingEvents[roomId] =
-            events.length > MAX_PENDING_EVENTS_PER_ROOM ? events.slice(-MAX_PENDING_EVENTS_PER_ROOM) : events;
+        const cap = this.capacity.maxPendingEventsPerRoom;
+        this.pendingEvents[roomId] = events.length > cap ? events.slice(-cap) : events;
     }
 
     public saveToDeviceBatches(batches: ToDeviceBatchWithTxnId[]): Promise<void> {
@@ -467,6 +493,46 @@ export class MemoryStore implements IStore {
     public removeToDeviceBatch(id: number): Promise<void> {
         this.pendingToDeviceBatches = this.pendingToDeviceBatches.filter((batch) => batch.id !== id);
         return Promise.resolve();
+    }
+
+    /**
+     * 返回 store 缓存统计快照，对齐后端 `CacheStats`。
+     *
+     * `totalEntries` 与 `memoryUsageBytes` 在此实时重算（而非每次写路径维护），
+     * 保证与集合当前实际状态一致；`hits/misses/evictions` 来自无锁计数。
+     */
+    public getStats(): StoreStats {
+        const totalEntries =
+            Object.keys(this.rooms).length +
+            Object.keys(this.users).length +
+            this.accountData.size +
+            this.oobMembers.size +
+            Object.keys(this.pendingEvents).length +
+            this.pendingToDeviceBatches.length;
+        this.stats.setTotalEntries(totalEntries);
+        this.stats.setMemoryUsageBytes(this.estimateMemoryUsageBytes());
+        return this.stats.snapshot();
+    }
+
+    /**
+     * 估算内存占用字节。仅 advisory，用于对齐后端 `memory_usage_bytes` 指标，
+     * 不参与淘汰决策（见文件顶部估算常量说明）。
+     */
+    private estimateMemoryUsageBytes(): number {
+        const roomCount = Object.keys(this.rooms).length;
+        const userCount = Object.keys(this.users).length;
+        const oobCount = this.oobMembers.size;
+        const accountDataCount = this.accountData.size;
+        const pendingCount = Object.values(this.pendingEvents).reduce((n, events) => n + events.length, 0);
+        const toDeviceCount = this.pendingToDeviceBatches.length;
+        return (
+            roomCount * ESTIMATED_ROOM_BYTES +
+            userCount * ESTIMATED_USER_BYTES +
+            oobCount * ESTIMATED_OOB_MEMBER_BYTES +
+            accountDataCount * ESTIMATED_ACCOUNT_DATA_BYTES +
+            pendingCount * ESTIMATED_EVENT_BYTES +
+            toDeviceCount * ESTIMATED_TO_DEVICE_BYTES
+        );
     }
 
     public async destroy(): Promise<void> {
