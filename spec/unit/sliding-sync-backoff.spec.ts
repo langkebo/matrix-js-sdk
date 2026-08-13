@@ -59,6 +59,7 @@ describe("SlidingSync exponential backoff", () => {
         mockSlidingSync = vi.fn();
         client = {
             slidingSync: mockSlidingSync,
+            makeTxnId: vi.fn(() => "txn-mock"),
         } as unknown as MatrixClient;
         slidingSync = new SlidingSync("http://localhost:28008", new Map(), {}, client, 1);
     });

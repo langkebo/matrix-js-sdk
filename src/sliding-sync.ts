@@ -650,10 +650,26 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
         // Initialize from persisted pos (if set via setInitialPos) for incremental sync.
         // If the server rejects this pos (400), the resetup logic below will clear it.
         let currentPos: string | undefined = this.initialPos;
+        // MSC4186: txn_id idempotency. The server caches the response under
+        // (user, device, txn_id) and replays it on retry. To benefit from this,
+        // we reuse the same txn_id when retrying a request for the same pos
+        // (e.g. after a network error) and rotate to a new txn_id once a
+        // successful response advances the pos.
+        let currentTxnId: string | undefined;
+        let lastRequestedPos: string | undefined;
+        let hasRequestedOnce = false;
         while (!this.terminated) {
             this.needsResend = false;
             let resp: MSC3575SlidingSyncResponse | undefined;
             try {
+                // Rotate txn_id only when starting a genuinely new request —
+                // i.e. the pos changed since the last attempt, or this is the
+                // very first attempt. A retry for the same pos reuses the id.
+                if (!hasRequestedOnce || currentPos !== lastRequestedPos) {
+                    currentTxnId = this.client.makeTxnId();
+                    lastRequestedPos = currentPos;
+                    hasRequestedOnce = true;
+                }
                 const reqLists: Record<string, MSC3575List> = {};
                 this.lists.forEach((l: SlidingList, key: string) => {
                     reqLists[key] = l.getList(true);
@@ -661,6 +677,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 const reqBody: MSC3575SlidingSyncRequest = {
                     lists: reqLists,
                     pos: currentPos,
+                    txn_id: currentTxnId,
                     timeout: this.timeoutMS,
                     clientTimeout: this.timeoutMS + BUFFER_PERIOD_MS,
                     extensions: await this.getExtensionRequest(currentPos === undefined),
