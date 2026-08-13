@@ -86,18 +86,21 @@ export function getTtlSeconds(type: StoreDataType): number {
         case StoreDataType.ToDeviceQueue:
             return CacheTtl.TO_DEVICE_QUEUE;
         default: {
-            // 防御：未知类型默认对齐 room 档（保守 15min）。
-            return CacheTtl.ROOM;
+            // 编译期穷尽检查：新增枚举值而未补 case 会在这里报错，
+            // 避免静默 fallback 到错误的 TTL 档。
+            const _exhaustive: never = type;
+            return _exhaustive;
         }
     }
 }
 
 /**
- * 返回指定数据类型的 TTL（毫秒）。持久类型返回 {@link TTL_PERSISTENT}。
+ * 返回指定数据类型的 TTL（毫秒）。持久类型返回 `Infinity`（而非负数哨兵），
+ * 保证任何 `now - createdAt > ttlMs` 形式的判断都不会把持久数据误判为已过期。
  */
 export function getTtlMs(type: StoreDataType): number {
     const seconds = getTtlSeconds(type);
-    return seconds === TTL_PERSISTENT ? TTL_PERSISTENT : seconds * 1000;
+    return seconds === TTL_PERSISTENT ? Infinity : seconds * 1000;
 }
 
 /**

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { MemoryStore } from "../../../src/store/memory";
 import { User } from "../../../src/models/user";
@@ -56,6 +56,33 @@ describe("LruMap", () => {
         expect(m.has("b")).toBe(false);
         expect(m.has("c")).toBe(true);
         expect(m.has("d")).toBe(true);
+    });
+
+    it("TTL 过期后 get 返回 undefined 并触发 onEvict", () => {
+        vi.useFakeTimers();
+        try {
+            const evicted: string[] = [];
+            const m = new LruMap<string, number>(3, (key) => evicted.push(key), 900); // 900s TTL
+            m.set("a", 1);
+            expect(m.get("a")).toBe(1); // 未过期
+            vi.advanceTimersByTime(901_000);
+            expect(m.get("a")).toBeUndefined(); // 已过期
+            expect(evicted).toEqual(["a"]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("默认无 TTL（持久），永不过期", () => {
+        vi.useFakeTimers();
+        try {
+            const m = new LruMap<string, number>(3);
+            m.set("a", 1);
+            vi.advanceTimersByTime(10_000_000);
+            expect(m.get("a")).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
 
@@ -139,5 +166,47 @@ describe("MemoryStore 缓存统计集成", () => {
         }
         expect(store.getStats().totalEntries).toBe(2);
         expect(store.getStats().evictions).toBe(2);
+    });
+
+    it("user 超出 maxUsers 时 LRU 淘汰", () => {
+        const store = new MemoryStore({ capacity: { maxUsers: 2 } });
+        store.storeUser(new User("@alice:server"));
+        store.storeUser(new User("@bob:server"));
+        store.storeUser(new User("@carol:server")); // 超出 → 淘汰 alice
+        expect(store.getUser("@alice:server")).toBeNull();
+        expect(store.getUser("@carol:server")).not.toBeNull();
+        expect(store.getStats().evictions).toBe(1);
+    });
+
+    it("room 超出 maxRooms 时 LRU 淘汰", () => {
+        const store = new MemoryStore({ capacity: { maxRooms: 2 } });
+        const makeRoom = (id: string) =>
+            ({
+                roomId: id,
+                currentState: { on: () => {}, getMembers: () => [], removeListener: () => {} },
+            }) as any;
+        store.storeRoom(makeRoom("!r1:server"));
+        store.storeRoom(makeRoom("!r2:server"));
+        store.storeRoom(makeRoom("!r3:server")); // 超出 → 淘汰 r1
+        expect(store.getRoom("!r1:server")).toBeNull();
+        expect(store.getRoom("!r3:server")).not.toBeNull();
+        expect(store.getStats().evictions).toBe(1);
+    });
+
+    it("OOB 成员 900s 后过期淘汰（对齐 room_members）", async () => {
+        vi.useFakeTimers();
+        try {
+            const store = new MemoryStore();
+            await store.setOutOfBandMembers("!room:server", [
+                { type: "m.room.member", content: { membership: "join" } } as any,
+            ]);
+            expect(await store.getOutOfBandMembers("!room:server")).not.toBeNull(); // 未过期命中
+
+            vi.advanceTimersByTime(901_000); // 超过 900s
+            expect(await store.getOutOfBandMembers("!room:server")).toBeNull(); // 过期未命中
+            expect(store.getStats().evictions).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

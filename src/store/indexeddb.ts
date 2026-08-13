@@ -175,8 +175,12 @@ export class IndexedDBStore extends MemoryStore {
      * client state to where it was at the last save, or null if there
      * is no saved sync data.
      */
-    public getSavedSync = this.degradable((): Promise<ISavedSync | null> => {
-        return this.backend.getSavedSync();
+    public getSavedSync = this.degradable(async (): Promise<ISavedSync | null> => {
+        const saved = await this.backend.getSavedSync();
+        // 对齐 MemoryStore 的读路径埋点：sync 缓存命中/未命中计入统计。
+        if (saved === null) this.stats.recordMiss();
+        else this.stats.recordHit();
+        return saved;
     }, "getSavedSync");
 
     /** @returns whether or not the database was newly created in this session. */
@@ -188,8 +192,11 @@ export class IndexedDBStore extends MemoryStore {
      * @returns If there is a saved sync, the nextBatch token
      * for this sync, otherwise null.
      */
-    public getSavedSyncToken = this.degradable((): Promise<string | null> => {
-        return this.backend.getNextBatchToken();
+    public getSavedSyncToken = this.degradable(async (): Promise<string | null> => {
+        const token = await this.backend.getNextBatchToken();
+        if (token === null) this.stats.recordMiss();
+        else this.stats.recordHit();
+        return token;
     }, "getSavedSyncToken");
 
     /**
@@ -266,8 +273,12 @@ export class IndexedDBStore extends MemoryStore {
      * @returns the events, potentially an empty array if OOB loading didn't yield any new members
      * @returns in case the members for this room haven't been stored yet
      */
-    public getOutOfBandMembers = this.degradable((roomId: string): Promise<IStateEventWithRoomId[] | null> => {
-        return this.backend.getOutOfBandMembers(roomId);
+    public getOutOfBandMembers = this.degradable(async (roomId: string): Promise<IStateEventWithRoomId[] | null> => {
+        const members = await this.backend.getOutOfBandMembers(roomId);
+        // 对齐 MemoryStore 的读路径埋点：命中/未命中计入 store 统计。
+        if (members === null) this.stats.recordMiss();
+        else this.stats.recordHit();
+        return members;
     }, "getOutOfBandMembers");
 
     /**

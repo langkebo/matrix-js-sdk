@@ -36,6 +36,7 @@ import { MapWithDefault } from "../common/collections";
 import { KnownMembership } from "../@types/membership";
 import { StoreStatsCollector, type StoreStats } from "./stats";
 import { DEFAULT_STORE_CAPACITY, LruMap, type StoreCapacityConfig } from "./capacity";
+import { CacheTtl } from "./ttl";
 
 function isValidFilterId(filterId?: string | number | null): boolean {
     const isValidStr =
@@ -69,8 +70,8 @@ export interface IOpts {
 }
 
 export class MemoryStore implements IStore {
-    private rooms: Record<string, Room> = {}; // roomId: Room
-    private users: Record<string, User> = {}; // userId: User
+    private rooms: LruMap<string, Room>; // roomId: Room
+    private users: LruMap<string, User>; // userId: User
     private syncToken: string | null = null;
     // userId: {
     //    filterId: Filter
@@ -88,8 +89,8 @@ export class MemoryStore implements IStore {
     /** 整体容量预算（对齐后端 max_capacity + 分区容量）。 */
     private readonly capacity: StoreCapacityConfig;
 
-    /** 无锁统计收集器（对齐后端 AtomicCacheStats）。 */
-    private readonly stats = new StoreStatsCollector();
+    /** 无锁统计收集器（对齐后端 AtomicCacheStats）。protected 供子类埋点。 */
+    protected readonly stats = new StoreStatsCollector();
 
     /**
      * Construct a new in-memory data store for the Matrix Client.
@@ -98,9 +99,23 @@ export class MemoryStore implements IStore {
     public constructor(opts: IOpts = {}) {
         this.localStorage = opts.localStorage;
         this.capacity = { ...DEFAULT_STORE_CAPACITY, ...opts.capacity };
-        this.oobMembers = new LruMap<string, IStateEventWithRoomId[]>(this.capacity.maxOutOfBandMembersRooms, () => {
+
+        // room / user 为活跃会话数据（无兜底数据源），只做容量预算 + LRU 淘汰，
+        // 不做 TTL（避免误删活跃数据导致 UI 数据丢失）。
+        this.rooms = new LruMap<string, Room>(this.capacity.maxRooms, () => {
             this.stats.recordEvictions(1);
         });
+        this.users = new LruMap<string, User>(this.capacity.maxUsers, () => {
+            this.stats.recordEvictions(1);
+        });
+        // OOB 成员是「可重新拉取」的缓存，应用 room_members 900s TTL（对齐后端）。
+        this.oobMembers = new LruMap<string, IStateEventWithRoomId[]>(
+            this.capacity.maxOutOfBandMembersRooms,
+            () => {
+                this.stats.recordEvictions(1);
+            },
+            CacheTtl.ROOM_MEMBERS,
+        );
     }
 
     /**
@@ -129,7 +144,7 @@ export class MemoryStore implements IStore {
      * @param room - The room to be stored. All properties must be stored.
      */
     public storeRoom(room: Room): void {
-        this.rooms[room.roomId] = room;
+        this.rooms.set(room.roomId, room);
         // add listeners for room member changes so we can keep the room member
         // map up-to-date.
         room.currentState.on(RoomStateEvent.Members, this.onRoomMember);
@@ -154,7 +169,8 @@ export class MemoryStore implements IStore {
             return;
         }
 
-        const user = this.users[member.userId] || this.createUser?.(member.userId);
+        // createUser 在 storeRoom 之前已通过 setUserCreator 赋值，此处非空断言。
+        const user = this.users.get(member.userId) ?? this.createUser!(member.userId);
         if (member.name) {
             user.setDisplayName(member.name);
             if (member.events.member) {
@@ -164,7 +180,7 @@ export class MemoryStore implements IStore {
         if (member.events.member && member.events.member.getContent().avatar_url) {
             user.setAvatarUrl(member.events.member.getContent().avatar_url);
         }
-        this.users[user.userId] = user;
+        this.users.set(user.userId, user);
     };
 
     /**
@@ -173,10 +189,10 @@ export class MemoryStore implements IStore {
      * @returns The room or null.
      */
     public getRoom(roomId: string): Room | null {
-        const room = this.rooms[roomId];
+        const room = this.rooms.get(roomId);
         if (room) this.stats.recordHit();
         else this.stats.recordMiss();
-        return room || null;
+        return room ?? null;
     }
 
     /**
@@ -184,17 +200,18 @@ export class MemoryStore implements IStore {
      * @returns A list of rooms, which may be empty.
      */
     public getRooms(): Room[] {
-        return Object.values(this.rooms);
+        return Array.from(this.rooms.values());
     }
 
     /**
      * Permanently delete a room.
      */
     public removeRoom(roomId: string): void {
-        if (this.rooms[roomId]) {
-            this.rooms[roomId].currentState.removeListener(RoomStateEvent.Members, this.onRoomMember);
+        const room = this.rooms.get(roomId);
+        if (room) {
+            room.currentState.removeListener(RoomStateEvent.Members, this.onRoomMember);
         }
-        delete this.rooms[roomId];
+        this.rooms.delete(roomId);
     }
 
     /**
@@ -202,7 +219,7 @@ export class MemoryStore implements IStore {
      * @returns A summary of each room.
      */
     public getRoomSummaries(): RoomSummary[] {
-        return Object.values(this.rooms).map(function (room) {
+        return Array.from(this.rooms.values()).map(function (room) {
             return room.summary!;
         });
     }
@@ -212,7 +229,7 @@ export class MemoryStore implements IStore {
      * @param user - The user to store.
      */
     public storeUser(user: User): void {
-        this.users[user.userId] = user;
+        this.users.set(user.userId, user);
     }
 
     /**
@@ -221,10 +238,10 @@ export class MemoryStore implements IStore {
      * @returns The user or null.
      */
     public getUser(userId: string): User | null {
-        const user = this.users[userId];
+        const user = this.users.get(userId);
         if (user) this.stats.recordHit();
         else this.stats.recordMiss();
-        return user || null;
+        return user ?? null;
     }
 
     /**
@@ -232,7 +249,7 @@ export class MemoryStore implements IStore {
      * @returns A list of users, which may be empty.
      */
     public getUsers(): User[] {
-        return Object.values(this.users);
+        return Array.from(this.users.values());
     }
 
     /**
@@ -401,12 +418,8 @@ export class MemoryStore implements IStore {
      * @returns An immediately resolved promise.
      */
     public deleteAllData(): Promise<void> {
-        this.rooms = {
-            // roomId: Room
-        };
-        this.users = {
-            // userId: User
-        };
+        this.rooms.clear();
+        this.users.clear();
         this.syncToken = null;
         this.filters = new MapWithDefault(() => new Map());
         this.accountData = new Map(); // type : content
@@ -503,8 +516,8 @@ export class MemoryStore implements IStore {
      */
     public getStats(): StoreStats {
         const totalEntries =
-            Object.keys(this.rooms).length +
-            Object.keys(this.users).length +
+            this.rooms.size +
+            this.users.size +
             this.accountData.size +
             this.oobMembers.size +
             Object.keys(this.pendingEvents).length +
@@ -519,8 +532,8 @@ export class MemoryStore implements IStore {
      * 不参与淘汰决策（见文件顶部估算常量说明）。
      */
     private estimateMemoryUsageBytes(): number {
-        const roomCount = Object.keys(this.rooms).length;
-        const userCount = Object.keys(this.users).length;
+        const roomCount = this.rooms.size;
+        const userCount = this.users.size;
         const oobCount = this.oobMembers.size;
         const accountDataCount = this.accountData.size;
         const pendingCount = Object.values(this.pendingEvents).reduce((n, events) => n + events.length, 0);

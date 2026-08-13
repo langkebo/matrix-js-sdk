@@ -37,12 +37,14 @@ describe("CacheTtl (对齐后端 synapse-cache CacheTtl)", () => {
     it("sync token 持久不 TTL", () => {
         expect(CacheTtl.SYNC_TOKEN).toBe(TTL_PERSISTENT);
         expect(getTtlSeconds(StoreDataType.SyncToken)).toBe(TTL_PERSISTENT);
-        expect(getTtlMs(StoreDataType.SyncToken)).toBe(TTL_PERSISTENT);
+        // 毫秒档返回 Infinity（而非负数哨兵），避免任何 `now - createdAt > ttlMs` 误判过期。
+        expect(getTtlMs(StoreDataType.SyncToken)).toBe(Infinity);
     });
 
     it("to_device 队列持久不 TTL", () => {
         expect(CacheTtl.TO_DEVICE_QUEUE).toBe(TTL_PERSISTENT);
         expect(getTtlSeconds(StoreDataType.ToDeviceQueue)).toBe(TTL_PERSISTENT);
+        expect(getTtlMs(StoreDataType.ToDeviceQueue)).toBe(Infinity);
     });
 });
 

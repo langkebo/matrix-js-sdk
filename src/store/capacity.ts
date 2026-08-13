@@ -22,6 +22,8 @@ limitations under the License.
  * 容量预算，并用通用的 {@link LruMap} 做 LRU 淘汰，淘汰事件可回传统计层。
  */
 
+import { isTtlExpired, TTL_PERSISTENT } from "./ttl";
+
 /**
  * store 整体容量预算。各字段含义与默认值：
  *
@@ -54,24 +56,32 @@ export const DEFAULT_STORE_CAPACITY: StoreCapacityConfig = {
 };
 
 /**
- * 泛化的有界 LRU Map。
+ * 泛化的有界 LRU Map，支持可选的分级 TTL。
  *
  * 在 `Map` 插入顺序的基础上实现容量预算 + LRU 淘汰：容量耗尽时淘汰最久未访问
- * 的条目（`Map` 首元素），并通过 `onEvict` 回调上报淘汰事件。它是原先 store 内
- * 手写的「`Map` 首键删除」LRU 逻辑的通用化，供 OOB 成员等集合复用。
+ * 的条目（`Map` 首元素），并通过 `onEvict` 回调上报淘汰事件。当传入 `ttlSeconds`
+ * 时，读取命中会先判活（对齐后端 `CacheEntry::is_expired`），过期条目懒清理并同样
+ * 上报淘汰。它是原先 store 内手写的「`Map` 首键删除」LRU 逻辑的通用化，供 OOB 成员、
+ * room、user 等集合复用。
+ *
+ * 淘汰事件分两类，均计入统计层的 `evictions`（对齐后端：容量淘汰与过期清理都
+ * `record_evictions`）。`delete`/`clear` 属于手动删除，不触发 `onEvict`。
  */
 export class LruMap<K, V> {
-    private readonly map = new Map<K, V>();
+    private readonly map = new Map<K, Entry<V>>();
     private readonly capacity: number;
+    private readonly ttlSeconds: number;
     private readonly onEvict?: (key: K, value: V) => void;
 
     /**
      * @param capacity - 容量上限。
-     * @param onEvict - 可选淘汰回调，在条目因容量不足被淘汰时触发。
+     * @param onEvict - 可选淘汰回调，在条目因容量不足或 TTL 过期被淘汰时触发。
+     * @param ttlSeconds - 可选 TTL（秒）；等于 {@link TTL_PERSISTENT}（默认）时永不因时间过期。
      */
-    public constructor(capacity: number, onEvict?: (key: K, value: V) => void) {
+    public constructor(capacity: number, onEvict?: (key: K, value: V) => void, ttlSeconds: number = TTL_PERSISTENT) {
         this.capacity = capacity;
         this.onEvict = onEvict;
+        this.ttlSeconds = ttlSeconds;
     }
 
     /** 当前条目数。 */
@@ -80,17 +90,23 @@ export class LruMap<K, V> {
     }
 
     /**
-     * 读取并「触摸」条目（移到 LRU 末尾）。
-     * @returns 值，不存在时为 `undefined`。
+     * 读取并「触摸」条目（移到 LRU 末尾）。命中但已过期的条目会被惰性淘汰。
+     * @returns 值，不存在或已过期时为 `undefined`。
      */
     public get(key: K): V | undefined {
-        const value = this.map.get(key);
-        if (value !== undefined) {
-            // 命中即视为最近使用，移到末尾。
+        const entry = this.map.get(key);
+        if (entry === undefined) return undefined;
+
+        if (isTtlExpired(entry.createdAtMs, this.ttlSeconds)) {
             this.map.delete(key);
-            this.map.set(key, value);
+            this.onEvict?.(key, entry.value);
+            return undefined;
         }
-        return value;
+
+        // 命中即视为最近使用，移到末尾。
+        this.map.delete(key);
+        this.map.set(key, entry);
+        return entry.value;
     }
 
     /**
@@ -103,14 +119,14 @@ export class LruMap<K, V> {
         } else if (this.map.size >= this.capacity) {
             const oldestKey = this.map.keys().next().value;
             if (oldestKey !== undefined) {
-                const oldestValue = this.map.get(oldestKey);
+                const oldestEntry = this.map.get(oldestKey);
                 this.map.delete(oldestKey);
-                if (oldestValue !== undefined) {
-                    this.onEvict?.(oldestKey, oldestValue);
+                if (oldestEntry !== undefined) {
+                    this.onEvict?.(oldestKey, oldestEntry.value);
                 }
             }
         }
-        this.map.set(key, value);
+        this.map.set(key, { value, createdAtMs: Date.now() });
         return this;
     }
 
@@ -130,12 +146,19 @@ export class LruMap<K, V> {
     }
 
     /** 值迭代器（插入顺序）。 */
-    public values(): IterableIterator<V> {
-        return this.map.values();
+    public *values(): IterableIterator<V> {
+        for (const entry of this.map.values()) {
+            yield entry.value;
+        }
     }
 
     /** 清空。 */
     public clear(): void {
         this.map.clear();
     }
+}
+
+interface Entry<V> {
+    value: V;
+    createdAtMs: number;
 }
