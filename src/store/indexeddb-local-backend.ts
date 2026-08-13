@@ -23,6 +23,7 @@ import { type IStateEventWithRoomId, type IStoredClientOpts } from "../matrix";
 import { type ISavedSync } from "./index";
 import { type IIndexedDBBackend, type UserTuple } from "./indexeddb-backend";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
+import { CacheTtl } from "./ttl";
 
 type DbMigration = (db: IDBDatabase) => void;
 const DB_MIGRATIONS: DbMigration[] = [
@@ -48,6 +49,12 @@ const DB_MIGRATIONS: DbMigration[] = [
     },
     (db): void => {
         db.createObjectStore("to_device_queue", { autoIncrement: true });
+    },
+    (db): void => {
+        // per-key deadline 表，对齐后端「per-key deadline 表」思路：
+        // key 为缓存的逻辑名（如 "sync"、"presence:<userId>"），值为绝对过期时间戳。
+        // 用于 sync 快照 staleness 与 presence profile 的分级 TTL 过期清理。
+        db.createObjectStore("expiry", { keyPath: "key" });
     },
     // Expand as needed.
 ];
@@ -443,13 +450,18 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
     private persistSyncData(nextBatch: string, roomsData: ISyncResponse["rooms"]): Promise<void> {
         logger.log("Persisting sync data up to", nextBatch);
         return promiseTry<void>(() => {
-            const txn = this.db!.transaction(["sync"], "readwrite");
+            const txn = this.db!.transaction(["sync", "expiry"], "readwrite");
             const store = txn.objectStore("sync");
             store.put({
                 clobber: "-", // constant key so will always clobber
                 nextBatch,
                 roomsData,
             }); // put == UPSERT
+            // 记录 sync 快照 staleness deadline（对齐后端 per-key deadline 表）。
+            txn.objectStore("expiry").put({
+                key: "sync",
+                deadlineMs: Date.now() + CacheTtl.SYNC_SNAPSHOT * 1000,
+            });
             return txnAsPromise(txn).then(() => {
                 logger.log("Persisted sync data up to", nextBatch);
             });
@@ -483,13 +495,17 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
      */
     private persistUserPresenceEvents(tuples: UserTuple[]): Promise<void> {
         return promiseTry<void>(() => {
-            const txn = this.db!.transaction(["users"], "readwrite");
+            const txn = this.db!.transaction(["users", "expiry"], "readwrite");
             const store = txn.objectStore("users");
+            const expiryStore = txn.objectStore("expiry");
+            // presence 属易失数据，应用 profile 3600s TTL（对齐后端 user_profile）。
+            const deadlineMs = Date.now() + CacheTtl.USER_PROFILE * 1000;
             for (const tuple of tuples) {
                 store.put({
                     userId: tuple[0],
                     event: tuple[1],
                 }); // put == UPSERT
+                expiryStore.put({ key: "presence:" + tuple[0], deadlineMs });
             }
             return txnAsPromise(txn).then();
         });
@@ -510,6 +526,17 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
             return selectQuery(store, undefined, (cursor) => {
                 return [cursor.value.userId, cursor.value.event];
             });
+        }).then(async (tuples) => {
+            // 过滤过期 presence（对齐后端 profile 3600s TTL）。
+            const now = Date.now();
+            const result: UserTuple[] = [];
+            for (const tuple of tuples) {
+                const deadline = await this.getExpiryDeadline("presence:" + tuple[0]);
+                if (deadline === undefined || now <= deadline) {
+                    result.push(tuple);
+                }
+            }
+            return result;
         });
     }
 
@@ -535,19 +562,40 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
      * Load the sync data from the database.
      * @returns An object with "roomsData" and "nextBatch" keys.
      */
-    private loadSyncData(): Promise<ISyncData> {
+    private async loadSyncData(): Promise<ISyncData> {
         logger.log(`LocalIndexedDBStoreBackend: loading sync data...`);
-        return promiseTry<ISyncData>(() => {
+        // 判活：sync 快照超过 staleness 阈值则整体丢弃（含 token），触发全量 /sync。
+        // 语义：token 的持久性 = 快照生命周期，二者不可拆分（见 ttl.ts CacheTtl.SYNC_SNAPSHOT）。
+        const deadline = await this.getExpiryDeadline("sync");
+        if (deadline !== undefined && Date.now() > deadline) {
+            logger.warn("loadSyncData: sync snapshot expired, discarding for full /sync");
+            return {} as ISyncData;
+        }
+
+        const results: ISyncData[] = await promiseTry(() => {
             const txn = this.db!.transaction(["sync"], "readonly");
             const store = txn.objectStore("sync");
             return selectQuery(store, undefined, (cursor) => {
                 return cursor.value;
-            }).then((results: ISyncData[]) => {
-                logger.log(`LocalIndexedDBStoreBackend: loaded sync data`);
-                if (results.length > 1) {
-                    logger.warn("loadSyncData: More than 1 sync row found.");
-                }
-                return results.length > 0 ? results[0] : ({} as ISyncData);
+            });
+        });
+        logger.log(`LocalIndexedDBStoreBackend: loaded sync data`);
+        if (results.length > 1) {
+            logger.warn("loadSyncData: More than 1 sync row found.");
+        }
+        return results.length > 0 ? results[0] : ({} as ISyncData);
+    }
+
+    /**
+     * 读取指定缓存 key 的过期时间戳（毫秒）。不存在时返回 undefined（视为持久）。
+     */
+    private getExpiryDeadline(key: string): Promise<number | undefined> {
+        return promiseTry(() => {
+            const txn = this.db!.transaction(["expiry"], "readonly");
+            const store = txn.objectStore("expiry");
+            return reqAsPromise(store.get(key)).then((req) => {
+                const row = req.result as { key: string; deadlineMs: number } | undefined;
+                return row?.deadlineMs;
             });
         });
     }

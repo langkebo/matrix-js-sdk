@@ -44,6 +44,8 @@ export enum StoreDataType {
     RoomMembers = "room_members",
     /** 用户 profile（对齐 user_profile 1h）。 */
     UserProfile = "user_profile",
+    /** sync 快照 staleness（区别于后端 room 独立缓存 TTL，见下）。 */
+    SyncSnapshot = "sync_snapshot",
     /** sync token —— 持久不 TTL。 */
     SyncToken = "sync_token",
     /** to_device 队列 —— 持久不 TTL。 */
@@ -63,6 +65,17 @@ export class CacheTtl {
     /** 用户 profile 3600s（1h，对齐 user_profile）。 */
     public static readonly USER_PROFILE = 3600;
 
+    /**
+     * sync 快照 staleness 阈值 86400s（24h）。
+     *
+     * 注意：后端 `room_events` 900s 是「独立 room 查询缓存」的 TTL（miss 后重查 DB）。
+     * 客户端 IndexedDBStore 持久化的不是独立 room 缓存，而是「增量 /sync 快照对」
+     * （roomsData + nextBatch），二者绑定。拆开 TTL 会破坏增量 sync 一致性，故此处
+     * 采用「快照整体 staleness」语义：快照写入超过该阈值未更新即视为不可信、整体丢弃
+     * 触发全量 /sync，token 跟随快照生命周期（不单独 TTL）。
+     */
+    public static readonly SYNC_SNAPSHOT = 24 * 3600;
+
     /** sync token —— 持久不 TTL。 */
     public static readonly SYNC_TOKEN = TTL_PERSISTENT;
 
@@ -81,6 +94,8 @@ export function getTtlSeconds(type: StoreDataType): number {
             return CacheTtl.ROOM_MEMBERS;
         case StoreDataType.UserProfile:
             return CacheTtl.USER_PROFILE;
+        case StoreDataType.SyncSnapshot:
+            return CacheTtl.SYNC_SNAPSHOT;
         case StoreDataType.SyncToken:
             return CacheTtl.SYNC_TOKEN;
         case StoreDataType.ToDeviceQueue:
