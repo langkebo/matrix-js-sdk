@@ -16,55 +16,64 @@ limitations under the License.
 
 import { describe, expect, it } from "vitest";
 
-import { CacheTtl, StoreDataType, TTL_PERSISTENT, getTtlMs, getTtlSeconds, isTtlExpired } from "../../../src/store/ttl";
+import {
+    CacheTtl,
+    TTL_PERSISTENT,
+    computeDeadlineMs,
+    defaultOobMembersTtl,
+    isDeadlineExpired,
+} from "../../../src/store/ttl";
 
 describe("CacheTtl (对齐后端 synapse-cache CacheTtl)", () => {
-    it("room 数据 TTL 为 900s（对齐 room_events/room_messages）", () => {
-        expect(CacheTtl.ROOM).toBe(900);
-        expect(getTtlSeconds(StoreDataType.Room)).toBe(900);
-    });
-
     it("room 成员 TTL 为 900s（对齐 room_members）", () => {
         expect(CacheTtl.ROOM_MEMBERS).toBe(900);
-        expect(getTtlSeconds(StoreDataType.RoomMembers)).toBe(900);
     });
 
     it("用户 profile TTL 为 3600s（对齐 user_profile）", () => {
         expect(CacheTtl.USER_PROFILE).toBe(3600);
-        expect(getTtlSeconds(StoreDataType.UserProfile)).toBe(3600);
     });
 
-    it("sync token 持久不 TTL", () => {
-        expect(CacheTtl.SYNC_TOKEN).toBe(TTL_PERSISTENT);
-        expect(getTtlSeconds(StoreDataType.SyncToken)).toBe(TTL_PERSISTENT);
-        // 毫秒档返回 Infinity（而非负数哨兵），避免任何 `now - createdAt > ttlMs` 误判过期。
-        expect(getTtlMs(StoreDataType.SyncToken)).toBe(Infinity);
-    });
-
-    it("to_device 队列持久不 TTL", () => {
-        expect(CacheTtl.TO_DEVICE_QUEUE).toBe(TTL_PERSISTENT);
-        expect(getTtlSeconds(StoreDataType.ToDeviceQueue)).toBe(TTL_PERSISTENT);
-        expect(getTtlMs(StoreDataType.ToDeviceQueue)).toBe(Infinity);
+    it("sync 快照 staleness 为 24h", () => {
+        expect(CacheTtl.SYNC_SNAPSHOT).toBe(24 * 3600);
     });
 });
 
-describe("getTtlMs / isTtlExpired", () => {
-    it("getTtlMs 将秒转换为毫秒", () => {
-        expect(getTtlMs(StoreDataType.Room)).toBe(900_000);
-        expect(getTtlMs(StoreDataType.UserProfile)).toBe(3_600_000);
-    });
-
-    it("持久 TTL 永不过期", () => {
-        expect(isTtlExpired(Date.now() - 10_000_000, TTL_PERSISTENT)).toBe(false);
-    });
-
-    it("超过 TTL 判定为过期", () => {
+describe("computeDeadlineMs（统一 deadline 语义）", () => {
+    it("正数 TTL 返回 now + ttl 毫秒", () => {
         const now = 1_000_000;
-        expect(isTtlExpired(now - 901_000, 900, now)).toBe(true); // 901s > 900s
+        expect(computeDeadlineMs(900, now)).toBe(now + 900_000);
     });
 
-    it("未超过 TTL 判定为未过期", () => {
-        const now = 1_000_000;
-        expect(isTtlExpired(now - 899_000, 900, now)).toBe(false); // 899s < 900s
+    it("TTL_PERSISTENT 返回 Infinity（持久不过期）", () => {
+        expect(computeDeadlineMs(TTL_PERSISTENT)).toBe(Infinity);
+    });
+
+    it("0 或负数返回 0（立即过期 / 禁用缓存）", () => {
+        expect(computeDeadlineMs(0)).toBe(0);
+        expect(computeDeadlineMs(-5)).toBe(0);
+    });
+});
+
+describe("isDeadlineExpired（统一 deadline 语义）", () => {
+    it("Infinity 持久不过期", () => {
+        expect(isDeadlineExpired(Infinity, Date.now())).toBe(false);
+    });
+
+    it("0 立即过期", () => {
+        expect(isDeadlineExpired(0, 1_000_000)).toBe(true);
+    });
+
+    it("超过 deadline 判定过期", () => {
+        expect(isDeadlineExpired(1_000_000, 1_000_001)).toBe(true);
+    });
+
+    it("未到 deadline 判定未过期", () => {
+        expect(isDeadlineExpired(1_000_000, 999_999)).toBe(false);
+    });
+});
+
+describe("defaultOobMembersTtl", () => {
+    it("默认所有房间统一 room_members 900s", () => {
+        expect(defaultOobMembersTtl("!any:server")).toBe(CacheTtl.ROOM_MEMBERS);
     });
 });

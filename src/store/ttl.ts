@@ -20,10 +20,16 @@ limitations under the License.
  *
  * 后端按数据类型分级设置缓存存活时间：presence 60s → token 300s →
  * room 900~1800s → profile 3600s。客户端 store 采纳其中与 SDK 数据分类
- * 对应的几档，并显式区分「持久不过期」的数据（sync token / to_device 队列），
- * 避免误删关键数据导致冷启动重复全量 /sync。
+ * 对应的几档，并显式区分「持久不过期」的数据（sync token / to_device 队列，
+ * 不写 deadline 即持久），避免误删关键数据导致冷启动重复全量 /sync。
  *
  * TTL 单位：秒（与后端 `Duration::from_secs` 一致）。
+ *
+ * **统一 deadline 语义**：所有 TTL 先经 {@link computeDeadlineMs} 归一为「绝对过期
+ * 时间戳（毫秒）」，再用 {@link isDeadlineExpired} 判活。约定：
+ * - `Infinity`：持久不过期（对应 {@link TTL_PERSISTENT} 或「不写 deadline」）；
+ * - `0`：立即过期（等价「禁用缓存」，每次读都 miss）；
+ * - 正数时间戳：到期即过期。
  */
 
 /**
@@ -34,31 +40,9 @@ limitations under the License.
 export const TTL_PERSISTENT = -1;
 
 /**
- * store 数据分类，与后端缓存数据分类（user_profile / room_info / room_members /
- * room_events / token）对应，用于选择分级 TTL。
- */
-export enum StoreDataType {
-    /** room 数据（对齐 room_events / room_messages 15min）。 */
-    Room = "room",
-    /** room 成员数据（对齐 room_members 15min）。 */
-    RoomMembers = "room_members",
-    /** 用户 profile（对齐 user_profile 1h）。 */
-    UserProfile = "user_profile",
-    /** sync 快照 staleness（区别于后端 room 独立缓存 TTL，见下）。 */
-    SyncSnapshot = "sync_snapshot",
-    /** sync token —— 持久不 TTL。 */
-    SyncToken = "sync_token",
-    /** to_device 队列 —— 持久不 TTL。 */
-    ToDeviceQueue = "to_device_queue",
-}
-
-/**
  * 分级 TTL 常量表，对齐后端 `CacheTtl`（单位：秒）。
  */
 export class CacheTtl {
-    /** room 数据 900s（15min，对齐 room_events / room_messages）。 */
-    public static readonly ROOM = 900;
-
     /** room 成员 900s（15min，对齐 room_members）。 */
     public static readonly ROOM_MEMBERS = 900;
 
@@ -75,60 +59,6 @@ export class CacheTtl {
      * 触发全量 /sync，token 跟随快照生命周期（不单独 TTL）。
      */
     public static readonly SYNC_SNAPSHOT = 24 * 3600;
-
-    /** sync token —— 持久不 TTL。 */
-    public static readonly SYNC_TOKEN = TTL_PERSISTENT;
-
-    /** to_device 队列 —— 持久不 TTL。 */
-    public static readonly TO_DEVICE_QUEUE = TTL_PERSISTENT;
-}
-
-/**
- * 返回指定数据类型的 TTL（秒）。持久类型返回 {@link TTL_PERSISTENT}。
- */
-export function getTtlSeconds(type: StoreDataType): number {
-    switch (type) {
-        case StoreDataType.Room:
-            return CacheTtl.ROOM;
-        case StoreDataType.RoomMembers:
-            return CacheTtl.ROOM_MEMBERS;
-        case StoreDataType.UserProfile:
-            return CacheTtl.USER_PROFILE;
-        case StoreDataType.SyncSnapshot:
-            return CacheTtl.SYNC_SNAPSHOT;
-        case StoreDataType.SyncToken:
-            return CacheTtl.SYNC_TOKEN;
-        case StoreDataType.ToDeviceQueue:
-            return CacheTtl.TO_DEVICE_QUEUE;
-        default: {
-            // 编译期穷尽检查：新增枚举值而未补 case 会在这里报错，
-            // 避免静默 fallback 到错误的 TTL 档。
-            const _exhaustive: never = type;
-            return _exhaustive;
-        }
-    }
-}
-
-/**
- * 返回指定数据类型的 TTL（毫秒）。持久类型返回 `Infinity`（而非负数哨兵），
- * 保证任何 `now - createdAt > ttlMs` 形式的判断都不会把持久数据误判为已过期。
- */
-export function getTtlMs(type: StoreDataType): number {
-    const seconds = getTtlSeconds(type);
-    return seconds === TTL_PERSISTENT ? Infinity : seconds * 1000;
-}
-
-/**
- * 判断某条记录是否已过期。
- *
- * @param createdAtMs - 记录创建时间（毫秒时间戳）。
- * @param ttlSeconds - TTL（秒）；等于 {@link TTL_PERSISTENT} 时永不过期。
- * @param nowMs - 当前时间（毫秒时间戳），默认 `Date.now()`。
- * @returns 是否已过期。
- */
-export function isTtlExpired(createdAtMs: number, ttlSeconds: number, nowMs: number = Date.now()): boolean {
-    if (ttlSeconds === TTL_PERSISTENT) return false;
-    return nowMs - createdAtMs > ttlSeconds * 1000;
 }
 
 /**
@@ -142,6 +72,13 @@ export function computeDeadlineMs(ttlSeconds: number, nowMs: number = Date.now()
     if (ttlSeconds === TTL_PERSISTENT) return Infinity;
     if (ttlSeconds <= 0) return 0;
     return nowMs + ttlSeconds * 1000;
+}
+
+/**
+ * 判断绝对过期时间戳是否已过期。`Infinity` 持久不过期，`0` 立即过期。
+ */
+export function isDeadlineExpired(deadlineMs: number, nowMs: number = Date.now()): boolean {
+    return deadlineMs !== Infinity && nowMs > deadlineMs;
 }
 
 /**

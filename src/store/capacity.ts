@@ -22,7 +22,7 @@ limitations under the License.
  * 容量预算，并用通用的 {@link LruMap} 做 LRU 淘汰，淘汰事件可回传统计层。
  */
 
-import { computeDeadlineMs, TTL_PERSISTENT } from "./ttl";
+import { computeDeadlineMs, isDeadlineExpired, TTL_PERSISTENT } from "./ttl";
 
 /**
  * store 整体容量预算。各字段含义与默认值：
@@ -164,11 +164,4 @@ interface Entry<V> {
     value: V;
     /** 绝对过期时间戳（毫秒）。`Infinity` 持久；`0` 立即过期（禁用缓存）。 */
     deadlineMs: number;
-}
-
-/**
- * 判断绝对过期时间戳是否已过期（`Infinity` 持久不过期）。
- */
-function isDeadlineExpired(deadlineMs: number, nowMs: number = Date.now()): boolean {
-    return deadlineMs !== Infinity && nowMs > deadlineMs;
 }
