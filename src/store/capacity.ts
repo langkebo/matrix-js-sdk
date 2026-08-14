@@ -22,7 +22,7 @@ limitations under the License.
  * 容量预算，并用通用的 {@link LruMap} 做 LRU 淘汰，淘汰事件可回传统计层。
  */
 
-import { isTtlExpired, TTL_PERSISTENT } from "./ttl";
+import { computeDeadlineMs, TTL_PERSISTENT } from "./ttl";
 
 /**
  * store 整体容量预算。各字段含义与默认值：
@@ -76,7 +76,8 @@ export class LruMap<K, V> {
     /**
      * @param capacity - 容量上限。
      * @param onEvict - 可选淘汰回调，在条目因容量不足或 TTL 过期被淘汰时触发。
-     * @param ttlSeconds - 可选 TTL（秒）；等于 {@link TTL_PERSISTENT}（默认）时永不因时间过期。
+     * @param ttlSeconds - 默认 TTL（秒）；等于 {@link TTL_PERSISTENT}（默认）时永不因时间过期。
+     *                     单个条目的 `set` 可通过第三个参数覆盖此默认值（用于 per-key 动态 TTL）。
      */
     public constructor(capacity: number, onEvict?: (key: K, value: V) => void, ttlSeconds: number = TTL_PERSISTENT) {
         this.capacity = capacity;
@@ -97,7 +98,7 @@ export class LruMap<K, V> {
         const entry = this.map.get(key);
         if (entry === undefined) return undefined;
 
-        if (isTtlExpired(entry.createdAtMs, this.ttlSeconds)) {
+        if (isDeadlineExpired(entry.deadlineMs)) {
             this.map.delete(key);
             this.onEvict?.(key, entry.value);
             return undefined;
@@ -111,9 +112,10 @@ export class LruMap<K, V> {
 
     /**
      * 写入条目。容量耗尽时先淘汰最久未访问的条目。
+     * @param ttlSeconds - 可选 per-entry TTL（秒），覆盖构造时的默认 TTL。
      * @returns 自身，便于链式调用。
      */
-    public set(key: K, value: V): this {
+    public set(key: K, value: V, ttlSeconds?: number): this {
         if (this.map.has(key)) {
             this.map.delete(key);
         } else if (this.map.size >= this.capacity) {
@@ -126,7 +128,7 @@ export class LruMap<K, V> {
                 }
             }
         }
-        this.map.set(key, { value, createdAtMs: Date.now() });
+        this.map.set(key, { value, deadlineMs: computeDeadlineMs(ttlSeconds ?? this.ttlSeconds) });
         return this;
     }
 
@@ -160,5 +162,13 @@ export class LruMap<K, V> {
 
 interface Entry<V> {
     value: V;
-    createdAtMs: number;
+    /** 绝对过期时间戳（毫秒）。`Infinity` 持久；`0` 立即过期（禁用缓存）。 */
+    deadlineMs: number;
+}
+
+/**
+ * 判断绝对过期时间戳是否已过期（`Infinity` 持久不过期）。
+ */
+function isDeadlineExpired(deadlineMs: number, nowMs: number = Date.now()): boolean {
+    return deadlineMs !== Infinity && nowMs > deadlineMs;
 }

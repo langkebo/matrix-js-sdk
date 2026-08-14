@@ -291,7 +291,8 @@ export class IndexedDBStore extends MemoryStore {
     public setOutOfBandMembers = this.degradable(
         (roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> => {
             super.setOutOfBandMembers(roomId, membershipEvents);
-            return this.backend.setOutOfBandMembers(roomId, membershipEvents);
+            // TTL 按 roomId 动态解析（对齐 MemoryStore），传给 backend 记录 deadline。
+            return this.backend.setOutOfBandMembers(roomId, membershipEvents, this.oobMembersTtl(roomId));
         },
         "setOutOfBandMembers",
     );

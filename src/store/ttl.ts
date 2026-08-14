@@ -130,3 +130,34 @@ export function isTtlExpired(createdAtMs: number, ttlSeconds: number, nowMs: num
     if (ttlSeconds === TTL_PERSISTENT) return false;
     return nowMs - createdAtMs > ttlSeconds * 1000;
 }
+
+/**
+ * 计算绝对过期时间戳（毫秒）。
+ *
+ * - `ttlSeconds === TTL_PERSISTENT`：返回 `Infinity`（持久不过期）。
+ * - `ttlSeconds <= 0`：返回 `0`（立即过期，等价于「禁用缓存」——写入后每次读都 miss）。
+ * - 否则返回 `nowMs + ttlSeconds * 1000`。
+ */
+export function computeDeadlineMs(ttlSeconds: number, nowMs: number = Date.now()): number {
+    if (ttlSeconds === TTL_PERSISTENT) return Infinity;
+    if (ttlSeconds <= 0) return 0;
+    return nowMs + ttlSeconds * 1000;
+}
+
+/**
+ * OOB 成员 TTL 解析器：按 roomId 动态返回 TTL（秒）。
+ *
+ * 允许调用方按房间类型差异化设置缓存存活时间，例如：
+ * - 静态房间：`CacheTtl.ROOM_MEMBERS`（900s）；
+ * - 动态房间（成员频繁变化）：`60` 或 `0`（禁用缓存，每次读都触发重新拉取）。
+ *
+ * @returns TTL 秒数。`TTL_PERSISTENT`（-1）持久；`0` 禁用缓存；正数为 TTL 秒。
+ */
+export type OobMembersTtlProvider = (roomId: string) => number;
+
+/**
+ * 默认 OOB 成员 TTL：所有房间统一 room_members 900s（静态语义）。
+ */
+export function defaultOobMembersTtl(_roomId: string): number {
+    return CacheTtl.ROOM_MEMBERS;
+}

@@ -107,7 +107,11 @@ export class IndexedDBStoreWorker {
                 prom = this.backend?.clearOutOfBandMembers(msg.args[0] as string);
                 break;
             case "setOutOfBandMembers":
-                prom = this.backend?.setOutOfBandMembers(msg.args[0] as string, msg.args[1] as IStateEventWithRoomId[]);
+                prom = this.backend?.setOutOfBandMembers(
+                    msg.args[0] as string,
+                    msg.args[1] as IStateEventWithRoomId[],
+                    msg.args[2] as number,
+                );
                 break;
             case "getClientOptions":
                 prom = this.backend?.getClientOptions();

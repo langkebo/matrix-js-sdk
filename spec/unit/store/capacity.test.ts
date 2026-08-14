@@ -19,6 +19,7 @@ import { describe, expect, it, vi } from "vitest";
 import { MemoryStore } from "../../../src/store/memory";
 import { User } from "../../../src/models/user";
 import { DEFAULT_STORE_CAPACITY, LruMap } from "../../../src/store/capacity";
+import { CacheTtl } from "../../../src/store/ttl";
 
 describe("LruMap", () => {
     it("set/get/has/size 基础行为", () => {
@@ -205,6 +206,38 @@ describe("MemoryStore 缓存统计集成", () => {
             vi.advanceTimersByTime(901_000); // 超过 900s
             expect(await store.getOutOfBandMembers("!room:server")).toBeNull(); // 过期未命中
             expect(store.getStats().evictions).toBe(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("oobMembersTtl 按 roomId 动态设置 TTL（静态 900s / 动态 60s）", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        try {
+            const store = new MemoryStore({
+                oobMembersTtl: (roomId) => (roomId.startsWith("!dynamic") ? 60 : CacheTtl.ROOM_MEMBERS),
+            });
+            const member = { type: "m.room.member", content: { membership: "join" } } as any;
+            await store.setOutOfBandMembers("!dynamic:server", [member]);
+            await store.setOutOfBandMembers("!static:server", [member]);
+
+            // 推进 61s：动态房间过期、静态房间仍命中
+            vi.advanceTimersByTime(61_000);
+            expect(await store.getOutOfBandMembers("!dynamic:server")).toBeNull();
+            expect(await store.getOutOfBandMembers("!static:server")).not.toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("oobMembersTtl 返回 0 禁用缓存：写入后立即过期", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        try {
+            const store = new MemoryStore({ oobMembersTtl: () => 0 });
+            await store.setOutOfBandMembers("!room:server", [
+                { type: "m.room.member", content: { membership: "join" } } as any,
+            ]);
+            expect(await store.getOutOfBandMembers("!room:server")).toBeNull();
         } finally {
             vi.useRealTimers();
         }

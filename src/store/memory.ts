@@ -36,7 +36,7 @@ import { MapWithDefault } from "../common/collections";
 import { KnownMembership } from "../@types/membership";
 import { StoreStatsCollector, type StoreStats } from "./stats";
 import { DEFAULT_STORE_CAPACITY, LruMap, type StoreCapacityConfig } from "./capacity";
-import { CacheTtl } from "./ttl";
+import { defaultOobMembersTtl, type OobMembersTtlProvider } from "./ttl";
 
 function isValidFilterId(filterId?: string | number | null): boolean {
     const isValidStr =
@@ -67,6 +67,12 @@ export interface IOpts {
      * 可选容量预算覆盖项。未提供的字段回落到 {@link DEFAULT_STORE_CAPACITY}。
      */
     capacity?: Partial<StoreCapacityConfig>;
+    /**
+     * 可选 OOB 成员 TTL 解析器：按 roomId 动态返回 TTL（秒）。
+     * 未提供时回落到 {@link defaultOobMembersTtl}（统一 room_members 900s）。
+     * 返回 `TTL_PERSISTENT` 持久、`0` 禁用缓存、正数为 TTL 秒。
+     */
+    oobMembersTtl?: OobMembersTtlProvider;
 }
 
 export class MemoryStore implements IStore {
@@ -89,6 +95,9 @@ export class MemoryStore implements IStore {
     /** 整体容量预算（对齐后端 max_capacity + 分区容量）。 */
     private readonly capacity: StoreCapacityConfig;
 
+    /** OOB 成员 TTL 解析器（按 roomId 动态）。protected 供 IndexedDBStore 复用。 */
+    protected readonly oobMembersTtl: OobMembersTtlProvider;
+
     /** 无锁统计收集器（对齐后端 AtomicCacheStats）。protected 供子类埋点。 */
     protected readonly stats = new StoreStatsCollector();
 
@@ -99,6 +108,7 @@ export class MemoryStore implements IStore {
     public constructor(opts: IOpts = {}) {
         this.localStorage = opts.localStorage;
         this.capacity = { ...DEFAULT_STORE_CAPACITY, ...opts.capacity };
+        this.oobMembersTtl = opts.oobMembersTtl ?? defaultOobMembersTtl;
 
         // room / user 为活跃会话数据（无兜底数据源），只做容量预算 + LRU 淘汰，
         // 不做 TTL（避免误删活跃数据导致 UI 数据丢失）。
@@ -108,14 +118,10 @@ export class MemoryStore implements IStore {
         this.users = new LruMap<string, User>(this.capacity.maxUsers, () => {
             this.stats.recordEvictions(1);
         });
-        // OOB 成员是「可重新拉取」的缓存，应用 room_members 900s TTL（对齐后端）。
-        this.oobMembers = new LruMap<string, IStateEventWithRoomId[]>(
-            this.capacity.maxOutOfBandMembersRooms,
-            () => {
-                this.stats.recordEvictions(1);
-            },
-            CacheTtl.ROOM_MEMBERS,
-        );
+        // OOB 成员是「可重新拉取」的缓存，TTL 按 roomId 动态解析（默认 room_members 900s）。
+        this.oobMembers = new LruMap<string, IStateEventWithRoomId[]>(this.capacity.maxOutOfBandMembersRooms, () => {
+            this.stats.recordEvictions(1);
+        });
     }
 
     /**
@@ -456,8 +462,8 @@ export class MemoryStore implements IStore {
      */
     public setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
         // LruMap 内部做容量预算 + LRU 淘汰，超出上限时自动淘汰最久未访问条目，
-        // 并经 onEvict 回调上报统计。
-        this.oobMembers.set(roomId, membershipEvents);
+        // 并经 onEvict 回调上报统计。TTL 按 roomId 动态解析（per-entry）。
+        this.oobMembers.set(roomId, membershipEvents, this.oobMembersTtl(roomId));
         return Promise.resolve();
     }
 

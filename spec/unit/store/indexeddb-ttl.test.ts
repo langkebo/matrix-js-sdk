@@ -129,7 +129,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
-        await b1.setOutOfBandMembers("!r:server", [member as any]);
+        await b1.setOutOfBandMembers("!r:server", [member as any], CacheTtl.ROOM_MEMBERS);
         await b1.destroy();
 
         vi.advanceTimersByTime(CacheTtl.ROOM_MEMBERS * 1000 + 1000); // 超过 900s
@@ -152,7 +152,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
-        await b1.setOutOfBandMembers("!r:server", [member as any]);
+        await b1.setOutOfBandMembers("!r:server", [member as any], CacheTtl.ROOM_MEMBERS);
         await b1.destroy();
 
         vi.advanceTimersByTime(60_000); // 只过 1 分钟
@@ -162,6 +162,50 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         const members = await b2.getOutOfBandMembers("!r:server");
         expect(members).not.toBeNull();
         expect(members).toHaveLength(1);
+        await b2.destroy();
+    });
+
+    it("动态房间 OOB 成员 TTL 60s：超过 60s 即过期", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        const dbName = "ttl-oob-dynamic-" + Math.random().toString(36).slice(2);
+
+        const member = {
+            room_id: "!r:server",
+            state_key: "@u:server",
+            type: "m.room.member",
+            content: { membership: "join" },
+        };
+        const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b1.connect();
+        await b1.setOutOfBandMembers("!r:server", [member as any], 60); // 动态房间 60s
+        await b1.destroy();
+
+        vi.advanceTimersByTime(61_000); // 超过 60s
+
+        const b2 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b2.connect();
+        expect(await b2.getOutOfBandMembers("!r:server")).toBeNull();
+        await b2.destroy();
+    });
+
+    it("禁用缓存（TTL 0）：写入后立即过期", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        const dbName = "ttl-oob-disabled-" + Math.random().toString(36).slice(2);
+
+        const member = {
+            room_id: "!r:server",
+            state_key: "@u:server",
+            type: "m.room.member",
+            content: { membership: "join" },
+        };
+        const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b1.connect();
+        await b1.setOutOfBandMembers("!r:server", [member as any], 0); // 禁用缓存
+        await b1.destroy();
+
+        const b2 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
+        await b2.connect();
+        expect(await b2.getOutOfBandMembers("!r:server")).toBeNull();
         await b2.destroy();
     });
 });

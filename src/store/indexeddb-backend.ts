@@ -27,7 +27,7 @@ export interface IIndexedDBBackend {
     getNextBatchToken(): Promise<string>;
     clearDatabase(): Promise<void>;
     getOutOfBandMembers(roomId: string): Promise<IStateEventWithRoomId[] | null>;
-    setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void>;
+    setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[], ttlSeconds: number): Promise<void>;
     clearOutOfBandMembers(roomId: string): Promise<void>;
     getUserPresenceEvents(): Promise<UserTuple[]>;
     getClientOptions(): Promise<IStoredClientOpts | undefined>;

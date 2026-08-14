@@ -23,7 +23,7 @@ import { type IStateEventWithRoomId, type IStoredClientOpts } from "../matrix";
 import { type ISavedSync } from "./index";
 import { type IIndexedDBBackend, type UserTuple } from "./indexeddb-backend";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
-import { CacheTtl } from "./ttl";
+import { CacheTtl, computeDeadlineMs } from "./ttl";
 
 type DbMigration = (db: IDBDatabase) => void;
 const DB_MIGRATIONS: DbMigration[] = [
@@ -301,7 +301,11 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
      * marked as fetched, and getOutOfBandMembers will return an empty array instead of null
      * @param membershipEvents - the membership events to store
      */
-    public async setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
+    public async setOutOfBandMembers(
+        roomId: string,
+        membershipEvents: IStateEventWithRoomId[],
+        ttlSeconds: number,
+    ): Promise<void> {
         logger.log(`LL: backend about to store ${membershipEvents.length}` + ` members for ${roomId}`);
         const tx = this.db!.transaction(["oob_membership_events", "expiry"], "readwrite");
         const store = tx.objectStore("oob_membership_events");
@@ -319,10 +323,10 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
             state_key: 0,
         };
         store.put(markerObject);
-        // 记录 OOB 成员 deadline（对齐后端 room_members 900s），供读路径判活。
+        // 记录 OOB 成员 deadline（TTL 由调用方按 roomId 动态解析）。
         tx.objectStore("expiry").put({
             key: "oob:" + roomId,
-            deadlineMs: Date.now() + CacheTtl.ROOM_MEMBERS * 1000,
+            deadlineMs: computeDeadlineMs(ttlSeconds),
         });
         await txnAsPromise(tx);
         logger.log(`LL: backend done storing for ${roomId}!`);

@@ -109,8 +109,12 @@ export class RemoteIndexedDBStoreBackend implements IIndexedDBBackend {
      * @param membershipEvents - the membership events to store
      * @returns when all members have been stored
      */
-    public setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
-        return this.doCmd("setOutOfBandMembers", [roomId, membershipEvents]);
+    public setOutOfBandMembers(
+        roomId: string,
+        membershipEvents: IStateEventWithRoomId[],
+        ttlSeconds: number,
+    ): Promise<void> {
+        return this.doCmd("setOutOfBandMembers", [roomId, membershipEvents, ttlSeconds]);
     }
 
     public clearOutOfBandMembers(roomId: string): Promise<void> {
