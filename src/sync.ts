@@ -431,7 +431,8 @@ export class SyncApi {
             if (Array.isArray(response.presence)) {
                 this.processPresenceEvents(
                     response.presence.map(client.getEventMapper()),
-                    (presenceEvent) => presenceEvent.getContent<{ user_id?: string }>().user_id,
+                    (presenceEvent) =>
+                        presenceEvent.getContent<{ user_id?: string }>().user_id ?? presenceEvent.getSender(),
                 );
             }
 
@@ -1038,6 +1039,14 @@ export class SyncApi {
         if (err.errcode === "M_LIMIT_EXCEEDED") {
             delay = err.getRetryAfterMs() || 5000;
             this.syncOpts.logger.debug("Sync rate limited, waiting for %s ms", delay);
+        } else {
+            // 非限流错误（5xx/网络）也按 failedSyncCount 指数退避（base 1s，max 60s，
+            // 对齐 sliding-sync 的退避节奏）。否则 /sync 持续 5xx 而 /versions 正常时，
+            // keep-alive 探测立即成功 → doSync 立即重发，形成无退避的快速重试忙循环。
+            const baseDelay = 1000;
+            const maxDelay = 60000;
+            delay = Math.min(baseDelay * 2 ** this.failedSyncCount, maxDelay);
+            this.syncOpts.logger.debug("Sync failed, backing off for %s ms", delay);
         }
 
         this.syncOpts.logger.debug("Starting keep-alive");
@@ -1121,11 +1130,17 @@ export class SyncApi {
             data.presence!.events.filter(noUnsafeEventProps)
                 .map(client.getEventMapper())
                 .forEach(function (presenceEvent) {
-                    let user = client.store.getUser(presenceEvent.getSender()!);
+                    // 后端 presence 扇出载荷以 content.user_id 为准；sender 仅在
+                    // content.user_id 缺失时兜底，与 peek / sliding sync 路径对齐，
+                    // 避免 sender 与 content.user_id 不一致时丢 presence 或建错 User。
+                    const userId =
+                        presenceEvent.getContent<{ user_id?: string }>().user_id ?? presenceEvent.getSender();
+                    if (!userId) return;
+                    let user = client.store.getUser(userId);
                     if (user) {
                         user.setPresenceEvent(presenceEvent);
                     } else {
-                        user = User.createUser(presenceEvent.getSender()!, client);
+                        user = User.createUser(userId, client);
                         user.setPresenceEvent(presenceEvent);
                         client.store.storeUser(user);
                     }

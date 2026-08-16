@@ -34,26 +34,23 @@ export const MSC3575_STATE_KEY_LAZY = "$LAZY";
 /**
  * 检测是否为 abort 类错误（包括被 BaseManager.normalizeError 包装成 ApiError 的情况）。
  *
- * 浏览器中止 fetch 时可能抛出：
- * - `DOMException` (name="AbortError") — 标准 AbortController.abort()
- * - `TypeError: fetch failed` / `Failed to fetch` — Tauri nativeFetch 或浏览器网络层
- * 这些错误经 BaseManager 包装后变成 `ApiError: RoomManager.POST /sync failed: fetch failed: ...`，
- * 原始 AbortError 被保存在 `error.cause` 中。
+ * 主动中止（resend()/stop()）已由 `needsResend` 与 `terminated` 两个 flag 在
+ * start() 循环内覆盖，本函数只负责识别「非主动 flag 触发的」标准 AbortError
+ * （如外部 AbortController、页面切换）。因此**不再**把 `fetch failed` /
+ * `Failed to fetch` 归为 abort——那是网络层失败（断网/DNS/连接重置），应落入
+ * generic 指数退避，否则断网时请求立刻失败 → 被误判为主动中止 → 无退避忙循环。
+ *
+ * 浏览器中止 fetch 时抛出 `DOMException` (name="AbortError")；这些错误经
+ * BaseManager 包装后原始 AbortError 被保存在 `error.cause` 中。
  */
 function isAbortLikeError(err: unknown): boolean {
     if (!err || typeof err !== "object") return false;
     const error = err as { name?: string; message?: string; cause?: unknown };
     // 1. 直接的 AbortError
     if (error.name === "AbortError") return true;
-    // 2. 错误消息包含 abort/fetch failed/Failed to fetch 等特征
+    // 2. 主动中止的明确信号（不含网络层失败 fetch failed / Failed to fetch）
     const msg = error.message ?? "";
-    if (
-        msg.includes("aborted") ||
-        msg.includes("fetch failed") ||
-        msg.includes("Failed to fetch") ||
-        msg.includes("ERR_ABORTED") ||
-        msg.includes("The user aborted a request")
-    ) {
+    if (msg.includes("aborted") || msg.includes("ERR_ABORTED") || msg.includes("The user aborted a request")) {
         return true;
     }
     // 3. 递归检查 cause 链（BaseManager 包装后原始错误在 cause 中）
@@ -701,6 +698,13 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                         reqBody.room_subscriptions[roomId] = sub;
                     }
                 }
+                // resend() 可能在 getExtensionRequest 的 await 期间被调用：此时
+                // abortController 已被替换、needsResend 已置位。若仍用旧列表发出请求，
+                // 会丢一轮列表/订阅变更。这里发请求前二次检查，命中则跳过本轮重来。
+                if (this.needsResend) {
+                    logger.debug("[SlidingSync] resend requested during request construction, restarting loop");
+                    continue;
+                }
                 this.pendingReq = this.client.slidingSync(reqBody, this.proxyBaseUrl, this.abortController.signal);
                 resp = await this.pendingReq;
                 currentPos = resp.pos;
@@ -789,14 +793,25 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
             if (!resp) {
                 continue;
             }
-            await this.onPreExtensionsResponse(resp.extensions);
 
-            for (const roomId in resp.rooms) {
-                await this.invokeRoomDataListeners(roomId, resp!.rooms[roomId]);
+            // 响应处理段：逐阶段/逐房间隔离异常，避免单个房间监听器或扩展 onResponse
+            // 抛错穿透 start() 的 while 循环导致同步永久终止。
+            try {
+                await this.onPreExtensionsResponse(resp.extensions);
+
+                for (const roomId in resp.rooms) {
+                    try {
+                        await this.invokeRoomDataListeners(roomId, resp.rooms[roomId]);
+                    } catch (err) {
+                        logger.error(`[SlidingSync] error processing room data for ${roomId}`, err);
+                    }
+                }
+
+                this.invokeLifecycleListeners(SlidingSyncState.Complete, resp);
+                await this.onPostExtensionsResponse(resp.extensions);
+            } catch (err) {
+                logger.error("[SlidingSync] error processing sync response (extensions/lifecycle)", err);
             }
-
-            this.invokeLifecycleListeners(SlidingSyncState.Complete, resp);
-            await this.onPostExtensionsResponse(resp.extensions);
         }
     }
 }

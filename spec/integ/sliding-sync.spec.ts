@@ -168,10 +168,12 @@ describe("SlidingSync", () => {
                     };
                 });
 
-            // Mock 3: session expired → HTTP 400
+            // Mock 3: session expired → HTTP 400 with M_UNKNOWN_POS errcode
+            // (MSC4186: 仅 M_UNKNOWN_POS 触发 resetup；普通 400 走 generic 退避)
             httpBackend!.when("POST", syncUrl).respond(400, function () {
                 logger.debug("sending session expired 400");
                 return {
+                    errcode: "M_UNKNOWN_POS",
                     error: "HTTP 400 : session expired",
                 };
             });
