@@ -6,10 +6,10 @@
 
 import { EXTERNAL_SERVICE_ROUTES } from "./route-table";
 
-export const EXTERNAL_SERVICE_ROUTES_ENTRY_COUNT = 18 as const;
+export const EXTERNAL_SERVICE_ROUTES_ENTRY_COUNT = 20 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _ExternalServiceEntryCountAssertion: 18 = EXTERNAL_SERVICE_ROUTES.length;
+const _ExternalServiceEntryCountAssertion: 20 = EXTERNAL_SERVICE_ROUTES.length;
 void _ExternalServiceEntryCountAssertion;
 
 export const EXTERNAL_SERVICE_ROUTES_STATUS_SCENARIOS = [

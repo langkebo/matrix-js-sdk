@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import { InvalidParamError } from "../../common/errors";
 
 import { BaseManager } from "../../managers/base-manager";
@@ -111,7 +111,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
             method: Method.Post,
             path: "/friends/request",
             body: { user_id: userId, message: reason },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const request: FriendRequest = {
@@ -146,7 +146,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
                 method: Method.Post,
                 path: "/friends",
                 body: { user_id: userId, reason: opts?.reason },
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "addFriend");
 
@@ -172,7 +172,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         const response = await this.request<{ room_id?: string }>({
             method: Method.Post,
             path: `/friends/request/${encodeURIComponent(userId)}/accept`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const request = this.sharedState.incomingRequests.get(userId);
@@ -204,7 +204,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         await this.request({
             method: Method.Post,
             path: `/friends/request/${encodeURIComponent(userId)}/reject`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         this.sharedState.incomingRequests.delete(userId);
@@ -221,7 +221,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         await this.request({
             method: Method.Post,
             path: `/friends/request/${encodeURIComponent(userId)}/cancel`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         this.sharedState.outgoingRequests.delete(userId);
@@ -242,7 +242,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
             const response = await this.request<IFriendRequestsResponse>({
                 method: Method.Get,
                 path: "/friends/requests/incoming",
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
 
             const requests = (response.requests || []).map(normalizeFriendRequest);
@@ -267,7 +267,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
             const response = await this.request<IFriendRequestsResponse>({
                 method: Method.Get,
                 path: "/friends/requests/outgoing",
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
 
             const requests = (response.requests || []).map(normalizeFriendRequest);

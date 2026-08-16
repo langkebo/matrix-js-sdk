@@ -18,7 +18,7 @@
  */
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { VendorPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
@@ -158,7 +158,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Voice, true);
     }
 
-    public async getVoiceStats(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceStats> {
+    public async getVoiceStats(prefix: string = VendorPrefix): Promise<IVoiceStats> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<IVoiceStats>({
@@ -172,7 +172,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getRoomVoiceStats(roomId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomStats> {
+    public async getRoomVoiceStats(roomId: string, prefix: string = VendorPrefix): Promise<IVoiceRoomStats> {
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
@@ -187,7 +187,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getUserVoiceStats(userId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserStats> {
+    public async getUserVoiceStats(userId: string, prefix: string = VendorPrefix): Promise<IVoiceUserStats> {
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
@@ -202,7 +202,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getVoiceConfig(prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceConfig> {
+    public async getVoiceConfig(prefix: string = VendorPrefix): Promise<IVoiceConfig> {
         if (this.cachedConfig) return this.cachedConfig;
         if (this.configPromise) return this.configPromise;
         this.configPromise = this.fetchVoiceConfig(prefix);
@@ -213,7 +213,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    private async fetchVoiceConfig(prefix: ClientPrefix): Promise<IVoiceConfig> {
+    private async fetchVoiceConfig(prefix: string): Promise<IVoiceConfig> {
         try {
             const config = await this.withRetry(async () => {
                 return await this.request<IVoiceConfig>({
@@ -232,7 +232,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
 
     public async uploadVoiceMessage(
         request: IVoiceUploadRequest,
-        prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: string = VendorPrefix,
     ): Promise<IVoiceUploadResponse> {
         this.requireNonEmptyString(request.content, "Content");
         this.requireNonEmptyString(request.content_type, "Content type");
@@ -252,7 +252,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getVoiceMessage(messageId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceMessage> {
+    public async getVoiceMessage(messageId: string, prefix: string = VendorPrefix): Promise<IVoiceMessage> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
             return await this.withRetry(async () => {
@@ -269,7 +269,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
 
     public async deleteVoiceMessage(
         messageId: string,
-        prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: string = VendorPrefix,
     ): Promise<IVoiceDeleteResponse> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
@@ -287,7 +287,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getRoomVoice(roomId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceRoomInfo> {
+    public async getRoomVoice(roomId: string, prefix: string = VendorPrefix): Promise<IVoiceRoomInfo> {
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
@@ -302,7 +302,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async getUserVoice(userId: string, prefix: ClientPrefix = ClientPrefix.V3): Promise<IVoiceUserInfo> {
+    public async getUserVoice(userId: string, prefix: string = VendorPrefix): Promise<IVoiceUserInfo> {
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
@@ -320,7 +320,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async convertVoiceMessage(
         mediaId: string,
         options?: IVoiceConvertOptions,
-        prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: string = VendorPrefix,
     ): Promise<IVoiceConvertResponse> {
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
@@ -340,7 +340,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async optimizeVoiceMessage(
         mediaId: string,
         options?: IVoiceOptimizeOptions,
-        prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: string = VendorPrefix,
     ): Promise<IVoiceOptimizeResponse> {
         this.requireNonEmptyString(mediaId, "Media ID");
         try {
@@ -360,7 +360,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     public async transcribeVoiceMessage(
         mediaId: string,
         options?: IVoiceTranscribeOptions,
-        prefix: ClientPrefix = ClientPrefix.V3,
+        prefix: string = VendorPrefix,
     ): Promise<IVoiceTranscribeResponse> {
         this.requireNonEmptyString(mediaId, "Media ID");
         try {

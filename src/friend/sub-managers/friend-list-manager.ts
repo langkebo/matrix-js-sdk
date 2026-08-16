@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import { InvalidParamError } from "../../common/errors";
 import { logger } from "../../logger";
 import { NotFoundError } from "../../errors";
@@ -102,7 +102,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<IFriendsResponse>({
                 method: Method.Get,
                 path: "/friends",
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
 
             if (response.room_id) {
@@ -122,7 +122,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<IFriendsResponse>({
                 method: Method.Get,
                 path: "/friends",
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
 
             if (response.room_id) {
@@ -147,7 +147,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
                 method: Method.Get,
                 path: "/friends/suggestions",
                 queryParams: { limit: String(limit) },
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
 
             return (response.suggestions || []).map(normalizeFriend);
@@ -172,7 +172,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
                 method: Method.Get,
                 path: "/friends/search",
                 queryParams: params as Record<string, string | string[]>,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
 
             return response;
@@ -192,7 +192,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
                     method: Method.Post,
                     path: "/friends/search",
                     body: query,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "searchFriendsAdvanced");
 
@@ -213,7 +213,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<FriendshipCheckResponse>({
                 method: Method.Get,
                 path: `/friends/check/${encodeURIComponent(userId)}`,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
             return response;
         } catch (e) {
@@ -232,8 +232,8 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.withRetry(async () => {
                 return await this.request<IFriendsResponse>({
                     method: Method.Get,
-                    path: "/friendships",
-                    prefix: ClientPrefix.R0,
+                    path: "/friends",
+                    prefix: VendorPrefix,
                 });
             }, "getFriendships");
 
@@ -255,9 +255,9 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.withRetry(async () => {
                 return await this.request<{ user_id?: string; status?: string }>({
                     method: Method.Post,
-                    path: "/friendships",
+                    path: "/friends",
                     body: { user_id: userId },
-                    prefix: ClientPrefix.R0,
+                    prefix: VendorPrefix,
                 });
             }, "createFriendship");
 
@@ -274,7 +274,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<IFriendGroupsResponse>({
                 method: Method.Get,
                 path: "/friends/groups",
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
 
             const list = response.groups ?? [];
@@ -308,7 +308,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             method: Method.Post,
             path: "/friends/groups",
             body: { name },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const group: FriendGroup = {
@@ -331,7 +331,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         await this.request({
             method: Method.Post,
             path: `/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const cached = this.sharedState.groups[groupId];
@@ -344,7 +344,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         await this.request({
             method: Method.Delete,
             path: `/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const cached = this.sharedState.groups[groupId];
@@ -354,7 +354,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
     }
 
     async deleteFriendGroup(groupId: string): Promise<void> {
-        await this.request({ method: Method.Delete, path: `/friends/groups/${groupId}`, prefix: ClientPrefix.V1 });
+        await this.request({ method: Method.Delete, path: `/friends/groups/${groupId}`, prefix: VendorPrefix });
 
         delete this.sharedState.groups[groupId];
     }
@@ -371,7 +371,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             method: Method.Put,
             path: `/friends/groups/${groupId}/name`,
             body: { name },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const cached = this.sharedState.groups[groupId];
@@ -384,7 +384,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         const response = await this.request<{ friends: Friend[] }>({
             method: Method.Get,
             path: `/friends/groups/${groupId}/friends`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         return (response.friends || []).map(normalizeFriend);
@@ -398,7 +398,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         const response = await this.request<{ groups?: FriendGroup[] }>({
             method: Method.Get,
             path: `/friends/${encodeURIComponent(userId)}/groups`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         return response.groups ?? [];
@@ -412,7 +412,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         await this.request({
             method: Method.Delete,
             path: `/friends/${encodeURIComponent(userId)}`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         this.sharedState.friends.delete(userId);
@@ -429,7 +429,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             method: Method.Put,
             path: `/friends/${encodeURIComponent(userId)}/displayname`,
             body: { displayname: displayName },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
     }
 
@@ -445,7 +445,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             method: Method.Put,
             path: `/friends/${encodeURIComponent(userId)}/note`,
             body: { note },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const friend = this.sharedState.friends.get(userId);
@@ -466,7 +466,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         return this.request<FriendStatusInfo>({
             method: Method.Get,
             path: `/friends/${encodeURIComponent(userId)}/status`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
     }
 
@@ -484,7 +484,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<Friend>({
                 method: Method.Get,
                 path: `/friends/${encodeURIComponent(userId)}/info`,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
             return normalizeFriend(response);
         } catch (e) {
@@ -512,7 +512,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<{ room_id: string | null }>({
                 method: Method.Get,
                 path: `/friends/dm/${encodeURIComponent(userId)}`,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
             return response;
         } catch (e) {
@@ -530,7 +530,7 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
             const response = await this.request<{ room_id: string }>({
                 method: Method.Post,
                 path: `/friends/dm/${encodeURIComponent(userId)}`,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
             return response;
         } catch (e) {

@@ -6,10 +6,10 @@
 
 import { MEDIA_ROUTES } from "./route-table";
 
-export const MEDIA_ROUTES_ENTRY_COUNT = 34 as const;
+export const MEDIA_ROUTES_ENTRY_COUNT = 41 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _MediaEntryCountAssertion: 34 = MEDIA_ROUTES.length;
+const _MediaEntryCountAssertion: 41 = MEDIA_ROUTES.length;
 void _MediaEntryCountAssertion;
 
 export const MEDIA_ROUTES_STATUS_SCENARIOS = [

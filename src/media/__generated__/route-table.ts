@@ -4,7 +4,7 @@
  *
  * Module:        Media 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       34 (authoritative set mirrored from the backend contract)
+ * Entries:       41 (authoritative set mirrored from the backend contract)
  */
 
 /** Routes served by the synapse-rust `media` module (mirrored from the backend contract). */
@@ -43,6 +43,13 @@ export const MEDIA_ROUTES = [
     { method: "PUT", path: "/_matrix/media/v3/upload/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/v3/upload/provider" },
     { method: "POST", path: "/_matrix/media/v3/upload/token" },
+    { method: "DELETE", path: "/_matrix/media/v3/_synapse/admin/v1/media/{media_id}" },
+    { method: "DELETE", path: "/_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media" },
+    { method: "GET", path: "/_matrix/media/v3/_synapse/admin/v1/media" },
+    { method: "GET", path: "/_matrix/media/v3/_synapse/admin/v1/media/quota" },
+    { method: "GET", path: "/_matrix/media/v3/_synapse/admin/v1/media/{media_id}" },
+    { method: "GET", path: "/_matrix/media/v3/_synapse/admin/v1/quarantine_media/{media_id}/changes" },
+    { method: "GET", path: "/_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `MEDIA_ROUTES`. */

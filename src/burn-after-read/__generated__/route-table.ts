@@ -4,7 +4,7 @@
  *
  * Module:        Burn After Read
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       14 (authoritative set mirrored from the backend contract)
+ * Entries:       19 (authoritative set mirrored from the backend contract)
  */
 
 /** Routes served by the synapse-rust `burn-after-read` module (mirrored from the backend contract). */
@@ -23,6 +23,11 @@ export const BURN_AFTER_READ_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/burn/{event_id}" },
     { method: "PUT", path: "/_matrix/client/v3/user/burn/config" },
     { method: "GET", path: "/_matrix/client/v3/user/burn/stats" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/burn/pending" },
+    { method: "GET", path: "/_matrix/vendor/v1/user/burn/stats" },
+    { method: "POST", path: "/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}" },
+    { method: "PUT", path: "/_matrix/vendor/v1/rooms/{room_id}/burn" },
+    { method: "PUT", path: "/_matrix/vendor/v1/user/burn/config" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `BURN_AFTER_READ_ROUTES`. */

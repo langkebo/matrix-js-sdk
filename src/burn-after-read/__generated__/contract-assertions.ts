@@ -6,10 +6,10 @@
 
 import { BURN_AFTER_READ_ROUTES } from "./route-table";
 
-export const BURN_AFTER_READ_ROUTES_ENTRY_COUNT = 14 as const;
+export const BURN_AFTER_READ_ROUTES_ENTRY_COUNT = 19 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _BurnAfterReadEntryCountAssertion: 14 = BURN_AFTER_READ_ROUTES.length;
+const _BurnAfterReadEntryCountAssertion: 19 = BURN_AFTER_READ_ROUTES.length;
 void _BurnAfterReadEntryCountAssertion;
 
 export const BURN_AFTER_READ_ROUTES_STATUS_SCENARIOS = [

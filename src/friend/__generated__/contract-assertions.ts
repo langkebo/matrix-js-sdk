@@ -6,10 +6,10 @@
 
 import { FRIEND_ROUTES } from "./route-table";
 
-export const FRIEND_ROUTES_ENTRY_COUNT = 64 as const;
+export const FRIEND_ROUTES_ENTRY_COUNT = 88 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _FriendEntryCountAssertion: 64 = FRIEND_ROUTES.length;
+const _FriendEntryCountAssertion: 88 = FRIEND_ROUTES.length;
 void _FriendEntryCountAssertion;
 
 export const FRIEND_ROUTES_STATUS_SCENARIOS = [

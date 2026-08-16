@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { VoiceManager, VoiceEvent, type IVoiceConfig } from "../../src/voice/index";
 import { Method } from "../../src/http-api/method";
-import { ClientPrefix } from "../../src/http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix";
 import { HTTPError } from "../../src/http-api/errors";
 
 describe("VoiceManager", () => {
@@ -42,11 +42,11 @@ describe("VoiceManager", () => {
         expect(opts.prefix).toBe(ClientPrefix.V1);
     });
 
-    it("getVoiceStats should default to V3 prefix when omitted (FT-093)", async () => {
+    it("getVoiceStats should default to VendorPrefix when omitted (FT-093)", async () => {
         transport.respondWith({});
         await manager.getVoiceStats();
         const opts = transport.request.mock.calls[0][4] as { prefix: string };
-        expect(opts.prefix).toBe(ClientPrefix.V3);
+        expect(opts.prefix).toBe(VendorPrefix);
     });
 
     // ─── getRoomVoiceStats ──────────────────────────────────────────

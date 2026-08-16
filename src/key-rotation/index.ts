@@ -36,7 +36,8 @@ import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+// ISSUE-13: 私有端点走 vendor 前缀（后端 /_matrix/vendor/v1 与 client 别名并存）
+import { VendorPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export interface KeyRotationStatusResponse {
@@ -135,7 +136,7 @@ export class KeyRotationManager extends BaseManager {
             return await this.request<KeyRotationStatus>({
                 method: Method.Get,
                 path: "/keys/rotation/status",
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "getStatus");
 
@@ -157,7 +158,7 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Post,
                 path: "/keys/rotation/rotate",
                 body: request,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "rotateKey");
 
@@ -186,7 +187,7 @@ export class KeyRotationManager extends BaseManager {
                     limit: options.limit,
                     from: options.from,
                 },
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "getRotationHistory");
     }
@@ -202,7 +203,7 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Post,
                 path: "/keys/rotation/revoke",
                 body: request,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "revokeKey");
 
@@ -223,7 +224,7 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Put,
                 path: "/keys/rotation/config",
                 body: request,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "updateConfig");
 
@@ -248,7 +249,7 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Post,
                 path: "/keys/rotation/config",
                 body: request,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "postConfig");
 
@@ -265,7 +266,7 @@ export class KeyRotationManager extends BaseManager {
             return await this.request<KeyRotationStatus>({
                 method: Method.Post,
                 path: "/keys/rotation/status",
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "postStatus");
 
@@ -285,7 +286,7 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Get,
                 path: "/keys/rotation/check",
                 queryParams: { key_id: keyId },
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "checkKeyValidity");
     }
@@ -295,7 +296,7 @@ export class KeyRotationManager extends BaseManager {
             return await this.request<PostCheckResponse>({
                 method: Method.Post,
                 path: "/keys/rotation/check",
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "postCheck");
     }

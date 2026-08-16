@@ -211,6 +211,7 @@ const CONTRACT_MODULE_MAP = {
     "临时事件": "ephemeral",
     "事件举报": "event-report",
     "关联": "relations",
+    "好友": "friend",
     "其他": null,
     "反应": "reactions",
     "同步": "sync",
@@ -350,6 +351,9 @@ function resolveFullPath(method, resourcePath, sdkDir, lookups) {
     const key = `${method} ${resourcePath}`;
     if (lookups.backend.has(key)) return lookups.backend.get(key);
     if (lookups.sdk.has(key)) return lookups.sdk.get(key);
+    // 已是 vendor 完整路径（如 /_matrix/vendor/v1/friends/...）→ 直接使用，
+    // 不再叠加 default 前缀（否则产生 /_matrix/client/v3/_matrix/vendor/v1/... 双重前缀）。
+    if (resourcePath.startsWith("/_matrix/vendor/")) return resourcePath;
     // Private endpoints use vendor prefix; media uses /_matrix/media/v3; else v3
     let prefix;
     if (VENDOR_ENDPOINTS.has(resourcePath)) {

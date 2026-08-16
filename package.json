@@ -71,7 +71,7 @@
         "quality:type-coverage": "node scripts/quality/check-type-coverage.mjs",
         "contract:sync": "node scripts/contract-sync.mjs",
         "contract:sync:drafts": "node scripts/contract-sync.mjs --render-drafts",
-        "contract:check": "node scripts/contract-sync.mjs --check && node scripts/sdk-contract-codegen.mjs --check",
+        "contract:check": "node scripts/contract-sync.mjs --check && node scripts/sdk-contract-codegen.mjs --check && node scripts/quality/check-vendor-prefix-migration.mjs",
         "contract:codegen": "node scripts/sdk-contract-codegen.mjs",
         "contract:codegen:check": "node scripts/sdk-contract-codegen.mjs --check",
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",

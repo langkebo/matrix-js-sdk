@@ -89,7 +89,7 @@ describe("ExternalServiceManager", () => {
         });
     });
 
-    it("updateService should work with client prefix", async () => {
+    it("updateService should work with client prefix (now vendor-prefixed)", async () => {
         expect.assertions(0);
         transport.respondWith({ id: "svc1" });
         await manager.updateService("svc1", { enabled: true }, "client");
@@ -99,7 +99,7 @@ describe("ExternalServiceManager", () => {
             undefined,
             { enabled: true },
             {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             },
         );
     });
