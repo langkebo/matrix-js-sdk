@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { BeaconManager } from "../../src/beacon";
+import { MatrixEvent } from "../../src/models/event";
+import { Beacon } from "../../src/models/beacon";
+import { RoomState } from "../../src/models/room-state";
+import type { MatrixClient } from "../../src/client";
 
 describe("BeaconManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,5 +85,51 @@ describe("BeaconManager", () => {
         manager.unsubscribeFromBeaconEvents("Beacon.new" as any, handler);
         expect(mockClient.on).toHaveBeenCalledWith("Beacon.new", handler);
         expect(mockClient.off).toHaveBeenCalledWith("Beacon.new", handler);
+    });
+});
+
+describe("RoomState.processBeaconEvents", () => {
+    const roomId = "!room:example.com";
+    const userId = "@alice:example.com";
+
+    // Build a live beacon_info root event whose event_id is `$beacon1`,
+    // then register a real Beacon in the RoomState's beacon collection.
+    const makeLiveBeacon = (): Beacon => {
+        const beaconInfoEvent = new MatrixEvent({
+            type: "org.matrix.msc3672.beacon_info",
+            room_id: roomId,
+            event_id: "$beacon1",
+            state_key: userId,
+            sender: userId,
+            content: {
+                live: true,
+                timeout: 86400000,
+                "m.ts": Date.now() - 1000,
+                "m.asset": { type: "m.self" },
+            },
+        });
+        return new Beacon(beaconInfoEvent);
+    };
+
+    it("resolves the beacon via m.relates_to.event_id and updates latestLocationState", () => {
+        const roomState = new RoomState(roomId);
+        const beacon = makeLiveBeacon();
+        roomState.beacons.set(beacon.identifier, beacon);
+
+        const locationEvent = new MatrixEvent({
+            type: "m.beacon",
+            room_id: roomId,
+            event_id: "$location1",
+            sender: userId,
+            content: {
+                "m.relates_to": { rel_type: "m.reference", event_id: "$beacon1" },
+                "m.location": { uri: "geo:1,2" },
+                "m.ts": Date.now(),
+            },
+        });
+
+        roomState.processBeaconEvents([locationEvent], {} as MatrixClient);
+
+        expect(beacon.latestLocationState?.uri).toBe("geo:1,2");
     });
 });
