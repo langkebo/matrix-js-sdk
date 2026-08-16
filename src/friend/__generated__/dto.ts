@@ -9,4 +9,96 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type FriendContractDtoPlaceholder = never;
+export interface Friend {
+    user_id: string;
+    reason?: string;
+    since?: number;
+    display_name?: string;
+    displayname?: string;
+    username?: string;
+    avatar_url?: string;
+    note?: string;
+    presence?: string;
+    online?: boolean;
+    last_active_ts?: number;
+    last_seen_ts?: number;
+    added_ts?: number;
+    status?: string;
+    dm_room_id?: string;
+    dm_room_active?: boolean;
+    dm_room_state?: string;
+    dm_room_updated_ts?: number;
+    dm_room_affected_user_id?: string;
+    dm_room_changed_by?: string;
+    dm_room_reason?: string;
+}
+
+export interface FriendRequest {
+    user_id: string;
+    reason?: string;
+    status: "pending" | "accepted" | "rejected" | "cancelled";
+    timestamp?: number;
+    display_name?: string;
+    displayname?: string;
+    avatar_url?: string;
+    message?: string;
+    direction?: "incoming" | "outgoing";
+    request_id?: string;
+}
+
+export interface FriendStatusInfo {
+    user_id: string;
+    status: string;
+    is_friend?: boolean;
+    are_friends?: boolean;
+}
+
+export interface FriendshipCheckResponse {
+    user_id: string;
+    is_friend: boolean;
+    are_friends: boolean;
+}
+
+export interface FriendSearchResult {
+    user_id: string;
+    username?: string;
+    displayname?: string;
+    avatar_url?: string;
+    presence?: string;
+    online?: boolean;
+    last_active_ts?: number;
+    last_seen_ts?: number;
+    created_ts?: number;
+    match_score?: number;
+    match_type?: string;
+}
+
+export interface FriendSearchResponse {
+    results?: FriendSearchResult[];
+    count?: number;
+    mode?: string;
+    limited?: boolean;
+    retry_after_seconds?: number;
+}
+
+export interface FriendGroup {
+    id: string;
+    name: string;
+    members: string[];
+    created_at?: number;
+    updated_ts?: number;
+}
+
+export interface IFriendsResponse {
+    friends?: Friend[];
+    items?: Friend[];
+    total?: number;
+    limit?: number;
+    offset?: number;
+    next_offset?: number;
+    next_batch?: string;
+    room_id?: string;
+    version?: number;
+    cached?: boolean;
+    generated_ts?: number;
+}

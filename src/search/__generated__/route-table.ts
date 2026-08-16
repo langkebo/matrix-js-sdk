@@ -20,7 +20,6 @@ export const SEARCH_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/search" },
     { method: "POST", path: "/_matrix/client/v3/search_recipients" },
     { method: "POST", path: "/_matrix/client/v3/search_rooms" },
-    // ISSUE-13: vendor-prefixed routes for private endpoints (replaces v3 for SDK calls)
     { method: "POST", path: "/_matrix/vendor/v1/search_recipients" },
     { method: "POST", path: "/_matrix/vendor/v1/search_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];

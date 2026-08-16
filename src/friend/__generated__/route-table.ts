@@ -4,7 +4,7 @@
  *
  * Module:        Friend 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       63 (authoritative set mirrored from the backend contract)
+ * Entries:       64 (authoritative set mirrored from the backend contract)
  */
 
 /** Routes served by the synapse-rust `friend` module (mirrored from the backend contract). */
@@ -68,6 +68,7 @@ export const FRIEND_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v1/friends/{user_id}/status" },
     { method: "GET", path: "/_matrix/client/v3/friends" },
     { method: "POST", path: "/_matrix/client/v3/friends" },
+    { method: "GET", path: "/_matrix/client/v3/friends/check/{user_id}" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/outgoing" },
     { method: "GET", path: "/_matrix/client/v3/friends/search" },

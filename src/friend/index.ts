@@ -47,6 +47,30 @@ export { FriendListManager, FriendListManagerEvent } from "./sub-managers/friend
 export { FriendBlockManager, FriendBlockManagerEvent } from "./sub-managers/friend-block-manager";
 export type { FriendSharedState } from "./sub-managers/shared-state";
 
+// 契约 DTO 单一权威（ISSUE-2.1）：从契约文档 codegen 生成，避免手写漂移。
+// 先 import 到本文件作用域（供内部使用），再 re-export（供外部引用）。
+import type {
+    Friend,
+    FriendRequest,
+    FriendStatusInfo,
+    FriendshipCheckResponse,
+    FriendSearchResult,
+    FriendSearchResponse,
+    FriendGroup,
+    IFriendsResponse,
+} from "./__generated__/dto";
+
+export type {
+    Friend,
+    FriendRequest,
+    FriendStatusInfo,
+    FriendshipCheckResponse,
+    FriendSearchResult,
+    FriendSearchResponse,
+    FriendGroup,
+    IFriendsResponse,
+};
+
 // ===== 类型和枚举（向下兼容） =====
 
 export enum FriendEvent {
@@ -68,84 +92,12 @@ export enum FriendEvent {
     NotificationReceived = "NotificationReceived",
 }
 
-export interface Friend {
-    user_id: string;
-    reason?: string;
-    since?: number;
-    display_name?: string;
-    displayname?: string;
-    username?: string;
-    avatar_url?: string;
-    note?: string;
-    presence?: string;
-    online?: boolean;
-    last_active_ts?: number;
-    last_seen_ts?: number;
-    added_ts?: number;
-    status?: "favorite" | "normal" | "blocked" | "hidden" | string;
-    dm_room_id?: string;
-    dm_room_active?: boolean;
-    dm_room_state?: string;
-    dm_room_updated_ts?: number;
-    dm_room_affected_user_id?: string;
-    dm_room_changed_by?: string;
-    dm_room_reason?: string;
-}
-
-export interface FriendRequest {
-    user_id: string;
-    reason?: string;
-    status: "pending" | "accepted" | "rejected" | "cancelled";
-    timestamp?: number;
-    display_name?: string;
-    displayname?: string;
-    avatar_url?: string;
-    message?: string;
-    direction?: "incoming" | "outgoing";
-    request_id?: string;
-}
-
-export interface FriendStatusInfo {
-    user_id: string;
-    status: string;
-    is_friend?: boolean;
-    are_friends?: boolean;
-}
-
-export interface FriendshipCheckResponse {
-    user_id: string;
-    is_friend: boolean;
-    are_friends: boolean;
-}
-
-export interface FriendSearchResult {
-    user_id: string;
-    username?: string;
-    displayname?: string;
-    avatar_url?: string;
-    presence?: string;
-    online?: boolean;
-    last_active_ts?: number;
-    last_seen_ts?: number;
-    created_ts?: number;
-    match_score?: number;
-    match_type?: string;
-}
-
 export interface FriendSearchQuery {
     q?: string;
     query?: string;
     mode?: "exact" | "fuzzy";
     limit?: number;
     filters?: Record<string, unknown> /* Dynamic: arbitrary filter fields */;
-}
-
-export interface FriendSearchResponse {
-    results?: FriendSearchResult[];
-    count?: number;
-    mode?: string;
-    limited?: boolean;
-    retry_after_seconds?: number;
 }
 
 export enum FriendRelationshipStatus {
@@ -171,17 +123,6 @@ export type FriendStatus =
     | "normal"
     | "blocked"
     | "hidden";
-
-/**
- * 单个好友分组（对应后端 `friend_room_service::create_friend_group` 返回的对象）。
- */
-export interface FriendGroup {
-    id: string;
-    name: string;
-    members: string[];
-    created_at?: number;
-    updated_ts?: number;
-}
 
 /**
  * 内部缓存：按 group `id` 索引的分组映射。

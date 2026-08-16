@@ -36,6 +36,7 @@ import type {
     FriendStatusInfo,
     FriendshipCheckResponse,
     FriendStatus,
+    IFriendsResponse,
 } from "../index";
 import type { FriendSharedState } from "./shared-state";
 
@@ -55,20 +56,6 @@ interface FriendListManagerEventMap {
     [FriendListManagerEvent.ListUpdated]: () => void;
     [FriendListManagerEvent.SyncComplete]: () => void;
     [FriendListManagerEvent.Removed]: (userId: string) => void;
-}
-
-interface IFriendsResponse {
-    room_id?: string;
-    total?: number;
-    friends?: Friend[];
-    items?: Friend[];
-    limit?: number;
-    offset?: number;
-    next_offset?: number;
-    next_batch?: string; // FT-095: 后端分页 token，与响应类型对齐
-    version?: number;
-    cached?: boolean;
-    generated_ts?: number;
 }
 
 interface IFriendSuggestionsResponse {

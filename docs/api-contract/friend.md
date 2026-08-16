@@ -51,7 +51,7 @@ last_reviewed: 2026-05-11
 | `GET`    | `/_matrix/client/{v1,r0,v3}/friends/requests/incoming`     | incoming 兼容别名      | `getIncomingRequests()` 在 404 时 fallback         |
 | `GET`    | `/_matrix/client/{v1,r0,v3}/friends/requests/outgoing`     | outgoing 请求          | `getOutgoingRequests()`                            |
 | `GET`    | `/_matrix/client/{r0,v1,v3}/friends/search`                | 搜索用户目录           | `searchUsers()`                                    |
-| `GET`    | `/_matrix/client/{v1,r0}/friends/check/{user_id}`          | 检查好友关系           | `checkFriendship()`                                |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/check/{user_id}`       | 检查好友关系           | `checkFriendship()`                                |
 | `GET`    | `/_matrix/client/{v1,r0}/friends/suggestions`              | 好友建议               | `getFriendSuggestions()`                           |
 | `DELETE` | `/_matrix/client/{v1,r0}/friends/{user_id}`                | 删除好友               | `removeFriend()`                                   |
 | `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/note`           | 更新备注               | `updateFriendNote()`                               |
@@ -207,3 +207,105 @@ last_reviewed: 2026-05-11
     - 列表/详情字段比 SDK 类型更丰富
     - 部分字段命名存在 `displayname` 与 `display_name` 的不一致
 - 事件系统已更新为“已触发事件 + 预留事件”口径，不再错误标记为全量触发。
+
+## 结构化类型（codegen 源）
+
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源。这些接口是
+> `src/friend/__generated__/dto.ts` 的单一权威，`src/friend/index.ts` 通过
+> re-export 引用（ISSUE-2.1：此前 friend 契约 codegen 为空，纯靠人肉同步）。
+
+```typescript
+export interface Friend {
+    user_id: string;
+    reason?: string;
+    since?: number;
+    display_name?: string;
+    displayname?: string;
+    username?: string;
+    avatar_url?: string;
+    note?: string;
+    presence?: string;
+    online?: boolean;
+    last_active_ts?: number;
+    last_seen_ts?: number;
+    added_ts?: number;
+    status?: string;
+    dm_room_id?: string;
+    dm_room_active?: boolean;
+    dm_room_state?: string;
+    dm_room_updated_ts?: number;
+    dm_room_affected_user_id?: string;
+    dm_room_changed_by?: string;
+    dm_room_reason?: string;
+}
+
+export interface FriendRequest {
+    user_id: string;
+    reason?: string;
+    status: "pending" | "accepted" | "rejected" | "cancelled";
+    timestamp?: number;
+    display_name?: string;
+    displayname?: string;
+    avatar_url?: string;
+    message?: string;
+    direction?: "incoming" | "outgoing";
+    request_id?: string;
+}
+
+export interface FriendStatusInfo {
+    user_id: string;
+    status: string;
+    is_friend?: boolean;
+    are_friends?: boolean;
+}
+
+export interface FriendshipCheckResponse {
+    user_id: string;
+    is_friend: boolean;
+    are_friends: boolean;
+}
+
+export interface FriendSearchResult {
+    user_id: string;
+    username?: string;
+    displayname?: string;
+    avatar_url?: string;
+    presence?: string;
+    online?: boolean;
+    last_active_ts?: number;
+    last_seen_ts?: number;
+    created_ts?: number;
+    match_score?: number;
+    match_type?: string;
+}
+
+export interface FriendSearchResponse {
+    results?: FriendSearchResult[];
+    count?: number;
+    mode?: string;
+    limited?: boolean;
+    retry_after_seconds?: number;
+}
+
+export interface FriendGroup {
+    id: string;
+    name: string;
+    members: string[];
+    created_at?: number;
+    updated_ts?: number;
+}
+
+export interface IFriendsResponse {
+    friends?: Friend[];
+    items?: Friend[];
+    total?: number;
+    limit?: number;
+    offset?: number;
+    next_offset?: number;
+    next_batch?: string;
+    room_id?: string;
+    version?: number;
+    cached?: boolean;
+    generated_ts?: number;
+}
+```

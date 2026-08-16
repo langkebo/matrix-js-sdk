@@ -19,7 +19,6 @@ export const SYNC_ROUTES = [
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3575/sync" },
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" },
     { method: "POST", path: "/_matrix/client/v1/sync" },
-    // ISSUE-13: vendor-prefixed route for private endpoint (replaces v3 for SDK calls)
     { method: "GET", path: "/_matrix/vendor/v1/my_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
