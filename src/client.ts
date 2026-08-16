@@ -314,6 +314,7 @@ export type {
     ISecureBackupVerifyResponse,
     IShowQrCodeResponse,
     IServerVersions,
+    ITileServerWellKnown,
     ITurnServer,
     ITurnServerResponse,
     IUploadKeySignaturesResponse,
