@@ -2103,6 +2103,80 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Replies to a given event with the given content.
+     *
+     * The reply content's `m.relates_to.m.in_reply_to` relation is built
+     * automatically from the target event, and the reply is sent in the
+     * target event's thread (if any).
+     *
+     * @param roomId - The room ID the target event is in.
+     * @param event - The event to reply to.
+     * @param content - The content of the reply event.
+     * @param txnId - Optional transaction ID.
+     * @returns Promise which resolves to the sent event's response.
+     */
+    public replyToEvent(
+        roomId: string,
+        event: MatrixEvent,
+        content: RoomMessageEventContent,
+        txnId?: string,
+    ): Promise<ISendEventResponse> {
+        if (event.getRoomId() !== roomId) {
+            throw new Error("Cannot reply to an event in a different room");
+        }
+
+        content = {
+            ...content,
+            "m.relates_to": {
+                ...(content["m.relates_to"] ?? {}),
+                "m.in_reply_to": {
+                    event_id: event.getId()!,
+                },
+            },
+        } as RoomMessageEventContent;
+
+        return this.sendMessage(roomId, event.threadRootId ?? null, content, txnId);
+    }
+
+    /**
+     * Edits the given event with the given content.
+     *
+     * The edit is sent as an `m.replace` relation, with the new content
+     * stored under `m.new_content`. The edit is sent in the target event's
+     * thread (if any).
+     *
+     * @param roomId - The room ID the target event is in.
+     * @param event - The event to edit.
+     * @param content - The new content for the event.
+     * @param txnId - Optional transaction ID.
+     * @returns Promise which resolves to the sent event's response.
+     */
+    public editEvent(
+        roomId: string,
+        event: MatrixEvent,
+        content: RoomMessageEventContent,
+        txnId?: string,
+    ): Promise<ISendEventResponse> {
+        if (event.getRoomId() !== roomId) {
+            throw new Error("Cannot edit an event in a different room");
+        }
+
+        content = {
+            ...content,
+            "m.new_content": {
+                ...content,
+            },
+            "m.relates_to": {
+                ...(content["m.relates_to"] ?? {}),
+                rel_type: RelationType.Replace,
+                event_id: event.getId()!,
+            },
+        } as RoomMessageEventContent;
+
+        return this.sendMessage(roomId, event.threadRootId ?? null, content, txnId);
+    }
+
     public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public sendTextMessage(
         roomId: string,
