@@ -18,7 +18,7 @@
  */
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { VendorPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
@@ -379,6 +379,26 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
 
     public getCachedConfig(): IVoiceConfig | null {
         return this.cachedConfig;
+    }
+
+    /**
+     * 获取 RTC 传输协议信息（MSC4143 unstable 端点）。
+     *
+     * 对应后端 GET /_matrix/client/unstable/org.matrix.msc4143/rtc/transports。
+     * 失败时抛出错误，调用方按无 RTC 能力处理。
+     */
+    public async getRtcTransports(): Promise<Record<string, unknown>> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<Record<string, unknown>>({
+                    method: Method.Get,
+                    path: "/org.matrix.msc4143/rtc/transports",
+                    prefix: ClientPrefix.Unstable,
+                });
+            }, "getRtcTransports");
+        } catch (e) {
+            throw this.normalizeError(e, "getRtcTransports");
+        }
     }
 }
 

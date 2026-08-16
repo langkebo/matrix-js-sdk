@@ -307,6 +307,23 @@ describe("VoiceManager", () => {
         expect(transport.request).not.toHaveBeenCalled();
     });
 
+    // ─── getRtcTransports ─────────────────────────────────────────
+
+    it("getRtcTransports should GET /org.matrix.msc4143/rtc/transports with Unstable prefix", async () => {
+        const transports = { transports: [{ protocol: "org.matrix.msc4143", uri: "wss://example.com" }] };
+        transport.respondWith(transports);
+        const result = await manager.getRtcTransports();
+        expect(result).toEqual(transports);
+        transport.expectCalledWith(Method.Get, "/org.matrix.msc4143/rtc/transports");
+        const opts = transport.request.mock.calls[0][4] as { prefix: string };
+        expect(opts.prefix).toBe(ClientPrefix.Unstable);
+    });
+
+    it("getRtcTransports should reject on failure", async () => {
+        transport.rejectWith(new Error("API error"));
+        await expect(manager.getRtcTransports()).rejects.toThrow();
+    });
+
     // ─── extendMatrixClient export ─────────────────────────────────
 
     it("should export VoiceManager class", () => {
