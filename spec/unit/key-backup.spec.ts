@@ -61,22 +61,13 @@ describe("KeyBackupManager", () => {
             expect(result).toEqual(mockResponse);
         });
 
-        it("should create backup version with optional UIA auth", async () => {
+        it("should create backup version without auth (client-side key derivation)", async () => {
             const mockResponse = { version: "1" };
             mockHttp.authedRequest.mockResolvedValue(mockResponse);
-            const auth = {
-                type: "m.login.password",
-                session: "uia-session",
-                password: "secret",
-            };
 
-            const result = await manager.createBackupVersion(
-                "m.megolm_backup.v1.curve25519-aes-sha2",
-                {
-                    public_key: "value",
-                },
-                auth,
-            );
+            const result = await manager.createBackupVersion("m.megolm_backup.v1.curve25519-aes-sha2", {
+                public_key: "value",
+            });
 
             expect(mockHttp.authedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -85,7 +76,6 @@ describe("KeyBackupManager", () => {
                 {
                     algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
                     auth_data: { public_key: "value" },
-                    auth,
                 },
                 { prefix: ClientPrefix.V3 },
             );

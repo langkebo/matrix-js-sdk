@@ -97,19 +97,9 @@ export interface PutRoomSessionsBody {
     sessions: Record<string, SessionData>;
 }
 
-export interface KeyBackupAuthData {
-    type: string;
-    session?: string;
-    password?: string;
-    token?: string;
-    user?: string;
-    [key: string]: unknown;
-}
-
 export interface CreateBackupVersionRequest {
     algorithm: string;
     auth_data?: AuthData | Record<string, unknown>;
-    auth?: KeyBackupAuthData;
 }
 
 export interface UpdateBackupVersionRequest {

@@ -169,15 +169,6 @@ export interface RecoverSessionKeyResult {
     session_data: EncryptedData | AESEncryptedSecretStoragePayload;
 }
 
-export interface KeyBackupAuthData {
-    type: string;
-    session?: string;
-    password?: string;
-    token?: string;
-    user?: string;
-    [key: string]: unknown;
-}
-
 export class KeyBackupManager extends BaseManager {
     private currentVersion: string | null = null;
     private versionCache: LRUCache<BackupVersionInfo>;
@@ -265,7 +256,6 @@ export class KeyBackupManager extends BaseManager {
     async createBackupVersion(
         algorithm: string = "m.megolm_backup.v1.curve25519-aes-sha2",
         authData?: AuthData | Aes256AuthData,
-        auth?: KeyBackupAuthData,
     ): Promise<{ version: string }> {
         if (!algorithm || algorithm.trim().length === 0) {
             throw new ValidationError("Algorithm is required");
@@ -275,7 +265,7 @@ export class KeyBackupManager extends BaseManager {
                 return await this.request<{ version: string }>({
                     method: Method.Post,
                     path: kb("/room_keys/version"),
-                    body: { algorithm, auth_data: authData, auth },
+                    body: { algorithm, auth_data: authData },
                     prefix: ClientPrefix.V3,
                 });
             }, "createBackupVersion");
