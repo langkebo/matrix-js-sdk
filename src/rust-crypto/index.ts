@@ -131,7 +131,15 @@ export async function initRustCrypto(args: {
             storeHandle = await StoreHandle.open(args.storePrefix, args.storePassphrase, logger);
         }
     } else if (args.allowInMemoryStore) {
-        // 显式 opt-out：仅用于测试/临时会话，生产路径不应走到这里
+        // 显式 opt-out：仅用于测试/临时会话。生产构建（NODE_ENV=production）下
+        // 拒绝裸开，作为 ISSUE-08b 默认拒绝之外的最后一层防御，防止桌面端进程
+        // 读取明文密钥库。
+        if (typeof process !== "undefined" && process.env?.NODE_ENV === "production") {
+            throw new Error(
+                "allowInMemoryStore is not permitted in production builds; " +
+                    "provide storeKey/storePassphrase derived from a system keychain.",
+            );
+        }
         logger.warn("Opening unencrypted in-memory crypto store (allowInMemoryStore=true). Not for production use.");
         storeHandle = await StoreHandle.open(null, null, logger);
     } else {

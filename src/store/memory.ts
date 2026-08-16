@@ -37,6 +37,7 @@ import { KnownMembership } from "../@types/membership";
 import { StoreStatsCollector, type StoreStats } from "./stats";
 import { DEFAULT_STORE_CAPACITY, LruMap, type StoreCapacityConfig } from "./capacity";
 import { defaultOobMembersTtl, type OobMembersTtlProvider } from "./ttl";
+import { PendingEventsCipher } from "./pending-events-cipher";
 
 function isValidFilterId(filterId?: string | number | null): boolean {
     const isValidStr =
@@ -73,6 +74,12 @@ export interface IOpts {
      * 返回 `TTL_PERSISTENT` 持久、`0` 禁用缓存、正数为 TTL 秒。
      */
     oobMembersTtl?: OobMembersTtlProvider;
+    /**
+     * 可选待发事件加密器（ISSUE-08c）。仅 `IndexedDBStore` 落盘路径使用：
+     * 提供时待发事件加密后持久化；未提供时 `IndexedDBStore` 不再明文落盘
+     * （退化为仅内存，重启后待发事件不恢复）。
+     */
+    pendingEventsCipher?: PendingEventsCipher;
 }
 
 export class MemoryStore implements IStore {
@@ -98,6 +105,9 @@ export class MemoryStore implements IStore {
     /** OOB 成员 TTL 解析器（按 roomId 动态）。protected 供 IndexedDBStore 复用。 */
     protected readonly oobMembersTtl: OobMembersTtlProvider;
 
+    /** 待发事件加密器（可选）。protected 供 IndexedDBStore 落盘路径使用。 */
+    protected readonly pendingEventsCipher?: PendingEventsCipher;
+
     /** 无锁统计收集器（对齐后端 AtomicCacheStats）。protected 供子类埋点。 */
     protected readonly stats = new StoreStatsCollector();
 
@@ -109,11 +119,15 @@ export class MemoryStore implements IStore {
         this.localStorage = opts.localStorage;
         this.capacity = { ...DEFAULT_STORE_CAPACITY, ...opts.capacity };
         this.oobMembersTtl = opts.oobMembersTtl ?? defaultOobMembersTtl;
+        this.pendingEventsCipher = opts.pendingEventsCipher;
 
         // room / user 为活跃会话数据（无兜底数据源），只做容量预算 + LRU 淘汰，
         // 不做 TTL（避免误删活跃数据导致 UI 数据丢失）。
-        this.rooms = new LruMap<string, Room>(this.capacity.maxRooms, () => {
+        this.rooms = new LruMap<string, Room>(this.capacity.maxRooms, (_roomId, room) => {
             this.stats.recordEvictions(1);
+            // 解绑 storeRoom 挂的成员变更监听器，避免 room 被容量淘汰后监听器泄漏
+            // （成员变更仍回调 store，累积泄漏）。
+            room.currentState.off(RoomStateEvent.Members, this.onRoomMember);
         });
         this.users = new LruMap<string, User>(this.capacity.maxUsers, () => {
             this.stats.recordEvictions(1);

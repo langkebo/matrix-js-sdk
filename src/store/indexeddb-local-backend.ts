@@ -549,15 +549,33 @@ export class LocalIndexedDBStoreBackend implements IIndexedDBBackend {
             });
         }).then(async (tuples) => {
             // 过滤过期 presence（对齐后端 profile 3600s TTL）。
+            // 一次性读 expiry 表再内存判活，避免逐 user 的 N+1 事务（此前每条
+            // 单独 getExpiryDeadline，冷启动大量用户时 O(N) 次 IDB 事务）。
+            const deadlines = await this.getAllExpiryDeadlines();
             const now = Date.now();
             const result: UserTuple[] = [];
             for (const tuple of tuples) {
-                const deadline = await this.getExpiryDeadline("presence:" + tuple[0]);
+                const deadline = deadlines.get("presence:" + tuple[0]);
                 if (deadline === undefined || now <= deadline) {
                     result.push(tuple);
                 }
             }
             return result;
+        });
+    }
+
+    /**
+     * 一次性读取 expiry 表的所有 deadline（Map<key, deadlineMs>），供批量判活使用。
+     * expiry 表以 `key` 为 keyPath，条目为 `{ key, deadlineMs }`。
+     */
+    private getAllExpiryDeadlines(): Promise<Map<string, number>> {
+        return promiseTry(() => {
+            const txn = this.db!.transaction(["expiry"], "readonly");
+            const store = txn.objectStore("expiry");
+            return selectQuery(store, undefined, (cursor) => {
+                const row = cursor.value as { key: string; deadlineMs: number };
+                return [row.key, row.deadlineMs] as [string, number];
+            }).then((rows) => new Map(rows));
         });
     }
 
