@@ -60,6 +60,17 @@ export interface ReportResponse {
     sender?: string;
 }
 
+export interface ReportHistoryResponse {
+    id: number;
+    report_id: number;
+    action: string;
+    actor_user_id?: string;
+    old_status?: string;
+    new_status?: string;
+    reason?: string;
+    created_ts: number;
+}
+
 export interface ResolveReportBody {
     resolution_reason?: string;
 }
@@ -366,10 +377,10 @@ export class EventReportManager extends BaseManager {
      * 获取举报历史
      * 对应 GET /_synapse/admin/v1/event_reports/{id}/history
      */
-    async getReportHistory(id: number): Promise<ReportResponse[]> {
+    async getReportHistory(id: number): Promise<ReportHistoryResponse[]> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.request<ReportResponse[]>({
+            return await this.request<ReportHistoryResponse[]>({
                 method: Method.Get,
                 path: er(`/event_reports/${id}/history`),
                 prefix: AdminPrefix.V1,

@@ -1013,6 +1013,23 @@ describe("FetchHttpApi", () => {
         expect(api.opts.accessToken).toBe("NEW_ACCESS_TOKEN");
         expect(api.opts.refreshToken).toBe("NEW_REFRESH_TOKEN");
     });
+
+    it("returns undefined for 204 No Content responses", async () => {
+        const fetchFn = vi.fn().mockResolvedValue({ ok: true, status: 204 });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const api = new FetchHttpApi(new TypedEventEmitter<any, any>(), {
+            baseUrl,
+            prefix,
+            fetchFn,
+            onlyData: true,
+            allowInsecureHttp: true,
+        });
+
+        const result = await api.request(Method.Delete, "/foo");
+
+        expect(result).toBeUndefined();
+        expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
 });
 
 function makeMockFetchFn(): MockedFunction<Window["fetch"]> {

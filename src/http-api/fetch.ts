@@ -329,7 +329,15 @@ export class FetchHttpApi<O extends IHttpOpts> {
 
         if (opts.rawResponseBody) {
             return (await res.blob()) as T;
-        } else if (jsonResponse) {
+        }
+
+        // Tolerate 204/205 No Content responses so callers don't fail on
+        // an empty body (e.g. DELETE endpoints that return no content).
+        if (res.status === 204 || res.status === 205) {
+            return undefined as T;
+        }
+
+        if (jsonResponse) {
             return await res.json();
         } else {
             return (await res.text()) as T;
