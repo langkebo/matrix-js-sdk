@@ -796,6 +796,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public serverCapabilitiesService: ServerCapabilities; // Intended private, used in lifecycle helpers.
 
+    /**
+     * Manager 扩展初始化完成的 Promise（由 createClient 注入）。
+     * createClient 同步返回时仅 8 个核心 manager 可用，其余约 55 个私有
+     * manager（friend/ai/...）经异步动态 import 挂载。调用方在使用这些
+     * manager 前应 `await client.whenManagerExtensionsReady()`。
+     */
+    private managerExtensionsReady?: Promise<void>;
+
     public constructor(opts: IMatrixClientCreateOpts) {
         super();
 
@@ -915,6 +923,26 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public set store(newStore: Store) {
         this._store = newStore;
         this._store.setUserCreator((userId) => User.createUser(userId, this));
+    }
+
+    /**
+     * 注入 manager 扩展初始化的 Promise（由 createClient 调用）。
+     * @internal
+     */
+    public setManagerExtensionsReady(promise: Promise<void>): void {
+        this.managerExtensionsReady = promise;
+    }
+
+    /**
+     * 等待所有 manager 扩展异步挂载完成。
+     *
+     * `createClient()` 同步返回时仅核心 manager 可用，friend/ai/... 等私有
+     * manager 经异步动态 import 挂载。使用这些 manager 前应 `await` 本方法。
+     *
+     * @returns 当 manager 初始化完成（或已跳过/失败）时 resolve 的 Promise。
+     */
+    public whenManagerExtensionsReady(): Promise<void> {
+        return this.managerExtensionsReady ?? Promise.resolve();
     }
 
     public getEventManager(): EventManager {

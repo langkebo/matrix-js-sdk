@@ -34,6 +34,7 @@ import { extendMatrixClientWithManagers, isManagerExtensionsInitialized } from "
 import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
 import { assertSecureBaseUrl } from "./http-api/base-url-guard";
+import { logger } from "./logger";
 
 export {
     extendMatrixClientWithManagers,
@@ -268,8 +269,17 @@ export function createClient(opts: ICreateClientOpts): MatrixClient {
         assertSecureBaseUrl(opts.idBaseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
     }
     installSynchronousCoreManagerExtensions();
-    void autoInitManagerExtensions(opts);
-    return new MatrixClient(amendClientOpts(opts));
+    const client = new MatrixClient(amendClientOpts(opts));
+    // 把 manager 异步初始化的 Promise 注入 client，暴露 whenManagerExtensionsReady()
+    // 门控。此前是 fire-and-forget，createClient 返回后立即调用私有 manager 会
+    // 因方法尚未挂载而抛 TypeError。
+    const managerReady = autoInitManagerExtensions(opts);
+    client.setManagerExtensionsReady(managerReady);
+    // 避免 fire-and-forget 的 unhandled rejection（ready() 仍能感知错误）
+    managerReady.catch((err) => {
+        logger.error("Failed to initialize manager extensions", err);
+    });
+    return client;
 }
 
 /**

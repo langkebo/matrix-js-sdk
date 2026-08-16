@@ -78,18 +78,10 @@ export class AIModule {
     }
 
     public setEndpoint(endpoint: string): void {
-        try {
-            // 不传 allowInsecureDev：localhost / 127.0.0.1 等 INSECURE_DEV_HOSTS 仍放行
-            // （本地 MCP 服务器合法），非 localhost http 抛错 → 下方 catch 告警
-            assertSecureBaseUrl(endpoint);
-        } catch (e) {
-            // ISSUE-09b: 非 https 且非 localhost 的端点有数据泄露风险，告警但不阻断（符合审计"告警"语义）
-            logger.warn(
-                `AI MCP endpoint failed security check: ${endpoint}. ` +
-                    "Non-https or non-localhost endpoints may leak data.",
-                e,
-            );
-        }
+        // 本地 MCP 服务器（localhost / 127.0.0.1 等 INSECURE_DEV_HOSTS）走 http 合法；
+        // 非 localhost 的 http 端点存在数据明文泄露风险，assertSecureBaseUrl 会抛错，
+        // 这里**不吞**（不再仅告警），直接阻断，避免 SSRF 面与明文传输。
+        assertSecureBaseUrl(endpoint);
         this.mcpEndpoint = endpoint;
     }
 
