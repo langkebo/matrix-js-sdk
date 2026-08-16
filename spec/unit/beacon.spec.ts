@@ -4,6 +4,7 @@ import { BeaconManager } from "../../src/beacon";
 import { MatrixEvent } from "../../src/models/event";
 import { Beacon } from "../../src/models/beacon";
 import { RoomState } from "../../src/models/room-state";
+import { M_BEACON } from "../../src/@types/beacon";
 import type { MatrixClient } from "../../src/client";
 
 describe("BeaconManager", () => {
@@ -85,6 +86,29 @@ describe("BeaconManager", () => {
         manager.unsubscribeFromBeaconEvents("Beacon.new" as any, handler);
         expect(mockClient.on).toHaveBeenCalledWith("Beacon.new", handler);
         expect(mockClient.off).toHaveBeenCalledWith("Beacon.new", handler);
+    });
+
+    it("sendBeaconLocation sends an m.beacon event with a reference relation", async () => {
+        mockClient.sendEvent = vi.fn().mockResolvedValue({ event_id: "$loc" });
+
+        await manager.sendBeaconLocation("!r:hs", "$beacon1", "geo:1,2", 123, "desc");
+
+        expect(mockClient.sendEvent).toHaveBeenCalledWith(
+            "!r:hs",
+            M_BEACON.name,
+            expect.objectContaining({
+                "m.relates_to": { rel_type: "m.reference", event_id: "$beacon1" },
+            }),
+        );
+    });
+
+    it("stopBeaconSharing sends a live:false beacon_info state event", async () => {
+        await manager.stopBeaconSharing("!r:hs", 5000, "desc");
+
+        expect(mockClient.unstable_setLiveBeacon).toHaveBeenCalledWith(
+            "!r:hs",
+            expect.objectContaining({ live: false, timeout: 5000, description: "desc" }),
+        );
     });
 });
 
