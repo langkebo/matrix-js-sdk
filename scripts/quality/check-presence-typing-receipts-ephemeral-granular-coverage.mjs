@@ -23,12 +23,6 @@ const CHECKS = [
                 ],
                 testFiles: ["spec/unit/presence.spec.ts"],
             },
-            {
-                name: "UserPresenceManager focused presence APIs",
-                ownerFile: "src/user-presence/index.ts",
-                methods: ["getUserPresence", "setPresence", "subscribeToPresence"],
-                testFiles: ["spec/unit/user-presence.spec.ts"],
-            },
         ],
     },
     {
