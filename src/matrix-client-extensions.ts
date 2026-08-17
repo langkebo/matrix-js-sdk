@@ -311,6 +311,7 @@ export interface MatrixClientExtensionMethods {
     // ============ Admin & Moderation ============
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
+    getAppServiceManager(): import("./app-service/index").ApplicationServiceManager;
     getAdminUserManager(): import("./admin/sub-managers/admin-user-manager").AdminUserManager;
     getAdminRoomManager(): import("./admin/sub-managers/admin-room-manager").AdminRoomManager;
     getAdminServerManager(): import("./admin/sub-managers/admin-server-manager").AdminServerManager;

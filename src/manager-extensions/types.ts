@@ -69,6 +69,7 @@ export interface ManagerExtensionsOptions {
     includeSamlAuth?: boolean;
     includeCas?: boolean;
     includeExternalService?: boolean;
+    includeAppService?: boolean;
     includeDehydratedDevice?: boolean;
     includeDelayedEvents?: boolean;
     includeThread?: boolean;

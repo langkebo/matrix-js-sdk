@@ -116,6 +116,7 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeUserDirectory", module: "user-directory" },
     { option: "includeReactions", module: "reactions" },
     { option: "includeBeacon", module: "beacon" },
+    { option: "includeAppService", module: "app-service" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -196,6 +197,7 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeUserDirectory: true,
     includeReactions: true,
     includeBeacon: true,
+    includeAppService: true,
 };
 
 let isInitialized = false;
@@ -562,6 +564,10 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeBeacon || all) {
                 promises.push(safeDynamicImport(import("../beacon/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeAppService || all) {
+                promises.push(safeDynamicImport(import("../app-service/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             await Promise.all(promises);

@@ -26,6 +26,7 @@ import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { ValidationError } from "../errors";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -617,4 +618,18 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         this.services.clear();
         this.initialized = false;
     }
+}
+
+/**
+ * 将 `getAppServiceManager` 挂到 `MatrixClient.prototype` 上，使前端可经 SDK 调用
+ * 应用服务管理端点（对应 `synapse-rust/src/web/routes/app_service.rs` 的 25 条路由）。
+ *
+ * 遵循本 fork 的 `extendMatrixClient` 约定：由 `extendMatrixClientWithManagers()`
+ * 统一动态调用（见 `src/manager-extensions/index.ts`，已登记 `includeAppService`）。
+ */
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getAppServiceManager = function (): ApplicationServiceManager {
+        registerManagerClass("app-service", ApplicationServiceManager);
+        return getOrCreateManager(this, "app-service", () => new ApplicationServiceManager(this));
+    };
 }
