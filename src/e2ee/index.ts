@@ -25,6 +25,7 @@ import type {
     KeyChangesResponse,
     DeviceListUpdateEntry,
     DeviceListDeletedEntry,
+    RoomKeyRequestsResponse,
 } from "../device-keys/index";
 import type { UploadDeviceSigningRequest } from "./__generated__/dto";
 import type { IContent } from "../models/event";
@@ -314,9 +315,9 @@ export class E2EEManager extends BaseManager {
         return this.post(ep("/room_keys/request"), body, "createRoomKeyRequest");
     }
 
-    public async listRoomKeyRequests(): Promise<RoomKeyRequestResponse[]> {
+    public async listRoomKeyRequests(): Promise<RoomKeyRequestsResponse> {
         return await this.withRetry(async () => {
-            return await this.request<RoomKeyRequestResponse[]>({
+            return await this.request<RoomKeyRequestsResponse>({
                 method: Method.Get,
                 path: ep("/room_keys/request"),
                 prefix: ClientPrefix.V3,
