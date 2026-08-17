@@ -38,7 +38,7 @@ import { DMEvent, type DirectMessageManagerEventMap } from "./events";
 import { DmRoomListManager } from "./sub-managers/dm-room-list-manager";
 import { DmRoomCreationManager } from "./sub-managers/dm-room-creation-manager";
 import { DmRoomOperationManager } from "./sub-managers/dm-room-operation-manager";
-import type { DmRoomInfo, IDirectRoomsMap, DmPartnerResponse } from "./sub-managers/dm-room-list-types";
+import type { DmRoomInfo, IDirectRoomsMap, DmPartnerResponse, DmRoomCheckResponse } from "./sub-managers/dm-room-list-types";
 import type {
     CreateDmOptions,
     CreateDmRoomResponse,
@@ -250,6 +250,18 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     /** @deprecated 使用 `dmManager.list.getDmPartnerFromServer()` 替代 */
     async getDmPartnerFromServer(roomId: string, throwOnError = true): Promise<DmPartnerResponse | null> {
         return this.list.getDmPartnerFromServer(roomId, throwOnError);
+    }
+
+    // ===== 服务端 DM REST API（synapse-rust 自定义端点，供前端迁移裸调） =====
+
+    /** 获取房间 DM 原始信息（GET /_matrix/client/v3/rooms/{room_id}/dm）。 */
+    async getRoomDm(roomId: string): Promise<DmRoomCheckResponse> {
+        return this.list.getRoomDm(roomId);
+    }
+
+    /** 设置房间为 DM 关系（PUT /_matrix/client/v3/direct/{room_id}）。 */
+    async setDirect(roomId: string): Promise<void> {
+        return this.list.setDirect(roomId);
     }
 
     /** @deprecated 使用 `dmManager.operation.leaveDm()` 替代 */
