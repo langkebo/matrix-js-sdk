@@ -52,6 +52,7 @@ import * as ContentHelpers from "../content-helpers";
 import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
 import type { InviteRequest } from "./__generated__/dto";
 import type { RoomPathPattern } from "./__generated__/route-table";
+import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
 import type { SlidingSyncPathPattern } from "../sliding-sync/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
@@ -175,7 +176,7 @@ type StripSimplifiedSlidingSync<P extends string> =
 type RoomManagerPathPattern =
     | StripR0<RoomPathPattern | TagsPathPattern>
     | StripV1<RoomPathPattern>
-    | StripV3<RoomPathPattern | TagsPathPattern>
+    | StripV3<RoomPathPattern | TagsPathPattern | AuthPathPattern>
     | StripSimplifiedSlidingSync<SlidingSyncPathPattern>;
 
 function rp<P extends RoomManagerPathPattern>(path: P): P {
@@ -760,6 +761,22 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         });
 
         return response;
+    }
+
+    /**
+     * 获取房间通话会话信息（synapse-rust voip_tracking 端点）。
+     * GET /_matrix/client/v3/rooms/{room_id}/call/{call_id}
+     */
+    public async getRoomCall(roomId: string, callId: string): Promise<Record<string, unknown>> {
+        validateRoomId(roomId);
+
+        return await this.withRetry(async () => {
+            return await this.request<Record<string, unknown>>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`),
+                prefix: ClientPrefix.V3,
+            });
+        }, "getRoomCall");
     }
 
     /**
