@@ -38,12 +38,7 @@ const CHECKS = [
                 methods: ["getIdentityServerUrl", "setIdentityServerUrl"],
                 testFiles: ["spec/unit/identity-server.spec.ts"],
             },
-            {
-                name: "MatrixClient identity server compatibility surface",
-                ownerFile: "src/client.ts",
-                methods: ["getIdentityServerUrl", "setIdentityServerUrl"],
-                testFiles: ["spec/unit/matrix-client.spec.ts"],
-            },
+            // getIdentityServerUrl/setIdentityServerUrl 已迁 IdentityServerManager（前端经 getIdentityServerManager 调用），client 入口有意移除
         ],
     },
 ];

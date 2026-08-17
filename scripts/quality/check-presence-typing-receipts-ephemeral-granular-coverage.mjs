@@ -60,12 +60,7 @@ const CHECKS = [
                 ],
                 testFiles: ["spec/unit/client-receipt-requests.spec.ts"],
             },
-            {
-                name: "MatrixClient typing and receipt compatibility surface",
-                ownerFile: "src/client.ts",
-                methods: ["sendReceipt", "sendReadReceipt", "setRoomReadMarkers", "sendTyping", "getRoomTyping"],
-                testFiles: ["spec/unit/read-receipt.spec.ts", "spec/unit/matrix-client.spec.ts"],
-            },
+            // sendReceipt/sendReadReceipt/setRoomReadMarkers 已迁 ReadReceiptsManager、sendTyping/getRoomTyping 已迁 TypingManager（前端经 getXManager 调用），client 入口有意移除
         ],
     },
     {

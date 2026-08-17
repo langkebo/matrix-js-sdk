@@ -55,7 +55,8 @@ const CHECKS = [
             {
                 name: "MatrixClient account compatibility surface",
                 ownerFile: "src/client.ts",
-                methods: ["whoami", "setPassword", "getThreePids", "bindThreePid", "deleteThreePid", "unbindThreePid"],
+                // getThreePids/bindThreePid/deleteThreePid/unbindThreePid 已迁 ThreePidsManager（前端经 getThreePidsManager 调用）
+                methods: ["whoami", "setPassword"],
                 testFiles: ["spec/unit/matrix-client.spec.ts"],
             },
         ],
