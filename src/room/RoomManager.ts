@@ -762,6 +762,58 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 翻译文本（synapse-rust 私有端点）。
+     * POST /_matrix/client/v3/translate
+     */
+    public async translateText(
+        text: string,
+        targetLang: string,
+        sourceLang?: string,
+    ): Promise<{ translated_text: string }> {
+        const body: Record<string, unknown> = { text, target_lang: targetLang };
+        if (sourceLang) body.source_lang = sourceLang;
+        return await this.withRetry(async () => {
+            return await this.request<{ translated_text: string }>({
+                method: Method.Post,
+                path: rp("/translate"),
+                body,
+                prefix: ClientPrefix.V3,
+            });
+        }, "translateText");
+    }
+
+    /**
+     * 获取房间 sticky events（synapse-rust 私有端点）。
+     * GET /_matrix/client/v3/rooms/{room_id}/sticky_events
+     */
+    public async getStickyEvents(roomId: string): Promise<Record<string, unknown>> {
+        validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.request<Record<string, unknown>>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
+                prefix: ClientPrefix.V3,
+            });
+        }, "getStickyEvents");
+    }
+
+    /**
+     * 设置房间 sticky events（synapse-rust 私有端点）。
+     * POST /_matrix/client/v3/rooms/{room_id}/sticky_events
+     */
+    public async setStickyEvents(roomId: string, events: Record<string, unknown>): Promise<void> {
+        validateRoomId(roomId);
+        await this.withRetry(async () => {
+            await this.request<void>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
+                body: events,
+                prefix: ClientPrefix.V3,
+            });
+        }, "setStickyEvents");
+    }
+
     // ==================== Tags ====================
 
     public async getRoomTags(roomId: string): Promise<ITagsResponse> {

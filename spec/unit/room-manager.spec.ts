@@ -884,4 +884,66 @@ describe("RoomManager", () => {
             );
         });
     });
+
+    describe("translateText", () => {
+        it("should POST text translation to /translate", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ translated_text: "hola" });
+
+            const result = await roomManager.translateText("hello", "es", "en");
+
+            expect(result.translated_text).toBe("hola");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/translate",
+                undefined,
+                { text: "hello", target_lang: "es", source_lang: "en" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should omit source_lang when not provided", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ translated_text: "hola" });
+
+            await roomManager.translateText("hello", "es");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/translate",
+                undefined,
+                { text: "hello", target_lang: "es" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("getStickyEvents / setStickyEvents", () => {
+        it("should GET sticky_events", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ "m.room.topic": true });
+
+            const result = await roomManager.getStickyEvents("!room:example.com");
+
+            expect(result).toEqual({ "m.room.topic": true });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/rooms/${encodeURIComponent("!room:example.com")}/sticky_events`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should POST sticky_events", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({});
+
+            await roomManager.setStickyEvents("!room:example.com", { "m.room.topic": true });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/rooms/${encodeURIComponent("!room:example.com")}/sticky_events`,
+                undefined,
+                { "m.room.topic": true },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
 });
