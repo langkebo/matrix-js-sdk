@@ -55,7 +55,8 @@ const CHECKS = [
             {
                 name: "TelemetryManager lifecycle and flushing APIs",
                 ownerFile: "src/telemetry/index.ts",
-                methods: ["flush", "start", "stop"],
+                // `start` 为历史名，SDK 实为 `enable`（flush/stop 保留）
+                methods: ["flush", "enable", "stop"],
                 testFiles: ["spec/unit/telemetry.spec.ts"],
             },
         ],

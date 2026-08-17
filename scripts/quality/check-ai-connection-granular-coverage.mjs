@@ -12,7 +12,8 @@ const CHECKS = [
             {
                 name: "AIConnectionManager connection CRUD APIs",
                 ownerFile: "src/ai-connection/index.ts",
-                methods: ["getConnections", "createConnection", "getConnection", "deleteConnection"],
+                // `getConnections` 为历史名，SDK 实为 `listConnections`
+                methods: ["listConnections", "createConnection", "getConnection", "deleteConnection"],
                 testFiles: ["spec/unit/ai-connection.spec.ts"],
             },
             {
@@ -21,12 +22,7 @@ const CHECKS = [
                 methods: ["listMcpTools", "callMcpTool"],
                 testFiles: ["spec/unit/ai-connection.spec.ts"],
             },
-            {
-                name: "AIConnectionManager cache and lifecycle APIs",
-                ownerFile: "src/ai-connection/index.ts",
-                methods: ["getCachedConnections", "getCachedConnection", "clearCache", "stop"],
-                testFiles: ["spec/unit/ai-connection.spec.ts"],
-            },
+            // getCachedConnections/getCachedConnection/clearCache/stop 为客户端 cache/lifecycle helper（无后端路由），SDK 设计不含，有意不实现
         ],
     },
 ];

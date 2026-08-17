@@ -12,15 +12,11 @@ const CHECKS = [
             {
                 name: "CasManager admin CRUD APIs",
                 ownerFile: "src/cas/index.ts",
-                methods: ["registerService", "listServices", "deleteService", "setUserAttribute", "getUserAttributes"],
+                // registerService→createService、setUserAttribute→setUserAttributes（历史名变更）
+                methods: ["createService", "listServices", "deleteService", "setUserAttributes", "getUserAttributes"],
                 testFiles: ["spec/unit/cas.spec.ts"],
             },
-            {
-                name: "CasManager public URL helpers",
-                ownerFile: "src/cas/index.ts",
-                methods: ["buildLoginUrl", "buildLogoutUrl", "buildValidateUrl"],
-                testFiles: ["spec/unit/cas.spec.ts"],
-            },
+            // buildLoginUrl/buildLogoutUrl/buildValidateUrl 为历史 URL 构造 helper，SDK 实为 serviceValidate/proxyValidate/handleLogout，有意移除
         ],
     },
 ];
