@@ -35,6 +35,7 @@ import {
 import { anySignal, parseErrorResponse, timeoutSignal } from "./utils";
 import { type QueryDict } from "./utils";
 import { TokenRefresher, TokenRefreshOutcome } from "./refresh";
+import { gzipSync, strToU8 } from "fflate";
 
 export class FetchHttpApi<O extends IHttpOpts> {
     private abortController = new AbortController();
@@ -275,9 +276,28 @@ export class FetchHttpApi<O extends IHttpOpts> {
         // We can't use getPrototypeOf here as objects made in other contexts e.g. over postMessage won't have same ref
         let data: BodyInit;
         if (opts.json !== false && body?.constructor?.name === Object.name) {
-            data = JSON.stringify(body);
+            const jsonStr = JSON.stringify(body);
+            data = jsonStr;
             if (!headers["Content-Type"]) {
                 headers["Content-Type"] = "application/json";
+            }
+            // Optional GZIP compression for JSON request bodies.
+            // Only kicks in for plain JSON objects (not FormData/Blob/etc.) when the
+            // serialized body exceeds `gzipThresholdBytes`. The server is expected
+            // to transparently decompress gzipped request bodies.
+            if (this.opts.gzipRequests !== false && jsonStr.length > (this.opts.gzipThresholdBytes ?? 1024)) {
+                try {
+                    const compressed = gzipSync(strToU8(jsonStr), { level: 6 });
+                    data = compressed as unknown as BodyInit;
+                    headers["Content-Encoding"] = "gzip";
+                } catch (e) {
+                    // Compression failure must not break the request — fall back to uncompressed body.
+                    this.opts.logger?.warn(
+                        `FetchHttpApi: GZIP compression failed, sending uncompressed: ${(e as Error).message}`,
+                    );
+                    data = jsonStr;
+                    delete headers["Content-Encoding"];
+                }
             }
         } else {
             data = body as BodyInit;
