@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { PresenceManager, PresenceEvent, type PresenceState } from "../../src/presence/index";
 import { InvalidParamError } from "../../src/common/errors.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
+import { AuthError, NotFoundError, RetryableError, ApiError, TimeoutError } from "../../src/errors";
 
 describe("PresenceManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -582,12 +582,16 @@ describe("PresenceManager", () => {
             await expect(presenceManager.getPresenceList("@user:example.com")).rejects.toThrow(AuthError);
         });
 
-        it("should throw RetryableError on timeout", async () => {
+        it("should throw TimeoutError on timeout (P3: ETIMEDOUT → TimeoutError subclass)", async () => {
             mockClient.http.authedRequest.mockRejectedValue({
                 message: "Timeout",
                 code: "ETIMEDOUT",
             });
-            await expect(presenceManager.getPresenceList("@user:example.com")).rejects.toThrow(RetryableError);
+            // ETIMEDOUT now maps to TimeoutError (P3) — still isRetryable=true
+            await expect(presenceManager.getPresenceList("@user:example.com")).rejects.toMatchObject({
+                name: "TimeoutError",
+                isRetryable: true,
+            });
         });
 
         it("should throw ApiError on other errors", async () => {
@@ -849,12 +853,17 @@ describe("PresenceManager", () => {
             await expect(presenceManager.setPresence("online")).rejects.toThrow(RetryableError);
         });
 
-        it("should classify ETIMEDOUT as RetryableError", async () => {
+        it("should classify ETIMEDOUT as TimeoutError (P3 optimization: timeout-specific subclass)", async () => {
             mockClient.http.authedRequest.mockRejectedValue({
                 message: "Timeout",
                 code: "ETIMEDOUT",
             });
-            await expect(presenceManager.setPresence("online")).rejects.toThrow(RetryableError);
+            // TimeoutError is a separate SdkError subclass (P3), not RetryableError,
+            // but `isRetryable === true` so retry behavior is preserved.
+            await expect(presenceManager.setPresence("online")).rejects.toMatchObject({
+                name: "TimeoutError",
+                isRetryable: true,
+            });
         });
 
         it("should classify 5xx as RetryableError", async () => {

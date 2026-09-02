@@ -227,20 +227,20 @@ export function isNotFoundError(error: unknown): error is import("../errors").No
 // ─── Network error code guards ─────────────────────────────────
 
 /**
- * Known Node.js / fetch network error codes that indicate a timeout.
+ * Known Node.js / fetch network error codes that indicate a request-level timeout.
+ * These are mapped to {@link TimeoutError} in BaseManager.normalizeError().
+ *
+ * Connection-level failures (ECONNRESET, ECONNREFUSED, ENOTFOUND, etc.) are
+ * NOT in this set — they map to {@link RetryableError} instead, because the
+ * connection never reached the request deadline and is a transient transport
+ * problem, not a timeout of the in-flight request.
+ *
  * See: https://nodejs.org/api/errors.html#common-system-errors
  */
 const TIMEOUT_ERROR_CODES = new Set([
-    "ETIMEDOUT",      // Connection timed out
-    "ECONNRESET",     // Connection reset by peer (often timeout-related)
-    "ESOCKETTIMEDOUT",// Socket timeout
-    "ETIMEDOUT",      // Alias for ETIMEDOUT on some platforms
-    "ETIME",          // Operation timed out
-    "ENOTFOUND",      // DNS lookup failed (sometimes used as timeout)
-    "EHOSTUNREACH",   // Host unreachable
-    "ENETUNREACH",    // Network unreachable
-    "EPIPE",          // Broken pipe (connection dropped)
-    "ECONNREFUSED",    // Connection refused (sometimes as timeout fallback)
+    "ETIMEDOUT",       // Connection timed out
+    "ESOCKETTIMEDOUT", // Socket timeout (TLS/TCP-level)
+    "ETIME",           // Operation timed out
 ] as const);
 
 /**

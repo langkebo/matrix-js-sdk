@@ -196,10 +196,10 @@ describe("BurnAfterReadManager", () => {
             await expect(manager.enableBurn("!room:test")).rejects.toThrow(RetryableError);
         });
 
-        it("normalizes MatrixError to ApiError on 400", async () => {
+        it("normalizes MatrixError to ValidationError on 400 M_BAD_JSON (P3: validation-type errcode → ValidationError)", async () => {
             authedRequest.mockRejectedValue(createMatrixError(400, "M_BAD_JSON", "Bad request"));
 
-            await expect(manager.enableBurn("!room:test")).rejects.toThrow(ApiError);
+            await expect(manager.enableBurn("!room:test")).rejects.toThrow(ValidationError);
         });
     });
 
