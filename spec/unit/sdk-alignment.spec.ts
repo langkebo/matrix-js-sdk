@@ -81,7 +81,7 @@ describe("SDK alignment managers", () => {
                 "/friends",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(friends[0]?.status).toBe(FriendRelationshipStatus.Normal);
         });
@@ -109,11 +109,11 @@ describe("SDK alignment managers", () => {
             await manager.enableBurn("!room:test");
 
             expect(authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
+                "PUT",
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: true, burn_after_ms: 60000 },
-                expect.objectContaining({ prefix: "/_matrix/client/v1" }),
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

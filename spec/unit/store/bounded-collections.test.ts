@@ -209,6 +209,12 @@ describe("ISSUE-11b bounded collections", () => {
             });
             const fakeThreadTimelineSet = {
                 getLiveTimeline: () => fakeTimeline,
+                getTimelines: () => [fakeTimeline],
+                removeEvent: (eventId: string) => {
+                    const idx = eventsArr.findIndex((e) => e.getId() === eventId);
+                    if (idx >= 0) eventsArr.splice(idx, 1);
+                    return eventsArr[idx] ?? null;
+                },
             } as unknown as EventTimelineSet;
 
             // Inject into threadsTimelineSets (tuple, starts as []).

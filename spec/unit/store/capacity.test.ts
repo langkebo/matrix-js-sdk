@@ -184,7 +184,7 @@ describe("MemoryStore 缓存统计集成", () => {
         const makeRoom = (id: string) =>
             ({
                 roomId: id,
-                currentState: { on: () => {}, getMembers: () => [], removeListener: () => {} },
+                currentState: { on: () => {}, off: () => {}, getMembers: () => [], removeListener: () => {} },
             }) as any;
         store.storeRoom(makeRoom("!r1:server"));
         store.storeRoom(makeRoom("!r2:server"));

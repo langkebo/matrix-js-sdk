@@ -21,27 +21,22 @@ describe("ISSUE-09b AI setEndpoint security warning", () => {
         expect(logger.warn).not.toHaveBeenCalled();
     });
 
-    it("warns but still sets non-localhost http endpoint", () => {
+    it("rejects non-localhost http endpoint", () => {
         const ai = new AIModule();
-        ai.setEndpoint("http://external.evil.com/mcp");
-        expect(ai.getEndpoint()).toBe("http://external.evil.com/mcp");
-        expect(logger.warn).toHaveBeenCalledWith(
-            expect.stringMatching(/security check/i),
-            expect.anything(),
+        expect(() => ai.setEndpoint("http://external.evil.com/mcp")).toThrow(
+            /refusing to use non-https/i,
         );
     });
 
-    it("warns on unsupported protocol but still sets", () => {
+    it("rejects unsupported protocol", () => {
         const ai = new AIModule();
-        ai.setEndpoint("ftp://example.org/mcp");
-        expect(ai.getEndpoint()).toBe("ftp://example.org/mcp");
-        expect(logger.warn).toHaveBeenCalled();
+        expect(() => ai.setEndpoint("ftp://example.org/mcp")).toThrow(
+            /unsupported/i,
+        );
     });
 
-    it("warns on invalid URL but still sets endpoint", () => {
+    it("rejects invalid URL", () => {
         const ai = new AIModule();
-        ai.setEndpoint("not-a-url");
-        expect(ai.getEndpoint()).toBe("not-a-url");
-        expect(logger.warn).toHaveBeenCalled();
+        expect(() => ai.setEndpoint("not-a-url")).toThrow(/invalid/i);
     });
 });
