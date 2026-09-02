@@ -31,10 +31,11 @@ import type { QueryDict } from "../http-api/utils";
 import type { Body, IRequestOpts } from "../http-api/interface";
 import { Method } from "../http-api/method";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
-import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, ValidationError } from "../errors";
+import { AuthError, NotFoundError, ApiError, SdkError, RetryableError, TimeoutError, ValidationError } from "../errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import type { MatrixClientInternalMethods } from "../matrix-client-extensions";
+import { extractNumber, extractString, hasTimeoutCode } from "../utils/type-guards";
 
 // ─── 公共类型 ────────────────────────────────────────────────
 
@@ -306,18 +307,139 @@ export abstract class BaseManager<
         });
     }
 
+    // ─── P1 优化：统一前缀处理入口 ──────────────────────────────
+
+    /**
+     * 已知的 Matrix 前缀列表（按从长到短排序，避免短前缀误匹配）。
+     *
+     * 包含 C-S API 的所有标准版本前缀，以及 Admin/Media/Federation 命名空间。
+     * 该列表是 SDK 的运行时前缀注册表——`authedRequestWithPrefix` 会按此列表
+     * 剥离传入路径的前缀，并把剥离下来的前缀透传给 transport 层。
+     *
+     * P1 优化：替代前端 `MatrixHttpClient.ts` 中的 `stripMatrixPrefix` 手动逻辑。
+     */
+    protected static readonly KNOWN_PREFIXES: readonly string[] = [
+        // 客户端 API
+        "/_matrix/client/unstable/org.matrix.msc3575",
+        "/_matrix/client/unstable/org.matrix.simplified_msc3575",
+        "/_matrix/client/unstable/org.matrix.msc4186",
+        "/_matrix/client/v4",
+        "/_matrix/client/v3",
+        "/_matrix/client/v1",
+        "/_matrix/client/r0",
+        "/_matrix/client",
+        // Admin / Worker
+        "/_synapse/worker",
+        "/_synapse/admin/v2",
+        "/_synapse/admin/v1",
+        // Media
+        "/_matrix/media/v3",
+        "/_matrix/media/v1",
+        "/_matrix/media/r0",
+        "/_matrix/media",
+        // Federation
+        "/_matrix/federation/v2",
+        "/_matrix/federation/v1",
+        "/_matrix/key/v2",
+        // Vendor
+        "/_matrix/vendor/v1",
+        // Identity
+        "/_matrix/identity/v2",
+    ] as const;
+
+    /**
+     * 从完整路径中剥离已知前缀，返回短路径和需要显式设置的 prefix。
+     *
+     * 若路径不含任何已知前缀，返回原路径（使用默认前缀 ClientPrefix.V3）。
+     * 若路径仅由前缀组成（不包含具体子路径），返回 "/"。
+     *
+     * @example
+     * _splitPrefix("/_matrix/client/v3/rooms") → { cleanPath: "/rooms", prefix: "/_matrix/client/v3" }
+     * _splitPrefix("/rooms") → { cleanPath: "/rooms", prefix: undefined }
+     * _splitPrefix("/_matrix/client/v3") → { cleanPath: "/", prefix: "/_matrix/client/v3" }
+     */
+    protected _splitPrefix(path: string): { cleanPath: string; prefix?: string } {
+        for (const prefix of BaseManager.KNOWN_PREFIXES) {
+            if (path === prefix) {
+                return { cleanPath: "/", prefix };
+            }
+            if (path.startsWith(prefix + "/")) {
+                return {
+                    cleanPath: path.slice(prefix.length),
+                    prefix,
+                };
+            }
+        }
+        // 路径不含已知前缀，使用默认行为（不加 prefix 选项，由 transport 自行决定）
+        return { cleanPath: path };
+    }
+
+    /**
+     * 带前缀的认证请求：自动剥离路径中已包含的 Matrix 前缀，避免双前缀拼接到 404。
+     *
+     * P1 优化：替代前端 `MatrixHttpClient.ts` 的 `stripMatrixPrefix + authedRequest` 两步调用，
+     * 统一在 SDK 层处理所有已知前缀。调用方可直接传完整路径，无需关心 SDK 默认前缀。
+     *
+     * @param method - HTTP 方法
+     * @param path - 完整路径（可能含 `/_matrix/client/v3` 等前缀）
+     * @param queryParams - 查询参数
+     * @param body - 请求体
+     * @param opts - 透传至 IRequestOpts
+     *
+     * @example
+     * // 两种调用方式等价:
+     * await this.authedRequestWithPrefix('GET', '/_matrix/client/v3/rooms')
+     * await this.authedRequestWithPrefix('GET', '/rooms')
+     *
+     * @example
+     * // 跨命名空间调用（自动识别非默认前缀）:
+     * await this.authedRequestWithPrefix('GET', '/_synapse/admin/v1/users')
+     * await this.authedRequestWithPrefix('GET', '/_matrix/federation/v1/version')
+     */
+    public async authedRequestWithPrefix<T>(
+        method: Method,
+        path: string,
+        queryParams?: QueryDict,
+        body?: Body,
+        opts?: IRequestOpts,
+    ): Promise<T> {
+        const { cleanPath, prefix } = this._splitPrefix(path);
+        const mergedOpts: IRequestOpts = { ...(opts ?? {}) };
+        if (prefix !== undefined) {
+            mergedOpts.prefix = prefix;
+        }
+        return this.request<T>({
+            method,
+            path: cleanPath,
+            queryParams,
+            body,
+            prefix: prefix ?? this.defaultPrefix,
+            label: opts ? `${method} ${path}` : `${method} ${cleanPath}`,
+        });
+    }
+
     // ─── 错误归一化 ─────────────────────────────────────────────
 
     protected normalizeError(error: unknown, method: string): SdkError {
         const managerName = this.constructor.name;
         const err = error as Error;
         const plain = error as Record<string, unknown>; /* Dynamic: error shape varies by source */
-        const httpStatus = plain?.httpStatus as number | undefined;
-        const errcode = plain?.errcode as string | undefined;
-        const code = plain?.code as string | undefined;
+        const httpStatus = extractNumber(plain, "httpStatus");
+        const errcode = extractString(plain, "errcode");
+        const code = extractString(plain, "code");
 
         if (error instanceof SdkError) {
             return error;
+        }
+
+        // P3 优化：在按 status code 分流之前，先识别 timeout / AbortError 这类
+        // 跨 status code 的错误（HTTP 408 不一定由 server 返回，可能是 fetch AbortController 触发）。
+        if (hasTimeoutCode(error) || code === "ABORT" || err?.name === "AbortError") {
+            const timeoutMs = extractNumber(plain, "timeoutMs") ?? extractNumber(plain, "timeout");
+            return new TimeoutError(
+                `${managerName}.${method} timed out${timeoutMs ? ` after ${timeoutMs}ms` : ""}: ${err?.message ?? "Request timeout"}`,
+                { timeoutMs, causeCode: code, cause: error },
+            );
         }
 
         if (error instanceof MatrixError) {
@@ -326,6 +448,18 @@ export abstract class BaseManager<
             }
             if (error.httpStatus === 404 || error.errcode === "M_NOT_FOUND") {
                 return new NotFoundError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            if (error.httpStatus === 408) {
+                return new TimeoutError(
+                    `${managerName}.${method} failed: ${err?.message ?? "Server-side request timeout"}`,
+                    { causeCode: errcode ?? "M_TIMEOUT", cause: error },
+                );
+            }
+            if (error.httpStatus === 422 || error.errcode === "M_INVALID_PARAM_VALUE" || error.errcode === "M_BAD_JSON") {
+                return new ValidationError(
+                    `${managerName}.${method} failed: ${err?.message ?? "Invalid request payload"}`,
+                    error,
+                );
             }
             if (error.httpStatus === 429 || error.errcode === "M_LIMIT_EXCEEDED" || error.isRateLimitError()) {
                 return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Rate limited"}`, error);
@@ -347,6 +481,18 @@ export abstract class BaseManager<
             }
             if (error.httpStatus === 404) {
                 return new NotFoundError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
+            }
+            if (error.httpStatus === 408) {
+                return new TimeoutError(
+                    `${managerName}.${method} failed: ${err?.message ?? "Request timeout"}`,
+                    { causeCode: "M_TIMEOUT", cause: error },
+                );
+            }
+            if (error.httpStatus === 422) {
+                return new ValidationError(
+                    `${managerName}.${method} failed: ${err?.message ?? "Invalid request payload"}`,
+                    error,
+                );
             }
             if (error.httpStatus === 429 || error.isRateLimitError()) {
                 return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Rate limited"}`, error);
@@ -380,6 +526,18 @@ export abstract class BaseManager<
             return new NotFoundError(
                 `${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`,
                 error as Error,
+            );
+        }
+        if (httpStatus === 408) {
+            return new TimeoutError(
+                `${managerName}.${method} failed: ${err?.message ?? "Request timeout"}`,
+                { causeCode: code ?? errcode, cause: error },
+            );
+        }
+        if (httpStatus === 422 || errcode === "M_INVALID_PARAM_VALUE" || errcode === "M_BAD_JSON") {
+            return new ValidationError(
+                `${managerName}.${method} failed: ${err?.message ?? "Invalid request payload"}`,
+                error,
             );
         }
         if (code === "ECONNRESET" || code === "ETIMEDOUT" || code === "ENOTFOUND" || code === "ECONNABORTED") {
