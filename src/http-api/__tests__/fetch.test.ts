@@ -16,7 +16,7 @@ limitations under the License.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TypedEventEmitter } from "../../models/typed-event-emitter";
-import { HttpApiEvent } from "../interface";
+import { HttpApiEvent, HttpApiEventHandlerMap } from "../interface";
 import type { IHttpOpts, IRequestOpts } from "../interface";
 import { FetchHttpApi } from "../fetch";
 import { Method } from "../method";
@@ -58,7 +58,7 @@ function makeApi(opts: Partial<IHttpOpts> = {}): { api: FetchHttpApi<IHttpOpts>;
         },
         ...opts,
     };
-    const emitter = new TypedEventEmitter<typeof HttpApiEvent, never>();
+    const emitter = new TypedEventEmitter<HttpApiEvent, HttpApiEventHandlerMap>();
     const api = new FetchHttpApi<IHttpOpts>(emitter, baseOpts);
     return { api, captured };
 }
