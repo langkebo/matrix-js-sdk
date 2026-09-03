@@ -406,20 +406,36 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         );
     }
 
-    public async leave(roomId: string): Promise<EmptyObject> {
+    /**
+     * Leave a room.
+     *
+     * @param roomId - The room ID to leave.
+     * @param opts.forget - When `true`, the server forgets the room as part of leaving
+     *     (MSC4267: `POST /rooms/{roomId}/leave` with body `{ forget: true }`), so the client
+     *     need not issue a separate `/forget` request. The local store entry is dropped here too.
+     *     Defaults to `false` for backwards compatibility with servers that have not enabled
+     *     MSC4267 (they ignore the field and the client can still call `forget()` explicitly).
+     */
+    public async leave(roomId: string, opts?: { forget?: boolean }): Promise<EmptyObject> {
         validateRoomId(roomId);
+        const forget = opts?.forget ?? false;
 
         const response = await this.withRetry(async () => {
             return await this.request<EmptyObject>({
                 method: Method.Post,
                 path: rp(`/rooms/${encodeURIComponent(roomId)}/leave`),
-                body: {},
+                body: forget ? { forget: true } : {},
                 prefix: ClientPrefix.V3,
             });
         });
 
         this.emit(RoomEvent.RoomLeft, roomId);
         this.clearRoomCache(roomId);
+        if (forget) {
+            // Server has already forgotten the room (MSC4267); mirror that locally so a
+            // redundant /forget call is avoided.
+            this.client.store?.removeRoom?.(roomId);
+        }
         return response;
     }
 

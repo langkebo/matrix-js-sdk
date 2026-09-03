@@ -32,6 +32,11 @@ export const IGNORE_INVITES_ACCOUNT_EVENT_KEY = new UnstableValue(
 /// The types of recommendations understood.
 export enum PolicyRecommendation {
     Ban = "m.ban",
+    /**
+     * MSC4204: recommend that the server take down the reported content/user.
+     * Backed by `org.matrix.msc4204.takedown` moderation policy events.
+     */
+    Takedown = "m.takedown",
 }
 
 /**

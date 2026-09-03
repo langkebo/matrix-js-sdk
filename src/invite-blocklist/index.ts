@@ -31,6 +31,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
+import { EventType, type InvitePermissionConfigContent } from "../@types/event";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum InviteBlocklistEvent {
@@ -269,6 +270,34 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     public async isUserAllowed(roomId: string, userId: string): Promise<boolean> {
         const allowlist = await this.getAllowlist(roomId);
         return allowlist.includes(userId);
+    }
+
+    /**
+     * Get the user's invite permission config (MSC4155).
+     * Reads the global account data event `m.invite_permission_config`.
+     * @returns the config content, or null if it is not set / cannot be read.
+     */
+    public async getInvitePermissionConfig(): Promise<InvitePermissionConfigContent | null> {
+        try {
+            return await this.client.getAccountDataFromServer(EventType.InvitePermissionConfig);
+        } catch (error) {
+            logger.warn("InviteBlocklistManager.getInvitePermissionConfig failed:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Set the user's invite permission config (MSC4155).
+     * Writes the global account data event `m.invite_permission_config`.
+     * @param content - the invite permission configuration to store.
+     */
+    public async setInvitePermissionConfig(content: InvitePermissionConfigContent): Promise<void> {
+        try {
+            await this.client.setAccountData(EventType.InvitePermissionConfig, content);
+        } catch (error) {
+            logger.error("InviteBlocklistManager.setInvitePermissionConfig failed:", error);
+            throw error;
+        }
     }
 
     /**

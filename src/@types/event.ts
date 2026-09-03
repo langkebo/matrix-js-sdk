@@ -154,7 +154,7 @@ export enum EventType {
     PushRules = "m.push_rules",
     Direct = "m.direct",
     IgnoredUserList = "m.ignored_user_list",
-    InvitePermissionConfig = "m.invite_permission_config", // MSC4380
+    InvitePermissionConfig = "m.invite_permission_config", // MSC4155
 
     // to_device events
     RoomKey = "m.room_key",
@@ -436,6 +436,19 @@ export interface RoomAccountDataEvents extends SecretStorageAccountDataEvents {
 }
 
 /**
+ * Content of the `m.invite_permission_config` global account data event (MSC4155).
+ * Controls whether the user receives invites by default, with optional server/user exceptions.
+ */
+export interface InvitePermissionConfigContent {
+    /** "allow" = receive invites by default; "block" = reject invites by default. */
+    default_action?: "allow" | "block";
+    /** Per-user overrides that invert `default_action` (MSC4155). */
+    user_exceptions?: { [userId: string]: Record<string, never> };
+    /** Per-server overrides that invert `default_action` (MSC4155). */
+    server_exceptions?: { [serverName: string]: Record<string, never> };
+}
+
+/**
  * Mapped type from event type to content type for all specified global account_data events.
  */
 export interface AccountDataEvents extends SecretStorageAccountDataEvents {
@@ -454,7 +467,7 @@ export interface AccountDataEvents extends SecretStorageAccountDataEvents {
     [POLICIES_ACCOUNT_EVENT_TYPE.name]: Policies;
     [POLICIES_ACCOUNT_EVENT_TYPE.altName]: Policies;
 
-    [EventType.InvitePermissionConfig]: { default_action?: string };
+    [EventType.InvitePermissionConfig]: InvitePermissionConfigContent;
 
     // Allow custom account data event types
     [key: string]: unknown;

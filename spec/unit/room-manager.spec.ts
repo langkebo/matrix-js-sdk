@@ -946,4 +946,39 @@ describe("RoomManager", () => {
             );
         });
     });
+
+    describe("leave (MSC4267)", () => {
+        it("sends an empty body by default (backwards compatible)", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({});
+            mockClient.store.removeRoom.mockClear();
+
+            await roomManager.leave("!room:example.com");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/rooms/${encodeURIComponent("!room:example.com")}/leave`,
+                undefined,
+                {},
+                { prefix: "/_matrix/client/v3" },
+            );
+            // Default behaviour must NOT drop the room from the local store.
+            expect(mockClient.store.removeRoom).not.toHaveBeenCalled();
+        });
+
+        it("sends { forget: true } and removes the room from the store when forget is set", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({});
+            mockClient.store.removeRoom.mockClear();
+
+            await roomManager.leave("!room:example.com", { forget: true });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/rooms/${encodeURIComponent("!room:example.com")}/leave`,
+                undefined,
+                { forget: true },
+                { prefix: "/_matrix/client/v3" },
+            );
+            expect(mockClient.store.removeRoom).toHaveBeenCalledWith("!room:example.com");
+        });
+    });
 });
