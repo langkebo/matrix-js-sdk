@@ -860,10 +860,90 @@ describe("RoomManager", () => {
         });
     });
 
-    describe("clearAllCaches", () => {
-        it("should clear all caches", () => {
-            roomManager.clearAllCaches();
-            expect(true).toBe(true);
+    describe("getRoomUnreadCount", () => {
+        it("should throw error for invalid roomId", async () => {
+            await expect(roomManager.getRoomUnreadCount("")).rejects.toThrow();
+        });
+
+        it("should fetch unread count from server", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({
+                notification_count: 5,
+                highlight_count: 2,
+            });
+
+            const result = await roomManager.getRoomUnreadCount("!room:example.com");
+
+            expect(result.notification_count).toBe(5);
+            expect(result.highlight_count).toBe(2);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/rooms/${encodeURIComponent("!room:example.com")}/unread_count`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("translateText", () => {
+        it("should POST text translation to /translate", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ translated_text: "hola" });
+
+            const result = await roomManager.translateText("hello", "es", "en");
+
+            expect(result.translated_text).toBe("hola");
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/translate",
+                undefined,
+                { text: "hello", target_lang: "es", source_lang: "en" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should omit source_lang when not provided", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ translated_text: "hola" });
+
+            await roomManager.translateText("hello", "es");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/translate",
+                undefined,
+                { text: "hello", target_lang: "es" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("getStickyEvents / setStickyEvents", () => {
+        it("should GET sticky_events", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ "m.room.topic": true });
+
+            const result = await roomManager.getStickyEvents("!room:example.com");
+
+            expect(result).toEqual({ "m.room.topic": true });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/rooms/${encodeURIComponent("!room:example.com")}/sticky_events`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should POST sticky_events", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({});
+
+            await roomManager.setStickyEvents("!room:example.com", { "m.room.topic": true });
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                `/rooms/${encodeURIComponent("!room:example.com")}/sticky_events`,
+                undefined,
+                { "m.room.topic": true },
+                { prefix: "/_matrix/client/v3" },
+            );
         });
     });
 });

@@ -22,6 +22,8 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { sendReceiptRequest, setRoomReadMarkersWithLocalEcho, type ReceiptBody } from "../client-receipt-requests";
 import { setRoomReadMarkersRequest } from "../client-batch-requests";
+import { Method } from "../http-api/method";
+import * as utils from "../utils";
 
 export interface IReadReceipt {
     eventId: string;
@@ -223,6 +225,31 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
         if (event) {
             await this.sendReadReceipt(event);
         }
+    }
+
+    /**
+     * Send a read receipt by room ID and event ID, bypassing the room store lookup.
+     * Unlike sendReadReceiptByEventId, this always sends the HTTP request even if
+     * the event is not loaded in the local room store.
+     *
+     * @param roomId - The room ID
+     * @param receiptType - The receipt type (e.g. "m.read")
+     * @param eventId - The event ID to acknowledge
+     */
+    public async sendReceiptForce(roomId: string, receiptType: string, eventId: string): Promise<void> {
+        const path = utils.encodeUri(
+            "/rooms/$roomId/receipt/$receiptType/$eventId",
+            {
+                $roomId: roomId,
+                $receiptType: receiptType,
+                $eventId: eventId,
+            },
+        );
+        await this.request<EmptyObject>({
+            method: Method.Post,
+            path: path,
+            body: {},
+        });
     }
 
     public async setReadMarkers(roomId: string, eventId: string, fullyReadEventId?: string): Promise<void> {

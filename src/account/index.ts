@@ -20,7 +20,7 @@ limitations under the License.
  * 提供登录、登出、Token 管理等功能
  */
 
-import { BaseManager, type ManagerOpts } from "../managers/base-manager";
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
@@ -33,11 +33,12 @@ import {
 } from "../@types/auth";
 import { type AuthDict } from "../interactive-auth";
 import { type IdServerUnbindResult } from "../@types/partials";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { IGuestAccessOpts } from "../@types/requests";
 import type { IContent } from "../models/event";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import { normalizeExpiresInMs } from "../auth/normalize-expires";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
@@ -56,11 +57,31 @@ const SSO_ACTION_PARAM = {
     unstable: "org.matrix.msc3824.action",
 };
 
-export class AccountManager extends BaseManager {
-    constructor(client: MatrixClient, opts?: ManagerOpts) {
-        super(client, opts);
-    }
+export interface MyRoomEntry {
+    room_id: string;
+    name?: string;
+}
 
+export interface MyRoomsResponse {
+    rooms: MyRoomEntry[];
+    total: number;
+}
+
+export interface EventsResponse {
+    chunk: IContent[];
+    start?: string;
+    end?: string;
+}
+
+export interface EventsRequestOptions {
+    from?: string;
+    to?: string;
+    dir?: "f" | "b";
+    limit?: number;
+    timeout?: number;
+}
+
+export class AccountManager extends BaseManager {
     /**
      * Get the session ID
      */
@@ -139,12 +160,14 @@ export class AccountManager extends BaseManager {
      */
     public async loginRequest(data: LoginRequest): Promise<LoginResponse> {
         return await this.withRetry(async () => {
-            return await this.request<LoginResponse>({
+            const response = await this.request<LoginResponse & { expires_in?: number }>({
                 method: Method.Post,
                 path: ap("/login"),
                 body: data,
                 authenticated: false,
             });
+            // ISSUE-05: 后端返回 expires_in（秒），在响应边界归一化为 expires_in_ms（毫秒）
+            return normalizeExpiresInMs(response);
         }, "loginRequest");
     }
 
@@ -270,6 +293,56 @@ export class AccountManager extends BaseManager {
         });
         const params = { session: authSessionId };
         return this.client.http.getUrl(path, params).href;
+    }
+
+    /**
+     * Get my rooms
+     * GET /_matrix/vendor/v1/my_rooms
+     */
+    public async getMyRooms(): Promise<MyRoomsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MyRoomsResponse>({
+                method: Method.Get,
+                path: "/my_rooms",
+                prefix: VendorPrefix,
+            });
+        }, "getMyRooms");
+    }
+
+    /**
+     * Get global events
+     * GET /_matrix/client/v3/events
+     */
+    public async getEvents(options?: EventsRequestOptions): Promise<EventsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<EventsResponse>({
+                method: Method.Get,
+                path: "/events",
+                queryParams: options as Record<string, string | number | boolean | string[]>,
+                prefix: ClientPrefix.V3,
+            });
+        }, "getEvents");
+    }
+
+    /**
+     * Poll event updates using the legacy events stream with long-poll timeout.
+     * GET /_matrix/client/v3/events?from=...&timeout=...
+     *
+     * @param from - Pagination token from a previous response
+     * @param timeout - Long-poll timeout in milliseconds (default: 30000)
+     * @returns Event stream chunk with start/end tokens
+     */
+    public async getEventStream(from?: string, timeout: number = 30000): Promise<EventsResponse> {
+        return this.withRetry(async () => {
+            const queryParams: Record<string, string | number> = { timeout };
+            if (from) queryParams.from = from;
+            return await this.request<EventsResponse>({
+                method: Method.Get,
+                path: "/events",
+                queryParams,
+                prefix: ClientPrefix.V3,
+            });
+        }, "getEventStream");
     }
 
     /**

@@ -130,7 +130,8 @@ describe("ModuleManager", () => {
             const result = await manager.getModuleLogs("my-module", { limit: 10 });
 
             expect(result.logs).toHaveLength(1);
-            transport.expectCalledWith(Method.Get, "/modules/my-module/logs");
+            // SDK-BL-001: backend route is /modules/logs/{module_name} (logs segment comes first)
+            transport.expectCalledWith(Method.Get, "/modules/logs/my-module");
         });
     });
 
@@ -299,14 +300,18 @@ describe("ModuleManager", () => {
     // ==================== 账户有效性 ====================
 
     describe("account validity", () => {
-        it("should check account validity", async () => {
-            expect.assertions(0);
+        // eslint-disable-next-line vitest/expect-expect
+        it("should check account validity with required body", async () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
 
-            await manager.checkAccountValidity();
+            await manager.checkAccountValidity("@user:example.com", 9999999999);
 
-            transport.expectCalledWith(Method.Post, "/account_validity");
+            // SDK-BL-002: backend create_account_validity requires user_id + expiration_ts in body
+            transport.expectCalledWith(Method.Post, "/account_validity", {
+                user_id: "@user:example.com",
+                expiration_ts: 9999999999,
+            });
         });
 
         it("should get account validity for a user and emit event", async () => {
@@ -321,14 +326,18 @@ describe("ModuleManager", () => {
             expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.AccountValidityChecked, response);
         });
 
-        it("should renew account validity and emit event", async () => {
+        it("should renew account validity with required body and emit event", async () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
             const emitSpy = vi.spyOn(manager, "emit");
 
-            await manager.renewAccountValidity("@user:example.com");
+            await manager.renewAccountValidity("@user:example.com", "renew-token-123", 9999999999);
 
-            transport.expectCalledWith(Method.Post, "/account_validity/%40user%3Aexample.com/renew");
+            // SDK-BL-003: backend renew_account requires renewal_token + new_expiration_ts in body
+            transport.expectCalledWith(Method.Post, "/account_validity/%40user%3Aexample.com/renew", {
+                renewal_token: "renew-token-123",
+                new_expiration_ts: 9999999999,
+            });
             expect(emitSpy).toHaveBeenCalledWith(ModuleEvent.AccountValidityRenewed, "@user:example.com");
         });
     });

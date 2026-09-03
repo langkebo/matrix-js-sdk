@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import { InvalidParamError } from "../../common/errors";
 import { BaseManager } from "../../managers/base-manager";
 import type { FriendStatus, FriendStatusInfo } from "../index";
@@ -54,7 +54,7 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
         return this.request<FriendStatusInfo>({
             method: Method.Get,
             path: `/friends/${encodeURIComponent(userId)}/status`,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
     }
 
@@ -101,7 +101,7 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
             method: Method.Put,
             path: `/friends/${encodeURIComponent(userId)}/status`,
             body: { status },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const friend = this.sharedState.friends.get(userId);

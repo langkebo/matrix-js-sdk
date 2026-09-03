@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        OpenClaw 契约
- * Source:        docs/api-contract/generated/modules/openclaw.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       34 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `openclaw` module. */
+/** Routes served by the synapse-rust `open-claw` module (mirrored from the backend contract). */
 export const OPENCLAW_ROUTES = [
     { method: "GET", path: "/_matrix/client/unstable/org.synapse_rust.openclaw/connections" },
     { method: "POST", path: "/_matrix/client/unstable/org.synapse_rust.openclaw/connections" },
@@ -34,6 +32,17 @@ export const OPENCLAW_ROUTES = [
     { method: "DELETE", path: "/_matrix/client/unstable/org.synapse_rust.openclaw/roles/{id}" },
     { method: "GET", path: "/_matrix/client/unstable/org.synapse_rust.openclaw/roles/{id}" },
     { method: "PUT", path: "/_matrix/client/unstable/org.synapse_rust.openclaw/roles/{id}" },
+    { method: "DELETE", path: "/_matrix/client/v3/messages/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/connections" },
+    { method: "GET", path: "/_matrix/client/v3/connections/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/conversations" },
+    { method: "GET", path: "/_matrix/client/v3/conversations/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/conversations/{id}/messages" },
+    { method: "GET", path: "/_matrix/client/v3/generations" },
+    { method: "GET", path: "/_matrix/client/v3/generations/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/roles" },
+    { method: "GET", path: "/_matrix/client/v3/roles/{id}" },
+    { method: "POST", path: "/_matrix/client/v3/connections/{id}/test" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `OPENCLAW_ROUTES`. */

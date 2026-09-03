@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
-import { VoiceManager, VoiceEvent } from "../../src/voice/index";
+import { VoiceManager, VoiceEvent, type IVoiceConfig } from "../../src/voice/index";
 import { Method } from "../../src/http-api/method";
+import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix";
+import { HTTPError } from "../../src/http-api/errors";
 
 describe("VoiceManager", () => {
     let transport: FakeTransport;
@@ -30,6 +32,21 @@ describe("VoiceManager", () => {
     it("getVoiceStats should reject on failure", async () => {
         transport.rejectWith(new Error("API error"));
         await expect(manager.getVoiceStats()).rejects.toThrow();
+    });
+
+    // FT-093: _prefix 参数此前是 dead parameter（声明但未传给 request）
+    it("getVoiceStats should honor prefix parameter (FT-093)", async () => {
+        transport.respondWith({});
+        await manager.getVoiceStats(ClientPrefix.V1);
+        const opts = transport.request.mock.calls[0][4] as { prefix: string };
+        expect(opts.prefix).toBe(ClientPrefix.V1);
+    });
+
+    it("getVoiceStats should default to VendorPrefix when omitted (FT-093)", async () => {
+        transport.respondWith({});
+        await manager.getVoiceStats();
+        const opts = transport.request.mock.calls[0][4] as { prefix: string };
+        expect(opts.prefix).toBe(VendorPrefix);
     });
 
     // ─── getRoomVoiceStats ──────────────────────────────────────────
@@ -133,6 +150,17 @@ describe("VoiceManager", () => {
         await expect(manager.uploadVoiceMessage({ content: "data", content_type: "audio/ogg" })).rejects.toThrow();
     });
 
+    it("FT-111: uploadVoiceMessage does not retry on 500 (non-idempotent POST)", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        manager = new VoiceManager({} as any, { transport, maxRetries: 3 });
+        transport.rejectWith(new HTTPError("Internal Server Error", 500));
+
+        await expect(manager.uploadVoiceMessage({ content: "data", content_type: "audio/ogg" })).rejects.toThrow();
+
+        // Non-idempotent POST must not retry
+        expect(transport.request).toHaveBeenCalledTimes(1);
+    });
+
     // ─── getVoiceMessage ─────────────────────────────────────────────
 
     it("getVoiceMessage should GET a single voice message", async () => {
@@ -230,6 +258,70 @@ describe("VoiceManager", () => {
 
     it("getCachedConfig should return null before first config fetch", () => {
         expect(manager.getCachedConfig()).toBeNull();
+    });
+
+    // ─── FT-127: getVoiceConfig in-flight deduplication ─────────────
+
+    it("FT-127: concurrent getVoiceConfig calls share a single in-flight request", async () => {
+        const config: IVoiceConfig = {
+            max_upload_size_bytes: 10485760,
+            allowed_content_types: ["audio/ogg"],
+            auto_transcribe: false,
+            retention_days: 7,
+        };
+        let resolveRequest!: (value: IVoiceConfig) => void;
+        transport.request.mockReturnValue(
+            new Promise<IVoiceConfig>((resolve) => {
+                resolveRequest = resolve;
+            }),
+        );
+
+        // Fire two concurrent calls before the first resolves
+        const promise1 = manager.getVoiceConfig();
+        const promise2 = manager.getVoiceConfig();
+
+        // Only one HTTP request should be in flight
+        expect(transport.request).toHaveBeenCalledTimes(1);
+
+        resolveRequest(config);
+
+        const [result1, result2] = await Promise.all([promise1, promise2]);
+        expect(result1).toEqual(config);
+        expect(result2).toEqual(config);
+    });
+
+    it("FT-127: subsequent getVoiceConfig returns cached config without HTTP request", async () => {
+        const config: IVoiceConfig = {
+            max_upload_size_bytes: 10485760,
+            allowed_content_types: ["audio/ogg"],
+            auto_transcribe: false,
+            retention_days: 7,
+        };
+        transport.respondWith(config);
+        await manager.getVoiceConfig();
+
+        // After first fetch, cache is populated — second call must not hit transport
+        transport.resetCalls();
+        const result = await manager.getVoiceConfig();
+        expect(result).toEqual(config);
+        expect(transport.request).not.toHaveBeenCalled();
+    });
+
+    // ─── getRtcTransports ─────────────────────────────────────────
+
+    it("getRtcTransports should GET /org.matrix.msc4143/rtc/transports with Unstable prefix", async () => {
+        const transports = { transports: [{ protocol: "org.matrix.msc4143", uri: "wss://example.com" }] };
+        transport.respondWith(transports);
+        const result = await manager.getRtcTransports();
+        expect(result).toEqual(transports);
+        transport.expectCalledWith(Method.Get, "/org.matrix.msc4143/rtc/transports");
+        const opts = transport.request.mock.calls[0][4] as { prefix: string };
+        expect(opts.prefix).toBe(ClientPrefix.Unstable);
+    });
+
+    it("getRtcTransports should reject on failure", async () => {
+        transport.rejectWith(new Error("API error"));
+        await expect(manager.getRtcTransports()).rejects.toThrow();
     });
 
     // ─── extendMatrixClient export ─────────────────────────────────

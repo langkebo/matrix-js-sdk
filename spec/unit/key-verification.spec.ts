@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { KeyVerificationManager } from "../../src/key-verification/index";
 import { Method, ClientPrefix } from "../../src/http-api";
 import { extendMatrixClientWithManagers, resetManagerExtensions } from "../../src/manager-extensions/index";
-import { MatrixClient } from "../../src/client";
+import { MatrixClient, type IScanQrCodeRequest, type IShowQrCodeResponse } from "../../src/client";
 
 describe("KeyVerificationManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -208,7 +208,15 @@ describe("KeyVerificationManager", () => {
 
     it("routes QR helpers through the verification contract paths", async () => {
         await manager.showQrCode("txn-qr");
-        await manager.scanQrCode("encoded-qr", "txn-qr", "r0");
+        const scanRequest: IScanQrCodeRequest = {
+            transaction_id: "txn-qr",
+            server_name: "example.org",
+            user_id: "@alice:example.org",
+            device_id: "DEVICE",
+            device_ed25519_key: "ed25519:key",
+            device_curve25519_key: "curve25519:key",
+        };
+        await manager.scanQrCode(scanRequest, "r0");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -223,9 +231,51 @@ describe("KeyVerificationManager", () => {
             "POST",
             "/keys/qr_code/scan",
             undefined,
-            { qr_code_data: "encoded-qr", transaction_id: "txn-qr" },
+            scanRequest,
             { prefix: "/_matrix/client/r0" },
         );
+    });
+
+    it("scanQrCode 便捷方法发送后端 ScanQrBody 所需的全部必填字段", async () => {
+        // 后端 synapse-rust 的 ScanQrBody 需要以下 6 个必填字段，缺一不可
+        const request: IScanQrCodeRequest = {
+            transaction_id: "txn-qr",
+            server_name: "example.org",
+            user_id: "@alice:example.org",
+            device_id: "DEVICE",
+            device_ed25519_key: "ed25519:key",
+            device_curve25519_key: "curve25519:key",
+        };
+        await manager.scanQrCode(request, "r0");
+
+        expect(client.http.authedRequest).toHaveBeenCalledWith(
+            Method.Post,
+            "/keys/qr_code/scan",
+            undefined,
+            request,
+            { prefix: ClientPrefix.R0 },
+        );
+    });
+
+    it("FT-109: showQrCode 返回完整 QR 数据结构（IShowQrCodeResponse），而非 { qr_code_data }", async () => {
+        const backendResponse: IShowQrCodeResponse = {
+            transaction_id: "txn-show",
+            server_name: "example.org",
+            user_id: "@alice:example.org",
+            device_id: "DEVICE",
+            device_ed25519_key: "ed25519:key",
+            device_curve25519_key: "curve25519:key",
+        };
+        client.http.authedRequest.mockResolvedValueOnce(backendResponse);
+
+        const result = await manager.showQrCode("txn-show");
+
+        // 后端返回 6 个字段，而非 qr_code_data 包装字段
+        expect(result).toEqual(backendResponse);
+        expect(result).not.toHaveProperty("qr_code_data");
+        expect(result.transaction_id).toBe("txn-show");
+        expect(result.server_name).toBe("example.org");
+        expect(result.device_ed25519_key).toBe("ed25519:key");
     });
 
     it("registers key verification and room key sharing managers through unified extensions", async () => {

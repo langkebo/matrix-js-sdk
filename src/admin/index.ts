@@ -17,13 +17,25 @@ limitations under the License.
 /**
  * Admin Manager - 管理员 API 统一入口
  *
- * 采用组合模式，将 100+ 个方法按领域拆分为 6 个子 Manager：
+ * 采用组合模式，将 200+ 个方法按领域拆分为 7 个子 Manager + 8 个顶级模块入口：
+ * 子 Manager（带 AdminError 事件转发）：
  * - users: 用户管理（CRUD、设备、令牌、会话、速率限制、影子封禁）
  * - rooms: 房间管理（CRUD、成员、消息、状态、Space）
  * - server: 服务器管理（统计、健康、通知、配置、清理、备份）
  * - federation: 联邦管理（黑名单、目的地、缓存、准入）
  * - media: 媒体管理（CRUD、隔离、清理）
  * - config: 配置管理（保留策略、功能标志、模块、报告、审计、令牌）
+ * - externalService: 外部服务管理（CRUD、健康检查，后端字段格式）
+ *
+ * 顶级模块入口（独立 BaseManager，无 AdminError 转发）：
+ * - backgroundUpdates: 数据库后台更新任务
+ * - eventReports: 事件举报
+ * - modules: 应用模块（presence / password auth / media callbacks）
+ * - saml: SAML SSO
+ * - cas: CAS SSO
+ * - featureFlags: 功能标志
+ * - retention: 保留策略
+ * - telemetry: 遥测
  *
  * 通过 ES Proxy 自动将旧方法调用转发到对应子 Manager，保持完全向后兼容。
  * 推荐使用子 Manager 直接访问：`adminManager.users.createUser(...)`
@@ -162,6 +174,7 @@ import {
     type ThirdPartyRuleCheckResult,
     type ThirdPartyRuleResult,
     type MediaQuarantineChangesResponse,
+    type WhoamiResponse,
 } from "./types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";
 
@@ -172,6 +185,18 @@ import { AdminServerManager, AdminServerEvent } from "./sub-managers/admin-serve
 import { AdminFederationManager } from "./sub-managers/admin-federation-manager";
 import { AdminMediaManager } from "./sub-managers/admin-media-manager";
 import { AdminConfigManager } from "./sub-managers/admin-config-manager";
+import { AdminExternalServiceManager } from "./sub-managers/admin-external-service-manager";
+
+// 顶级 admin 模块（每模块均独立 BaseManager，并已挂到 client facade）
+// 集成到 AdminManager 的子入口，便于 `client.getAdminManager().backgroundUpdates.xxx()` 一站式访问
+import { BackgroundUpdateManager } from "../background-update";
+import { EventReportManager } from "../event-report";
+import { ModuleManager } from "../module";
+import { SamlAuthManager } from "../saml";
+import { CasManager } from "../cas";
+import { FeatureFlagManager } from "../feature-flags";
+import { RetentionManager } from "../retention";
+import { TelemetryManager } from "../telemetry";
 
 export * from "./types";
 export type { AdminAccountDetails as UserInfo } from "./types";
@@ -182,15 +207,32 @@ export { AdminServerManager, AdminServerEvent } from "./sub-managers/admin-serve
 export { AdminFederationManager } from "./sub-managers/admin-federation-manager";
 export { AdminMediaManager } from "./sub-managers/admin-media-manager";
 export { AdminConfigManager } from "./sub-managers/admin-config-manager";
+export {
+    AdminExternalServiceManager,
+    type BackendExternalService,
+    type BackendExternalServiceHealth,
+    type RegisterExternalServicePayload,
+    type UpdateExternalServicePayload,
+    type HealthCheckResult,
+} from "./sub-managers/admin-external-service-manager";
 
-/** 6 个子 Manager 的联合类型（用于 Proxy 路由） */
+/** 7+8 个子 Manager 的联合类型（用于 Proxy 路由 + AdminManager 构造初始化） */
 type AdminSubManager =
     | AdminUserManager
     | AdminRoomManager
     | AdminServerManager
     | AdminFederationManager
     | AdminMediaManager
-    | AdminConfigManager;
+    | AdminConfigManager
+    | AdminExternalServiceManager
+    | BackgroundUpdateManager
+    | EventReportManager
+    | ModuleManager
+    | SamlAuthManager
+    | CasManager
+    | FeatureFlagManager
+    | RetentionManager
+    | TelemetryManager;
 
 interface AdminManagerEventMap {
     [AdminEvent.UserCreated]: (userId: string, user: AdminAccountDetails) => void;
@@ -255,6 +297,7 @@ export interface AdminManager {
     getUserWhois(userId: string): Promise<WhoisResponse>;
     whois(userId: string): Promise<WhoisResponse>;
     whoisByDevice(userId: string, deviceId: string): Promise<WhoisResponse>;
+    getUserById(userId: string, throwOnError?: boolean): Promise<AdminAccountDetails | null>;
     getUserMedia(userId: string, from?: string, limit?: number): Promise<{ media: MediaInfo[]; next_token?: string }>;
     deleteUserMedia(userId: string): Promise<void>;
     getUserNotification(userId: string): Promise<UserNotificationResponse>;
@@ -332,6 +375,7 @@ export interface AdminManager {
     getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }>;
 
     // ----- 服务器管理（→ server） -----
+    whoami(): Promise<WhoamiResponse>;
     getServerStats(): Promise<ServerStats>;
     getServerStatsCached(): ServerStats | null;
     getServerStatus(): Promise<ServerStatus>;
@@ -533,8 +577,19 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
     public readonly federation: AdminFederationManager;
     public readonly media: AdminMediaManager;
     public readonly config: AdminConfigManager;
+    public readonly externalService: AdminExternalServiceManager;
 
-    /** 方法名 → 子 Manager 路由表（构造时一次性构建，覆盖 6 个子 Manager 的全部自有方法） */
+    // ===== 顶级 admin 模块（BaseManager 子入口，路由表同样转发） =====
+    public readonly backgroundUpdates: BackgroundUpdateManager;
+    public readonly eventReports: EventReportManager;
+    public readonly modules: ModuleManager;
+    public readonly saml: SamlAuthManager;
+    public readonly cas: CasManager;
+    public readonly featureFlags: FeatureFlagManager;
+    public readonly retention: RetentionManager;
+    public readonly telemetry: TelemetryManager;
+
+    /** 方法名 → 子 Manager 路由表（构造时一次性构建，覆盖 15 个子 Manager 的全部自有方法） */
     private readonly subManagerRoutes: ReadonlyMap<string, AdminSubManager>;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
@@ -552,12 +607,42 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         this.federation = new AdminFederationManager(client, onError, opts);
         this.media = new AdminMediaManager(client, onError, opts);
         this.config = new AdminConfigManager(client, onError, opts);
+        this.externalService = new AdminExternalServiceManager(client, onError, opts);
+
+        // 顶级 admin 模块子入口：BaseManager，无 onError / AdminError 事件转发
+        // TelemetryManager 构造签名: (client, config?, opts?)，需显式传 undefined 跳过后端配置参数
+        this.backgroundUpdates = new BackgroundUpdateManager(client, opts);
+        this.eventReports = new EventReportManager(client, opts);
+        this.modules = new ModuleManager(client, opts);
+        this.saml = new SamlAuthManager(client, opts);
+        this.cas = new CasManager(client, opts);
+        this.featureFlags = new FeatureFlagManager(client, opts);
+        this.retention = new RetentionManager(client, opts);
+        this.telemetry = new TelemetryManager(client, undefined, opts);
 
         // 构建方法名 → 子 Manager 路由表。
         // 遍历每个子 Manager 的自有原型方法，first-match-wins 决定冲突优先级：
         // rooms 优先于 config（listReports/getReport/deleteReport 同时存在于两者，index.ts 历史委托给 rooms）。
+        // AdminManager 自身的"门面方法"（getAdminManager 接口声明）保留优先级，由 Proxy get trap 的
+        // Reflect.has(target, prop) 分支保证 —— 子 Manager 仅在 target 上没有同名属性时才接管。
         const routes = new Map<string, AdminSubManager>();
-        for (const subManager of [this.users, this.rooms, this.server, this.federation, this.media, this.config]) {
+        for (const subManager of [
+            this.users,
+            this.rooms,
+            this.server,
+            this.federation,
+            this.media,
+            this.config,
+            this.externalService,
+            this.backgroundUpdates,
+            this.eventReports,
+            this.modules,
+            this.saml,
+            this.cas,
+            this.featureFlags,
+            this.retention,
+            this.telemetry,
+        ]) {
             const proto = Object.getPrototypeOf(subManager);
             for (const name of Object.getOwnPropertyNames(proto)) {
                 if (name === "constructor") continue;
@@ -596,7 +681,7 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 
     /**
      * 将方法名路由到对应的子 Manager。
-     * 基于构造时构建的路由表（覆盖 6 个子 Manager 的全部自有方法）。
+     * 基于构造时构建的路由表（覆盖 15 个子 Manager 的全部自有方法）。
      */
     private routeToSubManager(methodName: string): AdminSubManager | null {
         return this.subManagerRoutes.get(methodName) ?? null;
@@ -621,6 +706,19 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
 
         // 服务器事件
         this.server.on(AdminServerEvent.ServerStatsUpdated, (stats) => this.emit(AdminEvent.ServerStatsUpdated, stats));
+    }
+
+    /** 停止 AdminManager，清理所有 sub-manager 的转发监听器 */
+    stop(): void {
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.users.removeAllListeners();
+        this.rooms.removeAllListeners();
+        this.server.removeAllListeners();
+        this.federation.removeAllListeners();
+        this.media.removeAllListeners();
+        this.config.removeAllListeners();
+        this.externalService.removeAllListeners();
+        // 顶级模块无 AdminError 事件转发，无需清理
     }
 }
 
@@ -648,5 +746,31 @@ export function extendMatrixClient(): void {
     };
     MatrixClient.prototype.getAdminConfigManager = function (): AdminConfigManager {
         return this.getAdminManager().config;
+    };
+
+    // 顶级 admin 模块便捷访问（AdminManager 集成的子入口）
+    MatrixClient.prototype.getAdminBackgroundUpdates = function (): BackgroundUpdateManager {
+        return this.getAdminManager().backgroundUpdates;
+    };
+    MatrixClient.prototype.getAdminEventReports = function (): EventReportManager {
+        return this.getAdminManager().eventReports;
+    };
+    MatrixClient.prototype.getAdminModules = function (): ModuleManager {
+        return this.getAdminManager().modules;
+    };
+    MatrixClient.prototype.getAdminSaml = function (): SamlAuthManager {
+        return this.getAdminManager().saml;
+    };
+    MatrixClient.prototype.getAdminCas = function (): CasManager {
+        return this.getAdminManager().cas;
+    };
+    MatrixClient.prototype.getAdminFeatureFlags = function (): FeatureFlagManager {
+        return this.getAdminManager().featureFlags;
+    };
+    MatrixClient.prototype.getAdminRetention = function (): RetentionManager {
+        return this.getAdminManager().retention;
+    };
+    MatrixClient.prototype.getAdminTelemetry = function (): TelemetryManager {
+        return this.getAdminManager().telemetry;
     };
 }

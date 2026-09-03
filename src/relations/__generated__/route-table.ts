@@ -3,25 +3,23 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Relations
- * Source:        docs/api-contract/generated/modules/relations.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       11 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `relations` module. */
+/** Routes served by the synapse-rust `relations` module (mirrored from the backend contract). */
 export const RELATIONS_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_id}" },
+    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `RELATIONS_ROUTES`. */

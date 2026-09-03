@@ -30,6 +30,16 @@ export function clearManagerRegistry(client: MatrixClient): void {
     getRegistry(client).clear();
 }
 
+/**
+ * 返回当前 client 上所有已创建的 manager 实例。
+ * 用于 `stopClientLifecycleServices` 统一调用 `stop()`。
+ */
+export function getAllManagersForClient(client: MatrixClient): unknown[] {
+    const carrier = client as ManagerRegistryCarrier;
+    const registry = carrier[MANAGER_REGISTRY];
+    return registry ? Array.from(registry.values()) : [];
+}
+
 // ── Class / factory registry (for manager() accessor) ──────────
 
 type ManagerClass = new (client: MatrixClient) => unknown;
@@ -83,6 +93,7 @@ export type ManagerName =
     | "cryptoKeys"
     | "cryptoStore"
     | "dehydratedDevice"
+    | "delayedEvents"
     | "device"
     | "deviceKeys"
     | "deviceTrust"
@@ -192,6 +203,7 @@ export interface ManagerTypeMap {
     cryptoKeys: import("../crypto-keys/index").CryptoKeysManager;
     cryptoStore: import("../crypto-store/index").CryptoStoreManager;
     dehydratedDevice: import("../dehydrated-device/index").DehydratedDeviceManager;
+    delayedEvents: import("../delayed-events/index").DelayedEventsManager;
     device: import("../device/index").DeviceManager;
     deviceKeys: import("../device-keys/index").DeviceKeysManager;
     deviceTrust: import("../device-trust/index").DeviceTrustManager;

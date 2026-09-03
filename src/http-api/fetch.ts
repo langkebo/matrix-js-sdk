@@ -35,6 +35,7 @@ import {
 import { anySignal, parseErrorResponse, timeoutSignal } from "./utils";
 import { type QueryDict } from "./utils";
 import { TokenRefresher, TokenRefreshOutcome } from "./refresh";
+import { gzipSync, strToU8 } from "fflate";
 
 export class FetchHttpApi<O extends IHttpOpts> {
     private abortController = new AbortController();
@@ -52,12 +53,6 @@ export class FetchHttpApi<O extends IHttpOpts> {
         if (opts.idBaseUrl) {
             this.validateBaseUrl(opts.idBaseUrl, "idBaseUrl");
         }
-        // Always use Authorization header for security (SEC-08) by default.
-        // Previously this was configurable; now it defaults to true to prevent token leakage via URL.
-        if (opts.useAuthorizationHeader === undefined) {
-            opts.useAuthorizationHeader = true;
-        }
-
         this.tokenRefresher = new TokenRefresher(opts);
     }
 
@@ -161,23 +156,17 @@ export class FetchHttpApi<O extends IHttpOpts> {
         // Take a snapshot of the current token state before we start the request so we can reference it if we error
         const requestSnapshot = await this.tokenRefresher.prepareForRequest();
         if (requestSnapshot.accessToken) {
-            // Security: Always use Authorization header for token transmission unless explicitly disabled (SEC-08).
-            const useAuthHeader = this.opts.useAuthorizationHeader !== false;
-
-            if (useAuthHeader) {
-                if (!opts.headers) {
-                    opts.headers = {};
-                }
-                if (!opts.headers.Authorization) {
-                    opts.headers.Authorization = `Bearer ${requestSnapshot.accessToken}`;
-                }
-                // Remove access_token from query params if present to prevent token leakage
-                if (queryParams.access_token) {
-                    delete queryParams.access_token;
-                }
-            } else if (!queryParams.access_token) {
-                // If not using header, ensure it's in query params
-                queryParams.access_token = requestSnapshot.accessToken;
+            // Security: Always use Authorization header for token transmission (ISSUE-09).
+            // The access_token query parameter fallback has been removed to prevent token leakage via URLs.
+            if (!opts.headers) {
+                opts.headers = {};
+            }
+            if (!opts.headers.Authorization) {
+                opts.headers.Authorization = `Bearer ${requestSnapshot.accessToken}`;
+            }
+            // Remove access_token from query params if present to prevent token leakage
+            if (queryParams.access_token) {
+                delete queryParams.access_token;
             }
         }
 
@@ -287,9 +276,28 @@ export class FetchHttpApi<O extends IHttpOpts> {
         // We can't use getPrototypeOf here as objects made in other contexts e.g. over postMessage won't have same ref
         let data: BodyInit;
         if (opts.json !== false && body?.constructor?.name === Object.name) {
-            data = JSON.stringify(body);
+            const jsonStr = JSON.stringify(body);
+            data = jsonStr;
             if (!headers["Content-Type"]) {
                 headers["Content-Type"] = "application/json";
+            }
+            // Optional GZIP compression for JSON request bodies.
+            // Only kicks in for plain JSON objects (not FormData/Blob/etc.) when the
+            // serialized body exceeds `gzipThresholdBytes`. The server is expected
+            // to transparently decompress gzipped request bodies.
+            if (this.opts.gzipRequests !== false && jsonStr.length > (this.opts.gzipThresholdBytes ?? 1024)) {
+                try {
+                    const compressed = gzipSync(strToU8(jsonStr), { level: 6 });
+                    data = compressed as unknown as BodyInit;
+                    headers["Content-Encoding"] = "gzip";
+                } catch (e) {
+                    // Compression failure must not break the request — fall back to uncompressed body.
+                    this.opts.logger?.warn(
+                        `FetchHttpApi: GZIP compression failed, sending uncompressed: ${(e as Error).message}`,
+                    );
+                    data = jsonStr;
+                    delete headers["Content-Encoding"];
+                }
             }
         } else {
             data = body as BodyInit;
@@ -341,7 +349,15 @@ export class FetchHttpApi<O extends IHttpOpts> {
 
         if (opts.rawResponseBody) {
             return (await res.blob()) as T;
-        } else if (jsonResponse) {
+        }
+
+        // Tolerate 204/205 No Content responses so callers don't fail on
+        // an empty body (e.g. DELETE endpoints that return no content).
+        if (res.status === 204 || res.status === 205) {
+            return undefined as T;
+        }
+
+        if (jsonResponse) {
             return await res.json();
         } else {
             return (await res.text()) as T;

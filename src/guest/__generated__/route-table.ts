@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        访客契约
- * Source:        docs/api-contract/generated/modules/guest.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       3 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `guest` module. */
+/** Routes served by the synapse-rust `guest` module (mirrored from the backend contract). */
 export const GUEST_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/account/guest" },
     { method: "POST", path: "/_matrix/client/v3/account/guest/upgrade" },

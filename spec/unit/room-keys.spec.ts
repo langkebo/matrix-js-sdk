@@ -58,8 +58,19 @@ describe("RoomKeysManager", () => {
         await expect(manager.getRoomKeyRequests(true)).rejects.toMatchObject({ name: "ApiError" });
     });
 
-    it("normalizes unknown errors", async () => {
-        mockClient.http.authedRequest.mockRejectedValue(new Error("boom"));
-        await expect(manager.getRoomKeyRequests(true)).rejects.toMatchObject({ name: "ApiError" });
+    it("deletes a room key request", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({});
+        await manager.deleteRoomKeyRequest("req-123");
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            "DELETE",
+            "/room_keys/request/req-123",
+            undefined,
+            undefined,
+            { prefix: "/_matrix/client/v3" },
+        );
+    });
+
+    it("validates requestId before delete", async () => {
+        await expect(manager.deleteRoomKeyRequest("")).rejects.toThrow("requestId is required");
     });
 });

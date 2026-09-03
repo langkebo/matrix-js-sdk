@@ -18,7 +18,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ValidationError } from "../../src/errors";
 import { KeyRotationManager } from "../../src/key-rotation/index";
-import { ClientPrefix } from "../../src/http-api/prefix";
+import { VendorPrefix } from "../../src/http-api/prefix";
 import { Method } from "../../src/http-api/method";
 
 describe("KeyRotationManager", () => {
@@ -49,7 +49,7 @@ describe("KeyRotationManager", () => {
         const result = await manager.getStatus();
 
         expect(mockHttp.authedRequest).toHaveBeenCalledWith(Method.Get, "/keys/rotation/status", undefined, undefined, {
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
         expect(result).toEqual(mockResponse);
     });
@@ -85,7 +85,7 @@ describe("KeyRotationManager", () => {
             "/keys/rotation/rotate",
             undefined,
             { key_id: "key_v1" },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(result).toEqual(mockResponse);
     });
@@ -109,7 +109,7 @@ describe("KeyRotationManager", () => {
             "/keys/rotation/history/DEVICE1",
             { limit: 20, from: "batch-0" },
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(result).toEqual(mockResponse);
     });
@@ -129,7 +129,7 @@ describe("KeyRotationManager", () => {
             "/keys/rotation/revoke",
             undefined,
             { key_id: "key_v1_old123", reason: "compromised" },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(result).toEqual(mockResponse);
     });
@@ -154,7 +154,7 @@ describe("KeyRotationManager", () => {
                 enabled: true,
                 interval_ms: 2592000000,
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(result).toEqual(mockResponse);
     });
@@ -174,7 +174,7 @@ describe("KeyRotationManager", () => {
             "/keys/rotation/check",
             { key_id: "key_v2_abc123" },
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(result).toEqual(mockResponse);
     });

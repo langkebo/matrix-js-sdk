@@ -45,6 +45,7 @@ import {
     buildMessagesRequestPath,
     buildThreadListRequestParams,
     buildThreadListRequestPath,
+    DEFAULT_MESSAGES_LIMIT,
 } from "../client-timeline-requests";
 import { normalizeEventContextResponse, type NormalizedContextResponse } from "../client-timeline-core";
 
@@ -154,18 +155,26 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     ): Promise<IGetMessagesResponse> {
         validateRoomId(roomId);
 
-        const queryParams: QueryDict = {
-            from: params.from,
-            dir: params.dir,
-        };
+        // Reuse the shared /messages builders instead of hand-rolling the query here,
+        // so this endpoint has a single construction path (see also createMessagesRequest).
+        //
+        // `Direction.Forward`/`Backward` have the same wire values as "f"/"b", so the
+        // conversion below is a pure internal normalisation: the public signature keeps
+        // accepting the string literals, so no caller is affected.
+        const queryParams: QueryDict = buildMessagesRequestParams({
+            fromToken: params.from,
+            limit: params.limit,
+            dir: params.dir === "f" ? Direction.Forward : Direction.Backward,
+            lazyLoadMembers: false,
+            timelineFilter: params.filter,
+        });
+        // `to` is not part of the shared builder: only this method exposes it.
         if (params.to) queryParams.to = params.to;
-        if (params.limit) queryParams.limit = params.limit.toString();
-        if (params.filter) queryParams.filter = JSON.stringify(params.filter);
 
         const response = await this.withRetry(async () => {
             return await this.request<IGetMessagesResponse>({
                 method: Method.Get,
-                path: utils.encodeUri("/rooms/$roomId/messages", { $roomId: roomId }),
+                path: buildMessagesRequestPath(roomId),
                 queryParams: queryParams,
                 prefix: ClientPrefix.V3,
             });
@@ -177,7 +186,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public createMessagesRequest(
         roomId: string,
         fromToken: string | null,
-        limit = 30,
+        limit = DEFAULT_MESSAGES_LIMIT,
         dir: Direction,
         timelineFilter?: IRoomEventFilter,
         lazyLoadMembers = false,
@@ -201,7 +210,7 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
     public async createThreadListMessagesRequest(
         roomId: string,
         fromToken: string | null,
-        limit = 30,
+        limit = DEFAULT_MESSAGES_LIMIT,
         dir = Direction.Backward,
         threadListType: ThreadFilterType | null = ThreadFilterType.All,
         timelineFilter?: IRoomEventFilter,

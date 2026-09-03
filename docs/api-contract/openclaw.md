@@ -1,7 +1,7 @@
 ---
 module: openclaw
 generated_from: docs/api-contract/generated/modules/openclaw.json
-generated_hash: sha256-19947fb313e9f6a63226b1f48a05e6784759564248c69f6ca9e5388404d45a3a
+generated_hash: sha256-dc788a4ead305a3827799f61c88f3345daf486d3b64757946f5ad0ec864a1696
 ledger_schema: 1
 last_reviewed: 2026-05-11
 ---
@@ -90,13 +90,22 @@ export interface IOpenClawConversation {
 **响应体 (IOpenClawMessage)**:
 
 ```typescript
+export interface ToolCall {
+    id: string;
+    type: "function";
+    function: {
+        name: string;
+        arguments: string;
+    };
+}
+
 export interface IOpenClawMessage {
     id: number;
     conversation_id: number;
     role: string; // "user", "assistant", "system", "tool"
     content: string;
     token_count?: number;
-    tool_calls?: Record<string, unknown>;
+    tool_calls?: ToolCall[];
     created_ts: number;
 }
 ```

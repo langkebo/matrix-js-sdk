@@ -32,7 +32,7 @@ vi.mock("../../src/utils", async (importOriginal) => {
 });
 
 import { SlidingSync } from "../../src/sliding-sync";
-import { HTTPError } from "../../src/http-api";
+import { HTTPError, MatrixError } from "../../src/http-api";
 import { type MatrixClient, type MSC3575SlidingSyncResponse } from "../../src";
 
 /**
@@ -59,6 +59,7 @@ describe("SlidingSync exponential backoff", () => {
         mockSlidingSync = vi.fn();
         client = {
             slidingSync: mockSlidingSync,
+            makeTxnId: vi.fn(() => "txn-mock"),
         } as unknown as MatrixClient;
         slidingSync = new SlidingSync("http://localhost:28008", new Map(), {}, client, 1);
     });
@@ -193,19 +194,38 @@ describe("SlidingSync exponential backoff", () => {
         expect(sleepMock).toHaveBeenNthCalledWith(6, 60000);
     });
 
-    it("should not increment consecutiveErrors for 400 errors", async () => {
-        mockSlidingSync.mockRejectedValueOnce(new HTTPError("session expired", 400)).mockResolvedValueOnce({
-            pos: "after400",
-            lists: {},
-            rooms: {},
-            extensions: {},
-        } as MSC3575SlidingSyncResponse);
+    it("should not increment consecutiveErrors for M_UNKNOWN_POS 400 errors", async () => {
+        mockSlidingSync
+            .mockRejectedValueOnce(new MatrixError({ errcode: "M_UNKNOWN_POS" }, 400))
+            .mockResolvedValueOnce({
+                pos: "after400",
+                lists: {},
+                rooms: {},
+                extensions: {},
+            } as MSC3575SlidingSyncResponse);
 
         await runUntilCalls(2);
 
-        // 400 error uses sleep(50) for anti-tightloop, not exponential backoff
+        // M_UNKNOWN_POS uses sleep(50) for anti-tightloop after resetup, not exponential backoff
         expect(sleepMock).toHaveBeenCalledTimes(1);
         expect(sleepMock).toHaveBeenCalledWith(50);
+    });
+
+    it("should use generic backoff for non-M_UNKNOWN_POS 400 errors", async () => {
+        mockSlidingSync
+            .mockRejectedValueOnce(new MatrixError({ errcode: "M_BAD_JSON" }, 400))
+            .mockResolvedValueOnce({
+                pos: "afterOther400",
+                lists: {},
+                rooms: {},
+                extensions: {},
+            } as MSC3575SlidingSyncResponse);
+
+        await runUntilCalls(2);
+
+        // 非 M_UNKNOWN_POS 的 400 走 generic 指数退避（1000 * 2^1 = 2000），而非 resetup
+        expect(sleepMock).toHaveBeenCalledTimes(1);
+        expect(sleepMock).toHaveBeenCalledWith(2000);
     });
 
     it("should not call sleep for AbortError", async () => {

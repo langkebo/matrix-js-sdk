@@ -14,6 +14,7 @@ const PREFIX_MAP = {
     "MediaPrefix.V1": "/_matrix/media/v1",
     "MediaPrefix.V3": "/_matrix/media/v3",
     "IdentityPrefix.V2": "/_matrix/identity/v2",
+    "VendorPrefix": "/_matrix/vendor/v1",
 };
 
 function walk(dir, predicate = () => true, acc = []) {
@@ -402,6 +403,7 @@ function normalizePathForMatch(p) {
     s = s.replace(/^\/_matrix\/client\/(?:r0|v1|v3)(?=\/|$)/, "/_matrix/client/{stable}");
     s = s.replace(/^\/_matrix\/media\/(?:r0|v1|v3)(?=\/|$)/, "/_matrix/media/{stable}");
     s = s.replace(/^\/_matrix\/identity\/(?:v1|v2)(?=\/|$)/, "/_matrix/identity/{stable}");
+    s = s.replace(/^\/_matrix\/vendor\/(?:v1)(?=\/|$)/, "/_matrix/vendor/{stable}");
     s = s.replace(/\$\{[^}]+\}/g, "{}");
     s = s.replace(/\$[A-Za-z_][A-Za-z0-9_]*/g, "{}");
     s = s.replace(/\{[^}]+\}/g, "{}");
@@ -433,6 +435,10 @@ function classifyRouteFamily(p) {
         {
             family: "client-unstable",
             regex: /^\/_matrix\/client\/unstable\/[^/]+(?=\/|$)/,
+        },
+        {
+            family: "vendor-stable",
+            regex: /^\/_matrix\/vendor\/(?:\{\}|\{stable\}|v1)(?=\/|$)/,
         },
         {
             family: "media-stable",
@@ -489,7 +495,7 @@ function contractPreferredRouteFamilies(contract) {
         return new Set(["app-v1"]);
     }
 
-    return new Set(["client-stable"]);
+    return new Set(["client-stable", "vendor-stable"]);
 }
 
 function buildRouteAliasGroups(contractRecords, requestRecords) {
@@ -506,8 +512,10 @@ function buildRouteAliasGroups(contractRecords, requestRecords) {
     const groupedExtraKeys = new Set();
     const aliasGroups = [];
 
+    const ALIASABLE_CONTRACT_FAMILIES = new Set(["relative", "client-stable"]);
+
     for (const record of contractRecords) {
-        if (record.route?.family !== "relative" || !record.route?.suffix) continue;
+        if (!record.route?.suffix || !ALIASABLE_CONTRACT_FAMILIES.has(record.route?.family)) continue;
         if (requestRecords.some((item) => item.key === record.key)) continue;
 
         const aliasKey = `${record.method} ${record.route.suffix}`;

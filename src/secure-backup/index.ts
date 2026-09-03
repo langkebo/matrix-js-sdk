@@ -84,6 +84,19 @@ export interface SecureBackupRestoreResponse {
 export interface SecureBackupVerifyResponse {
     valid: boolean;
 }
+/**
+ * @deprecated 服务端托管加密备份，破坏端到端性（ISSUE-6.3）。
+ *
+ * 本 Manager 把 passphrase 明文上传到后端 `/_matrix/client/v3/keys/backup/secure`，
+ * 由服务端 Argon2id 派生密钥并加解密 session keys —— 服务端可解密用户 E2EE 密钥备份，
+ * 违反 Matrix 密钥备份的端到端语义。
+ *
+ * 请改用标准客户端派生流程（CryptoApi）：
+ * - 创建备份: `crypto.createRecoveryKeyFromPassphrase(passphrase)` + `crypto.resetKeyBackup()`
+ * - 恢复备份: `crypto.restoreKeyBackupWithPassphrase(passphrase)`
+ *
+ * 标准流程走 `/_matrix/client/v3/room_keys`（服务端只存公钥 + 密文，永不接触口令/私钥）。
+ */
 export class SecureBackupManager extends BaseManager {
     private backupCache: LRUCache<SecureBackupInfo>;
 
@@ -119,6 +132,9 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 创建安全备份
      * POST /_matrix/client/v3/keys/backup/secure
+     *
+     * @deprecated passphrase 明文上送服务端（服务端派生密钥），破坏端到端性。
+     * 改用 `crypto.createRecoveryKeyFromPassphrase` + `crypto.resetKeyBackup`。
      */
     async createSecureBackup(passphrase: string): Promise<SecureBackupInfo> {
         try {
@@ -189,6 +205,8 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 添加密钥到安全备份
      * POST /_matrix/client/v3/keys/backup/secure/{backup_id}/keys
+     *
+     * @deprecated passphrase 明文 + 明文 session_keys 上送服务端，服务端派生密钥并加密。
      */
     async addKeysToSecureBackup(
         backupId: string,
@@ -215,6 +233,9 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 从安全备份恢复
      * POST /_matrix/client/v3/keys/backup/secure/{backup_id}/restore
+     *
+     * @deprecated passphrase 明文上送，服务端解密 session keys。
+     * 改用 `crypto.restoreKeyBackupWithPassphrase`（客户端解密）。
      */
     async restoreFromSecureBackup(backupId: string, passphrase: string): Promise<SecureBackupRestoreResponse> {
         try {
@@ -236,6 +257,8 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 验证安全备份
      * POST /_matrix/client/v3/keys/backup/secure/{backup_id}/verify
+     *
+     * @deprecated passphrase 明文上送服务端验证。
      */
     async verifySecureBackup(backupId: string, passphrase: string): Promise<SecureBackupVerifyResponse> {
         try {

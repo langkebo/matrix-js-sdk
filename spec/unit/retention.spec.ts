@@ -61,10 +61,19 @@ describe("RetentionManager", () => {
                 Method.Post,
                 "/retention/policy",
                 undefined,
-                { max_lifetime: 86400000, min_lifetime: null, expire_on_clients: false },
+                { max_lifetime: 86400000, min_lifetime: null, is_expire_on_clients: false },
                 { prefix: "/_synapse/admin/v1" },
             );
             expect(emitted).toHaveLength(1);
+        });
+
+        it("FT-108: forwards is_expire_on_clients=true to match backend field name", async () => {
+            authedRequest.mockResolvedValueOnce({ max_lifetime: 1000 });
+            await manager.setServerRetentionPolicy({ is_expire_on_clients: true });
+
+            const body = authedRequest.mock.calls[0][3];
+            expect(body).toHaveProperty("is_expire_on_clients", true);
+            expect(body).not.toHaveProperty("expire_on_clients");
         });
     });
 
@@ -103,6 +112,16 @@ describe("RetentionManager", () => {
 
             expect(emitted).toHaveLength(1);
             expect(emitted[0]).toMatchObject({ roomId: "!r:ex" });
+        });
+
+        it("FT-108: sends is_expire_on_clients (not expire_on_clients) to admin API", async () => {
+            authedRequest.mockResolvedValueOnce({ room_id: "!r:ex", max_lifetime: 1000 });
+
+            await manager.setRoomRetentionPolicy("!r:ex", { is_expire_on_clients: true });
+
+            const body = authedRequest.mock.calls[0][3];
+            expect(body).toHaveProperty("is_expire_on_clients", true);
+            expect(body).not.toHaveProperty("expire_on_clients");
         });
     });
 

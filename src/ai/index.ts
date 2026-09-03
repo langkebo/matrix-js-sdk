@@ -21,6 +21,9 @@ limitations under the License.
  * 主要用于 TrendRadar 等 AI 服务集成
  */
 
+import { logger } from "../logger";
+import { assertSecureBaseUrl } from "../http-api/base-url-guard";
+
 export interface AITool {
     name: string;
     description: string;
@@ -75,6 +78,10 @@ export class AIModule {
     }
 
     public setEndpoint(endpoint: string): void {
+        // 本地 MCP 服务器（localhost / 127.0.0.1 等 INSECURE_DEV_HOSTS）走 http 合法；
+        // 非 localhost 的 http 端点存在数据明文泄露风险，assertSecureBaseUrl 会抛错，
+        // 这里**不吞**（不再仅告警），直接阻断，避免 SSRF 面与明文传输。
+        assertSecureBaseUrl(endpoint);
         this.mcpEndpoint = endpoint;
     }
 
@@ -214,7 +221,9 @@ export class AIModule {
             await this.listTools();
             this._isConnected = true;
             return true;
-        } catch {
+            // @swallow-error { owner: "ai", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("AIModule.healthCheck failed:", e);
             this._isConnected = false;
             return false;
         }

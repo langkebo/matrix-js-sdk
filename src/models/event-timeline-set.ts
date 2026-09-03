@@ -323,6 +323,33 @@ export class EventTimelineSet extends TypedEventEmitter<EmittedEvents, EventTime
     }
 
     /**
+     * Remove a non-live timeline from this set, cleaning up the event-to-timeline
+     * index for all events it contained.
+     *
+     * The live timeline can never be removed via this method; callers trimming
+     * historical scrollback should only ever drop the oldest non-live timelines.
+     *
+     * @param timeline - The timeline to remove.
+     * @returns true if the timeline was removed, false otherwise.
+     */
+    public removeTimeline(timeline: EventTimeline): boolean {
+        if (timeline === this.liveTimeline) {
+            return false;
+        }
+        const idx = this.timelines.indexOf(timeline);
+        if (idx === -1) {
+            return false;
+        }
+        this.timelines.splice(idx, 1);
+        for (const [eventId, tl] of this._eventIdToTimeline) {
+            if (tl === timeline) {
+                this._eventIdToTimeline.delete(eventId);
+            }
+        }
+        return true;
+    }
+
+    /**
      * Get the timeline which contains the given event, if any
      *
      * @param eventId -  event ID to look for

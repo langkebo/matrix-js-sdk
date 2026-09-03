@@ -55,6 +55,8 @@ import { SpaceQueryManager } from "./sub-managers/space-query-manager";
 import { SpaceChildManager } from "./sub-managers/space-child-manager";
 import { SpaceMemberManager } from "./sub-managers/space-member-manager";
 import { SpaceHierarchyManager } from "./sub-managers/space-hierarchy-manager";
+import { Method } from "../http-api/method";
+import * as utils from "../utils";
 
 // 事件 + 类型 re-export（向后兼容）
 export { SpaceEvent } from "./events";
@@ -160,6 +162,12 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
     stop(): void {
         this.query.clearCache();
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.lifecycle.removeAllListeners();
+        this.query.removeAllListeners();
+        this.child.removeAllListeners();
+        this.member.removeAllListeners();
+        this.hierarchy.removeAllListeners();
     }
 
     // ===== 向后兼容委托方法（@deprecated，推荐直接使用 sub-manager） =====
@@ -247,6 +255,24 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     /** @deprecated 使用 `spaceManager.child.getSpaceState()` 替代 */
     async getSpaceState(spaceId: string): Promise<unknown[]> {
         return this.child.getSpaceState(spaceId);
+    }
+
+    /**
+     * Get all state events for a room via the standard Matrix /rooms/{roomId}/state endpoint.
+     * Unlike getSpaceState (which uses /spaces/{spaceId}/state), this uses the standard
+     * room state endpoint and returns raw state events.
+     *
+     * @param roomId - The room ID (typically a space room)
+     * @returns Array of raw state event objects
+     */
+    public async getRoomStateEventsRaw(roomId: string): Promise<Array<Record<string, unknown>>> {
+        const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
+        return await this.withRetry(async () => {
+            return await this.request<Array<Record<string, unknown>>>({
+                method: Method.Get,
+                path: path,
+            });
+        }, "getRoomStateEventsRaw");
     }
 
     /** @deprecated 使用 `spaceManager.member.getSpaceMembers()` 替代 */

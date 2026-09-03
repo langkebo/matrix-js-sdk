@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Thirdparty Integration
- * Source:        docs/api-contract/generated/modules/thirdparty.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       12 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `thirdparty` module. */
+/** Routes served by the synapse-rust `third-party` module (mirrored from the backend contract). */
 export const THIRDPARTY_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/thirdparty/location" },
     { method: "GET", path: "/_matrix/client/r0/thirdparty/location/{protocol}" },

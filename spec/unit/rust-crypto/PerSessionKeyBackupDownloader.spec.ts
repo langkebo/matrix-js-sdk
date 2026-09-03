@@ -620,5 +620,22 @@ describe("PerSessionKeyBackupDownloader", () => {
             expect(keyQuerySpy).toHaveBeenCalledTimes(2);
             expect(mockRustBackupManager.importBackedUpRoomKeys).toHaveBeenCalledTimes(2);
         });
+
+        it("getBackupDecryptionKey logs a warning and returns null when getBackupKeys throws", async () => {
+            // @ts-ignore access to private logger
+            const downloaderLogger = downloader.logger;
+            const warnSpy = vi.spyOn(downloaderLogger, "warn").mockImplementation(() => undefined);
+            mockOlmMachine.getBackupKeys.mockRejectedValueOnce(new Error("boom"));
+
+            // @ts-ignore access to private function
+            const result = await downloader.getBackupDecryptionKey();
+
+            expect(result).toBeNull();
+            expect(warnSpy).toHaveBeenCalledWith(
+                "PerSessionKeyBackupDownloader.getBackupDecryptionKey failed:",
+                expect.any(Error),
+            );
+            warnSpy.mockRestore();
+        });
     });
 });

@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        AI Connection
- * Source:        docs/api-contract/generated/modules/ai_connection.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       16 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `ai_connection` module. */
+/** Routes served by the synapse-rust `ai-connection` module (mirrored from the backend contract). */
 export const AI_CONNECTION_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/ai/connections" },
     { method: "POST", path: "/_matrix/client/v1/ai/connections" },
@@ -23,6 +21,10 @@ export const AI_CONNECTION_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/ai/connections/{id}" },
     { method: "GET", path: "/_matrix/client/v3/ai/mcp/tools" },
     { method: "POST", path: "/_matrix/client/v3/ai/mcp/tools/call" },
+    { method: "GET", path: "/_matrix/client/v3/connections" },
+    { method: "GET", path: "/_matrix/client/v3/connections/{id}" },
+    { method: "GET", path: "/_matrix/client/v3/mcp/tools" },
+    { method: "POST", path: "/_matrix/client/v3/mcp/tools/call" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `AI_CONNECTION_ROUTES`. */

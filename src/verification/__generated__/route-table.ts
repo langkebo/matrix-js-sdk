@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Verification 契约
- * Source:        docs/api-contract/generated/modules/verification_routes.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       36 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `verification_routes` module. */
+/** Routes served by the synapse-rust `verification` module (mirrored from the backend contract). */
 export const VERIFICATION_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/keys/device_signing/requests" },
     { method: "PUT", path: "/_matrix/client/r0/keys/device_signing/verify_accept" },

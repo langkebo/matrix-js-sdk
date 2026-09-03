@@ -24,6 +24,21 @@ import { Method } from "../../http-api/method";
 import { MatrixClient } from "../../client";
 import { BaseManager, type ManagerOpts, type RequestSpec } from "../../managers/base-manager";
 import { ValidationError } from "../../errors";
+import type {
+    IFederationHierarchyResponse,
+    IFederationRoomEventResponse,
+    IFederationEventAuthResponse,
+    IFederationJoiningRulesResponse,
+    IFederationRoomAuthResponse,
+    IFederationStateResponse,
+    IFederationStateIdsResponse,
+    IFederationMembersResponse,
+    IFederationJoinedMembersResponse,
+    IFederationEventDetailResponse,
+    IFederationMediaDownloadResponse,
+    IFederationMediaThumbnailResponse,
+    IFederationBackfillResponse,
+} from "./federation-room-types";
 
 export enum FederationRoomEvent {
     FederationError = "FederationError",
@@ -56,11 +71,11 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * 通过联邦获取房间层级
      * @param roomId - 房间 ID
      */
-    async getHierarchy(roomId: string): Promise<unknown> {
+    async getHierarchy(roomId: string): Promise<IFederationHierarchyResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
-        return this.request<unknown>({
+        return this.request<IFederationHierarchyResponse>({
             method: Method.Get,
             path: `/_matrix/federation/v1/hierarchy/${encodeURIComponent(roomId)}`,
             prefix: "",
@@ -72,14 +87,14 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      */
-    async getRoomEvent(roomId: string, eventId: string): Promise<unknown> {
+    async getRoomEvent(roomId: string, eventId: string): Promise<IFederationRoomEventResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         if (!eventId) {
             throw new ValidationError("Event ID is required");
         }
-        return this.request<unknown>({
+        return this.request<IFederationRoomEventResponse>({
             method: Method.Get,
             path: `/_matrix/federation/v1/room/${encodeURIComponent(roomId)}/${encodeURIComponent(eventId)}`,
             prefix: "",
@@ -91,14 +106,14 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @param serverName - 远端 server name
      * @param mediaId - 媒体 ID
      */
-    async downloadMedia(serverName: string, mediaId: string): Promise<unknown> {
+    async downloadMedia(serverName: string, mediaId: string): Promise<IFederationMediaDownloadResponse> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return this.request<unknown>({
+        return this.request<IFederationMediaDownloadResponse>({
             method: Method.Get,
             path: `/_matrix/federation/v1/media/download/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
             prefix: "",
@@ -110,14 +125,14 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @param serverName - 远端 server name
      * @param mediaId - 媒体 ID
      */
-    async getMediaThumbnail(serverName: string, mediaId: string): Promise<unknown> {
+    async getMediaThumbnail(serverName: string, mediaId: string): Promise<IFederationMediaThumbnailResponse> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return this.request<unknown>({
+        return this.request<IFederationMediaThumbnailResponse>({
             method: Method.Get,
             path: `/_matrix/federation/v1/media/thumbnail/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
             prefix: "",
@@ -141,7 +156,7 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID or event ID is empty
      * @throws {Error} If the request fails
      */
-    async getEventAuth(roomId: string, eventId: string): Promise<unknown> {
+    async getEventAuth(roomId: string, eventId: string): Promise<IFederationEventAuthResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
@@ -149,7 +164,7 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
             throw new ValidationError("Event ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationEventAuthResponse>({
                 method: Method.Get,
                 path: "/_synapse/federation/v1/event_auth",
                 queryParams: { room_id: roomId, event_id: eventId },
@@ -178,12 +193,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async getJoiningRules(roomId: string): Promise<unknown> {
+    async getJoiningRules(roomId: string): Promise<IFederationJoiningRulesResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationJoiningRulesResponse>({
                 method: Method.Get,
                 path: `/_synapse/federation/v1/get_joining_rules/${encodeURIComponent(roomId)}`,
                 prefix: "",
@@ -211,12 +226,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async getRoomAuth(roomId: string): Promise<unknown> {
+    async getRoomAuth(roomId: string): Promise<IFederationRoomAuthResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationRoomAuthResponse>({
                 method: Method.Get,
                 path: `/_synapse/federation/v1/room_auth/${encodeURIComponent(roomId)}`,
                 prefix: "",
@@ -244,12 +259,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async getState(roomId: string): Promise<unknown> {
+    async getState(roomId: string): Promise<IFederationStateResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationStateResponse>({
                 method: Method.Get,
                 path: `/_matrix/federation/v1/state/${encodeURIComponent(roomId)}`,
                 prefix: "",
@@ -277,12 +292,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async getStateIds(roomId: string): Promise<unknown> {
+    async getStateIds(roomId: string): Promise<IFederationStateIdsResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationStateIdsResponse>({
                 method: Method.Get,
                 path: `/_matrix/federation/v1/state_ids/${encodeURIComponent(roomId)}`,
                 prefix: "",
@@ -310,12 +325,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async getMembers(roomId: string): Promise<unknown> {
+    async getMembers(roomId: string): Promise<IFederationMembersResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationMembersResponse>({
                 method: Method.Get,
                 path: `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}`,
                 prefix: "",
@@ -343,12 +358,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async getJoinedMembers(roomId: string): Promise<unknown> {
+    async getJoinedMembers(roomId: string): Promise<IFederationJoinedMembersResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationJoinedMembersResponse>({
                 method: Method.Get,
                 path: `/_matrix/federation/v1/members/${encodeURIComponent(roomId)}/joined`,
                 prefix: "",
@@ -376,12 +391,12 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If event ID is empty
      * @throws {Error} If the request fails
      */
-    async getEvent(eventId: string): Promise<unknown> {
+    async getEvent(eventId: string): Promise<IFederationEventDetailResponse> {
         if (!eventId) {
             throw new ValidationError("Event ID is required");
         }
         try {
-            return await this.request<unknown>({
+            return await this.request<IFederationEventDetailResponse>({
                 method: Method.Get,
                 path: `/_matrix/federation/v1/event/${encodeURIComponent(eventId)}`,
                 prefix: "",
@@ -412,7 +427,7 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
      * @throws {ValidationError} If room ID is empty
      * @throws {Error} If the request fails
      */
-    async backfillRoom(roomId: string, opts?: { limit?: number; from?: string }): Promise<unknown> {
+    async backfillRoom(roomId: string, opts?: { limit?: number; from?: string }): Promise<IFederationBackfillResponse> {
         if (!roomId) {
             throw new ValidationError("Room ID is required");
         }
@@ -422,7 +437,7 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
             if (opts?.from !== undefined) params.from = opts.from;
 
             const queryKeys = Object.keys(params);
-            return await this.request<unknown>({
+            return await this.request<IFederationBackfillResponse>({
                 method: Method.Get,
                 path: `/_matrix/federation/v1/backfill/${encodeURIComponent(roomId)}`,
                 queryParams: queryKeys.length > 0 ? params : undefined,

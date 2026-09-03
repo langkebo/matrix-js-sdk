@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        通知契约
- * Source:        docs/api-contract/generated/modules/push_notification.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       9 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `push_notification` module. */
+/** Routes served by the synapse-rust `notifications` module (mirrored from the backend contract). */
 export const NOTIFICATIONS_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/push/devices" },
     { method: "POST", path: "/_matrix/client/r0/push/devices" },

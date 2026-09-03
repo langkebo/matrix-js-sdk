@@ -170,7 +170,7 @@ describe("Cross-device passphrase recovery real backend integration", () => {
             const user = createTestUser("sdk_passphrase_recovery");
             sourceClient = await registerUserWithSecretStoragePassphrase(user.localpart, user.password);
 
-            await sourceClient.initRustCrypto({ useIndexedDB: false });
+            await sourceClient.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             await startClientAndSync(sourceClient);
 
             const sourceCrypto = sourceClient.getCrypto();
@@ -222,7 +222,7 @@ describe("Cross-device passphrase recovery real backend integration", () => {
                 user.password,
                 `REAL_BACKEND_PASSPHRASE_RECOVERY_${Date.now()}`,
             );
-            await recoveryClient.initRustCrypto({ useIndexedDB: false });
+            await recoveryClient.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             await startClientAndSync(recoveryClient);
             await waitForRoom(recoveryClient, encryptedRoomId);
 

@@ -223,4 +223,121 @@ describe("MediaManager", () => {
             expect(manager.getThumbnailUrl("not-an-mxc")).toBe("");
         });
     });
+
+    describe("getUploadProvider", () => {
+        it("GETs /upload/provider on ClientPrefix.V3 and returns provider info", async () => {
+            authedRequest.mockResolvedValueOnce({
+                provider: "matrix",
+                supports_chunked_upload: true,
+                supports_resume: true,
+                max_file_size: 52428800,
+                chunk_size: 1048576,
+            });
+
+            const res = await manager.getUploadProvider();
+
+            expect(res).toEqual({
+                provider: "matrix",
+                supports_chunked_upload: true,
+                supports_resume: true,
+                max_file_size: 52428800,
+                chunk_size: 1048576,
+            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/upload/provider",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    describe("getUploadToken", () => {
+        it("POSTs to /upload/token with filename and content_type, returns token info", async () => {
+            authedRequest.mockResolvedValueOnce({
+                upload_token: "upload_@user:hs_1700000000000",
+                storage_type: "matrix",
+                upload_url: "/_matrix/media/v3/upload",
+                filename: "photo.jpg",
+                content_type: "image/jpeg",
+                max_file_size: 52428800,
+            });
+
+            const res = await manager.getUploadToken("photo.jpg", "image/jpeg");
+
+            expect(res).toEqual({
+                upload_token: "upload_@user:hs_1700000000000",
+                storage_type: "matrix",
+                upload_url: "/_matrix/media/v3/upload",
+                filename: "photo.jpg",
+                content_type: "image/jpeg",
+                max_file_size: 52428800,
+            });
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/upload/token",
+                undefined,
+                { filename: "photo.jpg", content_type: "image/jpeg" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
+
+    // ISSUE-04: 后端从 query 读 upload_id/chunk_index，SDK 必须带 queryParams
+    describe("uploadChunk (ISSUE-04)", () => {
+        it("sends upload_id and chunk_index as query params", async () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const requestSpy = vi.spyOn(manager as any, "request").mockResolvedValue({
+                upload_id: "up-1",
+                chunk_index: 0,
+                uploaded_chunks: 1,
+                total_chunks: 2,
+                uploaded_size: 4,
+                status: "uploading",
+            });
+
+            await manager.uploadChunk("up-1", 0, new ArrayBuffer(4));
+
+            expect(requestSpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    method: Method.Post,
+                    path: "/upload/chunk",
+                    queryParams: { upload_id: "up-1", chunk_index: 0 },
+                }),
+            );
+        });
+    });
+
+    // ISSUE-07: 上传前消费 m.upload.size 做客户端预检
+    describe("uploadContent precheck (ISSUE-07)", () => {
+        it("rejects an oversized file with M_TOO_LARGE before uploading", async () => {
+            vi.spyOn(manager, "getMediaConfig").mockResolvedValue({ "m.upload.size": 4 });
+
+            await expect(manager.uploadContent(new Blob(["this is larger than 4 bytes"]))).rejects.toMatchObject({
+                errcode: "M_TOO_LARGE",
+            });
+            expect(uploadContent).not.toHaveBeenCalled();
+        });
+
+        it("uploads files within the advertised limit", async () => {
+            vi.spyOn(manager, "getMediaConfig").mockResolvedValue({ "m.upload.size": 1024 });
+            uploadContent.mockResolvedValueOnce({ content_uri: "mxc://hs/ok" });
+
+            const res = await manager.uploadContent(new Blob(["ok"]));
+
+            expect(res).toEqual({ content_uri: "mxc://hs/ok" });
+            expect(uploadContent).toHaveBeenCalledOnce();
+        });
+
+        it("does not block the upload when the config fetch fails", async () => {
+            vi.spyOn(manager, "getMediaConfig").mockRejectedValue(new Error("network down"));
+            uploadContent.mockResolvedValueOnce({ content_uri: "mxc://hs/fallback" });
+
+            const res = await manager.uploadContent(new Blob(["payload"]));
+
+            expect(res).toEqual({ content_uri: "mxc://hs/fallback" });
+            expect(uploadContent).toHaveBeenCalledOnce();
+        });
+    });
 });

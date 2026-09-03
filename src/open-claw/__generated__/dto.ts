@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `openclaw`.
+ * DTO snippets extracted from the contract doc for `open-claw`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
@@ -35,13 +35,22 @@ export interface IOpenClawConversation {
     updated_ts: number;
 }
 
+export interface ToolCall {
+    id: string;
+    type: "function";
+    function: {
+        name: string;
+        arguments: string;
+    };
+}
+
 export interface IOpenClawMessage {
     id: number;
     conversation_id: number;
     role: string; // "user", "assistant", "system", "tool"
     content: string;
     token_count?: number;
-    tool_calls?: Record<string, unknown>;
+    tool_calls?: ToolCall[];
     created_ts: number;
 }
 

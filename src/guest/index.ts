@@ -249,7 +249,9 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 try {
                     const guestInfo = await this.getGuestInfoFromServer();
                     return guestInfo?.is_guest === true;
-                } catch {
+                    // @swallow-error { owner: "guest", expires: "2026-12-31" }
+                } catch (e) {
+                    logger.warn("GuestManager.isGuest failed:", e);
                     return false;
                 }
             }
@@ -371,7 +373,9 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
             // For room IDs, avoid probing join semantics with a non-standard GET request.
             return !!this.client.getRoom?.(roomIdOrAlias);
-        } catch {
+            // @swallow-error { owner: "guest", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("GuestManager.canJoinRoom failed:", e);
             return false;
         }
     }

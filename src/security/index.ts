@@ -72,7 +72,7 @@ export class SecurityManager extends BaseManager {
             };
             // @swallow-error { owner: "security", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("SecurityManager.getAccountStatus failed", e);
+            logger.warn("SecurityManager.getAccountStatus failed", e);
             return null;
         }
     }
@@ -121,7 +121,7 @@ export class SecurityManager extends BaseManager {
             return failures;
             // @swallow-error { owner: "security", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("SecurityManager.listLoginFailures failed", e);
+            logger.warn("SecurityManager.listLoginFailures failed", e);
             return [];
         }
     }

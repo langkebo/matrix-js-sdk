@@ -1,9 +1,13 @@
 {
-    "name": "matrix-js-sdk",
-    "version": "40.2.0",
-    "description": "Matrix Client-Server SDK for Javascript",
+    "name": "@langkebo/matrix-js-sdk",
+    "version": "40.2.0-langkebo.1",
+    "description": "Matrix Client-Server SDK for Javascript (langkebo fork of matrix-org/matrix-js-sdk, extended for synapse-rust)",
     "engines": {
         "node": ">=22.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/langkebo/matrix-js-sdk.git"
     },
     "scripts": {
         "prepare": "pnpm build",
@@ -13,7 +17,7 @@
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
         "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
-        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers",
+        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key",
         "lint:js": "eslint src spec && node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --check .",
         "lint:js-fix": "node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --log-level=warn --write . && eslint --fix src spec",
         "lint:types": "tsc --noEmit",
@@ -66,11 +70,12 @@
         "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
         "quality:swallow-fallbacks": "node scripts/quality/check-swallow-fallbacks.mjs",
         "quality:debt-markers": "node scripts/quality/scan-technical-debt.mjs",
+        "quality:no-default-key": "node scripts/quality/check-no-default-key.mjs",
         "quality:log-sensitive": "node scripts/quality/check-log-sensitive.mjs",
         "quality:type-coverage": "node scripts/quality/check-type-coverage.mjs",
         "contract:sync": "node scripts/contract-sync.mjs",
         "contract:sync:drafts": "node scripts/contract-sync.mjs --render-drafts",
-        "contract:check": "node scripts/contract-sync.mjs --check && node scripts/sdk-contract-codegen.mjs --check",
+        "contract:check": "node scripts/contract-sync.mjs --check && node scripts/sdk-contract-codegen.mjs --check && node scripts/quality/check-vendor-prefix-migration.mjs",
         "contract:codegen": "node scripts/sdk-contract-codegen.mjs",
         "contract:codegen:check": "node scripts/sdk-contract-codegen.mjs --check",
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",
@@ -80,10 +85,6 @@
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
         "audit:high": "pnpm audit --audit-level=high",
         "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && node scripts/check-bundle-size.mjs"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/matrix-org/matrix-js-sdk.git"
     },
     "keywords": [
         "matrix-org"
@@ -296,6 +297,10 @@
         "./verification": {
             "import": "./lib/verification/index.js",
             "types": "./lib/verification/index.d.ts"
+        },
+        "./rendezvous": {
+            "import": "./lib/rendezvous/index.js",
+            "types": "./lib/rendezvous/index.d.ts"
         }
     },
     "sideEffects": false,
@@ -317,6 +322,8 @@
         "@matrix-org/matrix-sdk-crypto-wasm": "^17.1.0",
         "bs58": "^6.0.0",
         "content-type": "^1.0.5",
+        "events": "^3.3.0",
+        "fflate": "^0.8.2",
         "jwt-decode": "^4.0.0",
         "loglevel": "^1.9.2",
         "matrix-events-sdk": "0.0.1",

@@ -40,7 +40,7 @@ limitations under the License.
  */
 
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts, type RequestStats } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -49,6 +49,7 @@ import { logger } from "../logger";
 import type { IContent } from "../models/event";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
+import type { BurnSettings, BurnStats, PendingBurnEvent } from "./__generated__/dto";
 
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 type BurnAfterReadApiVersion = "v1" | "v3";
@@ -96,22 +97,11 @@ export interface IBurnAfterReadConfig {
     encrypt_content?: boolean;
 }
 
-export interface IBurnSettings {
-    enabled: boolean;
-    burn_after_ms: number;
-}
-
-export interface IBurnStats {
-    total_burned: number;
-    total_pending: number;
-    rooms_with_burn_enabled: number;
-}
-
-export interface IBurnPendingEvent {
-    event_id: string;
-    created_at: number;
-    delete_at: number;
-}
+// 契约 DTO 别名（ISSUE-2.2）：手写 IBurn* 改为 codegen Burn* 的别名，消除双类型家族。
+// 保持 I 前缀命名以不破坏既有 import，单一权威在 __generated__/dto.ts。
+export type IBurnSettings = BurnSettings;
+export type IBurnStats = BurnStats;
+export type IBurnPendingEvent = PendingBurnEvent;
 
 export interface ISendBurnAfterReadMessageRequest {
     room_id: string;
@@ -168,21 +158,16 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
         };
     }
 
-    private async resolveBurnPrefix(version?: BurnAfterReadApiVersion): Promise<ClientPrefix.V1 | ClientPrefix.V3> {
+    private async resolveBurnPrefix(version?: BurnAfterReadApiVersion): Promise<string> {
+        // 显式指定版本时保留 client 前缀（向后兼容）。
         if (version === "v3") {
             return ClientPrefix.V3;
         }
         if (version === "v1") {
             return ClientPrefix.V1;
         }
-
-        const serverPrefersV3 = await doesClientAdvertiseSynapseRustFeature(
-            this.client,
-            SynapseRustFeature.BurnAfterRead,
-            false,
-            (e) => logger.debug("BurnAfterReadManager.resolveBurnPrefix fallback to v1", e),
-        );
-        return serverPrefersV3 ? ClientPrefix.V3 : ClientPrefix.V1;
+        // 默认走 vendor 前缀（ISSUE-13：私有端点，后端 client 别名仍兼容）。
+        return VendorPrefix;
     }
 
     public async enableBurn(

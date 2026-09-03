@@ -109,8 +109,12 @@ export class RemoteIndexedDBStoreBackend implements IIndexedDBBackend {
      * @param membershipEvents - the membership events to store
      * @returns when all members have been stored
      */
-    public setOutOfBandMembers(roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> {
-        return this.doCmd("setOutOfBandMembers", [roomId, membershipEvents]);
+    public setOutOfBandMembers(
+        roomId: string,
+        membershipEvents: IStateEventWithRoomId[],
+        ttlSeconds: number,
+    ): Promise<void> {
+        return this.doCmd("setOutOfBandMembers", [roomId, membershipEvents, ttlSeconds]);
     }
 
     public clearOutOfBandMembers(roomId: string): Promise<void> {
@@ -208,5 +212,13 @@ export class RemoteIndexedDBStoreBackend implements IIndexedDBBackend {
      */
     public async destroy(): Promise<void> {
         this.worker?.terminate();
+        this.worker = undefined;
+        // 结算所有 in-flight 请求：worker 已终止，这些 promise 永远不会收到回包，
+        // 不 reject 会让调用方 await 悬挂（资源泄漏）。
+        for (const seq of Object.keys(this.inFlight)) {
+            const def = this.inFlight[Number(seq)];
+            def.reject(new Error("IndexedDB worker has been destroyed"));
+            delete this.inFlight[Number(seq)];
+        }
     }
 }

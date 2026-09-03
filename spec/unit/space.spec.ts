@@ -195,6 +195,27 @@ describe("SpaceManager", () => {
         expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
     });
 
+    it("getRoomStateEventsRaw calls standard /rooms/{roomId}/state endpoint", async () => {
+        const mockResponse = [
+            { type: "m.space.child", state_key: "!child:server", content: { via: ["server"] } },
+        ];
+        const authedRequest = vi.fn().mockResolvedValue(mockResponse);
+        const manager = makeManager(authedRequest);
+
+        const result = await manager.getRoomStateEventsRaw("!space:server");
+
+        expect(result).toHaveLength(1);
+        expect(result[0].type).toBe("m.space.child");
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            // utils.encodeUri uses encodeURIComponent: !space:server → !space%3Aserver
+            "/rooms/!space%3Aserver/state",
+            undefined,
+            undefined,
+            expect.objectContaining({ prefix: ClientPrefix.V3 }),
+        );
+    });
+
     // ============ 事件转发测试（P-102 I-1） ============
 
     describe("sub-manager 事件转发到顶层 SpaceManager", () => {

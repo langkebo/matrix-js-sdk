@@ -20,3 +20,6 @@ out
 .vscode/
 .idea/
 .claude/scheduled_tasks.lock
+
+# WorkBuddy project data (not source)
+.workbuddy/

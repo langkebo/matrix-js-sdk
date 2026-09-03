@@ -169,20 +169,22 @@ describe("E2EEManager", () => {
 
     describe("listRoomKeyRequests", () => {
         it("should list room key requests", async () => {
-            transport.respondWith([
-                {
-                    request_id: "req1",
-                    room_id: "!room:example.com",
-                    session_id: "s1",
-                    algorithm: "m.megolm.v1.aes-sha2",
-                    state: "pending",
-                },
-            ]);
+            transport.respondWith({
+                requests: [
+                    {
+                        request_id: "req1",
+                        room_id: "!room:example.com",
+                        session_id: "s1",
+                        algorithm: "m.megolm.v1.aes-sha2",
+                        state: "pending",
+                    },
+                ],
+            });
 
             const result = await e2eeManager.listRoomKeyRequests();
 
-            expect(result).toHaveLength(1);
-            expect(result[0].request_id).toBe("req1");
+            expect(result.requests).toHaveLength(1);
+            expect(result.requests[0].request_id).toBe("req1");
             transport.expectCalledWithArgs(Method.Get, "/room_keys/request", undefined, undefined, {
                 prefix: "/_matrix/client/v3",
             });

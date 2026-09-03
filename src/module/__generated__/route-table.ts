@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Module System
- * Source:        docs/api-contract/generated/modules/module.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       23 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `module` module. */
+/** Routes served by the synapse-rust `module` module (mirrored from the backend contract). */
 export const MODULE_ROUTES = [
     { method: "GET", path: "/_synapse/admin/v1/account_data_callbacks" },
     { method: "POST", path: "/_synapse/admin/v1/account_data_callbacks" },

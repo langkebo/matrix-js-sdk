@@ -43,6 +43,7 @@ import type {
     RestartServerPayload,
     RestartServerResponse,
     PurgeRoomResponse,
+    WhoamiResponse,
 } from "../types";
 import { MatrixClient } from "../../client";
 
@@ -59,6 +60,16 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
 
     constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
         super(client, onError, opts);
+    }
+
+    /**
+     * 获取当前管理员身份
+     * GET /_synapse/admin/v1/whoami
+     *
+     * @returns 当前管理员身份信息
+     */
+    async whoami(): Promise<WhoamiResponse> {
+        return await this.adminRequest<WhoamiResponse>(Method.Get, "/whoami", undefined, undefined, "whoami");
     }
 
     /**

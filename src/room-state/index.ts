@@ -26,6 +26,7 @@ import * as utils from "../utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
+import { logger } from "../logger";
 
 export interface IStateEvent {
     type: string;
@@ -94,7 +95,9 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         try {
             const state = await this.roomState(roomId);
             return Array.isArray(state) ? state : [];
-        } catch {
+            // @swallow-error { owner: "room-state", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("RoomStateManager.getAllStateEvents failed:", e);
             return [];
         }
     }
@@ -103,7 +106,9 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         try {
             const result = await this.getStateEvents(roomId, eventType);
             return Array.isArray(result) ? result : [result].filter(Boolean);
-        } catch {
+            // @swallow-error { owner: "room-state", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("RoomStateManager.getStateEventsByType failed:", e);
             return [];
         }
     }

@@ -169,15 +169,6 @@ export interface RecoverSessionKeyResult {
     session_data: EncryptedData | AESEncryptedSecretStoragePayload;
 }
 
-export interface KeyBackupAuthData {
-    type: string;
-    session?: string;
-    password?: string;
-    token?: string;
-    user?: string;
-    [key: string]: unknown;
-}
-
 export class KeyBackupManager extends BaseManager {
     private currentVersion: string | null = null;
     private versionCache: LRUCache<BackupVersionInfo>;
@@ -240,6 +231,7 @@ export class KeyBackupManager extends BaseManager {
         try {
             return await this.getLatestBackupVersion(forceRefresh);
         } catch (error) {
+            // @swallow-error { owner: "key-backup", expires: "2026-12-31" }
             // 404 / M_NOT_FOUND 表示尚无备份版本，是预期情况，返回 null
             if (error instanceof NotFoundError) {
                 return null;
@@ -264,7 +256,6 @@ export class KeyBackupManager extends BaseManager {
     async createBackupVersion(
         algorithm: string = "m.megolm_backup.v1.curve25519-aes-sha2",
         authData?: AuthData | Aes256AuthData,
-        auth?: KeyBackupAuthData,
     ): Promise<{ version: string }> {
         if (!algorithm || algorithm.trim().length === 0) {
             throw new ValidationError("Algorithm is required");
@@ -274,7 +265,7 @@ export class KeyBackupManager extends BaseManager {
                 return await this.request<{ version: string }>({
                     method: Method.Post,
                     path: kb("/room_keys/version"),
-                    body: { algorithm, auth_data: authData, auth },
+                    body: { algorithm, auth_data: authData },
                     prefix: ClientPrefix.V3,
                 });
             }, "createBackupVersion");

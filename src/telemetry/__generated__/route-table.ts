@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Telemetry
- * Source:        docs/api-contract/generated/modules/telemetry.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       6 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `telemetry` module. */
+/** Routes served by the synapse-rust `telemetry` module (mirrored from the backend contract). */
 export const TELEMETRY_ROUTES = [
     { method: "GET", path: "/_synapse/admin/v1/telemetry/alerts" },
     { method: "POST", path: "/_synapse/admin/v1/telemetry/alerts/{alert_id}/ack" },

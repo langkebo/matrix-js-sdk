@@ -53,9 +53,8 @@ describe("sdk-contract-codegen", () => {
                 constName: "DM_ROUTES",
                 typePrefix: "Dm",
             },
-            {
-                entry_count: 2,
-            },
+            [],
+            2,
             `
 | 状态码 | 说明 |
 | ------ | ---- |

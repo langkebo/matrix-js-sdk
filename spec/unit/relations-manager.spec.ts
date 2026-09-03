@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Method } from "../../src/http-api/method.ts";
 import { ClientPrefix } from "../../src/http-api/prefix.ts";
 import { RelationsManager } from "../../src/relations/index.ts";
+import { logger } from "../../src/logger";
 
 describe("RelationsManager", () => {
     it("fetches relations through the dedicated relations route", async () => {
@@ -123,6 +124,35 @@ describe("RelationsManager", () => {
         expect(emit).toHaveBeenCalledWith("RelationsError", expect.any(Error));
     });
 
+    // FT-097: sendRelationViaSendRelation 此前未显式传 prefix，依赖 defaultPrefix
+    it("sendRelationViaSendRelation should use V3 prefix explicitly, not defaultPrefix (FT-097)", async () => {
+        const authedRequest = vi.fn().mockResolvedValue({ event_id: "$new" });
+        // 设置 defaultPrefix 为 V1，验证方法仍使用 V3（显式 prefix）
+        const manager = new RelationsManager(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { http: { authedRequest }, canSupport: new Map() } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { defaultPrefix: ClientPrefix.V1 } as any,
+        );
+
+        await manager.sendRelationViaSendRelation(
+            "!room:example.org",
+            "$ctx",
+            "m.replace",
+            "$txn1",
+            "m.room.message",
+            { body: "edited", msgtype: "m.text" },
+        );
+
+        expect(authedRequest).toHaveBeenCalledWith(
+            Method.Put,
+            "/rooms/!room%3Aexample.org/relations/%24ctx/m.replace/%24txn1",
+            undefined,
+            expect.objectContaining({ body: "edited", msgtype: "m.text", type: "m.room.message" }),
+            { prefix: ClientPrefix.V3 },
+        );
+    });
+
     // ---------- Helper aggregations ----------
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -194,6 +224,32 @@ describe("RelationsManager", () => {
     it("getLatestRelation returns null on rejection", async () => {
         const { manager } = makeManager(new Error("down"), { reject: true });
         await expect(manager.getLatestRelation("!room:example.org", "$ctx", "m.replace")).resolves.toBeNull();
+    });
+
+    it("getRelationCount logs a warning (not debug) on rejection", async () => {
+        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+        const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
+        const { manager } = makeManager(new Error("down"), { reject: true });
+
+        await expect(manager.getRelationCount("!room:example.org", "$ctx", "m.reference")).resolves.toBe(0);
+        expect(warnSpy).toHaveBeenCalledWith("RelationsManager.getRelationCount failed", expect.any(Error));
+        expect(debugSpy).not.toHaveBeenCalled();
+
+        warnSpy.mockRestore();
+        debugSpy.mockRestore();
+    });
+
+    it("getLatestRelation logs a warning (not debug) on rejection", async () => {
+        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+        const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
+        const { manager } = makeManager(new Error("down"), { reject: true });
+
+        await expect(manager.getLatestRelation("!room:example.org", "$ctx", "m.replace")).resolves.toBeNull();
+        expect(warnSpy).toHaveBeenCalledWith("RelationsManager.getLatestRelation failed", expect.any(Error));
+        expect(debugSpy).not.toHaveBeenCalled();
+
+        warnSpy.mockRestore();
+        debugSpy.mockRestore();
     });
 
     it("hasReference is true when at least one m.reference event comes back", async () => {

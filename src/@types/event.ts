@@ -42,6 +42,8 @@ import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../web
 import { type MSC3089EventContent } from "../models/MSC3089Branch";
 import { type EmptyObject } from "./common";
 import { type ReactionEventContent, type RoomMessageEventContent, type StickerEventContent } from "./events";
+import { M_BEACON, M_BEACON_INFO, type MBeaconEventContent, type MBeaconInfoEventContent } from "./beacon";
+import { M_LOCATION, type MLocationEventContent } from "./location";
 import {
     type MCallAnswer,
     type MCallBase,
@@ -364,6 +366,14 @@ export interface TimelineEvents {
     [EventType.RTCNotification]: IRTCNotificationContent;
     [EventType.RTCDecline]: IRTCDeclineContent;
     [EventType.RTCMembership]: RtcMembershipData | { msc4354_sticky_key: string };
+
+    // MSC3488
+    [M_LOCATION.name]: MLocationEventContent;
+    [M_LOCATION.altName]: MLocationEventContent;
+    // MSC3672
+    [M_BEACON.name]: MBeaconEventContent;
+    [M_BEACON.altName]: MBeaconEventContent;
+
     [key: string]: unknown;
 }
 
@@ -407,6 +417,10 @@ export interface StateEvents {
     [EventType.RTCMembership]: RtcMembershipData | EmptyObject;
     // MSC3089
     [UNSTABLE_MSC3089_BRANCH.name]: MSC3089EventContent;
+
+    // MSC3672
+    [M_BEACON_INFO.name]: MBeaconInfoEventContent;
+    [M_BEACON_INFO.altName]: MBeaconInfoEventContent;
 
     [key: string]: unknown;
 }

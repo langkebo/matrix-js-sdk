@@ -47,6 +47,7 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 import { buildEmailTokenRequestParams, buildMsisdnTokenRequestParams, requestTokenFromEndpoint } from "../client-auth";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { IRefreshTokenResponse } from "../@types/auth";
+import { normalizeExpiresInMs } from "./normalize-expires";
 
 type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -68,6 +69,27 @@ export interface IAuthParams {
     type?: string;
     session?: string;
     [key: string]: unknown;
+}
+
+export interface CaptchaResponse {
+    public_key: string;
+    challenge?: string;
+    html?: string;
+}
+
+export interface WhoamiResponse {
+    user_id: string;
+    device_id?: string;
+    is_guest?: boolean;
+}
+
+export interface SamlRedirectResponse {
+    location: string;
+}
+
+export interface VersionsResponse {
+    versions: string[];
+    unstable_features?: Record<string, boolean>;
 }
 
 export interface RegisterFlowsResponse {
@@ -509,6 +531,79 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     }
 
     /**
+     * Get captcha challenge for registration
+     * GET /_matrix/client/v3/register/captcha
+     */
+    public async getCaptcha(): Promise<CaptchaResponse> {
+        return this.withRetry(async () => {
+            return await this.request<CaptchaResponse>({
+                method: Method.Get,
+                path: "/register/captcha",
+                prefix: ClientPrefix.V3,
+                authenticated: false,
+            });
+        }, "getCaptcha");
+    }
+
+    /**
+     * Get current user info
+     * GET /_matrix/client/v3/account/whoami
+     */
+    public async whoami(): Promise<WhoamiResponse> {
+        return this.withRetry(async () => {
+            return await this.request<WhoamiResponse>({
+                method: Method.Get,
+                path: "/account/whoami",
+                prefix: ClientPrefix.V3,
+            });
+        }, "whoami");
+    }
+
+    /**
+     * Logout current session
+     * POST /_matrix/client/v3/logout
+     */
+    public async logout(): Promise<void> {
+        return this.withRetry(async () => {
+            await this.request({
+                method: Method.Post,
+                path: "/logout",
+                prefix: ClientPrefix.V3,
+            });
+        }, "logout");
+    }
+
+    /**
+     * Get SAML redirect URL
+     * GET /_matrix/client/v3/login/sso/redirect/{idp_id}
+     */
+    public async getSamlRedirect(idpId: string): Promise<SamlRedirectResponse> {
+        return this.withRetry(async () => {
+            return await this.request<SamlRedirectResponse>({
+                method: Method.Get,
+                path: "/login/sso/redirect/saml",
+                queryParams: { idp_id: idpId },
+                prefix: ClientPrefix.V3,
+            });
+        }, "getSamlRedirect");
+    }
+
+    /**
+     * Get server versions
+     * GET /_matrix/client/versions
+     */
+    public async getVersions(): Promise<VersionsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<VersionsResponse>({
+                method: Method.Get,
+                path: "/versions",
+                prefix: "",
+                authenticated: false,
+            });
+        }, "getVersions");
+    }
+
+    /**
      * Requests an email verification token for the purposes of registration.
      */
     public requestRegisterEmailToken(
@@ -610,13 +705,14 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
         if (kind) {
             params.kind = kind;
         }
+        // ISSUE-05: 后端返回 expires_in（秒），在响应边界归一化为 expires_in_ms（毫秒）
         return this.request({
             method: Method.Post,
             path: "/register",
             queryParams: params,
             body: data,
             authenticated: false,
-        });
+        }).then((res) => normalizeExpiresInMs(res as RegisterResponse & { expires_in?: number }));
     }
 
     /**
@@ -631,7 +727,8 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                 path: "/refresh",
                 body: { refresh_token: refreshToken },
                 prefix,
-            });
+                // ISSUE-05: 后端返回 expires_in（秒），在响应边界归一化为 expires_in_ms（毫秒）
+            }).then((res) => normalizeExpiresInMs(res as IRefreshTokenResponse & { expires_in?: number }));
 
         try {
             return await performRefreshRequestWithPrefix(ClientPrefix.V3);

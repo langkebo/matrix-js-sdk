@@ -58,7 +58,7 @@ export class TestClient implements IE2EKeyReceiver, ISyncResponder {
         this.httpBackend = new MockHttpBackend();
 
         const fullOptions: ICreateClientOpts = {
-            baseUrl: "http://" + userId?.slice(1).replace(":", ".") + ".test.server",
+            baseUrl: "http://localhost",
             allowInsecureHttp: true,
             userId: userId,
             accessToken: accessToken,

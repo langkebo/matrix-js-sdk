@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        搜索契约
- * Source:        docs/api-contract/generated/modules/search.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       13 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `search` module. */
+/** Routes served by the synapse-rust `search` module (mirrored from the backend contract). */
 export const SEARCH_ROUTES = [
     { method: "POST", path: "/_matrix/client/r0/search" },
     { method: "POST", path: "/_matrix/client/r0/search_recipients" },
@@ -22,6 +20,8 @@ export const SEARCH_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/search" },
     { method: "POST", path: "/_matrix/client/v3/search_recipients" },
     { method: "POST", path: "/_matrix/client/v3/search_rooms" },
+    { method: "POST", path: "/_matrix/vendor/v1/search_recipients" },
+    { method: "POST", path: "/_matrix/vendor/v1/search_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SEARCH_ROUTES`. */

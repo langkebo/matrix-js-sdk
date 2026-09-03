@@ -490,7 +490,11 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
 }
 
 export function createOpenClawManager(client: MatrixClient): OpenClawManager {
-    return getOrCreateManager(client, "OpenClawManager", () => new OpenClawManager(client));
+    // 统一使用 "openclaw" 作为 registry key（与 extendMatrixClient 的 getter 一致），
+    // 避免双 key 破坏单例：此前 "OpenClawManager" 与 "openclaw" 并存，两入口都调用
+    // 时产生两个实例，stop() 生命周期遍历会漏掉其一。
+    registerManagerClass("openclaw", OpenClawManager);
+    return getOrCreateManager(client, "openclaw", () => new OpenClawManager(client));
 }
 
 export function extendMatrixClient(): void {

@@ -519,6 +519,56 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         }
     }
 
+    /**
+     * Update the presence list by subscribing and/or unsubscribing users in a single request.
+     * Returns the current presence states of subscribed users.
+     *
+     * @param subscribe - User IDs to subscribe to (optional)
+     * @param unsubscribe - User IDs to unsubscribe from (optional)
+     * @returns The presence list response with current presence states
+     *
+     * @throws {InvalidParamError} If both subscribe and unsubscribe are empty/missing
+     * @throws {ApiError} If the API call fails
+     */
+    async updatePresenceList(subscribe?: string[], unsubscribe?: string[]): Promise<IPresenceList> {
+        if (!subscribe?.length && !unsubscribe?.length) {
+            throw new InvalidParamError("At least one of subscribe/unsubscribe must be non-empty");
+        }
+        const body: { subscribe?: string[]; unsubscribe?: string[] } = {};
+        if (subscribe?.length) body.subscribe = subscribe;
+        if (unsubscribe?.length) body.unsubscribe = unsubscribe;
+
+        try {
+            const response = await this.withRetry(
+                () =>
+                    this.request<IPresenceList>({
+                        method: Method.Post,
+                        path: pp("/presence/list"),
+                        queryParams: {},
+                        body,
+                        prefix: PRESENCE_PREFIX,
+                    }),
+                "updatePresenceList",
+            );
+            subscribe?.forEach((id) => this.subscribedUsers.add(id));
+            unsubscribe?.forEach((id) => this.subscribedUsers.delete(id));
+            (response.presences ?? []).forEach((presence) => {
+                this.presenceCache.set(presence.user_id, {
+                    presence: presence.presence,
+                    status_msg: presence.status_msg,
+                    last_active_ago: presence.last_active_ago,
+                    currently_active: presence.currently_active,
+                });
+            });
+            this.emit(PresenceEvent.PresenceListUpdated, response.presences ?? []);
+            return response;
+        } catch (e) {
+            const error = this.normalizeError(e, "updatePresenceList");
+            this.emit(PresenceEvent.PresenceError, error);
+            throw error;
+        }
+    }
+
     async unsubscribeFromPresence(userIds: string[]): Promise<void> {
         if (!Array.isArray(userIds) || userIds.length === 0) {
             throw new InvalidParamError("userIds cannot be empty");

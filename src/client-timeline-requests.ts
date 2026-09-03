@@ -28,6 +28,16 @@ export function buildEventContextParams(lazyLoadMembers: boolean): Record<string
     return params;
 }
 
+/**
+ * Default number of events requested for `/messages` pagination when the caller
+ * does not specify a limit.
+ *
+ * Note this applies to the `/messages` endpoint only - the `/notifications`
+ * pagination path keeps its own default (see `paginateEventTimelineRequest`), as
+ * the two endpoints are independent and should be free to diverge.
+ */
+export const DEFAULT_MESSAGES_LIMIT = 30;
+
 export function buildMessagesRequestParams({
     fromToken,
     limit,
@@ -36,15 +46,18 @@ export function buildMessagesRequestParams({
     timelineFilter,
 }: {
     fromToken: string | null;
-    limit: number;
+    limit?: number | undefined;
     dir: Direction;
     lazyLoadMembers: boolean;
     timelineFilter?: IRoomEventFilter;
 }): Record<string, string> {
-    const params: Record<string, string> = {
-        limit: limit.toString(),
-        dir,
-    };
+    const params: Record<string, string> = { dir };
+
+    // `limit` is optional on purpose: omitting it lets the homeserver apply its own
+    // default. Callers with no limit preference must not be forced to send one.
+    if (limit !== undefined) {
+        params.limit = limit.toString();
+    }
 
     if (fromToken) {
         params.from = fromToken;

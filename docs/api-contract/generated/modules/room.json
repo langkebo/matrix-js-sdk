@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "room",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
+  "generated_at": "2026-07-31T22:14:32Z",
   "source_profile": "all",
-  "entry_count": 134,
+  "entry_count": 139,
   "entries": [
     {
       "method": "POST",
@@ -267,6 +267,14 @@
       ]
     },
     {
+      "method": "PUT",
+      "path": "/_matrix/client/r0/rooms/{room_id}/state/m.room.power_levels/",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/r0/rooms/{room_id}/state/{event_type}",
       "registered_by": "room",
@@ -371,6 +379,14 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
       "path": "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/",
       "registered_by": "room",
       "path_params": [
@@ -915,6 +931,14 @@
       ]
     },
     {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/v3/rooms/{room_id}/state/{event_type}",
       "registered_by": "room",
@@ -1107,6 +1131,22 @@
     {
       "method": "GET",
       "path": "/_matrix/client/v3/rooms/{room_id}/version",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
       "registered_by": "room",
       "path_params": [
         "room_id"

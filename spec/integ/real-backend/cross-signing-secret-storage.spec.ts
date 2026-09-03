@@ -51,7 +51,7 @@ describe("Cross-signing + secret storage real backend integration", () => {
                 },
             });
 
-            await client.initRustCrypto({ useIndexedDB: false });
+            await client.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             client.startClient({ initialSyncLimit: 20 });
             await syncPromise(client, 1);
 

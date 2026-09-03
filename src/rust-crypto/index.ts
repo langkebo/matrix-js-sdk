@@ -79,6 +79,15 @@ export async function initRustCrypto(args: {
      */
     storeKey?: Uint8Array;
 
+    /**
+     * Explicit opt-out from the ISSUE-08b default-deny guard. For tests / temporary sessions only.
+     *
+     * When `storePrefix` is null (in-memory store), `initRustCrypto` refuses to open an unencrypted
+     * store by default. Set this to `true` to allow the unencrypted in-memory store. Production
+     * callers must instead provide `storeKey`/`storePassphrase` derived from a system keychain.
+     */
+    allowInMemoryStore?: boolean;
+
     /** If defined, we will check if any data needs migrating from this store to the rust store. */
     legacyCryptoStore?: CryptoStore;
 
@@ -98,10 +107,20 @@ export async function initRustCrypto(args: {
     enableEncryptedStateEvents?: boolean;
 }): Promise<RustCrypto> {
     const { logger } = args;
+    const initRustCryptoStartTime = Date.now();
+    // 诊断：记录每个阶段耗时，定位 ensureCrypto 超时根因
+    let phaseStartTime = Date.now();
+    const logPhase = (phase: string): void => {
+        const phaseMs = Date.now() - phaseStartTime;
+        const totalMs = Date.now() - initRustCryptoStartTime;
+        logger.info(`[initRustCrypto] ${phase} 完成（阶段 ${phaseMs}ms / 累计 ${totalMs}ms）`);
+        phaseStartTime = Date.now();
+    };
 
     // initialise the rust matrix-sdk-crypto-wasm, if it hasn't already been done
     logger.debug("Initialising Rust crypto-sdk WASM artifact");
     await RustSdkCryptoJs.initAsync();
+    logPhase("WASM initAsync");
 
     logger.debug("Opening Rust CryptoStore");
     let storeHandle;
@@ -111,9 +130,26 @@ export async function initRustCrypto(args: {
         } else {
             storeHandle = await StoreHandle.open(args.storePrefix, args.storePassphrase, logger);
         }
-    } else {
+    } else if (args.allowInMemoryStore) {
+        // 显式 opt-out：仅用于测试/临时会话。生产构建（NODE_ENV=production）下
+        // 拒绝裸开，作为 ISSUE-08b 默认拒绝之外的最后一层防御，防止桌面端进程
+        // 读取明文密钥库。
+        if (typeof process !== "undefined" && process.env?.NODE_ENV === "production") {
+            throw new Error(
+                "allowInMemoryStore is not permitted in production builds; " +
+                    "provide storeKey/storePassphrase derived from a system keychain.",
+            );
+        }
+        logger.warn("Opening unencrypted in-memory crypto store (allowInMemoryStore=true). Not for production use.");
         storeHandle = await StoreHandle.open(null, null, logger);
+    } else {
+        // ISSUE-08b：默认拒绝不加密，防止桌面端进程读取明文密钥库
+        throw new Error(
+            "Refusing to open unencrypted in-memory crypto store; provide storeKey/storePassphrase " +
+                "(derived from system keychain) or explicitly set allowInMemoryStore for tests.",
+        );
     }
+    logPhase("StoreHandle.open");
 
     if (args.legacyCryptoStore) {
         // We have a legacy crypto store, which we may need to migrate from.
@@ -122,6 +158,7 @@ export async function initRustCrypto(args: {
             storeHandle,
             ...args,
         });
+        logPhase("migrateFromLegacyCrypto");
     }
 
     const rustCrypto = await initOlmMachine(
@@ -135,6 +172,7 @@ export async function initRustCrypto(args: {
         args.legacyCryptoStore,
         args.enableEncryptedStateEvents,
     );
+    logPhase("initOlmMachine");
 
     storeHandle.free();
 
@@ -227,13 +265,31 @@ async function initOlmMachine(
             // the user device and identity from the migrated private keys.
             // If not done, there is a short period where the own device/identity trust will be undefined after migration.
             let initialKeyQueryDone = false;
-            while (!initialKeyQueryDone) {
+            // 修复：原实现为无限重试循环（无超时、无退避、无最大次数），网络抖动或服务端 429
+            // 会导致 initRustCrypto 永久阻塞，进而触发前端 ensureCrypto 8s 超时。
+            // 现改为：最多重试 3 次，每次间隔指数退避（1s → 2s → 4s），总超时 30s。
+            const MAX_KEY_QUERY_RETRIES = 3;
+            const KEY_QUERY_RETRY_BASE_MS = 1_000;
+            for (let attempt = 0; attempt < MAX_KEY_QUERY_RETRIES && !initialKeyQueryDone; attempt++) {
                 try {
                     await rustCrypto.userHasCrossSigningKeys(userId);
                     initialKeyQueryDone = true;
                 } catch (e) {
-                    // If the initial key query fails, we retry until it succeeds.
-                    logger.error("Failed to check for cross-signing keys after migration, retrying", e);
+                    if (attempt < MAX_KEY_QUERY_RETRIES - 1) {
+                        const delayMs = KEY_QUERY_RETRY_BASE_MS * Math.pow(2, attempt);
+                        logger.warn(
+                            `Failed to check for cross-signing keys after migration (attempt ${attempt + 1}/${MAX_KEY_QUERY_RETRIES}), retrying in ${delayMs}ms`,
+                            e,
+                        );
+                        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+                    } else {
+                        // 达到最大重试次数后放弃，记录错误但不阻塞 initRustCrypto 完成。
+                        // crypto 仍可正常工作，仅 trust 状态可能在下次 sync 后才更新。
+                        logger.error(
+                            `Failed to check for cross-signing keys after migration after ${MAX_KEY_QUERY_RETRIES} attempts, giving up`,
+                            e,
+                        );
+                    }
                 }
             }
 

@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `ai_connection`.
+ * DTO snippets extracted from the contract doc for `ai-connection`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

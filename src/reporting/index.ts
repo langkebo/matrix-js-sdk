@@ -30,6 +30,7 @@ import type { EmptyObject } from "../@types/common";
 
 export interface ReportResult {
     report_id: string;
+    room_id?: string;
     status: string;
 }
 
@@ -44,13 +45,13 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
         super(client, opts);
     }
 
-    public async reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
+    public async reportRoom(roomId: string, reason: string, description?: string): Promise<ReportResult> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId });
-            return await this.request<EmptyObject>({
+            return await this.request<ReportResult>({
                 method: Method.Post,
                 path,
-                body: { reason },
+                body: { reason, ...(description ? { description } : {}) },
             });
         }, "reportRoom");
     }

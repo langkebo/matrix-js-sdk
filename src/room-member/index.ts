@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/index";
+import { Method, ClientPrefix } from "../http-api/index";
 import * as utils from "../utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -32,6 +32,19 @@ export interface RoomMemberInfo {
     avatar_url?: string;
     membership: string;
     reason?: string;
+}
+
+export interface MembershipEvent {
+    event_id: string;
+    type: string;
+    sender: string;
+    state_key: string;
+    content: { membership: string; [key: string]: unknown };
+    origin_server_ts: number;
+}
+
+export interface MembershipEventsResponse {
+    events: MembershipEvent[];
 }
 
 export interface RoomMemberManagerEvents {
@@ -125,6 +138,27 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
                 path,
             });
         }, "getRoomMember");
+    }
+
+    /**
+     * Get membership event history for a room.
+     * POST /_matrix/client/r0/rooms/{room_id}/get_membership_events
+     *
+     * @param roomId - The room ID.
+     * @param params - Optional parameters.
+     * @param params.limit - Maximum number of events to return (default 100, max 1000).
+     */
+    public async getMembershipEvents(roomId: string, params?: { limit?: number }): Promise<MembershipEventsResponse> {
+        this.requireNonEmptyString(roomId, "roomId");
+        return this.withRetry(async () => {
+            const path = utils.encodeUri("/rooms/$roomId/get_membership_events", { $roomId: roomId });
+            return this.request<MembershipEventsResponse>({
+                method: Method.Post,
+                path,
+                body: params,
+                prefix: ClientPrefix.R0,
+            });
+        }, "getMembershipEvents");
     }
 }
 

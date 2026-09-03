@@ -1119,7 +1119,7 @@ export class RoomState extends TypedEventEmitter<EmittedEvents, EventHandlerMap>
     private processBeaconLocationEvent(event: MatrixEvent): void {
         // Find the beacon this location belongs to
         const content = event.getContent();
-        const beaconInfoEventId = content?.["m.beacon_info"] ?? content?.["org.matrix.msc3488.beacon_info"];
+        const beaconInfoEventId = content?.["m.relates_to"]?.event_id ?? content?.["org.matrix.msc3672.beacon_info"]; // 兼容旧字段
         if (!beaconInfoEventId) return;
 
         // Find the beacon by looking for one with matching beacon info event ID

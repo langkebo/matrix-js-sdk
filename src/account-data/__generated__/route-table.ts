@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Account Data 模块契约
- * Source:        docs/api-contract/generated/modules/account_data.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       26 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `account_data` module. */
+/** Routes served by the synapse-rust `account-data` module (mirrored from the backend contract). */
 export const ACCOUNT_DATA_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/user/{user_id}/account_data/" },
     { method: "DELETE", path: "/_matrix/client/r0/user/{user_id}/account_data/{type}" },

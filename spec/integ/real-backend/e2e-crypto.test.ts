@@ -164,8 +164,8 @@ async function main(): Promise<void> {
     // 初始化加密模块
     console.log("2. 初始化加密模块...");
     try {
-        await clientA.initRustCrypto({ useIndexedDB: false });
-        await clientB.initRustCrypto({ useIndexedDB: false });
+        await clientA.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
+        await clientB.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
         console.log("   ✅ 双端加密模块已初始化\n");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {

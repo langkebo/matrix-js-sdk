@@ -92,8 +92,6 @@ import { RoomMemberEvent, type RoomMemberEventHandlerMap } from "./models/room-m
 import { type RoomStateEvent, type RoomStateEventHandlerMap } from "./models/room-state";
 import {
     isSendDelayedEventRequestOpts,
-    UpdateDelayedEventAction,
-    type DelayedEventInfo,
     type ICreateRoomOpts,
     type IEventSearchOpts,
     type IGuestAccessOpts,
@@ -191,8 +189,6 @@ import { type OidcClientConfig } from "./oidc/index";
 import { type EmptyObject } from "./@types/common";
 import { UnsupportedDelayedEventsEndpointError, UnsupportedStickyEventsEndpointError } from "./errors";
 import { type Transport } from "./matrix-rtc/index";
-import { buildDelayedEventsQuery, buildUnstableFeaturePrefix } from "./client-delayed-events";
-import { updateScheduledDelayedEventWithFallback } from "./client-delayed-events-updater";
 import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";
@@ -318,6 +314,7 @@ export type {
     ISecureBackupVerifyResponse,
     IShowQrCodeResponse,
     IServerVersions,
+    ITileServerWellKnown,
     ITurnServer,
     ITurnServerResponse,
     IUploadKeySignaturesResponse,
@@ -800,6 +797,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public serverCapabilitiesService: ServerCapabilities; // Intended private, used in lifecycle helpers.
 
+    /**
+     * Manager 扩展初始化完成的 Promise（由 createClient 注入）。
+     * createClient 同步返回时仅 8 个核心 manager 可用，其余约 55 个私有
+     * manager（friend/ai/...）经异步动态 import 挂载。调用方在使用这些
+     * manager 前应 `await client.whenManagerExtensionsReady()`。
+     */
+    private managerExtensionsReady?: Promise<void>;
+
     public constructor(opts: IMatrixClientCreateOpts) {
         super();
 
@@ -834,7 +839,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             onlyData: true,
             extraParams: opts.queryParams,
             localTimeoutMs: opts.localTimeoutMs,
-            useAuthorizationHeader: opts.useAuthorizationHeader,
             logger: this.logger,
         });
 
@@ -920,6 +924,26 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public set store(newStore: Store) {
         this._store = newStore;
         this._store.setUserCreator((userId) => User.createUser(userId, this));
+    }
+
+    /**
+     * 注入 manager 扩展初始化的 Promise（由 createClient 调用）。
+     * @internal
+     */
+    public setManagerExtensionsReady(promise: Promise<void>): void {
+        this.managerExtensionsReady = promise;
+    }
+
+    /**
+     * 等待所有 manager 扩展异步挂载完成。
+     *
+     * `createClient()` 同步返回时仅核心 manager 可用，friend/ai/... 等私有
+     * manager 经异步动态 import 挂载。使用这些 manager 前应 `await` 本方法。
+     *
+     * @returns 当 manager 初始化完成（或已跳过/失败）时 resolve 的 Promise。
+     */
+    public whenManagerExtensionsReady(): Promise<void> {
+        return this.managerExtensionsReady ?? Promise.resolve();
     }
 
     public getEventManager(): EventManager {
@@ -1301,6 +1325,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             cryptoDatabasePrefix?: string;
             storageKey?: Uint8Array;
             storagePassword?: string;
+            /**
+             * Explicit opt-out from the ISSUE-08b default-deny guard on unencrypted in-memory
+             * crypto stores. For tests / temporary sessions only.
+             *
+             * Production callers must instead provide `storageKey`/`storagePassword` derived
+             * from a system keychain. Not auto-implied by `useIndexedDB: false`.
+             */
+            allowInMemoryStore?: boolean;
         } = {},
     ): Promise<void> {
         if (this.cryptoBackend) {
@@ -1328,6 +1360,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.logger.debug("Downloading Rust crypto library");
         const RustCrypto = await import("./rust-crypto/index");
 
+        // ISSUE-08: "DEFAULT_KEY" 公开兜底已删除。不在 client 层早期失败——
+        // createClient() 总会创建空 MemoryCryptoStore，故 legacyCryptoStore 恒被设置。
+        // pickleKey 仅在 store 实际持有待迁移加密数据时才需要；空 store 直接跳过迁移。
+        // 真正需要 pickleKey 的检查下沉到 migrateFromLegacyCrypto() 内（libolm_migration.ts）。
         const rustCrypto = await RustCrypto.initRustCrypto({
             logger: this.logger,
             http: this.http,
@@ -1338,9 +1374,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             storePrefix: args.useIndexedDB === false ? null : (args.cryptoDatabasePrefix ?? RUST_SDK_STORE_PREFIX),
             storeKey: args.storageKey,
             storePassphrase: args.storagePassword,
+            // ISSUE-08b: 显式转发 opt-out，不自动隐含（保生产安全）
+            allowInMemoryStore: args.allowInMemoryStore,
 
             legacyCryptoStore: this.legacyCryptoStore,
-            legacyPickleKey: this.legacyPickleKey ?? "DEFAULT_KEY",
+            // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"；空 store 无需 pickleKey，有数据时迁移层校验
+            legacyPickleKey: this.legacyPickleKey,
             legacyMigrationProgressListener: (progress: number, total: number): void => {
                 this.emit(CryptoEvent.LegacyCryptoStoreMigrationProgress, progress, total);
             },
@@ -2064,6 +2103,80 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Replies to a given event with the given content.
+     *
+     * The reply content's `m.relates_to.m.in_reply_to` relation is built
+     * automatically from the target event, and the reply is sent in the
+     * target event's thread (if any).
+     *
+     * @param roomId - The room ID the target event is in.
+     * @param event - The event to reply to.
+     * @param content - The content of the reply event.
+     * @param txnId - Optional transaction ID.
+     * @returns Promise which resolves to the sent event's response.
+     */
+    public replyToEvent(
+        roomId: string,
+        event: MatrixEvent,
+        content: RoomMessageEventContent,
+        txnId?: string,
+    ): Promise<ISendEventResponse> {
+        if (event.getRoomId() !== roomId) {
+            throw new Error("Cannot reply to an event in a different room");
+        }
+
+        content = {
+            ...content,
+            "m.relates_to": {
+                ...(content["m.relates_to"] ?? {}),
+                "m.in_reply_to": {
+                    event_id: event.getId()!,
+                },
+            },
+        } as RoomMessageEventContent;
+
+        return this.sendMessage(roomId, event.threadRootId ?? null, content, txnId);
+    }
+
+    /**
+     * Edits the given event with the given content.
+     *
+     * The edit is sent as an `m.replace` relation, with the new content
+     * stored under `m.new_content`. The edit is sent in the target event's
+     * thread (if any).
+     *
+     * @param roomId - The room ID the target event is in.
+     * @param event - The event to edit.
+     * @param content - The new content for the event.
+     * @param txnId - Optional transaction ID.
+     * @returns Promise which resolves to the sent event's response.
+     */
+    public editEvent(
+        roomId: string,
+        event: MatrixEvent,
+        content: RoomMessageEventContent,
+        txnId?: string,
+    ): Promise<ISendEventResponse> {
+        if (event.getRoomId() !== roomId) {
+            throw new Error("Cannot edit an event in a different room");
+        }
+
+        content = {
+            ...content,
+            "m.new_content": {
+                ...content,
+            },
+            "m.relates_to": {
+                ...(content["m.relates_to"] ?? {}),
+                rel_type: RelationType.Replace,
+                event_id: event.getId()!,
+            },
+        } as RoomMessageEventContent;
+
+        return this.sendMessage(roomId, event.threadRootId ?? null, content, txnId);
+    }
+
     public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public sendTextMessage(
         roomId: string,
@@ -2439,37 +2552,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     /**
-     * Get information about delayed events owned by the requesting user.
-     *
-     * Note: This endpoint is unstable, and can throw an `Error`.
-     *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
-     */
-    public async _unstable_getDelayedEvents(
-        status?: "scheduled" | "finalised",
-        delayId?: string | string[],
-        fromToken?: string,
-    ): Promise<DelayedEventInfo> {
-        await this.assertDelayedEventsSupported("getDelayedEvents");
-
-        const queryDict: QueryDict = buildDelayedEventsQuery(status, delayId, fromToken);
-        return await this.http.authedRequest(Method.Get, "/delayed_events", queryDict, undefined, {
-            prefix: buildUnstableFeaturePrefix(UNSTABLE_MSC4140_DELAYED_EVENTS),
-        });
-    }
-
-    /**
      * Cancel the scheduled delivery of the delayed event matching the provided delayId.
      *
      * Note: This endpoint is unstable, and can throw an `Error`.
      *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
      *
+     * SDK-BL-005: Delegates to {@link DelayedEventsManager.cancelScheduledDelayedEvent}.
+     * The manager uses the action-in-BODY single request format
+     * (`POST /delayed_events/{delay_id}` body `{ action }`), removing the previous
+     * action-in-PATH + fallback flow that issued an extra failed request per call.
+     *
      * @throws A M_NOT_FOUND error if no matching delayed event could be found.
      */
     public async _unstable_cancelScheduledDelayedEvent(
-        delayId: string,
+        delayId: string | number,
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
-        return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Cancel, requestOptions);
+        return await this.getDelayedEventsManager().cancelScheduledDelayedEvent(delayId, requestOptions);
     }
 
     /**
@@ -2478,13 +2577,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Note: This endpoint is unstable, and can throw an `Error`.
      *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
      *
+     * SDK-BL-005: Delegates to {@link DelayedEventsManager.restartScheduledDelayedEvent}
+     * (action-in-BODY single request, no fallback).
+     *
      * @throws A M_NOT_FOUND error if no matching delayed event could be found.
      */
     public async _unstable_restartScheduledDelayedEvent(
-        delayId: string,
+        delayId: string | number,
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
-        return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Restart, requestOptions);
+        return await this.getDelayedEventsManager().restartScheduledDelayedEvent(delayId, requestOptions);
     }
 
     /**
@@ -2494,31 +2596,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Note: This endpoint is unstable, and can throw an `Error`.
      *   Check progress on [MSC4140](https://github.com/matrix-org/matrix-spec-proposals/pull/4140) for more details.
      *
+     * SDK-BL-005: Delegates to {@link DelayedEventsManager.sendScheduledDelayedEvent}
+     * (action-in-BODY single request, no fallback).
+     *
      * @throws A M_NOT_FOUND error if no matching delayed event could be found.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
      */
     public async _unstable_sendScheduledDelayedEvent(
-        delayId: string,
+        delayId: string | number,
         requestOptions: IRequestOpts = {},
     ): Promise<EmptyObject> {
-        return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Send, requestOptions);
-    }
-
-    private async updateScheduledDelayedEvent(
-        delayId: string,
-        action: UpdateDelayedEventAction,
-        requestOptions: IRequestOpts = {},
-    ): Promise<EmptyObject> {
-        await this.assertDelayedEventsSupported(`${action}ScheduledDelayedEvent`);
-
-        return await updateScheduledDelayedEventWithFallback(
-            this.http,
-            delayId,
-            action,
-            UNSTABLE_MSC4140_DELAYED_EVENTS,
-            requestOptions,
-        );
+        return await this.getDelayedEventsManager().sendScheduledDelayedEvent(delayId, requestOptions);
     }
 
     /**
@@ -3867,12 +3956,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getUnsentEvents(_roomId: string): MatrixEvent[] {
         return [];
     }
-    public reactToMessage(roomId: string, eventId: string, key: string): Promise<void> {
+    public reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined> {
         return this.getRoomEventsManager()
             .sendReaction(roomId, eventId, key)
-            .then(() => undefined);
+            .then((response: { event_id?: string }) => response?.event_id);
     }
-    public async redactReaction(_roomId: string, _eventId: string): Promise<void> {}
+    public redactReaction(roomId: string, eventId: string, reason?: string): Promise<{ event_id: string }> {
+        return this.redactEvent(roomId, eventId, reason);
+    }
     public getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>> {
         return this.getReactionsManager()
             .getReactionUsers(roomId, eventId)

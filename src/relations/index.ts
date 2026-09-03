@@ -222,7 +222,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             return result.total || 0;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("RelationsManager.getRelationCount failed", e);
+            logger.warn("RelationsManager.getRelationCount failed", e);
             return 0;
         }
     }
@@ -236,7 +236,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             return null;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("RelationsManager.getLatestRelation failed", e);
+            logger.warn("RelationsManager.getLatestRelation failed", e);
             return null;
         }
     }
@@ -345,16 +345,16 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
 
     public async sendRelation(
         roomId: string,
-        eventId: string,
+        parentEventId: string, // renamed from eventId for clarity
         relationType: RelationType,
-        targetEventId: string,
+        childEventId: string, // renamed from targetEventId for clarity
         body: SendRelationRequestBody = {},
     ): Promise<SendRelationResponse> {
         const path = utils.encodeUri(rr("/rooms/$roomId/relations/$eventId/$relationType/$targetEventId"), {
             $roomId: roomId,
-            $eventId: eventId,
+            $eventId: parentEventId,
             $relationType: relationType,
-            $targetEventId: targetEventId,
+            $targetEventId: childEventId,
         });
 
         try {
@@ -364,10 +364,59 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 body: body,
                 prefix: ClientPrefix.V1,
             });
-            this.emit(RelationsEvent.Updated, roomId, eventId);
+            this.emit(RelationsEvent.Updated, roomId, parentEventId);
             return response;
         } catch (e) {
             const error = this.normalizeError(e, "sendRelation");
+            this.emit(RelationsEvent.Error, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Send a relation via the /relations/ endpoint using a transaction ID as the
+     * last path segment (alternative to sendRelation which uses a target event ID).
+     * The body spreads content at top level and includes type and optional key.
+     *
+     * @param roomId - The room ID
+     * @param eventId - The parent event ID
+     * @param relType - The relation type (e.g. "m.annotation")
+     * @param txnId - Transaction ID
+     * @param eventType - The event type (e.g. "m.reaction")
+     * @param content - The event content (spread at top level)
+     * @param key - Optional key for annotation relations
+     */
+    public async sendRelationViaSendRelation(
+        roomId: string,
+        eventId: string,
+        relType: string,
+        txnId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+        key?: string,
+    ): Promise<SendRelationResponse> {
+        const path = utils.encodeUri("/rooms/$roomId/relations/$eventId/$relType/$txnId", {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relType: relType,
+            $txnId: txnId,
+        });
+
+        const body: Record<string, unknown> = { ...content, type: eventType };
+        if (key !== undefined) {
+            body.key = key;
+        }
+
+        try {
+            const response = await this.request<SendRelationResponse>({
+                method: Method.Put,
+                path: path,
+                body,
+                prefix: ClientPrefix.V3, // FT-097: 显式声明 V3，不依赖 defaultPrefix
+            });
+            return response;
+        } catch (e) {
+            const error = this.normalizeError(e, "sendRelationViaSendRelation");
             this.emit(RelationsEvent.Error, error);
             throw error;
         }

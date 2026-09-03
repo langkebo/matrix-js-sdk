@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Ephemeral Events
- * Source:        docs/api-contract/generated/modules/ephemeral.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       1 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `ephemeral` module. */
+/** Routes served by the synapse-rust `ephemeral` module (mirrored from the backend contract). */
 export const EPHEMERAL_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/ephemeral" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];

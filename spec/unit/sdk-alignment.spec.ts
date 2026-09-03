@@ -18,6 +18,7 @@ describe("SDK alignment managers", () => {
                 sendEmoteMessage: vi.fn().mockResolvedValue({ event_id: "$event" }),
                 sendImageMessage: vi.fn().mockResolvedValue({ event_id: "$event" }),
                 sendMessage: vi.fn().mockResolvedValue({ event_id: "$event" }),
+                makeTxnId: vi.fn().mockReturnValue("mock-txn-id"),
             };
             manager = new SendingManager(client);
         });
@@ -38,8 +39,21 @@ describe("SDK alignment managers", () => {
             await manager.sendEmote("!room:test", "wave", "txn-2");
             await manager.sendImage("!room:test", "mxc://img", { w: 10 }, "Image");
 
-            expect(client.sendEmoteMessage).toHaveBeenCalledWith("!room:test", "wave", "txn-2", undefined);
-            expect(client.sendImageMessage).toHaveBeenCalledWith("!room:test", "mxc://img", { w: 10 }, "Image");
+            // sendEmote 直接委托 client.sendEmoteMessage（3 参：roomId, text, txnId）
+            expect(client.sendEmoteMessage).toHaveBeenCalledWith("!room:test", "wave", "txn-2");
+            // ISSUE-03: sendImage 改走 sendMessage（内部复用 txnId），content 构造与
+            // client.sendImageMessage 一致
+            expect(client.sendMessage).toHaveBeenCalledWith(
+                "!room:test",
+                null,
+                {
+                    msgtype: "m.image",
+                    url: "mxc://img",
+                    info: { w: 10 },
+                    body: "Image",
+                },
+                "mock-txn-id",
+            );
         });
     });
 
@@ -67,7 +81,7 @@ describe("SDK alignment managers", () => {
                 "/friends",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(friends[0]?.status).toBe(FriendRelationshipStatus.Normal);
         });
@@ -95,11 +109,11 @@ describe("SDK alignment managers", () => {
             await manager.enableBurn("!room:test");
 
             expect(authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
+                "PUT",
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: true, burn_after_ms: 60000 },
-                expect.objectContaining({ prefix: "/_matrix/client/v1" }),
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

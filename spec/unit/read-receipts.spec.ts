@@ -318,6 +318,18 @@ describe("ReadReceiptsManager", () => {
         });
     });
 
+    describe("sendReceiptForce", () => {
+        it("sends HTTP request regardless of room store state", async () => {
+            transport.respondWith({});
+
+            await manager.sendReceiptForce("!room:server", "m.read", "$evt:server");
+
+            // utils.encodeUri uses encodeURIComponent on values:
+            // !room:server → !room%3Aserver, m.read → m.read, $evt:server → %24evt%3Aserver
+            transport.expectCalledWith(Method.Post, "/rooms/!room%3Aserver/receipt/m.read/%24evt%3Aserver", {});
+        });
+    });
+
     describe("setReadMarkers / setReadMarker", () => {
         it("setReadMarker should call setRoomReadMarkers with same eventId", async () => {
             mockClient.getRoom.mockReturnValue(null);

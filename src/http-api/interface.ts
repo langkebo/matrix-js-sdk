@@ -76,10 +76,10 @@ export interface IHttpOpts {
     tokenRefreshFunction?: TokenRefreshFunction;
 
     /**
-     * Whether to use the HTTP Authorization header over the `access_token` query parameter
-     * @deprecated as of v1.11 in https://spec.matrix.org/v1.17/client-server-api/#using-access-tokens
+     * Whether to use the HTTP Authorization header over the `access_token` query parameter.
+     * @deprecated Token is always sent via Authorization header (ISSUE-09). This option is ignored.
      */
-    useAuthorizationHeader?: boolean; // defaults to true
+    useAuthorizationHeader?: boolean;
 
     /** For historical reasons, must be set to `true`. Will eventually be removed. */
     onlyData?: boolean;
@@ -88,6 +88,28 @@ export interface IHttpOpts {
 
     /** Optional logger instance. If provided, requests and responses will be logged. */
     logger?: Logger;
+
+    /**
+     * Enable GZIP compression of JSON request bodies when they exceed {@link IHttpOpts.gzipThresholdBytes}.
+     *
+     * When enabled, bodies that are `Object`s and exceed the threshold are compressed
+     * with `gzipSync` and sent with `Content-Encoding: gzip`. The server is expected
+     * to transparently decompress the body (e.g. `tower-http::compression::CompressionLayer`
+     * on Axum). Binary bodies (FormData, Blob, ArrayBuffer, etc.) are NEVER compressed.
+     *
+     * Defaults to `true` for compatibility with services that already accept gzipped
+     * request bodies. Set to `false` to disable for a specific client.
+     */
+    gzipRequests?: boolean;
+
+    /**
+     * Minimum JSON body size in bytes before GZIP compression kicks in.
+     * Bodies smaller than this threshold are sent uncompressed to avoid
+     * CPU overhead on tiny payloads.
+     *
+     * Defaults to `1024` (1 KiB).
+     */
+    gzipThresholdBytes?: number;
 }
 
 /** Options object for `FetchHttpApi.requestOtherUrl`. */

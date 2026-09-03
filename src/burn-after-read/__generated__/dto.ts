@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `burn_after_read`.
+ * DTO snippets extracted from the contract doc for `burn-after-read`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { WidgetsManager } from "../../src/widgets/index";
 import type { MatrixEvent } from "../../src/models/event";
@@ -173,5 +175,29 @@ describe("WidgetsManager", () => {
             expect(mockAuthedRequest.mock.calls[0][0]).toBe("DELETE");
             expect(mockAuthedRequest.mock.calls[0][1]).toBe("/widgets/sessions/s1");
         });
+    });
+});
+
+// FT-086: 旧版 WidgetsManager 标记为 @deprecated，引导使用新版 WidgetManager（src/widget/index.ts）
+describe("WidgetsManager @deprecated marker (FT-086)", () => {
+    const sourcePath = resolve(process.cwd(), "src/widgets/index.ts");
+    const sourceContent = readFileSync(sourcePath, "utf8");
+
+    it("WidgetsManager 类声明上方包含 @deprecated JSDoc 标记", () => {
+        // 匹配 `/** ... @deprecated ... */` 紧跟 export class WidgetsManager
+        const classDeclPattern = /\/\*\*[\s\S]*?@deprecated[\s\S]*?\*\/\s*export class WidgetsManager/;
+        expect(classDeclPattern.test(sourceContent)).toBe(true);
+    });
+
+    it("@deprecated 注释指向新版 WidgetManager（src/widget/index.ts）", () => {
+        // 注释中需引用新版路径
+        expect(sourceContent).toContain("widget/index");
+        expect(sourceContent).toContain("WidgetManager");
+    });
+
+    it("模块顶部说明该文件为历史兼容层", () => {
+        // 模块顶部 JSDoc 需说明历史兼容性
+        const moduleDocPattern = /\/\*\*[\s\S]*?历史兼容[\s\S]*?\*\//;
+        expect(moduleDocPattern.test(sourceContent)).toBe(true);
     });
 });

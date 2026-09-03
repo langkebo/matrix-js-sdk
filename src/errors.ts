@@ -15,11 +15,16 @@ limitations under the License.
 */
 
 import type { IAuthData } from "./interactive-auth";
+import { extractNumber, extractString, extractNested, extractHeader } from "./utils/type-guards";
 
 /**
  * Shape of an unknown error cause object when extracting fields.
  * Used by error-class constructors to inspect nested error data from
  * various sources (HTTP responses, native errors, etc.).
+ *
+ * @deprecated P2 优化：使用 `extractNumber` / `extractString` / `extractNested` /
+ * `extractHeader` 替代直接 cast 为 `Record<string, unknown>`。保留此类型仅为
+ * 兼容尚未迁移到 `type-guards.ts` 的代码。
  */
 type ErrorCauseObject = Record<string, unknown>; /* Dynamic: error cause shape is unknown */
 
@@ -28,40 +33,22 @@ export enum InvalidCryptoStoreState {
 }
 
 // Type-safe helpers to extract fields from unknown error causes without `as any`
+// P2 优化：这些 helpers 已迁移到 utils/type-guards.ts，下面保留为 thin re-export 以
+// 维持向后兼容（部分第三方代码可能仍在 import 这些内部 helpers）。
 function extractStringField(cause: unknown, field: string): string | undefined {
-    if (cause && typeof cause === "object" && field in cause) {
-        const value = (cause as ErrorCauseObject)[field];
-        return typeof value === "string" ? value : undefined;
-    }
-    return undefined;
+    return extractString(cause, field);
 }
 
 function extractNumberField(cause: unknown, field: string): number | undefined {
-    if (cause && typeof cause === "object" && field in cause) {
-        const value = (cause as ErrorCauseObject)[field];
-        return typeof value === "number" ? value : undefined;
-    }
-    return undefined;
+    return extractNumber(cause, field);
 }
 
 function extractNestedField(cause: unknown, parentField: string, childField: string): unknown {
-    if (cause && typeof cause === "object" && parentField in cause) {
-        const parent = (cause as ErrorCauseObject)[parentField];
-        if (parent && typeof parent === "object" && childField in (parent as ErrorCauseObject)) {
-            return (parent as ErrorCauseObject)[childField];
-        }
-    }
-    return undefined;
+    return extractNested(cause, parentField, childField);
 }
 
 function extractHeaderField(cause: unknown, headerName: string): string | undefined {
-    if (cause && typeof cause === "object" && "httpHeaders" in cause) {
-        const headers = (cause as ErrorCauseObject).httpHeaders;
-        if (headers && typeof headers === "object" && "get" in (headers as ErrorCauseObject)) {
-            return (headers as { get: (name: string) => string | null }).get(headerName) ?? undefined;
-        }
-    }
-    return undefined;
+    return extractHeader(cause, headerName);
 }
 
 export class InvalidCryptoStoreError extends Error {
@@ -264,5 +251,52 @@ export class InvalidParamError extends ValidationError {
     public constructor(message: string, cause?: unknown) {
         super(message, cause);
         this.name = "InvalidParamError";
+    }
+}
+
+/**
+ * Timeout error - raised when a network request exceeds its deadline.
+ *
+ * P3 优化：与 {@link RetryableError} 不同，超时错误默认是**可重试**的，
+ * 但调用方通常希望走"短延时重试 + 用户可观察"的路径，而非常规重试策略。
+ *
+ * 用于映射以下场景：
+ * - `AbortController` 触发的请求取消（`AbortError`）
+ * - Node.js `ETIMEDOUT` / `ESOCKETTIMEDOUT` / `ETIME` 错误码
+ * - HTTP 408（Request Timeout）
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await manager.request({ method: Method.Get, path: "/rooms/123" });
+ * } catch (error: unknown) {
+ *   if (error instanceof TimeoutError) {
+ *     console.warn(`Request timed out after ${error.timeoutMs}ms`);
+ *   }
+ * }
+ * ```
+ */
+export class TimeoutError extends SdkError {
+    public readonly timeoutMs: number;
+    public readonly causeCode?: string;
+
+    public constructor(message: string, options: { timeoutMs?: number; causeCode?: string; cause?: unknown } = {}) {
+        super(message, {
+            errorCode: "TIMEOUT",
+            statusCode: 408,
+            isRetryable: true,
+            cause: options.cause,
+        });
+        this.name = "TimeoutError";
+        this.timeoutMs = options.timeoutMs ?? 0;
+        this.causeCode = options.causeCode;
+    }
+
+    /**
+     * Check whether this timeout was triggered by an explicit AbortController call
+     * (i.e. user cancellation rather than a network-level deadline).
+     */
+    public isUserCancelled(): boolean {
+        return this.causeCode === "ABORT" || this.causeCode === "AbortError";
     }
 }

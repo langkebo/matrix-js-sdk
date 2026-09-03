@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `key_backup`.
+ * DTO snippets extracted from the contract doc for `key-backup`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
@@ -97,19 +97,9 @@ export interface PutRoomSessionsBody {
     sessions: Record<string, SessionData>;
 }
 
-export interface KeyBackupAuthData {
-    type: string;
-    session?: string;
-    password?: string;
-    token?: string;
-    user?: string;
-    [key: string]: unknown;
-}
-
 export interface CreateBackupVersionRequest {
     algorithm: string;
     auth_data?: AuthData | Record<string, unknown>;
-    auth?: KeyBackupAuthData;
 }
 
 export interface UpdateBackupVersionRequest {

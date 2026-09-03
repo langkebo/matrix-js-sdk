@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        CAS Authentication
- * Source:        docs/api-contract/generated/modules/cas.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       18 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `cas` module. */
+/** Routes served by the synapse-rust `cas` module (mirrored from the backend contract). */
 export const CAS_ROUTES = [
     { method: "GET", path: "/_synapse/admin/v1/cas/services" },
     { method: "POST", path: "/_synapse/admin/v1/cas/services" },
@@ -27,6 +25,8 @@ export const CAS_ROUTES = [
     { method: "GET", path: "/proxy" },
     { method: "GET", path: "/proxyValidate" },
     { method: "GET", path: "/serviceValidate" },
+    { method: "GET", path: "/_matrix/client/v3/login/sso/redirect/cas" },
+    { method: "GET", path: "/_matrix/client/r0/login" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `CAS_ROUTES`. */

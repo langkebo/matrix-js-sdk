@@ -5,6 +5,7 @@ import { InvalidParamError } from "../../src/common/errors.ts";
 import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
 import { HTTPError } from "../../src/http-api/errors";
 import { PushRuleKind, PushRuleActionName, TweakName } from "../../src/@types/PushRules";
+import { logger } from "../../src/logger";
 
 describe("PushManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -515,6 +516,16 @@ describe("PushManager", () => {
                 undefined,
                 { prefix: "/_matrix/client/v3" },
             );
+        });
+    });
+
+    describe("isRoomMuted", () => {
+        it("should log a warning and return false when fetching rules fails", async () => {
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+            vi.spyOn(pushManager, "getPushRulesByKind").mockRejectedValueOnce(new Error("boom"));
+
+            await expect(pushManager.isRoomMuted("!room:example.com")).resolves.toBe(false);
+            expect(warnSpy).toHaveBeenCalledWith("PushManager.isRoomMuted failed:", expect.any(Error));
         });
     });
 

@@ -105,7 +105,7 @@ describe("cross-signing", () => {
                 body: { errcode: "M_NOT_FOUND" },
             });
 
-            await aliceClient.initRustCrypto({ useIndexedDB: false });
+            await aliceClient.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
         },
         /* it can take a while to initialise the crypto library on the first pass, so bump up the timeout. */
         30000,

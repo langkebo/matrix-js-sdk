@@ -129,6 +129,9 @@ const MODULE_DEFS = [
     { option: "includeServerTime", module: "server-time" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
+    { option: "includeReactions", module: "reactions" },
+    { option: "includeBeacon", module: "beacon" },
+    { option: "includeAppService", module: "app-service" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────

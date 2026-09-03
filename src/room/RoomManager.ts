@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient, ClientEvent } from "../client";
 import { Room } from "../models/room";
 import { Method } from "../http-api/method";
-import { ClientPrefix, MediaPrefix } from "../http-api/prefix";
+import { ClientPrefix, MediaPrefix, VendorPrefix } from "../http-api/prefix";
 import { MatrixError } from "../http-api/errors";
 import { type EmptyObject } from "../@types/common";
 import {
@@ -52,6 +52,7 @@ import * as ContentHelpers from "../content-helpers";
 import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
 import type { InviteRequest } from "./__generated__/dto";
 import type { RoomPathPattern } from "./__generated__/route-table";
+import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
 import type { SlidingSyncPathPattern } from "../sliding-sync/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
@@ -175,7 +176,7 @@ type StripSimplifiedSlidingSync<P extends string> =
 type RoomManagerPathPattern =
     | StripR0<RoomPathPattern | TagsPathPattern>
     | StripV1<RoomPathPattern>
-    | StripV3<RoomPathPattern | TagsPathPattern>
+    | StripV3<RoomPathPattern | TagsPathPattern | AuthPathPattern>
     | StripSimplifiedSlidingSync<SlidingSyncPathPattern>;
 
 function rp<P extends RoomManagerPathPattern>(path: P): P {
@@ -748,6 +749,88 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    public async getRoomUnreadCount(roomId: string): Promise<{ notification_count: number; highlight_count: number }> {
+        validateRoomId(roomId);
+
+        const response = await this.withRetry(async () => {
+            return await this.request<{ notification_count: number; highlight_count: number }>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/unread_count`),
+                prefix: ClientPrefix.V3,
+            });
+        });
+
+        return response;
+    }
+
+    /**
+     * 获取房间通话会话信息（synapse-rust voip_tracking 端点）。
+     * GET /_matrix/client/v3/rooms/{room_id}/call/{call_id}
+     */
+    public async getRoomCall(roomId: string, callId: string): Promise<Record<string, unknown>> {
+        validateRoomId(roomId);
+
+        return await this.withRetry(async () => {
+            return await this.request<Record<string, unknown>>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/call/${encodeURIComponent(callId)}`),
+                prefix: ClientPrefix.V3,
+            });
+        }, "getRoomCall");
+    }
+
+    /**
+     * 翻译文本（synapse-rust 私有端点）。
+     * POST /_matrix/client/v3/translate
+     */
+    public async translateText(
+        text: string,
+        targetLang: string,
+        sourceLang?: string,
+    ): Promise<{ translated_text: string }> {
+        const body: Record<string, unknown> = { text, target_lang: targetLang };
+        if (sourceLang) body.source_lang = sourceLang;
+        return await this.withRetry(async () => {
+            return await this.request<{ translated_text: string }>({
+                method: Method.Post,
+                path: rp("/translate"),
+                body,
+                prefix: ClientPrefix.V3,
+            });
+        }, "translateText");
+    }
+
+    /**
+     * 获取房间 sticky events（synapse-rust 私有端点）。
+     * GET /_matrix/client/v3/rooms/{room_id}/sticky_events
+     */
+    public async getStickyEvents(roomId: string): Promise<Record<string, unknown>> {
+        validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.request<Record<string, unknown>>({
+                method: Method.Get,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
+                prefix: ClientPrefix.V3,
+            });
+        }, "getStickyEvents");
+    }
+
+    /**
+     * 设置房间 sticky events（synapse-rust 私有端点）。
+     * POST /_matrix/client/v3/rooms/{room_id}/sticky_events
+     */
+    public async setStickyEvents(roomId: string, events: Record<string, unknown>): Promise<void> {
+        validateRoomId(roomId);
+        await this.withRetry(async () => {
+            await this.request<void>({
+                method: Method.Post,
+                path: rp(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
+                body: events,
+                prefix: ClientPrefix.V3,
+            });
+        }, "setStickyEvents");
+    }
+
     // ==================== Tags ====================
 
     public async getRoomTags(roomId: string): Promise<ITagsResponse> {
@@ -1114,12 +1197,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * Get all rooms for the current user, including join, invite, and leave status.
      * Custom endpoint for synapse-rust.
+     * GET /_matrix/vendor/v1/my_rooms
      */
     public async getMyRooms(): Promise<IMyRoomsResponse> {
         const response = await this.request<IMyRoomsResponse>({
             method: Method.Get,
-            path: "/_matrix/client/v3/my_rooms",
-            prefix: ClientPrefix.V3,
+            path: "/my_rooms",
+            prefix: VendorPrefix,
         });
         return {
             ...response,
@@ -1136,7 +1220,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     /**
      * Search rooms by term (synapse-rust specific).
-     * POST /_matrix/client/v3/search_rooms
+     * POST /_matrix/vendor/v1/search_rooms
      */
     public async searchRooms(
         searchTerm: string,
@@ -1155,7 +1239,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                     path,
                     queryParams: queryParams as Record<string, string | string[]>,
                     body,
-                    prefix: requestOpts?.prefix ?? ClientPrefix.V3,
+                    prefix: requestOpts?.prefix ?? VendorPrefix,
                 }),
             searchTerm,
             limit,

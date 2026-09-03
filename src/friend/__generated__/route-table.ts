@@ -3,15 +3,15 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Friend 模块契约
- * Source:        docs/api-contract/generated/modules/friend_room.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       88 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `friend_room` module. */
+/** Routes served by the synapse-rust `friend` module (mirrored from the backend contract). */
 export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/r0/friends/check/{user_id}" },
+    { method: "GET", path: "/_matrix/client/r0/friends/dm/{user_id}" },
+    { method: "POST", path: "/_matrix/client/r0/friends/dm/{user_id}" },
     { method: "GET", path: "/_matrix/client/r0/friends/groups" },
     { method: "POST", path: "/_matrix/client/r0/friends/groups" },
     { method: "DELETE", path: "/_matrix/client/r0/friends/groups/{group_id}" },
@@ -40,6 +40,8 @@ export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/friends" },
     { method: "POST", path: "/_matrix/client/v1/friends" },
     { method: "GET", path: "/_matrix/client/v1/friends/check/{user_id}" },
+    { method: "GET", path: "/_matrix/client/v1/friends/dm/{user_id}" },
+    { method: "POST", path: "/_matrix/client/v1/friends/dm/{user_id}" },
     { method: "GET", path: "/_matrix/client/v1/friends/groups" },
     { method: "POST", path: "/_matrix/client/v1/friends/groups" },
     { method: "DELETE", path: "/_matrix/client/v1/friends/groups/{group_id}" },
@@ -66,10 +68,35 @@ export const FRIEND_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v1/friends/{user_id}/status" },
     { method: "GET", path: "/_matrix/client/v3/friends" },
     { method: "POST", path: "/_matrix/client/v3/friends" },
+    { method: "GET", path: "/_matrix/client/v3/friends/check/{user_id}" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/client/v3/friends/requests/outgoing" },
     { method: "GET", path: "/_matrix/client/v3/friends/search" },
     { method: "POST", path: "/_matrix/client/v3/friends/search" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/friends/groups/{group_id}" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/friends/groups/{group_id}/remove/{user_id}" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/friends/{user_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/check/{user_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/dm/{user_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/groups" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/groups/{group_id}/friends" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/request/received" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/requests/incoming" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/requests/outgoing" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/search" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/suggestions" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/{user_id}/groups" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/{user_id}/info" },
+    { method: "GET", path: "/_matrix/vendor/v1/friends/{user_id}/status" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/groups/{group_id}/add/{user_id}" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/request" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/request/{user_id}/accept" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/request/{user_id}/cancel" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/request/{user_id}/reject" },
+    { method: "PUT", path: "/_matrix/vendor/v1/friends/groups/{group_id}/name" },
+    { method: "PUT", path: "/_matrix/vendor/v1/friends/{user_id}/displayname" },
+    { method: "PUT", path: "/_matrix/vendor/v1/friends/{user_id}/note" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `FRIEND_ROUTES`. */

@@ -57,3 +57,10 @@ export enum AdminPrefix {
      */
     V1 = "/_synapse/admin/v1",
 }
+
+/**
+ * Vendor prefix for private/non-standard endpoints.
+ * ISSUE-13: Private endpoints should not pollute the standard
+ * /_matrix/client/v3 namespace. They use /_matrix/vendor/v1 instead.
+ */
+export const VendorPrefix = "/_matrix/vendor/v1";

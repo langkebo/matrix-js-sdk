@@ -4,7 +4,7 @@ import { BurnAfterReadManager, BurnAfterReadEvent } from "../../src/burn-after-r
 import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../../src/errors";
 import { MatrixError } from "../../src/http-api/errors";
 import { Method } from "../../src/http-api/method";
-import { ClientPrefix } from "../../src/http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix";
 import { getOrCreateManager } from "../../src/client-infra/manager-registry";
 
 type MockBurnAfterReadClient = {
@@ -101,7 +101,7 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: true, burn_after_ms: 60000 },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -113,11 +113,11 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: true, burn_after_ms: 30000 },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
-        it("prefers v3 when centralized discovery advertises burn-after-read support", async () => {
+        it("defaults to vendor prefix when no version specified", async () => {
             manager = new BurnAfterReadManager(createMockClient(authedRequest, true));
 
             await manager.enableBurn("!room:test");
@@ -127,7 +127,7 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: true, burn_after_ms: 60000 },
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -196,10 +196,10 @@ describe("BurnAfterReadManager", () => {
             await expect(manager.enableBurn("!room:test")).rejects.toThrow(RetryableError);
         });
 
-        it("normalizes MatrixError to ApiError on 400", async () => {
+        it("normalizes MatrixError to ValidationError on 400 M_BAD_JSON (P3: validation-type errcode → ValidationError)", async () => {
             authedRequest.mockRejectedValue(createMatrixError(400, "M_BAD_JSON", "Bad request"));
 
-            await expect(manager.enableBurn("!room:test")).rejects.toThrow(ApiError);
+            await expect(manager.enableBurn("!room:test")).rejects.toThrow(ValidationError);
         });
     });
 
@@ -214,7 +214,7 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn",
                 undefined,
                 { enabled: false },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -230,7 +230,7 @@ describe("BurnAfterReadManager", () => {
             const settings = await manager.getBurnSettings("!room:test");
 
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/rooms/!room%3Atest/burn", undefined, undefined, {
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
             expect(settings).toEqual({ enabled: true, burn_after_ms: 45000 });
         });
@@ -260,7 +260,7 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn/pending",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
             expect(pending).toHaveLength(2);
             expect(pending[0].event_id).toBe("$ev1");
@@ -286,7 +286,7 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn/%24event1",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
             expect(result.success).toBe(true);
             expect(result.will_delete_at).toBe(1700000000000);
@@ -327,7 +327,7 @@ describe("BurnAfterReadManager", () => {
                 "/rooms/!room%3Atest/burn/%24event1",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
             expect(result.success).toBe(true);
         });
@@ -353,7 +353,7 @@ describe("BurnAfterReadManager", () => {
                 "/user/burn/config",
                 undefined,
                 { default_burn_ms: 90000 },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
             expect(result.default_burn_ms).toBe(90000);
         });
@@ -383,7 +383,7 @@ describe("BurnAfterReadManager", () => {
             const stats = await manager.getBurnStats();
 
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/user/burn/stats", undefined, undefined, {
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
             expect(stats).toEqual({
                 total_burned: 10,
@@ -730,7 +730,7 @@ describe("BurnAfterReadManager", () => {
 
             expect(result).toBe(true);
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/rooms/!room%3Atest/burn", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 
@@ -848,7 +848,7 @@ describe("BurnAfterReadManager", () => {
     });
 
     describe("URL prefix correctness", () => {
-        it("uses ClientPrefix.V1 for burn settings endpoints", async () => {
+        it("uses VendorPrefix for burn settings endpoints", async () => {
             authedRequest.mockResolvedValue({ enabled: true, burn_after_ms: 60000 });
 
             await manager.enableBurn("!room:test");
@@ -863,7 +863,7 @@ describe("BurnAfterReadManager", () => {
             const calls = authedRequest.mock.calls;
             for (const call of calls) {
                 const prefixArg = call[4];
-                expect(prefixArg).toEqual({ prefix: ClientPrefix.V1 });
+                expect(prefixArg).toEqual({ prefix: VendorPrefix });
             }
         });
 
@@ -888,7 +888,7 @@ describe("BurnAfterReadManager", () => {
             for (const call of calls) {
                 const prefixArg = call[4];
                 if (typeof prefixArg === "object" && prefixArg !== null) {
-                    expect([ClientPrefix.V1, ClientPrefix.V3]).toContain(prefixArg.prefix);
+                    expect([VendorPrefix, ClientPrefix.V3]).toContain(prefixArg.prefix);
                 }
             }
         });

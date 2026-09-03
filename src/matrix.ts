@@ -33,6 +33,8 @@ import { type CryptoStore } from "./crypto/store/base";
 import { extendMatrixClientWithManagers, isManagerExtensionsInitialized } from "./manager-extensions";
 import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
+import { assertSecureBaseUrl } from "./http-api/base-url-guard";
+import { logger } from "./logger";
 
 export {
     extendMatrixClientWithManagers,
@@ -78,6 +80,9 @@ export * from "./version-support";
 export * from "./service-types";
 export * from "./store/memory";
 export * from "./store/indexeddb";
+export * from "./store/ttl";
+export * from "./store/stats";
+export * from "./store/capacity";
 export * from "./crypto/store/memory-crypto-store";
 export * from "./crypto/store/localStorage-crypto-store";
 export * from "./crypto/store/indexeddb-crypto-store";
@@ -108,6 +113,7 @@ export * from "./models/related-relations";
 export * from "./runtime-schemas/index";
 export type { RoomSummary } from "./client";
 export * from "./matrix-managers";
+export { MSC4108SignInWithQR } from "./rendezvous/MSC4108SignInWithQR";
 
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
@@ -257,9 +263,23 @@ export async function initializeManagerExtensions(): Promise<void> {
  * `opts`.
  */
 export function createClient(opts: ICreateClientOpts): MatrixClient {
+    // Security: enforce HTTPS base URLs, allowing http only for dev hosts (ISSUE-09).
+    assertSecureBaseUrl(opts.baseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
+    if (opts.idBaseUrl) {
+        assertSecureBaseUrl(opts.idBaseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
+    }
     installSynchronousCoreManagerExtensions();
-    void autoInitManagerExtensions(opts);
-    return new MatrixClient(amendClientOpts(opts));
+    const client = new MatrixClient(amendClientOpts(opts));
+    // 把 manager 异步初始化的 Promise 注入 client，暴露 whenManagerExtensionsReady()
+    // 门控。此前是 fire-and-forget，createClient 返回后立即调用私有 manager 会
+    // 因方法尚未挂载而抛 TypeError。
+    const managerReady = autoInitManagerExtensions(opts);
+    client.setManagerExtensionsReady(managerReady);
+    // 避免 fire-and-forget 的 unhandled rejection（ready() 仍能感知错误）
+    managerReady.catch((err) => {
+        logger.error("Failed to initialize manager extensions", err);
+    });
+    return client;
 }
 
 /**

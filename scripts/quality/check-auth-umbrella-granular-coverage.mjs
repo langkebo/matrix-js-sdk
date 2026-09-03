@@ -47,12 +47,6 @@ const CHECKS = [
                 ],
                 testFiles: ["spec/unit/discovery.spec.ts"],
             },
-            {
-                name: "QrLoginManager QR auth surface",
-                ownerFile: "src/qr-login/index.ts",
-                methods: ["getQrCode", "startQrLogin", "confirmQrLogin", "getQrStatus", "invalidateQrLogin"],
-                testFiles: ["spec/unit/qr-login.spec.ts"],
-            },
         ],
     },
     {
@@ -61,14 +55,9 @@ const CHECKS = [
             {
                 name: "MatrixClient account compatibility surface",
                 ownerFile: "src/client.ts",
-                methods: ["whoami", "setPassword", "getThreePids", "bindThreePid", "deleteThreePid", "unbindThreePid"],
+                // getThreePids/bindThreePid/deleteThreePid/unbindThreePid 已迁 ThreePidsManager（前端经 getThreePidsManager 调用）
+                methods: ["whoami", "setPassword"],
                 testFiles: ["spec/unit/matrix-client.spec.ts"],
-            },
-            {
-                name: "UserReportManager user moderation reporting",
-                ownerFile: "src/user-report/index.ts",
-                methods: ["reportUser"],
-                testFiles: ["spec/unit/user-report.spec.ts"],
             },
         ],
     },

@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `room_summary`.
+ * DTO snippets extracted from the contract doc for `room-summary`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

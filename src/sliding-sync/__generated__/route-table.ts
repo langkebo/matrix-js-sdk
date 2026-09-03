@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Sliding Sync 契约
- * Source:        docs/api-contract/generated/modules/sliding_sync.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       4 (authoritative set mirrored from the backend contract)
  */
 
-/** Routes served by the synapse-rust `sliding_sync` module. */
+/** Routes served by the synapse-rust `sliding-sync` module (mirrored from the backend contract). */
 export const SLIDING_SYNC_ROUTES = [
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3575/sync" },
     { method: "POST", path: "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync" },
