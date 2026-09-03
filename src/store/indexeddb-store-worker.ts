@@ -35,7 +35,7 @@ interface ICmd {
  * It should be instantiated by a web worker script provided by the application
  * in a script, for example:
  * ```
- * import {IndexedDBStoreWorker} from 'matrix-js-sdk/lib/indexeddb-worker.js';
+ * import {IndexedDBStoreWorker} from '@langkebo/matrix-js-sdk/lib/indexeddb-worker.js';
  * const remoteWorker = new IndexedDBStoreWorker(postMessage);
  * onmessage = remoteWorker.onMessage;
  * ```

@@ -1589,8 +1589,9 @@ export class SyncApi {
             delay = 2000 + Math.floor(Math.random() * 5000);
         }
 
-        if (this.keepAliveTimer !== null) {
+        if (this.keepAliveTimer !== undefined) {
             clearTimeout(this.keepAliveTimer);
+            this.keepAliveTimer = undefined;
         }
         if (delay > 0) {
             this.keepAliveTimer = setTimeout(this.pokeKeepAlive.bind(this), delay);

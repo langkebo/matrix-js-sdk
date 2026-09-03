@@ -1,9 +1,13 @@
 {
-    "name": "matrix-js-sdk",
-    "version": "40.2.0",
-    "description": "Matrix Client-Server SDK for Javascript",
+    "name": "@langkebo/matrix-js-sdk",
+    "version": "40.2.0-langkebo.1",
+    "description": "Matrix Client-Server SDK for Javascript (langkebo fork of matrix-org/matrix-js-sdk, extended for synapse-rust)",
     "engines": {
         "node": ">=22.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/langkebo/matrix-js-sdk.git"
     },
     "scripts": {
         "prepare": "pnpm build",
@@ -81,10 +85,6 @@
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
         "audit:high": "pnpm audit --audit-level=high",
         "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && node scripts/check-bundle-size.mjs"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/matrix-org/matrix-js-sdk.git"
     },
     "keywords": [
         "matrix-org"
