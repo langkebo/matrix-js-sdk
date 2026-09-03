@@ -35,6 +35,7 @@ import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
 import { assertSecureBaseUrl } from "./http-api/base-url-guard";
 import { logger } from "./logger";
+import { SDK_NAME, getSdkVersion } from "./version";
 
 export {
     extendMatrixClientWithManagers,
@@ -76,6 +77,7 @@ export * from "./scheduler";
 export * from "./filter";
 export * from "./timeline-window";
 export * from "./interactive-auth";
+export * from "./version";
 export * from "./version-support";
 export * from "./service-types";
 export * from "./store/memory";
@@ -269,6 +271,10 @@ export function createClient(opts: ICreateClientOpts): MatrixClient {
         assertSecureBaseUrl(opts.idBaseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
     }
     installSynchronousCoreManagerExtensions();
+    // Identify this build in the log. Logged at `info` rather than `debug`: production
+    // hosts commonly raise the threshold above debug, which is exactly when knowing
+    // whether the caller ran upstream or this fork matters most.
+    logger.info(`${SDK_NAME} ${getSdkVersion()}`);
     const client = new MatrixClient(amendClientOpts(opts));
     // 把 manager 异步初始化的 Promise 注入 client，暴露 whenManagerExtensionsReady()
     // 门控。此前是 fire-and-forget，createClient 返回后立即调用私有 manager 会
