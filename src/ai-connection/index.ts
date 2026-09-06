@@ -108,7 +108,8 @@ export class AIConnectionManager extends BaseManager<AIConnectionEvent, AIConnec
     }
 
     public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.AIConnection, true);
+        // 后端 AIConnection 路径未完全稳定：探测失败时切回 false（FT-S13）
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.AIConnection, false);
     }
 
     private async resolveApiVersion(version?: AiApiVersion): Promise<AiApiVersion> {

@@ -639,14 +639,25 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     // ==================== Lifecycle ====================
 
+    // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
+    private startPromise: Promise<void> | null = null;
+
     async start(): Promise<void> {
         if (this.initialized) return;
-        try {
-            await Promise.all([this.getPushers(), this.getPushRules()]);
-            this.initialized = true;
-        } catch (e) {
-            logger.warn("PushManager.start failed:", e);
+        if (this.startPromise) {
+            return this.startPromise;
         }
+        this.startPromise = (async () => {
+            try {
+                await Promise.all([this.getPushers(), this.getPushRules()]);
+                this.initialized = true;
+            } catch (e) {
+                logger.warn("PushManager.start failed:", e);
+                // 本轮初始化失败：清空 promise 让下次重试；成功路径由 initialized 持续守卫。
+                this.startPromise = null;
+            }
+        })();
+        return this.startPromise;
     }
 
     stop(): void {

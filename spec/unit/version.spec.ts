@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { SDK_NAME, buildUserAgent, getSdkVersion, getUserAgentToken, isReleaseBuild } from "../../src/version";
 
@@ -102,6 +102,61 @@ describe("version", () => {
             const result = buildUserAgent("  Tjg/1.0  ");
             expect(result).toBe(`Tjg/1.0 ${getUserAgentToken()}`);
             expect(result).not.toMatch(/\s{2,}/);
+        });
+    });
+
+    describe("warnIfUserAgentDoesNotAdvertiseFork（S-9 启动自检）", () => {
+        it("浏览器/WebView 环境下 UA 缺少 fork 标识时仅告警一次", async () => {
+            vi.resetModules();
+            vi.stubGlobal("window", {});
+            vi.stubGlobal("navigator", { userAgent: "Tjg/1.0 (Macintosh)" });
+
+            const { logger } = await import("../../src/logger");
+            const { warnIfUserAgentDoesNotAdvertiseFork } = await import("../../src/version");
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+            warnIfUserAgentDoesNotAdvertiseFork();
+            warnIfUserAgentDoesNotAdvertiseFork();
+
+            expect(warnSpy).toHaveBeenCalledTimes(1);
+            expect(String(warnSpy.mock.calls[0][0])).toContain(SDK_NAME);
+
+            vi.unstubAllGlobals();
+            warnSpy.mockRestore();
+        });
+
+        it("UA 已包含 fork 标识时不告警", async () => {
+            vi.resetModules();
+            vi.stubGlobal("window", {});
+            vi.stubGlobal("navigator", { userAgent: `Tjg/1.0 ${getUserAgentToken()}` });
+
+            const { logger } = await import("../../src/logger");
+            const { warnIfUserAgentDoesNotAdvertiseFork } = await import("../../src/version");
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+            warnIfUserAgentDoesNotAdvertiseFork();
+
+            expect(warnSpy).not.toHaveBeenCalled();
+
+            vi.unstubAllGlobals();
+            warnSpy.mockRestore();
+        });
+
+        it("非浏览器环境（Node / 测试）下静默跳过，避免日志噪音", async () => {
+            vi.resetModules();
+            vi.stubGlobal("window", undefined);
+            vi.stubGlobal("navigator", { userAgent: "Node.js/22" });
+
+            const { logger } = await import("../../src/logger");
+            const { warnIfUserAgentDoesNotAdvertiseFork } = await import("../../src/version");
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+            warnIfUserAgentDoesNotAdvertiseFork();
+
+            expect(warnSpy).not.toHaveBeenCalled();
+
+            vi.unstubAllGlobals();
+            warnSpy.mockRestore();
         });
     });
 });

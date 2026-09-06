@@ -25,6 +25,8 @@ limitations under the License.
  * set that header itself).
  */
 
+import { logger } from "./logger";
+
 /**
  * The npm package name, including scope. Kept in sync with `package.json`.
  */
@@ -145,4 +147,56 @@ export function buildUserAgent(base?: string): string {
         return token;
     }
     return `${trimmed} ${token}`;
+}
+
+/**
+ * Whether the startup User-Agent check has already run.
+ *
+ * The check is a startup diagnostic, not a per-request one: warning once per
+ * process is enough to surface a misconfigured host without flooding logs.
+ */
+let userAgentCheckDone = false;
+
+/**
+ * Warn once when the runtime User-Agent does not advertise this fork (S-9).
+ *
+ * `getUserAgentToken()` and `buildUserAgent()` are exported for hosts, but
+ * nothing forced anyone to call them — a host that forgot to configure its
+ * native User-Agent produced no signal at all, and server access logs could not
+ * distinguish this fork from upstream. This turns that silent gap into a single
+ * actionable warning at client start-up.
+ *
+ * Deliberately a no-op outside a browser-like environment: the User-Agent can
+ * only be set by the host at the native layer, so checking under Node (tests,
+ * SSR, CLI tooling) would only produce noise.
+ *
+ * @example
+ * ```ts
+ * // Called from createClient(); hosts need not call it themselves.
+ * warnIfUserAgentDoesNotAdvertiseFork();
+ * ```
+ */
+export function warnIfUserAgentDoesNotAdvertiseFork(): void {
+    if (userAgentCheckDone) {
+        return;
+    }
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+        return;
+    }
+    userAgentCheckDone = true;
+
+    const ua = navigator.userAgent ?? "";
+    if (!ua.includes(SDK_NAME)) {
+        logger.warn(
+            `User-Agent does not advertise ${getUserAgentToken()}; server logs cannot distinguish this fork from upstream. ` +
+                `Set the native User-Agent (Tauri v2: app.windows[].userAgent in tauri.conf.json) to buildUserAgent("<your UA>").`,
+        );
+    }
+}
+
+/**
+ * Test-only escape hatch: re-arm {@link warnIfUserAgentDoesNotAdvertiseFork}.
+ */
+export function resetUserAgentCheckForTests(): void {
+    userAgentCheckDone = false;
 }

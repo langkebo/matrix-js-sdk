@@ -20,6 +20,7 @@ import { SyncApi, type SyncApiOptions } from "./sync";
 import { Thread } from "./models/thread";
 
 import type { MatrixClient } from "./client";
+import { CacheRegistry } from "./utils/lru-cache";
 import type { IStartClientOpts } from "./client-config-types";
 
 export const TURN_CHECK_INTERVAL = 10 * 60 * 1000; // poll for turn credentials every 10 minutes
@@ -106,4 +107,9 @@ export async function startClientLifecycleServices(client: MatrixClient, opts: I
 
     client.toDeviceMessageQueue.start();
     client.serverCapabilitiesService.start();
+
+    // S-11: 过期缓存的定期清理此前从未被接线（startPurgeTimer 无调用点），
+    // 注册到 CacheRegistry 的缓存只能靠 get()/has() 的惰性过期回收。
+    // 这里与 stopClientLifecycleServices 中的 stopPurgeTimer 成对，纳入 client 生命周期。
+    CacheRegistry.getInstance().startPurgeTimer();
 }

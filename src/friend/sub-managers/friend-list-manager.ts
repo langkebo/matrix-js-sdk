@@ -571,15 +571,32 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         this.emit(FriendListManagerEvent.SyncComplete);
     }
 
+    /**
+     * 进行中的初始化 Promise（S-12）。
+     *
+     * 原实现用 `if (initialized) return` 守卫，但 `initialized` 是在 `await` 之后才置位，
+     * 并发调用会一起越过守卫、各自发一轮网络请求。这里缓存进行中的 Promise，
+     * 让并发调用复用同一次初始化。
+     */
+    private initPromise: Promise<void> | null = null;
+
     async start(): Promise<void> {
         if (this.sharedState.initialized) return;
+        if (this.initPromise) return this.initPromise;
 
-        try {
-            await Promise.all([this.getFriends(), this.getFriendGroups()]);
-            this.sharedState.initialized = true;
-        } catch (e) {
-            logger.warn("FriendListManager.start failed:", e);
-        }
+        this.initPromise = (async () => {
+            try {
+                await Promise.all([this.getFriends(), this.getFriendGroups()]);
+                this.sharedState.initialized = true;
+            } catch (e) {
+                logger.warn("FriendListManager.start failed:", e);
+            } finally {
+                // 置空以便失败后下一次调用可以重试（与原有语义一致）
+                this.initPromise = null;
+            }
+        })();
+
+        return this.initPromise;
     }
 
     stop(): void {

@@ -155,7 +155,8 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
     }
 
     public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Voice, true);
+        // 后端未实 Voice 路由：探测失败时绝不能误判支持（FT-S13）
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Voice, false);
     }
 
     public async getVoiceStats(prefix: string = VendorPrefix): Promise<IVoiceStats> {

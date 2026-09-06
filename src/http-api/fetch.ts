@@ -19,7 +19,6 @@ limitations under the License.
  */
 
 import { checkObjectHasKeys } from "../common/safety";
-import { deepCopy } from "../common/collections";
 import { encodeParams } from "./utils";
 import { type TypedEventEmitter } from "../models/typed-event-emitter";
 import { Method } from "./method";
@@ -148,8 +147,16 @@ export class FetchHttpApi<O extends IHttpOpts> {
         body?: Body,
         paramOpts: IRequestOpts = {},
     ): Promise<T> {
-        // avoid mutating paramOpts so they can be used on retry
-        const opts = deepCopy(paramOpts);
+        // avoid mutating paramOpts so they can be used on retry.
+        // S-10: copy only the layers we actually rewrite. `deepCopy()` walked the whole
+        // opts object on every authenticated request (including high-frequency sends and
+        // uploads) even though nothing is mutated beyond `headers`. Body is passed as a
+        // separate argument, so a shallow copy plus a one-level `headers` copy is
+        // equivalent here and avoids the per-request allocation.
+        const opts: IRequestOpts = { ...paramOpts };
+        if (paramOpts.headers) {
+            opts.headers = { ...paramOpts.headers };
+        }
         // we have to manually copy the abortSignal over as it is not a plain object
         opts.abortSignal = paramOpts.abortSignal;
 

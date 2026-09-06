@@ -259,7 +259,8 @@ export class OpenClawManager extends BaseManager<OpenClawEvent, OpenClawManagerE
     }
 
     public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.OpenClaw, true);
+        // 后端未实 OpenClaw 路由：探测失败时绝不能误判支持（FT-S13）
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.OpenClaw, false);
     }
 
     private doRequest<T>(

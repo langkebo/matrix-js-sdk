@@ -446,20 +446,30 @@ export class FriendManager extends BaseManager<FriendEvent, FriendManagerEventMa
         this.emit(FriendEvent.SyncComplete);
     }
 
+    /** 进行中的初始化 Promise，用于并发 start() 去重（S-12，见 FriendListManager.start）。 */
+    private initPromise: Promise<void> | null = null;
+
     async start(): Promise<void> {
         if (this.sharedState.initialized) return;
+        if (this.initPromise) return this.initPromise;
 
-        try {
-            await Promise.all([
-                this.list.getFriends(),
-                this.requests.getIncomingRequests(),
-                this.requests.getOutgoingRequests(),
-                this.list.getFriendGroups(),
-            ]);
-            this.sharedState.initialized = true;
-        } catch (e) {
-            logger.warn("FriendManager.start failed:", e);
-        }
+        this.initPromise = (async () => {
+            try {
+                await Promise.all([
+                    this.list.getFriends(),
+                    this.requests.getIncomingRequests(),
+                    this.requests.getOutgoingRequests(),
+                    this.list.getFriendGroups(),
+                ]);
+                this.sharedState.initialized = true;
+            } catch (e) {
+                logger.warn("FriendManager.start failed:", e);
+            } finally {
+                this.initPromise = null;
+            }
+        })();
+
+        return this.initPromise;
     }
 
     stop(): void {

@@ -14,10 +14,10 @@ function createMockClient(authedRequest?: ReturnType<typeof vi.fn>): MatrixClien
 }
 
 describe("DehydratedDeviceManager", () => {
-    it("defaults to supported for clients without centralized discovery", async () => {
+    it("defaults to unsupported for clients without centralized discovery (safe default)", async () => {
         const manager = new DehydratedDeviceManager({} as ConstructorParameters<typeof DehydratedDeviceManager>[0]);
 
-        await expect(manager.isSupported()).resolves.toBe(true);
+        await expect(manager.isSupported()).resolves.toBe(false);
     });
 
     it("uses centralized synapse-rust dehydrated-device discovery when available", async () => {

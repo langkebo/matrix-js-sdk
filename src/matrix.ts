@@ -35,7 +35,7 @@ import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
 import { assertSecureBaseUrl } from "./http-api/base-url-guard";
 import { logger } from "./logger";
-import { SDK_NAME, getSdkVersion } from "./version";
+import { SDK_NAME, getSdkVersion, warnIfUserAgentDoesNotAdvertiseFork } from "./version";
 
 export {
     extendMatrixClientWithManagers,
@@ -275,6 +275,9 @@ export function createClient(opts: ICreateClientOpts): MatrixClient {
     // hosts commonly raise the threshold above debug, which is exactly when knowing
     // whether the caller ran upstream or this fork matters most.
     logger.info(`${SDK_NAME} ${getSdkVersion()}`);
+    // S-9: the SDK cannot set User-Agent itself (forbidden header name), so surface
+    // a one-off warning when the host never spliced our token into the native UA.
+    warnIfUserAgentDoesNotAdvertiseFork();
     const client = new MatrixClient(amendClientOpts(opts));
     // 把 manager 异步初始化的 Promise 注入 client，暴露 whenManagerExtensionsReady()
     // 门控。此前是 fire-and-forget，createClient 返回后立即调用私有 manager 会

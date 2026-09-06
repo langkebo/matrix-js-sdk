@@ -28,8 +28,8 @@ describe("WidgetsManager", () => {
     });
 
     describe("isSupported", () => {
-        it("defaults to supported for clients without centralized discovery", async () => {
-            await expect(widgetsManager.isSupported()).resolves.toBe(true);
+        it("defaults to unsupported for clients without centralized discovery (safe default)", async () => {
+            await expect(widgetsManager.isSupported()).resolves.toBe(false);
         });
 
         it("uses centralized synapse-rust widget discovery when available", async () => {

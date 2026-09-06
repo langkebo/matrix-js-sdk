@@ -121,20 +121,31 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
     // ===== 顶层协调方法 =====
 
+    // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
+    private startPromise: Promise<void> | null = null;
+
     /** 初始化 DM 管理器 */
     async start(): Promise<void> {
         if (this.isInitialized) return;
-        try {
-            const dmMap = await this.list.getDirectRoomsByUser();
-            for (const [userId, roomIds] of Object.entries(dmMap)) {
-                if (roomIds.length > 0) {
-                    this.list.userDmMapCache.set(userId, roomIds[0]);
-                }
-            }
-            this.isInitialized = true;
-        } catch (e) {
-            logger.warn("DirectMessageManager.start failed:", e);
+        if (this.startPromise) {
+            return this.startPromise;
         }
+        this.startPromise = (async () => {
+            try {
+                const dmMap = await this.list.getDirectRoomsByUser();
+                for (const [userId, roomIds] of Object.entries(dmMap)) {
+                    if (roomIds.length > 0) {
+                        this.list.userDmMapCache.set(userId, roomIds[0]);
+                    }
+                }
+                this.isInitialized = true;
+            } catch (e) {
+                logger.warn("DirectMessageManager.start failed:", e);
+                // 本轮初始化失败：清空 promise 让下次重试；成功路径由 isInitialized 持续守卫。
+                this.startPromise = null;
+            }
+        })();
+        return this.startPromise;
     }
 
     /** 停止 DM 管理器 */
