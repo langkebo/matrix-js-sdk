@@ -43,6 +43,14 @@ export interface RetryOptions {
     maxRetries?: number;
     retryDelay?: number;
     backoffMultiplier?: number;
+    /**
+     * 是否允许重试。
+     *
+     * 显式指定时优先采用；未指定时按本次调用**实际发出的 HTTP 方法**推断：
+     * 仅 GET / HEAD 视为幂等可重试，POST / PUT / DELETE 等写方法默认不重试，
+     * 避免"服务端已成功但响应丢失"时写操作被重复提交（S-8）。
+     * 确需重试写请求时传 `retryNonIdempotent: true` 显式开启。
+     */
     idempotent?: boolean;
     retryNonIdempotent?: boolean;
     label?: string;
@@ -148,6 +156,17 @@ export abstract class BaseManager<
      */
     private _withRetryDepth = 0;
 
+    /**
+     * 每层 `withRetry()` 在途期间实际发出的 HTTP 方法（S-8）。
+     *
+     * `withRetry()` 接收的是闭包，自身无法得知内部会发什么请求，因此这里用一个
+     * 与方法调用栈同构的数组：进入 `withRetry()` 时压入一个空帧，`request()` 在被
+     * 包装（`_withRetryDepth > 0`）时把方法追加到栈顶帧，`withRetry()` 退出时弹出。
+     * 并发的多个 `withRetry()` 各自持有独立帧，互不干扰（与 `_withRetryDepth` 的
+     * 并发安全设计一致）。
+     */
+    private readonly _retryObservedMethods: string[][] = [];
+
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super();
         this.client = client;
@@ -157,10 +176,21 @@ export abstract class BaseManager<
             maxRetries: opts?.maxRetries ?? 3,
             retryDelay: opts?.retryDelay ?? 1000,
             backoffMultiplier: opts?.backoffMultiplier ?? 2,
-            idempotent: opts?.idempotent ?? true,
+            // 注意：此处不再预设 `idempotent: true`（S-8）。
+            // 构造函数里填 true 会让 `withRetry()` 的方法推断永远被短路，
+            // 导致 POST/PUT/DELETE 在 5xx / 429 时被默认重试、写操作重复提交。
+            // 留空后由 `withRetry()` 按本次调用实际发出的 HTTP 方法推断。
+            idempotent: opts?.idempotent,
             retryNonIdempotent: opts?.retryNonIdempotent ?? false,
             label: opts?.label,
         };
+    }
+
+    /**
+     * 判断 HTTP 方法是否幂等（仅 GET / HEAD），与 `request()` 的判定保持一致。
+     */
+    private static isIdempotentMethod(method: string): boolean {
+        return method === Method.Get || method === "HEAD";
     }
 
     // ─── 内部客户端访问（单点类型断言） ──────────────────────────
@@ -209,6 +239,8 @@ export abstract class BaseManager<
 
         // 被外层 withRetry 包装时：仅做单次调用，不重试、不写统计
         if (this._withRetryDepth > 0) {
+            // 记录本次调用实际发出的 HTTP 方法，供外层 withRetry() 推断幂等性（S-8）
+            this._retryObservedMethods[this._retryObservedMethods.length - 1]?.push(spec.method);
             try {
                 return await this.transport.request<T>(
                     spec.method,
@@ -223,7 +255,7 @@ export abstract class BaseManager<
         }
 
         // 独立调用：自行负责重试与统计
-        const isIdempotent = spec.method === Method.Get || spec.method === "HEAD";
+        const isIdempotent = BaseManager.isIdempotentMethod(spec.method);
         const mergedRetry: Required<Pick<RetryOptions, "maxRetries" | "retryDelay" | "backoffMultiplier">> &
             Pick<RetryOptions, "idempotent" | "retryNonIdempotent" | "jitterRatio"> = {
             maxRetries: spec.retry?.maxRetries ?? this.retryOptions.maxRetries ?? 3,
@@ -582,15 +614,22 @@ export abstract class BaseManager<
         const retryDelay = options.retryDelay ?? this.retryOptions.retryDelay ?? 1000;
         const backoffMultiplier = options.backoffMultiplier ?? this.retryOptions.backoffMultiplier ?? 2;
         const jitterRatio = options.jitterRatio ?? this.retryOptions.jitterRatio ?? 0;
-        const idempotent = options.idempotent ?? this.retryOptions.idempotent ?? true;
         const retryNonIdempotent = options.retryNonIdempotent ?? this.retryOptions.retryNonIdempotent ?? false;
 
         let lastError: unknown;
         let currentDelay = retryDelay;
 
+        /**
+         * 本次 withRetry 期间实际发出的 HTTP 方法（由 `request()` 回填，见 S-8）。
+         * 幂等性在**每次需要重试时**按已观测到的方法重新判定，而不是在入口处一次性
+         * 取默认值——这样 POST/PUT/DELETE 不会被默认重试。
+         */
+        const observedMethods: string[] = [];
+
         // 标记进入 withRetry：内部 request() 将退化为单次调用，避免双重计数与嵌套重试。
         // 使用深度计数器而非布尔标志，确保并发 withRetry() 调用互不干扰（FT-115）：
         // 任一调用先结束只会把深度减 1，不会让其它在途调用误判为「已离开 withRetry」。
+        this._retryObservedMethods.push(observedMethods);
         this._withRetryDepth++;
         try {
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -611,7 +650,13 @@ export abstract class BaseManager<
                                 typeof error.httpStatus === "number" &&
                                 error.httpStatus >= 500);
 
-                        if ((idempotent || retryNonIdempotent) && isRetryableErr) {
+                        const idempotent =
+                            retryNonIdempotent ||
+                            (options.idempotent ??
+                                this.retryOptions.idempotent ??
+                                this.inferIdempotentFromMethods(observedMethods));
+
+                        if (idempotent && isRetryableErr) {
                             this.requestStats.retried++;
                             const delay = this.computeRetryDelay(currentDelay, error, normalized, jitterRatio);
                             logger.warn(
@@ -631,7 +676,24 @@ export abstract class BaseManager<
             throw this.normalizeError(lastError, label);
         } finally {
             this._withRetryDepth--;
+            this._retryObservedMethods.pop();
         }
+    }
+
+    /**
+     * 依据本次 `withRetry()` 期间已观测到的 HTTP 方法推断是否允许重试（S-8）。
+     *
+     * - 只要出现任一非幂等方法（POST / PUT / DELETE / PATCH …）即判定为**不可重试**，
+     *   避免"服务端已成功但响应丢失"时写操作被重复提交。
+     * - 未观测到任何方法（例如闭包直接委托 `client.xxx()` 而未走 `request()`）时返回
+     *   `true` 以保持既有行为，避免对这类调用造成可用性回归；调用方若确需不重试，
+     *   显式传 `idempotent: false` 即可。
+     */
+    private inferIdempotentFromMethods(observedMethods: string[]): boolean {
+        if (observedMethods.length === 0) {
+            return true;
+        }
+        return observedMethods.every((method) => BaseManager.isIdempotentMethod(method));
     }
 
     /**
