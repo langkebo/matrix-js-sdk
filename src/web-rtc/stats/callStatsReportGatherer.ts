@@ -62,7 +62,11 @@ export class CallStatsReportGatherer {
             if (typeof statsPromise?.then === "function") {
                 return statsPromise
                     .then((report) => {
-                        // @ts-ignore
+                        // S-16: `@ts-ignore` → `@ts-expect-error`. `report` is typed as the modern
+                        // `RTCStatsReport` (a map-like), but legacy browsers returned an object with a
+                        // `result()` accessor; the runtime check below is deliberate. Scoped to a single
+                        // expression so the suppression cannot mask unrelated errors on later lines.
+                        // @ts-expect-error - legacy `RTCStatsReport.result()` is not in the DOM types
                         this.currentStatsReport = typeof report?.result === "function" ? report.result() : report;
 
                         try {

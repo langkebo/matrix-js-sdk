@@ -36,6 +36,28 @@ import { type QueryDict } from "./utils";
 import { TokenRefresher, TokenRefreshOutcome } from "./refresh";
 import { gzipSync, strToU8 } from "fflate";
 
+/**
+ * S-14: Upper bound on how many times a single authenticated request may be (re)attempted
+ * after the homeserver answers `M_UNKNOWN_TOKEN`.
+ *
+ * `doAuthedRequest` recurses on {@link TokenRefreshOutcome.Success}. When the server keeps
+ * rejecting freshly-minted tokens (e.g. the refresh endpoint does not report an `expiry`, so
+ * `TokenRefresher`'s "token should still be valid" short-circuit never fires, or the server
+ * revokes tokens immediately), every iteration refreshes successfully and re-issues the
+ * request — with a `sleep()` of up to 32s in between. That produced an unbounded recursion:
+ * the request neither succeeded nor failed, leaking a pending promise and hammering the
+ * homeserver indefinitely.
+ *
+ * Capping the attempts converts that hang into a deterministically-failing
+ * {@link TokenRefreshError}, which callers (and `MatrixClient`'s retry policy) can act on.
+ *
+ * `attempt` starts at 1, so this permits the initial request plus
+ * `MAX_TOKEN_REFRESH_ATTEMPTS - 1` token refreshes. The value leaves headroom for the
+ * legitimate "token expires imminently" retry path, which needs three refreshes before the
+ * refresher concludes the token is valid and gives up on its own.
+ */
+export const MAX_TOKEN_REFRESH_ATTEMPTS = 5;
+
 export class FetchHttpApi<O extends IHttpOpts> {
     private abortController = new AbortController();
     private readonly tokenRefresher: TokenRefresher;
@@ -186,6 +208,25 @@ export class FetchHttpApi<O extends IHttpOpts> {
             }
 
             if (error.errcode === "M_UNKNOWN_TOKEN") {
+                // S-14: Bound the refresh/retry recursion. If the server keeps rejecting tokens we
+                // have just refreshed, refreshing again will not help — bail out instead of
+                // recursing forever (see MAX_TOKEN_REFRESH_ATTEMPTS for details).
+                if (attempt >= MAX_TOKEN_REFRESH_ATTEMPTS) {
+                    this.opts.logger?.warn(
+                        `FetchHttpApi: ${method} ${path} still rejected with M_UNKNOWN_TOKEN after ` +
+                            `${attempt} attempt(s); token refresh did not help, treating the session as logged out`,
+                    );
+                    // Surface this exactly like the `TokenRefreshOutcome.Logout` branch below:
+                    // a token the server persistently refuses is a dead session, not a transient
+                    // failure. `TokenRefreshError` would be misleading here — it is documented as
+                    // "assumed to be a temporary failure", which would have callers retry a
+                    // request that can never succeed.
+                    if (!opts?.inhibitLogoutEmit) {
+                        this.eventEmitter.emit(HttpApiEvent.SessionLoggedOut, error);
+                    }
+                    throw error;
+                }
+
                 const outcome = await this.tokenRefresher.handleUnknownToken(requestSnapshot, attempt);
                 if (outcome === TokenRefreshOutcome.Success) {
                     // if we got a new token retry the request

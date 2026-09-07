@@ -101,7 +101,18 @@ type CapabilitiesResponse = {
 export class ServerCapabilities {
     private capabilities?: Capabilities;
     private retryTimeout?: ReturnType<typeof setTimeout>;
-    private refreshTimeout?: ReturnType<typeof setInterval>;
+    // S-15: was typed as `ReturnType<typeof setInterval>` while `poll()` assigns a `setTimeout`
+    // handle to it. Corrected to `setTimeout` so `clearTimeouts()` clears it with the matching
+    // `clearTimeout` (relying on clearTimeout/clearInterval cross-clearing is not portable).
+    private refreshTimeout?: ReturnType<typeof setTimeout>;
+    /**
+     * S-15: Re-entrancy guard. `start()` used to unconditionally kick off `poll()`, so two
+     * concurrent callers (e.g. `MatrixClient.startClient()` racing an explicit
+     * `fetchServerCapabilities()` caller) spawned two independent self-rescheduling poll chains.
+     * Each chain re-arms itself forever, so the duplicate was never collected and every
+     * subsequent `stop()` only ever cleared one of them.
+     */
+    private started = false;
 
     public constructor(
         private readonly logger: Logger,
@@ -110,8 +121,11 @@ export class ServerCapabilities {
 
     /**
      * Starts periodically fetching the server capabilities.
+     * Idempotent: calling this while already started is a no-op.
      */
     public start(): void {
+        if (this.started) return;
+        this.started = true;
         this.poll().then();
     }
 
@@ -119,6 +133,7 @@ export class ServerCapabilities {
      * Stops the service
      */
     public stop(): void {
+        this.started = false;
         this.clearTimeouts();
     }
 
@@ -144,10 +159,14 @@ export class ServerCapabilities {
         try {
             await this.fetchCapabilities();
             this.clearTimeouts();
+            // S-15: `stop()` may have been called while the fetch was in flight; do not
+            // resurrect the poll chain in that case.
+            if (!this.started) return;
             this.refreshTimeout = setTimeout(this.poll, CAPABILITIES_CACHE_MS);
             this.logger.debug("Fetched new server capabilities");
         } catch (e) {
             this.clearTimeouts();
+            if (!this.started) return;
             const howLong = Math.floor(CAPABILITIES_RETRY_MS + Math.random() * 5000);
             this.retryTimeout = setTimeout(this.poll, howLong);
             this.logger.warn(`Failed to refresh capabilities: retrying in ${howLong}ms`, e);
@@ -156,7 +175,8 @@ export class ServerCapabilities {
 
     private clearTimeouts(): void {
         if (this.refreshTimeout) {
-            clearInterval(this.refreshTimeout);
+            // S-15: was `clearInterval` on a `setTimeout` handle.
+            clearTimeout(this.refreshTimeout);
             this.refreshTimeout = undefined;
         }
         if (this.retryTimeout) {
