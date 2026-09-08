@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { PresenceManager, PresenceEvent, type PresenceState } from "../../src/presence/index";
 import { InvalidParamError } from "../../src/common/errors.ts";
-import { AuthError, NotFoundError, RetryableError, ApiError, TimeoutError } from "../../src/errors";
+import { AuthError, NotFoundError, RetryableError, ApiError } from "../../src/errors";
 
 describe("PresenceManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

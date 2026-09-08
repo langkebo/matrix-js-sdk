@@ -243,13 +243,9 @@ describe("MediaManager", () => {
                 max_file_size: 52428800,
                 chunk_size: 1048576,
             });
-            expect(authedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/upload/provider",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/upload/provider", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
     });
 

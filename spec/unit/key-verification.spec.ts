@@ -248,13 +248,9 @@ describe("KeyVerificationManager", () => {
         };
         await manager.scanQrCode(request, "r0");
 
-        expect(client.http.authedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            "/keys/qr_code/scan",
-            undefined,
-            request,
-            { prefix: ClientPrefix.R0 },
-        );
+        expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/keys/qr_code/scan", undefined, request, {
+            prefix: ClientPrefix.R0,
+        });
     });
 
     it("FT-109: showQrCode 返回完整 QR 数据结构（IShowQrCodeResponse），而非 { qr_code_data }", async () => {

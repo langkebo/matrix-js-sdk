@@ -14,7 +14,7 @@ const PREFIX_MAP = {
     "MediaPrefix.V1": "/_matrix/media/v1",
     "MediaPrefix.V3": "/_matrix/media/v3",
     "IdentityPrefix.V2": "/_matrix/identity/v2",
-    "VendorPrefix": "/_matrix/vendor/v1",
+    VendorPrefix: "/_matrix/vendor/v1",
 };
 
 function walk(dir, predicate = () => true, acc = []) {

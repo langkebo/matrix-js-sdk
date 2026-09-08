@@ -63,10 +63,7 @@ export class DelayedEventsManager extends BaseManager {
     private async assertSupported(apiName: DelayedEventClientEndpoint): Promise<void> {
         const supported = await this.client.doesServerSupportUnstableFeature(UNSTABLE_MSC4140_DELAYED_EVENTS);
         if (!supported) {
-            throw new UnsupportedDelayedEventsEndpointError(
-                "Server does not support the delayed events API",
-                apiName,
-            );
+            throw new UnsupportedDelayedEventsEndpointError("Server does not support the delayed events API", apiName);
         }
     }
 
@@ -76,7 +73,10 @@ export class DelayedEventsManager extends BaseManager {
      * @param delayId     服务端在调度延迟事件时返回的 delay_id
      * @param requestOpts 可选请求选项（localTimeoutMs / abortSignal / headers）
      */
-    public async cancelScheduledDelayedEvent(delayId: string | number, requestOpts?: IRequestOpts): Promise<EmptyObject> {
+    public async cancelScheduledDelayedEvent(
+        delayId: string | number,
+        requestOpts?: IRequestOpts,
+    ): Promise<EmptyObject> {
         return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Cancel, requestOpts);
     }
 
@@ -86,7 +86,10 @@ export class DelayedEventsManager extends BaseManager {
      * @param delayId     服务端在调度延迟事件时返回的 delay_id
      * @param requestOpts 可选请求选项（localTimeoutMs / abortSignal / headers）
      */
-    public async restartScheduledDelayedEvent(delayId: string | number, requestOpts?: IRequestOpts): Promise<EmptyObject> {
+    public async restartScheduledDelayedEvent(
+        delayId: string | number,
+        requestOpts?: IRequestOpts,
+    ): Promise<EmptyObject> {
         return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Restart, requestOpts);
     }
 

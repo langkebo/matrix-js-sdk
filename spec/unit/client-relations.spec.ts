@@ -47,9 +47,9 @@ describe("MatrixClient reply/edit relations", () => {
 
     it("replyToEvent throws for an event in a different room", () => {
         const event = makeEvent();
-        expect(() =>
-            client.replyToEvent("!other:example.com", event, { msgtype: MsgType.Text, body: "x" }),
-        ).toThrow("different room");
+        expect(() => client.replyToEvent("!other:example.com", event, { msgtype: MsgType.Text, body: "x" })).toThrow(
+            "different room",
+        );
     });
 
     it("editEvent builds m.replace + m.new_content and delegates to sendMessage", async () => {

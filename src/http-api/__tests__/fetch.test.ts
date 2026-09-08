@@ -39,7 +39,10 @@ import { gunzipSync, strFromU8 } from "fflate";
  * network. The request is short-circuited with a fake `Response`.
  */
 
-function makeApi(opts: Partial<IHttpOpts> = {}): { api: FetchHttpApi<IHttpOpts>; captured: { url: any; init: RequestInit | undefined } } {
+function makeApi(opts: Partial<IHttpOpts> = {}): {
+    api: FetchHttpApi<IHttpOpts>;
+    captured: { url: any; init: RequestInit | undefined };
+} {
     const captured: { url: any; init: RequestInit | undefined } = { url: undefined, init: undefined };
     const baseOpts: IHttpOpts = {
         baseUrl: "https://hs.example.com",
@@ -148,12 +151,7 @@ describe("FetchHttpApi GZIP compression (W1 optimization)", () => {
 
         // opts.json=false: caller is sending a pre-serialised body, do not touch
         const preEncoded = JSON.stringify(bigBody);
-        await api.requestOtherUrl(
-            Method.Post,
-            "https://hs.example.com/_matrix/test",
-            preEncoded,
-            { json: false },
-        );
+        await api.requestOtherUrl(Method.Post, "https://hs.example.com/_matrix/test", preEncoded, { json: false });
 
         expect(readHeader(captured.init, "Content-Encoding")).toBeNull();
         expect(readBody(captured.init)).toBe(preEncoded);

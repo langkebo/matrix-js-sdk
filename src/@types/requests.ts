@@ -96,10 +96,16 @@ export interface ISendEventResponse {
     event_id: string;
 }
 
-export type SendDelayedEventRequestOpts = { parent_delay_id: string | number } | { delay: number; parent_delay_id?: string | number };
+export type SendDelayedEventRequestOpts =
+    | { parent_delay_id: string | number }
+    | { delay: number; parent_delay_id?: string | number };
 
 export function isSendDelayedEventRequestOpts(opts: object): opts is SendDelayedEventRequestOpts {
-    if ("parent_delay_id" in opts && typeof opts.parent_delay_id !== "string" && typeof opts.parent_delay_id !== "number") {
+    if (
+        "parent_delay_id" in opts &&
+        typeof opts.parent_delay_id !== "string" &&
+        typeof opts.parent_delay_id !== "number"
+    ) {
         // Invalid type, reject
         return false;
     }

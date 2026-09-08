@@ -111,9 +111,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
             // Signatures 对象的 asJSON() 返回 {"@user:server":{"ed25519:DEVICE_ID":"<sig>"}}
             const sigJsonStr = typeof signatures === "string" ? signatures : signatures.asJSON();
             const sigObj = JSON.parse(sigJsonStr);
-            console.log(
-                `ISSUE-02 diag: signed fallback key, signatures=${sigJsonStr.substring(0, 100)}...`,
-            );
+            console.log(`ISSUE-02 diag: signed fallback key, signatures=${sigJsonStr.substring(0, 100)}...`);
 
             // 构造完整的 signed_curve25519 fallback key 对象
             const signedFallbackKey = {
@@ -129,21 +127,15 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
             };
 
             // 通过 /keys/upload 上传 fallback key
-            const uploadResp = await clientB.http.authedRequest(
-                "POST",
-                "/keys/upload",
-                undefined,
-                fallbackUploadBody,
-            );
+            const uploadResp = await clientB.http.authedRequest("POST", "/keys/upload", undefined, fallbackUploadBody);
             console.log(`ISSUE-02 diag: fallback key upload response=${JSON.stringify(uploadResp)}`);
 
             // 验证 fallback key 已上传：检查 /sync 的 device_unused_fallback_key_types
             await sleep(1000);
-            const syncCheckResp = await clientB.http.authedRequest(
-                "GET",
-                "/sync",
-                { timeout: 500, full_state: "false" },
-            );
+            const syncCheckResp = await clientB.http.authedRequest("GET", "/sync", {
+                timeout: 500,
+                full_state: "false",
+            });
             const fallbackTypes: string[] = syncCheckResp?.device_unused_fallback_key_types ?? [];
             console.log(
                 `ISSUE-02 diag: after upload, device_unused_fallback_key_types=${JSON.stringify(fallbackTypes)}`,
@@ -175,95 +167,86 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
         await clientB?.logout?.().catch(() => undefined);
     });
 
-    it(
-        "claim returns fallback key after all OTKs are exhausted",
-        async () => {
-            if (!backendAvailable) throw new Error(`Backend unavailable: ${String(setupError)}`);
+    it("claim returns fallback key after all OTKs are exhausted", async () => {
+        if (!backendAvailable) throw new Error(`Backend unavailable: ${String(setupError)}`);
 
-            // A claim B 的 keys 共 CLAIM_COUNT 次
-            // 前 50 次消耗 OTK（每次返回不同 key ID），后 5 次返回 fallback key（同一 key ID）
-            // 每次 claim 间加 200ms 延迟避免 429 限流
-            //
-            // 响应结构说明：
-            //   one_time_keys.[userId].[deviceId] = {
-            //     "signed_curve25519:<keyid>": { key, signatures },  // 有 OTK/fallback
-            //     ...（可能多个，但 /keys/claim 每次只返回 1 个）
-            //   }
-            //   若 OTK 耗尽且无 fallback，则 one_time_keys.[userId].[deviceId] = {}
-            const claimedKeyIds: string[] = [];
-            for (let i = 0; i < CLAIM_COUNT; i++) {
-                let claimResp: any;
-                try {
-                    claimResp = await clientA!.http.authedRequest(
-                        "POST",
-                        "/keys/claim",
-                        undefined,
-                        {
-                            one_time_keys: {
-                                [userIdB]: { [deviceIdB]: "signed_curve25519" },
-                            },
-                        },
-                    );
-                } catch (e: any) {
-                    // 429 限流：等待后重试本次 claim
-                    if (e?.httpStatus === 429 || e?.errcode === "M_LIMIT_EXCEEDED") {
-                        const retryAfter = e?.retryAfterMs ?? 2000;
-                        await sleep(Math.max(retryAfter, 1000));
-                        i--; // 重试本次，不推进 i
-                        continue;
-                    }
-                    throw e;
+        // A claim B 的 keys 共 CLAIM_COUNT 次
+        // 前 50 次消耗 OTK（每次返回不同 key ID），后 5 次返回 fallback key（同一 key ID）
+        // 每次 claim 间加 200ms 延迟避免 429 限流
+        //
+        // 响应结构说明：
+        //   one_time_keys.[userId].[deviceId] = {
+        //     "signed_curve25519:<keyid>": { key, signatures },  // 有 OTK/fallback
+        //     ...（可能多个，但 /keys/claim 每次只返回 1 个）
+        //   }
+        //   若 OTK 耗尽且无 fallback，则 one_time_keys.[userId].[deviceId] = {}
+        const claimedKeyIds: string[] = [];
+        for (let i = 0; i < CLAIM_COUNT; i++) {
+            let claimResp: any;
+            try {
+                claimResp = await clientA!.http.authedRequest("POST", "/keys/claim", undefined, {
+                    one_time_keys: {
+                        [userIdB]: { [deviceIdB]: "signed_curve25519" },
+                    },
+                });
+            } catch (e: any) {
+                // 429 限流：等待后重试本次 claim
+                if (e?.httpStatus === 429 || e?.errcode === "M_LIMIT_EXCEEDED") {
+                    const retryAfter = e?.retryAfterMs ?? 2000;
+                    await sleep(Math.max(retryAfter, 1000));
+                    i--; // 重试本次，不推进 i
+                    continue;
                 }
-                await sleep(200);
-
-                const deviceKeys = claimResp?.one_time_keys?.[userIdB]?.[deviceIdB];
-                // key 名格式为 "signed_curve25519:<keyid>"，提取 <keyid>
-                const otkKeyNames = deviceKeys
-                    ? Object.keys(deviceKeys).filter((k) => k.startsWith("signed_curve25519:"))
-                    : [];
-                if (otkKeyNames.length > 0) {
-                    const keyId = otkKeyNames[0].substring("signed_curve25519:".length);
-                    claimedKeyIds.push(keyId);
-                } else {
-                    // 空 response（OTK 耗尽且无 fallback key）
-                    claimedKeyIds.push("");
-                }
+                throw e;
             }
+            await sleep(200);
 
-            console.log(
-                `ISSUE-02: claimed ${claimedKeyIds.filter((id) => id).length} non-empty keys out of ${CLAIM_COUNT} claims`,
-            );
-            console.log(`ISSUE-02: last 6 key IDs = ${claimedKeyIds.slice(-6).join(", ")}`);
-
-            // 断言至少 claim 到了一些 key
-            const nonEmptyClaims = claimedKeyIds.filter((id) => id.length > 0);
-            expect(nonEmptyClaims.length).toBeGreaterThan(0);
-
-            // ISSUE-02 核心断言：最后两次 claim 应返回同一非空 key（fallback key 持久性）
-            // OTK 被消耗后不会重复出现，fallback key 不被消耗会重复返回
-            const lastKeyId = claimedKeyIds[CLAIM_COUNT - 1];
-            const secondLastKeyId = claimedKeyIds[CLAIM_COUNT - 2];
-
-            expect(lastKeyId.length).toBeGreaterThan(0);
-            expect(secondLastKeyId.length).toBeGreaterThan(0);
-            expect(lastKeyId).toBe(secondLastKeyId);
-
-            console.log(`ISSUE-02: fallback key ID = ${lastKeyId}`);
-
-            // 统计 fallback key 出现的次数（从后往前数连续相同的 key ID）
-            let fallbackRepeats = 1;
-            for (let i = CLAIM_COUNT - 2; i >= 0; i--) {
-                if (claimedKeyIds[i] === lastKeyId) {
-                    fallbackRepeats++;
-                } else {
-                    break;
-                }
+            const deviceKeys = claimResp?.one_time_keys?.[userIdB]?.[deviceIdB];
+            // key 名格式为 "signed_curve25519:<keyid>"，提取 <keyid>
+            const otkKeyNames = deviceKeys
+                ? Object.keys(deviceKeys).filter((k) => k.startsWith("signed_curve25519:"))
+                : [];
+            if (otkKeyNames.length > 0) {
+                const keyId = otkKeyNames[0].substring("signed_curve25519:".length);
+                claimedKeyIds.push(keyId);
+            } else {
+                // 空 response（OTK 耗尽且无 fallback key）
+                claimedKeyIds.push("");
             }
-            console.log(`ISSUE-02: fallback key repeated ${fallbackRepeats} times at the end`);
+        }
 
-            // fallback key 至少重复 2 次（证明它不被消耗）
-            expect(fallbackRepeats).toBeGreaterThanOrEqual(2);
-        },
-        120_000,
-    );
+        console.log(
+            `ISSUE-02: claimed ${claimedKeyIds.filter((id) => id).length} non-empty keys out of ${CLAIM_COUNT} claims`,
+        );
+        console.log(`ISSUE-02: last 6 key IDs = ${claimedKeyIds.slice(-6).join(", ")}`);
+
+        // 断言至少 claim 到了一些 key
+        const nonEmptyClaims = claimedKeyIds.filter((id) => id.length > 0);
+        expect(nonEmptyClaims.length).toBeGreaterThan(0);
+
+        // ISSUE-02 核心断言：最后两次 claim 应返回同一非空 key（fallback key 持久性）
+        // OTK 被消耗后不会重复出现，fallback key 不被消耗会重复返回
+        const lastKeyId = claimedKeyIds[CLAIM_COUNT - 1];
+        const secondLastKeyId = claimedKeyIds[CLAIM_COUNT - 2];
+
+        expect(lastKeyId.length).toBeGreaterThan(0);
+        expect(secondLastKeyId.length).toBeGreaterThan(0);
+        expect(lastKeyId).toBe(secondLastKeyId);
+
+        console.log(`ISSUE-02: fallback key ID = ${lastKeyId}`);
+
+        // 统计 fallback key 出现的次数（从后往前数连续相同的 key ID）
+        let fallbackRepeats = 1;
+        for (let i = CLAIM_COUNT - 2; i >= 0; i--) {
+            if (claimedKeyIds[i] === lastKeyId) {
+                fallbackRepeats++;
+            } else {
+                break;
+            }
+        }
+        console.log(`ISSUE-02: fallback key repeated ${fallbackRepeats} times at the end`);
+
+        // fallback key 至少重复 2 次（证明它不被消耗）
+        expect(fallbackRepeats).toBeGreaterThanOrEqual(2);
+    }, 120_000);
 });

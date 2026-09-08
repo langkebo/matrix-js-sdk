@@ -86,12 +86,8 @@ describe("CaptchaManager", () => {
         authedRequest.mockResolvedValue({ cleaned_count: 5, message: "Cleaned up 5 expired captchas" });
         const result = await manager.deleteExpiredCaptchas();
         expect(result).toEqual({ cleaned_count: 5, message: "Cleaned up 5 expired captchas" });
-        expect(authedRequest).toHaveBeenCalledWith(
-            Method.Delete,
-            "/register/captcha/clean",
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V3 },
-        );
+        expect(authedRequest).toHaveBeenCalledWith(Method.Delete, "/register/captcha/clean", undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
     });
 });

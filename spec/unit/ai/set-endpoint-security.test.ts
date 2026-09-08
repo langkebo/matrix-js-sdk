@@ -23,16 +23,12 @@ describe("ISSUE-09b AI setEndpoint security warning", () => {
 
     it("rejects non-localhost http endpoint", () => {
         const ai = new AIModule();
-        expect(() => ai.setEndpoint("http://external.evil.com/mcp")).toThrow(
-            /refusing to use non-https/i,
-        );
+        expect(() => ai.setEndpoint("http://external.evil.com/mcp")).toThrow(/refusing to use non-https/i);
     });
 
     it("rejects unsupported protocol", () => {
         const ai = new AIModule();
-        expect(() => ai.setEndpoint("ftp://example.org/mcp")).toThrow(
-            /unsupported/i,
-        );
+        expect(() => ai.setEndpoint("ftp://example.org/mcp")).toThrow(/unsupported/i);
     });
 
     it("rejects invalid URL", () => {

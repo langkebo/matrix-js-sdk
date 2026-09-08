@@ -11,7 +11,13 @@ S-8 回归测试：`withRetry()` 的幂等判定必须与 `request()` 一致（�
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { BaseManager, type RequestSpec, type RetryOptions, type Transport, type TransportOpts } from "../../../src/managers/base-manager";
+import {
+    BaseManager,
+    type RequestSpec,
+    type RetryOptions,
+    type Transport,
+    type TransportOpts,
+} from "../../../src/managers/base-manager";
 import { Method } from "../../../src/http-api/method";
 import { RetryableError } from "../../../src/errors";
 import type { Body } from "../../../src/http-api/interface";
@@ -150,15 +156,11 @@ describe("BaseManager.withRetry 幂等判定（S-8）", () => {
     });
 
     it("独立调用 request() 时 POST 不重试、GET 重试", async () => {
-        await expect(manager.callRequest({ method: Method.Post, path: "/x" })).rejects.toBeInstanceOf(
-            RetryableError,
-        );
+        await expect(manager.callRequest({ method: Method.Post, path: "/x" })).rejects.toBeInstanceOf(RetryableError);
         expect(transport.calls).toEqual([Method.Post]);
 
         transport.calls = [];
-        await expect(manager.callRequest({ method: Method.Get, path: "/y" })).rejects.toBeInstanceOf(
-            RetryableError,
-        );
+        await expect(manager.callRequest({ method: Method.Get, path: "/y" })).rejects.toBeInstanceOf(RetryableError);
         expect(transport.calls).toHaveLength(4);
     });
 });

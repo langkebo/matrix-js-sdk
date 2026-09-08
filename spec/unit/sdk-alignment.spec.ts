@@ -76,13 +76,9 @@ describe("SDK alignment managers", () => {
         it("uses client-prefix relative paths and normalizes unknown statuses", async () => {
             const friends = await manager.getFriends();
 
-            expect(authedRequest).toHaveBeenCalledWith(
-                expect.anything(),
-                "/friends",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/vendor/v1" },
-            );
+            expect(authedRequest).toHaveBeenCalledWith(expect.anything(), "/friends", undefined, undefined, {
+                prefix: "/_matrix/vendor/v1",
+            });
             expect(friends[0]?.status).toBe(FriendRelationshipStatus.Normal);
         });
     });

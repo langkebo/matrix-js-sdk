@@ -196,9 +196,7 @@ describe("SpaceManager", () => {
     });
 
     it("getRoomStateEventsRaw calls standard /rooms/{roomId}/state endpoint", async () => {
-        const mockResponse = [
-            { type: "m.space.child", state_key: "!child:server", content: { via: ["server"] } },
-        ];
+        const mockResponse = [{ type: "m.space.child", state_key: "!child:server", content: { via: ["server"] } }];
         const authedRequest = vi.fn().mockResolvedValue(mockResponse);
         const manager = makeManager(authedRequest);
 

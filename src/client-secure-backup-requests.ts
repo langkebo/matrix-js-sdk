@@ -14,10 +14,11 @@ type AuthedRequestFn = <T>(
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
 
-type StripPrefix<P extends string> =
-    P extends `/_matrix/client/v3${infer Rest}` ? Rest :
-    P extends `/_matrix/vendor/v1${infer Rest}` ? Rest :
-    never;
+type StripPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}`
+    ? Rest
+    : P extends `/_matrix/vendor/v1${infer Rest}`
+      ? Rest
+      : never;
 
 function sp<P extends StripPrefix<SyncPathPattern>>(path: P): P {
     return path;

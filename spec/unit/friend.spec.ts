@@ -294,9 +294,7 @@ describe("FriendManager", () => {
         it("should fall back to items when friends is an empty array (FT-085)", async () => {
             // 后端同时返回 friends: [] 和 items: [data]；空数组是 truthy，
             // 旧的 `friends || items || []` 短路到空数组，静默丢失 items 数据。
-            const itemsData: Friend[] = [
-                { user_id: "@dave:example.com", status: "normal", since: 123456 },
-            ];
+            const itemsData: Friend[] = [{ user_id: "@dave:example.com", status: "normal", since: 123456 }];
             mockAuthedRequest.mockResolvedValue({ friends: [], items: itemsData });
 
             const friends = await friendManager.getFriends();
@@ -306,12 +304,8 @@ describe("FriendManager", () => {
         });
 
         it("should prefer friends when both friends and items are non-empty (FT-085)", async () => {
-            const friendsData: Friend[] = [
-                { user_id: "@bob:example.com", status: "normal", since: 1 },
-            ];
-            const itemsData: Friend[] = [
-                { user_id: "@dave:example.com", status: "normal", since: 2 },
-            ];
+            const friendsData: Friend[] = [{ user_id: "@bob:example.com", status: "normal", since: 1 }];
+            const itemsData: Friend[] = [{ user_id: "@dave:example.com", status: "normal", since: 2 }];
             mockAuthedRequest.mockResolvedValue({ friends: friendsData, items: itemsData });
 
             const friends = await friendManager.getFriends();
@@ -320,9 +314,7 @@ describe("FriendManager", () => {
         });
 
         it("should fall back to items when friends is undefined (FT-085)", async () => {
-            const itemsData: Friend[] = [
-                { user_id: "@dave:example.com", status: "normal", since: 123456 },
-            ];
+            const itemsData: Friend[] = [{ user_id: "@dave:example.com", status: "normal", since: 123456 }];
             mockAuthedRequest.mockResolvedValue({ items: itemsData });
 
             const friends = await friendManager.getFriends();
@@ -361,9 +353,7 @@ describe("FriendManager", () => {
 
         it("should accept next_batch pagination token in response (FT-095)", async () => {
             // FT-095: IFriendsResponse 此前缺少 next_batch 字段，与后端分页响应类型漂移
-            const mockFriends: Friend[] = [
-                { user_id: "@bob:example.com", status: "normal", since: 1 },
-            ];
+            const mockFriends: Friend[] = [{ user_id: "@bob:example.com", status: "normal", since: 1 }];
             mockAuthedRequest.mockResolvedValue({
                 friends: mockFriends,
                 next_batch: "page2_token",

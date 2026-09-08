@@ -180,14 +180,11 @@ const DTO_EXTERNAL_TYPE_IMPORTS = [
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-const BACKEND_REPO =
-    process.env.SYNAPSE_RUST_REPO ?? path.resolve(repoRoot, "..", "synapse-rust");
+const BACKEND_REPO = process.env.SYNAPSE_RUST_REPO ?? path.resolve(repoRoot, "..", "synapse-rust");
 const BACKEND_CONTRACT_MD =
-    process.env.SYNAPSE_RUST_CONTRACT_MD ??
-    path.join(BACKEND_REPO, "docs", "synapse-rust", "ROUTE_CONTRACT.md");
+    process.env.SYNAPSE_RUST_CONTRACT_MD ?? path.join(BACKEND_REPO, "docs", "synapse-rust", "ROUTE_CONTRACT.md");
 const BACKEND_ROUTE_MANIFEST =
-    process.env.SYNAPSE_RUST_ROUTE_MANIFEST ??
-    path.join(BACKEND_REPO, "artifacts", "route_contract.json");
+    process.env.SYNAPSE_RUST_ROUTE_MANIFEST ?? path.join(BACKEND_REPO, "artifacts", "route_contract.json");
 
 /**
  * Maps a backend ROUTE_CONTRACT.md module heading (Chinese label) to the SDK
@@ -201,51 +198,51 @@ const BACKEND_ROUTE_MANIFEST =
 const CONTRACT_MODULE_MAP = {
     "3PID": null,
     "AI 连接": "ai-connection",
-    "CAS": "cas",
-    "MSC4108": null,
-    "OIDC": "oidc",
-    "OpenClaw": "open-claw",
-    "Rendezvous": "rendezvous",
-    "SAML": "saml",
-    "Worker": "worker-admin",
-    "临时事件": "ephemeral",
-    "事件举报": "event-report",
-    "关联": "relations",
-    "好友": "friend",
-    "其他": null,
-    "反应": "reactions",
-    "同步": "sync",
-    "后台更新": "background-update",
-    "在线状态": "presence",
-    "外部服务": "external-service",
-    "媒体": "media",
-    "审核": "moderation",
-    "密钥备份": "key-backup",
-    "密钥轮转": "key-rotation",
-    "小组件": "widget",
-    "应用服务": "app-service",
-    "延迟事件": null,
-    "房间": "room",
-    "推送": "push",
-    "搜索": "search",
-    "标签": "tags",
-    "模块": "module",
-    "私聊": "dm",
-    "空间": "space",
-    "端到端加密": "e2ee",
-    "第三方": "third-party",
-    "管理": "admin",
-    "联邦": "federation",
-    "装配": null,
-    "设备": "device",
-    "访客": "guest",
-    "语音": "voice",
-    "账户": "auth",
-    "输入状态": "typing",
-    "遥测": "telemetry",
-    "阅后即焚": "burn-after-read",
-    "验证": "verification",
-    "验证码": "captcha",
+    CAS: "cas",
+    MSC4108: null,
+    OIDC: "oidc",
+    OpenClaw: "open-claw",
+    Rendezvous: "rendezvous",
+    SAML: "saml",
+    Worker: "worker-admin",
+    临时事件: "ephemeral",
+    事件举报: "event-report",
+    关联: "relations",
+    好友: "friend",
+    其他: null,
+    反应: "reactions",
+    同步: "sync",
+    后台更新: "background-update",
+    在线状态: "presence",
+    外部服务: "external-service",
+    媒体: "media",
+    审核: "moderation",
+    密钥备份: "key-backup",
+    密钥轮转: "key-rotation",
+    小组件: "widget",
+    应用服务: "app-service",
+    延迟事件: null,
+    房间: "room",
+    推送: "push",
+    搜索: "search",
+    标签: "tags",
+    模块: "module",
+    私聊: "dm",
+    空间: "space",
+    端到端加密: "e2ee",
+    第三方: "third-party",
+    管理: "admin",
+    联邦: "federation",
+    装配: null,
+    设备: "device",
+    访客: "guest",
+    语音: "voice",
+    账户: "auth",
+    输入状态: "typing",
+    遥测: "telemetry",
+    阅后即焚: "burn-after-read",
+    验证: "verification",
+    验证码: "captcha",
 };
 
 // Module-level cache, populated once in run().
@@ -277,9 +274,7 @@ export function parseBackendContractMd(text) {
         }
         const r = line.match(/^-\s+`([A-Z]+)`\s+`([^`]+)`/);
         if (r && current) {
-            byLabel
-                .get(current)
-                .push({ method: r[1], rawPath: r[2], resourcePath: normalizeResourcePath(r[2]) });
+            byLabel.get(current).push({ method: r[1], rawPath: r[2], resourcePath: normalizeResourcePath(r[2]) });
         }
     }
     return byLabel;
@@ -462,9 +457,7 @@ function extractContractIndexDocLinks(text) {
 
 export function discoverSupportedModules(contractMdText) {
     if (contractMdText === undefined) {
-        contractMdText = fs.existsSync(BACKEND_CONTRACT_MD)
-            ? fs.readFileSync(BACKEND_CONTRACT_MD, "utf8")
-            : "";
+        contractMdText = fs.existsSync(BACKEND_CONTRACT_MD) ? fs.readFileSync(BACKEND_CONTRACT_MD, "utf8") : "";
     }
     const byLabel = parseBackendContractMd(contractMdText);
     // Reverse map: sdkDir -> [backend contract labels]
@@ -509,7 +502,9 @@ function renderRouteTable(module, entries, entryCount) {
     lines.push(` * Entries:       ${entryCount} (authoritative set mirrored from the backend contract)`);
     lines.push(" */");
     lines.push("");
-    lines.push(`/** Routes served by the synapse-rust \`${module.sdkDir}\` module (mirrored from the backend contract). */`);
+    lines.push(
+        `/** Routes served by the synapse-rust \`${module.sdkDir}\` module (mirrored from the backend contract). */`,
+    );
     lines.push(`export const ${module.constName} = [`);
     for (const entry of entries) {
         if (!entry.method || !entry.path) continue;
@@ -1111,9 +1106,7 @@ function runWrite(rendered) {
     const totalFiles = rendered.reduce((sum, r) => sum + r.outputs.length, 0);
     process.stdout.write(
         `sdk-contract-codegen: wrote ${totalFiles} generated contract helper files\n` +
-            rendered
-                .map((r) => `  src/${r.module.sdkDir}/__generated__/  (${r.entryCount} entries)`)
-                .join("\n") +
+            rendered.map((r) => `  src/${r.module.sdkDir}/__generated__/  (${r.entryCount} entries)`).join("\n") +
             "\n",
     );
     return 0;

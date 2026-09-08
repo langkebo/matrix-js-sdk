@@ -17,17 +17,6 @@ limitations under the License.
 import type { IAuthData } from "./interactive-auth";
 import { extractNumber, extractString, extractNested, extractHeader } from "./utils/type-guards";
 
-/**
- * Shape of an unknown error cause object when extracting fields.
- * Used by error-class constructors to inspect nested error data from
- * various sources (HTTP responses, native errors, etc.).
- *
- * @deprecated P2 优化：使用 `extractNumber` / `extractString` / `extractNested` /
- * `extractHeader` 替代直接 cast 为 `Record<string, unknown>`。保留此类型仅为
- * 兼容尚未迁移到 `type-guards.ts` 的代码。
- */
-type ErrorCauseObject = Record<string, unknown>; /* Dynamic: error cause shape is unknown */
-
 export enum InvalidCryptoStoreState {
     TooNew = "TOO_NEW",
 }

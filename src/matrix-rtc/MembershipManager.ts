@@ -650,7 +650,9 @@ export class MembershipManager
             });
     }
 
-    private async sendScheduledDelayedLeaveEventOrFallbackToSendLeaveEvent(delayId: string | number): Promise<ActionUpdate> {
+    private async sendScheduledDelayedLeaveEventOrFallbackToSendLeaveEvent(
+        delayId: string | number,
+    ): Promise<ActionUpdate> {
         return await this.client
             ._unstable_sendScheduledDelayedEvent(delayId)
             .then(() => {

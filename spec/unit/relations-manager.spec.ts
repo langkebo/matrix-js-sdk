@@ -135,14 +135,10 @@ describe("RelationsManager", () => {
             { defaultPrefix: ClientPrefix.V1 } as any,
         );
 
-        await manager.sendRelationViaSendRelation(
-            "!room:example.org",
-            "$ctx",
-            "m.replace",
-            "$txn1",
-            "m.room.message",
-            { body: "edited", msgtype: "m.text" },
-        );
+        await manager.sendRelationViaSendRelation("!room:example.org", "$ctx", "m.replace", "$txn1", "m.room.message", {
+            body: "edited",
+            msgtype: "m.text",
+        });
 
         expect(authedRequest).toHaveBeenCalledWith(
             Method.Put,

@@ -212,11 +212,10 @@ describe("RelationsManager", () => {
             "m.room.message",
             { "m.new_content": { body: "edited" } },
         );
-        transport.expectCalledWith(
-            Method.Put,
-            "/rooms/!room%3Aserver/relations/%24parent%3Aserver/m.replace/txn456",
-            { "m.new_content": { body: "edited" }, type: "m.room.message" },
-        );
+        transport.expectCalledWith(Method.Put, "/rooms/!room%3Aserver/relations/%24parent%3Aserver/m.replace/txn456", {
+            "m.new_content": { body: "edited" },
+            type: "m.room.message",
+        });
     });
 
     it("sendRelationViaSendRelation should emit Error event on failure", async () => {

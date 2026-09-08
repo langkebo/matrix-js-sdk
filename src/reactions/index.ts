@@ -87,9 +87,7 @@ export class ReactionsManager extends BaseManager<keyof ReactionsManagerEvents, 
     public async hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean> {
         return this.withRetry(async () => {
             const reactions = this.getReactionsForEvent(roomId, eventId);
-            return reactions.some(
-                (reaction) => reaction.getSender() === userId && reaction.getRelation()?.key === key,
-            );
+            return reactions.some((reaction) => reaction.getSender() === userId && reaction.getRelation()?.key === key);
         }, "hasReaction");
     }
 
@@ -135,7 +133,11 @@ export class ReactionsManager extends BaseManager<keyof ReactionsManagerEvents, 
         return reaction?.count ?? 0;
     }
 
-    public async toggleReaction(roomId: string, eventId: string, key: string): Promise<string | { event_id: string } | undefined> {
+    public async toggleReaction(
+        roomId: string,
+        eventId: string,
+        key: string,
+    ): Promise<string | { event_id: string } | undefined> {
         const currentUserId = this.client.getUserId();
         if (!currentUserId) return undefined;
 

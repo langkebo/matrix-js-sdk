@@ -153,13 +153,9 @@ export class MSC4108SignInWithQR {
         if (!this.client) {
             throw new Error("generateQrLoginToken requires an existing device client");
         }
-        return await this.client.http.authedRequest(
-            Method.Post,
-            "/login/qr_token",
-            undefined,
-            undefined,
-            { prefix: ClientPrefix.V1 },
-        );
+        return await this.client.http.authedRequest(Method.Post, "/login/qr_token", undefined, undefined, {
+            prefix: ClientPrefix.V1,
+        });
     }
 
     /**

@@ -487,7 +487,11 @@ export abstract class BaseManager<
                     { causeCode: errcode ?? "M_TIMEOUT", cause: error },
                 );
             }
-            if (error.httpStatus === 422 || error.errcode === "M_INVALID_PARAM_VALUE" || error.errcode === "M_BAD_JSON") {
+            if (
+                error.httpStatus === 422 ||
+                error.errcode === "M_INVALID_PARAM_VALUE" ||
+                error.errcode === "M_BAD_JSON"
+            ) {
                 return new ValidationError(
                     `${managerName}.${method} failed: ${err?.message ?? "Invalid request payload"}`,
                     error,
@@ -515,10 +519,10 @@ export abstract class BaseManager<
                 return new NotFoundError(`${managerName}.${method} failed: ${err?.message ?? "Unknown error"}`, error);
             }
             if (error.httpStatus === 408) {
-                return new TimeoutError(
-                    `${managerName}.${method} failed: ${err?.message ?? "Request timeout"}`,
-                    { causeCode: "M_TIMEOUT", cause: error },
-                );
+                return new TimeoutError(`${managerName}.${method} failed: ${err?.message ?? "Request timeout"}`, {
+                    causeCode: "M_TIMEOUT",
+                    cause: error,
+                });
             }
             if (error.httpStatus === 422) {
                 return new ValidationError(
@@ -545,10 +549,7 @@ export abstract class BaseManager<
         // up automatically. Combined with ISSUE-03 txnId reuse, retries on flaky
         // networks no longer produce duplicate messages.
         if (error instanceof ConnectionError) {
-            return new RetryableError(
-                `${managerName}.${method} failed: ${err?.message ?? "Connection error"}`,
-                error,
-            );
+            return new RetryableError(`${managerName}.${method} failed: ${err?.message ?? "Connection error"}`, error);
         }
 
         if (httpStatus === 401 || errcode === "M_UNKNOWN_TOKEN") {
@@ -561,10 +562,10 @@ export abstract class BaseManager<
             );
         }
         if (httpStatus === 408) {
-            return new TimeoutError(
-                `${managerName}.${method} failed: ${err?.message ?? "Request timeout"}`,
-                { causeCode: code ?? errcode, cause: error },
-            );
+            return new TimeoutError(`${managerName}.${method} failed: ${err?.message ?? "Request timeout"}`, {
+                causeCode: code ?? errcode,
+                cause: error,
+            });
         }
         if (httpStatus === 422 || errcode === "M_INVALID_PARAM_VALUE" || errcode === "M_BAD_JSON") {
             return new ValidationError(

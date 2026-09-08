@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import { BurnAfterReadManager, BurnAfterReadEvent } from "../../src/burn-after-read/index";
-import { AuthError, NotFoundError, RetryableError, ApiError, ValidationError } from "../../src/errors";
+import { AuthError, NotFoundError, RetryableError, ValidationError } from "../../src/errors";
 import { MatrixError } from "../../src/http-api/errors";
 import { Method } from "../../src/http-api/method";
 import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix";

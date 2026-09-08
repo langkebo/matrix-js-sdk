@@ -230,9 +230,9 @@ export class KeyBackupManager extends BaseManager {
     async checkKeyBackup(forceRefresh = false): Promise<BackupVersionInfo | null> {
         try {
             return await this.getLatestBackupVersion(forceRefresh);
-        } catch (error) {
-            // @swallow-error { owner: "key-backup", expires: "2026-12-31" }
             // 404 / M_NOT_FOUND 表示尚无备份版本，是预期情况，返回 null
+            // @swallow-error { owner: "key-backup", expires: "2026-12-31" }
+        } catch (error) {
             if (error instanceof NotFoundError) {
                 return null;
             }

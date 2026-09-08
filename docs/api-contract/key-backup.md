@@ -131,11 +131,11 @@ last_reviewed: 2026-05-11
 
 ## 错误语义
 
-| 场景                          | 后端行为          | SDK 表现                                             |
-| ----------------------------- | ----------------- | ---------------------------------------------------- |
-| `auth_data` 缺少 `public_key` | `400 Bad Request` | `createBackupVersion()` 抛标准化错误                 |
+| 场景                          | 后端行为          | SDK 表现                                                 |
+| ----------------------------- | ----------------- | -------------------------------------------------------- |
+| `auth_data` 缺少 `public_key` | `400 Bad Request` | `createBackupVersion()` 抛标准化错误                     |
 | 备份版本不存在                | `404 Not Found`   | 相关 `get* / put* / delete* / recover*` 方法抛标准化错误 |
-| 会话不存在                    | `404 Not Found`   | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误 |
+| 会话不存在                    | `404 Not Found`   | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误   |
 
 ## 人工 Review 对齐
 

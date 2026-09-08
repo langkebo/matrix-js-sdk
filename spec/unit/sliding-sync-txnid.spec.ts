@@ -88,14 +88,12 @@ describe("SlidingSync txn_id idempotency", () => {
     it("reuses the same txn_id when retrying the same pos after a network error", async () => {
         // First attempt fails with a network error (abort-like, no backoff),
         // second attempt succeeds — both target the same (empty) pos.
-        mockSlidingSync
-            .mockRejectedValueOnce(new Error("fetch failed"))
-            .mockResolvedValueOnce({
-                pos: "p1",
-                lists: {},
-                rooms: {},
-                extensions: {},
-            } as MSC3575SlidingSyncResponse);
+        mockSlidingSync.mockRejectedValueOnce(new Error("fetch failed")).mockResolvedValueOnce({
+            pos: "p1",
+            lists: {},
+            rooms: {},
+            extensions: {},
+        } as MSC3575SlidingSyncResponse);
 
         await runUntilCalls(2);
 

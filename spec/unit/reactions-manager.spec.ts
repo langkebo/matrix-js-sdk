@@ -102,10 +102,7 @@ describe("ReactionsManager", () => {
                 ],
             });
 
-            await expect(manager.getReactionUsers("!r:hs", "$msg1")).resolves.toEqual([
-                "@alice:hs",
-                "@bob:hs",
-            ]);
+            await expect(manager.getReactionUsers("!r:hs", "$msg1")).resolves.toEqual(["@alice:hs", "@bob:hs"]);
             expect(mockClient.getReactionUsers).not.toHaveBeenCalled();
         });
 

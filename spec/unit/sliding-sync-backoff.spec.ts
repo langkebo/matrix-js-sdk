@@ -212,14 +212,12 @@ describe("SlidingSync exponential backoff", () => {
     });
 
     it("should use generic backoff for non-M_UNKNOWN_POS 400 errors", async () => {
-        mockSlidingSync
-            .mockRejectedValueOnce(new MatrixError({ errcode: "M_BAD_JSON" }, 400))
-            .mockResolvedValueOnce({
-                pos: "afterOther400",
-                lists: {},
-                rooms: {},
-                extensions: {},
-            } as MSC3575SlidingSyncResponse);
+        mockSlidingSync.mockRejectedValueOnce(new MatrixError({ errcode: "M_BAD_JSON" }, 400)).mockResolvedValueOnce({
+            pos: "afterOther400",
+            lists: {},
+            rooms: {},
+            extensions: {},
+        } as MSC3575SlidingSyncResponse);
 
         await runUntilCalls(2);
 

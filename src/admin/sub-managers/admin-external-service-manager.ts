@@ -109,13 +109,8 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * @returns 外部服务列表
      */
     async listServices(serviceType?: string): Promise<BackendExternalService[]> {
-        const queryParams =
-            serviceType && serviceType !== "all" ? { service_type: serviceType } : undefined;
-        const result = await this.adminRequest<BackendExternalService[]>(
-            Method.Get,
-            "/external_services",
-            queryParams,
-        );
+        const queryParams = serviceType && serviceType !== "all" ? { service_type: serviceType } : undefined;
+        const result = await this.adminRequest<BackendExternalService[]>(Method.Get, "/external_services", queryParams);
         return result ?? [];
     }
 
@@ -126,12 +121,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * @returns 创建后的外部服务对象
      */
     async registerService(payload: RegisterExternalServicePayload): Promise<BackendExternalService> {
-        return await this.adminRequest<BackendExternalService>(
-            Method.Post,
-            "/external_services",
-            undefined,
-            payload,
-        );
+        return await this.adminRequest<BackendExternalService>(Method.Post, "/external_services", undefined, payload);
     }
 
     /**
@@ -141,10 +131,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * @param payload - 更新字段
      * @returns 更新后的外部服务对象
      */
-    async updateService(
-        asId: string,
-        payload: UpdateExternalServicePayload,
-    ): Promise<BackendExternalService> {
+    async updateService(asId: string, payload: UpdateExternalServicePayload): Promise<BackendExternalService> {
         return await this.adminRequest<BackendExternalService>(
             Method.Put,
             `/external_services/${encodeURIComponent(asId)}`,
@@ -168,10 +155,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * @returns 健康状态列表
      */
     async getAllHealth(): Promise<BackendExternalServiceHealth[]> {
-        const result = await this.adminRequest<BackendExternalServiceHealth[]>(
-            Method.Get,
-            "/external_services/health",
-        );
+        const result = await this.adminRequest<BackendExternalServiceHealth[]>(Method.Get, "/external_services/health");
         return result ?? [];
     }
 
@@ -187,6 +171,8 @@ export class AdminExternalServiceManager extends AdminBaseManager {
                 Method.Get,
                 `/external_services/${encodeURIComponent(asId)}/health`,
             );
+            // 404 表示服务不存在，是"查无此服务"的预期结果；其余错误继续向上抛出。
+            // @swallow-error { owner: "admin-external-service", expires: "2026-12-31" }
         } catch (e) {
             const status = (e as { httpStatus?: number }).httpStatus;
             if (status === 404) return null;

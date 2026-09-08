@@ -46,14 +46,17 @@ export class ModerationManager extends BaseManager {
         this.requireNonEmptyString(eventId, "eventId");
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}`;
         try {
-            await this.withRetry(async () => {
-                await this.request<void>({
-                    method: Method.Post,
-                    path: path,
-                    body: body,
-                    prefix: ClientPrefix.V3,
-                });
-            }, { idempotent: false, label: "reportEvent" });
+            await this.withRetry(
+                async () => {
+                    await this.request<void>({
+                        method: Method.Post,
+                        path: path,
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    });
+                },
+                { idempotent: false, label: "reportEvent" },
+            );
         } catch (error) {
             throw this.normalizeError(error, "reportEvent");
         }
@@ -67,14 +70,17 @@ export class ModerationManager extends BaseManager {
         this.requireNonEmptyString(roomId, "roomId");
         const path = `/rooms/${encodeURIComponent(roomId)}/report`;
         try {
-            await this.withRetry(async () => {
-                await this.request<void>({
-                    method: Method.Post,
-                    path: path,
-                    body: body,
-                    prefix: ClientPrefix.V3,
-                });
-            }, { idempotent: false, label: "reportRoom" });
+            await this.withRetry(
+                async () => {
+                    await this.request<void>({
+                        method: Method.Post,
+                        path: path,
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    });
+                },
+                { idempotent: false, label: "reportRoom" },
+            );
         } catch (error) {
             throw this.normalizeError(error, "reportRoom");
         }
@@ -110,14 +116,17 @@ export class ModerationManager extends BaseManager {
         this.requireNonEmptyString(userId, "userId");
         const path = `/users/${encodeURIComponent(userId)}/report`;
         try {
-            await this.withRetry(async () => {
-                await this.request<void>({
-                    method: Method.Post,
-                    path: path,
-                    body: body,
-                    prefix: ClientPrefix.V3,
-                });
-            }, { idempotent: false, label: "reportUser" });
+            await this.withRetry(
+                async () => {
+                    await this.request<void>({
+                        method: Method.Post,
+                        path: path,
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    });
+                },
+                { idempotent: false, label: "reportUser" },
+            );
         } catch (error) {
             throw this.normalizeError(error, "reportUser");
         }

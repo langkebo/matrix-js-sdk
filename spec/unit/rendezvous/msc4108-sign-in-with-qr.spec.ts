@@ -18,13 +18,9 @@ describe("MSC4108SignInWithQR", () => {
             const qr = new MSC4108SignInWithQR({} as never, true, mockClient);
             const result = await qr.generateQrLoginToken();
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                "POST",
-                "/login/qr_token",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v1" },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith("POST", "/login/qr_token", undefined, undefined, {
+                prefix: "/_matrix/client/v1",
+            });
             expect(result.login_token).toBe("token123");
             expect(result.expires_in_ms).toBe(5000);
         });

@@ -68,7 +68,10 @@ describe("FT-102: DehydratedDeviceManager HTTP 方法与路径匹配后端路由
     });
 
     it("getDevice 使用 GET /dehydrated_device（路径不含 device_id，后端基于 auth_user.user_id）", async () => {
-        authedRequest.mockResolvedValue({ device_id: "DEV123", device_data: { algorithm: "m.megolm.v1", account: "x" } });
+        authedRequest.mockResolvedValue({
+            device_id: "DEV123",
+            device_data: { algorithm: "m.megolm.v1", account: "x" },
+        });
         await manager.getDevice("DEV123");
 
         const call = authedRequest.mock.calls[0];

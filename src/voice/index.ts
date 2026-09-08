@@ -238,14 +238,17 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         this.requireNonEmptyString(request.content, "Content");
         this.requireNonEmptyString(request.content_type, "Content type");
         try {
-            const response = await this.withRetry(async () => {
-                return await this.request<IVoiceUploadResponse>({
-                    method: Method.Post,
-                    path: "/voice/upload",
-                    body: request,
-                    prefix,
-                });
-            }, { idempotent: false, label: "uploadVoiceMessage" });
+            const response = await this.withRetry(
+                async () => {
+                    return await this.request<IVoiceUploadResponse>({
+                        method: Method.Post,
+                        path: "/voice/upload",
+                        body: request,
+                        prefix,
+                    });
+                },
+                { idempotent: false, label: "uploadVoiceMessage" },
+            );
             this.emit(VoiceEvent.MessageUploaded, response);
             return response;
         } catch (e) {
@@ -268,10 +271,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
-    public async deleteVoiceMessage(
-        messageId: string,
-        prefix: string = VendorPrefix,
-    ): Promise<IVoiceDeleteResponse> {
+    public async deleteVoiceMessage(messageId: string, prefix: string = VendorPrefix): Promise<IVoiceDeleteResponse> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
             const response = await this.withRetry(async () => {

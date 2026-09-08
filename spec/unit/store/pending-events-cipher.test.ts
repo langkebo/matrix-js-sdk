@@ -5,13 +5,7 @@ describe("ISSUE-08c pending events cipher", () => {
     const sample = [{ type: "m.room.message", content: { body: "secret pending msg" } }];
 
     async function makeKey(): Promise<CryptoKey> {
-        return crypto.subtle.importKey(
-            "raw",
-            new Uint8Array(32),
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"],
-        );
+        return crypto.subtle.importKey("raw", new Uint8Array(32), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
     }
 
     it("encrypts then decrypts round-trips to original", async () => {

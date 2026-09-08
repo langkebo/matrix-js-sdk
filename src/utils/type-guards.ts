@@ -238,9 +238,9 @@ export function isNotFoundError(error: unknown): error is import("../errors").No
  * See: https://nodejs.org/api/errors.html#common-system-errors
  */
 const TIMEOUT_ERROR_CODES = new Set([
-    "ETIMEDOUT",       // Connection timed out
+    "ETIMEDOUT", // Connection timed out
     "ESOCKETTIMEDOUT", // Socket timeout (TLS/TCP-level)
-    "ETIME",           // Operation timed out
+    "ETIME", // Operation timed out
 ] as const);
 
 /**
@@ -259,7 +259,10 @@ const TIMEOUT_ERROR_CODES = new Set([
  * ```
  */
 export function isNetworkErrorCode(code: string | undefined): boolean {
-    return code !== undefined && TIMEOUT_ERROR_CODES.has(code as (typeof TIMEOUT_ERROR_CODES extends Set<infer T> ? T : never));
+    return (
+        code !== undefined &&
+        TIMEOUT_ERROR_CODES.has(code as typeof TIMEOUT_ERROR_CODES extends Set<infer T> ? T : never)
+    );
 }
 
 /**

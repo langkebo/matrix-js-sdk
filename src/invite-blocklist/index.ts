@@ -280,6 +280,9 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     public async getInvitePermissionConfig(): Promise<InvitePermissionConfigContent | null> {
         try {
             return await this.client.getAccountDataFromServer(EventType.InvitePermissionConfig);
+            // 未设置时服务端返回 404；读取失败一律降级为"未配置"（null）并记录 warn，
+            // 以免阻断邀请流程。调用方按 null 走默认允许策略。
+            // @swallow-error { owner: "invite-blocklist", expires: "2026-12-31" }
         } catch (error) {
             logger.warn("InviteBlocklistManager.getInvitePermissionConfig failed:", error);
             return null;

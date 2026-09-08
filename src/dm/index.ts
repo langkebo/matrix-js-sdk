@@ -38,7 +38,12 @@ import { DMEvent, type DirectMessageManagerEventMap } from "./events";
 import { DmRoomListManager } from "./sub-managers/dm-room-list-manager";
 import { DmRoomCreationManager } from "./sub-managers/dm-room-creation-manager";
 import { DmRoomOperationManager } from "./sub-managers/dm-room-operation-manager";
-import type { DmRoomInfo, IDirectRoomsMap, DmPartnerResponse, DmRoomCheckResponse } from "./sub-managers/dm-room-list-types";
+import type {
+    DmRoomInfo,
+    IDirectRoomsMap,
+    DmPartnerResponse,
+    DmRoomCheckResponse,
+} from "./sub-managers/dm-room-list-types";
 import type {
     CreateDmOptions,
     CreateDmRoomResponse,

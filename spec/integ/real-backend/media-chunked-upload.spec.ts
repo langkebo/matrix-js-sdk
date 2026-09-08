@@ -104,9 +104,7 @@ describe("ISSUE-04 media chunked upload (real backend)", () => {
         await sleep(500);
         const completeResp = await withRateLimitRetry(() => mediaManager.completeChunkUpload(uploadId));
         expect(completeResp.content_uri).toBeTruthy();
-        console.log(
-            `ISSUE-04: completeChunkUpload content_uri=${completeResp.content_uri}, size=${completeResp.size}`,
-        );
+        console.log(`ISSUE-04: completeChunkUpload content_uri=${completeResp.content_uri}, size=${completeResp.size}`);
 
         // 4. download 并验证字节
         const downloadUrl = mediaManager.getDownloadUrl(completeResp.content_uri);

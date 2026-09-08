@@ -71,6 +71,11 @@ export default defineConfig({
         maxForks: 2,
         minForks: 1,
         execArgv: ["--max-old-space-size=4096"],
-        exclude: ["**/node_modules/**", "**/dist/**", "**/spec/integ/real-backend/**", "**/spec/integ/crypto/cross-signing.spec.ts"],
+        exclude: [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/spec/integ/real-backend/**",
+            "**/spec/integ/crypto/cross-signing.spec.ts",
+        ],
     },
 });

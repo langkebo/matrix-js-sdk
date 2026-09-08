@@ -72,6 +72,9 @@ export class PendingEventsCipher {
         try {
             const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, this.key, ciphertext);
             return JSON.parse(new TextDecoder().decode(plaintext));
+            // 解密/解析失败（密钥轮换后旧 blob、数据损坏）时降级为空队列并记录 warn，
+            // 避免单条坏数据阻塞待发事件的读取。
+            // @swallow-error { owner: "store", expires: "2026-12-31" }
         } catch (err) {
             logger.warn("Failed to decrypt pending events blob, treating as empty", err);
             return [];
