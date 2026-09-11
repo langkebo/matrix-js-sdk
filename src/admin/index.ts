@@ -260,6 +260,8 @@ export interface AdminManager {
         userId: string,
         options?: { password?: string; displayname?: string; admin?: boolean; deactivated?: boolean },
     ): Promise<AdminAccountDetails>;
+    /** 重新激活已停用用户（PUT /v2/users/{userId} { deactivated: false }） */
+    activateUser(userId: string): Promise<AdminAccountDetails>;
     deactivateUser(userId: string): Promise<void>;
     deleteUser(userId: string): Promise<void>;
     batchCreateUsers(payload: BatchCreateUsersRequest): Promise<BatchCreateUsersResponse>;

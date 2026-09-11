@@ -57,6 +57,7 @@ import { MatrixClient } from "../../client";
 
 export enum AdminUserEvent {
     UserCreated = "UserCreated",
+    UserActivated = "UserActivated",
     UserDeactivated = "UserDeactivated",
     UserShadowBanned = "UserShadowBanned",
     UserUnshadowBanned = "UserUnshadowBanned",
@@ -64,6 +65,7 @@ export enum AdminUserEvent {
 
 export interface AdminUserEventMap {
     [AdminUserEvent.UserCreated]: (userId: string, user: AdminAccountDetails) => void;
+    [AdminUserEvent.UserActivated]: (userId: string, user: AdminAccountDetails) => void;
     [AdminUserEvent.UserDeactivated]: (userId: string) => void;
     [AdminUserEvent.UserShadowBanned]: (userId: string) => void;
     [AdminUserEvent.UserUnshadowBanned]: (userId: string) => void;
@@ -191,6 +193,29 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
 
         this.emit(AdminUserEvent.UserCreated, userId, user);
+        return user;
+    }
+
+    /**
+     * 重新激活已停用的用户。
+     *
+     * 走 Admin v2 的 upsert 语义：`PUT /_synapse/admin/v2/users/{userId}` + `{ deactivated: false }`。
+     * 与 `deactivateUser()`（v1 `POST .../deactivate`）不是同一条路由，故不能互相替代。
+     *
+     * @param userId - 目标用户 ID
+     * @returns 更新后的用户详情
+     */
+    async activateUser(userId: string): Promise<AdminAccountDetails> {
+        AdminValidators.validateUserId(userId);
+
+        const user = await this.v2Request<AdminAccountDetails>(
+            Method.Put,
+            `/v2/users/${encodeURIComponent(userId)}`,
+            undefined,
+            { deactivated: false },
+        );
+
+        this.emit(AdminUserEvent.UserActivated, userId, user);
         return user;
     }
 

@@ -301,6 +301,10 @@
         "./rendezvous": {
             "import": "./lib/rendezvous/index.js",
             "types": "./lib/rendezvous/index.d.ts"
+        },
+        "./threading": {
+            "import": "./lib/threading/index.js",
+            "types": "./lib/threading/index.d.ts"
         }
     },
     "sideEffects": false,
