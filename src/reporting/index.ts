@@ -83,6 +83,11 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
      * @param roomId - The room ID
      * @param eventId - The event ID
      * @param score - The score (-100 to 0)
+     *
+     * @example
+     * ```typescript
+     * await client.getReportingManager().scoreReport("!room:example.org", "$eventId", -50);
+     * ```
      */
     public async scoreReport(roomId: string, eventId: string, score: number): Promise<void> {
         const path = utils.encodeUri("/rooms/$roomId/report/$eventId/score", {

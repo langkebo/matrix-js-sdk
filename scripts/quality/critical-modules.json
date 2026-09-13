@@ -1,0 +1,15 @@
+{
+    "note": "Single source of truth for the 'critical module' coverage set. Consumed by scripts/quality/check-critical-coverage.mjs (CI gate) and scripts/quality-report.mjs (reporting) so the two can no longer disagree — before 2026-09-13 they listed 5 and 8 modules respectively. `floorPercent` is a ratchet minimum measured from a real coverage run; raise it when coverage improves, and never lower it without explaining why in the commit message. `targetPercent` is the aspiration for every module.",
+    "measuredAt": "2026-09-13",
+    "targetPercent": 90,
+    "modules": [
+        { "path": "src/admin/index.ts", "floorPercent": 71 },
+        { "path": "src/auth/index.ts", "floorPercent": 87 },
+        { "path": "src/dm/index.ts", "floorPercent": 72 },
+        { "path": "src/event/EventManager.ts", "floorPercent": 99 },
+        { "path": "src/push/index.ts", "floorPercent": 89 },
+        { "path": "src/room/RoomManager.ts", "floorPercent": 92 },
+        { "path": "src/room-summary/index.ts", "floorPercent": 76 },
+        { "path": "src/space/index.ts", "floorPercent": 77 }
+    ]
+}

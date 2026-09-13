@@ -74,6 +74,11 @@ export default defineConfig({
         exclude: [
             "**/node_modules/**",
             "**/dist/**",
+            // Compiled test copies from `pnpm build`. Without this, `vitest run` also
+            // executes `lib/**/*.spec.js` + `acceptance.spec.js`, so the number of files
+            // and tests depends on whether you happened to build first — the same commit
+            // produced 405 or 365 files depending on build state (2026-09-13 review).
+            "**/lib/**",
             "**/spec/integ/real-backend/**",
             "**/spec/integ/crypto/cross-signing.spec.ts",
         ],

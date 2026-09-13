@@ -245,9 +245,14 @@ function collectTrackedReferences() {
     );
 }
 
-function collectChangedFiles(baseRef) {
+export function collectChangedFiles(baseRef) {
     if (process.env.JSDOC_PUBLIC_API_FULL_SCAN === "1") return null;
-    if (!baseRef) return new Set();
+    // No base ref => we cannot scope, so scan EVERYTHING (`null` means "no filter").
+    // Returning an empty Set here used to filter every issue away, which made this
+    // gate pass vacuously whenever GITHUB_BASE_SHA was unset — including in the
+    // systemic-refactor workflow, which never set it. See the 2026-09-13 maturity
+    // review (P1-6); 43 real gaps had accumulated behind that hole.
+    if (!baseRef) return null;
     try {
         const output = execFileSync("git", ["diff", "--name-only", "--diff-filter=AMR", `${baseRef}...HEAD`], {
             cwd: projectRoot,

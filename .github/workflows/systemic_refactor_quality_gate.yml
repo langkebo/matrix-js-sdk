@@ -48,9 +48,10 @@ jobs:
             - name: Unit + integration tests with coverage
               run: pnpm test --coverage
 
-            - name: Critical modules coverage >= 90%
-              env:
-                  CRITICAL_COVERAGE_THRESHOLD: "90"
+            # Per-module ratchet floors live in scripts/quality/critical-modules.json
+            # (target 90%). Do NOT set CRITICAL_COVERAGE_THRESHOLD here: forcing a flat
+            # 90% would pin six modules permanently red and hide the ratchet.
+            - name: Critical modules coverage (ratchet floors, target 90%)
               run: pnpm quality:coverage:critical
 
             - name: High severity audit gate

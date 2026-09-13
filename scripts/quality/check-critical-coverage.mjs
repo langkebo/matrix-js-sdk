@@ -2,17 +2,21 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const lcovFile = process.argv[2] ?? "coverage/lcov.info";
-const threshold = Number(process.env.CRITICAL_COVERAGE_THRESHOLD ?? "90");
 
-const criticalTargets = [
-    "src/admin/index.ts",
-    "src/dm/index.ts",
-    "src/push/index.ts",
-    "src/space/index.ts",
-    "src/room-summary/index.ts",
-];
+// Shared with quality-report.mjs so the two can never disagree about which modules
+// are "critical" (they used to list 5 and 8 respectively).
+const criticalConfig = JSON.parse(
+    fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "critical-modules.json"), "utf8"),
+);
+const targetPercent = criticalConfig.targetPercent ?? 90;
+/** Explicit env override (CI sets CRITICAL_COVERAGE_THRESHOLD); otherwise per-module ratchet floor. */
+const thresholdOverride =
+    process.env.CRITICAL_COVERAGE_THRESHOLD !== undefined ? Number(process.env.CRITICAL_COVERAGE_THRESHOLD) : null;
+const requiredFor = (entry) => thresholdOverride ?? entry.floorPercent ?? targetPercent;
+const criticalTargets = criticalConfig.modules;
 
 function parseLcov(content) {
     const records = new Map();
@@ -63,15 +67,21 @@ const projectRoot = process.cwd().replaceAll("\\", "/");
 const records = parseLcov(fs.readFileSync(lcovFile, "utf8"));
 
 const failures = [];
-for (const target of criticalTargets) {
-    const absTarget = path.resolve(projectRoot, target).replaceAll("\\", "/");
-    const record = records.get(absTarget);
+for (const entry of criticalTargets) {
+    const target = entry.path;
+    // lcov `SF:` records are repo-relative (`src/...`). Looking up only the absolute
+    // form made this gate unable to find ANY record — it was permanently red and was
+    // misread as "stale coverage" during the 2026-09-13 review. Accept both forms.
+    const relativeTarget = target.replaceAll("\\", "/");
+    const absoluteTarget = path.resolve(projectRoot, target).replaceAll("\\", "/");
+    const record = records.get(relativeTarget) ?? records.get(absoluteTarget);
+    const required = requiredFor(entry);
     if (!record) {
         failures.push(`${target}: missing coverage record`);
         continue;
     }
-    if (record.ratio < threshold) {
-        failures.push(`${target}: ${record.ratio.toFixed(2)}% < ${threshold}%`);
+    if (record.ratio < required) {
+        failures.push(`${target}: ${record.ratio.toFixed(2)}% < ${required}%`);
     }
 }
 
@@ -83,4 +93,6 @@ if (failures.length > 0) {
     process.exit(1);
 }
 
-console.log(`[critical-coverage] all critical modules meet >= ${threshold}% line coverage`);
+console.log(
+    `[critical-coverage] ${criticalTargets.length} critical module(s) meet their ratchet floor (target ${targetPercent}%)`,
+);

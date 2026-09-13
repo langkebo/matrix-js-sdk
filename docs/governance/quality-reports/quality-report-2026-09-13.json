@@ -1,0 +1,157 @@
+{
+  "timestamp": "2026-09-13T04:27:58.963Z",
+  "version": "1.0.0",
+  "metrics": {
+    "coverage": {
+      "lines": {
+        "total": 27691,
+        "covered": 23176,
+        "percentage": "83.70",
+        "threshold": 70,
+        "passed": true
+      },
+      "branches": {
+        "total": 14997,
+        "covered": 11269,
+        "percentage": "75.14",
+        "threshold": 60,
+        "passed": true
+      },
+      "functions": {
+        "total": 7608,
+        "covered": 6264,
+        "percentage": "82.33",
+        "threshold": 70,
+        "passed": true
+      },
+      "fileCount": 582
+    },
+    "criticalCoverage": {
+      "modules": [
+        {
+          "file": "src/admin/index.ts",
+          "coverage": "71.43",
+          "threshold": 71,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/auth/index.ts",
+          "coverage": "87.90",
+          "threshold": 87,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/dm/index.ts",
+          "coverage": "72.31",
+          "threshold": 72,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/event/EventManager.ts",
+          "coverage": "99.13",
+          "threshold": 99,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/push/index.ts",
+          "coverage": "89.01",
+          "threshold": 89,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/room/RoomManager.ts",
+          "coverage": "92.56",
+          "threshold": 92,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/room-summary/index.ts",
+          "coverage": "76.17",
+          "threshold": 76,
+          "target": 90,
+          "passed": true
+        },
+        {
+          "file": "src/space/index.ts",
+          "coverage": "77.94",
+          "threshold": 77,
+          "target": 90,
+          "passed": true
+        }
+      ],
+      "passed": true,
+      "threshold": 90
+    },
+    "complexity": {
+      "clientTs": {
+        "lines": 4130,
+        "functionCount": 341,
+        "baseline": 9044,
+        "reduction": "54.3"
+      }
+    },
+    "security": {
+      "error": "pnpm audit failed"
+    },
+    "technicalDebt": {
+      "summary": {
+        "TODO": 0,
+        "FIXME": 0,
+        "HACK": 0,
+        "XXX": 0
+      },
+      "total": 0,
+      "baseline": 181,
+      "reduction": "100.0",
+      "topFiles": []
+    },
+    "managerMigration": {
+      "total": 100,
+      "migrated": 97,
+      "coverage": "97.0",
+      "threshold": 95,
+      "passed": true,
+      "nonMigrated": [
+        {
+          "file": "/src/admin/index.ts",
+          "class": "AdminManager"
+        },
+        {
+          "file": "/src/push-notifications/index.ts",
+          "class": "PushNotificationsManager"
+        },
+        {
+          "file": "/src/room-list/index.ts",
+          "class": "RoomListManager"
+        }
+      ]
+    },
+    "anyTypeUsage": {
+      "colonAny": 80,
+      "asAny": 6,
+      "total": 86,
+      "baseline": 208,
+      "reduction": "58.7"
+    },
+    "tests": {
+      "testFiles": 2234,
+      "totalTests": 5638,
+      "passedTests": 5638,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "duration": "NaNs",
+      "passed": true
+    }
+  },
+  "summary": {
+    "overallHealth": "healthy",
+    "passedChecks": 6,
+    "totalChecks": 6
+  }
+}

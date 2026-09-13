@@ -106,6 +106,23 @@ export class ThirdPartyManager extends BaseManager {
 
     /**
      * 获取支持的第三方协议
+     *
+     * @param options - 错误处理选项；传入 `boolean` 时等价于 `{ throwOnError }`（默认 `{}`，即抛出错误）
+     * @returns 第三方协议数组，每项包含协议名 `protocol` 及协议详情；请求失败且 `throwOnError` 为 false 时返回空数组
+     *
+     * @example
+     * ```typescript
+     * // 获取 homeserver 支持的全部第三方协议
+     * const protocols = await thirdPartyManager.getProtocols();
+     * for (const protocol of protocols) {
+     *     console.log(`${protocol.protocol}: ${protocol.icon}`);
+     * }
+     *
+     * // 失败时不抛出错误，返回空数组
+     * const safeProtocols = await thirdPartyManager.getProtocols({ throwOnError: false });
+     * ```
+     *
+     * @throws {SDKError} 当请求失败且 `throwOnError` 为 true（默认）时
      */
     async getProtocols(options: ErrorHandlingOptions | boolean = {}): Promise<ThirdPartyProtocol[]> {
         try {
@@ -120,6 +137,27 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取指定第三方协议的详细信息
+     *
+     * @param protocol - 协议名称，取自 `getProtocols()` 返回项的 `protocol` 字段，例如 `"irc"`
+     * @param options - 错误处理选项；传入 `boolean` 时等价于 `{ throwOnError }`（默认 `{}`，即抛出错误）
+     * @returns 协议详情（包含协议名 `protocol`）；请求失败且 `throwOnError` 为 false 时返回 null
+     *
+     * @example
+     * ```typescript
+     * // 查询 irc 协议的字段定义
+     * const protocol = await thirdPartyManager.getProtocol("irc");
+     * if (protocol) {
+     *     console.log(protocol.icon, protocol.location_fields);
+     * }
+     *
+     * // 失败时返回 null 而不是抛出错误
+     * const maybeProtocol = await thirdPartyManager.getProtocol("unknown", { throwOnError: false });
+     * ```
+     *
+     * @throws {SDKError} 当请求失败且 `throwOnError` 为 true（默认）时
+     */
     async getProtocol(
         protocol: string,
         options: ErrorHandlingOptions | boolean = {},
@@ -142,6 +180,28 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
+    /**
+     * 在指定第三方协议中按字段搜索位置
+     *
+     * @param protocol - 协议名称，例如 `"irc"`
+     * @param params - 搜索字段键值对，字段名由该协议的 `location_fields` 定义，例如 `{ search_term: "Berlin" }`
+     * @param throwOnError - 请求失败时是否抛出错误（默认 true；传 false 时记录警告并返回空数组）
+     * @returns 匹配的第三方位置列表；失败且 `throwOnError` 为 false 时返回空数组
+     *
+     * @example
+     * ```typescript
+     * // 在 irc 协议中搜索名为 Berlin 的位置
+     * const locations = await thirdPartyManager.searchLocations("irc", { search_term: "Berlin" });
+     * for (const location of locations) {
+     *     console.log(location.alias, location.fields);
+     * }
+     *
+     * // 失败时返回空数组，不中断调用方
+     * const safeLocations = await thirdPartyManager.searchLocations("irc", { search_term: "Berlin" }, false);
+     * ```
+     *
+     * @throws {SdkError} 当请求失败且 `throwOnError` 为 true（默认）时
+     */
     async searchLocations(
         protocol: string,
         params: ThirdPartySearchParams,
@@ -159,6 +219,28 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
+    /**
+     * 在指定第三方协议中按字段搜索用户
+     *
+     * @param protocol - 协议名称，例如 `"irc"`
+     * @param params - 搜索字段键值对，字段名由该协议的 `user_fields` 定义，例如 `{ userid: "@alice:example.org" }`
+     * @param throwOnError - 请求失败时是否抛出错误（默认 true；传 false 时记录警告并返回空数组）
+     * @returns 匹配的第三方用户列表；失败且 `throwOnError` 为 false 时返回空数组
+     *
+     * @example
+     * ```typescript
+     * // 在 irc 协议中按用户 ID 搜索
+     * const users = await thirdPartyManager.searchUsers("irc", { userid: "@alice:example.org" });
+     * for (const user of users) {
+     *     console.log(user.userid, user.display_name);
+     * }
+     *
+     * // 失败时返回空数组，不中断调用方
+     * const safeUsers = await thirdPartyManager.searchUsers("irc", { userid: "@alice:example.org" }, false);
+     * ```
+     *
+     * @throws {SdkError} 当请求失败且 `throwOnError` 为 true（默认）时
+     */
     async searchUsers(
         protocol: string,
         params: ThirdPartySearchParams,
@@ -176,6 +258,25 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
+    /**
+     * 在所有第三方协议中按字段搜索位置
+     *
+     * @param params - 搜索字段键值对，例如 `{ search_term: "Berlin" }`（默认 `{}`）
+     * @param options - 错误处理选项；传入 `boolean` 时等价于 `{ throwOnError }`（默认 `{}`，即抛出错误）
+     * @returns 匹配的第三方位置列表；请求失败且 `throwOnError` 为 false 时返回空数组
+     *
+     * @example
+     * ```typescript
+     * // 跨协议搜索位置
+     * const locations = await thirdPartyManager.searchAllLocations({ search_term: "Berlin" });
+     * console.log(`${locations.length} location(s) found`);
+     *
+     * // 失败时不抛出错误，返回空数组
+     * const safeLocations = await thirdPartyManager.searchAllLocations({ search_term: "Berlin" }, false);
+     * ```
+     *
+     * @throws {SDKError} 当请求失败且 `throwOnError` 为 true（默认）时
+     */
     async searchAllLocations(
         params: ThirdPartySearchParams = {},
         options: ErrorHandlingOptions | boolean = {},
@@ -195,6 +296,25 @@ export class ThirdPartyManager extends BaseManager {
         }
     }
 
+    /**
+     * 在所有第三方协议中按字段搜索用户
+     *
+     * @param params - 搜索字段键值对，例如 `{ search_term: "alice" }`（默认 `{}`）
+     * @param options - 错误处理选项；传入 `boolean` 时等价于 `{ throwOnError }`（默认 `{}`，即抛出错误）
+     * @returns 匹配的第三方用户列表；请求失败且 `throwOnError` 为 false 时返回空数组
+     *
+     * @example
+     * ```typescript
+     * // 跨协议搜索用户
+     * const users = await thirdPartyManager.searchAllUsers({ search_term: "alice" });
+     * console.log(`${users.length} user(s) found`);
+     *
+     * // 失败时不抛出错误，返回空数组
+     * const safeUsers = await thirdPartyManager.searchAllUsers({ search_term: "alice" }, false);
+     * ```
+     *
+     * @throws {SDKError} 当请求失败且 `throwOnError` 为 true（默认）时
+     */
     async searchAllUsers(
         params: ThirdPartySearchParams = {},
         options: ErrorHandlingOptions | boolean = {},

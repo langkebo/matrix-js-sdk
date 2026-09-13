@@ -40,6 +40,14 @@ export class ModerationManager extends BaseManager {
     /**
      * 举报事件
      * 对应 POST /_matrix/client/v3/rooms/{room_id}/report/{event_id}
+     *
+     * @example
+     * ```typescript
+     * await client.getModerationManager().reportEvent("!room:example.org", "$eventId", {
+     *     reason: "spam",
+     *     score: -50,
+     * });
+     * ```
      */
     async reportEvent(roomId: string, eventId: string, body: ReportEventBody): Promise<void> {
         this.requireNonEmptyString(roomId, "roomId");
@@ -65,6 +73,13 @@ export class ModerationManager extends BaseManager {
     /**
      * 举报房间
      * 对应 POST /_matrix/client/v3/rooms/{room_id}/report
+     *
+     * @example
+     * ```typescript
+     * await client.getModerationManager().reportRoom("!room:example.org", {
+     *     reason: "spam",
+     * });
+     * ```
      */
     async reportRoom(roomId: string, body: ReportEventBody): Promise<void> {
         this.requireNonEmptyString(roomId, "roomId");
@@ -135,6 +150,14 @@ export class ModerationManager extends BaseManager {
     /**
      * 获取扫描器信息
      * 对应 GET /_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getModerationManager().getScannerInfo("!room:example.org", "$eventId");
+     * if (info.enabled) {
+     *     console.log(info.version, info.supported_algorithms);
+     * }
+     * ```
      */
     async getScannerInfo(roomId: string, eventId: string): Promise<ScannerInfo> {
         this.requireNonEmptyString(roomId, "roomId");

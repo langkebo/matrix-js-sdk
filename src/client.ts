@@ -1835,6 +1835,41 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         content: TimelineEvents[K],
         txnId?: string,
     ): Promise<ISendEventResponse>;
+    /**
+     * Send a Matrix timeline event, optionally into a thread.
+     *
+     * Call the four-argument form to send into the room's main timeline, or the
+     * five-argument form with a `threadId` to send the event into a thread.
+     *
+     * @param roomId - The room to send the event to.
+     * @param threadId - The thread to send the event into, or `null` for the main timeline.
+     *   Omitted entirely when calling the four-argument form.
+     * @param eventType - The event type, for example `m.room.message`.
+     * @param content - The event content.
+     * @param txnId - An optional ID to deduplicate requests in case of repeated attempts.
+     * @returns Promise which resolves: to an object containing the new event's `event_id`.
+     * @returns Rejects: with an error response if the event could not be sent.
+     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
+     * @see MatrixSafetyError
+     * @example
+     * ```typescript
+     * // Send an event into the room's main timeline.
+     * await client.sendEvent("!abcdef:example.org", "m.room.message", {
+     *     msgtype: "m.text",
+     *     body: "Hello world",
+     * });
+     *
+     * // Send an event into a thread (pass the thread's root event ID second).
+     * const threadId = "$root-event:example.org";
+     * await client.sendEvent("!abcdef:example.org", threadId, "m.room.message", {
+     *     msgtype: "m.text",
+     *     body: "Hello from a thread",
+     * });
+     *
+     * // Pass an explicit transaction ID so a retry is deduplicated by the server.
+     * await client.sendEvent("!abcdef:example.org", "m.room.message", { msgtype: "m.text", body: "Hi" }, "txn-1");
+     * ```
+     */
     public sendEvent(
         roomId: string,
         threadIdOrEventType: string | null,
@@ -2645,6 +2680,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @example
+     * ```typescript
+     * // Mark the user as typing for 5 seconds.
+     * await client.sendTyping("!abcdef:example.org", true, 5000);
+     *
+     * // Stop showing the user as typing.
+     * await client.sendTyping("!abcdef:example.org", false, 0);
+     * ```
      */
     public sendTyping(roomId: string, isTyping: boolean, timeoutMs: number): Promise<EmptyObject> {
         return this.getTypingManager().sendTyping(roomId, isTyping, timeoutMs);
@@ -2654,6 +2697,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get typing users in a room
      * @param roomId - The room ID
      * @returns Array of user IDs currently typing
+     * @example
+     * ```typescript
+     * const typingUserIds = await client.getRoomTyping("!abcdef:example.org");
+     * console.log("Currently typing:", typingUserIds);
+     * ```
      */
     public async getRoomTyping(roomId: string): Promise<string[]> {
         return this.getRoomManager().getRoomTyping(roomId);
@@ -2663,6 +2711,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get typing users in multiple rooms
      * @param roomIds - Array of room IDs
      * @returns Map of room ID to array of typing user IDs
+     * @example
+     * ```typescript
+     * const typingByRoom = await client.getBatchTyping(["!abcdef:example.org", "!ghijkl:example.org"]);
+     * for (const [roomId, userIds] of Object.entries(typingByRoom)) {
+     *     console.log(`${roomId}: ${userIds.length} user(s) typing`);
+     * }
+     * ```
      */
     public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>> {
         return this.getRoomManager().getBatchTyping(roomIds);

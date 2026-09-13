@@ -127,6 +127,28 @@ export class KeyRotationManager extends BaseManager {
         super(client, opts);
     }
 
+    /**
+     * Get the current encryption key rotation status for the logged-in user.
+     *
+     * The result is cached for 30 seconds; pass `forceRefresh` to bypass the cache
+     * and query the backend again.
+     *
+     * @param forceRefresh - When `true`, skip the cached status and re-fetch it from the server. Defaults to `false`.
+     * @returns The rotation status, including whether rotation is enabled, the raw
+     *     server status payload and the timestamp of the user's last rotation.
+     *
+     * @example
+     * ```typescript
+     * const manager = client.getKeyRotationManager();
+     * const status = await manager.getStatus(true);
+     * if (status.enabled) {
+     *     console.log(`current key: ${status.status.current_key_id}`);
+     *     console.log(`next rotation at: ${status.status.next_rotation_at}`);
+     * }
+     * ```
+     *
+     * @throws {ApiError} If the API call fails.
+     */
     public async getStatus(forceRefresh = false): Promise<KeyRotationStatus> {
         if (!forceRefresh && this.statusCache && this.statusCache.expiresAt > Date.now()) {
             return this.statusCache.value;
@@ -148,6 +170,28 @@ export class KeyRotationManager extends BaseManager {
         return result;
     }
 
+    /**
+     * Manually rotate the current encryption key.
+     *
+     * Clears the cached status so that the next `getStatus` call reflects the new key.
+     *
+     * @param request - Optional rotation request; `request.key_id` pins the rotation to the
+     *     given key. Defaults to an empty object.
+     * @returns The rotation result, including whether a new key was created and, when
+     *     available, its identifier and rotation timestamp.
+     *
+     * @example
+     * ```typescript
+     * const manager = client.getKeyRotationManager();
+     * const result = await manager.rotateKey({ key_id: "key-v1" });
+     * if (result.has_new_key) {
+     *     console.log(`rotated to ${result.key_id} at ${result.rotated_at}`);
+     * }
+     * ```
+     *
+     * @throws {ValidationError} If `request.key_id` is provided but empty.
+     * @throws {ApiError} If the API call fails.
+     */
     public async rotateKey(request: RotateKeyRequest = {}): Promise<RotateKeyResponse> {
         if (request.key_id !== undefined) {
             this.requireNonEmptyString(request.key_id, "key_id");
@@ -166,6 +210,28 @@ export class KeyRotationManager extends BaseManager {
         return result;
     }
 
+    /**
+     * Get the key rotation history for a device.
+     *
+     * @param deviceId - The device ID whose rotation history should be fetched.
+     * @param options - Optional pagination options for the history request.
+     * @param options.limit - Maximum number of entries to return; must be a positive integer.
+     * @param options.from - Pagination token returned by a previous call.
+     * @returns The rotation history for the device.
+     *
+     * @example
+     * ```typescript
+     * const manager = client.getKeyRotationManager();
+     * const history = await manager.getRotationHistory("DEVICEID", { limit: 10 });
+     * for (const entry of history.rotations) {
+     *     console.log(`${entry.key_id} rotated at ${entry.rotated_ts}`);
+     * }
+     * ```
+     *
+     * @throws {ValidationError} If `deviceId` or `options.from` is empty.
+     * @throws {InvalidParamError} If `options.limit` is not a positive integer.
+     * @throws {ApiError} If the API call fails.
+     */
     public async getRotationHistory(
         deviceId: string,
         options: GetRotationHistoryOptions = {},
@@ -192,6 +258,25 @@ export class KeyRotationManager extends BaseManager {
         }, "getRotationHistory");
     }
 
+    /**
+     * Revoke an encryption key.
+     *
+     * Clears the cached status so that the next `getStatus` call reflects the revocation.
+     *
+     * @param request - The revocation request; `request.reason` optionally records why the
+     *     key was revoked.
+     * @returns The revocation result, including the number of keys that were revoked.
+     *
+     * @example
+     * ```typescript
+     * const manager = client.getKeyRotationManager();
+     * const result = await manager.revokeKey({ key_id: "key-1", reason: "compromised" });
+     * console.log(`${result.revoked} key(s) revoked: ${result.message}`);
+     * ```
+     *
+     * @throws {ValidationError} If `request.key_id` or `request.reason` is empty.
+     * @throws {ApiError} If the API call fails.
+     */
     public async revokeKey(request: RevokeKeyRequest): Promise<RevokeKeyResponse> {
         this.requireNonEmptyString(request.key_id, "key_id");
         if (request.reason !== undefined) {
@@ -211,6 +296,26 @@ export class KeyRotationManager extends BaseManager {
         return result;
     }
 
+    /**
+     * Update the key rotation configuration.
+     *
+     * Clears the cached status so that the next `getStatus` call uses the new configuration.
+     *
+     * @param request - The configuration to apply; `request.enabled` toggles rotation and
+     *     `request.interval_ms` sets the rotation interval in milliseconds.
+     * @returns The configuration as applied by the server.
+     *
+     * @example
+     * ```typescript
+     * const manager = client.getKeyRotationManager();
+     * const config = await manager.updateConfig({ enabled: true, interval_ms: 86400000 });
+     * console.log(`rotation enabled: ${config.enabled}, interval: ${config.interval_ms}ms`);
+     * ```
+     *
+     * @throws {InvalidParamError} If `request.enabled` is not a boolean or `request.interval_ms`
+     *     is not a positive integer.
+     * @throws {ApiError} If the API call fails.
+     */
     public async updateConfig(request: UpdateRotationConfigRequest): Promise<UpdateRotationConfigResponse> {
         if (request.enabled !== undefined && typeof request.enabled !== "boolean") {
             throw new InvalidParamError("enabled must be a boolean");
@@ -278,6 +383,25 @@ export class KeyRotationManager extends BaseManager {
         return result;
     }
 
+    /**
+     * Check whether a key is still valid or needs rotation.
+     *
+     * @param keyId - The identifier of the key to check.
+     * @returns The check result, including whether the key needs rotation, when it was last
+     *     rotated and the configured rotation interval.
+     *
+     * @example
+     * ```typescript
+     * const manager = client.getKeyRotationManager();
+     * const check = await manager.checkKeyValidity("key-v1");
+     * if (check.needs_rotation) {
+     *     console.log(`key must be rotated (last rotation: ${check.last_rotation})`);
+     * }
+     * ```
+     *
+     * @throws {ValidationError} If `keyId` is empty.
+     * @throws {ApiError} If the API call fails.
+     */
     public async checkKeyValidity(keyId: string): Promise<KeyCheckResponse> {
         this.requireNonEmptyString(keyId, "keyId");
 

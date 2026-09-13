@@ -23,3 +23,12 @@ export function findMissingJSDocExamples(
 ): Array<ContractPublicApiReference & { reason: string; implementationFile?: string }>;
 
 export function filterIssuesByChangedFiles(issues: any[], changedFiles: Set<string> | null): any[];
+
+/**
+ * Resolve the diff scope for the gate.
+ *
+ * Returns `null` when there is nothing to diff against (no base ref) — and `null`
+ * means "no filter", i.e. scan everything. Returning an empty Set instead made the
+ * whole gate vacuous, which is the regression this export exists to make testable.
+ */
+export function collectChangedFiles(baseRef: string | undefined): Set<string> | null;

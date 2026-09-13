@@ -188,16 +188,13 @@ function collectCoverageMetrics() {
 }
 
 function collectCriticalCoverage() {
-    const criticalTargets = [
-        "src/admin/index.ts",
-        "src/dm/index.ts",
-        "src/push/index.ts",
-        "src/space/index.ts",
-        "src/room-summary/index.ts",
-        "src/room/RoomManager.ts",
-        "src/event/EventManager.ts",
-        "src/auth/index.ts",
-    ];
+    // Single source of truth, shared with scripts/quality/check-critical-coverage.mjs.
+    // The two used to hardcode different module lists (5 vs 8), so the report and the
+    // gate could disagree about whether the repo was healthy.
+    const criticalConfig = JSON.parse(
+        fs.readFileSync(path.join(projectRoot, "scripts", "quality", "critical-modules.json"), "utf8"),
+    );
+    const targetPercent = criticalConfig.targetPercent ?? 90;
 
     const lcovPath = path.join(projectRoot, "coverage", "lcov.info");
     if (!fs.existsSync(lcovPath)) {
@@ -207,13 +204,16 @@ function collectCriticalCoverage() {
     const records = parseLcov(fs.readFileSync(lcovPath, "utf8"));
     const results = [];
 
-    for (const target of criticalTargets) {
+    for (const entry of criticalConfig.modules) {
+        const target = entry.path;
+        const required = entry.floorPercent ?? targetPercent;
         const record = records.get(target) ?? records.get(normalizeCoveragePath(path.resolve(projectRoot, target)));
         results.push({
             file: target,
             coverage: record ? record.linesRatio.toFixed(2) : "N/A",
-            threshold: 90,
-            passed: record ? record.linesRatio >= 90 : false,
+            threshold: required,
+            target: targetPercent,
+            passed: record ? record.linesRatio >= required : false,
         });
     }
 
@@ -503,11 +503,11 @@ function generateMarkdownSummary(report) {
         `| Branches | ${report.metrics.coverage.branches?.percentage || "N/A"}% | ${report.metrics.coverage.branches?.threshold || 60}% | ${report.metrics.coverage.branches?.passed ? "✅" : "❌"} |`,
         `| Functions | ${report.metrics.coverage.functions?.percentage || "N/A"}% | ${report.metrics.coverage.functions?.threshold || 70}% | ${report.metrics.coverage.functions?.passed ? "✅" : "❌"} |`,
         "",
-        "### Critical Module Coverage (>= 90%)",
-        `| Module | Coverage | Status |`,
-        `|--------|----------|--------|`,
+        `### Critical Module Coverage (target ${report.metrics.criticalCoverage?.threshold ?? 90}%, ratchet floors per module)`,
+        `| Module | Coverage | Floor | Status |`,
+        `|--------|----------|-------|--------|`,
         ...(report.metrics.criticalCoverage?.modules || []).map(
-            (m) => `| ${m.file} | ${m.coverage}% | ${m.passed ? "✅" : "❌"} |`,
+            (m) => `| ${m.file} | ${m.coverage}% | ${m.threshold}% | ${m.passed ? "✅" : "❌"} |`,
         ),
         "",
         "### Code Quality",
