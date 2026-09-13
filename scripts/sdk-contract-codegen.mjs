@@ -393,6 +393,33 @@ function resolveFullPath(method, resourcePath, sdkDir, lookups) {
  * `ROUTE_CONTRACT.md` 是人工文档、已经与 ledger 漂移（实测 13 个模块双向差集，
  * 例如 friend 表少 5 条写方法）。路径在 ledger 里已是绝对形式，直接入表。
  */
+/**
+ * 全部 ledger 条目的 `METHOD path` 集合（跨模块）。
+ *
+ * 用途（SDK-3）：`ROUTE_CONTRACT.md` 的**章节归属**与 ledger 的 `registered_by` 并不总一致
+ * （例如文档把 `/_matrix/client/r0/push/devices` 写在 push 章节，ledger 却归 `push_notification`）。
+ * 一条路径只要 ledger 已经声明过——无论归谁——就不该再由文档塞进**别的** SDK 目录的表里，
+ * 否则同一路由会在两个目录的表里各存一份（实测 push 表因此多 10 条）。
+ */
+function loadGlobalLedgerKeys() {
+    const indexPath = path.join(repoRoot, "docs", "api-contract", "generated", "index.json");
+    if (!fs.existsSync(indexPath)) return new Set();
+    const moduleNames = Object.keys(JSON.parse(fs.readFileSync(indexPath, "utf8")).modules ?? {});
+
+    const keys = new Set();
+    for (const moduleName of moduleNames) {
+        const manifestPath = path.join(repoRoot, "docs", "api-contract", "generated", "modules", `${moduleName}.json`);
+        if (!fs.existsSync(manifestPath)) continue;
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        for (const entry of manifest.entries ?? []) {
+            if (typeof entry.method === "string" && typeof entry.path === "string") {
+                keys.add(`${entry.method} ${entry.path}`);
+            }
+        }
+    }
+    return keys;
+}
+
 function loadLedgerEntriesForSdkDir(sdkDir) {
     const indexPath = path.join(repoRoot, "docs", "api-contract", "generated", "index.json");
     if (!fs.existsSync(indexPath)) return [];
@@ -1106,11 +1133,15 @@ function render(module, lookups) {
     //   3. ROUTE_CONTRACT.md：只用来补 ledger 也没有、但文档声明的路径（历史/未导出路由）。
     const seenFull = new Set();
     const entries = [];
-    for (const source of [
-        loadExistingEntries(module.sdkDir),
-        loadLedgerEntriesForSdkDir(module.sdkDir),
-        contractEntries,
-    ]) {
+    const globalLedgerKeys = loadGlobalLedgerKeys();
+    const ledgerEntriesForThisDir = loadLedgerEntriesForSdkDir(module.sdkDir);
+    const ownedByThisDir = new Set(ledgerEntriesForThisDir.map((e) => `${e.method} ${e.path}`));
+    // 文档只补「ledger 完全没声明」的路径：已由 ledger 归到别的目录的，不进本目录的表
+    const docOnlyEntries = contractEntries.filter(
+        (e) => !globalLedgerKeys.has(`${e.method} ${e.path}`) || ownedByThisDir.has(`${e.method} ${e.path}`),
+    );
+
+    for (const source of [loadExistingEntries(module.sdkDir), ledgerEntriesForThisDir, docOnlyEntries]) {
         for (const e of source) {
             const key = `${e.method} ${e.path}`;
             if (seenFull.has(key)) continue;

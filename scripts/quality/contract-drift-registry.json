@@ -1,6 +1,6 @@
 {
     "$comment": "契约差集登记表（阶段 3 · SDK-2）。比对单位是 **SDK 目录**（映射多对一，同目录的兄弟 ledger 模块取并集）：sdk-only = 表里有、任一映射到该目录的 ledger 模块都没声明；ledger-only = ledger 声明了但表里没有。每条必须写 reason + expires；修好后必须删条目，否则门禁报 stale。判定见 scripts/quality/check-contract-drift.mjs。",
-    "generatedAt": "2026-09-13T08:05:27.815Z",
+    "generatedAt": "2026-09-13T08:29:37.636Z",
     "entries": [
         {
             "key": "cas:sdk-only:GET /_matrix/client/r0/login",
@@ -115,83 +115,11 @@
             "expires": "2026-12-31"
         },
         {
-            "key": "push:sdk-only:DELETE /_matrix/client/r0/push/devices/{device_id}",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "DELETE /_matrix/client/r0/push/devices/{device_id}",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:DELETE /_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "DELETE /_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:GET /_matrix/client/r0/push/devices",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/r0/push/devices",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:GET /_matrix/client/r0/push/rules",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/r0/push/rules",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
             "key": "push:sdk-only:GET /_matrix/client/v3/pushers/",
             "dir": "push",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/pushers/",
             "reason": "末尾多一个斜杠的变体，ledger 只有 /pushers → 疑似手写笔误，SDK-3 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:POST /_matrix/client/r0/push/devices",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/client/r0/push/devices",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:POST /_matrix/client/r0/push/rules",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/client/r0/push/rules",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:POST /_matrix/client/r0/push/send",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/client/r0/push/send",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:POST /_synapse/admin/v1/push/cleanup",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "POST /_synapse/admin/v1/push/cleanup",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:POST /_synapse/admin/v1/push/process",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "POST /_synapse/admin/v1/push/process",
-            "reason": "属 ledger 的 push_notification 模块 —— 它映射到 src/notifications（该目录的表已含这 9 条且无差集），push 表里是历史手抄副本 → SDK-3 从 push 表移除",
             "expires": "2026-12-31"
         },
         {

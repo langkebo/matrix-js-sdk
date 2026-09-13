@@ -4,7 +4,7 @@
  *
  * Module:        Push 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       37 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       28 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `push` module (mirrored from the backend contract). */
@@ -37,15 +37,6 @@ export const PUSH_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled" },
     { method: "PUT", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled" },
     { method: "GET", path: "/_matrix/client/v3/pushers/" },
-    { method: "DELETE", path: "/_matrix/client/r0/push/devices/{device_id}" },
-    { method: "DELETE", path: "/_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}" },
-    { method: "GET", path: "/_matrix/client/r0/push/devices" },
-    { method: "GET", path: "/_matrix/client/r0/push/rules" },
-    { method: "POST", path: "/_matrix/client/r0/push/devices" },
-    { method: "POST", path: "/_matrix/client/r0/push/rules" },
-    { method: "POST", path: "/_matrix/client/r0/push/send" },
-    { method: "POST", path: "/_synapse/admin/v1/push/cleanup" },
-    { method: "POST", path: "/_synapse/admin/v1/push/process" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `PUSH_ROUTES`. */

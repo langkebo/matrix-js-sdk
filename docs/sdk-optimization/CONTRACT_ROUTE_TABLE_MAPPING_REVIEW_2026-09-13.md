@@ -196,6 +196,20 @@ ledger 有、表里没有的 5 条（正好都是写方法）：
   **每个目录的表必须覆盖该目录承载的全部 ledger 路由**（改了 ledger 不重新 codegen 即红）、
   friend 那 5 条写方法在表里、生成头注释写明三源合并、三个子管理器都用 `friendPath()`。
 
+### SDK-3 实施记录（2026-09-13）
+
+- codegen 新增一条**归属规则**：文档（`ROUTE_CONTRACT.md`）只补「ledger 完全没声明」的路径 ——
+  一条路由只要 ledger 已声明（无论归哪个模块），就不再由文档塞进**别的** SDK 目录的表里
+  （文档的章节归属与 ledger 的 `registered_by` 并不一致，push 章节里就写着 `push_notification` 的 7 条）。
+- 按该规则**一次性剪掉** `src/push/__generated__/route-table.ts` 里那 9 条属 `push_notification` 的历史条目
+  （后者在 `src/notifications/` 表里本来就有，且是 ledger 派生的）。剪完重新 codegen **不会复活**
+  （已实测 `grep -c "r0/push/"` = 0），`tsc --noEmit` 一次通过 —— 说明它们确实没有调用点。
+  push 表 37 → 28 条，该目录 sdk-only 漂移 10 → **1**（只剩 `/pushers/`，见 B-10）。
+- 登记表随清理收缩：94 → **85** 条（9 条按 stale 规则删除）。
+- 顺带查实 **B-10**：`/pushers/`（带尾斜杠）是 `push.rs:16` 真实注册的路由（GET+POST），
+  ledger 里没有、文档只有 GET —— 与 B-8 同一类「router 有、manifest 无」，因此 SDK 表里这条
+  既不能删也不该删（它是真实路由），只能等后端补 ledger。
+
 > 更正：`msc4108_rendezvous` 那条**不是漂移**（见 §3 表格与 B-4 撤回）——`src/rendezvous` 目录同时承载 `msc4108_rendezvous` 与 `rendezvous` 两个 ledger 模块，两族路径各有声明。这也解释了为什么差集门禁必须**按目录 + 兄弟模块并集**比对。
 
 ---
@@ -213,6 +227,8 @@ ledger 有、表里没有的 5 条（正好都是写方法）：
 | **B-7**     | （提示）`registered_by` 的语义是"注册文件"而不是"功能模块"，这与 SDK 的按功能分目录假设天然错位                                                                                                                                                                                                                                                                                                      | `route_ledger.rs:58-64` 注释 + §1 的事实表                                          | 短期靠 B-1 个案解决；中期可考虑给 `RouteEntry` 增加显式 `owner`/`feature` 字段，把"谁注册的"与"属于哪个功能面"分开                            |
 | **B-8**     | **ledger 漏声明 11 条已注册路由**（worker）：`worker.rs` 的 router 注册 26 条 `/_synapse/worker/v1/*`，而 `worker_route_manifest()` 只声明 15 条；缺的 11 条恰好**等于** SDK 表里那 11 条 sdk-only —— 即 SDK 表是对的、ledger 不全。这违反 ledger 自己的贡献规则（"不要把只接在 Axum 装配里的路由合进来"），且启动时的重复校验与 manifest→router 的 405 探测都抓不到"router 有、manifest 无"这个方向 | `worker.rs:692+`（26 条）vs `modules/worker.json`（15 条）                          | 让 manifest 与 router 注册**同表派生**，或加一条"模块 router 路径数 == manifest 条目数"的单测                                                 |
 | **B-9**     | 7 条 admin media 路由被声明成 `/_matrix/media/v3/_synapse/admin/v1/media*`（**双前缀**），后端实际只提供 `/_synapse/admin/v1/media_callbacks` 等；SDK 侧对这些路径**零调用点**                                                                                                                                                                                                                       | `src/media/__generated__/route-table.ts` 的 9 条 sdk-only；后端 `module.rs:880-913` | 确认从未存在则从 SDK 表删除（SDK-5）；若历史存在过，请在契约文档记录迁移                                                                      |
+
+| **B-10** | **ledger 又漏了一条真实路由**：`push.rs:16` 注册 `.route("/pushers/", get(get_pushers).post(set_pusher))`（带尾斜杠，GET+POST），但 ledger 的 `push` 模块里**没有** `/pushers/`（只有 `/pushers`），文档只列了 `GET /pushers/`。这是 B-8 同类问题（router 有、manifest 无），也解释了 SDK push 表里那条 `/pushers/` 为何既不在 ledger 也无法删除 | `push.rs:16` vs `modules/push.json` | 与 B-8 同一修法：让 manifest 与 router 注册同表派生 |
 
 ---
 
