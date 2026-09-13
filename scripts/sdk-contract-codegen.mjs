@@ -43,6 +43,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRACT_INDEX.md");
 
+/**
+ * Modules whose route table is deliberately NOT generated.
+ *
+ * These managers build their HTTP paths by hand and import nothing from
+ * `__generated__/route-table` (verified by `scripts/quality/check-manager-codegen-coverage.mjs`,
+ * which greps for the import), so emitting a table would add dead code and a false sense of
+ * contract coverage. They are *not* free passes: the coverage gate keeps one waiver per entry
+ * (with a reason + expiry) and still fails any module that is not listed here.
+ *
+ * Adding a module here without cleaning up the manager means the next contract drift in that
+ * module is silent — prefer migrating the manager onto the generated table instead.
+ */
 const SKIP_ROUTE_TABLE_MODULES = new Set([
     "admin",
     "app-service",

@@ -70,7 +70,7 @@ pnpm contract:sync                    # Sync route manifests from docs/api-contr
 pnpm contract:check                   # Verify contract docs are in sync
 pnpm contract:codegen                 # Regenerate __generated__ route tables from contract manifests
 pnpm contract:codegen:check           # Verify generated route tables match manifests (CI gate)
-pnpm quality:contracts                # Run all 7 contract quality gates
+pnpm quality:contracts                # Run all 8 contract quality gates
 pnpm quality:report                   # Full quality report
 pnpm quality:type-coverage            # Check type coverage (no new `any` regressions)
 pnpm quality:swallow-fallbacks        # Detect empty catch blocks

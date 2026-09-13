@@ -177,15 +177,32 @@ function scanDebtItems() {
 }
 
 function writeInventory(items) {
+    const summary = {
+        total: items.length,
+        todo: items.filter((item) => item.markerType === "TODO").length,
+        fixme: items.filter((item) => item.markerType === "FIXME").length,
+        hack: items.filter((item) => item.markerType === "HACK").length,
+        xxx: items.filter((item) => item.markerType === "XXX").length,
+    };
+
+    // This gate runs as part of `pnpm lint`, and rewriting `generatedAt` on every run
+    // left the tracked inventory dirty after every lint (plus merge noise on every PR)
+    // even when the scan found the same items. Keep the previous timestamp when only
+    // the clock changed, so the file is byte-identical for an identical scan.
+    let previous = null;
+    try {
+        previous = JSON.parse(fs.readFileSync(outputJsonPath, "utf8"));
+    } catch {
+        previous = null;
+    }
+    const unchanged =
+        previous !== null &&
+        JSON.stringify(previous.summary) === JSON.stringify(summary) &&
+        JSON.stringify(previous.items) === JSON.stringify(items);
+
     const payload = {
-        generatedAt: new Date().toISOString(),
-        summary: {
-            total: items.length,
-            todo: items.filter((item) => item.markerType === "TODO").length,
-            fixme: items.filter((item) => item.markerType === "FIXME").length,
-            hack: items.filter((item) => item.markerType === "HACK").length,
-            xxx: items.filter((item) => item.markerType === "XXX").length,
-        },
+        generatedAt: unchanged ? previous.generatedAt : new Date().toISOString(),
+        summary,
         items,
     };
     fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
