@@ -56,12 +56,6 @@ const LEDGER_MODULE_ALIASES = {
     "worker-body": "worker_body",
 };
 
-const MANAGER_NAME_ALIASES = {
-    appservice: ["applicationservice"],
-    featureflags: ["featureflag"],
-    module: ["admin"],
-};
-
 /**
  * Ledger module name → SDK directory overrides.
  *
@@ -107,6 +101,9 @@ const WAIVED_MODULES = {
     },
 };
 
+/** The pre-existing heuristic for "this file talks to the server". */
+const RUNTIME_CALL_RE = /withRetry\(|\.authedRequest\(|\.requestOtherUrl\(|\.request\(|http\.|this\.client\.\w+\(/;
+
 function walk(dir, predicate = () => true, acc = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const fullPath = path.join(dir, entry.name);
@@ -119,58 +116,6 @@ function walk(dir, predicate = () => true, acc = []) {
     return acc;
 }
 
-function findAllManagerClasses() {
-    const managers = new Map();
-    const tsFiles = walk(srcDir, (filePath) => filePath.endsWith(".ts") && !filePath.endsWith(".d.ts"));
-
-    for (const filePath of tsFiles) {
-        const relativePath = path.relative(srcDir, filePath);
-        const content = fs.readFileSync(filePath, "utf8");
-        const classMatches = [...content.matchAll(/export\s+(?:default\s+)?class\s+(\w*Manager)\b/g)];
-        if (classMatches.length === 0) continue;
-
-        const hasRuntimeCalls =
-            /withRetry\(|\.authedRequest\(|\.requestOtherUrl\(|\.request\(|http\.|this\.client\.\w+\(/g.test(content);
-        const endpointCount = (
-            content.match(/withRetry\(|\.authedRequest\(|\.requestOtherUrl\(|\.request\(|this\.client\.\w+\(/g) || []
-        ).length;
-        // A manager can consume the generated contract at the TYPE level (e.g.
-        // `src/background-update` constrains its path helper with
-        // `BackgroundUpdatePathPattern`) without containing any of the HTTP-call syntax
-        // above. The old heuristic missed that and reported a false gap.
-        const importsRouteTable = /__generated__\/route-table/.test(content);
-
-        for (const match of classMatches) {
-            managers.set(match[1], {
-                file: relativePath,
-                hasRuntimeCalls,
-                importsRouteTable,
-                consumesCodegen: hasRuntimeCalls || importsRouteTable,
-                endpointCount,
-            });
-        }
-    }
-
-    return managers;
-}
-
-function findCodegenDirs() {
-    const result = {};
-    const topDirs = fs
-        .readdirSync(srcDir, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && !entry.name.startsWith("__"))
-        .map((entry) => entry.name);
-
-    for (const dir of topDirs) {
-        const routeTablePath = path.join(srcDir, dir, "__generated__", "route-table.ts");
-        if (!fs.existsSync(routeTablePath)) continue;
-        const content = fs.readFileSync(routeTablePath, "utf8");
-        result[dir] = (content.match(/\{\s*method:\s*"/g) || []).length;
-    }
-
-    return result;
-}
-
 function findSdkDirForModule(moduleName) {
     if (LEDGER_MODULE_TO_SDK_DIR[moduleName]) return LEDGER_MODULE_TO_SDK_DIR[moduleName];
     for (const [sdkDir, ledgerModule] of Object.entries(LEDGER_MODULE_ALIASES)) {
@@ -179,53 +124,102 @@ function findSdkDirForModule(moduleName) {
     return moduleName;
 }
 
-function hasSupportingManager(moduleName, sdkDir, managers) {
-    const normalizedSdkDir = sdkDir.toLowerCase().replace(/-/g, "");
-    const needles = new Set([
-        moduleName.toLowerCase(),
-        normalizedSdkDir,
-        ...(MANAGER_NAME_ALIASES[normalizedSdkDir] || []),
-    ]);
+function moduleSourceFiles(sdkDir, srcRoot) {
+    const files = [];
+    const dir = path.join(srcRoot, sdkDir);
+    if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
+        files.push(
+            ...walk(
+                dir,
+                (filePath) =>
+                    filePath.endsWith(".ts") &&
+                    !filePath.endsWith(".d.ts") &&
+                    !filePath.includes(`${path.sep}__generated__${path.sep}`),
+            ),
+        );
+    }
+    // Flat modules keep their implementation as a sibling FILE (`src/sliding-sync.ts`),
+    // not a directory — the route table still lives in `src/sliding-sync/__generated__/`.
+    for (const flat of [`${sdkDir}.ts`, `${sdkDir}.tsx`]) {
+        const flatPath = path.join(srcRoot, flat);
+        if (fs.existsSync(flatPath)) files.push(flatPath);
+    }
+    return files;
+}
 
-    for (const [managerName, info] of managers) {
-        const lowerManagerName = managerName.toLowerCase();
-        const bareManagerName = lowerManagerName.replace(/manager$/, "");
-        if ([...needles].some((needle) => lowerManagerName.includes(needle) || needle.includes(bareManagerName))) {
-            if (info.consumesCodegen) return true;
+/**
+ * Collect consumer evidence for one module directory.
+ *
+ * The previous rule matched manager CLASS NAMES against the module name with
+ * `needle.includes(bareManagerName)`, so `sliding_sync` counted as "covered" because
+ * `SyncManager` (`"slidingsync".includes("sync")`) lives in `src/sync-management/` — a
+ * different module entirely. Name collisions of that kind silently authorise a module with
+ * no consumer at all, so the decision is now based on evidence inside the module:
+ *
+ *   strong — a file in the module consumes its generated `__generated__/route-table`;
+ *   weak   — a file in the module makes HTTP calls (it may consume the table through a
+ *            helper, so this still counts, but it is reported separately).
+ */
+export function collectCodegenConsumers(sdkDir, srcRoot = srcDir) {
+    const strong = [];
+    const weak = [];
+
+    for (const filePath of moduleSourceFiles(sdkDir, srcRoot)) {
+        const content = fs.readFileSync(filePath, "utf8");
+        const relativePath = path.relative(srcRoot, filePath);
+        if (/__generated__\/route-table/.test(content)) {
+            strong.push(relativePath);
+            continue;
         }
+        if (RUNTIME_CALL_RE.test(content)) weak.push(relativePath);
     }
 
-    return false;
+    return { strong, weak };
+}
+
+/** Route count of a module's generated table (0 = no table generated). */
+export function countRouteTableEntries(sdkDir, srcRoot = srcDir) {
+    const routeTablePath = path.join(srcRoot, sdkDir, "__generated__", "route-table.ts");
+    if (!fs.existsSync(routeTablePath)) return 0;
+    return (fs.readFileSync(routeTablePath, "utf8").match(/\{\s*method:\s*"/g) || []).length;
 }
 
 /**
  * Classify one ledger module's codegen coverage.
  *
  * Exported so the allowlist + expiry rules can be unit-tested without running the gate.
- * `hasCodegen` is the generated route count (`0` = no table), `missing` is the only
- * status that fails the build; `waived` requires a live waiver, so an expired entry
- * turns back into a failure instead of rotting silently.
+ * `hasCodegen` is the generated route count (`0` = no table); `consumers` comes from
+ * `collectCodegenConsumers`. `missing` is the only status that fails the build; `waived`
+ * requires a live waiver, so an expired entry turns back into a failure instead of rotting
+ * silently.
  */
-export function classifyModuleCoverage(moduleName, { hasCodegen, hasManager, today = new Date() }) {
-    if (hasCodegen && hasManager) return { status: "covered" };
-
+export function classifyModuleCoverage(
+    moduleName,
+    { hasCodegen, consumers = { strong: [], weak: [] }, today = new Date() },
+) {
     const waiver = WAIVED_MODULES[moduleName];
+    const hasConsumer = consumers.strong.length > 0 || consumers.weak.length > 0;
+
+    if (hasCodegen > 0 && hasConsumer) {
+        return { status: "covered", evidence: consumers.strong.length > 0 ? "route-table-import" : "runtime-calls" };
+    }
+
     if (waiver) {
         if (new Date(waiver.expires) >= today) return { status: "waived", waiver };
         return { status: "missing", reason: "EXPIRED_WAIVER", waiver };
     }
-    return { status: "missing", reason: hasCodegen ? "MISSING_MANAGER" : "NO_CODEGEN" };
+
+    return { status: "missing", reason: hasCodegen > 0 ? "NO_CONSUMER" : "NO_CODEGEN" };
 }
 
 function main() {
     const generatedIndex = JSON.parse(fs.readFileSync(generatedIndexPath, "utf8"));
-    const managers = findAllManagerClasses();
-    const codegenDirs = findCodegenDirs();
 
     const summary = {
-        totalManagerClasses: managers.size,
-        codegenModules: Object.keys(codegenDirs).length,
+        codegenModules: 0,
         covered: 0,
+        strong: [],
+        weak: [],
         waived: 0,
         missing: 0,
         umbrella: [],
@@ -234,15 +228,15 @@ function main() {
         waivedModules: [],
     };
 
-    console.log(`Total manager classes found: ${summary.totalManagerClasses}`);
-    console.log(`\nCodegen modules: ${summary.codegenModules}`);
     console.log("\n=== Module Coverage Analysis ===");
 
     const today = new Date();
+    const usedWaivers = new Set();
 
     for (const [moduleName, moduleInfo] of Object.entries(generatedIndex.modules)) {
         const sdkDir = findSdkDirForModule(moduleName);
-        const hasCodegen = codegenDirs[sdkDir] || 0;
+        const hasCodegen = countRouteTableEntries(sdkDir);
+        if (hasCodegen > 0) summary.codegenModules += 1;
 
         if (moduleName === "assembly") {
             summary.umbrella.push({ moduleName, routes: moduleInfo.entry_count });
@@ -252,18 +246,21 @@ function main() {
             continue;
         }
 
-        const hasManager = hasSupportingManager(moduleName, sdkDir, managers);
-        const verdict = classifyModuleCoverage(moduleName, { hasCodegen, hasManager, today });
+        const consumers = collectCodegenConsumers(sdkDir);
+        const verdict = classifyModuleCoverage(moduleName, { hasCodegen, consumers, today });
 
         if (verdict.status === "covered") {
             summary.covered += 1;
             summary.coveredModules.push(moduleName);
+            if (verdict.evidence === "route-table-import") summary.strong.push(moduleName);
+            else summary.weak.push(moduleName);
             continue;
         }
 
         if (verdict.status === "waived") {
             summary.waived += 1;
             summary.waivedModules.push(moduleName);
+            usedWaivers.add(moduleName);
             console.log(
                 `  WAIVED: ${moduleName} (${moduleInfo.entry_count} routes) -> ${verdict.waiver.reason}; expires ${verdict.waiver.expires}`,
             );
@@ -282,31 +279,41 @@ function main() {
             console.log(
                 `  EXPIRED_WAIVER: ${moduleName} (${moduleInfo.entry_count} routes) -> expired ${verdict.waiver.expires} (${verdict.waiver.reason})`,
             );
-        } else if (verdict.reason === "MISSING_MANAGER") {
+        } else if (verdict.reason === "NO_CONSUMER") {
             console.log(
-                `  MISSING: ${moduleName} (${moduleInfo.entry_count} routes) -> codegen=${sdkDir} (${hasCodegen} endpoints)`,
+                `  NO_CONSUMER: ${moduleName} (${moduleInfo.entry_count} routes) -> generated ${sdkDir}/__generated__/route-table.ts (${hasCodegen} endpoints) has no consumer in src/${sdkDir}`,
             );
         } else {
             console.log(`  NO_CODEGEN: ${moduleName} (${moduleInfo.entry_count} routes)`);
         }
     }
 
+    // A waiver that is no longer needed is debt of its own: the module either gained real
+    // coverage (delete the entry) or was renamed (the waiver now protects nothing).
+    const unusedWaivers = Object.keys(WAIVED_MODULES).filter((name) => !usedWaivers.has(name));
+
     const effectiveTotal = summary.covered + summary.missing;
     const coverageRate = effectiveTotal === 0 ? "100.0" : ((summary.covered / effectiveTotal) * 100).toFixed(1);
 
-    console.log(`\nCovered: ${summary.covered}, Waived: ${summary.waived}, Missing: ${summary.missing}`);
+    console.log(`\nCOVERED (route-table import, ${summary.strong.length}): ${summary.strong.join(", ")}`);
+    console.log(`COVERED (runtime calls only, ${summary.weak.length}): ${summary.weak.join(", ")}`);
+    console.log(`Covered: ${summary.covered}, Waived: ${summary.waived}, Missing: ${summary.missing}`);
     console.log(
         `Coverage rate: ${coverageRate}% (${summary.covered}/${effectiveTotal} modules consume codegen; ` +
             `${summary.waived} documented non-consumer(s))`,
     );
 
-    if (summary.missing > 0) {
+    if (unusedWaivers.length > 0) {
+        console.error(`\nUnused waiver(s) in WAIVED_MODULES — delete them: ${unusedWaivers.join(", ")}`);
+    }
+
+    if (summary.missing > 0 || unusedWaivers.length > 0) {
         process.exitCode = 1;
     }
 }
 
-// Guarded so the module can be imported by tests (which exercise
-// `classifyModuleCoverage`) without running the gate and mutating `process.exitCode`.
+// Guarded so the module can be imported by tests (which exercise the exported helpers)
+// without running the gate and mutating `process.exitCode`.
 if (import.meta.url === `file://${process.argv[1]}`) {
     main();
 }
