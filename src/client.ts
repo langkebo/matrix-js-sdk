@@ -192,6 +192,7 @@ import { type Transport } from "./matrix-rtc/index";
 import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";
+import { buildEditContent, buildReplyContent, normalizeThreadBodyArgs } from "./client-message-composition.ts";
 import { dispatchDelayedStateEventRequest, dispatchStateEventRequest } from "./client-send-state";
 import { prepareSendEventParams, type PreparedSendEventParams } from "./client-send-event";
 import { normalizeRedactEventArgs, normalizeThreadHtmlArgs } from "./client-send-args";
@@ -2157,21 +2158,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         content: RoomMessageEventContent,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        if (event.getRoomId() !== roomId) {
-            throw new Error("Cannot reply to an event in a different room");
-        }
-
-        content = {
-            ...content,
-            "m.relates_to": {
-                ...(content["m.relates_to"] ?? {}),
-                "m.in_reply_to": {
-                    event_id: event.getId()!,
-                },
-            },
-        } as RoomMessageEventContent;
-
-        return this.sendMessage(roomId, event.threadRootId ?? null, content, txnId);
+        // 关系构建与房间校验已抽到 client-message-composition.ts（P3-5）
+        return this.sendMessage(roomId, event.threadRootId ?? null, buildReplyContent(roomId, event, content), txnId);
     }
 
     /**
@@ -2193,23 +2181,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         content: RoomMessageEventContent,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        if (event.getRoomId() !== roomId) {
-            throw new Error("Cannot edit an event in a different room");
-        }
-
-        content = {
-            ...content,
-            "m.new_content": {
-                ...content,
-            },
-            "m.relates_to": {
-                ...(content["m.relates_to"] ?? {}),
-                rel_type: RelationType.Replace,
-                event_id: event.getId()!,
-            },
-        } as RoomMessageEventContent;
-
-        return this.sendMessage(roomId, event.threadRootId ?? null, content, txnId);
+        // 关系构建与房间校验已抽到 client-message-composition.ts（P3-5）
+        return this.sendMessage(roomId, event.threadRootId ?? null, buildEditContent(roomId, event, content), txnId);
     }
 
     public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
@@ -2225,19 +2198,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        let threadId: string | null;
-        let body: string;
-        let actualTxnId: string | undefined;
-
-        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
-            threadId = null;
-            body = threadIdOrBody;
-            actualTxnId = bodyOrTxnId;
-        } else {
-            threadId = threadIdOrBody;
-            body = bodyOrTxnId!;
-            actualTxnId = txnId;
-        }
+        const { threadId, body, txnId: actualTxnId } = normalizeThreadBodyArgs(threadIdOrBody, bodyOrTxnId, txnId);
 
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body }, actualTxnId);
     }
@@ -2255,19 +2216,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        let threadId: string | null;
-        let body: string;
-        let actualTxnId: string | undefined;
-
-        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
-            threadId = null;
-            body = threadIdOrBody;
-            actualTxnId = bodyOrTxnId;
-        } else {
-            threadId = threadIdOrBody;
-            body = bodyOrTxnId!;
-            actualTxnId = txnId;
-        }
+        const { threadId, body, txnId: actualTxnId } = normalizeThreadBodyArgs(threadIdOrBody, bodyOrTxnId, txnId);
 
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body }, actualTxnId);
     }
@@ -2285,19 +2234,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        let threadId: string | null;
-        let body: string;
-        let actualTxnId: string | undefined;
-
-        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
-            threadId = null;
-            body = threadIdOrBody;
-            actualTxnId = bodyOrTxnId;
-        } else {
-            threadId = threadIdOrBody;
-            body = bodyOrTxnId!;
-            actualTxnId = txnId;
-        }
+        const { threadId, body, txnId: actualTxnId } = normalizeThreadBodyArgs(threadIdOrBody, bodyOrTxnId, txnId);
 
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body }, actualTxnId);
     }

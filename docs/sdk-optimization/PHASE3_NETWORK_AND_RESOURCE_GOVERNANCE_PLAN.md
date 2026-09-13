@@ -216,6 +216,25 @@ interval 都被清掉、`clientWellKnownIntervalID` 未设置时不会 `clearInt
 
 ---
 
+### 5.1 实施记录（2026-09-13，第一批：消息组合）
+
+先用脚本量化：`client.ts` **4129 行 / 355 个方法**；按域聚类后最大的一块是「发送/消息组合」
+（41 个方法、710 行，其中 32 个含真实逻辑）。进一步看代码发现**发送的内部流程其实早已抽出**
+（`prepareSendCompleteEventLifecycle` / `encryptAndSendEventWorkflow` / `dispatchSendEventHttpRequest`），
+client.ts 里剩的是薄适配层 —— 所以第一批挑了另一个更有价值的目标：**消息组合的纯逻辑**。
+
+- 新增 `src/client-message-composition.ts`：
+  `normalizeThreadBodyArgs()`（这段「第一个参数是 threadId 还是 body」的判断原先在
+  `sendTextMessage` / `sendNotice` / `sendEmoteMessage` **一字不差抄了三遍**）、
+  `buildReplyContent()`、`buildEditContent()`（含「不能回复/编辑别的房间的事件」校验）。
+- `client.ts` 的 5 个公开方法改为转发：**8 行新增 / 71 行删除**，4129 → **4066 行**。
+- 先写测试再实现：`spec/unit/client-message-composition.spec.ts` 9 例（两参/三参形式、
+  null threadId、无 txnId、回复保留既有 `m.relates_to`、编辑写入 `m.new_content` 并保留原字段、
+  跨房间抛错）。这三处逻辑此前**没有直接单测**（只能通过整体发送路径间接覆盖）。
+- 口径提醒：这一批的价值在「去重 + 可测」，不在行数（只减 63 行）。client.ts 剩下的体量主要是
+  构造函数（115 行）与大量一行转发；继续拆需要更大、更险的搬迁（发送重载族、同步编排），
+  建议后续按子域单独开批次。
+
 ## 6. 与阶段 2 遗留的衔接
 
 ### 6.1 ADR-0005 的 DTO 改形（DTO-1/2/3）
