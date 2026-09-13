@@ -438,6 +438,11 @@ export interface RoomAccountDataEvents extends SecretStorageAccountDataEvents {
 /**
  * Content of the `m.invite_permission_config` global account data event (MSC4155).
  * Controls whether the user receives invites by default, with optional server/user exceptions.
+ *
+ * **Draft against synapse-rust**: the backing server does not implement MSC4155
+ * invite filtering — it borrows the `msc4155` namespace for its thread
+ * subscription endpoints — so writing this event has no server-side effect.
+ * See `docs/MSC_SEMANTICS.md`.
  */
 export interface InvitePermissionConfigContent {
     /** "allow" = receive invites by default; "block" = reject invites by default. */

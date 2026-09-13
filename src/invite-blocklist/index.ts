@@ -275,7 +275,22 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     /**
      * Get the user's invite permission config (MSC4155).
      * Reads the global account data event `m.invite_permission_config`.
+     *
+     * **Draft — not implemented by synapse-rust.** The backend borrows the
+     * `msc4155` namespace for its thread-subscription endpoints and does not
+     * implement MSC4155 invite filtering, so this read is never served with a
+     * meaningful value: an unset event 404s and is treated as "not configured"
+     * (`null`). No invite filtering is applied server-side. See
+     * `docs/MSC_SEMANTICS.md`.
+     *
      * @returns the config content, or null if it is not set / cannot be read.
+     * @example
+     * ```typescript
+     * const config = await client.getInviteBlocklistManager().getInvitePermissionConfig();
+     * if (config?.default_action === "block") {
+     *     console.log("invites blocked by default (client-side policy only)");
+     * }
+     * ```
      */
     public async getInvitePermissionConfig(): Promise<InvitePermissionConfigContent | null> {
         try {
@@ -292,7 +307,19 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     /**
      * Set the user's invite permission config (MSC4155).
      * Writes the global account data event `m.invite_permission_config`.
+     *
+     * **Draft — not implemented by synapse-rust.** The event is stored as
+     * ordinary account data and the backend performs no invite filtering based
+     * on it. See `docs/MSC_SEMANTICS.md`.
+     *
      * @param content - the invite permission configuration to store.
+     * @example
+     * ```typescript
+     * await client.getInviteBlocklistManager().setInvitePermissionConfig({
+     *     default_action: "block",
+     *     user_exceptions: { "@trusted:example.org": {} },
+     * });
+     * ```
      */
     public async setInvitePermissionConfig(content: InvitePermissionConfigContent): Promise<void> {
         try {

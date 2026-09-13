@@ -4,7 +4,7 @@
  *
  * Module:        Room 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       190 (authoritative set mirrored from the backend contract)
+ * Entries:       192 (authoritative set mirrored from the backend contract)
  */
 
 /** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
@@ -199,6 +199,8 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}" },
+    { method: "GET", path: "/_matrix/client/v3/uk.half-shot.msc2666/user/mutual_rooms" },
+    { method: "GET", path: "/_matrix/client/v3/user/mutual_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_ROUTES`. */
