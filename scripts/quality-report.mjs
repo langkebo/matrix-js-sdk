@@ -224,6 +224,37 @@ function collectCriticalCoverage() {
     };
 }
 
+/**
+ * codegen 覆盖证据强度（C-2）。
+ *
+ * 直接消费 `check-manager-codegen-coverage.mjs --json`，而不是在报告里重算一遍 ——
+ * 否则"报告显示的覆盖"和"门禁判定的覆盖"迟早会漂移。这里同时给出**强证据**（src 下
+ * 有人 import 该模块的 route-table）与**弱证据**（生成了表但没人读）两栏，
+ * 避免一个"覆盖率 100%"把"这张表没人读"掩盖掉。
+ */
+function collectCodegenCoverage() {
+    const raw = runCommand("node scripts/quality/check-manager-codegen-coverage.mjs --json", true);
+    const payload = extractJsonPayload(raw);
+    if (!payload) {
+        return { available: false, covered: 0, strong: [], weak: [], waived: 0, missing: 0 };
+    }
+    try {
+        const parsed = JSON.parse(payload);
+        return {
+            available: true,
+            covered: parsed.covered ?? 0,
+            coverageRate: parsed.coverageRate ?? 0,
+            strong: parsed.strong ?? [],
+            weak: parsed.weak ?? [],
+            waived: parsed.waived ?? 0,
+            missing: parsed.missing ?? 0,
+            missingModules: parsed.missingModules ?? [],
+        };
+    } catch {
+        return { available: false, covered: 0, strong: [], weak: [], waived: 0, missing: 0 };
+    }
+}
+
 function collectComplexityMetrics() {
     const clientTsPath = path.join(projectRoot, "src", "client.ts");
     if (!fs.existsSync(clientTsPath)) {
@@ -444,6 +475,7 @@ function generateReport() {
         metrics: {
             coverage: collectCoverageMetrics(),
             criticalCoverage: collectCriticalCoverage(),
+            codegenCoverage: collectCodegenCoverage(),
             complexity: collectComplexityMetrics(),
             security: collectSecurityAudit(),
             technicalDebt: collectTechnicalDebt(),
@@ -509,6 +541,14 @@ function generateMarkdownSummary(report) {
         ...(report.metrics.criticalCoverage?.modules || []).map(
             (m) => `| ${m.file} | ${m.coverage}% | ${m.threshold}% | ${m.passed ? "✅" : "❌"} |`,
         ),
+        "",
+        "### Codegen Coverage (route-table 消费证据)",
+        `| 层级 | 数量 | 说明 |`,
+        `|------|------|------|`,
+        `| 强证据（src 下有人 import 该模块 route-table） | ${report.metrics.codegenCoverage?.strong?.length ?? "N/A"} | 跨模块导入也算，判定见 check-manager-codegen-coverage.mjs |`,
+        `| 弱证据（生成了表但没人读，已白名单说明原因） | ${report.metrics.codegenCoverage?.weak?.length ?? "N/A"} | ${(report.metrics.codegenCoverage?.weak || []).join(", ") || "（无）"} |`,
+        `| 白名单（codegen 有意跳过 / 无消费者） | ${report.metrics.codegenCoverage?.waived ?? "N/A"} | 每条带 reason + 到期日 |`,
+        `| 缺失 | ${report.metrics.codegenCoverage?.missing ?? "N/A"} | 非 0 即门禁红 |`,
         "",
         "### Code Quality",
         `| Metric | Value | Baseline | Change |`,

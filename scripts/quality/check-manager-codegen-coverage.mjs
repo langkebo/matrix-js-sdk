@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const projectRoot = process.cwd();
+/** `--json`：把判定结果交给下游（quality-report.mjs）复用，避免两处各算一遍。 */
+const shouldEmitJson = process.argv.includes("--json");
 const srcDir = path.join(projectRoot, "src");
 const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "generated", "index.json");
 
@@ -99,6 +101,21 @@ const WAIVED_MODULES = {
         reason: "private /_matrix/vendor/v1 routes owned by the friend/room managers, not a module of their own",
         expires: "2026-12-31",
     },
+    // 下面两条是 C-1 排查（2026-09-13）的结论：它们不是"名字没对上"，而是**真的没人消费自己的表**，
+    // 且原因可核验（命令见 reason）。不要用"再加一个别名"的方式把它们凑成 covered。
+    friend_room: {
+        reason:
+            "friend 模块实际调用 /_matrix/vendor/v1（VendorPrefix，见 src/friend/sub-managers/*），" +
+            "而本表列的是 /_matrix/client/{r0,v1,v3}/friends/* 旧路由；两者不相交，且 src 下无人 import 本表",
+        expires: "2026-12-31",
+    },
+    push_notification: {
+        reason:
+            "本表 10 条路由是 push 表（38 条）的**完全子集**（comm -23 无差集），" +
+            "src/notifications 消费的是 push 表（PushPathPattern，见 notifications/index.ts:27），无人 import 本表；" +
+            "要不要把 ledger 的 push_notification 也映射到 push 目录需要后端侧一起定",
+        expires: "2026-12-31",
+    },
 };
 
 /** The pre-existing heuristic for "this file talks to the server". */
@@ -147,34 +164,76 @@ function moduleSourceFiles(sdkDir, srcRoot) {
     return files;
 }
 
-/**
- * Collect consumer evidence for one module directory.
- *
- * The previous rule matched manager CLASS NAMES against the module name with
- * `needle.includes(bareManagerName)`, so `sliding_sync` counted as "covered" because
- * `SyncManager` (`"slidingsync".includes("sync")`) lives in `src/sync-management/` — a
- * different module entirely. Name collisions of that kind silently authorise a module with
- * no consumer at all, so the decision is now based on evidence inside the module:
- *
- *   strong — a file in the module consumes its generated `__generated__/route-table`;
- *   weak   — a file in the module makes HTTP calls (it may consume the table through a
- *            helper, so this still counts, but it is reported separately).
- */
-export function collectCodegenConsumers(sdkDir, srcRoot = srcDir) {
-    const strong = [];
-    const weak = [];
+function listAllSources(srcRoot) {
+    return walk(srcRoot, (filePath) => filePath.endsWith(".ts") && !filePath.endsWith(".d.ts"));
+}
 
-    for (const filePath of moduleSourceFiles(sdkDir, srcRoot)) {
+/**
+ * 强证据（P3 / C-1 修正）：**src 下任何文件** import 了本模块的
+ * `<sdkDir>/__generated__/route-table`。
+ *
+ * 前一版只在"模块自己的目录"里找导入，于是把**跨模块消费**误判成弱证据：
+ *   - `sync` 的表被 `client-batch-requests.ts` / `client-secure-backup-requests.ts` 导入；
+ *   - `account_data` 的表被 `client-batch-requests.ts` 导入；
+ *   - `search` 的表被 `client-crypto-requests.ts` / `client-secure-backup-requests.ts` 导入；
+ *   - `sliding_sync` 的表被 `room/RoomManager.ts` 导入（用它约束 simplified_msc3575 的 /sync）。
+ * 这些 import 都真的用于 `StripV3<XPathPattern>` 式的路径断言，不是装饰。判定改为按
+ * **import 说明符解析后的落点**比对（而不是文件名相似），指向别处的导入不算。
+ */
+export function findStrongConsumers(sdkDir, srcRoot = srcDir) {
+    const target = `${sdkDir}/__generated__/route-table`;
+    const hits = [];
+
+    for (const filePath of listAllSources(srcRoot)) {
+        const relativePath = normalizePath(path.relative(srcRoot, filePath));
+        if (relativePath.startsWith(`${sdkDir}/__generated__/`)) continue;
+
         const content = fs.readFileSync(filePath, "utf8");
-        const relativePath = path.relative(srcRoot, filePath);
-        if (/__generated__\/route-table/.test(content)) {
-            strong.push(relativePath);
-            continue;
+        const specifiers = content.matchAll(/from\s+"([^"]*__generated__\/route-table)(?:\.ts)?"/g);
+        for (const match of specifiers) {
+            const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(relativePath), match[1]));
+            if (resolved === target) {
+                hits.push(relativePath);
+                break;
+            }
         }
-        if (RUNTIME_CALL_RE.test(content)) weak.push(relativePath);
     }
 
-    return { strong, weak };
+    return hits;
+}
+
+function normalizePath(value) {
+    return value.replaceAll("\\", "/");
+}
+
+/** 该文件是否含运行时 HTTP 调用（弱证据的判据，沿用既有启发式）。 */
+export function fileMakesHttpCalls(content) {
+    return RUNTIME_CALL_RE.test(content);
+}
+
+/**
+ * Collect consumer evidence for one module.
+ *
+ * 判定完全基于证据，不看类名（旧规则用 `needle.includes(bareManagerName)`，让
+ * `SyncManager` 因 `"slidingsync".includes("sync")` 给 `sliding_sync` 授权 —— 一个
+ * 位于别的模块、与 sliding sync 无关的 manager）：
+ *
+ *   strong — src 下任何文件导入本模块的 `__generated__/route-table`（跨模块也算）；
+ *   weak   — 只有模块自己的文件在发 HTTP 请求，没有任何地方导入它的表。
+ */
+export function collectCodegenConsumers(sdkDir, srcRoot = srcDir) {
+    const strong = findStrongConsumers(sdkDir, srcRoot);
+    if (strong.length > 0) {
+        return { strong, weak: [] };
+    }
+
+    const weak = [];
+    for (const filePath of moduleSourceFiles(sdkDir, srcRoot)) {
+        const content = fs.readFileSync(filePath, "utf8");
+        if (fileMakesHttpCalls(content)) weak.push(normalizePath(path.relative(srcRoot, filePath)));
+    }
+
+    return { strong: [], weak };
 }
 
 /** Route count of a module's generated table (0 = no table generated). */
@@ -187,29 +246,38 @@ export function countRouteTableEntries(sdkDir, srcRoot = srcDir) {
 /**
  * Classify one ledger module's codegen coverage.
  *
- * Exported so the allowlist + expiry rules can be unit-tested without running the gate.
- * `hasCodegen` is the generated route count (`0` = no table); `consumers` comes from
- * `collectCodegenConsumers`. `missing` is the only status that fails the build; `waived`
- * requires a live waiver, so an expired entry turns back into a failure instead of rotting
- * silently.
+ * 判定口径（C-1 修正后）：
+ *   - `hasCodegen > 0 && strong` → covered（src 下**任何**文件导入了本模块的 route-table）；
+ *   - 只有弱证据（本模块自己在发 HTTP、但没人导入它的表）→ **不算覆盖**：生成表没有任何
+ *     消费者，要么迁移成显式 import，要么进白名单写清原因。旧版把弱证据也算 covered，
+ *     于是"100% 覆盖"里混着 `friend_room`（表里是 /_matrix/client/{r0,v1,v3}/friends/... 旧路由，
+ *     代码走 /_matrix/vendor/v1，两者不相交）这种完全没人读的表；
+ *   - `waived` 需要未过期的 reason；过期即红。
  */
 export function classifyModuleCoverage(
     moduleName,
     { hasCodegen, consumers = { strong: [], weak: [] }, today = new Date() },
 ) {
     const waiver = WAIVED_MODULES[moduleName];
-    const hasConsumer = consumers.strong.length > 0 || consumers.weak.length > 0;
+    // 区分两件不同的事：`table-without-consumer` = 生成了表但 src 下无人导入（friend_room /
+    // push_notification 就是这种）；`no-table` = codegen 本来就不给这个模块生成表
+    // （9 个 SKIP 模块，原因写在白名单里）。把两者混为一谈会让"弱证据"这栏失去信息量。
+    const evidence =
+        hasCodegen === 0 ? "no-table" : consumers.weak.length > 0 ? "table-without-consumer" : "no-consumer";
 
-    if (hasCodegen > 0 && hasConsumer) {
-        return { status: "covered", evidence: consumers.strong.length > 0 ? "route-table-import" : "runtime-calls" };
+    if (hasCodegen > 0 && consumers.strong.length > 0) {
+        return { status: "covered", evidence: "route-table-import" };
     }
 
     if (waiver) {
-        if (new Date(waiver.expires) >= today) return { status: "waived", waiver };
-        return { status: "missing", reason: "EXPIRED_WAIVER", waiver };
+        if (new Date(waiver.expires) >= today) return { status: "waived", waiver, evidence };
+        return { status: "missing", reason: "EXPIRED_WAIVER", waiver, evidence };
     }
 
-    return { status: "missing", reason: hasCodegen > 0 ? "NO_CONSUMER" : "NO_CODEGEN" };
+    if (hasCodegen === 0) {
+        return { status: "missing", reason: "NO_CODEGEN" };
+    }
+    return { status: "missing", reason: "NO_CONSUMER" };
 }
 
 function main() {
@@ -228,7 +296,10 @@ function main() {
         waivedModules: [],
     };
 
-    console.log("\n=== Module Coverage Analysis ===");
+    const logLines = [];
+    const log = (line) => logLines.push(line);
+    log("");
+    log("=== Module Coverage Analysis ===");
 
     const today = new Date();
     const usedWaivers = new Set();
@@ -240,7 +311,7 @@ function main() {
 
         if (moduleName === "assembly") {
             summary.umbrella.push({ moduleName, routes: moduleInfo.entry_count });
-            console.log(
+            log(
                 `  UMBRELLA: ${moduleName} (${moduleInfo.entry_count} routes) -> governed by umbrella docs/manager mapping`,
             );
             continue;
@@ -252,8 +323,7 @@ function main() {
         if (verdict.status === "covered") {
             summary.covered += 1;
             summary.coveredModules.push(moduleName);
-            if (verdict.evidence === "route-table-import") summary.strong.push(moduleName);
-            else summary.weak.push(moduleName);
+            summary.strong.push(moduleName);
             continue;
         }
 
@@ -261,7 +331,10 @@ function main() {
             summary.waived += 1;
             summary.waivedModules.push(moduleName);
             usedWaivers.add(moduleName);
-            console.log(
+            // 弱证据（本模块自己在发 HTTP、但没人 import 它的表）单独记一栏：
+            // "覆盖率 100%" 不该掩盖"这张表没人读"。
+            if (verdict.evidence === "table-without-consumer") summary.weak.push(moduleName);
+            log(
                 `  WAIVED: ${moduleName} (${moduleInfo.entry_count} routes) -> ${verdict.waiver.reason}; expires ${verdict.waiver.expires}`,
             );
             continue;
@@ -276,15 +349,15 @@ function main() {
             codegenRoutes: hasCodegen,
         });
         if (verdict.reason === "EXPIRED_WAIVER") {
-            console.log(
+            log(
                 `  EXPIRED_WAIVER: ${moduleName} (${moduleInfo.entry_count} routes) -> expired ${verdict.waiver.expires} (${verdict.waiver.reason})`,
             );
         } else if (verdict.reason === "NO_CONSUMER") {
-            console.log(
-                `  NO_CONSUMER: ${moduleName} (${moduleInfo.entry_count} routes) -> generated ${sdkDir}/__generated__/route-table.ts (${hasCodegen} endpoints) has no consumer in src/${sdkDir}`,
+            log(
+                `  NO_CONSUMER: ${moduleName} (${moduleInfo.entry_count} routes) -> generated ${sdkDir}/__generated__/route-table.ts (${hasCodegen} endpoints) has no consumer`,
             );
         } else {
-            console.log(`  NO_CODEGEN: ${moduleName} (${moduleInfo.entry_count} routes)`);
+            log(`  NO_CODEGEN: ${moduleName} (${moduleInfo.entry_count} routes)`);
         }
     }
 
@@ -295,8 +368,33 @@ function main() {
     const effectiveTotal = summary.covered + summary.missing;
     const coverageRate = effectiveTotal === 0 ? "100.0" : ((summary.covered / effectiveTotal) * 100).toFixed(1);
 
+    const payload = {
+        codegenModules: summary.codegenModules,
+        covered: summary.covered,
+        coverageRate: Number(coverageRate),
+        strong: summary.strong,
+        weak: summary.weak,
+        waived: summary.waived,
+        waivedModules: summary.waivedModules,
+        missing: summary.missing,
+        missingModules: summary.missingModules,
+        unusedWaivers,
+        umbrella: summary.umbrella,
+    };
+
+    // 供 quality-report.mjs 等消费方复用同一份判定，避免"报告里的数字"和"门禁的判定"漂移
+    if (shouldEmitJson) {
+        process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+        if (summary.missing > 0 || unusedWaivers.length > 0) process.exitCode = 1;
+        return;
+    }
+
+    for (const line of logLines) console.log(line);
+
     console.log(`\nCOVERED (route-table import, ${summary.strong.length}): ${summary.strong.join(", ")}`);
-    console.log(`COVERED (runtime calls only, ${summary.weak.length}): ${summary.weak.join(", ")}`);
+    console.log(
+        `WAIVED 且**有表没人读**（弱证据，${summary.weak.length}）: ` + `${summary.weak.join(", ") || "（无）"}`,
+    );
     console.log(`Covered: ${summary.covered}, Waived: ${summary.waived}, Missing: ${summary.missing}`);
     console.log(
         `Coverage rate: ${coverageRate}% (${summary.covered}/${effectiveTotal} modules consume codegen; ` +

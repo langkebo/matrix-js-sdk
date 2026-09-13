@@ -44,11 +44,26 @@ describe("codegen coverage gate: module classification", () => {
         });
     });
 
-    it("covers a module whose consumer only makes runtime calls, and says so", () => {
-        expect(classifyModuleCoverage("sync", { hasCodegen: 12, consumers: WEAK, today: TODAY })).toEqual({
-            status: "covered",
-            evidence: "runtime-calls",
+    it("只发 HTTP、没人 import 表的模块不算 covered（旧版把它算进 100%）", () => {
+        expect(classifyModuleCoverage("brand_new_module", { hasCodegen: 12, consumers: WEAK, today: TODAY })).toEqual({
+            status: "missing",
+            reason: "NO_CONSUMER",
         });
+    });
+
+    it("有表没人读、但已白名单说明原因的模块 → waived，并标出证据强度", () => {
+        // friend_room / push_notification 就是这种：表生成了，src 下无人 import
+        const verdict = classifyModuleCoverage("friend_room", { hasCodegen: 89, consumers: WEAK, today: TODAY });
+
+        expect(verdict.status).toBe("waived");
+        expect(verdict.evidence).toBe("table-without-consumer");
+        expect(verdict.waiver?.reason).toMatch(/vendor|子集/);
+    });
+
+    it("本来就没有表的白名单模块标为 no-table（与'有表没人读'区分开）", () => {
+        const verdict = classifyModuleCoverage("admin", { hasCodegen: 0, consumers: NO_CONSUMERS, today: TODAY });
+
+        expect(verdict.evidence).toBe("no-table");
     });
 
     it("waives a documented non-consumer while its waiver is live", () => {
@@ -102,6 +117,46 @@ describe("codegen coverage gate: consumer evidence", () => {
                 today: TODAY,
             }),
         ).toMatchObject({ status: "missing", reason: "NO_CONSUMER" });
+    });
+
+    it("跨模块 import 也算强证据（sync/account_data/search/sliding_sync 的真实形态）", () => {
+        const root = makeSrcTree({
+            "sync/__generated__/route-table.ts": 'export const SYNC_ROUTES = [{ method: "GET", path: "/sync" }];',
+            "client-batch-requests.ts":
+                'import type { SyncPathPattern } from "./sync/__generated__/route-table";\nexport type P = SyncPathPattern;',
+        });
+
+        expect(collectCodegenConsumers("sync", root).strong).toEqual(["client-batch-requests.ts"]);
+        expect(
+            classifyModuleCoverage("sync", {
+                hasCodegen: countRouteTableEntries("sync", root),
+                consumers: collectCodegenConsumers("sync", root),
+                today: TODAY,
+            }),
+        ).toMatchObject({ status: "covered", evidence: "route-table-import" });
+    });
+
+    it("导入了**别的模块**的表不算本模块的证据（push_notification 的真实形态）", () => {
+        const root = makeSrcTree({
+            "notifications/__generated__/route-table.ts": 'export const N = [{ method: "GET", path: "/n" }];',
+            "push/__generated__/route-table.ts": 'export const P = [{ method: "GET", path: "/p" }];',
+            // notifications 目录里的文件导入的是 push 的表 —— 旧规则只看"是否 import 了某张表"，
+            // 于是把它算成 notifications 的强证据。
+            "notifications/index.ts": [
+                'import type { PushPathPattern } from "../push/__generated__/route-table";',
+                "export type Q = PushPathPattern;",
+                "export class NotificationsManager {",
+                "    async list() {",
+                "        return this.client.http.authedRequest('GET', '/notifications');",
+                "    }",
+                "}",
+            ].join("\n"),
+        });
+
+        expect(collectCodegenConsumers("notifications", root)).toEqual({
+            strong: [],
+            weak: ["notifications/index.ts"],
+        });
     });
 
     it("counts a route-table import in the module as strong evidence", () => {

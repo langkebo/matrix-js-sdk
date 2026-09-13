@@ -1,8 +1,8 @@
 # Quality KPI Report - 2026-09-13
 
-## Overall Health: HEALTHY
+## Overall Health: WARNING
 
-**Checks Passed**: 6/6
+**Checks Passed**: 5/6
 
 ### Test Coverage
 | Metric | Value | Threshold | Status |
@@ -11,17 +11,25 @@
 | Branches | 75.14% | 60% | ✅ |
 | Functions | 82.33% | 70% | ✅ |
 
-### Critical Module Coverage (>= 90%)
-| Module | Coverage | Status |
-|--------|----------|--------|
-| src/admin/index.ts | 71.43% | ✅ |
-| src/auth/index.ts | 87.90% | ✅ |
-| src/dm/index.ts | 72.31% | ✅ |
-| src/event/EventManager.ts | 99.13% | ✅ |
-| src/push/index.ts | 89.01% | ✅ |
-| src/room/RoomManager.ts | 92.56% | ✅ |
-| src/room-summary/index.ts | 76.17% | ✅ |
-| src/space/index.ts | 77.94% | ✅ |
+### Critical Module Coverage (target 90%, ratchet floors per module)
+| Module | Coverage | Floor | Status |
+|--------|----------|-------|--------|
+| src/admin/index.ts | 71.43% | 71% | ✅ |
+| src/auth/index.ts | 87.90% | 87% | ✅ |
+| src/dm/index.ts | 72.31% | 72% | ✅ |
+| src/event/EventManager.ts | 99.13% | 99% | ✅ |
+| src/push/index.ts | 89.01% | 89% | ✅ |
+| src/room/RoomManager.ts | 92.56% | 92% | ✅ |
+| src/room-summary/index.ts | 76.17% | 76% | ✅ |
+| src/space/index.ts | 77.94% | 77% | ✅ |
+
+### Codegen Coverage (route-table 消费证据)
+| 层级 | 数量 | 说明 |
+|------|------|------|
+| 强证据（src 下有人 import 该模块 route-table） | 36 | 跨模块导入也算，判定见 check-manager-codegen-coverage.mjs |
+| 弱证据（生成了表但没人读，已白名单说明原因） | 2 | friend_room, push_notification |
+| 白名单（codegen 有意跳过 / 无消费者） | 13 | 每条带 reason + 到期日 |
+| 缺失 | 0 | 非 0 即门禁红 |
 
 ### Code Quality
 | Metric | Value | Baseline | Change |
@@ -44,10 +52,10 @@
 ### Tests
 | Metric | Value |
 |--------|-------|
-| Test Files | 2234 |
-| Total Tests | 5638 |
-| Passed | 5638 |
-| Failed | 0 |
+| Test Files | 2176 |
+| Total Tests | 5590 |
+| Passed | 5589 |
+| Failed | 1 |
 | Skipped | 0 |
 
 ---

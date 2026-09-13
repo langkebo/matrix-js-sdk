@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-13T04:27:58.963Z",
+  "timestamp": "2026-09-13T07:20:06.633Z",
   "version": "1.0.0",
   "metrics": {
     "coverage": {
@@ -88,6 +88,56 @@
       "passed": true,
       "threshold": 90
     },
+    "codegenCoverage": {
+      "available": true,
+      "covered": 36,
+      "coverageRate": 100,
+      "strong": [
+        "account_data",
+        "background_update",
+        "burn_after_read",
+        "captcha",
+        "cas",
+        "device",
+        "e2ee",
+        "ephemeral",
+        "event_report",
+        "external_service",
+        "guest",
+        "key_backup",
+        "media",
+        "module",
+        "msc4108_rendezvous",
+        "oidc",
+        "presence",
+        "push",
+        "relations",
+        "rendezvous",
+        "room",
+        "room_summary",
+        "saml",
+        "search",
+        "sliding_sync",
+        "space",
+        "sync",
+        "tags",
+        "telemetry",
+        "thirdparty",
+        "thread",
+        "typing",
+        "verification_routes",
+        "widget",
+        "worker",
+        "worker_body"
+      ],
+      "weak": [
+        "friend_room",
+        "push_notification"
+      ],
+      "waived": 13,
+      "missing": 0,
+      "missingModules": []
+    },
     "complexity": {
       "clientTs": {
         "lines": 4130,
@@ -140,18 +190,18 @@
       "reduction": "58.7"
     },
     "tests": {
-      "testFiles": 2234,
-      "totalTests": 5638,
-      "passedTests": 5638,
-      "failedTests": 0,
+      "testFiles": 2176,
+      "totalTests": 5590,
+      "passedTests": 5589,
+      "failedTests": 1,
       "skippedTests": 0,
-      "duration": "NaNs",
-      "passed": true
+      "duration": "N/A",
+      "passed": false
     }
   },
   "summary": {
-    "overallHealth": "healthy",
-    "passedChecks": 6,
+    "overallHealth": "warning",
+    "passedChecks": 5,
     "totalChecks": 6
   }
 }

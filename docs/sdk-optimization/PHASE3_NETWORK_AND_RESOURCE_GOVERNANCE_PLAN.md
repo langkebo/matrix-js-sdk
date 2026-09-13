@@ -231,18 +231,38 @@ interval 都被清掉、`clientWellKnownIntervalID` 未设置时不会 `clearInt
 | DTO-3 | ✅ 基线随改形下降：**109 → 97**（record-unknown 47→40、bare-unknown 62→57）                                                                                                                                                         | 基线条数 = 实际命中条数                                                                                                                                    |
 | DTO-4 | ⬜ 新发现：手写公开类型同病 —— `src/crypto-api/keybackup.ts` 的 `auth_data: ISigned & (Curve25519AuthData \| Aes256AuthData)` 也让具名键不可直取（`rust-crypto/*` 遍地 `as Curve25519AuthData`）。属公开 API + 影响 Tjg，需单独评估 | 具名键可直接访问；`as` 断言下降                                                                                                                            |
 
-### 6.2 codegen 覆盖门禁的「弱证据」模块
+### 6.2 codegen 覆盖门禁的「弱证据」模块（C-1 / C-2 ✅）
 
-`pnpm quality:manager-codegen` 现在把覆盖证据分两层输出（实测）：
+排查结果：**原报的 5 个「弱证据」里有 4 个又是门禁假阴性**，只有 2 个是真没人读。
 
-- **强证据（33）**：模块目录内有文件 import 了本模块的 `__generated__/route-table`。
-- **弱证据（5）**：`account_data`、`friend_room`、`search`、`sliding_sync`、`sync` —— 目录内只有
-  HTTP 调用，没有 route-table 导入（可能通过共享 helper 消费，也可能压根没消费）。
+| 模块                | 判定                   | 证据                                                                                                                                                         |
+| ------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sync`              | ✅ 强证据              | `src/client-batch-requests.ts:18`、`src/client-secure-backup-requests.ts:6` 导入 `SyncPathPattern` 并用于 `StripV3<>` 路径断言                               |
+| `account_data`      | ✅ 强证据              | `src/client-batch-requests.ts:19` 导入 `AccountDataPathPattern`（`adp()` helper）                                                                            |
+| `search`            | ✅ 强证据              | `src/client-crypto-requests.ts:5`、`src/client-secure-backup-requests.ts:7` 导入 `SearchPathPattern`                                                         |
+| `sliding_sync`      | ✅ 强证据              | `src/room/RoomManager.ts:57` 导入 `SlidingSyncPathPattern`，用于约束 `simplified_msc3575` 的 `/sync` 路径                                                    |
+| `friend_room`       | ⚠️ 有表没人读 → 白名单 | 表里是 `/_matrix/client/{r0,v1,v3}/friends/*` 旧路由，而代码走 `/_matrix/vendor/v1`（`VendorPrefix`），两者**不相交**，src 下 0 处 import 本表               |
+| `push_notification` | ⚠️ 有表没人读 → 白名单 | 本表 10 条是 `push` 表（38 条）的**完全子集**（`comm -23` 无差集），`src/notifications` 消费的是 `push` 表（`PushPathPattern`，`notifications/index.ts:27`） |
 
-| 任务 | 内容                                                                                                                                        | 验收                                       |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| C-1  | 逐个判定这 5 个模块：真消费 → 改成显式 import 生成表（升为强证据）；不消费 → 移入 `SKIP_ROUTE_TABLE_MODULES` + 白名单（带 reason + 到期日） | 门禁输出里「弱证据」清单为空或每条都有结论 |
-| C-2  | 把「弱证据数」接进质量报告（`pnpm quality:report`），避免"100% 覆盖"掩盖证据强度                                                            | 报告出现强/弱两栏                          |
+因此门禁的判定规则本身也修了（这才是根因）：
+
+1. **强证据改为「src 下任何文件导入本模块的表」**（跨模块也算），并按 import 说明符
+   **解析后的落点**比对 —— 旧规则只在模块自己的目录里找，于是 4 个跨模块消费者全被误判成弱证据。
+2. **导入「别的模块的表」不再算本模块的证据**（`notifications/` 导 `push/` 的表就是这种）。
+3. **只有弱证据不再等于 covered**：生成了表却没人读 → `missing/NO_CONSUMER`，要豁免就得进白名单
+   写清原因。旧版把弱证据也算覆盖，于是 "100% 覆盖" 里混着完全没人读的表。
+
+改后实测：**强证据 36 / 有表没人读 2（friend_room、push_notification，均已白名单 + 到期日）/
+白名单 13 / 缺失 0**，弱证据清单不再有"未结论"条目。
+
+C-2 已接进 `pnpm quality:report`：报告新增「Codegen Coverage」小节，给出强证据数、弱证据数与其
+模块名、白名单数、缺失数（门禁 `--json` 输出被报告直接复用，避免两处各算一遍而漂移）。
+
+| 任务 | 状态 | 说明                                                                                                                                                                                                                                                                                                                                 |
+| ---- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| C-1  | ✅   | 4 个升为强证据（无需改代码，是判定规则错），2 个白名单 + 到期日                                                                                                                                                                                                                                                                      |
+| C-2  | ✅   | `quality:report` 出现强/弱两栏                                                                                                                                                                                                                                                                                                       |
+| C-3  | ⬜   | 新发现待定：`friend_room` / `push_notification` 的死表要不要**停生成**（进 `SKIP_ROUTE_TABLE_MODULES`），以及 ledger 的 `push_notification` 是否应映射到 `push` 目录（两个 ledger 模块共用一目录，现有别名表表达不了）。两者都牵涉后端 ledger 与 `check-sdk-contract-alignment`，需和后端一起定，故本轮只做准确记账 + 到期日倒逼复查 |
 
 ---
 
