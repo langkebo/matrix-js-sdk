@@ -374,8 +374,6 @@ export interface MatrixClientExtensionMethods {
     getStateSendManager(): import("./state-send/index").StateSendManager;
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
-    getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
-    getOpenClawManager(): import("./open-claw/index").OpenClawManager;
     getSamlAuthManager(): import("./saml/index").SamlAuthManager;
     getE2EEManager(): import("./e2ee/index").E2EEManager;
     getEventReportManager(): import("./event-report/index").EventReportManager;

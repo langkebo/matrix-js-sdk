@@ -85,10 +85,6 @@ export interface Capabilities {
     "io.hula.voice_extended"?: ICapability;
     /** Matrix 标准语音（与 io.hula.voice_extended 别名等价） */
     "m.voice"?: ICapability;
-    /** OpenClaw 路由（openclaw-routes feature） */
-    openclaw?: ICapability;
-    /** AI 连接（ai-connection feature） */
-    ai_connection?: ICapability;
 }
 
 type CapabilitiesResponse = {

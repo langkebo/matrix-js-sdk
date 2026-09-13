@@ -56,7 +56,6 @@ const SKIP_ROUTE_TABLE_MODULES = new Set([
 ]);
 
 const SDK_DIR_ALIASES = {
-    openclaw: "open-claw",
     thirdparty: "third-party",
 };
 
@@ -197,11 +196,10 @@ const BACKEND_ROUTE_MANIFEST =
  */
 const CONTRACT_MODULE_MAP = {
     "3PID": null,
-    "AI 连接": "ai-connection",
+    "AI 连接": null,
     CAS: "cas",
     MSC4108: null,
     OIDC: "oidc",
-    OpenClaw: "open-claw",
     Rendezvous: "rendezvous",
     SAML: "saml",
     Worker: "worker-admin",

@@ -12,7 +12,6 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./legacy`             | Legacy 白名单：filter 历史兼容类型与别名                          | `FilterManager`                                                               |
 | `./manager-extensions` | Manager Extensions 白名单：管理器扩展生命周期                     | `extendMatrixClientWithManagers`                                              |
 | `./admin`              | Admin 白名单：管理端 manager 与领域类型                           | `AdminManager`, `UserInfo`, `RoomInfo`                                        |
-| `./ai-connection`      | AI Connection 白名单：AI 连接 manager 与连接类型                  | `AIConnectionEvent`, `AIConnection`                                           |
 | `./app-service`        | App Service 白名单：应用服务 manager 与服务类型                   | `AppServiceEvent`, `ApplicationService`                                       |
 | `./beacon`             | Beacon 白名单：beacon manager 能力                                | `BeaconManager`, `extendMatrixClient`                                         |
 | `./client`             | Client 白名单：`MatrixClient` 主类型与客户端事件/选项             | `MatrixClient`, `ClientEvent`, `ICreateClientOpts`                            |

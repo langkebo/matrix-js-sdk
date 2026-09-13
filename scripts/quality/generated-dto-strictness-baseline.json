@@ -1,12 +1,6 @@
 {
-    "generatedAt": "2026-09-13T02:14:03.032Z",
+    "generatedAt": "2026-09-13T04:06:54.931Z",
     "ids": [
-        "src/ai-connection/__generated__/dto.ts:16:bare-unknown:f93310d03b94fb10f340c9d7b812ad5b8a53ebd1",
-        "src/ai-connection/__generated__/dto.ts:16:record-unknown:58e51e3adb0622dd970d70469b6c1bd1fd45a1d4",
-        "src/ai-connection/__generated__/dto.ts:24:bare-unknown:a8c3b35e82de17c714bd02ef7264254bb6dcacb3",
-        "src/ai-connection/__generated__/dto.ts:24:record-unknown:f9c9a27cc266b5681fe5331e67b609c376e54c45",
-        "src/ai-connection/__generated__/dto.ts:30:bare-unknown:ca92341598b39361d44e2da145b7b9c0b06b73fb",
-        "src/ai-connection/__generated__/dto.ts:30:record-unknown:84a335ca14c2717e998d4d9bbc9274855783648d",
         "src/app-service/__generated__/dto.ts:35:bare-unknown:61c478390aadb6b1c3969792d6d3ddbe011d8c5f",
         "src/background-update/__generated__/dto.ts:22:bare-unknown:38295e9eec26e079f3e18cbebb9db525d4ee400d",
         "src/background-update/__generated__/dto.ts:22:record-unknown:c08b2a87df3f5586d4d8b53217bf055dae928678",
@@ -57,8 +51,6 @@
         "src/notifications/__generated__/dto.ts:15:bare-unknown:61167e7869bf11ecdb692a742ac4a9321c119e54",
         "src/notifications/__generated__/dto.ts:16:bare-unknown:2b415a0a44676a988262f5c66cf96278c2ff8c71",
         "src/notifications/__generated__/dto.ts:16:record-unknown:c561dc96f87f629ae89fbe943c18aa1e7afd7f97",
-        "src/open-claw/__generated__/dto.ts:18:bare-unknown:d29b9bf4ba3cf3891368376b8714b7e579979aaa",
-        "src/open-claw/__generated__/dto.ts:18:record-unknown:50419a7f5c10cdab820103264b3be92603401fc3",
         "src/rendezvous/__generated__/dto.ts:22:bare-unknown:398fcc114a5e5b22f8e4d44c294febf45fe36b02",
         "src/rendezvous/__generated__/dto.ts:22:record-unknown:fadd1ec7b0a3a780dedb6b6857cdae1a3f3a6025",
         "src/rendezvous/__generated__/dto.ts:49:bare-unknown:0b145be8d8d39ba40b1a41b387837ceb61aaad6e",

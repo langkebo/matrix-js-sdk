@@ -89,7 +89,6 @@
 | SAML     | [saml.md](saml.md)                       | 16     | 100%       | ✅ 完善                             |
 | OIDC     | [oidc.md](oidc.md)                       | 19     | 100%       | ✅ 完善 (以 v3 为 canonical 封装面) |
 | 验证码   | [captcha.md](captcha.md)                 | 7      | 100%       | ✅ 完善 (默认 v3，显式 r0 兼容)     |
-| AI 连接  | [ai-connection.md](ai-connection.md)     | 6      | 100%       | ✅ 完善                             |
 | 阅后即焚 | [burn-after-read.md](burn-after-read.md) | 7      | 100%       | ✅ 完善                             |
 | 模块管理 | [module.md](module.md)                   | 27     | 100%       | ✅ 完善                             |
 
@@ -104,7 +103,6 @@
 | 游客        | [guest.md](guest.md)                       | 3      | 100%       | ✅ 完善 |
 | 临时事件    | [ephemeral.md](ephemeral.md)               | 1      | 100%       | ✅ 完善 |
 | 外部服务    | [external-service.md](external-service.md) | 10     | 100%       | ✅ 完善 |
-| OpenClaw    | [openclaw.md](openclaw.md)                 | 23     | 100%       | ✅ 完善 |
 | WorkerBody  | [worker-body.md](worker-body.md)           | 11     | 100%       | ✅ 完善 |
 
 ## 总览统计

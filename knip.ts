@@ -101,10 +101,6 @@ export default {
         "src/verification/index.ts",
         "src/e2ee/index.ts",
         "src/worker-body/index.ts",
-        "src/ai-connection/index.ts",
-        // Module name in MANAGER_EXTENSION_MODULES is "openclaw" but the actual
-        // directory is `open-claw` (dynamic import: `../open-claw/index.js`)
-        "src/open-claw/index.ts",
         "src/voice/index.ts",
         "src/cas/index.ts",
         "src/external-service/index.ts",

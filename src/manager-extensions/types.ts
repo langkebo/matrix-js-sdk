@@ -63,8 +63,6 @@ export interface ManagerExtensionsOptions {
     includeVerification?: boolean;
     includeE2EE?: boolean;
     includeWorkerBody?: boolean;
-    includeAiConnection?: boolean;
-    includeOpenClaw?: boolean;
     includeVoice?: boolean;
     includeSamlAuth?: boolean;
     includeCas?: boolean;

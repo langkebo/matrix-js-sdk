@@ -241,33 +241,3 @@ export type {
     IVoiceDeleteResponse,
 } from "./voice";
 export { WidgetsManager } from "./widgets";
-export { AIConnectionManager, AIConnectionEvent } from "./ai-connection";
-export type {
-    AIConnection,
-    CreateConnectionOptions,
-    McpToolCallRequest,
-    AiApiVersion,
-    McpTool,
-    McpToolListResponse,
-    McpToolCallResponse,
-    ConnectionListResponse,
-} from "./ai-connection";
-export { OpenClawManager, OpenClawEvent } from "./open-claw";
-export type {
-    OpenClawConnection,
-    OpenClawConversation,
-    OpenClawMessage,
-    OpenClawGeneration,
-    OpenClawChatRole,
-    CreateOpenClawConnectionRequest,
-    UpdateOpenClawConnectionRequest,
-    CreateOpenClawConversationRequest,
-    UpdateOpenClawConversationRequest,
-    SendMessageRequest,
-    CreateGenerationRequest,
-    CreateChatRoleRequest,
-    UpdateChatRoleRequest,
-    PaginatedResponse,
-    PaginationParams,
-    ConnectionTestResult,
-} from "./open-claw";

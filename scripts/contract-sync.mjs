@@ -3,8 +3,8 @@
  * Ledger-driven SDK contract synchroniser.
  *
  * Consumes the deterministic JSON artefacts produced by the
- * `synapse_ledger_export` binary (one per profile: default / worker /
- * openclaw / all) and materialises them into
+ * `synapse_ledger_export` binary (one per profile: default / worker / all)
+ * and materialises them into
  * `docs/api-contract/generated/` as the SDK's machine-readable mirror.
  *
  * Layout written:
@@ -59,7 +59,14 @@ const DEFAULT_INGEST_SOURCE_DIR = path.resolve(
  * synapse-rust checkout next to the SDK repo.
  */
 const DEFAULT_CHECK_SOURCE_DIR = GENERATED_DIR;
-const PROFILES = ["default", "worker", "openclaw", "all"];
+// Three profiles — exactly what the backend exports. `openclaw` used to be listed
+// here as a fourth profile, but the backend never produced it and has since deleted
+// the capability outright (synapse-rust 67e66bf4, "H-1 product boundary decision"),
+// which made `contract:sync` fail with "missing ledger artefact for profile
+// 'openclaw'". Keep this list in lockstep with
+// synapse-rust/scripts/generate_sdk_ledger_fixtures.sh and
+// synapse-rust/.github/workflows/ledger-export.yml.
+const PROFILES = ["default", "worker", "all"];
 const GENERATED_SCHEMA_VERSION = "1";
 const LEDGER_SCHEMA_VERSION = "1";
 const DRAFT_ENTRY_SOFT_CAP = 10;
@@ -261,6 +268,15 @@ function ensureDir(dir) {
 function writeOutputs(outputs) {
     ensureDir(GENERATED_DIR);
     ensureDir(path.join(GENERATED_DIR, "modules"));
+    // Remove stale profile manifests before writing. A profile dropped from
+    // PROFILES (e.g. `openclaw`, retired together with the backend capability)
+    // must not linger as an orphan that nothing regenerates or validates.
+    for (const existing of fs.readdirSync(GENERATED_DIR)) {
+        const match = /^route-manifest\.(.+)\.json$/.exec(existing);
+        if (match && !PROFILES.includes(match[1])) {
+            fs.unlinkSync(path.join(GENERATED_DIR, existing));
+        }
+    }
     for (const name of PROFILES) {
         fs.writeFileSync(path.join(GENERATED_DIR, `route-manifest.${name}.json`), outputs.profileFiles[name]);
     }
@@ -919,10 +935,9 @@ function run(argv) {
     process.stdout.write(
         `contract-sync: wrote ${Object.keys(outputs.moduleFiles).length} module files, ` +
             `${PROFILES.length} profile manifests, and index.json.\n` +
-            `  default profile: ${profiles.default.parsed.entry_count} entries\n` +
-            `  worker profile:  ${profiles.worker.parsed.entry_count} entries\n` +
-            `  openclaw profile: ${profiles.openclaw.parsed.entry_count} entries\n` +
-            `  all profile:     ${profiles.all.parsed.entry_count} entries\n` +
+            PROFILES.map((name) => `  ${name.padEnd(8)} profile: ${profiles[name].parsed.entry_count} entries\n`).join(
+                "",
+            ) +
             `  synapse_rust_commit: ${profiles.default.parsed.synapse_rust_commit ?? "(none)"}\n`,
     );
     if (draftSummary) {

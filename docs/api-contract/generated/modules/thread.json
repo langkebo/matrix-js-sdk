@@ -2,11 +2,25 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "thread",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
+  "generated_at": "2026-09-13T03:49:17Z",
   "source_profile": "all",
-  "entry_count": 21,
+  "entry_count": 23,
   "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed",
+      "registered_by": "thread",
+      "path_params": []
+    },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact",

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "1",
   "module": "federation",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
+  "generated_at": "2026-09-13T03:49:17Z",
   "source_profile": "all",
-  "entry_count": 55,
+  "entry_count": 54,
   "entries": [
     {
       "method": "GET",
@@ -363,12 +363,6 @@
     {
       "method": "GET",
       "path": "/_matrix/key/v2/server",
-      "registered_by": "federation",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/federation/v1/event_auth",
       "registered_by": "federation",
       "path_params": []
     },

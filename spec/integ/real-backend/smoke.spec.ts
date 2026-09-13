@@ -98,20 +98,6 @@ const CORE_HULA_FEATURES: FeatureProbe[] = [
         capabilityAliases: ["m.voice", "io.hula.voice_extended"],
         routeRegisteredBy: "voice",
     },
-    {
-        key: "openClaw",
-        label: "openclaw",
-        feature: SynapseRustFeature.OpenClaw,
-        capabilityAliases: ["openclaw"],
-        routeRegisteredBy: "openclaw",
-    },
-    {
-        key: "aiConnection",
-        label: "ai-connection",
-        feature: SynapseRustFeature.AIConnection,
-        capabilityAliases: ["ai_connection"],
-        routeRegisteredBy: "ai_connection",
-    },
 ];
 
 const SMOKE_TIMEOUT_MS = 3000;

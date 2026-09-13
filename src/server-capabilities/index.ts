@@ -50,8 +50,6 @@ export const SynapseRustFeature = {
     BurnAfterRead: "io.hula.burn_after_read",
     Friends: "io.hula.friends",
     Voice: "org.matrix.msc3245",
-    OpenClaw: "openclaw",
-    AIConnection: "ai_connection",
 } as const;
 
 export type SynapseRustFeatureName = (typeof SynapseRustFeature)[keyof typeof SynapseRustFeature];
@@ -68,8 +66,6 @@ export interface SynapseRustFeatureSupport {
     burnAfterRead: boolean;
     friends: boolean;
     voice: boolean;
-    openClaw: boolean;
-    aiConnection: boolean;
 }
 
 const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, SynapseRustFeatureName> = {
@@ -80,8 +76,6 @@ const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, Synapse
     burnAfterRead: SynapseRustFeature.BurnAfterRead,
     friends: SynapseRustFeature.Friends,
     voice: SynapseRustFeature.Voice,
-    openClaw: SynapseRustFeature.OpenClaw,
-    aiConnection: SynapseRustFeature.AIConnection,
 };
 
 const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, string[]>> = {
@@ -90,8 +84,6 @@ const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, st
     [SynapseRustFeature.BurnAfterRead]: ["io.hula.burn_after_read"],
     [SynapseRustFeature.Friends]: ["io.hula.friends"],
     [SynapseRustFeature.Voice]: ["m.voice", "io.hula.voice_extended"],
-    [SynapseRustFeature.OpenClaw]: ["openclaw"],
-    [SynapseRustFeature.AIConnection]: ["ai_connection"],
 };
 
 function capabilityEnabled(value: unknown): boolean {
@@ -122,7 +114,7 @@ export function isCapabilityEnabled(capabilities: Capabilities | undefined, capa
  * product decision per feature, and the fork's rule is:
  *
  * - **fail-closed (`false`)** — the default for features the backend has no
- *   route for: `Voice`, `OpenClaw`, `AIConnection`, `Widget`,
+ *   route for: `Voice`, `Widget`,
  *   `DehydratedDevice`. Reporting "supported" would make callers fire requests
  *   at endpoints that answer 404.
  * - **fail-open (`true`)** — only for features the backend is known to serve:

@@ -10,7 +10,6 @@ const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "gener
 const LEDGER_MODULE_ALIASES = {
     "account-data": "account_data",
     admin: "admin",
-    "ai-connection": "ai_connection",
     appservice: "app_service",
     "background-update": "background_update",
     "burn-after-read": "burn_after_read",
@@ -33,7 +32,6 @@ const LEDGER_MODULE_ALIASES = {
     module: "module",
     notifications: "push_notification",
     oidc: "oidc",
-    openclaw: "openclaw",
     presence: "presence",
     push: "push",
     reactions: "reactions",

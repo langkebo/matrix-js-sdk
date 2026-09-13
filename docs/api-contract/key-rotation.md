@@ -1,7 +1,7 @@
 ---
 module: key_rotation
 generated_from: docs/api-contract/generated/modules/key_rotation.json
-generated_hash: sha256-7c2a021d71a614166fbd1735073c0b12d8cf72982454dd6fb91342f4e5c0a437
+generated_hash: sha256-0dfcd6a7e1c4f2ddb004b2ec7fe0c33666dca1dec27d7278436a7f42a9b14847
 ledger_schema: 1
 last_reviewed: 2026-05-26
 ---

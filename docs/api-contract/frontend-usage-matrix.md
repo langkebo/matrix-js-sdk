@@ -18,7 +18,7 @@ The following 33 export entries in `package.json` have **zero** hula imports (`f
 | 4   | `./crypto-keys`            | Used only in `.d.ts` type position: `import('matrix-js-sdk/crypto-keys')` |
 | 5   | `./voice`                  | Voice module                                                              |
 | 6   | `./notification`           | Notification module                                                       |
-| 7   | `./ai-connection`          | AI connection                                                             |
+| 7   | ~~`./ai-connection`~~      | Removed 2026-09-13: backend retired the AI-connection capability          |
 | 8   | `./saml`                   | SAML auth                                                                 |
 | 9   | `./app-service`            | App service                                                               |
 | 10  | `./beacon`                 | Beacon/location                                                           |
@@ -194,7 +194,6 @@ Column definitions:
 | module               | 158       | 515       | 45         | 64         | Y     | N     | Y        | Active         | Contract: module                         |
 | notifications        | 32        | 109       | 66         | 371        | Y     | N     | N        | Active         | Has hula usage                           |
 | oidc                 | 19        | 88        | 12         | 87         | Y     | Y     | Y        | **Deprecated** | @deprecated in src/oidc/manager.ts       |
-| openclaw             | 10        | 45        | 10         | 85         | Y     | N     | Y        | Active         | Contract: openclaw                       |
 | passwordReset        | 2         | 4         | 0          | 0          | Y     | N     | N        | **Zombie**     | Bare definition only                     |
 | pinnedMessages       | 2         | 4         | 1          | 6          | N     | N     | N        | Active         | 1 hula ref                               |
 | presence             | 37        | 267       | 41         | 238        | Y     | N     | Y        | Active         | Contract: presence                       |

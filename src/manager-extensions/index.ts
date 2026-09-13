@@ -91,8 +91,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body" },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml" },
     { option: "includeCas", module: "cas" },
@@ -172,8 +170,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeVerification: true,
     includeE2EE: true,
     includeWorkerBody: true,
-    includeAiConnection: true,
-    includeOpenClaw: true,
     includeVoice: true,
     includeSamlAuth: true,
     includeCas: true,
@@ -504,16 +500,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeE2EE || all) {
                 promises.push(safeDynamicImport(import("../e2ee/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeAiConnection || all) {
-                promises.push(
-                    safeDynamicImport(import("../ai-connection/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeOpenClaw || all) {
-                promises.push(safeDynamicImport(import("../open-claw/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeVoice || all) {

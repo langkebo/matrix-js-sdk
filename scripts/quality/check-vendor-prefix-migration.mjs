@@ -27,7 +27,8 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const SRC_DIR = path.join(projectRoot, "src");
 
 // 私有模块清单：这些目录下的端点属于私有扩展，应走 vendor 前缀。
-// 注意：ai-connection / open-claw 是前端死代码（后端路由已删除），不在清单内。
+// 注意：open-claw 与 ai-connection 两个模块均已随后端能力退役而整体删除，
+// 不在清单内。
 const PRIVATE_MODULES = ["friend", "voice", "key-rotation", "burn-after-read", "external-service"];
 
 // 标准路径白名单：这些是标准 Matrix CS API，可合法使用 client 前缀。

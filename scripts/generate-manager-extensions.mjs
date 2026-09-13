@@ -101,8 +101,6 @@ const MODULE_DEFS = [
     { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body", standalone: false },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw", path: "open-claw/index.js" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml", standalone: false },
     { option: "includeCas", module: "cas" },

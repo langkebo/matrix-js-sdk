@@ -171,13 +171,13 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({
                 versions: ["v1.11"],
-                unstable_features: { openclaw: true },
+                unstable_features: { "org.matrix.msc3245": true },
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({ capabilities: {} });
 
-            const result = await manager.doesServerAdvertiseSynapseRustFeature("openclaw");
+            const result = await manager.doesServerAdvertiseSynapseRustFeature(SynapseRustFeature.Voice);
 
             expect(result).toBe(true);
         });
@@ -205,7 +205,7 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({
                 versions: ["v1.11"],
-                unstable_features: { openclaw: true, "io.hula.friends": true },
+                unstable_features: { "io.hula.friends": true },
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
@@ -213,7 +213,6 @@ describe("ServerCapabilitiesManager", () => {
 
             const support = await manager.getSynapseRustFeatureSupport();
 
-            expect(support.openClaw).toBe(true);
             expect(support.friends).toBe(true);
             expect(support.extendedProfile).toBe(false);
         });
@@ -463,38 +462,6 @@ describe("ServerCapabilitiesManager", () => {
             expect(support.voice).toBe(true);
         });
 
-        it("should resolve openclaw from openclaw capability", async () => {
-            const mockClient = createMockClient();
-            mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            manager = new ServerCapabilitiesManager(mockClient as any, { transport });
-            transport.respondWith({
-                capabilities: {
-                    openclaw: { enabled: true },
-                },
-            });
-
-            const support = await manager.getSynapseRustFeatureSupport();
-
-            expect(support.openClaw).toBe(true);
-        });
-
-        it("should resolve aiConnection from ai_connection capability", async () => {
-            const mockClient = createMockClient();
-            mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            manager = new ServerCapabilitiesManager(mockClient as any, { transport });
-            transport.respondWith({
-                capabilities: {
-                    ai_connection: { enabled: true },
-                },
-            });
-
-            const support = await manager.getSynapseRustFeatureSupport();
-
-            expect(support.aiConnection).toBe(true);
-        });
-
         it("should resolve all extended capabilities simultaneously", async () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
@@ -505,8 +472,6 @@ describe("ServerCapabilitiesManager", () => {
                     "io.hula.burn_after_read": { enabled: true },
                     "io.hula.friends": { enabled: true },
                     "io.hula.voice_extended": { enabled: true },
-                    openclaw: { enabled: true },
-                    ai_connection: { enabled: true },
                     "m.voice": { enabled: true },
                 },
             });
@@ -516,8 +481,6 @@ describe("ServerCapabilitiesManager", () => {
             expect(support.burnAfterRead).toBe(true);
             expect(support.friends).toBe(true);
             expect(support.voice).toBe(true);
-            expect(support.openClaw).toBe(true);
-            expect(support.aiConnection).toBe(true);
         });
     });
 });

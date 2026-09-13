@@ -60,7 +60,6 @@
         "quality:burn-after-read": "node scripts/quality/check-burn-after-read-granular-coverage.mjs",
         "quality:captcha": "node scripts/quality/check-captcha-granular-coverage.mjs",
         "quality:event-report": "node scripts/quality/check-event-report-granular-coverage.mjs",
-        "quality:ai-connection": "node scripts/quality/check-ai-connection-granular-coverage.mjs",
         "quality:external-service": "node scripts/quality/check-external-service-granular-coverage.mjs",
         "quality:user-directory": "node scripts/quality/check-user-directory-granular-coverage.mjs",
         "quality:telemetry": "node scripts/quality/check-telemetry-granular-coverage.mjs",
@@ -149,10 +148,6 @@
         "./admin": {
             "import": "./lib/admin/index.js",
             "types": "./lib/admin/index.d.ts"
-        },
-        "./ai-connection": {
-            "import": "./lib/ai-connection/index.js",
-            "types": "./lib/ai-connection/index.d.ts"
         },
         "./saml": {
             "import": "./lib/saml/index.js",
