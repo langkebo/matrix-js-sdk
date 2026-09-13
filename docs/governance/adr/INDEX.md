@@ -92,6 +92,12 @@ ADR-0003-client-ts-modularization.md
 | ADR-0003 | Client.ts Modularization Strategy   | Accepted | 2026-04-11 | T-Q4         |
 | ADR-0004 | Extension Mechanism Final State     | Accepted | 2026-04-11 | T-A2         |
 
+### 2026 Q3
+
+| ADR      | Title                         | Status   | Date       | Related Task |
+| -------- | ----------------------------- | -------- | ---------- | ------------ |
+| ADR-0005 | Generated DTO Openness Policy | Accepted | 2026-09-13 | 阶段 2 · 2.3 |
+
 ## Quick Links
 
 - [ADR Template](../ADR_TEMPLATE.md)
