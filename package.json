@@ -28,6 +28,7 @@
         "test": "vitest run",
         "test:real-backend": "pnpm test:real-backend:smoke && pnpm test:real-backend:setup && pnpm test:real-backend:batch",
         "test:real-backend:batch": "node scripts/run-real-backend-batch.mjs",
+        "test:real-backend:l4": "node scripts/run-l4-weak-network.mjs",
         "test:real-backend:smoke": "node scripts/run-real-backend-with-ca.mjs pnpm exec vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/smoke.spec.ts",
         "test:real-backend:setup": "node scripts/run-real-backend-with-ca.mjs node scripts/ensure-real-backend-users.mjs",
         "test:real-backend:with-ca": "node scripts/run-real-backend-with-ca.mjs",

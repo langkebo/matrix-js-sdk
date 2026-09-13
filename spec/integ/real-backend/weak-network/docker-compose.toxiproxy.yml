@@ -1,0 +1,45 @@
+# =============================================================================
+# L4 弱网设施（阶段 3 · P3-2）
+# =============================================================================
+# 用途：把 toxiproxy 夹在 SDK 与 synapse-rust 之间，注入丢包/延迟，验证
+#       「弱网下最终送达且不重复」与「断网恢复后重连」。
+#
+# 用法：
+#   docker compose -f spec/integ/real-backend/weak-network/docker-compose.toxiproxy.yml up -d
+#   pnpm test:real-backend:l4
+#   docker compose -f spec/integ/real-backend/weak-network/docker-compose.toxiproxy.yml down
+#
+# 拓扑：
+#   SDK ──https://matrix.test:8666──> toxiproxy ──TCP──> synapse-nginx:443 ──> synapse-app:8008
+#
+# 说明：
+# - toxiproxy 只转发 TCP，TLS 由 nginx 终结，所以证书仍是 matrix.test 的那张，
+#   端口变化不影响主机名校验（CA 注入见 scripts/run-real-backend-with-ca.mjs）。
+# - 上游用容器名 `synapse-nginx`，因此必须挂在后端 compose 的网络里；
+#   网络名默认 `synapse_network`（后端 docker/deploy/docker-compose.yml 定义），
+#   可用 SYNAPSE_NETWORK 覆盖。
+# - 8666 只是代理入口的**容器端口发布**，真正的代理是测试开始时通过 toxiproxy API
+#   创建的（见 weak-network/toxiproxy.ts），这样同一个容器可以被反复重置。
+
+services:
+    toxiproxy:
+        image: ghcr.io/shopify/toxiproxy:2.12.0
+        container_name: sdk-toxiproxy
+        restart: unless-stopped
+        command: ["-host", "0.0.0.0", "-port", "8474"]
+        ports:
+            - "${TOXIPROXY_API_PORT:-8474}:8474"
+            - "${TOXIPROXY_PROXY_PORT:-8666}:8666"
+        healthcheck:
+            test: ["CMD", "/toxiproxy-cli", "--host", "127.0.0.1:8474", "list"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+            start_period: 3s
+        networks:
+            - synapse
+
+networks:
+    synapse:
+        external: true
+        name: ${SYNAPSE_NETWORK:-synapse_network}

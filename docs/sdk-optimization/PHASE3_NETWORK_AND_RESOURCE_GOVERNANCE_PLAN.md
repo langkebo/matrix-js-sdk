@@ -12,18 +12,18 @@
 
 ## 0. 排期总览
 
-| 工作流                    | 目标                                                | 依赖                           | 批次                           | 验收命令（必须 exit 0，且负向注入能红）                                       |
-| ------------------------- | --------------------------------------------------- | ------------------------------ | ------------------------------ | ----------------------------------------------------------------------------- |
-| P3-1 网络语义分层         | 重试决策可按「方法 × 错误 × 幂等性」解释            | 无                             | 批次 1                         | `pnpm test spec/unit/managers/`（新增决策表用例）+ `pnpm lint`                |
-| P3-2 弱网设施（L4）       | 30% 丢包送达 ≥99.9% 无重复；断网恢复重连 ≤3s        | P3-1；重连项另依赖后端 A-1/A-2 | 批次 1（送达）/ 批次 3（重连） | `pnpm test:real-backend:l4`（新增）+ nightly                                  |
-| P3-3 定时器配对与生命周期 | 每个 `setInterval` 都有配对清理与生命周期收口       | 无                             | 批次 2                         | `pnpm quality:timer-pairing`（新增）+ `pnpm test`                             |
-| P3-4 `console.*` → logger | ——                                                  | ——                             | **作废**                       | 见 §4：实测为误报，`no-console: error` 早已生效                               |
-| P3-5 `client.ts` 拆分     | 高风险子域出栈，回归面收窄                          | 无                             | 批次 2                         | `pnpm quality:entrypoints` + `pnpm test`（按 A1 口径：复杂度/回归，而非行数） |
-| P2 遗留衔接               | ADR-0005 的 DTO-1/2/3；5 个「仅运行时调用」模块迁移 | ADR-0005 已 Accepted           | 批次 2                         | `pnpm quality:contracts` + `pnpm quality:generated-dto-strictness`            |
+| 工作流                    | 目标                                                | 依赖                           | 批次                              | 验收命令（必须 exit 0，且负向注入能红）                                       |
+| ------------------------- | --------------------------------------------------- | ------------------------------ | --------------------------------- | ----------------------------------------------------------------------------- |
+| P3-1 网络语义分层         | 重试决策可按「方法 × 错误 × 幂等性」解释            | 无                             | 批次 1 ✅                         | `pnpm test spec/unit/managers/`（新增决策表用例）+ `pnpm lint`                |
+| P3-2 弱网设施（L4）       | 30% 丢包送达 ≥99.9% 无重复；断网恢复重连 ≤3s        | P3-1；重连项另依赖后端 A-1/A-2 | 批次 1 ✅（送达）/ 批次 3（重连） | `pnpm test:real-backend:l4`（新增）+ nightly                                  |
+| P3-3 定时器配对与生命周期 | 每个 `setInterval` 都有配对清理与生命周期收口       | 无                             | 批次 2                            | `pnpm quality:timer-pairing`（新增）+ `pnpm test`                             |
+| P3-4 `console.*` → logger | ——                                                  | ——                             | **作废**                          | 见 §4：实测为误报，`no-console: error` 早已生效                               |
+| P3-5 `client.ts` 拆分     | 高风险子域出栈，回归面收窄                          | 无                             | 批次 2                            | `pnpm quality:entrypoints` + `pnpm test`（按 A1 口径：复杂度/回归，而非行数） |
+| P2 遗留衔接               | ADR-0005 的 DTO-1/2/3；5 个「仅运行时调用」模块迁移 | ADR-0005 已 Accepted           | 批次 2                            | `pnpm quality:contracts` + `pnpm quality:generated-dto-strictness`            |
 
 **批次划分（建议执行顺序）**
 
-1. **批次 1 —— 语义与可观测**：P3-1（含决策表测试）→ P3-2 的送达/去重用例（不含重连）。
+1. **批次 1 —— 语义与可观测 ✅（2026-09-13 完成）**：P3-1（SDK `e28ee98cd`，决策表 13 例先红后绿）→ P3-2 送达/去重用例（真机实测 8 条 / 60 条两档：SDK 内部重试 4 次 / 19 次消化全部断链，测试侧 0 次兜底，每条恰好一次）。
 2. **批次 2 —— 资源与结构**：P3-3 定时器配对 → P2 遗留衔接（DTO 改形 + codegen 消费迁移）→ P3-5 `client.ts` 拆分。
 3. **批次 3 —— 依赖后端的部分**：P3-2 的断网恢复重连 ≤3s（等后端 A-1/A-2 落地后开工）。
 
@@ -90,15 +90,39 @@
 
 ### 2.2 任务拆解
 
-| 任务 | 内容                                                                                                                                                                                         | 验收                                                                                            |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| T2.1 | toxiproxy 服务加入集成 compose（后端仓库侧或新增 `docker-compose.netem.yml`），暴露可控端口                                                                                                  | `docker compose up -d toxiproxy` 后 `curl /proxies` 有 proxy                                    |
-| T2.2 | `spec/integ/real-backend/weak-network/` + helper：`withToxiproxy({ latency, jitter, loss })`，把 SDK 的 `baseUrl` 指向代理端口；复用现有 CA 注入链（`scripts/run-real-backend-with-ca.mjs`） | helper 单测（不依赖真后端）：代理开关幂等、异常时清理                                           |
-| T2.3 | spec A（送达 + 去重）：30% 丢包 + 200ms 抖动下发送 N 条（CI 用 100 条，nightly 用 1000 条），断言全部送达且 `event_id` 无重复                                                                | 新 spec 在 nightly 跑；本地可设 `L4_MESSAGE_COUNT` 降规模                                       |
-| T2.4 | spec B（断网恢复）：切断代理 30s → 恢复 → 断言 `SYNCING` 并在 ≤3s 内回到 `SYNCED`                                                                                                            | **依赖后端 A-1/A-2**（审核报告：后端多实例 30s 延迟未修）；未落地前该 spec 标记 skip 并注明原因 |
-| T2.5 | 挂 nightly：`.github/workflows/` 新增 nightly job（compose up → 起后端 → 跑 L4 spec）                                                                                                        | workflow lint 通过；nightly 手动触发可绿                                                        |
+| 任务 | 内容                                                                                                                                                                                                                              | 验收                                                                                                                                               | 状态      |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| T2.1 | toxiproxy 服务加入集成 compose（SDK 侧 `weak-network/docker-compose.toxiproxy.yml`，挂后端 `synapse_network` 外部网络），暴露 8474（API）+ 8666（代理入口）                                                                       | `docker compose up -d` 后 `curl /proxies` 可用                                                                                                     | ✅        |
+| T2.2 | `spec/integ/real-backend/weak-network/toxiproxy.ts`（`Toxiproxy` 类：`isAvailable` / `ensureProxy` / `addToxic` / `setEnabled` / `reset` / `withToxics`）+ `scripts/run-l4-weak-network.mjs`（把 baseUrl 指到代理并复用 CA 注入） | `spec/unit/toxiproxy-helper.spec.ts` 5 例（假控制面）：不可用→false、幂等重建、回调抛错也恢复链路、`setEnabled(false)` 真的落到控制面、非 2xx 抛错 | ✅        |
+| T2.3 | spec A（送达 + 去重）：延迟 + 30% 连接重置 + 确定性断链窗口下发送 N 条，断言全部送达、每条只出现一次                                                                                                                              | `pnpm test:real-backend:l4` 真机跑通（见 2.4 实测）                                                                                                | ✅        |
+| T2.4 | spec B（断网恢复）：切断代理 30s → 恢复 → 断言 `SYNCING` 并在 ≤3s 内回到 `SYNCED`                                                                                                                                                 | **依赖后端 A-1/A-2**（审核报告：后端多实例 30s 延迟未修）；未落地前该 spec 标记 skip 并注明原因                                                    | ⬜ 批次 3 |
+| T2.5 | 挂 nightly：`.github/workflows/` 新增 nightly job（compose up → 起后端 → 跑 L4 spec）                                                                                                                                             | workflow lint 通过；nightly 手动触发可绿                                                                                                           | ⬜        |
 
-### 2.3 依赖与风险
+### 2.3 实测发现的三个坑（都已写进代码注释与断言）
+
+1. **toxiproxy 2.12 没有 `loss` toxic**。`type: "loss"` 与 `type: "toxicity"` 都返回
+   `400 invalid toxic type`；可用类型实测为 `latency / reset_peer / slicer / timeout /
+bandwidth / limit_data / slow_close`。所以"30% 丢包"用「约 30% 新连接被 RST + 200ms
+   延迟 + 100ms 抖动」等价表达。
+2. **`reset_peer` 是按连接生效的，不是按请求**。同样 toxicity 0.3：curl（每次新连接）
+   连打 20 次失败 **5 次（25%）**；SDK（复用 keep-alive 连接）发 8 条**一次都没触发**。
+   → 只靠 toxics 会让用例假绿。
+3. **SDK 内部重试成功时，测试侧调用次数仍然是 1**。第一版用「测试侧首次尝试失败数」当
+   扰动生效的证据，结果断链窗口明明触发了（日志有 `Retry attempt 1/3 ... ConnectionError`），
+   该指标却仍是 0。→ 证据改成 `getSendingManager().getRequestStats().retried`（SDK 自己的
+   重试计数），并把它作为**断言**：断链窗口存在时 `sdkRetries > 0`，否则用例红。
+
+### 2.4 真机实测（2026-09-13，本机 Docker 后端 `matrix.test`）
+
+| 场景                  | 断链窗口 | SDK 内部重试 | 测试侧兜底 | 送达  | 去重          |
+| --------------------- | -------- | ------------ | ---------- | ----- | ------------- |
+| `L4_MESSAGE_COUNT=8`  | 2        | 4            | 0          | 8/8   | 每条恰好 1 次 |
+| `L4_MESSAGE_COUNT=60` | 15       | 19           | 0          | 60/60 | 每条恰好 1 次 |
+
+即：真实网络中断由 SDK 自己的重试消化（测试侧一次都没兜底），且**没有产生重复事件** ——
+这正是审计 §4 要的「最终送达 + 无重复」，也是 P3-1 幂等键与 ISSUE-03 稳定 txnId 的联合验证。
+
+### 2.5 依赖与风险
 
 - T2.3 与 P3-1 互为验证：L4 的"无重复"直接检验 T1.4 的幂等键放开。
 - toxiproxy 面向的是 `matrix.test` 的自签证书环境，证书与代理端口要一起配（复用
