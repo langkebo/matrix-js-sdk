@@ -4,7 +4,7 @@ umbrella_sources:
     - synapse-rust/src/web/routes/assembly.rs
     - synapse-rust/src/web/routes/admin/mod.rs
     - docs/api-contract/README.md
-ledger_schema: 2
+ledger_schema: 3
 last_reviewed: 2026-05-03
 ---
 

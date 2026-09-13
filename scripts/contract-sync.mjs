@@ -71,17 +71,23 @@ const GENERATED_SCHEMA_VERSION = "1";
 // Input contract version produced by synapse-rust (`SCHEMA_VERSION` in
 // src/web/routes/ledger_export.rs; mirrored in docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md).
 //
-// Backend history: "1" -> "2" was an ADDITIVE bump (synapse-rust aa06ca45):
-// the only entry-level addition is `query_params`; top-level fields are
-// unchanged, and `module` / `status` are optional per-entry fields. This pin
-// must track the backend, not the generated mirror above.
+// Backend history:
+//   "1" -> "2"  additive (synapse-rust aa06ca45): entry-level `query_params`
+//               added; `module` / `status` became optional per-entry fields.
+//   "2" -> "3"  REMOVAL (synapse-rust B-7): `entries[].module` deleted. It
+//               defaulted to `registered_by`, was populated for only 3 of 1320
+//               routes, and no consumer read it — this script groups modules by
+//               `registered_by` (`moduleKeyFor` below), so nothing here changes.
+// This pin must track the backend, not the generated mirror above.
 //
 // Bumping this pin is a CONTRACT change: it must be accompanied by
-// `node scripts/contract-sync.mjs` re-generating docs/api-contract/generated,
-// so the mirror and the pin never diverge. The backend CI must also stop
-// skipping its own contract test (`--skip ledger_export_tests`), otherwise
-// the next schema bump breaks this chain silently again.
-const LEDGER_SCHEMA_VERSION = "2";
+// `node scripts/contract-sync.mjs --render-drafts` re-generating
+// docs/api-contract/ (mirror + doc frontmatter `ledger_schema` + hashes), so
+// the mirror and the pin never diverge. Skipping that regeneration is exactly
+// how this chain silently froze once already (backend schema 1->2 left the pin
+// at "1", every published artifact failed `parsed.schema_version !==
+// LEDGER_SCHEMA_VERSION`, and the mirror went stale for a day).
+const LEDGER_SCHEMA_VERSION = "3";
 const DRAFT_ENTRY_SOFT_CAP = 10;
 const DRAFT_ENTRY_HARD_CAP = 25;
 const DRAFT_SNIPPET_TARGET_LINES = 400;

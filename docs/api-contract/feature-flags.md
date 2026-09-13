@@ -1,8 +1,8 @@
 ---
 module: feature_flags
 generated_from: docs/api-contract/generated/modules/feature_flags.json
-generated_hash: sha256-a73a2fd4c38e577b1b5f12a9f125387f4747df71ae6c296ada47f5d1dd875fe1
-ledger_schema: 2
+generated_hash: sha256-b24f8d043b5203d0c75dfb1859984b6a5878bd40120f70fe74ebdc884dd3a9e5
+ledger_schema: 3
 last_reviewed: 2026-05-03
 ---
 

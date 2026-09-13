@@ -2,7 +2,7 @@
 umbrella: true
 umbrella_sources:
     - docs/api-contract/generated/index.json
-ledger_schema: 2
+ledger_schema: 3
 last_reviewed: 2026-05-03
 ---
 
