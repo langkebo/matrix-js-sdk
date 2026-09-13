@@ -15,6 +15,23 @@ const riskPatterns = [
     { code: "bare-unknown", regex: /\bunknown\b/g },
 ];
 
+/**
+ * Blank out string literals before pattern matching.
+ *
+ * The type `unknown` and the *word* "unknown" are not the same thing: a union member like
+ * `trust_level: "verified" | "cross_signed" | "unverified" | "unknown"` is a perfectly
+ * narrow string-literal type, but `\bunknown\b` matched the literal and added it to the
+ * baseline as if it were a type widening. Stripping literals keeps the baseline honest
+ * (it is the number that decides whether the gate is green) at no cost to the real checks:
+ * `any` / `Record<string, unknown>` / `unknown` as types never appear inside a literal.
+ */
+export function stripStringLiterals(lineText) {
+    return lineText
+        .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+        .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+        .replace(/`(?:[^`\\]|\\.)*`/g, "``");
+}
+
 function writeStdout(line = "") {
     process.stdout.write(`${line}\n`);
 }
@@ -63,9 +80,10 @@ export function scanGeneratedDtoRisks(scanRoot = rootDir) {
         const lines = fs.readFileSync(absPath, "utf8").split(/\r?\n/);
 
         lines.forEach((lineText, index) => {
+            const searchable = stripStringLiterals(lineText);
             for (const risk of riskPatterns) {
-                if (!risk.regex.test(lineText)) continue;
                 risk.regex.lastIndex = 0;
+                if (!risk.regex.test(searchable)) continue;
 
                 items.push({
                     id: makeId(relativePath, index + 1, risk.code, lineText.trim()),
