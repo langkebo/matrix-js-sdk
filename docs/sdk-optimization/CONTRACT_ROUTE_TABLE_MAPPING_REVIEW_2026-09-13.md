@@ -235,6 +235,23 @@ ledger 有、表里没有的 5 条（正好都是写方法）：
 - 剩余 20 条：media 9、cas 2、e2ee 2、search 2、room 3、external-service 1、push 1 —— 都属「B 类缺口」或
   「需人工核实」，下一批处理；**worker-admin 那 11 条不属于"不能清"**，可以清（已在第一轮清掉）。
 
+### SDK-5 实施记录（2026-09-13，第二批：逐条向后端取证 + 修掉一个 codegen 拼接 bug）
+
+对第一批后剩下的 20 条逐条查后端注册与外键调用，结论分三类：
+
+1. **删掉 9 条**（既无后端注册也无 SDK 调用）：external-service 的 openclaw webhook（后端已退休 openclaw）、
+   media 表里 7 条**双前缀** admin 路径、cas 表的 `GET /_matrix/client/r0/login`（那是 auth 路由，
+   ledger 归 `assembly` 伞形模块，cas 模块并不调它）。
+2. **修掉一个 codegen 拼接 bug**：`resolveFullPath()` 对已经是绝对路径的 `/_synapse/...`
+   仍然叠加 sdkDir 前缀，于是拼出 `/_matrix/media/v3/_synapse/admin/v1/media`。文档（410-416 行）与后端
+   （`admin/media.rs:16-22`）声明的都是单前缀 `/_synapse/admin/v1/media*`。已加守卫：路径以
+   `/_matrix/` 或 `/_synapse/` 开头时原样返回。修完把历史遗留的 7 条双前缀条目删掉（不会再复活）。
+3. **保留并登记 11 条**：它们都是**后端真注册、ledger 漏声明**（B-11 8 条 + B-10 1 条 + B-1 归属待定 2 条），
+   不能误删 —— 这正是 B-8 那次教训的正面应用。
+
+最终：差集 **20 → 11**（全部为已验证的后端缺口/归属待定），登记表 11 条；media 表 41 → 34 条，
+`tsc --noEmit` 一次通过（被删的 9 条确实没有调用点）。
+
 > 更正：`msc4108_rendezvous` 那条**不是漂移**（见 §3 表格与 B-4 撤回）——`src/rendezvous` 目录同时承载 `msc4108_rendezvous` 与 `rendezvous` 两个 ledger 模块，两族路径各有声明。这也解释了为什么差集门禁必须**按目录 + 兄弟模块并集**比对。
 
 ---
@@ -254,6 +271,8 @@ ledger 有、表里没有的 5 条（正好都是写方法）：
 | **B-9**     | 7 条 admin media 路由被声明成 `/_matrix/media/v3/_synapse/admin/v1/media*`（**双前缀**），后端实际只提供 `/_synapse/admin/v1/media_callbacks` 等；SDK 侧对这些路径**零调用点**                                                                                                                                                                                                                                                                                                                             | `src/media/__generated__/route-table.ts` 的 9 条 sdk-only；后端 `module.rs:880-913`    | 确认从未存在则从 SDK 表删除（SDK-5）；若历史存在过，请在契约文档记录迁移                                                                      |
 
 | **B-10** | **ledger 又漏了一条真实路由**：`push.rs:16` 注册 `.route("/pushers/", get(get_pushers).post(set_pusher))`（带尾斜杠，GET+POST），但 ledger 的 `push` 模块里**没有** `/pushers/`（只有 `/pushers`），文档只列了 `GET /pushers/`。这是 B-8 同类问题（router 有、manifest 无），也解释了 SDK push 表里那条 `/pushers/` 为何既不在 ledger 也无法删除 | `push.rs:16` vs `modules/push.json` | 与 B-8 同一修法：让 manifest 与 router 注册同表派生 |
+
+| **B-11** | **ledger 漏声明 8 条已注册路由**（把 B-8 的口径错误纠正后重查，逐条 grep 后端确认）：`e2ee/keys.rs:51` `GET /keys/history`、`e2ee/keys.rs:24` `POST /keys/upload/{device_id}`、`room.rs:85` `GET /user/mutual_rooms`、`room.rs:157` `GET /_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms`、`room.rs:145` `GET|PUT /rooms/{room_id}/anti_screenshot`（ledger 与文档都只有 GET）、`cas.rs:148` `GET /login/sso/redirect/cas`、`media/upload.rs` `GET /upload/provider` 与 `POST /upload/token`、`admin/media.rs:16-22` 的 7 条 `/_synapse/admin/v1/media*`（文档声明正确，但 ledger 全缺） | 各条的后端注册行见左栏 | 与 B-8/B-10 同一修法：manifest 与 router 注册同表派生；另外 `/_synapse/admin/v1/media*` 属 admin 面，若要保持 SDK 可类型化，ledger 需要有无表模块的归属方案（见 B-1） |
 
 ---
 

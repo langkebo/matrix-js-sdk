@@ -1,21 +1,13 @@
 {
-    "$comment": "契约差集登记表（阶段 3 · SDK-2）。比对单位是 **SDK 目录**（映射多对一，同目录的兄弟 ledger 模块取并集）：sdk-only = 表里有、任一映射到该目录的 ledger 模块都没声明；ledger-only = ledger 声明了但表里没有。每条必须写 reason + expires；修好后必须删条目，否则门禁报 stale。判定见 scripts/quality/check-contract-drift.mjs。",
-    "generatedAt": "2026-09-13T08:41:26.859Z",
+    "$comment": "契约差集登记表（阶段 3 · SDK-2）。比对单位是 SDK 目录（映射多对一，同目录的兄弟 ledger 模块取并集）：sdk-only = 表里有、任一映射到该目录的 ledger 模块都没声明；ledger-only = ledger 声明了但表里没有。每条必须写 reason + expires；修好后必须删条目，否则门禁报 stale。判定见 scripts/quality/check-contract-drift.mjs。",
+    "generatedAt": "2026-09-13T08:50:30.509Z",
     "entries": [
-        {
-            "key": "cas:sdk-only:GET /_matrix/client/r0/login",
-            "dir": "cas",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/r0/login",
-            "reason": "历史条目（含 /r0/login）：ledger 的 cas 模块未声明 → SDK-5 定性",
-            "expires": "2026-12-31"
-        },
         {
             "key": "cas:sdk-only:GET /_matrix/client/v3/login/sso/redirect/cas",
             "dir": "cas",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/login/sso/redirect/cas",
-            "reason": "历史条目（含 /r0/login）：ledger 的 cas 模块未声明 → SDK-5 定性",
+            "reason": "后端 cas.rs:148 注册了该路由，ledger 的 cas 模块未声明（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -23,7 +15,7 @@
             "dir": "e2ee",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/keys/history",
-            "reason": "ledger 的 e2ee 模块用别的形态声明 keys 路由 → SDK-5 核对后删除或改形态",
+            "reason": "后端 e2ee/keys.rs:51 注册了该路由，ledger 未声明（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -31,71 +23,7 @@
             "dir": "e2ee",
             "kind": "sdk-only",
             "entry": "POST /_matrix/client/v3/keys/upload/{device_id}",
-            "reason": "ledger 的 e2ee 模块用别的形态声明 keys 路由 → SDK-5 核对后删除或改形态",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "external-service:sdk-only:POST /_synapse/external/openclaw/{service_id}/webhook",
-            "dir": "external-service",
-            "kind": "sdk-only",
-            "entry": "POST /_synapse/external/openclaw/{service_id}/webhook",
-            "reason": "openclaw 相关端点；后端已退休 openclaw（阶段 1）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:DELETE /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "DELETE /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:DELETE /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "DELETE /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/media",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/media",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/media/quota",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/media/quota",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/quarantine_media/{media_id}/changes",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/quarantine_media/{media_id}/changes",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
-            "dir": "media",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
-            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 零调用点、后端提供的是 /_synapse/admin/v1/media_callbacks（复核报告 B-9）→ SDK-5 删除",
+            "reason": "后端 e2ee/keys.rs:24 注册了带 device_id 的形态，ledger 只有不带 device_id 的 /keys/upload（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -103,7 +31,7 @@
             "dir": "media",
             "kind": "sdk-only",
             "entry": "GET /_matrix/media/v3/upload/provider",
-            "reason": "ledger 未声明（/upload/provider、/upload/token）→ SDK-5 确认后端是否存在后删除或补声明",
+            "reason": "后端 media/upload.rs 注册了该路由，ledger 未声明（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -111,7 +39,7 @@
             "dir": "media",
             "kind": "sdk-only",
             "entry": "POST /_matrix/media/v3/upload/token",
-            "reason": "ledger 未声明（/upload/provider、/upload/token）→ SDK-5 确认后端是否存在后删除或补声明",
+            "reason": "后端 media/upload.rs 注册了该路由，ledger 未声明（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -119,7 +47,7 @@
             "dir": "push",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/pushers/",
-            "reason": "末尾多一个斜杠的变体，ledger 只有 /pushers → 疑似手写笔误，SDK-3 删除",
+            "reason": "后端 push.rs:16 注册了 /pushers/（GET+POST），ledger 未声明、文档只有 GET（B-10）",
             "expires": "2026-12-31"
         },
         {
@@ -127,7 +55,7 @@
             "dir": "room",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/rooms/{room_id}/anti_screenshot",
-            "reason": "ledger 完全未声明 → SDK-5 确认后端是否存在：存在则后端补声明（B-6 类），不存在则删表条目",
+            "reason": "后端 room.rs:145 注册了 GET+PUT 两种方法，ledger 未声明、文档只有 GET（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -135,7 +63,7 @@
             "dir": "room",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/uk.half-shot.msc2666/user/mutual_rooms",
-            "reason": "ledger 声明的是 /unstable/uk.half-shot.msc2666 与 /v1 两种形态，表里是 /v3 → SDK-5 核对后改形态或删除",
+            "reason": "后端 room.rs:157 注册了该 unstable 形态，ledger 未声明（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -143,7 +71,7 @@
             "dir": "room",
             "kind": "sdk-only",
             "entry": "GET /_matrix/client/v3/user/mutual_rooms",
-            "reason": "ledger 声明的是 /unstable/uk.half-shot.msc2666 与 /v1 两种形态，表里是 /v3 → SDK-5 核对后改形态或删除",
+            "reason": "后端 room.rs:85 注册了 /user/mutual_rooms，ledger 未声明（B-11）",
             "expires": "2026-12-31"
         },
         {
@@ -151,7 +79,7 @@
             "dir": "search",
             "kind": "sdk-only",
             "entry": "POST /_matrix/vendor/v1/search_recipients",
-            "reason": "属 ledger 的 vendor 模块；search 表靠手抄保住（B-1 建议把这 2 条归回 search）→ 等 B-1",
+            "reason": "属 ledger 的 vendor 模块（无 SDK 目录）；search 表靠手抄保住且被 srp() 类型依赖 → 归属待后端 B-1",
             "expires": "2026-12-31"
         },
         {
@@ -159,7 +87,7 @@
             "dir": "search",
             "kind": "sdk-only",
             "entry": "POST /_matrix/vendor/v1/search_rooms",
-            "reason": "属 ledger 的 vendor 模块；search 表靠手抄保住（B-1 建议把这 2 条归回 search）→ 等 B-1",
+            "reason": "同上门户：属 ledger 的 vendor 模块，归属待后端 B-1",
             "expires": "2026-12-31"
         }
     ]

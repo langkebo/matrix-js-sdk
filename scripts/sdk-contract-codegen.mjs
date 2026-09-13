@@ -373,7 +373,16 @@ function resolveFullPath(method, resourcePath, sdkDir, lookups) {
     if (lookups.sdk.has(key)) return lookups.sdk.get(key);
     // 已是 vendor 完整路径（如 /_matrix/vendor/v1/friends/...）→ 直接使用，
     // 不再叠加 default 前缀（否则产生 /_matrix/client/v3/_matrix/vendor/v1/... 双重前缀）。
-    if (resourcePath.startsWith("/_matrix/vendor/")) return resourcePath;
+    // 已经是绝对路径（`/_matrix/...` 或 `/_synapse/...`）就不要再加前缀 —— 否则会拼出
+    // `/_matrix/media/v3/_synapse/admin/v1/media` 这种双前缀（实测 media 表里 7 条 admin 路由
+    // 就是这么错的，而文档与后端注册的都是单前缀 `/_synapse/admin/v1/media`）。
+    if (
+        resourcePath.startsWith("/_matrix/") ||
+        resourcePath.startsWith("/_synapse/") ||
+        resourcePath.startsWith("/_matrix/vendor/")
+    ) {
+        return resourcePath;
+    }
     // Private endpoints use vendor prefix; media uses /_matrix/media/v3; else v3
     let prefix;
     if (VENDOR_ENDPOINTS.has(resourcePath)) {
