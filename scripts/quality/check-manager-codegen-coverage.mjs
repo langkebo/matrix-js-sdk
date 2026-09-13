@@ -3,75 +3,16 @@
 import fs from "node:fs";
 import path from "node:path";
 
+// 映射的唯一真相源（codegen 也要用同一份）
+import { findSdkDirForModule } from "../contract-module-map.mjs";
+
+export { findSdkDirForModule };
+
 const projectRoot = process.cwd();
 /** `--json`：把判定结果交给下游（quality-report.mjs）复用，避免两处各算一遍。 */
 const shouldEmitJson = process.argv.includes("--json");
 const srcDir = path.join(projectRoot, "src");
 const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "generated", "index.json");
-
-const LEDGER_MODULE_ALIASES = {
-    "account-data": "account_data",
-    admin: "admin",
-    appservice: "app_service",
-    "background-update": "background_update",
-    "burn-after-read": "burn_after_read",
-    captcha: "captcha",
-    cas: "cas",
-    device: "device",
-    dm: "dm",
-    e2ee: "e2ee_routes",
-    ephemeral: "ephemeral",
-    "event-report": "event_report",
-    "external-service": "external_service",
-    "feature-flags": "feature_flags",
-    federation: "federation",
-    friend: "friend_room",
-    guest: "guest",
-    "key-backup": "key_backup",
-    "key-rotation": "key_rotation",
-    media: "media",
-    moderation: "moderation",
-    module: "module",
-    notifications: "push_notification",
-    oidc: "oidc",
-    presence: "presence",
-    push: "push",
-    reactions: "reactions",
-    relations: "relations",
-    rendezvous: "rendezvous",
-    room: "room",
-    "room-summary": "room_summary",
-    saml: "saml",
-    search: "search",
-    "sliding-sync": "sliding_sync",
-    space: "space",
-    sync: "sync",
-    tags: "tags",
-    telemetry: "telemetry",
-    thirdparty: "thirdparty",
-    thread: "thread",
-    typing: "typing",
-    verification: "verification_routes",
-    voice: "voice",
-    widget: "widget",
-    "worker-admin": "worker",
-    "worker-body": "worker_body",
-};
-
-/**
- * Ledger module name → SDK directory overrides.
- *
- * `LEDGER_MODULE_ALIASES` is keyed by SDK directory, so it cannot express either
- * "two ledger modules share one SDK directory" or "the ledger name differs from the
- * directory". Without these, `thirdparty` / `msc4108_rendezvous` / `background_update`
- * resolved to non-existent directories and were reported as NO_CODEGEN even though the
- * SDK does ship their route tables — 3 of the 14 reported gaps were this bug.
- */
-const LEDGER_MODULE_TO_SDK_DIR = {
-    background_update: "background-update",
-    msc4108_rendezvous: "rendezvous",
-    thirdparty: "third-party",
-};
 
 /**
  * Modules that intentionally have no generated route table.
@@ -140,14 +81,6 @@ function walk(dir, predicate = () => true, acc = []) {
         }
     }
     return acc;
-}
-
-export function findSdkDirForModule(moduleName) {
-    if (LEDGER_MODULE_TO_SDK_DIR[moduleName]) return LEDGER_MODULE_TO_SDK_DIR[moduleName];
-    for (const [sdkDir, ledgerModule] of Object.entries(LEDGER_MODULE_ALIASES)) {
-        if (ledgerModule === moduleName) return sdkDir;
-    }
-    return moduleName;
 }
 
 function moduleSourceFiles(sdkDir, srcRoot) {

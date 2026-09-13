@@ -4,7 +4,7 @@
  *
  * Module:        OIDC 契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       17 (authoritative set mirrored from the backend contract)
+ * Entries:       17 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `oidc` module (mirrored from the backend contract). */

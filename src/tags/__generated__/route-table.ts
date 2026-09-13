@@ -4,7 +4,7 @@
  *
  * Module:        标签契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       8 (authoritative set mirrored from the backend contract)
+ * Entries:       8 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `tags` module (mirrored from the backend contract). */

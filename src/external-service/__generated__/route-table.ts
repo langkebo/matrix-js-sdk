@@ -4,7 +4,7 @@
  *
  * Module:        External Service
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       20 (authoritative set mirrored from the backend contract)
+ * Entries:       21 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `external-service` module (mirrored from the backend contract). */
@@ -29,6 +29,7 @@ export const EXTERNAL_SERVICE_ROUTES = [
     { method: "POST", path: "/_synapse/external/webhook/{service_id}" },
     { method: "GET", path: "/_matrix/vendor/v1/external_services/health" },
     { method: "PUT", path: "/_matrix/vendor/v1/external_services/{service_id}" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/external_services/{service_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `EXTERNAL_SERVICE_ROUTES`. */

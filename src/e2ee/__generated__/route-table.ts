@@ -4,7 +4,7 @@
  *
  * Module:        E2EE
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       57 (authoritative set mirrored from the backend contract)
+ * Entries:       57 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `e2ee` module (mirrored from the backend contract). */

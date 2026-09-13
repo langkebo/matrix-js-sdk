@@ -1,7 +1,7 @@
 export type DriftKind = "sdk-only" | "ledger-only";
 
 export interface DriftItem {
-    moduleName: string;
+    /** 比对单位是 SDK 目录（映射多对一，同目录的兄弟 ledger 模块取并集）。 */
     sdkDir: string;
     kind: DriftKind;
     /** `METHOD path` */
@@ -17,7 +17,8 @@ export interface ModuleDiff {
 
 export interface ContractDriftRegistryEntry {
     key: string;
-    module: string;
+    /** SDK 目录名（与 `driftKey` 的第一段一致）。 */
+    dir: string;
     kind: DriftKind;
     entry: string;
     reason: string;
@@ -40,7 +41,7 @@ export function readLedgerManifest(moduleName: string, root?: string): Set<strin
 /** 计算一个模块的双向差集。 */
 export function diffModule(sdkDir: string, ledgerEntries: Set<string>, tableEntries: Set<string>): ModuleDiff;
 
-export function driftKey(moduleName: string, kind: DriftKind, entry: string): string;
+export function driftKey(sdkDir: string, kind: DriftKind, entry: string): string;
 
 export function readRegistry(filePath?: string): {
     entries: ContractDriftRegistryEntry[];

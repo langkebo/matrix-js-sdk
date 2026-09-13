@@ -4,7 +4,7 @@
  *
  * Module:        Friend 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       88 (authoritative set mirrored from the backend contract)
+ * Entries:       93 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `friend` module (mirrored from the backend contract). */
@@ -97,6 +97,11 @@ export const FRIEND_ROUTES = [
     { method: "PUT", path: "/_matrix/vendor/v1/friends/groups/{group_id}/name" },
     { method: "PUT", path: "/_matrix/vendor/v1/friends/{user_id}/displayname" },
     { method: "PUT", path: "/_matrix/vendor/v1/friends/{user_id}/note" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/dm/{user_id}" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/groups" },
+    { method: "POST", path: "/_matrix/vendor/v1/friends/search" },
+    { method: "PUT", path: "/_matrix/vendor/v1/friends/{user_id}/status" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `FRIEND_ROUTES`. */

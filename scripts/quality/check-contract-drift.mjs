@@ -15,8 +15,13 @@
  *   - `ledger-only` —— ledger 里有、表里没有（文档漏了、路径族变了），同样必须登记；
  *   - 已修好的条目要**随手删掉登记**，否则算 stale（和定时器门禁同款机制）。
  *
- * 只检查**有 route-table 的模块**：没有表的模块（admin/voice/… 9 个 SKIP 模块）由
+ * 只检查**有 route-table 的目录**：没有表的模块（admin/voice/… 9 个 SKIP 模块）由
  * `check-manager-codegen-coverage.mjs` 的白名单负责，不在这里重复记账。
+ *
+ * 比对单位是 **SDK 目录**，不是 ledger 模块：映射是多对一的（`rendezvous` 目录同时承载
+ * ledger 的 `msc4108_rendezvous` 与 `rendezvous`，`push` 目录同时承载 `push` 与
+ * `push_notification`），按模块比会把"同目录兄弟模块的路由"误报成漂移。因此一个表条目
+ * 只要被**任一**映射到该目录的 ledger 模块声明过，就算有 ledger 背书。
  *
  * 用法：
  *   node scripts/quality/check-contract-drift.mjs           # 门禁
@@ -28,7 +33,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 // 映射必须与"生成 route-table 的模块→目录映射"完全一致，因此直接复用覆盖门禁的实现
-import { findSdkDirForModule } from "./check-manager-codegen-coverage.mjs";
+import { findLedgerModulesForSdkDir, findSdkDirForModule } from "../contract-module-map.mjs";
 
 const rootDir = process.cwd();
 const registryPath = path.join(rootDir, "scripts", "quality", "contract-drift-registry.json");
@@ -118,35 +123,42 @@ function main() {
     for (const moduleName of Object.keys(index.modules)) {
         if (moduleName === "assembly") continue;
         const sdkDir = findSdkDirForModule(moduleName);
+        if (readRouteTable(sdkDir) === null) skippedNoTable.push(moduleName);
+    }
+
+    const ledgerModuleNames = Object.keys(index.modules).filter((name) => name !== "assembly");
+    const sdkDirs = [...new Set(ledgerModuleNames.map((name) => findSdkDirForModule(name)))].sort();
+    for (const sdkDir of sdkDirs) {
         const table = readRouteTable(sdkDir);
-        if (table === null) {
-            skippedNoTable.push(moduleName);
-            continue;
+        if (table === null) continue;
+        // 同一目录的兄弟 ledger 模块取并集（多对一映射，见文件头注释）
+        const ledgerUnion = new Set();
+        for (const moduleName of findLedgerModulesForSdkDir(sdkDir, ledgerModuleNames)) {
+            for (const entry of readLedgerManifest(moduleName) ?? []) ledgerUnion.add(entry);
         }
-        const ledger = readLedgerManifest(moduleName) ?? new Set();
-        const { sdkOnly, ledgerOnly } = diffModule(sdkDir, ledger, table);
-        for (const entry of sdkOnly) observed.push({ moduleName, sdkDir, kind: "sdk-only", entry });
-        for (const entry of ledgerOnly) observed.push({ moduleName, sdkDir, kind: "ledger-only", entry });
+        const { sdkOnly, ledgerOnly } = diffModule(sdkDir, ledgerUnion, table);
+        for (const entry of sdkOnly) observed.push({ sdkDir, kind: "sdk-only", entry });
+        for (const entry of ledgerOnly) observed.push({ sdkDir, kind: "ledger-only", entry });
     }
 
     const logLines = [];
     const log = (line) => logLines.push(line);
     const failures = [];
     for (const item of observed) {
-        const key = driftKey(item.moduleName, item.kind, item.entry);
+        const key = driftKey(item.sdkDir, item.kind, item.entry);
         const verdict = evaluateDrift(key, registry, today);
         if (shouldList) log(`${verdict.ok ? "ok " : "RED"} ${key} -> ${verdict.detail}`);
         if (!verdict.ok) failures.push({ key, verdict });
     }
 
-    const observedKeys = new Set(observed.map((item) => driftKey(item.moduleName, item.kind, item.entry)));
+    const observedKeys = new Set(observed.map((item) => driftKey(item.sdkDir, item.kind, item.entry)));
     const staleEntries = registry.entries.filter((entry) => !observedKeys.has(entry.key)).map((entry) => entry.key);
 
     const perModule = new Map();
     for (const item of observed) {
-        const bucket = perModule.get(item.moduleName) ?? { sdkOnly: 0, ledgerOnly: 0 };
+        const bucket = perModule.get(item.sdkDir) ?? { sdkOnly: 0, ledgerOnly: 0 };
         bucket[item.kind === "sdk-only" ? "sdkOnly" : "ledgerOnly"] += 1;
-        perModule.set(item.moduleName, bucket);
+        perModule.set(item.sdkDir, bucket);
     }
     for (const item of observed) {
         log(

@@ -4,7 +4,7 @@
  *
  * Module:        Background Update
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       19 (authoritative set mirrored from the backend contract)
+ * Entries:       19 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `background-update` module (mirrored from the backend contract). */

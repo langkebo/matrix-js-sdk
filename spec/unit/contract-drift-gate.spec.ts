@@ -19,7 +19,7 @@ import {
     readRegistry,
     readRouteTable,
 } from "../../scripts/quality/check-contract-drift.mjs";
-import { findSdkDirForModule } from "../../scripts/quality/check-manager-codegen-coverage.mjs";
+import { findLedgerModulesForSdkDir, findSdkDirForModule } from "../../scripts/contract-module-map.mjs";
 
 function makeTree(files: Record<string, string>): string {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-js-sdk-contract-drift-"));
@@ -103,7 +103,7 @@ describe("契约差集门禁: 仓库现状", () => {
 
         expect(registry.entries.length).toBeGreaterThan(0);
         for (const entry of registry.entries) {
-            expect(entry.key).toBe(driftKey(entry.module, entry.kind, entry.entry));
+            expect(entry.key).toBe(driftKey(entry.dir, entry.kind, entry.entry));
             expect(typeof entry.reason).toBe("string");
             expect(entry.reason.length).toBeGreaterThan(8);
             expect(typeof entry.expires).toBe("string");
@@ -116,15 +116,19 @@ describe("契约差集门禁: 仓库现状", () => {
         const index = JSON.parse(fs.readFileSync(path.resolve("docs/api-contract/generated/index.json"), "utf8"));
         const observed = new Set<string>();
 
-        for (const moduleName of Object.keys(index.modules)) {
-            if (moduleName === "assembly") continue;
-            const sdkDir = findSdkDirForModule(moduleName);
+        const moduleNames = Object.keys(index.modules).filter((name) => name !== "assembly");
+        const sdkDirs = [...new Set(moduleNames.map((name) => findSdkDirForModule(name)))].sort();
+        for (const sdkDir of sdkDirs) {
             const table = readRouteTable(sdkDir);
             if (table === null) continue;
-            const ledger = readLedgerManifest(moduleName) ?? new Set<string>();
+            // 同一目录的兄弟 ledger 模块取并集（映射多对一）
+            const ledger = new Set<string>();
+            for (const moduleName of findLedgerModulesForSdkDir(sdkDir, moduleNames)) {
+                for (const entry of readLedgerManifest(moduleName) ?? []) ledger.add(entry);
+            }
             const diff = diffModule(sdkDir, ledger, table);
-            for (const entry of diff.sdkOnly) observed.add(driftKey(moduleName, "sdk-only", entry));
-            for (const entry of diff.ledgerOnly) observed.add(driftKey(moduleName, "ledger-only", entry));
+            for (const entry of diff.sdkOnly) observed.add(driftKey(sdkDir, "sdk-only", entry));
+            for (const entry of diff.ledgerOnly) observed.add(driftKey(sdkDir, "ledger-only", entry));
         }
 
         const registered = new Set(registry.entries.map((entry) => entry.key));

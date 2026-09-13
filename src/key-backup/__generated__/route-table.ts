@@ -4,7 +4,7 @@
  *
  * Module:        Key Backup 模块
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       99 (authoritative set mirrored from the backend contract)
+ * Entries:       99 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `key-backup` module (mirrored from the backend contract). */

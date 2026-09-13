@@ -4,7 +4,7 @@
  *
  * Module:        Thread 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       21 (authoritative set mirrored from the backend contract)
+ * Entries:       23 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `thread` module (mirrored from the backend contract). */
@@ -30,6 +30,8 @@ export const THREAD_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/threads/subscribed" },
     { method: "GET", path: "/_matrix/client/v1/threads/unread" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads" },
+    { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads" },
+    { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `THREAD_ROUTES`. */

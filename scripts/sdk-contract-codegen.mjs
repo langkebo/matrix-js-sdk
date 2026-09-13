@@ -39,6 +39,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
+// Ledger 模块 ↔ SDK 目录的唯一映射（与 quality 门禁同源）
+import { findLedgerModulesForSdkDir } from "./contract-module-map.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRACT_INDEX.md");
@@ -383,6 +386,32 @@ function resolveFullPath(method, resourcePath, sdkDir, lookups) {
     return prefix + (resourcePath.startsWith("/") ? resourcePath : `/${resourcePath}`);
 }
 
+/**
+ * 该 SDK 目录承载的 ledger 模块清单（`docs/api-contract/generated/modules/*.json`，SDK-1）。
+ *
+ * 这是**权威路由源**：ledger 在服务端启动时校验过（`RouteLedger::validate`），而
+ * `ROUTE_CONTRACT.md` 是人工文档、已经与 ledger 漂移（实测 13 个模块双向差集，
+ * 例如 friend 表少 5 条写方法）。路径在 ledger 里已是绝对形式，直接入表。
+ */
+function loadLedgerEntriesForSdkDir(sdkDir) {
+    const indexPath = path.join(repoRoot, "docs", "api-contract", "generated", "index.json");
+    if (!fs.existsSync(indexPath)) return [];
+    const moduleNames = Object.keys(JSON.parse(fs.readFileSync(indexPath, "utf8")).modules ?? {});
+
+    const out = [];
+    for (const moduleName of findLedgerModulesForSdkDir(sdkDir, moduleNames)) {
+        const manifestPath = path.join(repoRoot, "docs", "api-contract", "generated", "modules", `${moduleName}.json`);
+        if (!fs.existsSync(manifestPath)) continue;
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        for (const entry of manifest.entries ?? []) {
+            if (typeof entry.method === "string" && typeof entry.path === "string") {
+                out.push({ method: entry.method, path: entry.path });
+            }
+        }
+    }
+    return out;
+}
+
 function loadExistingEntries(sdkDir) {
     const p = path.join(repoRoot, "src", sdkDir, "__generated__", "route-table.ts");
     if (!fs.existsSync(p)) return [];
@@ -521,7 +550,7 @@ function renderRouteTable(module, entries, entryCount) {
     lines.push(" *");
     lines.push(` * Module:        ${module.humanName}`);
     lines.push(` * Source:        ${module.sourceLabel}`);
-    lines.push(` * Entries:       ${entryCount} (authoritative set mirrored from the backend contract)`);
+    lines.push(` * Entries:       ${entryCount} (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)`);
     lines.push(" */");
     lines.push("");
     lines.push(
@@ -1071,19 +1100,23 @@ function render(module, lookups) {
     // (r0/v1/v3) a manager depends on is preserved verbatim. Contract routes
     // are appended only when their resolved full path is genuinely new,
     // filling coverage gaps without ever narrowing the path union.
+    // 三个来源按优先级合并（SDK-1）：
+    //   1. 既有条目：保留向后兼容，**不删除**任何当前 manager 依赖的路径；
+    //   2. ledger 清单：权威路由源（启动时校验过），补上文档漏掉的方法形态；
+    //   3. ROUTE_CONTRACT.md：只用来补 ledger 也没有、但文档声明的路径（历史/未导出路由）。
     const seenFull = new Set();
     const entries = [];
-    for (const e of loadExistingEntries(module.sdkDir)) {
-        const key = `${e.method} ${e.path}`;
-        if (seenFull.has(key)) continue;
-        seenFull.add(key);
-        entries.push(e);
-    }
-    for (const e of contractEntries) {
-        const key = `${e.method} ${e.path}`;
-        if (seenFull.has(key)) continue;
-        seenFull.add(key);
-        entries.push(e);
+    for (const source of [
+        loadExistingEntries(module.sdkDir),
+        loadLedgerEntriesForSdkDir(module.sdkDir),
+        contractEntries,
+    ]) {
+        for (const e of source) {
+            const key = `${e.method} ${e.path}`;
+            if (seenFull.has(key)) continue;
+            seenFull.add(key);
+            entries.push(e);
+        }
     }
     const entryCount = entries.length;
 

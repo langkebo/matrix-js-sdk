@@ -6,10 +6,10 @@
 
 import { RENDEZVOUS_ROUTES } from "./route-table";
 
-export const RENDEZVOUS_ROUTES_ENTRY_COUNT = 6 as const;
+export const RENDEZVOUS_ROUTES_ENTRY_COUNT = 10 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _RendezvousEntryCountAssertion: 6 = RENDEZVOUS_ROUTES.length;
+const _RendezvousEntryCountAssertion: 10 = RENDEZVOUS_ROUTES.length;
 void _RendezvousEntryCountAssertion;
 
 export const RENDEZVOUS_ROUTES_STATUS_SCENARIOS = [

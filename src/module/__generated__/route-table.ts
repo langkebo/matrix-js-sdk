@@ -4,7 +4,7 @@
  *
  * Module:        Module System
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       23 (authoritative set mirrored from the backend contract)
+ * Entries:       23 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `module` module (mirrored from the backend contract). */
