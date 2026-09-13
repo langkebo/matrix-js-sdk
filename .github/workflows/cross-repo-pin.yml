@@ -1,0 +1,72 @@
+name: Cross-Repo Pin
+
+# Verifies Tjg/meta/sdk-pin.json against the live HEADs of all three repos:
+#   pin.sdk_commit          == matrix-js-sdk HEAD
+#   pin.synapse_rust_commit == synapse-rust HEAD
+#   pin.tarball_sha256      == sha256(Tjg/vendor/matrix-js-sdk.tgz)
+#
+# Why release branches only: the pin is documented as a *release-branch* artifact
+# ("CI blocks merges to release/* unless every field here matches the actually
+# installed artifacts"). On develop the pin intentionally lags, so gating every
+# push here would produce permanent noise.
+#
+# Why the three checkouts: the whole point of this gate is to compare against the
+# real sibling repositories. Without them it would silently skip, which is why
+# `--strict` is passed — an unreachable sibling must fail the job, not pass it.
+#
+# Requires the `ELEMENT_BOT_TOKEN` secret to read the sibling repositories
+# (already used by synapse-ledger-sync.yaml for the same org).
+
+on:
+    workflow_dispatch:
+    push:
+        branches: ["release/**"]
+    pull_request:
+        branches: ["release/**"]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+    cross-repo-pin:
+        name: Pin matches all three repo HEADs
+        runs-on: ubuntu-24.04
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout matrix-js-sdk
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  path: matrix-js-sdk
+
+            - name: Checkout synapse-rust
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  repository: langkebo/synapse-rust
+                  token: ${{ secrets.ELEMENT_BOT_TOKEN }}
+                  path: synapse-rust
+
+            - name: Checkout Tjg (owns the pin)
+              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+              with:
+                  repository: langkebo/tjg
+                  token: ${{ secrets.ELEMENT_BOT_TOKEN }}
+                  path: Tjg
+
+            - name: Setup Node
+              uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  node-version: 22
+
+            # The gate is a dependency-free Node script (node:fs / node:path /
+            # node:crypto / node:child_process), so no pnpm install is needed here.
+            - name: Verify pin against sibling HEADs
+              env:
+                  SYNAPSE_RUST_REPO: ${{ github.workspace }}/synapse-rust
+                  TJG_REPO: ${{ github.workspace }}/Tjg
+              working-directory: matrix-js-sdk
+              run: node scripts/quality/check-cross-repo-pin.mjs --strict
