@@ -193,6 +193,8 @@ import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";
 import { buildEditContent, buildReplyContent, normalizeThreadBodyArgs } from "./client-message-composition.ts";
+import { createSchedulerProcessFunction } from "./client-scheduler-process.ts";
+import { makeKeyBackupPath } from "./key-backup-paths.ts";
 import { dispatchDelayedStateEventRequest, dispatchStateEventRequest } from "./client-send-state";
 import { prepareSendEventParams, type PreparedSendEventParams } from "./client-send-event";
 import { normalizeRedactEventArgs, normalizeThreadHtmlArgs } from "./client-send-args";
@@ -851,19 +853,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
         this.scheduler = opts.scheduler;
         if (this.scheduler) {
-            this.scheduler.setProcessFunction(async (eventToSend: MatrixEvent) => {
-                const room = this.getRoom(eventToSend.getRoomId());
-                if (eventToSend.status !== EventStatus.SENDING) {
-                    this.updatePendingEventStatus(room, eventToSend, EventStatus.SENDING);
-                }
-                const res = await this.sendEventHttpRequest(eventToSend);
-                if (room) {
-                    // ensure we update pending event before the next scheduler run so that any listeners to event id
-                    // updates on the synchronous event emitter get a chance to run first.
-                    room.updatePendingEvent(eventToSend, EventStatus.SENT, res.event_id);
-                }
-                return res;
-            });
+            // 回调实现已抽到 client-scheduler-process.ts（P3-5），这里只注入依赖
+            this.scheduler.setProcessFunction(
+                createSchedulerProcessFunction({
+                    getRoom: (roomId) => this.getRoom(roomId),
+                    updatePendingEventStatus: (room, event, status) =>
+                        this.updatePendingEventStatus(room, event, status),
+                    sendEventHttpRequest: (event) => this.sendEventHttpRequest(event),
+                }),
+            );
         }
 
         this.disableVoip = opts.disableVoip ?? false;
@@ -1478,21 +1476,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     private makeKeyBackupPath(roomId?: string, sessionId?: string, version?: string): IKeyBackupPath {
-        let path: string;
-        if (sessionId !== undefined) {
-            path = utils.encodeUri("/room_keys/keys/$roomId/$sessionId", {
-                $roomId: roomId!,
-                $sessionId: sessionId,
-            });
-        } else if (roomId !== undefined) {
-            path = utils.encodeUri("/room_keys/keys/$roomId", {
-                $roomId: roomId,
-            });
-        } else {
-            path = "/room_keys/keys";
-        }
-        const queryData = version === undefined ? undefined : { version };
-        return { path, queryData };
+        // 实现已抽到 key-backup-paths.ts（P3-5），保留私有方法以维持调用点不变
+        return makeKeyBackupPath(roomId, sessionId, version);
     }
 
     public deleteKeysFromBackup(roomId: undefined, sessionId: undefined, version?: string): Promise<void>;

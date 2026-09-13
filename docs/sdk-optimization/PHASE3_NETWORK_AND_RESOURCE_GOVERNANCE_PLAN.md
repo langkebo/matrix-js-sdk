@@ -235,6 +235,26 @@ client.ts 里剩的是薄适配层 —— 所以第一批挑了另一个更有�
   构造函数（115 行）与大量一行转发；继续拆需要更大、更险的搬迁（发送重载族、同步编排），
   建议后续按子域单独开批次。
 
+### 5.2 量化结论：client.ts 已经是薄外观（T5.1 清单）
+
+用脚本对 355 个方法逐个判定「长度 ≥12 行且非纯转发」：
+
+| 批次             | 子域                         | 方法 → 目标模块                                                                                                                                                                                                                                                    | 结果                                                            |
+| ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| 既有（本项之前） | 发送内部流程                 | `sendEvent`/`sendCompleteEvent`/`encryptAndSendEvent`/`sendEventHttpRequest` → 早已抽到 `client-send-*.ts`、`client-encrypt-send.ts`、`prepareSendCompleteEventLifecycle` / `encryptAndSendEventWorkflow` / `dispatchSendEventHttpRequest`；client.ts 只剩依赖注入 | 复核确认**无剩余逻辑可搬**                                      |
+| 第一批（本次）   | 消息组合                     | `sendMessage` / `replyToEvent` / `editEvent` / `sendTextMessage` / `sendNotice` / `sendEmoteMessage` 的归一化与关系构建 → `src/client-message-composition.ts`                                                                                                      | client.ts −63 行；新增 9 例单测（原先三处重复的归一化代码合一） |
+| 第二批（本次）   | 调度器回调 + key-backup 路径 | 构造函数里的 `setProcessFunction` 闭包 → `src/client-scheduler-process.ts`；`makeKeyBackupPath` → `src/key-backup-paths.ts`                                                                                                                                        | client.ts 再 −15 行；新增 7 例单测（此前均无直接覆盖）          |
+
+**量化结果（决定性）**：355 个方法里只剩 **11 个**属于「≥12 行且非纯转发」，合计 367 行，
+其中 9 个是发送重载**签名**（实现是薄适配），真正的逻辑只剩 `constructor`（111 行，字段初始化 +
+编排）、`assertDelayedEventsSupported`（14 行）、`startClient`/`stopClient`（各 12 行生命周期编排）。
+
+也就是说 **③「client.ts 只留编排与转发」已经达成**：继续拆只能搬一行转发，那会增加间接层而不是
+降低复杂度（A1 修订口径明确反对以行数论）。`client.ts` 从 4129 → **4051 行**，但真正的价值是
+**把仅剩的三块逻辑搬进了有单测的模块**（第一批 9 例 + 第二批 7 例）。
+
+> 构造函数没有搬：它要注入约 40 个依赖，搬出去只会更难读 —— 这属于「编排」，留在外观里是对的。
+
 ## 6. 与阶段 2 遗留的衔接
 
 ### 6.1 ADR-0005 的 DTO 改形（DTO-1/2/3）
