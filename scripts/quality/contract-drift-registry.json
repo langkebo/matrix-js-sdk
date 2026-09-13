@@ -1,0 +1,934 @@
+{
+    "$comment": "契约差集登记表（阶段 3 · SDK-2）。每条对应一处「SDK route-table ↔ 后端 ledger」差集：sdk-only = 表里有 ledger 无；ledger-only = ledger 有表里无。必须写 reason + expires；差集被修好后必须删掉对应条目，否则门禁报 stale。判定见 scripts/quality/check-contract-drift.mjs，",
+    "generatedAt": "2026-09-13T07:54:16.318Z",
+    "entries": [
+        {
+            "key": "burn_after_read:ledger-only:DELETE /_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}",
+            "module": "burn_after_read",
+            "kind": "ledger-only",
+            "entry": "DELETE /_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "burn_after_read:ledger-only:GET /_matrix/vendor/v1/rooms/{room_id}/burn",
+            "module": "burn_after_read",
+            "kind": "ledger-only",
+            "entry": "GET /_matrix/vendor/v1/rooms/{room_id}/burn",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "cas:sdk-only:GET /_matrix/client/r0/login",
+            "module": "cas",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/login",
+            "reason": "历史条目（含 /r0/login）：ledger 的 cas 模块未声明 → SDK-5 定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "cas:sdk-only:GET /_matrix/client/v3/login/sso/redirect/cas",
+            "module": "cas",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/login/sso/redirect/cas",
+            "reason": "历史条目（含 /r0/login）：ledger 的 cas 模块未声明 → SDK-5 定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "e2ee:sdk-only:GET /_matrix/client/v3/keys/history",
+            "module": "e2ee",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/keys/history",
+            "reason": "ledger 的 e2ee 模块用别的形态声明 keys 路由 → SDK-5 核对后删除或改形态",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "e2ee:sdk-only:POST /_matrix/client/v3/keys/upload/{device_id}",
+            "module": "e2ee",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/keys/upload/{device_id}",
+            "reason": "ledger 的 e2ee 模块用别的形态声明 keys 路由 → SDK-5 核对后删除或改形态",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "external_service:sdk-only:POST /_synapse/external/openclaw/{service_id}/webhook",
+            "module": "external_service",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/external/openclaw/{service_id}/webhook",
+            "reason": "openclaw 相关端点；后端已退休 openclaw（阶段 1）→ SDK-5 删除",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "external_service:ledger-only:DELETE /_matrix/vendor/v1/external_services/{service_id}",
+            "module": "external_service",
+            "kind": "ledger-only",
+            "entry": "DELETE /_matrix/vendor/v1/external_services/{service_id}",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "friend_room:ledger-only:POST /_matrix/vendor/v1/friends",
+            "module": "friend_room",
+            "kind": "ledger-only",
+            "entry": "POST /_matrix/vendor/v1/friends",
+            "reason": "后端 ROUTE_CONTRACT.md 只列了这些路径的 GET 形态，ledger 里 POST/PUT 也有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "friend_room:ledger-only:POST /_matrix/vendor/v1/friends/dm/{user_id}",
+            "module": "friend_room",
+            "kind": "ledger-only",
+            "entry": "POST /_matrix/vendor/v1/friends/dm/{user_id}",
+            "reason": "后端 ROUTE_CONTRACT.md 只列了这些路径的 GET 形态，ledger 里 POST/PUT 也有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "friend_room:ledger-only:POST /_matrix/vendor/v1/friends/groups",
+            "module": "friend_room",
+            "kind": "ledger-only",
+            "entry": "POST /_matrix/vendor/v1/friends/groups",
+            "reason": "后端 ROUTE_CONTRACT.md 只列了这些路径的 GET 形态，ledger 里 POST/PUT 也有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "friend_room:ledger-only:POST /_matrix/vendor/v1/friends/search",
+            "module": "friend_room",
+            "kind": "ledger-only",
+            "entry": "POST /_matrix/vendor/v1/friends/search",
+            "reason": "后端 ROUTE_CONTRACT.md 只列了这些路径的 GET 形态，ledger 里 POST/PUT 也有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "friend_room:ledger-only:PUT /_matrix/vendor/v1/friends/{user_id}/status",
+            "module": "friend_room",
+            "kind": "ledger-only",
+            "entry": "PUT /_matrix/vendor/v1/friends/{user_id}/status",
+            "reason": "后端 ROUTE_CONTRACT.md 只列了这些路径的 GET 形态，ledger 里 POST/PUT 也有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:DELETE /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:DELETE /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/media",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/media",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/media/quota",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/media/quota",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/media/{media_id}",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/quarantine_media/{media_id}/changes",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/quarantine_media/{media_id}/changes",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:GET /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/media/v3/_synapse/admin/v1/users/{user_id}/media",
+            "reason": "**路径形态可疑**：admin media 路由被挂在 /_matrix/media/v3 前缀下，SDK 无调用点、后端提供的是 /_synapse/admin/v1/media_callbacks → SDK-5 删除（并核对是否有调用方）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:GET /_matrix/media/v3/upload/provider",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/media/v3/upload/provider",
+            "reason": "ledger 未声明（/upload/provider、/upload/token）→ SDK-5 确认后端是否存在后删除或补声明",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "media:sdk-only:POST /_matrix/media/v3/upload/token",
+            "module": "media",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/media/v3/upload/token",
+            "reason": "ledger 未声明（/upload/provider、/upload/token）→ SDK-5 确认后端是否存在后删除或补声明",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:sdk-only:DELETE /_matrix/client/v1/rendezvous/{session_id}",
+            "module": "msc4108_rendezvous",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/v1/rendezvous/{session_id}",
+            "reason": "历史条目，ledger 未声明 → 待定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:sdk-only:GET /_matrix/client/v1/rendezvous/{session_id}",
+            "module": "msc4108_rendezvous",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v1/rendezvous/{session_id}",
+            "reason": "历史条目，ledger 未声明 → 待定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:sdk-only:GET /_matrix/client/v1/rendezvous/{session_id}/messages",
+            "module": "msc4108_rendezvous",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v1/rendezvous/{session_id}/messages",
+            "reason": "历史条目，ledger 未声明 → 待定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:sdk-only:POST /_matrix/client/v1/rendezvous",
+            "module": "msc4108_rendezvous",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v1/rendezvous",
+            "reason": "历史条目，ledger 未声明 → 待定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:sdk-only:POST /_matrix/client/v1/rendezvous/{session_id}/messages",
+            "module": "msc4108_rendezvous",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v1/rendezvous/{session_id}/messages",
+            "reason": "历史条目，ledger 未声明 → 待定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:sdk-only:PUT /_matrix/client/v1/rendezvous/{session_id}",
+            "module": "msc4108_rendezvous",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/v1/rendezvous/{session_id}",
+            "reason": "历史条目，ledger 未声明 → 待定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:ledger-only:DELETE /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+            "module": "msc4108_rendezvous",
+            "kind": "ledger-only",
+            "entry": "DELETE /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+            "reason": "路径族不同：ledger 是 /unstable/org.matrix.msc4108/*，表是 /v1/rendezvous* → 需后端确认哪套在线（复核报告 B-4）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:ledger-only:GET /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+            "module": "msc4108_rendezvous",
+            "kind": "ledger-only",
+            "entry": "GET /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+            "reason": "路径族不同：ledger 是 /unstable/org.matrix.msc4108/*，表是 /v1/rendezvous* → 需后端确认哪套在线（复核报告 B-4）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:ledger-only:POST /_matrix/client/unstable/org.matrix.msc4108/rendezvous",
+            "module": "msc4108_rendezvous",
+            "kind": "ledger-only",
+            "entry": "POST /_matrix/client/unstable/org.matrix.msc4108/rendezvous",
+            "reason": "路径族不同：ledger 是 /unstable/org.matrix.msc4108/*，表是 /v1/rendezvous* → 需后端确认哪套在线（复核报告 B-4）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "msc4108_rendezvous:ledger-only:PUT /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+            "module": "msc4108_rendezvous",
+            "kind": "ledger-only",
+            "entry": "PUT /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+            "reason": "路径族不同：ledger 是 /unstable/org.matrix.msc4108/*，表是 /v1/rendezvous* → 需后端确认哪套在线（复核报告 B-4）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:DELETE /_matrix/client/r0/push/devices/{device_id}",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/r0/push/devices/{device_id}",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:DELETE /_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:GET /_matrix/client/r0/push/devices",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/push/devices",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:GET /_matrix/client/r0/push/rules",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/push/rules",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:GET /_matrix/client/v3/pushers/",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/pushers/",
+            "reason": "末尾多一个斜杠的变体，ledger 只有 /pushers → 疑似手写笔误，SDK-3 删除",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:POST /_matrix/client/r0/push/devices",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/push/devices",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:POST /_matrix/client/r0/push/rules",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/push/rules",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:POST /_matrix/client/r0/push/send",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/push/send",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:POST /_synapse/admin/v1/push/cleanup",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/admin/v1/push/cleanup",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "push:sdk-only:POST /_synapse/admin/v1/push/process",
+            "module": "push",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/admin/v1/push/process",
+            "reason": "属 ledger 的 push_notification 模块（不同路由族，SDK 零调用点）→ SDK-3 从 push 表移除（复核报告 §4 Q2）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:DELETE /_matrix/client/r0/friends/groups/{group_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/r0/friends/groups/{group_id}",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:DELETE /_matrix/client/r0/friends/groups/{group_id}/remove/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/r0/friends/groups/{group_id}/remove/{user_id}",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:DELETE /_matrix/client/r0/friends/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/r0/friends/{user_id}",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:DELETE /_matrix/client/v3/rooms/{room_id}/summary",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/v3/rooms/{room_id}/summary",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:DELETE /_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "DELETE /_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/check/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/check/{user_id}",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/dm/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/dm/{user_id}",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/groups",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/groups",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/groups/{group_id}/friends",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/groups/{group_id}/friends",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/request/received",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/request/received",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/requests/incoming",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/requests/incoming",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/requests/outgoing",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/requests/outgoing",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/search",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/search",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/suggestions",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/suggestions",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/{user_id}/groups",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/{user_id}/groups",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/{user_id}/info",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/{user_id}/info",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friends/{user_id}/status",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friends/{user_id}/status",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/friendships",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/friendships",
+            "reason": "ledger 完全未声明的自定义端点 → SDK-5 确认后端是否存在：存在则后端补声明，不存在则删表条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/rooms/{room_id}/summary",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/rooms/{room_id}/summary",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/rooms/{room_id}/summary/members",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/rooms/{room_id}/summary/members",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/rooms/{room_id}/summary/state",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/rooms/{room_id}/summary/state",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/r0/rooms/{room_id}/summary/stats",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/r0/rooms/{room_id}/summary/stats",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v1/friends",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v1/friends",
+            "reason": "历史条目，ledger 未声明 → SDK-5 逐条定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}",
+            "reason": "历史条目，ledger 未声明 → SDK-5 逐条定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/anti_screenshot",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/rooms/{room_id}/anti_screenshot",
+            "reason": "ledger 完全未声明的自定义端点 → SDK-5 确认后端是否存在：存在则后端补声明，不存在则删表条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v3/uk.half-shot.msc2666/user/mutual_rooms",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/uk.half-shot.msc2666/user/mutual_rooms",
+            "reason": "ledger 声明的是 /unstable/uk.half-shot.msc2666 与 /v1 两种形态，表里是 /v3 → 需确认哪套在线（B-4 同类）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v3/user/mutual_rooms",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/user/mutual_rooms",
+            "reason": "ledger 声明的是 /unstable/uk.half-shot.msc2666 与 /v1 两种形态，表里是 /v3 → 需确认哪套在线（B-4 同类）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_synapse/room_summary/v1/summaries",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_synapse/room_summary/v1/summaries",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friends/groups",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friends/groups",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friends/groups/{group_id}/add/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friends/groups/{group_id}/add/{user_id}",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friends/request",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friends/request",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friends/request/{user_id}/accept",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friends/request/{user_id}/accept",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friends/request/{user_id}/cancel",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friends/request/{user_id}/cancel",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friends/request/{user_id}/reject",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friends/request/{user_id}/reject",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/r0/friendships",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/r0/friendships",
+            "reason": "ledger 完全未声明的自定义端点 → SDK-5 确认后端是否存在：存在则后端补声明，不存在则删表条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v1/friends",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v1/friends",
+            "reason": "历史条目，ledger 未声明 → SDK-5 逐条定性",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/summary",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/summary",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/summary/members",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/summary/members",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/summary/sync",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/summary/sync",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/summary/unread/clear",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/summary/unread/clear",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_synapse/room_summary/v1/summaries",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/room_summary/v1/summaries",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_synapse/room_summary/v1/summaries/batch",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/room_summary/v1/summaries/batch",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_synapse/room_summary/v1/updates/process",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/room_summary/v1/updates/process",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/r0/friends/groups/{group_id}/name",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/r0/friends/groups/{group_id}/name",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/r0/friends/{user_id}/displayname",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/r0/friends/{user_id}/displayname",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/r0/friends/{user_id}/note",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/r0/friends/{user_id}/note",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/r0/friends/{user_id}/status",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/r0/friends/{user_id}/status",
+            "reason": "属 ledger 的 friend_room 模块；room 表是早期 RoomManager 一把抓时代的历史条目 → SDK-5 定性（删除或留在 room 表）",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/v3/rooms/{room_id}/summary",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/v3/rooms/{room_id}/summary",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:PUT /_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+            "module": "room",
+            "kind": "sdk-only",
+            "entry": "PUT /_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+            "reason": "属 ledger 的 room_summary 模块（SDK 有独立 room-summary 表）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:ledger-only:GET /_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms",
+            "module": "room",
+            "kind": "ledger-only",
+            "entry": "GET /_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:ledger-only:GET /_matrix/client/v1/user/mutual_rooms",
+            "module": "room",
+            "kind": "ledger-only",
+            "entry": "GET /_matrix/client/v1/user/mutual_rooms",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "search:sdk-only:POST /_matrix/vendor/v1/search_recipients",
+            "module": "search",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/vendor/v1/search_recipients",
+            "reason": "属 ledger 的 vendor 模块；search 表靠手抄保住（B-1 建议归回 search）→ 等 B-1",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "search:sdk-only:POST /_matrix/vendor/v1/search_rooms",
+            "module": "search",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/vendor/v1/search_rooms",
+            "reason": "属 ledger 的 vendor 模块；search 表靠手抄保住（B-1 建议归回 search）→ 等 B-1",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "sync:sdk-only:GET /_matrix/vendor/v1/my_rooms",
+            "module": "sync",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/vendor/v1/my_rooms",
+            "reason": "属 ledger 的 vendor 模块（my_rooms）→ 等 B-1 归属结论后清理",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "sync:sdk-only:POST /_matrix/client/unstable/org.matrix.msc3575/sync",
+            "module": "sync",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/unstable/org.matrix.msc3575/sync",
+            "reason": "属 ledger 的 sliding_sync 模块（sliding-sync 表已含这 4 条）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "sync:sdk-only:POST /_matrix/client/unstable/org.matrix.simplified_msc3575/sync",
+            "module": "sync",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/unstable/org.matrix.simplified_msc3575/sync",
+            "reason": "属 ledger 的 sliding_sync 模块（sliding-sync 表已含这 4 条）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "sync:sdk-only:POST /_matrix/client/v1/sync",
+            "module": "sync",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v1/sync",
+            "reason": "属 ledger 的 sliding_sync 模块（sliding-sync 表已含这 4 条）→ SDK-5 删除重复条目",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "thread:ledger-only:GET /_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads",
+            "module": "thread",
+            "kind": "ledger-only",
+            "entry": "GET /_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "thread:ledger-only:GET /_matrix/client/unstable/org.matrix.msc4156/threads/subscribed",
+            "module": "thread",
+            "kind": "ledger-only",
+            "entry": "GET /_matrix/client/unstable/org.matrix.msc4156/threads/subscribed",
+            "reason": "ROUTE_CONTRACT.md 未覆盖该 (method, path)，ledger 有 → SDK-1（以 ledger 为源）后自动补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:GET /_synapse/worker/v1/events",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "GET /_synapse/worker/v1/events",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:GET /_synapse/worker/v1/replication/{worker_id}/position",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "GET /_synapse/worker/v1/replication/{worker_id}/position",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:GET /_synapse/worker/v1/workers/{worker_id}/commands",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "GET /_synapse/worker/v1/workers/{worker_id}/commands",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/commands/{command_id}/complete",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/commands/{command_id}/complete",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/commands/{command_id}/fail",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/commands/{command_id}/fail",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/tasks/{task_id}/complete",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/tasks/{task_id}/complete",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/tasks/{task_id}/fail",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/tasks/{task_id}/fail",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/workers/{worker_id}/connect",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/workers/{worker_id}/connect",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/workers/{worker_id}/disconnect",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/workers/{worker_id}/disconnect",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:POST /_synapse/worker/v1/workers/{worker_id}/heartbeat",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "POST /_synapse/worker/v1/workers/{worker_id}/heartbeat",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "worker:sdk-only:PUT /_synapse/worker/v1/replication/{worker_id}/{stream_name}",
+            "module": "worker",
+            "kind": "sdk-only",
+            "entry": "PUT /_synapse/worker/v1/replication/{worker_id}/{stream_name}",
+            "reason": "**后端 ledger 漏声明**：worker.rs 已注册 26 条 /_synapse/worker/v1 路由、manifest 只 15 条（复核报告 B-8）→ SDK 表是对的，等后端补齐",
+            "expires": "2026-12-31"
+        }
+    ]
+}

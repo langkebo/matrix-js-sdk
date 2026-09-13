@@ -1,8 +1,8 @@
 # Quality KPI Report - 2026-09-13
 
-## Overall Health: WARNING
+## Overall Health: HEALTHY
 
-**Checks Passed**: 5/6
+**Checks Passed**: 6/6
 
 ### Test Coverage
 | Metric | Value | Threshold | Status |
@@ -31,6 +31,14 @@
 | 白名单（codegen 有意跳过 / 无消费者） | 13 | 每条带 reason + 到期日 |
 | 缺失 | 0 | 非 0 即门禁红 |
 
+### Contract Drift (SDK route-table ↔ 后端 ledger)
+| 方向 | 数量 | 说明 |
+|------|------|------|
+| 有差集的模块 | 13 | 逐条登记在 scripts/quality/contract-drift-registry.json |
+| SDK 表有、ledger 无 | 100 | 历史/人工条目，待 SDK-3/SDK-5 定性 |
+| ledger 有、SDK 表无 | 16 | 文档漏覆盖或路径族变化，SDK-1 以 ledger 为源后收敛 |
+| 已验证修好但没删登记（stale） | 0 | 非 0 即门禁红 |
+
 ### Code Quality
 | Metric | Value | Baseline | Change |
 |--------|-------|----------|--------|
@@ -52,10 +60,10 @@
 ### Tests
 | Metric | Value |
 |--------|-------|
-| Test Files | 2176 |
-| Total Tests | 5590 |
-| Passed | 5589 |
-| Failed | 1 |
+| Test Files | 2180 |
+| Total Tests | 5603 |
+| Passed | 5603 |
+| Failed | 0 |
 | Skipped | 0 |
 
 ---

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-13T07:20:06.633Z",
+  "timestamp": "2026-09-13T07:55:02.394Z",
   "version": "1.0.0",
   "metrics": {
     "coverage": {
@@ -138,6 +138,68 @@
       "missing": 0,
       "missingModules": []
     },
+    "contractDrift": {
+      "available": true,
+      "driftedModules": 13,
+      "sdkOnly": 100,
+      "ledgerOnly": 16,
+      "registered": 116,
+      "stale": 0,
+      "perModule": {
+        "burn_after_read": {
+          "sdkOnly": 0,
+          "ledgerOnly": 2
+        },
+        "cas": {
+          "sdkOnly": 2,
+          "ledgerOnly": 0
+        },
+        "e2ee": {
+          "sdkOnly": 2,
+          "ledgerOnly": 0
+        },
+        "external_service": {
+          "sdkOnly": 1,
+          "ledgerOnly": 1
+        },
+        "friend_room": {
+          "sdkOnly": 0,
+          "ledgerOnly": 5
+        },
+        "media": {
+          "sdkOnly": 9,
+          "ledgerOnly": 0
+        },
+        "msc4108_rendezvous": {
+          "sdkOnly": 6,
+          "ledgerOnly": 4
+        },
+        "push": {
+          "sdkOnly": 10,
+          "ledgerOnly": 0
+        },
+        "room": {
+          "sdkOnly": 53,
+          "ledgerOnly": 2
+        },
+        "search": {
+          "sdkOnly": 2,
+          "ledgerOnly": 0
+        },
+        "sync": {
+          "sdkOnly": 4,
+          "ledgerOnly": 0
+        },
+        "thread": {
+          "sdkOnly": 0,
+          "ledgerOnly": 2
+        },
+        "worker": {
+          "sdkOnly": 11,
+          "ledgerOnly": 0
+        }
+      }
+    },
     "complexity": {
       "clientTs": {
         "lines": 4130,
@@ -190,18 +252,18 @@
       "reduction": "58.7"
     },
     "tests": {
-      "testFiles": 2176,
-      "totalTests": 5590,
-      "passedTests": 5589,
-      "failedTests": 1,
+      "testFiles": 2180,
+      "totalTests": 5603,
+      "passedTests": 5603,
+      "failedTests": 0,
       "skippedTests": 0,
-      "duration": "N/A",
-      "passed": false
+      "duration": "NaNs",
+      "passed": true
     }
   },
   "summary": {
-    "overallHealth": "warning",
-    "passedChecks": 5,
+    "overallHealth": "healthy",
+    "passedChecks": 6,
     "totalChecks": 6
   }
 }

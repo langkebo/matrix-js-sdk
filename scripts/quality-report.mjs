@@ -255,6 +255,34 @@ function collectCodegenCoverage() {
     }
 }
 
+/**
+ * 契约差集（SDK-2）。
+ *
+ * 消费 `check-contract-drift.mjs --json`：SDK 生成 route-table 与后端 ledger 的双向差集数量。
+ * "覆盖 100%" 不该掩盖"表与 ledger 不一致"，所以这里把两个方向都摊开。
+ */
+function collectContractDrift() {
+    const raw = runCommand("node scripts/quality/check-contract-drift.mjs --json", true);
+    const payload = extractJsonPayload(raw);
+    if (!payload) {
+        return { available: false, driftedModules: 0, sdkOnly: 0, ledgerOnly: 0, registered: 0, stale: 0 };
+    }
+    try {
+        const parsed = JSON.parse(payload);
+        return {
+            available: true,
+            driftedModules: parsed.driftedModules ?? 0,
+            sdkOnly: parsed.sdkOnly ?? 0,
+            ledgerOnly: parsed.ledgerOnly ?? 0,
+            registered: parsed.registered ?? 0,
+            stale: (parsed.stale ?? []).length,
+            perModule: parsed.perModule ?? {},
+        };
+    } catch {
+        return { available: false, driftedModules: 0, sdkOnly: 0, ledgerOnly: 0, registered: 0, stale: 0 };
+    }
+}
+
 function collectComplexityMetrics() {
     const clientTsPath = path.join(projectRoot, "src", "client.ts");
     if (!fs.existsSync(clientTsPath)) {
@@ -476,6 +504,7 @@ function generateReport() {
             coverage: collectCoverageMetrics(),
             criticalCoverage: collectCriticalCoverage(),
             codegenCoverage: collectCodegenCoverage(),
+            contractDrift: collectContractDrift(),
             complexity: collectComplexityMetrics(),
             security: collectSecurityAudit(),
             technicalDebt: collectTechnicalDebt(),
@@ -549,6 +578,14 @@ function generateMarkdownSummary(report) {
         `| 弱证据（生成了表但没人读，已白名单说明原因） | ${report.metrics.codegenCoverage?.weak?.length ?? "N/A"} | ${(report.metrics.codegenCoverage?.weak || []).join(", ") || "（无）"} |`,
         `| 白名单（codegen 有意跳过 / 无消费者） | ${report.metrics.codegenCoverage?.waived ?? "N/A"} | 每条带 reason + 到期日 |`,
         `| 缺失 | ${report.metrics.codegenCoverage?.missing ?? "N/A"} | 非 0 即门禁红 |`,
+        "",
+        "### Contract Drift (SDK route-table ↔ 后端 ledger)",
+        `| 方向 | 数量 | 说明 |`,
+        `|------|------|------|`,
+        `| 有差集的模块 | ${report.metrics.contractDrift?.driftedModules ?? "N/A"} | 逐条登记在 scripts/quality/contract-drift-registry.json |`,
+        `| SDK 表有、ledger 无 | ${report.metrics.contractDrift?.sdkOnly ?? "N/A"} | 历史/人工条目，待 SDK-3/SDK-5 定性 |`,
+        `| ledger 有、SDK 表无 | ${report.metrics.contractDrift?.ledgerOnly ?? "N/A"} | 文档漏覆盖或路径族变化，SDK-1 以 ledger 为源后收敛 |`,
+        `| 已验证修好但没删登记（stale） | ${report.metrics.contractDrift?.stale ?? "N/A"} | 非 0 即门禁红 |`,
         "",
         "### Code Quality",
         `| Metric | Value | Baseline | Change |`,

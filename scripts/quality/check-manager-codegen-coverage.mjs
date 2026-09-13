@@ -142,7 +142,7 @@ function walk(dir, predicate = () => true, acc = []) {
     return acc;
 }
 
-function findSdkDirForModule(moduleName) {
+export function findSdkDirForModule(moduleName) {
     if (LEDGER_MODULE_TO_SDK_DIR[moduleName]) return LEDGER_MODULE_TO_SDK_DIR[moduleName];
     for (const [sdkDir, ledgerModule] of Object.entries(LEDGER_MODULE_ALIASES)) {
         if (ledgerModule === moduleName) return sdkDir;

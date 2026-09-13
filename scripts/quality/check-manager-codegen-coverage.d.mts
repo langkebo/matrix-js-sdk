@@ -15,6 +15,11 @@ export interface ModuleCoverageVerdict {
     waiver?: { reason: string; expires: string };
 }
 
+/**
+ * Ledger 模块名 → SDK 目录。差集门禁与 codegen 都必须用它，避免"一个说 A 目录、一个写 B 目录"。
+ */
+export function findSdkDirForModule(moduleName: string): string;
+
 export interface CodegenConsumers {
     /** src 下导入了本模块 `__generated__/route-table` 的文件（跨模块也算）。 */
     strong: string[];
