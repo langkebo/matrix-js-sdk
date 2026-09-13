@@ -31,7 +31,6 @@ jobs:
     ts_lint_real_backend:
         name: "Typescript Real Backend Check"
         runs-on: ubuntu-24.04
-        continue-on-error: true
         steps:
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -44,8 +43,13 @@ jobs:
             - name: Install Deps
               run: "pnpm install"
 
-            - name: Typecheck real-backend specs
-              run: "pnpm run lint:types:real-backend"
+            # The job used to be `continue-on-error: true` with a raw `lint:types:real-backend`
+            # step — 85 pre-existing errors meant it could never fail, so error 86 landed
+            # unnoticed. The ratchet fails on any NEW diagnostic (baseline:
+            # scripts/quality/real-backend-types-baseline.json); run
+            # `pnpm run lint:types:real-backend` locally to see every error.
+            - name: Typecheck real-backend specs (no new errors)
+              run: "pnpm run quality:real-backend-types"
 
     js_lint:
         name: "ESLint"
