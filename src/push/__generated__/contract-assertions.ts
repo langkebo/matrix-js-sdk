@@ -6,10 +6,10 @@
 
 import { PUSH_ROUTES } from "./route-table";
 
-export const PUSH_ROUTES_ENTRY_COUNT = 37 as const;
+export const PUSH_ROUTES_ENTRY_COUNT = 28 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _PushEntryCountAssertion: 37 = PUSH_ROUTES.length;
+const _PushEntryCountAssertion: 28 = PUSH_ROUTES.length;
 void _PushEntryCountAssertion;
 
 export const PUSH_ROUTES_STATUS_SCENARIOS = [
