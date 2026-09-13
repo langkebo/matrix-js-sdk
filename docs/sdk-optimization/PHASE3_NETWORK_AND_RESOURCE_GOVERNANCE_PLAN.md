@@ -24,7 +24,7 @@
 **批次划分（建议执行顺序）**
 
 1. **批次 1 —— 语义与可观测 ✅（2026-09-13 完成）**：P3-1（SDK `e28ee98cd`，决策表 13 例先红后绿）→ P3-2 送达/去重用例（真机实测 8 条 / 60 条两档：SDK 内部重试 4 次 / 19 次消化全部断链，测试侧 0 次兜底，每条恰好一次）。
-2. **批次 2 —— 资源与结构**：P3-3 定时器配对 → P2 遗留衔接（DTO 改形 + codegen 消费迁移）→ P3-5 `client.ts` 拆分。
+2. **批次 2 —— 资源与结构（进行中）**：P3-3 定时器配对 ✅ → DTO-1 key-backup 改形 ✅ → DTO-2 事件内容收敛 / codegen 消费迁移 → P3-5 `client.ts` 拆分。
 3. **批次 3 —— 依赖后端的部分**：P3-2 的断网恢复重连 ≤3s（等后端 A-1/A-2 落地后开工）。
 
 ---
@@ -151,7 +151,35 @@ bandwidth / limit_data / slow_close`。所以"30% 丢包"用「约 30% 新连接
 > 计数口径：`set*` 含 `setTimeout`。**不等配对不代表泄漏**（一次性定时器、`Promise.race` 超时、
 > 已触发即失效的定时器都不需要 clear），所以本项的目标不是"数字相等"，而是**逐个给出处置结论**。
 
-### 3.2 任务拆解
+### 3.2 实施结果（2026-09-13）
+
+**结论：审计当时没有真泄漏，但原因是"人工纪律"，不是机制。** 逐点核对结果：
+
+| 站点类别                  | 处数 | 处置                                                                                                                                                                                                                            |
+| ------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setInterval`（全 `src`） | 11   | 8 处同文件 `clearInterval`（`paired`），3 处由 `stopClientLifecycleServices` 跨文件清理（`owned`）                                                                                                                              |
+| 存句柄的 `setTimeout`     | 30   | 全部 `paired`；其中 `sync.ts` 的 `this.keepAliveTimer`（3 处赋值）、`beacon.ts` 的 `this.livenessWatchTimeout`（2 处）、`EncryptionManager` 的 `keysEventUpdateTimeout`（2 处）复核确认"先清旧句柄"或"互斥分支"，没有覆盖式泄漏 |
+| 丢弃句柄的 `setTimeout`   | 11   | 一次性语义，只统计不登记                                                                                                                                                                                                        |
+
+`useKeyTimeout` 不在同文件直清，而是存进 `setNewKeyTimeouts` 集合、由 `stop()` 遍历
+`clearTimeout`（`EncryptionManager.ts:180`）→ 登记为 `owned` + `clearCollection`。
+
+新增门禁 `pnpm quality:timer-pairing`（已接入 `pnpm lint`）：
+`scripts/quality/check-timer-pairing.mjs` + `scripts/quality/timer-pairing-registry.json`
+（41 条：36 paired + 5 owned + 0 waived）。它不只查"登记没登记"，还会**去 grep 清理语句**：
+`paired` 说同文件有清理就必须真有，`owned` 说别处清理就必须在指定文件里找得到，`waived`
+必须有 reason + 未过期 expires；登记表里已失效的条目同样红。判定对
+`globalThis.clearTimeout(...)`、`clearTimeout(x as NodeJS.Timeout)` 等写法都做了归一化
+（这些是实测踩到的误判），并把 `public setInterval(` 这类**方法声明**排除在站点之外。
+
+T3.3 生命周期收口用例 `spec/unit/client-lifecycle-teardown.spec.ts` 5 例：两个客户端级
+interval 都被清掉、`clientWellKnownIntervalID` 未设置时不会 `clearInterval(undefined)`、
+单个 Room / manager 抛错不中断其余清理、连续停止两次幂等。
+
+> 能力边界（写清楚）：静态门禁只能证明"清理语句存在"，证明不了"清理路径一定被走到"；
+> 后者由 T3.3 的用例兜住。两者都不覆盖"定时器回调里再建定时器"这类动态增长。
+
+### 3.3 任务拆解
 
 | 任务 | 内容                                                                                                                                                                                 | 验收                                                                         |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
@@ -196,11 +224,12 @@ bandwidth / limit_data / slow_close`。所以"30% 丢包"用「约 30% 新连接
 **开放性保留，但形式从 `Named | Record<string, unknown>` 改为索引签名接口**（实测该并集既丢具名类型
 又拒绝未知键，是两处都亏的写法），并把事件内容统一到 `IContent` 风格。
 
-| 任务  | 内容                                                                                                         | 验收                                                                                   |
-| ----- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| DTO-1 | codegen 模板支持索引签名接口；先改 `key-backup`（7 处 `auth_data`/`session_data`）                           | `auth_data.public_key` 类型为 `string`；未知键可访问；`pnpm contract:codegen:check` 绿 |
-| DTO-2 | 事件内容收敛到 `IContent` 风格（sliding-sync 5 处 + `ephemeral`/`sync`/`room` 的 `Record<string, unknown>`） | 同一概念不再有三种写法                                                                 |
-| DTO-3 | 基线随改形下降并提交（禁止手工刷）                                                                           | 基线条数 = 实际命中条数（当前 109）                                                    |
+| 任务  | 内容                                                                                                                                                                                                                                | 验收                                                                                                                                                       |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DTO-1 | ✅ `key-backup` 改形完成：`EncryptedData`/`AuthData` 各加 `[key: string]: unknown`，去掉 7 处 `X \| Record<string, unknown>` 并集。**修正**：codegen 模板无需改动 —— 契约文档里的 ```typescript 块才是 DTO 来源，索引签名原样透传   | `pnpm contract:codegen:check`（47 modules in sync）+ `tsc --noEmit` 绿；`spec/unit/key-backup-dto-openness.spec.ts` 5 例（含 `@ts-expect-error` 反面断言） |
+| DTO-2 | 事件内容收敛到 `IContent` 风格（sliding-sync 5 处 + `ephemeral`/`sync`/`room` 的 `Record<string, unknown>`）                                                                                                                        | 同一概念不再有三种写法                                                                                                                                     |
+| DTO-3 | ✅ 基线随改形下降：**109 → 97**（record-unknown 47→40、bare-unknown 62→57）                                                                                                                                                         | 基线条数 = 实际命中条数                                                                                                                                    |
+| DTO-4 | ⬜ 新发现：手写公开类型同病 —— `src/crypto-api/keybackup.ts` 的 `auth_data: ISigned & (Curve25519AuthData \| Aes256AuthData)` 也让具名键不可直取（`rust-crypto/*` 遍地 `as Curve25519AuthData`）。属公开 API + 影响 Tjg，需单独评估 | 具名键可直接访问；`as` 断言下降                                                                                                                            |
 
 ### 6.2 codegen 覆盖门禁的「弱证据」模块
 

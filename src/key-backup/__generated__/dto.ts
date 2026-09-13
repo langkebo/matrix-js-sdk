@@ -13,24 +13,31 @@ export interface EncryptedData {
     ciphertext: string;
     ephemeral: string;
     mac: string;
+    /**
+     * 算法/实现可扩展：不同备份算法会带自己的字段，客户端必须能透传未知键，
+     * 同时具名键仍是真实类型（`ciphertext: string`），不因并集退化成 `unknown`。
+     */
+    [key: string]: unknown;
 }
 
 export interface AuthData {
     public_key: string;
     signatures?: Record<string, Record<string, string>>;
+    /** 同上：`auth_data` 的形状由备份算法决定，未知键必须能通过。 */
+    [key: string]: unknown;
 }
 
 export interface SessionData {
     first_message_index: number;
     forwarded_count: number;
     is_verified: boolean;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData;
 }
 
 export interface BackupVersionInfo {
     version: string;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData;
     count?: number;
     etag?: string;
 }
@@ -64,7 +71,7 @@ export interface BatchRecoverResult {
 export interface ExportedRoomKey {
     room_id: string;
     session_id: string;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData;
     first_message_index: number;
     forwarded_count: number;
     is_verified: boolean;
@@ -84,7 +91,7 @@ export interface ImportResult {
 export interface VerifyResult {
     valid: boolean;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData;
     key_count: number;
     signatures?: Record<string, Record<string, string>>;
 }
@@ -99,11 +106,11 @@ export interface PutRoomSessionsBody {
 
 export interface CreateBackupVersionRequest {
     algorithm: string;
-    auth_data?: AuthData | Record<string, unknown>;
+    auth_data?: AuthData;
 }
 
 export interface UpdateBackupVersionRequest {
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData;
 }
 
 export interface RecoverKeysRequest {
@@ -150,5 +157,5 @@ export interface RecoverRoomKeysResult {
 export interface RecoverSessionKeyResult {
     room_id: string;
     session_id: string;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData;
 }

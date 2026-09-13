@@ -122,8 +122,23 @@ export interface IContent {
 
 ## 后续工作（已排入阶段 3，见报告 §4 阶段 3）
 
-| 项    | 内容                                                                                                              | 验收                                                 |
-| ----- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| DTO-1 | codegen 模板支持索引签名接口，先改 `key-backup`（7 处）                                                           | `auth_data.public_key` 类型为 `string`；未知键可访问 |
-| DTO-2 | 事件内容统一到 `IContent` 风格（sliding-sync 5 处 + `ephemeral`/`sync`/`room` 的 `Record<string, unknown>` 收敛） | 同一概念不再出现三种写法                             |
-| DTO-3 | 基线随改形下降并提交（禁止手工刷）                                                                                | 基线条数 = 实际命中条数                              |
+| 项    | 内容                                                                                                                                                                                                                                                          | 验收                                                               | 状态          |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------- |
+| DTO-1 | `key-backup` 的 `auth_data` / `session_data` 改形（7 处并集 + 2 个接口加索引签名）                                                                                                                                                                            | `auth_data.public_key` 为 `string`、未知键可访问、codegen check 绿 | ✅ 2026-09-13 |
+| DTO-2 | 事件内容统一到 `IContent` 风格（sliding-sync 5 处 + `ephemeral`/`sync`/`room` 的 `Record<string, unknown>` 收敛）                                                                                                                                             | 同一概念不再出现三种写法                                           | ⬜            |
+| DTO-3 | 基线随改形下降并提交（禁止手工刷）                                                                                                                                                                                                                            | 基线条数 = 实际命中条数                                            | ✅ 109 → 97   |
+| DTO-4 | **实施 DTO-1 时的新发现**：手写公开类型同病 —— `src/crypto-api/keybackup.ts` 的 `auth_data: ISigned & (Curve25519AuthData \| Aes256AuthData)` 同样让具名键不可直取，`rust-crypto/*` 因此遍地 `as Curve25519AuthData`。属公开 API 且影响 Tjg，需单独评估后再改 | 具名键可直接访问；`as` 断言数量下降                                | ⬜            |
+
+### DTO-1 实施记录（2026-09-13）
+
+- **一处自我修正**：原以为"需要改 codegen 模板支持索引签名接口"，实际不必 —— 契约文档
+  （`docs/api-contract/key-backup.md`）里的 ```typescript 代码块才是 DTO 的来源，
+`extractTypeScriptDeclarations()` 用 TS 编译器解析后**原样透传**接口声明，索引签名本来
+  就支持。因此 DTO-1 只改了契约文档 + 重新生成。
+- 改动：`EncryptedData` / `AuthData` 各加 `[key: string]: unknown`；7 处
+  `AuthData | Record<string, unknown>` / `EncryptedData | Record<string, unknown>` 去掉并集。
+- 证据：`pnpm contract:codegen:check` = 47 modules in sync；`tsc --noEmit` 通过；
+  `quality:generated-dto-strictness` 基线 **109 → 97**（`record-unknown` 47 → 40、
+  `bare-unknown` 62 → 57：去并集 −14、加索引签名 +2）；类型级用例
+  `spec/unit/key-backup-dto-openness.spec.ts` 5 例（含一条 `@ts-expect-error` 反面断言：
+  `Record<string, unknown>` 不能再冒充 `AuthData`）。
