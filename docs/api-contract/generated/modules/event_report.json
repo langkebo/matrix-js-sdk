@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "event_report",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 19,
   "entries": [
@@ -11,19 +11,22 @@
       "method": "GET",
       "path": "/_synapse/admin/v1/event_reports",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/event_reports",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/event_reports/count",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -31,7 +34,8 @@
       "registered_by": "event_report",
       "path_params": [
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -39,7 +43,8 @@
       "registered_by": "event_report",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -47,7 +52,8 @@
       "registered_by": "event_report",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -55,7 +61,8 @@
       "registered_by": "event_report",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -63,7 +70,8 @@
       "registered_by": "event_report",
       "path_params": [
         "reporter_user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -71,13 +79,15 @@
       "registered_by": "event_report",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/event_reports/stats",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -85,7 +95,8 @@
       "registered_by": "event_report",
       "path_params": [
         "status"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -93,7 +104,8 @@
       "registered_by": "event_report",
       "path_params": [
         "status"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -101,7 +113,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -109,7 +122,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -117,7 +131,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -125,7 +140,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -133,7 +149,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -141,7 +158,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -149,7 +167,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

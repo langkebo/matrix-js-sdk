@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "admin",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 161,
   "entries": [
@@ -11,7 +11,8 @@
       "method": "GET",
       "path": "/_synapse/admin/info",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -19,7 +20,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -27,19 +29,22 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/audit/events",
       "registered_by": "admin::audit",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/audit/events",
       "registered_by": "admin::audit",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -47,43 +52,50 @@
       "registered_by": "admin::audit",
       "path_params": [
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/cleanup/all",
       "registered_by": "admin::cleanup",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/cleanup/rooms",
       "registered_by": "admin::cleanup",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/cleanup/tokens",
       "registered_by": "admin::cleanup",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/config",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/experimental_features",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/federation/blacklist",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -91,7 +103,8 @@
       "registered_by": "admin::federation",
       "path_params": [
         "server_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -99,19 +112,22 @@
       "registered_by": "admin::federation",
       "path_params": [
         "server_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/federation/cache",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/federation/cache/clear",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -119,19 +135,22 @@
       "registered_by": "admin::federation",
       "path_params": [
         "key"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/federation/confirm",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/federation/destinations",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -139,7 +158,8 @@
       "registered_by": "admin::federation",
       "path_params": [
         "destination"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -147,7 +167,8 @@
       "registered_by": "admin::federation",
       "path_params": [
         "destination"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -155,7 +176,8 @@
       "registered_by": "admin::federation",
       "path_params": [
         "destination"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -163,7 +185,8 @@
       "registered_by": "admin::federation",
       "path_params": [
         "destination"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -171,61 +194,71 @@
       "registered_by": "admin::federation",
       "path_params": [
         "destination"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/federation/pending",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/federation/resolve",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/federation/rewrite",
       "registered_by": "admin::federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/health",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/invite/allowlist",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/invite/blocklist",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/jitsi/config",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/media",
       "registered_by": "admin::media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/media/quota",
       "registered_by": "admin::media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -233,7 +266,8 @@
       "registered_by": "admin::media",
       "path_params": [
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -241,25 +275,29 @@
       "registered_by": "admin::media",
       "path_params": [
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/notifications",
       "registered_by": "admin::notification",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/notifications",
       "registered_by": "admin::notification",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/notifications/active",
       "registered_by": "admin::notification",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -267,7 +305,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "notification_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -275,7 +314,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "notification_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -283,7 +323,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "notification_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -291,37 +332,43 @@
       "registered_by": "admin::notification",
       "path_params": [
         "notification_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/policy/check",
       "registered_by": "admin::policy",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/policy/status",
       "registered_by": "admin::policy",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/purge_history",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/purge_media_cache",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/purge_room",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -329,31 +376,36 @@
       "registered_by": "admin::media",
       "path_params": [
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/register",
       "registered_by": "admin::register",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/register/nonce",
       "registered_by": "admin::register",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/registration_tokens",
       "registered_by": "admin::token",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/registration_tokens",
       "registered_by": "admin::token",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -361,7 +413,8 @@
       "registered_by": "admin::token",
       "path_params": [
         "token"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -369,7 +422,8 @@
       "registered_by": "admin::token",
       "path_params": [
         "token"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -377,13 +431,15 @@
       "registered_by": "admin::token",
       "path_params": [
         "token"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/reports",
       "registered_by": "admin::report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -391,7 +447,8 @@
       "registered_by": "admin::report",
       "path_params": [
         "report_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -399,25 +456,29 @@
       "registered_by": "admin::report",
       "path_params": [
         "report_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/restart",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/retention/policy",
       "registered_by": "admin::retention",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/retention/policy",
       "registered_by": "admin::retention",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -425,7 +486,8 @@
       "registered_by": "admin::retention",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -433,25 +495,29 @@
       "registered_by": "admin::retention",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/retention/run",
       "registered_by": "admin::retention",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/retention/status",
       "registered_by": "admin::retention",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/room_stats",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -459,31 +525,36 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/rooms",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/rooms/cleanup",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/rooms/search",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/rooms/search",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -491,7 +562,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -499,7 +571,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -507,7 +580,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -515,7 +589,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -523,7 +598,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -532,7 +608,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -540,7 +617,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -548,7 +626,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -556,7 +635,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -565,7 +645,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -573,7 +654,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -581,7 +663,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -590,7 +673,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -598,7 +682,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -606,7 +691,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -614,7 +700,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -622,7 +709,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -630,7 +718,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -638,7 +727,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -647,7 +737,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -656,7 +747,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -664,7 +756,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -672,7 +765,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -680,7 +774,8 @@
       "registered_by": "admin::report",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -689,7 +784,8 @@
       "path_params": [
         "room_id",
         "report_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -698,7 +794,8 @@
       "path_params": [
         "room_id",
         "report_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -706,7 +803,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -714,7 +812,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -722,7 +821,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -731,7 +831,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -739,7 +840,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -747,19 +849,22 @@
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/send_server_notice",
       "registered_by": "admin::notification",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/server_notices",
       "registered_by": "admin::notification",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -767,7 +872,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "notice_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -775,25 +881,29 @@
       "registered_by": "admin::notification",
       "path_params": [
         "notice_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/server_version",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/shutdown_room",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/spaces",
       "registered_by": "admin::room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -801,7 +911,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -809,7 +920,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -817,7 +929,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -825,7 +938,8 @@
       "registered_by": "admin::room",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -833,19 +947,22 @@
       "registered_by": "admin::room",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/statistics",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/status",
       "registered_by": "admin::server",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -853,7 +970,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -861,31 +979,36 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/user_stats",
       "registered_by": "admin::user",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/users",
       "registered_by": "admin::user",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/users/batch",
       "registered_by": "admin::user",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/users/batch_deactivate",
       "registered_by": "admin::user",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -893,7 +1016,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -901,7 +1025,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -909,7 +1034,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -917,7 +1043,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -925,7 +1052,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -933,7 +1061,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -942,7 +1071,8 @@
       "path_params": [
         "user_id",
         "device_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -951,7 +1081,8 @@
       "path_params": [
         "user_id",
         "device_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -959,7 +1090,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -967,7 +1099,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -975,7 +1108,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -983,7 +1117,8 @@
       "registered_by": "admin::media",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -991,7 +1126,8 @@
       "registered_by": "admin::media",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -999,7 +1135,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -1007,7 +1144,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1015,7 +1153,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1023,7 +1162,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1031,7 +1171,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1039,7 +1180,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1047,7 +1189,8 @@
       "registered_by": "admin::notification",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1056,7 +1199,8 @@
       "path_params": [
         "user_id",
         "pushkey"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1064,7 +1208,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1072,7 +1217,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -1080,7 +1226,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1088,7 +1235,8 @@
       "registered_by": "admin::token",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1097,7 +1245,8 @@
       "path_params": [
         "user_id",
         "token_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1105,7 +1254,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1113,7 +1263,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1121,7 +1272,8 @@
       "registered_by": "admin::security",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1129,7 +1281,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1137,7 +1290,8 @@
       "registered_by": "admin::token",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1146,7 +1300,8 @@
       "path_params": [
         "user_id",
         "token_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1154,7 +1309,8 @@
       "registered_by": "admin::server",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1163,13 +1319,15 @@
       "path_params": [
         "user_id",
         "device_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v2/users",
       "registered_by": "admin::user",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1177,7 +1335,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1185,7 +1344,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -1193,7 +1353,8 @@
       "registered_by": "admin::user",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

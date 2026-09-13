@@ -1,8 +1,8 @@
 ---
 module: device
 generated_from: docs/api-contract/generated/modules/device.json
-generated_hash: sha256-cfa9f6cdad020a5c9d1bc39a6c88370ad917aba99a282e763e1800f1cf501e50
-ledger_schema: 1
+generated_hash: sha256-979b2e085e9e8def8c3e57f7626cceefd822828146096e34dfbf1af07bddca52
+ledger_schema: 2
 last_reviewed: 2026-05-03
 ---
 

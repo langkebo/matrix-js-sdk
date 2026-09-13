@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "background_update",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 19,
   "entries": [
@@ -11,61 +11,71 @@
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/background_updates",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/background_updates/cleanup_locks",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates/count",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates/next",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates/pending",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/background_updates/retry_failed",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates/running",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates/stats",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/background_updates/status",
       "registered_by": "background_update",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -73,7 +83,8 @@
       "registered_by": "background_update",
       "path_params": [
         "status"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -81,7 +92,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -89,7 +101,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -97,7 +110,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -105,7 +119,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -113,7 +128,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -121,7 +137,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -129,7 +146,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -137,7 +155,8 @@
       "registered_by": "background_update",
       "path_params": [
         "job_name"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

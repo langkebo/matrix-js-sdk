@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "space",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 72,
   "entries": [
@@ -11,13 +11,15 @@
       "method": "POST",
       "path": "/_matrix/client/r0/spaces",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/spaces/public",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -25,7 +27,8 @@
       "registered_by": "space",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -33,25 +36,29 @@
       "registered_by": "space",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/spaces/search",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/spaces/statistics",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/spaces/user",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -59,7 +66,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -67,7 +75,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -75,7 +84,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -83,7 +93,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -91,7 +102,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -100,7 +112,8 @@
       "path_params": [
         "space_id",
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -108,7 +121,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -116,7 +130,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -124,7 +139,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -132,7 +148,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -140,7 +157,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -148,7 +166,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -156,7 +175,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -164,7 +184,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -172,7 +193,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -180,7 +202,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -188,19 +211,22 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/spaces",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/spaces/public",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -208,7 +234,8 @@
       "registered_by": "space",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -216,25 +243,29 @@
       "registered_by": "space",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/spaces/search",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/spaces/statistics",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/spaces/user",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -242,7 +273,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -250,7 +282,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -258,7 +291,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -266,7 +300,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -274,7 +309,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -283,7 +319,8 @@
       "path_params": [
         "space_id",
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -291,7 +328,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -299,7 +337,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -307,7 +346,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -315,7 +355,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -323,7 +364,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -331,7 +373,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -339,7 +382,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -347,7 +391,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -355,7 +400,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -363,7 +409,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -371,19 +418,22 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/spaces",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/spaces/public",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -391,7 +441,8 @@
       "registered_by": "space",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -399,25 +450,29 @@
       "registered_by": "space",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/spaces/search",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/spaces/statistics",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/spaces/user",
       "registered_by": "space",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -425,7 +480,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -433,7 +489,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -441,7 +498,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -449,7 +507,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -457,7 +516,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -466,7 +526,8 @@
       "path_params": [
         "space_id",
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -474,7 +535,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -482,7 +544,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -490,7 +553,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -498,7 +562,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -506,7 +571,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -514,7 +580,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -522,7 +589,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -530,7 +598,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -538,7 +607,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -546,7 +616,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -554,7 +625,8 @@
       "registered_by": "space",
       "path_params": [
         "space_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

@@ -68,7 +68,20 @@ const DEFAULT_CHECK_SOURCE_DIR = GENERATED_DIR;
 // synapse-rust/.github/workflows/ledger-export.yml.
 const PROFILES = ["default", "worker", "all"];
 const GENERATED_SCHEMA_VERSION = "1";
-const LEDGER_SCHEMA_VERSION = "1";
+// Input contract version produced by synapse-rust (`SCHEMA_VERSION` in
+// src/web/routes/ledger_export.rs; mirrored in docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md).
+//
+// Backend history: "1" -> "2" was an ADDITIVE bump (synapse-rust aa06ca45):
+// the only entry-level addition is `query_params`; top-level fields are
+// unchanged, and `module` / `status` are optional per-entry fields. This pin
+// must track the backend, not the generated mirror above.
+//
+// Bumping this pin is a CONTRACT change: it must be accompanied by
+// `node scripts/contract-sync.mjs` re-generating docs/api-contract/generated,
+// so the mirror and the pin never diverge. The backend CI must also stop
+// skipping its own contract test (`--skip ledger_export_tests`), otherwise
+// the next schema bump breaks this chain silently again.
+const LEDGER_SCHEMA_VERSION = "2";
 const DRAFT_ENTRY_SOFT_CAP = 10;
 const DRAFT_ENTRY_HARD_CAP = 25;
 const DRAFT_SNIPPET_TARGET_LINES = 400;

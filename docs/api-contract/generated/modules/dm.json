@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "dm",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 8,
   "entries": [
@@ -11,13 +11,15 @@
       "method": "POST",
       "path": "/_matrix/client/r0/create_dm",
       "registered_by": "dm",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/direct",
       "registered_by": "dm",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -25,19 +27,22 @@
       "registered_by": "dm",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/create_dm",
       "registered_by": "dm",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/direct",
       "registered_by": "dm",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -45,7 +50,8 @@
       "registered_by": "dm",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -53,7 +59,8 @@
       "registered_by": "dm",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -61,7 +68,8 @@
       "registered_by": "dm",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

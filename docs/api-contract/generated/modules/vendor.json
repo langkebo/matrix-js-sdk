@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "vendor",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 3,
   "entries": [
@@ -11,19 +11,25 @@
       "method": "GET",
       "path": "/_matrix/vendor/v1/my_rooms",
       "registered_by": "vendor",
-      "path_params": []
+      "path_params": [],
+      "query_params": [],
+      "module": "rooms"
     },
     {
       "method": "POST",
       "path": "/_matrix/vendor/v1/search_recipients",
       "registered_by": "vendor",
-      "path_params": []
+      "path_params": [],
+      "query_params": [],
+      "module": "search"
     },
     {
       "method": "POST",
       "path": "/_matrix/vendor/v1/search_rooms",
       "registered_by": "vendor",
-      "path_params": []
+      "path_params": [],
+      "query_params": [],
+      "module": "search"
     }
   ]
 }

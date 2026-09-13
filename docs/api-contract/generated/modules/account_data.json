@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "account_data",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 26,
   "entries": [
@@ -13,7 +13,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -22,7 +23,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -31,7 +33,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -40,7 +43,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -48,7 +52,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -56,7 +61,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -65,7 +71,8 @@
       "path_params": [
         "user_id",
         "filter_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -74,7 +81,8 @@
       "path_params": [
         "user_id",
         "filter_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -82,7 +90,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -90,7 +99,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -100,7 +110,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -110,7 +121,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -120,7 +132,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -128,7 +141,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -137,7 +151,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -146,7 +161,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -155,7 +171,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -163,7 +180,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -171,7 +189,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -180,7 +199,8 @@
       "path_params": [
         "user_id",
         "filter_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -189,7 +209,8 @@
       "path_params": [
         "user_id",
         "filter_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -197,7 +218,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -205,7 +227,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -215,7 +238,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -225,7 +249,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -235,7 +260,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

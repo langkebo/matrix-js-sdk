@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "2",
   "module": "room",
-  "synapse_rust_commit": "f6029a812fcc26ce73166f7a0ad3bea88099a6ca",
-  "generated_at": "2026-09-13T03:49:17Z",
+  "synapse_rust_commit": "b562ac61d3f4bf4fd2a9b605a014b356029ee974",
+  "generated_at": "2026-09-13T22:53:18Z",
   "source_profile": "all",
   "entry_count": 141,
   "entries": [
@@ -11,7 +11,8 @@
       "method": "POST",
       "path": "/_matrix/client/r0/createRoom",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -19,7 +20,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -27,7 +29,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -35,7 +38,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -44,7 +48,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -52,7 +57,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -60,7 +66,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -68,7 +75,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -76,7 +84,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -84,7 +93,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -92,7 +102,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -100,7 +111,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -108,7 +120,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -116,7 +129,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -124,7 +138,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -132,7 +147,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -141,7 +157,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -149,7 +166,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -157,7 +175,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -165,7 +184,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -174,7 +194,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -182,7 +203,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -190,7 +212,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -200,7 +223,8 @@
         "room_id",
         "receipt_type",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -210,7 +234,8 @@
         "room_id",
         "receipt_type",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -220,7 +245,8 @@
         "room_id",
         "event_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -228,7 +254,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -238,7 +265,8 @@
         "room_id",
         "event_type",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -248,7 +276,8 @@
         "room_id",
         "event_type",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -256,7 +285,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -264,7 +294,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -272,7 +303,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -281,7 +313,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -290,7 +323,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -299,7 +333,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -308,7 +343,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -317,7 +353,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -327,7 +364,8 @@
         "room_id",
         "event_type",
         "state_key"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -337,7 +375,8 @@
         "room_id",
         "event_type",
         "state_key"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -345,7 +384,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -353,7 +393,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -361,7 +402,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -369,19 +411,22 @@
       "registered_by": "room",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/rooms/create_private",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -389,7 +434,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -397,19 +443,22 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/user/mutual_rooms",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/createRoom",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -417,7 +466,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -425,7 +475,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id_or_alias"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -433,13 +484,15 @@
       "registered_by": "room",
       "path_params": [
         "room_id_or_alias"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/rooms/create_private",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -447,7 +500,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -456,7 +510,8 @@
       "path_params": [
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -465,7 +520,8 @@
       "path_params": [
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -473,7 +529,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -481,7 +538,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -489,7 +547,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -498,7 +557,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -507,7 +567,8 @@
       "path_params": [
         "room_id",
         "device_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -515,7 +576,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -524,7 +586,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -533,7 +596,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -541,7 +605,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -549,7 +614,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -557,7 +623,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -566,7 +633,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -574,7 +642,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -582,7 +651,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -590,7 +660,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -598,7 +669,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -606,7 +678,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -614,7 +687,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -622,7 +696,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -630,7 +705,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -638,7 +714,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -646,7 +723,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -654,7 +732,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -662,7 +741,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -670,7 +750,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -679,7 +760,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -687,7 +769,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -695,7 +778,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -703,7 +787,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -711,7 +796,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -720,7 +806,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -728,7 +815,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -736,7 +824,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -744,7 +833,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -752,7 +842,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -760,7 +851,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -768,7 +860,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -776,7 +869,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -785,7 +879,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -793,7 +888,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -801,7 +897,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -811,7 +908,8 @@
         "room_id",
         "receipt_type",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -821,7 +919,8 @@
         "room_id",
         "receipt_type",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -831,7 +930,8 @@
         "room_id",
         "event_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -839,7 +939,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -847,7 +948,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -855,7 +957,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -863,7 +966,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -871,7 +975,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -879,7 +984,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -889,7 +995,8 @@
         "room_id",
         "event_type",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -899,7 +1006,8 @@
         "room_id",
         "event_type",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -907,7 +1015,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -916,7 +1025,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -924,7 +1034,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -932,7 +1043,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -940,7 +1052,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -948,7 +1061,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -957,7 +1071,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -966,7 +1081,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -975,7 +1091,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -984,7 +1101,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -993,7 +1111,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1003,7 +1122,8 @@
         "room_id",
         "event_type",
         "state_key"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -1013,7 +1133,8 @@
         "room_id",
         "event_type",
         "state_key"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1021,7 +1142,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1029,7 +1151,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1038,7 +1161,8 @@
       "path_params": [
         "room_id",
         "event_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1046,7 +1170,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1055,7 +1180,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1064,7 +1190,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1072,7 +1199,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1081,7 +1209,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1089,7 +1218,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1097,7 +1227,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1105,7 +1236,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1113,7 +1245,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1121,7 +1254,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -1129,7 +1263,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -1138,7 +1273,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1146,7 +1282,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1154,7 +1291,8 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -1162,13 +1300,15 @@
       "registered_by": "room",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/translate",
       "registered_by": "room",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -1176,7 +1316,8 @@
       "registered_by": "room",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }
