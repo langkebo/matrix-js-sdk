@@ -183,6 +183,19 @@ ledger 有、表里没有的 5 条（正好都是写方法）：
 - 验证：`contract:codegen:check` = 47 modules in sync；`tsc --noEmit` 通过；
   `spec/unit/contract-drift-gate.spec.ts` 9 例通过。
 
+### SDK-1b 实施记录（2026-09-13）
+
+- 新增 `src/friend/paths.ts`：`friendPath()` 把 friends 路径约束到 `StripVendor<FriendPathPattern>`
+  （route-table 现在以 ledger 为权威源，93 条路由）。
+- 三个子管理器共 **32 处** `path:` 全部改为 `friendPath(...)`（block 2 / list 23 / request 7）。
+  **`tsc --noEmit` 一次通过** —— 说明模块手写的路径与 ledger 声明完全一致（这也是它今天能正常工作的原因），
+  而现在任何拼写错误都会变成编译错误。
+- 删除 `friend_room` 白名单：覆盖门禁里该模块从「有表没人读」升为**强证据**
+  （`src/friend/paths.ts` 导入了 route-table）→ 强证据 **37**、白名单 **12**、弱证据只剩 `push_notification`。
+- 新增 `spec/unit/contract-route-table-source.spec.ts` 4 例守住 SDK-1 的不变量：
+  **每个目录的表必须覆盖该目录承载的全部 ledger 路由**（改了 ledger 不重新 codegen 即红）、
+  friend 那 5 条写方法在表里、生成头注释写明三源合并、三个子管理器都用 `friendPath()`。
+
 > 更正：`msc4108_rendezvous` 那条**不是漂移**（见 §3 表格与 B-4 撤回）——`src/rendezvous` 目录同时承载 `msc4108_rendezvous` 与 `rendezvous` 两个 ledger 模块，两族路径各有声明。这也解释了为什么差集门禁必须**按目录 + 兄弟模块并集**比对。
 
 ---

@@ -52,12 +52,13 @@ describe("codegen coverage gate: module classification", () => {
     });
 
     it("有表没人读、但已白名单说明原因的模块 → waived，并标出证据强度", () => {
-        // friend_room / push_notification 就是这种：表生成了，src 下无人 import
-        const verdict = classifyModuleCoverage("friend_room", { hasCodegen: 89, consumers: WEAK, today: TODAY });
+        // push_notification 就是这种：表生成了（10 条），src 下无人 import
+        // （friend_room 曾在同类名单里，SDK-1b 接线后已升级为强证据）
+        const verdict = classifyModuleCoverage("push_notification", { hasCodegen: 9, consumers: WEAK, today: TODAY });
 
         expect(verdict.status).toBe("waived");
         expect(verdict.evidence).toBe("table-without-consumer");
-        expect(verdict.waiver?.reason).toMatch(/vendor|子集/);
+        expect(verdict.waiver?.reason).toMatch(/子集|push/);
     });
 
     it("本来就没有表的白名单模块标为 no-table（与'有表没人读'区分开）", () => {

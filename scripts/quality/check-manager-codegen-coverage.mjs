@@ -50,15 +50,6 @@ const WAIVED_MODULES = {
     },
     // 下面两条是 C-1 排查（2026-09-13）的结论：它们不是"名字没对上"，而是**真的没人消费自己的表**，
     // 且原因可核验（命令见 reason）。不要用"再加一个别名"的方式把它们凑成 covered。
-    friend_room: {
-        // 更正：初版写的"表里只有旧路由、与 vendor 前缀不相交"是错的 —— 表里其实有 24 条
-        // /_matrix/vendor/v1/friends/*（正是 src/friend 在调的族）。真实情况是"表比 ledger 少 5 条
-        // 写方法（POST/PUT）"，且模块没 import 本表。修数据源 + 接线后再删本条，见复核报告 §2 / SDK-1。
-        reason:
-            "src/friend 手写 /_matrix/vendor/v1/friends/* 路径、未 import 本表；且表比 ledger 少 5 条写方法" +
-            "（后端 ROUTE_CONTRACT.md 未列这些方法形态，复核报告 §2）—— 修数据源后应改为接线而非豁免",
-        expires: "2026-12-31",
-    },
     push_notification: {
         reason:
             "本表 10 条路由是 push 表（38 条）的**完全子集**（comm -23 无差集），" +

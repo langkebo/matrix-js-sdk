@@ -28,6 +28,7 @@ import { BaseManager } from "../../managers/base-manager";
 import { validateUserId } from "../../common/validators";
 import type { Friend, FriendRequest } from "../index";
 import type { FriendSharedState } from "./shared-state";
+import { friendPath } from "../paths";
 
 const FRIEND_REQUEST_STATUSES = new Set<string>(["pending", "accepted", "rejected", "cancelled"]);
 
@@ -109,7 +110,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
             status?: string;
         }>({
             method: Method.Post,
-            path: "/friends/request",
+            path: friendPath("/friends/request"),
             body: { user_id: userId, message: reason },
             prefix: VendorPrefix,
         });
@@ -144,7 +145,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         const response = await this.withRetry(async () => {
             return await this.request<{ user_id?: string; status?: string }>({
                 method: Method.Post,
-                path: "/friends",
+                path: friendPath("/friends"),
                 body: { user_id: userId, reason: opts?.reason },
                 prefix: VendorPrefix,
             });
@@ -171,7 +172,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
         const response = await this.request<{ room_id?: string }>({
             method: Method.Post,
-            path: `/friends/request/${encodeURIComponent(userId)}/accept`,
+            path: friendPath(`/friends/request/${encodeURIComponent(userId)}/accept`),
             prefix: VendorPrefix,
         });
 
@@ -203,7 +204,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
         await this.request({
             method: Method.Post,
-            path: `/friends/request/${encodeURIComponent(userId)}/reject`,
+            path: friendPath(`/friends/request/${encodeURIComponent(userId)}/reject`),
             prefix: VendorPrefix,
         });
 
@@ -220,7 +221,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
         await this.request({
             method: Method.Post,
-            path: `/friends/request/${encodeURIComponent(userId)}/cancel`,
+            path: friendPath(`/friends/request/${encodeURIComponent(userId)}/cancel`),
             prefix: VendorPrefix,
         });
 
@@ -241,7 +242,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         try {
             const response = await this.request<IFriendRequestsResponse>({
                 method: Method.Get,
-                path: "/friends/requests/incoming",
+                path: friendPath("/friends/requests/incoming"),
                 prefix: VendorPrefix,
             });
 
@@ -266,7 +267,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
         try {
             const response = await this.request<IFriendRequestsResponse>({
                 method: Method.Get,
-                path: "/friends/requests/outgoing",
+                path: friendPath("/friends/requests/outgoing"),
                 prefix: VendorPrefix,
             });
 
