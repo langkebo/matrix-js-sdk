@@ -18,7 +18,8 @@ const thresholdOverride =
 const requiredFor = (entry) => thresholdOverride ?? entry.floorPercent ?? targetPercent;
 const criticalTargets = criticalConfig.modules;
 
-function parseLcov(content) {
+/** Parse an lcov tracefile into `path -> { linesFound, linesHit, ratio }`. */
+export function parseLcov(content) {
     const records = new Map();
     let currentFile = null;
     let linesFound = 0;
@@ -58,41 +59,67 @@ function parseLcov(content) {
     return records;
 }
 
-if (!fs.existsSync(lcovFile)) {
-    console.error(`[critical-coverage] coverage file not found: ${lcovFile}`);
-    process.exit(1);
+/**
+ * Check every critical module against its ratchet floor.
+ *
+ * Exported (and driven by plain values rather than module-level state) so the negative
+ * tests can pin the failure modes without an lcov file on disk — in particular the
+ * relative-vs-absolute `SF:` lookup that once made this gate unable to find ANY record,
+ * i.e. permanently red and misreported as "stale coverage".
+ */
+export function evaluateCriticalCoverage({ records, targets, required, projectRoot }) {
+    const failures = [];
+    const checked = [];
+
+    for (const entry of targets) {
+        const target = entry.path;
+        const relativeTarget = target.replaceAll("\\", "/");
+        const absoluteTarget = path.resolve(projectRoot, target).replaceAll("\\", "/");
+        const record = records.get(relativeTarget) ?? records.get(absoluteTarget);
+        const requiredPercent = required(entry);
+        if (!record) {
+            failures.push(`${target}: missing coverage record`);
+            continue;
+        }
+        if (record.ratio < requiredPercent) {
+            failures.push(`${target}: ${record.ratio.toFixed(2)}% < ${requiredPercent}%`);
+            continue;
+        }
+        checked.push({ path: target, ratio: record.ratio, required: requiredPercent });
+    }
+
+    return { failures, checked };
 }
 
-const projectRoot = process.cwd().replaceAll("\\", "/");
-const records = parseLcov(fs.readFileSync(lcovFile, "utf8"));
+function main() {
+    if (!fs.existsSync(lcovFile)) {
+        console.error(`[critical-coverage] coverage file not found: ${lcovFile}`);
+        process.exit(1);
+    }
 
-const failures = [];
-for (const entry of criticalTargets) {
-    const target = entry.path;
-    // lcov `SF:` records are repo-relative (`src/...`). Looking up only the absolute
-    // form made this gate unable to find ANY record — it was permanently red and was
-    // misread as "stale coverage" during the 2026-09-13 review. Accept both forms.
-    const relativeTarget = target.replaceAll("\\", "/");
-    const absoluteTarget = path.resolve(projectRoot, target).replaceAll("\\", "/");
-    const record = records.get(relativeTarget) ?? records.get(absoluteTarget);
-    const required = requiredFor(entry);
-    if (!record) {
-        failures.push(`${target}: missing coverage record`);
-        continue;
+    const projectRoot = process.cwd().replaceAll("\\", "/");
+    const records = parseLcov(fs.readFileSync(lcovFile, "utf8"));
+    const { failures } = evaluateCriticalCoverage({
+        records,
+        targets: criticalTargets,
+        required: requiredFor,
+        projectRoot,
+    });
+
+    if (failures.length > 0) {
+        console.error("[critical-coverage] check failed:");
+        for (const failure of failures) {
+            console.error(`- ${failure}`);
+        }
+        process.exit(1);
     }
-    if (record.ratio < required) {
-        failures.push(`${target}: ${record.ratio.toFixed(2)}% < ${required}%`);
-    }
+
+    console.log(
+        `[critical-coverage] ${criticalTargets.length} critical module(s) meet their ratchet floor (target ${targetPercent}%)`,
+    );
 }
 
-if (failures.length > 0) {
-    console.error("[critical-coverage] check failed:");
-    for (const failure of failures) {
-        console.error(`- ${failure}`);
-    }
-    process.exit(1);
+// Guarded so the exported helpers can be imported by tests without running the gate.
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
 }
-
-console.log(
-    `[critical-coverage] ${criticalTargets.length} critical module(s) meet their ratchet floor (target ${targetPercent}%)`,
-);
