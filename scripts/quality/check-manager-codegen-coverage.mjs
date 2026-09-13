@@ -98,15 +98,24 @@ const WAIVED_MODULES = {
         expires: "2026-12-31",
     },
     vendor: {
-        reason: "private /_matrix/vendor/v1 routes owned by the friend/room managers, not a module of their own",
+        // 更正（2026-09-13 复核，见 docs/sdk-optimization/CONTRACT_ROUTE_TABLE_MAPPING_REVIEW_2026-09-13.md）：
+        // 这 3 条是 assembly.rs:296-308 里迁移遗留的分组注册器，具体是 my_rooms / search_rooms /
+        // search_recipients，分别由 room 与 search 侧调用；SDK 没有 src/vendor/ 目录，
+        // 所以它们没有类型归属（RoomManager.ts:1221 的 /my_rooms 就是手写未约束的）。
+        reason:
+            "后端 vendor_route_manifest() 是迁移遗留的跨模块分组（my_rooms / search_rooms / search_recipients），" +
+            "SDK 无对应目录；建议后端按功能模块改归属（复核报告 B-1）",
         expires: "2026-12-31",
     },
     // 下面两条是 C-1 排查（2026-09-13）的结论：它们不是"名字没对上"，而是**真的没人消费自己的表**，
     // 且原因可核验（命令见 reason）。不要用"再加一个别名"的方式把它们凑成 covered。
     friend_room: {
+        // 更正：初版写的"表里只有旧路由、与 vendor 前缀不相交"是错的 —— 表里其实有 24 条
+        // /_matrix/vendor/v1/friends/*（正是 src/friend 在调的族）。真实情况是"表比 ledger 少 5 条
+        // 写方法（POST/PUT）"，且模块没 import 本表。修数据源 + 接线后再删本条，见复核报告 §2 / SDK-1。
         reason:
-            "friend 模块实际调用 /_matrix/vendor/v1（VendorPrefix，见 src/friend/sub-managers/*），" +
-            "而本表列的是 /_matrix/client/{r0,v1,v3}/friends/* 旧路由；两者不相交，且 src 下无人 import 本表",
+            "src/friend 手写 /_matrix/vendor/v1/friends/* 路径、未 import 本表；且表比 ledger 少 5 条写方法" +
+            "（后端 ROUTE_CONTRACT.md 未列这些方法形态，复核报告 §2）—— 修数据源后应改为接线而非豁免",
         expires: "2026-12-31",
     },
     push_notification: {

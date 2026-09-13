@@ -1,0 +1,193 @@
+# 契约 route-table 与 ledger 映射复核（2026-09-13）
+
+> 触发：阶段 3 批次 2 的 C-3 待定项 —— `friend_room` / `push_notification` 的死表要不要停生成、
+> ledger 的 `push_notification` 是否该映射到 `push` 目录。用户要求"查看后端代码，结合最佳实践给出建议，
+> 后端问题单独列出，先不要改后端代码"。
+> 取证工具：`scripts/quality/probe-contract-drift.mjs`（诊断脚本，不是门禁）。
+> 结论基线：SDK `b040475f9`、后端 `59d527f9`。
+
+---
+
+## 0. 结论摘要（先看这三条）
+
+1. **两个问题都问错了前提**：`friend_room` 不是"死表"，它包含 `src/friend/**` 实际在调的 24 条
+   `/_matrix/vendor/v1/friends/*` 路由；**真正的问题是它缺了 5 条 ledger 路由**（见 §2）。
+   `push_notification` 也不是"映射没写对"，它和 `push` 是**两个不同的路由族**（见 §4）。
+2. **根因是 SDK 侧有两个互不同源的契约镜像**：`src/<module>/__generated__/route-table.ts` 由
+   后端`ROUTE_CONTRACT.md`（人工文档）+ 既有条目渲染，而 `docs/api-contract/generated/modules/*.json`
+   才是 ledger（启动时校验过的那份）的镜像。两者已漂移到 **24/49 个模块**（§3）。
+   不修这个，任何"停生成/改映射"的决定都是在猜。
+3. **建议顺序**：先做 SDK-2（差集门禁，让漂移可见并逐条登记）→ 修 SDK-1（让 route-table 以 ledger 为源）
+   → 那时 `friend_room` 自然可接线、`push` 表里的 legacy 条目自然消失、`vendor` 分组的归属问题
+   由后端决定（§6 B-1）。**本轮不改任何后端代码。**
+
+---
+
+## 1. 后端事实（读代码得到，不是推断）
+
+| 事实                                                                                                                                                            | 证据                                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| ledger 的 `registered_by` 是**注册该路由的模块文件**（"router module"），例如 `"key_backup"`                                                                    | `src/web/routes/route_ledger.rs:58-64`（`RouteEntry.registered_by` 的文档注释）                 |
+| ledger 在启动时校验重复 (method, path)，重复即 abort                                                                                                            | 同上，文件头 `## Why this exists`                                                               |
+| `friend_room` 一个 registr 里同时声明 client 前缀与 vendor 前缀两套：93 条，其中 **29 条 vendor**                                                               | `src/web/routes/friend_room.rs:400-444`；`docs/api-contract/generated/modules/friend_room.json` |
+| `push`（27 条）= `/pushers`、`/pushrules*`、`/notifications*`（v3+r0，含 3 条 v3-only）                                                                         | `src/web/routes/push.rs:44-73`                                                                  |
+| `push_notification`（9 条）= legacy `/push/devices`、`/push/rules*`、`/push/send` + `/_synapse/admin/v1/push/{process,cleanup}`                                 | `src/web/routes/push_notification.rs:350-372`                                                   |
+| `vendor`（3 条）= `/_matrix/vendor/v1/{my_rooms,search_rooms,search_recipients}`，是**迁移遗留的分组注册器**（把私有端点从 client 前缀搬走后单独放的 manifest） | `src/web/routes/assembly.rs:296-308`（含迁移说明注释）                                          |
+| `push_notification` 与 `vendor` 都真实注册进 router                                                                                                             | `assembly.rs:539`（merge `create_push_notification_router`）、`assembly.rs:72`（manifest）      |
+
+SDK 侧的调用事实（读代码 + grep）：
+
+| 路由族                                                 | SDK 调用点                                                                                              | 是否被"表"约束                          |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------- | --- |
+| `/_matrix/vendor/v1/friends/*`（24 条）                | `src/friend/sub-managers/*.ts`，`prefix: VendorPrefix`，路径全手写                                      | ❌ 未导入 friend 表                     |
+| `/_matrix/vendor/v1/my_rooms`                          | `src/room/RoomManager.ts:1221`（手写 "/my_rooms"）、`src/client-secure-backup-requests.ts:49`（`sp()`） | ❌（room 表里没有它）                   |
+| `/_matrix/vendor/v1/search_rooms`、`search_recipients` | `src/client-secure-backup-requests.ts:58,73`（`srp()`）                                                 | 🟡 靠 search 表里**手抄的 legacy 条目** |
+| `/\_matrix/client/r0/push/devices                      | rules                                                                                                   | send`（push_notification 家族）         | **零调用点**（SDK 与 Tjg 都没有） | ——  |
+| `/_synapse/admin/v1/push/{process,cleanup}`            | **零调用点**                                                                                            | ——                                      |
+
+---
+
+## 2. `friend_room` 不是死表 —— 它缺 5 条路由（SDK-1 的前提）
+
+最初的白名单理由是"表里是旧路由、代码走 vendor、两者不相交"，**这是错的**：表里有 24 条
+`/_matrix/vendor/v1/friends/*`（`grep -c "/_matrix/vendor/v1" src/friend/__generated__/route-table.ts` = 24）。
+真相是表与 ledger 双向都有缺口：
+
+```
+friend_room: 表 88 条 / ledger 93 条
+ledger 有、表里没有的 5 条（正好都是写方法）：
+  POST /_matrix/vendor/v1/friends
+  POST /_matrix/vendor/v1/friends/dm/{user_id}
+  POST /_matrix/vendor/v1/friends/groups
+  POST /_matrix/vendor/v1/friends/search
+  PUT  /_matrix/vendor/v1/friends/{user_id}/status
+```
+
+这 5 条**正是模块在调的**（`friend-request-manager.ts:147` POST `/friends`、
+`friend-block-manager.ts:102` PUT `/friends/{id}/status` …）。原因见 §3：后端
+`ROUTE_CONTRACT.md` 只列了这些路径的 GET 形态，而 ledger 里四种方法都有
+（`grep -c "POST.*vendor/v1/friends" ROUTE_CONTRACT.md` = 0）。
+
+**所以"停生成 friend 表"是错的方向**：应该反过来 —— 提高它的数据质量，然后让模块用它。
+
+## 3. 根因：SDK 的两个契约镜像不同源（实测 24/49 模块漂移）
+
+- `pnpm contract:sync` 把后端 ledger fixture 写成 `docs/api-contract/generated/{route-manifest.*.json, modules/*.json, index.json}`（ledger 的**完整**镜像，1407 条 all profile）。
+- `pnpm contract:codegen` 渲染 `src/<module>/__generated__/route-table.ts` 时用的是
+  **`ROUTE_CONTRACT.md`（人工文档，904 条）+ 该模块既有条目的并集**（`loadExistingEntries`），
+  **不是** `modules/*.json`。生成文件头却写着 `Source: docs/api-contract/generated/modules/<dir>.json`
+  （`scripts/sdk-contract-codegen.mjs:963`）—— 注释与实现不符。
+
+于是两边各自漂移，实测（`probe-contract-drift.mjs`，24/49 个模块有差集）：
+
+| 模块 → SDK 目录                 | 表条数       | 表有 ledger 无 | ledger 有表无 | 典型样本                                                                                                         |
+| ------------------------------- | ------------ | -------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| room                            | 192          | **53**         | 2             | 表里有 `/_matrix/client/r0/friends/groups/...`（friend 的路由！）、`anti_screenshot`、`threads`                  |
+| push                            | 37           | **10**         | 0             | 表里有 push_notification 的 9 条 + `GET /pushers/`                                                               |
+| msc4108_rendezvous → rendezvous | 6            | 6              | 4             | 表是 `/_matrix/client/v1/rendezvous*`，ledger 是 `.../unstable/org.matrix.msc4108/rendezvous*`（**路径族漂移**） |
+| media                           | 41           | 9              | 0             | `/_matrix/media/v3/upload/token` 等                                                                              |
+| worker → worker-admin           | 26           | 11             | 0             | `/_synapse/worker/v1/*`                                                                                          |
+| sync                            | 11           | 4              | 0             | 混入 4 条 sliding-sync / my_rooms 路径                                                                           |
+| search                          | 13           | 2              | 0             | 手抄的 2 条 vendor search（ledger 归 `vendor` 模块）                                                             |
+| friend_room → friend            | 88           | 0              | **5**         | §2 的 5 条写方法                                                                                                 |
+| burn_after_read                 | 19           | 0              | 2             | `DELETE /_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` 等                                                   |
+| cas / e2ee / external_service   | 18 / 57 / 20 | 2 / 2 / 1      | 0 / 0 / 1     | ——                                                                                                               |
+
+> 口径：`(method, path)` 精确比对，`{param}` 名字按字面。表里"多出来"的条目是
+> `loadExistingEntries` 保留的历史条目；"缺少"的是文档未覆盖或路径族已变的部分。
+> 文档 ↔ ledger 的粗算（归一化版本前缀后）：文档 834 / ledger 994，仅文档 286 / 仅 ledger 446 ——
+> 文档里还混着相对路径写法，因此这个数字只是上界；**可验证的硬证据是 §2 的 5 条**。
+
+**最佳实践对照**：契约驱动的正确形态是「**单一机器源 → 所有产物都从它派生**」。ledger 已经是
+单一源（还带启动校验）；`ROUTE_CONTRACT.md` 应当只提供 ledger 表达不了的元数据（状态码、错误
+场景、DTO 片段），而不是路由清单本身。
+
+---
+
+## 4. 对三个具体问题的建议
+
+### Q1 `friend_room` / `push_notification` 要不要进 `SKIP_ROUTE_TABLE_MODULES`（停生成）？
+
+| 模块                | 建议                                                                                 | 理由                                                                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `friend_room`       | **不要停**。先修数据源（SDK-2/SDK-1），再把 `src/friend/**` 接到自己的表，删掉白名单 | 表覆盖了模块真正在调的路由族；接线后拼写错误变编译期错误（93 条路由的手写面很大），收益直接                                                                                                                         |
+| `push_notification` | **暂不停，也暂不接线**；保持白名单 + 到期日，等后端 B-2 结论                         | 9 条路由 SDK/Tjg **零调用点**；其中 2 条是 Synapse-admin 兼容端点（可能属于 admin 面），7 条是 legacy push v1。若后端决定下线，这个模块会从 ledger 里消失，表与白名单一起自然消失 —— 那时停生成是**结果**而不是手段 |
+
+### Q2 ledger `push_notification` 是否该映射到 `push` 目录？
+
+**不建议。** 三条理由：
+
+1. 两个模块是**不同路由族**：`push` = `/pushers`、`/pushrules*`、`/notifications*`；`push_notification`
+   = legacy `/push/devices`、`/push/rules*`、`/push/send` + `/_synapse/admin/v1/push/*`。映射到 `push`
+   目录等于让覆盖门禁指向一张**不包含这 9 条路径的表**（`push` 表里那 9 条是历史手抄条目，不是 ledger 派生）——
+   这正是 C-1 刚修掉的假绿形态。
+2. 现有别名表（`LEDGER_MODULE_ALIASES`，以 SDK 目录为键）本来就表达不了多对一；把它硬扩成
+   `push_notification → push` 会让"一目录一模块"的隐含前提更模糊。
+3. 真正该做的是让 `push` 表**不再手抄**别的模块的路由（SDK-3）：ledger 派生之后，`push` 表自动只剩它自己的 27 条，
+   两族自然分开。
+
+### Q3 `vendor` 这种"不对应任何 SDK 目录"的 ledger 模块怎么办？
+
+- **首选（后端侧，B-1）**：这 3 条路由的语义归属是 `room`（`my_rooms`）和 `search`（`search_rooms`/`search_recipients`）。
+  后端把它们的 `registered_by` 归回 feature 模块（或把 `vendor_route_manifest()` 拆进对应模块），
+  ledger 里就不再有 `vendor` 这个分组；SDK 侧 room/search 表会从 ledger 得到这几条，
+  `RoomManager.ts:1221` 的 `/my_rooms` 也就能被类型约束。
+- **备选（SDK 侧，仅当后端要保留 vendor 分组）**：为"不 1:1 映射"的 ledger 模块提供专门的生成位
+  （例如 `src/__contract__/<module>/route-table.ts`），由消费方直接 import。这是一次 codegen 特性，
+  比给别名表打补丁干净。
+- **不要做**：`vendor → room` 这类别名。用 141 条的 room 模块去"代表"3 条跨模块私有路由，
+  会让覆盖率与证据都失真。
+
+---
+
+## 5. SDK 侧任务建议（按性价比排序，均未开工）
+
+| 任务       | 内容                                                                                                                                                                               | 验收                                                                                        | 量级                                              |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| **SDK-2**  | 新增「契约差集门禁」：把 `probe-contract-drift.mjs` 产品化 —— 每处 `表有 ledger 无` / `ledger 有表无` 必须登记（reason + 到期日），新增差集即红；并把两向计数接进 `quality:report` | 24/49 的漂移变成**逐条有结论**；新增漂移让门禁变红                                          | 小（门禁骨架可复用 codegen 覆盖门禁的登记表机制） |
+| **SDK-1**  | 修 route-table 的数据源：ledger（`modules/*.json`）为权威路由源，`ROUTE_CONTRACT.md` 只提供元数据；顺带修掉生成头注释与实现不符                                                    | friend 表补齐 93 条；`push` 表不再含 push_notification 的 9 条；`contract:codegen:check` 绿 | 中（codegen 改动 + 双份产物一次性对齐）           |
+| **SDK-1b** | 数据源修好后，把 `src/friend/**` 接到 `StripVendor<FriendPathPattern>` + `fp()` 助手，删掉 `friend_room` 白名单                                                                    | 门禁强证据 +1；friend 的 93 条路径拼错即编译错误                                            | 中（约 10 个文件的路径调用点）                    |
+| **SDK-3**  | `push` 表里的 10 条 legacy 条目逐条定性（9 条属 `push_notification` → 移出；`GET /pushers/` 等 → 后端补进 ledger 或 SDK 删除）                                                     | 表与 ledger 一致（差集为 0）                                                                | 小                                                |
+| **SDK-4**  | 视 B-1 结论：为不 1:1 的 ledger 模块提供生成位；或后端改归属后关闭本项                                                                                                             | vendor 路由有类型归属                                                                       | 中                                                |
+| **SDK-5**  | 按 SDK-2 的清单逐模块清理其余漂移（room 53、media 9、worker 11、sync 4、rendezvous 路径族 …）                                                                                      | 每个模块差集为 0 或已登记                                                                   | 大（可分模块 PR）                                 |
+
+> `msc4108_rendezvous` 的漂移要单独注意：SDK 表是 `/_matrix/client/v1/rendezvous*`（6 条），
+> ledger 是 `.../unstable/org.matrix.msc4108/rendezvous*`（4 条）。这不是"表旧了"，而是
+> **同一功能两个路径族**，必须由后端确认哪套是在线契约（B-4），否则 SDK 会把 unstable 路径当权威。
+
+---
+
+## 6. 后端问题清单（只列，本轮不改后端代码）
+
+| 编号    | 问题                                                                                                                                                                                               | 证据                                                                                              | 建议                                                                                                                                          |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B-1** | `vendor_route_manifest()` 是迁移遗留的**分组注册器**，3 条路由语义上属于 room/search，导致 ledger 出现一个不对应任何功能模块的分组，下游（SDK）无法映射                                            | `assembly.rs:296-308`；`modules/vendor.json` 3 条；SDK 无 `src/vendor/`                           | 把 `my_rooms` 归 room、`search_rooms`/`search_recipients` 归 search（改 `registered_by` 或拆 manifest）；这样 SDK 侧不需要任何别名特例        |
+| **B-2** | `push_notification` 的 7 条 legacy push v1 路由（`/push/devices`、`/push/rules*`、`/push/send`）与 `push` 模块的 spec 路由功能重叠，且**全栈无调用点**（只有它自己的单测引用）                     | `push_notification.rs:330-372`；`assembly.rs:539`；SDK/Tjg grep 0 命中                            | 明确它们的服务对象：若无客户端在用，建议下线或标注为"兼容保留"；若有，请在契约文档里写清与 `/pushers`、`/pushrules` 的关系                    |
+| **B-3** | `friend_room` 同时保留 client 前缀（r0/v1，64 条）与 vendor 前缀（29 条）两套；SDK 只用 vendor                                                                                                     | `friend_room.rs:400-444`；SDK `src/friend/**` 全用 `VendorPrefix`                                 | 确认 client 前缀那套是否还有客户端在用；若无，建议在 ledger/文档里标注待弃用（配合 B-5）                                                      |
+| **B-4** | `msc4108_rendezvous` 存在两个路径族：ledger 声明的 `/unstable/org.matrix.msc4108/rendezvous*` 与 SDK/实际使用的 `/v1/rendezvous*`                                                                  | `modules/msc4108_rendezvous.json` vs `src/rendezvous/__generated__/route-table.ts`（差集 6 vs 4） | 确认在线契约是哪一套；若两套都在，ledger 应同时声明（SDK 才能同时生成）                                                                       |
+| **B-5** | ledger 缺少"弃用/兼容"元数据：`RouteEntry` 只有 method/path/registered_by/query_params/auth/rate_limit_exempt                                                                                      | `route_ledger.rs:48-70`                                                                           | 增加 `deprecated_since` / `compat_only` / `owner` 一类字段。B-2/B-3 这类"还活着但没人用"的路由才能被契约表达，下游不必靠白名单+到期日手工记账 |
+| **B-6** | `ROUTE_CONTRACT.md`（人工文档）与 ledger 是**两个独立源**且已漂移：ledger 1407 条（all），文档 904 条；且文档缺少若干方法形态（例如 `POST /_matrix/vendor/v1/friends` 在文档里没有，却是在线路由） | `route_manifest.all.json` vs `ROUTE_CONTRACT.md`；§2 的 5 条                                      | 文档应由 ledger 生成（或加一条"文档路由 ⊆ ledger"的校验门禁）。这是 SDK 侧漂移的上游成因：SDK 的 route-table 正是从这份文档渲染的             |
+| **B-7** | （提示）`registered_by` 的语义是"注册文件"而不是"功能模块"，这与 SDK 的按功能分目录假设天然错位                                                                                                    | `route_ledger.rs:58-64` 注释 + §1 的事实表                                                        | 短期靠 B-1 个案解决；中期可考虑给 `RouteEntry` 增加显式 `owner`/`feature` 字段，把"谁注册的"与"属于哪个功能面"分开                            |
+
+---
+
+## 7. 附录：取证命令
+
+```bash
+# SDK 侧双向差集（24/49 模块）
+cd matrix-js-sdk && node scripts/quality/probe-contract-drift.mjs
+
+# friend 表缺哪 5 条
+node -e "const j=require('./docs/api-contract/generated/modules/friend_room.json');
+const t=require('fs').readFileSync('src/friend/__generated__/route-table.ts','utf8');
+for (const e of j.entries) if (!t.includes('{ method: \"'+e.method+'\", path: \"'+e.path+'\" }')) console.log('缺:', e.method, e.path);"
+
+# 后端：ledger 分组
+cat docs/api-contract/generated/modules/{vendor,push,push_notification,friend_room}.json | \
+  python3 -c "import sys,json;[print(json.loads(x)['module'], json.loads(x)['entry_count']) for x in sys.stdin.read().split('}\n{')]"
+
+# 后端：vendor 分组来源与 push_notification 注册点
+sed -n '296,308p' ../synapse-rust/src/web/routes/assembly.rs
+sed -n '350,372p' ../synapse-rust/src/web/routes/push_notification.rs
+grep -rn "push_notification" ../synapse-rust/src/web/routes/assembly.rs
+```
