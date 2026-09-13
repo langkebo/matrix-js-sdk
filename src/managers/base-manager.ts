@@ -26,7 +26,7 @@ limitations under the License.
  */
 
 import { TypedEventEmitter } from "../models/typed-event-emitter";
-import { ConnectionError, HTTPError, MatrixError, safeGetRetryAfterMs } from "../http-api/errors";
+import { ConnectionError, HTTPError, MatrixError } from "../http-api/errors";
 import type { QueryDict } from "../http-api/utils";
 import type { Body, IRequestOpts } from "../http-api/interface";
 import { Method } from "../http-api/method";
@@ -38,6 +38,26 @@ import type { MatrixClientInternalMethods } from "../matrix-client-extensions";
 import { extractNumber, extractString, hasTimeoutCode } from "../utils/type-guards";
 
 // ─── 公共类型 ────────────────────────────────────────────────
+
+/**
+ * `request()` 回填给 `withRetry()` 的一次请求观测（S-8 / P3-1）。
+ *
+ * `withRetry()` 拿到的是闭包，无法预知里面会发什么请求，只能事后看这次实际发了什么，
+ * 据此决定"重放整个闭包"是否安全。
+ */
+interface RetryObservation {
+    method: string;
+    ok: boolean;
+    /**
+     * 该请求是否携带**调用方在闭包之外确定**的幂等键（Matrix 的 txnId）。
+     *
+     * 只有这种请求才允许按"天然幂等"重试：键在闭包外算好，重放时同一个键会再次发给
+     * 服务端，由服务端按事务去重。若键是在闭包内生成的（`Date.now()` 之类），重放会
+     * 产生新键，那就仍然可能重复提交 —— 因此本字段是"声明的、可验证的"承诺，而不是
+     * 从路径形状猜出来的。
+     */
+    hasIdempotencyKey: boolean;
+}
 
 export interface RetryOptions {
     maxRetries?: number;
@@ -91,6 +111,26 @@ export interface RequestSpec {
     headers?: Record<string, string>;
     /** 透传至 IRequestOpts.abortSignal，用于取消请求（如 sliding sync 重发） */
     abortSignal?: AbortSignal;
+    /**
+     * 调用方在**闭包之外**算好的幂等键（Matrix 事务 ID），仅用于写方法。
+     *
+     * 声明它等于承诺两件事：(1) `path` 的最后一跳就是该键（`/send/{eventType}/{txnId}`）；
+     * (2) 同一个键在重试时会被复用而不是重新生成。满足这两条时，一次 5xx 重放不会产生
+     * 重复事件 —— 服务端按 txnId 去重 —— 于是 `withRetry()` 允许重试这类写请求，而不必
+     * 让每个调用点自己传 `retryNonIdempotent: true`（那会连没有幂等键的写也一起放开）。
+     *
+     * @example
+     * const txnId = `m${Date.now()}`; // 必须在闭包外：闭包内的 Date.now() 每次重试都不同
+     * await this.withRetry(() =>
+     *     this.request({
+     *         method: Method.Put,
+     *         path: `/rooms/${roomId}/send/m.room.message/${txnId}`,
+     *         body: content,
+     *         idempotencyKey: txnId,
+     *     }),
+     * );
+     */
+    idempotencyKey?: string;
 }
 
 /**
@@ -168,7 +208,7 @@ export abstract class BaseManager<
      * 之所以连`ok` 一起记录：限流（429 / `M_LIMIT_EXCEEDED`）重试会**重跑整个闭包**，
      * 若闭包中已有写请求成功返回，重放会造成重复提交 —— 此时必须放弃重试。
      */
-    private readonly _retryObserved: { method: string; ok: boolean }[][] = [];
+    private readonly _retryObserved: RetryObservation[][] = [];
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super();
@@ -242,8 +282,9 @@ export abstract class BaseManager<
 
         // 被外层 withRetry 包装时：仅做单次调用，不重试、不写统计
         if (this._withRetryDepth > 0) {
-            // 记录本次调用实际发出的请求（方法 + 成败），供外层 withRetry() 判定（S-8）
+            // 记录本次调用实际发出的请求（方法 + 成败 + 是否带幂等键），供外层 withRetry() 判定
             const frame = this._retryObserved[this._retryObserved.length - 1];
+            const hasIdempotencyKey = spec.idempotencyKey !== undefined && spec.idempotencyKey !== "";
             try {
                 const result = await this.transport.request<T>(
                     spec.method,
@@ -252,10 +293,10 @@ export abstract class BaseManager<
                     spec.body as Body | undefined,
                     opts,
                 );
-                frame?.push({ method: spec.method, ok: true });
+                frame?.push({ method: spec.method, ok: true, hasIdempotencyKey });
                 return result;
             } catch (error) {
-                frame?.push({ method: spec.method, ok: false });
+                frame?.push({ method: spec.method, ok: false, hasIdempotencyKey });
                 throw this.normalizeError(error, label);
             }
         }
@@ -294,9 +335,7 @@ export abstract class BaseManager<
                 if (attempt < mergedRetry.maxRetries) {
                     const canRetry = mergedRetry.idempotent || mergedRetry.retryNonIdempotent;
                     const normalized = this.normalizeError(error, label);
-                    const isRetryableErr =
-                        normalized instanceof RetryableError ||
-                        (error instanceof HTTPError && typeof error.httpStatus === "number" && error.httpStatus >= 500);
+                    const isRetryableErr = BaseManager.isRetryableFailure(error, normalized);
                     // 限流是"服务端执行前拒绝、无副作用"，因此即便非幂等也安全重试（S-8 例外）。
                     // 这里每次循环只发一个请求，不存在"重跑闭包导致重复提交"的问题。
                     const rateLimited = BaseManager.isRateLimitRejection(error, normalized);
@@ -477,9 +516,14 @@ export abstract class BaseManager<
         // 跨 status code 的错误（HTTP 408 不一定由 server 返回，可能是 fetch AbortController 触发）。
         if (hasTimeoutCode(error) || code === "ABORT" || err?.name === "AbortError") {
             const timeoutMs = extractNumber(plain, "timeoutMs") ?? extractNumber(plain, "timeout");
+            // 主动取消的信息必须一路带到 `TimeoutError` 上：`isUserCancelled()` 读它，
+            // 重试判定又读 `isUserCancelled()`。此前 `causeCode` 只取 `error.code`，而 fetch
+            // 的 AbortError 只有 `name` 没有 `code`，于是"客户端已停止/已取消"的请求被当成
+            // 普通网络超时，被重试器反复重放（P3-1 排期时发现，见 spec/integ/matrix-client-syncing-errors）。
+            const abortCode = err?.name === "AbortError" ? "AbortError" : undefined;
             return new TimeoutError(
                 `${managerName}.${method} timed out${timeoutMs ? ` after ${timeoutMs}ms` : ""}: ${err?.message ?? "Request timeout"}`,
-                { timeoutMs, causeCode: code, cause: error },
+                { timeoutMs, causeCode: code ?? abortCode, cause: error },
             );
         }
 
@@ -635,7 +679,7 @@ export abstract class BaseManager<
          * 取默认值——这样 POST/PUT/DELETE 不会被默认重试；而 `ok` 用于判断限流重试
          * 是否会重放一次已经成功的写入。
          */
-        const observedMethods: { method: string; ok: boolean }[] = [];
+        const observedMethods: RetryObservation[] = [];
 
         // 标记进入 withRetry：内部 request() 将退化为单次调用，避免双重计数与嵌套重试。
         // 使用深度计数器而非布尔标志，确保并发 withRetry() 调用互不干扰（FT-115）：
@@ -655,17 +699,13 @@ export abstract class BaseManager<
 
                     if (attempt < maxRetries) {
                         const normalized = this.normalizeError(error, label);
-                        const isRetryableErr =
-                            normalized instanceof RetryableError ||
-                            (error instanceof HTTPError &&
-                                typeof error.httpStatus === "number" &&
-                                error.httpStatus >= 500);
+                        const isRetryableErr = BaseManager.isRetryableFailure(error, normalized);
 
                         const idempotent =
                             retryNonIdempotent ||
                             (options.idempotent ??
                                 this.retryOptions.idempotent ??
-                                this.inferIdempotentFromMethods(observedMethods));
+                                this.inferIdempotentFromObserved(observedMethods));
 
                         // 限流例外：429/M_LIMIT_EXCEEDED 是"执行前拒绝"，非幂等也能安全重试；
                         // 但重试会重跑闭包，若其中已有写请求成功，则放弃重试以免重复提交（S-8）。
@@ -705,11 +745,19 @@ export abstract class BaseManager<
      *   `true` 以保持既有行为，避免对这类调用造成可用性回归；调用方若确需不重试，
      *   显式传 `idempotent: false` 即可。
      */
-    private inferIdempotentFromMethods(observed: { method: string; ok: boolean }[]): boolean {
+    /**
+     * 按「本次调用实际发出的请求」推断能否重放整个闭包。
+     *
+     * 全为幂等方法 → 可重放；出现写方法时，只有**每个**写请求都带调用方在外面确定的
+     * 幂等键才可重放（P3-1）：那种情况下重放会复用同一个 txnId，服务端按事务去重，
+     * 与幂等读等价。没有观测到任何请求时保持历史行为（可重放），因为闭包可能根本没走
+     * `request()`（例如 `client.sendEvent` 走 http 层，见 ISSUE-10b 的 txnId 复用）。
+     */
+    private inferIdempotentFromObserved(observed: RetryObservation[]): boolean {
         if (observed.length === 0) {
             return true;
         }
-        return observed.every((entry) => BaseManager.isIdempotentMethod(entry.method));
+        return observed.every((entry) => BaseManager.isIdempotentMethod(entry.method) || entry.hasIdempotencyKey);
     }
 
     /**
@@ -727,6 +775,59 @@ export abstract class BaseManager<
     }
 
     /**
+     * 该错误是否值得重试。
+     *
+     * 以错误**自己的声明** `SdkError.isRetryable` 为准：
+     * - `RetryableError`（限流、5xx、连接中断）→ true；
+     * - `TimeoutError` → 网络层超时为 true，AbortController 主动取消为 false。
+     *
+     * 此前这里只判断 `instanceof RetryableError`，于是 `TimeoutError` 的
+     * `isRetryable: true` 形同虚设 —— 幂等 GET 的超时**永不重试**（P3-1 的 G1）。
+     * `HTTPError && status >= 500` 分支保留作为归一化之外的兜底。
+     */
+    private static isRetryableFailure(error: unknown, normalized: SdkError): boolean {
+        if (normalized instanceof TimeoutError && normalized.isUserCancelled()) {
+            return false;
+        }
+        if (normalized.isRetryable) {
+            return true;
+        }
+        return error instanceof HTTPError && typeof error.httpStatus === "number" && error.httpStatus >= 500;
+    }
+
+    /**
+     * 读取服务端要求的等待时间（`Retry-After` / `x-ratelimit-after` / `x-retry-after-ms`
+     * 响应头，或响应体里的 `retry_after_ms`），没有则返回 `null`。
+     *
+     * 两个来源都要查：`RetryableError` 只从**响应体**的 `retry_after_ms` 取 `retryAfter`，
+     * 归一化之后原始 `HTTPError` 就再也拿不到 `Retry-After` 响应头了 —— 这正是
+     * "429 带 Retry-After 却被忽略"（P3-1 的 G2）的成因。
+     */
+    private static readRetryAfterMs(error: unknown, normalized: SdkError): number | null {
+        if (typeof normalized.retryAfter === "number" && normalized.retryAfter > 0) {
+            return normalized.retryAfter;
+        }
+        // 归一化会把原始 `HTTPError` 收进 `cause`（`request()` 抛出的是归一化后的错误），
+        // 响应头只能从那里读回来；再往下走一层是为了兼容"归一化两次"的调用路径。
+        let candidate: unknown = error;
+        for (let depth = 0; depth < 3 && candidate !== undefined && candidate !== null; depth++) {
+            if (candidate instanceof HTTPError) {
+                try {
+                    const headerMs = candidate.getRetryAfterMs();
+                    if (typeof headerMs === "number" && headerMs >= 0) {
+                        return headerMs;
+                    }
+                } catch {
+                    // 畸形 Retry-After 头（getRetryAfterMs 会抛）→ 退回本地退避，不影响重试本身
+                    return null;
+                }
+            }
+            candidate = candidate instanceof SdkError ? candidate.cause : undefined;
+        }
+        return null;
+    }
+
+    /**
      * 限流请求是否可以安全重试（S-8 的例外条款）。
      *
      * 429 / `M_LIMIT_EXCEEDED` 表示服务端在**执行前**拒绝了请求，没有副作用被提交，
@@ -735,8 +836,12 @@ export abstract class BaseManager<
      * 唯一的例外：`withRetry()` 的重试会重跑整个闭包。若闭包中**已有写请求成功返回**，
      * 重放会把那次成功写入再做一遍。此时返回 `false`，放弃重试。
      */
-    private canRetryRateLimited(observed: { method: string; ok: boolean }[]): boolean {
-        return !observed.some((entry) => entry.ok && !BaseManager.isIdempotentMethod(entry.method));
+    private canRetryRateLimited(observed: RetryObservation[]): boolean {
+        // 已成功的写请求若带幂等键，重放是安全的（同键 → 服务端去重），因此不算"已提交的
+        // 不可重放副作用"；没有键的写请求一旦成功，就必须放弃重试。
+        return !observed.some(
+            (entry) => entry.ok && !BaseManager.isIdempotentMethod(entry.method) && !entry.hasIdempotencyKey,
+        );
     }
 
     /**
@@ -770,12 +875,11 @@ export abstract class BaseManager<
      */
     private computeRetryDelay(baseDelay: number, error: unknown, normalized: SdkError, jitterRatio: number): number {
         let delay = baseDelay;
-        // Prefer the normalized SdkError path (post-normalizeError),
-        // fall back to raw HTTPError for pre-normalize edge cases.
-        if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
-            delay = normalized.retryAfter ?? baseDelay;
-        } else if (error instanceof HTTPError && error.isRateLimitError()) {
-            delay = safeGetRetryAfterMs(error, baseDelay);
+        // 服务端要求的等待时间优先于本地退避，且不限流也会给（503 常带 Retry-After）。
+        // 此前只在限流错误上读它，于是服务端说"30 秒后再来"，SDK 按本地 1 秒就重试（P3-1 的 G2）。
+        const serverRequested = BaseManager.readRetryAfterMs(error, normalized);
+        if (serverRequested !== null) {
+            delay = serverRequested;
         }
         if (jitterRatio > 0) {
             const jitter = delay * jitterRatio * (Math.random() * 2 - 1);

@@ -19,7 +19,8 @@ import {
     type TransportOpts,
 } from "../../../src/managers/base-manager";
 import { Method } from "../../../src/http-api/method";
-import { RetryableError } from "../../../src/errors";
+import { RetryableError, TimeoutError } from "../../../src/errors";
+import { HTTPError } from "../../../src/http-api/errors";
 import type { Body } from "../../../src/http-api/interface";
 import type { QueryDict } from "../../../src/http-api/utils";
 import type { MatrixClient } from "../../../src/client";
@@ -53,6 +54,14 @@ class FakeTransport implements Transport {
 
 /** 暴露 protected 成员的测试用 manager。 */
 class TestManager extends BaseManager {
+    /**
+     * 记录 withRetry 实际使用的退避时长。
+     *
+     * 真实 `sleep()` 会真的等待 —— 服务端 `Retry-After: 30` 的用例一旦漏掉这层替换，
+     * 用例就会挂 30 秒，所以这里显式接管并允许断言具体数值。
+     */
+    public readonly sleepCalls: number[] = [];
+
     public callWithRetry<T>(fn: () => Promise<T>, options?: RetryOptions | string): Promise<T> {
         return this.withRetry(fn, options ?? {});
     }
@@ -63,6 +72,11 @@ class TestManager extends BaseManager {
 
     public getRetryIdempotent(): boolean | undefined {
         return this.retryOptions.idempotent;
+    }
+
+    protected sleep(ms: number): Promise<void> {
+        this.sleepCalls.push(ms);
+        return Promise.resolve();
     }
 }
 
@@ -228,5 +242,170 @@ describe("BaseManager.withRetry 幂等判定（S-8）", () => {
 
         expect(first).toHaveBeenCalledTimes(1);
         expect(second).toHaveBeenCalledTimes(1);
+    });
+});
+
+/*
+ * P3-1 重试决策表：把「方法 × 错误 × 幂等性」这一格一格的期望显式钉住。
+ *
+ * 这张表是阶段 3 的验收物（见 docs/sdk-optimization/PHASE3_NETWORK_AND_RESOURCE_GOVERNANCE_PLAN.md §1）。
+ * 写作时先按**应该**的行为写，因此下列三条在修复前是红的：
+ *   - GET + TimeoutError：`TimeoutError` 声明 `isRetryable: true`，但重试判定只看
+ *     `instanceof RetryableError` → 幂等读的超时永不重试（G1）。
+ *   - GET + 503 + `Retry-After`：退避只在限流错误上读该头 → 服务端说等 30s，SDK 1ms 后就重试（G2）。
+ *   - PUT /send/{txnId} + 幂等键：天然幂等的写被一律当成"不可重试"（G3/T1.4）。
+ */
+describe("withRetry 重试决策表（P3-1）", () => {
+    let transport: FakeTransport;
+    let manager: TestManager;
+
+    const retryDelay = 5;
+
+    const unavailableWithRetryAfter = (seconds: number): HTTPError =>
+        new HTTPError("service unavailable", 503, new Headers({ "Retry-After": String(seconds) }));
+
+    const sendPath = "/rooms/!r:test/send/m.room.message/m1234567890";
+
+    beforeEach(() => {
+        transport = new FakeTransport();
+        manager = new TestManager({} as unknown as MatrixClient, {
+            transport,
+            maxRetries: 3,
+            retryDelay,
+        });
+    });
+
+    it("GET + TimeoutError：幂等读的超时必须重试（TimeoutError.isRetryable 不能被忽略）", async () => {
+        transport.error = new TimeoutError("request timed out", { timeoutMs: 1000 });
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Get, path: "/sync" })),
+        ).rejects.toBeInstanceOf(TimeoutError);
+
+        // 1 次首发 + 3 次重试
+        expect(transport.calls).toHaveLength(4);
+    });
+
+    it("GET + TimeoutError(ABORT)：AbortController 主动取消不是故障，不重试", async () => {
+        transport.error = new TimeoutError("aborted by caller", { timeoutMs: 1000, causeCode: "ABORT" });
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Get, path: "/sync" })),
+        ).rejects.toBeInstanceOf(TimeoutError);
+
+        expect(transport.calls).toHaveLength(1);
+    });
+
+    it("GET + AbortError：归一化后必须保留「取消」语义，不能退化成可重试超时", async () => {
+        // 真实链路上 fetch 被 abort 时抛的是 `name === "AbortError"`、没有 `code` 的错误。
+        // 若归一化时丢掉这个信息，`isUserCancelled()` 就为假，客户端已停止的请求会被
+        // 当成网络超时反复重放（spec/integ/matrix-client-syncing-errors 曾因此挂住）。
+        transport.error = Object.assign(new Error("The operation was aborted."), { name: "AbortError" });
+
+        const error = await manager
+            .callWithRetry(() => manager.callRequest({ method: Method.Get, path: "/sync" }))
+            .catch((thrown: unknown) => thrown);
+
+        expect(error).toBeInstanceOf(TimeoutError);
+        expect((error as TimeoutError).causeCode).toBe("AbortError");
+        expect((error as TimeoutError).isUserCancelled()).toBe(true);
+        expect(transport.calls).toHaveLength(1);
+    });
+
+    it("POST + TimeoutError：无幂等键的写超时仍不重试", async () => {
+        transport.error = new TimeoutError("request timed out", { timeoutMs: 1000 });
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Post, path: "/friends" })),
+        ).rejects.toBeInstanceOf(TimeoutError);
+
+        expect(transport.calls).toHaveLength(1);
+    });
+
+    it("GET + 503 带 Retry-After：重试且退避用服务端给的 30s，而不是本地 5ms", async () => {
+        transport.error = unavailableWithRetryAfter(30);
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Get, path: "/x" })),
+        ).rejects.toBeInstanceOf(RetryableError);
+
+        expect(transport.calls).toHaveLength(4);
+        // 服务端每次都说 30s，就每次按 30s 等：服务端指令优先于本地指数退避
+        // （403/503 的 Retry-After 往往带明确的重试窗口，叠乘只会在窗口内空转）。
+        expect(manager.sleepCalls).toEqual([30_000, 30_000, 30_000]);
+    });
+
+    it("GET + 503 无 Retry-After：退避回落到本地配置", async () => {
+        transport.error = new HTTPError("service unavailable", 503);
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Get, path: "/x" })),
+        ).rejects.toBeInstanceOf(RetryableError);
+
+        expect(transport.calls).toHaveLength(4);
+        expect(manager.sleepCalls).toEqual([retryDelay, retryDelay * 2, retryDelay * 4]);
+    });
+
+    it("POST + 503：即便带 Retry-After 也不重试（5xx 写请求可能已提交）", async () => {
+        transport.error = unavailableWithRetryAfter(30);
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Post, path: "/friends" })),
+        ).rejects.toBeInstanceOf(RetryableError);
+
+        expect(transport.calls).toHaveLength(1);
+    });
+
+    it("PUT /send/{txnId} 声明幂等键后：5xx 可重试，且每次重试复用同一 txnId", async () => {
+        transport.error = new HTTPError("bad gateway", 502);
+
+        const send = (): Promise<unknown> =>
+            manager.callRequest({ method: Method.Put, path: sendPath, idempotencyKey: "m1234567890" });
+
+        await expect(manager.callWithRetry(send)).rejects.toBeInstanceOf(RetryableError);
+
+        expect(transport.calls).toHaveLength(4);
+        // 重放必须打到同一个事务键上，否则服务端无法去重
+        expect(new Set(transport.paths)).toEqual(new Set([sendPath]));
+    });
+
+    it("PUT /send/{txnId} 未声明幂等键：不重试（不做全局放开）", async () => {
+        transport.error = new HTTPError("bad gateway", 502);
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Put, path: sendPath })),
+        ).rejects.toBeInstanceOf(RetryableError);
+
+        expect(transport.calls).toHaveLength(1);
+    });
+
+    it("闭包内已有无幂等键的写成功时，即便后续带键的写失败也不重放（不削弱 S-8 护栏）", async () => {
+        transport.failing.clear();
+        transport.error = new HTTPError("bad gateway", 502);
+        transport.failWhen = (_method, path) => (path === sendPath ? true : undefined);
+
+        const unprotected = vi.fn(() => manager.callRequest({ method: Method.Post, path: "/first" }));
+
+        await expect(
+            manager.callWithRetry(async () => {
+                await unprotected();
+                await manager.callRequest({ method: Method.Put, path: sendPath, idempotencyKey: "m1234567890" });
+            }),
+        ).rejects.toBeInstanceOf(RetryableError);
+
+        expect(unprotected).toHaveBeenCalledTimes(1);
+        expect(transport.calls).toEqual([Method.Post, Method.Put]);
+    });
+
+    it("429 + Retry-After：限流退避行为保持不变（回归）", async () => {
+        transport.error = new HTTPError("rate limited", 429, new Headers({ "Retry-After": "2" }));
+
+        await expect(
+            manager.callWithRetry(() => manager.callRequest({ method: Method.Post, path: "/friends" })),
+        ).rejects.toBeInstanceOf(RetryableError);
+
+        // 非幂等写遇到限流仍可重试（服务端执行前拒绝），且退避尊重 Retry-After
+        expect(transport.calls).toHaveLength(4);
+        expect(manager.sleepCalls[0]).toBe(2000);
     });
 });

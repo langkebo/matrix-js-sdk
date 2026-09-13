@@ -270,10 +270,14 @@ export class TimeoutError extends SdkError {
     public readonly causeCode?: string;
 
     public constructor(message: string, options: { timeoutMs?: number; causeCode?: string; cause?: unknown } = {}) {
+        // 主动取消（AbortController）不是网络故障，重试只会再被取消一次 —— 所以这个类
+        // 只在「网络层面的超时」上声明可重试。此前无论何种原因都置 true，而重试器又
+        // 不读这个标志，两边一起把「幂等读超时可重试」和「取消不重试」同时弄丢了。
+        const userCancelled = options.causeCode === "ABORT" || options.causeCode === "AbortError";
         super(message, {
             errorCode: "TIMEOUT",
             statusCode: 408,
-            isRetryable: true,
+            isRetryable: !userCancelled,
             cause: options.cause,
         });
         this.name = "TimeoutError";

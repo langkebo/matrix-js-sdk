@@ -286,6 +286,8 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
             return response as ISendEventResponse;
         }
 
+        // 事务 ID 在闭包**之外**定下：withRetry 会重跑整个闭包，闭包内的 Date.now()
+        // 每次重试都会产生新键，服务端就无法按 txnId 去重（P3-1）。
         const txn = txnId || `m${Date.now()}`;
         const response = await this.withRetry(async () => {
             return await this.request<ISendEventResponse>({
@@ -297,6 +299,8 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
                 }),
                 body: content,
                 prefix: ClientPrefix.V3,
+                // 声明幂等键 → 这类天然幂等的写允许对 5xx 重试（同一 txnId，服务端按事务去重）
+                idempotencyKey: txn,
             });
         });
 

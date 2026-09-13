@@ -443,13 +443,17 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 content.msgtype = request.msgtype;
             }
 
+            // 事务 ID 必须在闭包外生成：闭包内的 Date.now() 每次重试都不同，
+            // 服务端无法按 txnId 去重（P3-1）。
+            const txnId = `m${Date.now()}`;
             const response = await this.withRetry(
                 () =>
                     this.request<{ event_id: string }>({
                         method: Method.Put,
-                        path: `/rooms/${encodeURIComponent(request.room_id)}/send/m.room.message/${Date.now()}`,
+                        path: `/rooms/${encodeURIComponent(request.room_id)}/send/m.room.message/${txnId}`,
                         body: content,
                         prefix: ClientPrefix.V3,
+                        idempotencyKey: txnId,
                     }),
                 "sendMessage",
             );

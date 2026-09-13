@@ -113,25 +113,30 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
     }
 
     public async sendReaction(roomId: string, eventId: string, key: string): Promise<IRoomEventResponse> {
-        return this.withRetry(async () => {
-            const txnId = "m" + Date.now();
-            const reactionPath = utils.encodeUri("/rooms/$roomId/send/m.reaction/$txnId", {
-                $roomId: roomId,
-                $txnId: txnId,
-            });
-            const content = {
-                "m.relates_to": {
-                    rel_type: "m.annotation",
-                    event_id: eventId,
-                    key: key,
-                },
-            };
-            return this.request<IRoomEventResponse>({
-                method: Method.Put,
-                path: reactionPath,
-                body: content,
-            });
-        }, "sendReaction");
+        // 事务 ID 从闭包里提出来：withRetry 重跑闭包时若重新取 Date.now()，每次重试都会
+        // 变成一个新事务，服务端便无法去重 —— 提到外面才能声明幂等键（P3-1）。
+        const txnId = "m" + Date.now();
+        const reactionPath = utils.encodeUri("/rooms/$roomId/send/m.reaction/$txnId", {
+            $roomId: roomId,
+            $txnId: txnId,
+        });
+        const content = {
+            "m.relates_to": {
+                rel_type: "m.annotation",
+                event_id: eventId,
+                key: key,
+            },
+        };
+        return this.withRetry(
+            () =>
+                this.request<IRoomEventResponse>({
+                    method: Method.Put,
+                    path: reactionPath,
+                    body: content,
+                    idempotencyKey: txnId,
+                }),
+            "sendReaction",
+        );
     }
 }
 
