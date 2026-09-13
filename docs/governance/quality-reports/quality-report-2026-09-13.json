@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-13T07:55:02.394Z",
+  "timestamp": "2026-09-13T23:25:04.003Z",
   "version": "1.0.0",
   "metrics": {
     "coverage": {
@@ -90,7 +90,7 @@
     },
     "codegenCoverage": {
       "available": true,
-      "covered": 36,
+      "covered": 37,
       "coverageRate": 100,
       "strong": [
         "account_data",
@@ -103,6 +103,7 @@
         "ephemeral",
         "event_report",
         "external_service",
+        "friend_room",
         "guest",
         "key_backup",
         "media",
@@ -131,85 +132,84 @@
         "worker_body"
       ],
       "weak": [
-        "friend_room",
         "push_notification"
       ],
-      "waived": 13,
+      "waived": 12,
       "missing": 0,
       "missingModules": []
     },
     "contractDrift": {
       "available": true,
-      "driftedModules": 13,
-      "sdkOnly": 100,
-      "ledgerOnly": 16,
-      "registered": 116,
+      "driftedModules": 6,
+      "sdkOnly": 11,
+      "ledgerOnly": 0,
+      "registered": 11,
       "stale": 0,
       "perModule": {
-        "burn_after_read": {
-          "sdkOnly": 0,
-          "ledgerOnly": 2
-        },
         "cas": {
-          "sdkOnly": 2,
+          "sdkOnly": 1,
           "ledgerOnly": 0
         },
         "e2ee": {
           "sdkOnly": 2,
           "ledgerOnly": 0
         },
-        "external_service": {
-          "sdkOnly": 1,
-          "ledgerOnly": 1
-        },
-        "friend_room": {
-          "sdkOnly": 0,
-          "ledgerOnly": 5
-        },
         "media": {
-          "sdkOnly": 9,
-          "ledgerOnly": 0
-        },
-        "msc4108_rendezvous": {
-          "sdkOnly": 6,
-          "ledgerOnly": 4
-        },
-        "push": {
-          "sdkOnly": 10,
-          "ledgerOnly": 0
-        },
-        "room": {
-          "sdkOnly": 53,
-          "ledgerOnly": 2
-        },
-        "search": {
           "sdkOnly": 2,
           "ledgerOnly": 0
         },
-        "sync": {
-          "sdkOnly": 4,
+        "push": {
+          "sdkOnly": 1,
           "ledgerOnly": 0
         },
-        "thread": {
-          "sdkOnly": 0,
-          "ledgerOnly": 2
+        "room": {
+          "sdkOnly": 3,
+          "ledgerOnly": 0
         },
-        "worker": {
-          "sdkOnly": 11,
+        "search": {
+          "sdkOnly": 2,
           "ledgerOnly": 0
         }
       }
     },
     "complexity": {
       "clientTs": {
-        "lines": 4130,
+        "lines": 4052,
         "functionCount": 341,
         "baseline": 9044,
-        "reduction": "54.3"
+        "reduction": "55.2"
       }
     },
     "security": {
-      "error": "pnpm audit failed"
+      "vulnerabilities": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "info": 0,
+        "total": 0
+      },
+      "scopes": {
+        "all": {
+          "critical": 0,
+          "high": 0,
+          "moderate": 0,
+          "low": 0,
+          "info": 0,
+          "total": 0
+        },
+        "prod": {
+          "critical": 0,
+          "high": 0,
+          "moderate": 0,
+          "low": 0,
+          "info": 0,
+          "total": 0
+        }
+      },
+      "blockingAdvisories": [],
+      "muted": 0,
+      "passed": true
     },
     "technicalDebt": {
       "summary": {
@@ -252,9 +252,9 @@
       "reduction": "58.7"
     },
     "tests": {
-      "testFiles": 2180,
-      "totalTests": 5603,
-      "passedTests": 5603,
+      "testFiles": 2191,
+      "totalTests": 5629,
+      "passedTests": 5629,
       "failedTests": 0,
       "skippedTests": 0,
       "duration": "NaNs",
@@ -263,7 +263,7 @@
   },
   "summary": {
     "overallHealth": "healthy",
-    "passedChecks": 6,
-    "totalChecks": 6
+    "passedChecks": 7,
+    "totalChecks": 7
   }
 }

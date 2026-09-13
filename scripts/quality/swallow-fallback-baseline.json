@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-07-31T23:40:38.757Z",
+    "generatedAt": "2026-09-13T23:11:53.595Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -8,6 +8,16 @@
             "snippet": "catch (e) { if (isAccountDataNotFoundError(e)) { return null;",
             "whitelist": {
                 "owner": "account-data",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/admin/sub-managers/admin-external-service-manager.ts:176:22e32e7f94a773d764c8a3580187e11168d1922e",
+            "file": "src/admin/sub-managers/admin-external-service-manager.ts",
+            "line": 176,
+            "snippet": "catch (e) { const status = (e as { httpStatus?: number }).httpStatus; if (status === 404) return null;",
+            "whitelist": {
+                "owner": "admin-external-service",
                 "expires": "2026-12-31"
             }
         },
@@ -32,9 +42,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:149:380e0278b90333866828cc5e6c3b0480d76d8118",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:151:068386ef3845076fb4ee939d6b66e7e37396d718",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 149,
+            "line": 151,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { logger.warn(`AdminUserManager.getUser failed for ${userId}:`, e); return null;",
             "whitelist": {
                 "owner": "admin",
@@ -42,9 +52,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:383:7ae9690ee86cc3c4b8bf00837cc36e9f3c36c17f",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:419:2fb9603bfa3ff147e652ffa8b8ec1bacd0986c2c",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 383,
+            "line": 419,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -52,9 +62,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:405:d9f9de708cba424d2ad245cfbb00fd597216ae2b",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:441:8c706f265a98d431e063665187c5e2ca6eaa0d3e",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 405,
+            "line": 441,
             "snippet": "catch (e) { if (throwOnError) { throw e; } logger.warn(`AdminUserManager.isAdmin failed for ${userId}:`, e); return false;",
             "whitelist": {
                 "owner": "admin",
@@ -62,9 +72,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:432:b6d704c4cbf2d78ce6bd47c99ea542720713eb32",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:468:e3182118fa64050f772464e189c261c65812fe2a",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 432,
+            "line": 468,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -72,9 +82,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:469:20d42179e896708e4de950cc30fa66374e5911dc",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:505:ab2271a6c747041da95b0a55a60a7528a0bd087c",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 469,
+            "line": 505,
             "snippet": "catch (e) { const err = e as MatrixError; if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))) return null;",
             "whitelist": {
                 "owner": "admin",
@@ -82,9 +92,19 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:247:8b889cb66ebc7685538f1c9f049802fb30d9aaa7",
+            "id": "src/ai/index.ts:225:6eb3a5386923f1c7074fabd2bd4c489257f369a9",
+            "file": "src/ai/index.ts",
+            "line": 225,
+            "snippet": "catch (e) { logger.warn(\"AIModule.healthCheck failed:\", e); this._isConnected = false; return false;",
+            "whitelist": {
+                "owner": "ai",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/app-service/index.ts:248:cd0231416d55c52dc5be39e7fadf114113908e04",
             "file": "src/app-service/index.ts",
-            "line": 247,
+            "line": 248,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getApplicationService\")); return null;",
             "whitelist": {
                 "owner": "integration-team",
@@ -92,9 +112,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:351:1999a74d9f5522d354c8800da65f3b57ee10e088",
+            "id": "src/app-service/index.ts:352:db7243797e37d89ffd9f74848915edae1e4e5178",
             "file": "src/app-service/index.ts",
-            "line": 351,
+            "line": 352,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"checkUserId\")); return false;",
             "whitelist": {
                 "owner": "app-service",
@@ -102,9 +122,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:380:6704902fc15c62dab17a1d48ae0dd44fca022799",
+            "id": "src/app-service/index.ts:381:3b2aa155f0d9e31f3f6e819729e6ef0bf6e9a54f",
             "file": "src/app-service/index.ts",
-            "line": 380,
+            "line": 381,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"checkAlias\")); return false;",
             "whitelist": {
                 "owner": "app-service",
@@ -112,9 +132,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:396:e449259e553e4989a22863ea817b2541b8cf818b",
+            "id": "src/app-service/index.ts:397:c14d3afdc3717af97ceb6e44078580083d999810",
             "file": "src/app-service/index.ts",
-            "line": 396,
+            "line": 397,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getUserAppservices\")); return null;",
             "whitelist": {
                 "owner": "app-service",
@@ -122,9 +142,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:433:05596e30f36c7650acde884149434a77a63c20c3",
+            "id": "src/app-service/index.ts:434:91510d6f1d37f6e13317461a1e2fcde52d80e169",
             "file": "src/app-service/index.ts",
-            "line": 433,
+            "line": 434,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getProtocol\")); return null;",
             "whitelist": {
                 "owner": "integration-team",
@@ -132,9 +152,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:451:576bce814ac88f3a5f4e7880a3854a9f5caa2d81",
+            "id": "src/app-service/index.ts:452:507fb3375b00deda341f3250ad521d382c515d06",
             "file": "src/app-service/index.ts",
-            "line": 451,
+            "line": 452,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getProtocols\")); return [];",
             "whitelist": {
                 "owner": "integration-team",
@@ -142,9 +162,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:470:7a5186d3f221d9e5df94e02b43ce56e99d27b1a0",
+            "id": "src/app-service/index.ts:471:46d6ab05fd08cdd9619c16afab8c4ab03f18bd28",
             "file": "src/app-service/index.ts",
-            "line": 470,
+            "line": 471,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"queryUsers\")); return [];",
             "whitelist": {
                 "owner": "integration-team",
@@ -152,9 +172,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:489:ddbd837c8af5b1f28afe45ac05d50a1539525f23",
+            "id": "src/app-service/index.ts:490:7e7cdd8888554aee98ee5124b854b9f91b863da6",
             "file": "src/app-service/index.ts",
-            "line": 489,
+            "line": 490,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"queryLocations\")); return [];",
             "whitelist": {
                 "owner": "integration-team",
@@ -162,9 +182,9 @@
             }
         },
         {
-            "id": "src/auth/index.ts:687:a509f052b653845c7135fe221314947efb30f625",
+            "id": "src/auth/index.ts:688:27f73d4caec4f0b0e8347e283c160586c1a09ed5",
             "file": "src/auth/index.ts",
-            "line": 687,
+            "line": 688,
             "snippet": "catch (error) { const response = error as { errcode?: string }; if (response.errcode === \"M_USER_IN_USE\") { return false;",
             "whitelist": {
                 "owner": "refactor-bot",
@@ -202,9 +222,39 @@
             }
         },
         {
-            "id": "src/guest/index.ts:305:6c70e3091b83f073aa9305bcbff639c1165d23c7",
+            "id": "src/discovery/index.ts:239:671fe603afd4094bcad3b3285afbbdcbb0b3c8b0",
+            "file": "src/discovery/index.ts",
+            "line": 239,
+            "snippet": "catch (e) { logger.warn(\"DiscoveryManager.getAliasRoomId failed:\", e); return null;",
+            "whitelist": {
+                "owner": "discovery",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/ephemeral/index.ts:188:637ace3747cfc066e90fb22ca67ff25f0f931594",
+            "file": "src/ephemeral/index.ts",
+            "line": 188,
+            "snippet": "catch (e) { logger.warn(\"EphemeralManager.getTypingEvents failed:\", e); return [];",
+            "whitelist": {
+                "owner": "ephemeral",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/guest/index.ts:253:a52ccac4d2ee3e9596df6cb29493331b4f2e31a4",
             "file": "src/guest/index.ts",
-            "line": 305,
+            "line": 253,
+            "snippet": "catch (e) { logger.warn(\"GuestManager.isGuest failed:\", e); return false;",
+            "whitelist": {
+                "owner": "guest",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/guest/index.ts:307:b68e53d4582ab04227152f56f68209575a9d49df",
+            "file": "src/guest/index.ts",
+            "line": 307,
             "snippet": "catch (error) { this.emit(GuestEvent.GuestError, error as Error); throw error; } } getGuestInfo(): IGuestInfo | null { if (!this.guestInfo) { return null;",
             "whitelist": {
                 "owner": "guest",
@@ -212,9 +262,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:333:95e563aea60b4e687d92277db29c8b41bb59b962",
+            "id": "src/guest/index.ts:335:7d12d9b2e1529b100335c297f31c09dd13cedf9e",
             "file": "src/guest/index.ts",
-            "line": 333,
+            "line": 335,
             "snippet": "catch (e) { logger.warn(\"GuestManager.getGuestRooms failed:\", e); return [];",
             "whitelist": {
                 "owner": "guest",
@@ -222,9 +272,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:349:1a4661c7a0c0f0a0322a2805bdefd6913278d3e3",
+            "id": "src/guest/index.ts:351:9b92928322e6b97dc6ab83103e140cacec485df6",
             "file": "src/guest/index.ts",
-            "line": 349,
+            "line": 351,
             "snippet": "catch (error) { this.emit(GuestEvent.GuestError, error as Error); throw error; } } async canJoinRoom(roomIdOrAlias: string): Promise<boolean> { try { if (!roomIdOrAlias) { return false;",
             "whitelist": {
                 "owner": "guest",
@@ -232,11 +282,54 @@
             }
         },
         {
-            "id": "src/key-backup/index.ts:242:b5e7c109a3dd6684c33b04887eacea7587cd6795",
+            "id": "src/guest/index.ts:377:6a71486d1e9ea135af614a728259065d26015506",
+            "file": "src/guest/index.ts",
+            "line": 377,
+            "snippet": "catch (e) { logger.warn(\"GuestManager.canJoinRoom failed:\", e); return false;",
+            "whitelist": {
+                "owner": "guest",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/invite-blocklist/index.ts:301:5a2f582a5887a3049084d88e7ee094c2933fdced",
+            "file": "src/invite-blocklist/index.ts",
+            "line": 301,
+            "snippet": "catch (error) { logger.warn(\"InviteBlocklistManager.getInvitePermissionConfig failed:\", error); return null;",
+            "whitelist": {
+                "owner": "invite-blocklist",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/key-backup/index.ts:235:3d04b149f89e11839943597668813bdad37ecf36",
             "file": "src/key-backup/index.ts",
-            "line": 242,
-            "snippet": "catch (error) { // @swallow-error { owner: \"key-backup\", expires: \"2026-12-31\" } // 404 / M_NOT_FOUND 表示尚无备份版本，是预期情况，返回 null if (error instanceof NotFoundError) { return null;",
-            "whitelist": null
+            "line": 235,
+            "snippet": "catch (error) { if (error instanceof NotFoundError) { return null;",
+            "whitelist": {
+                "owner": "key-backup",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/models/room.ts:599:ef03e0ccbf261b9671f0fedd18e8b0171f296b30",
+            "file": "src/models/room.ts",
+            "line": 599,
+            "snippet": "catch (e) { logger.warn(\"Room.createThreadsTimelineSets failed:\", e); this.threadTimelineSetsPromise = null; return null;",
+            "whitelist": {
+                "owner": "room",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/oidc/validate.ts:106:1300a00d7260c46ac4d001ef4a419076e715326d",
+            "file": "src/oidc/validate.ts",
+            "line": 106,
+            "snippet": "catch (e) { logger.warn(\"isSecureUrl failed:\", e); return false;",
+            "whitelist": {
+                "owner": "oidc",
+                "expires": "2026-12-31"
+            }
         },
         {
             "id": "src/push/index.ts:321:3006d8f26539667fdd436a37b4971d9f040963a0",
@@ -259,10 +352,20 @@
             }
         },
         {
-            "id": "src/relations/index.ts:238:120b231d5bcb23173d6c8773cbf897f32494fdce",
+            "id": "src/push/index.ts:606:f28ca84d8f6a4a975ffbd00431db7c92c22a08ba",
+            "file": "src/push/index.ts",
+            "line": 606,
+            "snippet": "catch (e) { logger.warn(\"PushManager.isRoomMuted failed:\", e); return false;",
+            "whitelist": {
+                "owner": "push",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/relations/index.ts:257:59cb1b8f81594544d12a7e4247502bfde0a0b285",
             "file": "src/relations/index.ts",
-            "line": 238,
-            "snippet": "catch (e) { logger.debug(\"RelationsManager.getLatestRelation failed\", e); return null;",
+            "line": 257,
+            "snippet": "catch (e) { logger.warn(\"RelationsManager.getLatestRelation failed\", e); return null;",
             "whitelist": {
                 "owner": "refactor-bot",
                 "expires": "2026-12-31"
@@ -275,6 +378,26 @@
             "snippet": "catch (error) { if (error instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "rendezvous",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/room-state/index.ts:110:df6d4189428d574b7bdbcce85689d61b375c2262",
+            "file": "src/room-state/index.ts",
+            "line": 110,
+            "snippet": "catch (e) { logger.warn(\"RoomStateManager.getStateEventsByType failed:\", e); return [];",
+            "whitelist": {
+                "owner": "room-state",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/room-state/index.ts:99:8bcb52547c51fb65c5088e16be63fdee7ade70bb",
+            "file": "src/room-state/index.ts",
+            "line": 99,
+            "snippet": "catch (e) { logger.warn(\"RoomStateManager.getAllStateEvents failed:\", e); return [];",
+            "whitelist": {
+                "owner": "room-state",
                 "expires": "2026-12-31"
             }
         },
@@ -349,9 +472,19 @@
             }
         },
         {
-            "id": "src/rust-crypto/backup.ts:254:a612772b8451f3c9e149aa0d6d7cd00fdcb4a1cb",
+            "id": "src/rust-crypto/backup.ts:139:d4c2c2ed3459b7ad9689395704e5b60895e533ed",
             "file": "src/rust-crypto/backup.ts",
-            "line": 254,
+            "line": 139,
+            "snippet": "catch (e) { this.logger.warn(\"RustBackupManager.getActiveBackupVersion failed:\", e); return null;",
+            "whitelist": {
+                "owner": "rust-crypto-backup",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/rust-crypto/backup.ts:256:d9d01ad525e6aed2bcbea72eb79b3c8b0c85ef06",
+            "file": "src/rust-crypto/backup.ts",
+            "line": 256,
             "snippet": "catch (e) { if (throwOnError) { throw e; } this.logger.warn(\"handleBackupSecretReceived: Invalid backup decryption key\", e); } return false;",
             "whitelist": {
                 "owner": "crypto",
@@ -359,9 +492,9 @@
             }
         },
         {
-            "id": "src/rust-crypto/backup.ts:983:aadbd2d9e4518a3283f5321c387d11a1a2d22331",
+            "id": "src/rust-crypto/backup.ts:985:98a68603054b88a63fb165855b5d535fcf9185f4",
             "file": "src/rust-crypto/backup.ts",
-            "line": 983,
+            "line": 985,
             "snippet": "catch (e) { if ( (<MatrixError>e).errcode === \"M_NOT_FOUND\" || (<MatrixError>e).httpStatus === 404 || (e instanceof HTTPError && e.httpStatus === 404) ) { return null;",
             "whitelist": {
                 "owner": "crypto",
@@ -379,9 +512,19 @@
             }
         },
         {
-            "id": "src/rust-crypto/PerSessionKeyBackupDownloader.ts:444:4c150f526f2152603613ae684dab558cba621271",
+            "id": "src/rust-crypto/PerSessionKeyBackupDownloader.ts:246:3b00ef3d149da61c12286f33d6fe659081fce064",
             "file": "src/rust-crypto/PerSessionKeyBackupDownloader.ts",
-            "line": 444,
+            "line": 246,
+            "snippet": "catch (e) { this.logger.warn(\"PerSessionKeyBackupDownloader.getBackupDecryptionKey failed:\", e); return null;",
+            "whitelist": {
+                "owner": "rust-crypto",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/rust-crypto/PerSessionKeyBackupDownloader.ts:446:82ad399bda9cefc9948f5a65e54ffeb752878e1c",
+            "file": "src/rust-crypto/PerSessionKeyBackupDownloader.ts",
+            "line": 446,
             "snippet": "catch (e) { this.logger.debug(`Backup: error while checking server version: ${e}`); this.hasConfigurationProblem = true; return null;",
             "whitelist": {
                 "owner": "crypto",
@@ -389,20 +532,20 @@
             }
         },
         {
-            "id": "src/security/index.ts:123:c9d8b8f5b21d5a5ee168a0ce6c0afd3cc7b18443",
+            "id": "src/security/index.ts:123:8f288332d092944e77ca9f5664fa225402635db6",
             "file": "src/security/index.ts",
             "line": 123,
-            "snippet": "catch (e) { logger.debug(\"SecurityManager.listLoginFailures failed\", e); return [];",
+            "snippet": "catch (e) { logger.warn(\"SecurityManager.listLoginFailures failed\", e); return [];",
             "whitelist": {
                 "owner": "security",
                 "expires": "2026-12-31"
             }
         },
         {
-            "id": "src/security/index.ts:74:3f3cfd3af90cebb7464bb30c46fb987291035e6c",
+            "id": "src/security/index.ts:74:c57ca8c4a461766af1fc0f88526e9071e19a48c8",
             "file": "src/security/index.ts",
             "line": 74,
-            "snippet": "catch (e) { logger.debug(\"SecurityManager.getAccountStatus failed\", e); return null;",
+            "snippet": "catch (e) { logger.warn(\"SecurityManager.getAccountStatus failed\", e); return null;",
             "whitelist": {
                 "owner": "security",
                 "expires": "2026-12-31"
@@ -419,10 +562,20 @@
             }
         },
         {
-            "id": "src/store/memory.ts:260:d1ce92771fd369d305fa53a9a2edf819e6d86535",
+            "id": "src/store/memory.ts:331:1a580e8540c8179101b153e6772f5be940c13465",
             "file": "src/store/memory.ts",
-            "line": 260,
+            "line": 331,
             "snippet": "catch (error) { logger.warn(`Failed to get filter ID for ${filterName} from localStorage`, error); } return null;",
+            "whitelist": {
+                "owner": "store",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/store/pending-events-cipher.ts:78:66f93c3ef54258aa237dbc5759ad698ee8124d1f",
+            "file": "src/store/pending-events-cipher.ts",
+            "line": 78,
+            "snippet": "catch (err) { logger.warn(\"Failed to decrypt pending events blob, treating as empty\", err); return [];",
             "whitelist": {
                 "owner": "store",
                 "expires": "2026-12-31"
@@ -439,9 +592,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:153:714803e7cb1cac23382684df28eba0339ee57f50",
+            "id": "src/third-party/index.ts:213:7030cff7035c2978ac92a69d82a313da7a6e641c",
             "file": "src/third-party/index.ts",
-            "line": 153,
+            "line": 213,
             "snippet": "catch (e) { if (throwOnError) { throw this.normalizeError(e, \"searchLocations\"); } logger.warn(\"ThirdPartyManager.searchLocations failed:\", e); return [];",
             "whitelist": {
                 "owner": "thirdparty",
@@ -449,9 +602,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:170:e0ca2e124f707f4aa22399a12b83cd3c3244913b",
+            "id": "src/third-party/index.ts:252:c3c86b77939f84e7ca56432d7f256b2f3092e890",
             "file": "src/third-party/index.ts",
-            "line": 170,
+            "line": 252,
             "snippet": "catch (e) { if (throwOnError) { throw this.normalizeError(e, \"searchUsers\"); } logger.warn(\"ThirdPartyManager.searchUsers failed:\", e); return [];",
             "whitelist": {
                 "owner": "thirdparty",
@@ -459,9 +612,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:244:bcc1a9bcad9ac2586bbc07b5e0d92507b36e37bd",
+            "id": "src/third-party/index.ts:364:f2e0c18b7efb7f766474e9b0ef4e53bf23731b16",
             "file": "src/third-party/index.ts",
-            "line": 244,
+            "line": 364,
             "snippet": "catch (e) { logger.warn(\"ThirdPartyManager.getLocation failed:\", e); return null;",
             "whitelist": {
                 "owner": "thirdparty",
@@ -469,9 +622,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:267:9565a892c8f14d0aa6e2145683c56ccadfcda2a3",
+            "id": "src/third-party/index.ts:387:c0aa3e5feed8f6395593818d6bf798eb738bed58",
             "file": "src/third-party/index.ts",
-            "line": 267,
+            "line": 387,
             "snippet": "catch (e) { logger.warn(\"ThirdPartyManager.getUser failed:\", e); return null;",
             "whitelist": {
                 "owner": "thirdparty",
@@ -479,9 +632,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:298:0cfb0a77370209d8934aef3a38a4d9db602e4cb4",
+            "id": "src/third-party/index.ts:418:e87fdca1b85ff31eb9b61c6db14837d71693e2c4",
             "file": "src/third-party/index.ts",
-            "line": 298,
+            "line": 418,
             "snippet": "catch (e) { logger.warn(\"ThirdPartyManager.parseMatrixUri failed:\", e); return null;",
             "whitelist": {
                 "owner": "thirdparty",
@@ -489,9 +642,9 @@
             }
         },
         {
-            "id": "src/web-rtc/call.ts:3044:483e4bfa5a1f66e47d5ac1723f76f74cd35a8e92",
+            "id": "src/web-rtc/call.ts:3082:695eefa65034b57bb5bb408428c4435dae949b6d",
             "file": "src/web-rtc/call.ts",
-            "line": 3044,
+            "line": 3082,
             "snippet": "catch (e) { logger.error(\"Exception thrown when trying to access WebRTC\", e); return false;",
             "whitelist": {
                 "owner": "webrtc",

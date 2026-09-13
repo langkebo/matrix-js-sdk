@@ -2,7 +2,7 @@
 
 ## Overall Health: HEALTHY
 
-**Checks Passed**: 6/6
+**Checks Passed**: 7/7
 
 ### Test Coverage
 | Metric | Value | Threshold | Status |
@@ -26,43 +26,44 @@
 ### Codegen Coverage (route-table 消费证据)
 | 层级 | 数量 | 说明 |
 |------|------|------|
-| 强证据（src 下有人 import 该模块 route-table） | 36 | 跨模块导入也算，判定见 check-manager-codegen-coverage.mjs |
-| 弱证据（生成了表但没人读，已白名单说明原因） | 2 | friend_room, push_notification |
-| 白名单（codegen 有意跳过 / 无消费者） | 13 | 每条带 reason + 到期日 |
+| 强证据（src 下有人 import 该模块 route-table） | 37 | 跨模块导入也算，判定见 check-manager-codegen-coverage.mjs |
+| 弱证据（生成了表但没人读，已白名单说明原因） | 1 | push_notification |
+| 白名单（codegen 有意跳过 / 无消费者） | 12 | 每条带 reason + 到期日 |
 | 缺失 | 0 | 非 0 即门禁红 |
 
 ### Contract Drift (SDK route-table ↔ 后端 ledger)
 | 方向 | 数量 | 说明 |
 |------|------|------|
-| 有差集的模块 | 13 | 逐条登记在 scripts/quality/contract-drift-registry.json |
-| SDK 表有、ledger 无 | 100 | 历史/人工条目，待 SDK-3/SDK-5 定性 |
-| ledger 有、SDK 表无 | 16 | 文档漏覆盖或路径族变化，SDK-1 以 ledger 为源后收敛 |
+| 有差集的模块 | 6 | 逐条登记在 scripts/quality/contract-drift-registry.json |
+| SDK 表有、ledger 无 | 11 | 历史/人工条目，待 SDK-3/SDK-5 定性 |
+| ledger 有、SDK 表无 | 0 | 文档漏覆盖或路径族变化，SDK-1 以 ledger 为源后收敛 |
 | 已验证修好但没删登记（stale） | 0 | 非 0 即门禁红 |
 
 ### Code Quality
 | Metric | Value | Baseline | Change |
 |--------|-------|----------|--------|
-| client.ts Lines | 4130 | 9044 | 54.3% |
+| client.ts Lines | 4052 | 9044 | 55.2% |
 | TODO/FIXME/HACK/XXX | 0 | 181 | 100.0% |
 | `any` Usage | 86 | 208 | 58.7% |
 | Manager Migration | 97.0% | 95% | ✅ |
 
 ### Security
-| Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Moderate | 0 |
-| Low | 0 |
+| Severity | Runtime (`--prod`) | All scopes |
+|----------|------------------|------------|
+| Critical | 0 | 0 |
+| High | 0 | 0 |
+| Moderate | 0 | 0 |
+| Low | 0 | 0 |
+| Muted | - | 0 |
 
-**Status**: ❌ Vulnerabilities found
+**Status**: ✅ No high/critical vulnerabilities in any scope
 
 ### Tests
 | Metric | Value |
 |--------|-------|
-| Test Files | 2180 |
-| Total Tests | 5603 |
-| Passed | 5603 |
+| Test Files | 2191 |
+| Total Tests | 5629 |
+| Passed | 5629 |
 | Failed | 0 |
 | Skipped | 0 |
 

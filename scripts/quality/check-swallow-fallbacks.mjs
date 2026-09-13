@@ -126,37 +126,58 @@ if (shouldUpdateBaseline) {
 }
 
 const baseline = readBaseline();
-const baselineIds = new Set((baseline.findings ?? []).map((it) => it.id));
+const baselineEntries = baseline.findings ?? [];
+const baselineIds = new Set(baselineEntries.map((it) => it.id));
+const baselineById = new Map(baselineEntries.map((it) => [it.id, it]));
+
+const currentIds = new Set(findings.map((f) => f.id));
+const matchedBaselineIds = [...baselineIds].filter((id) => currentIds.has(id));
+// A baseline entry whose site is gone (fixed, or the file moved/renamed) must be
+// retired from the baseline, otherwise the amnesty silently outlives the code it
+// was granted for. Ids embed a line number, so this also surfaces line drift.
+const staleBaselineIds = [...baselineIds].filter((id) => !currentIds.has(id));
+const newFindings = findings.filter((f) => !baselineIds.has(f.id));
 
 const errors = [];
-for (const finding of findings) {
-    const isNew = !baselineIds.has(finding.id);
+
+for (const id of staleBaselineIds) {
+    const entry = baselineById.get(id);
+    errors.push(
+        `- [STALE] ${entry?.file ?? id}:${entry?.line ?? "?"}: baseline entry no longer matches any finding. ` +
+            `Retire it with \`node scripts/quality/check-swallow-fallbacks.mjs --update-baseline\` after confirming the swallow site is really gone.`,
+    );
+}
+
+for (const finding of newFindings) {
     const whitelistStatus = validateWhitelist(finding);
 
-    if (isNew) {
-        if (!whitelistStatus) {
-            errors.push(
-                `- [NEW] ${finding.file}:${finding.line}: Missing or invalid @swallow-error comment.\n  Snippet: ${finding.snippet}`,
-            );
-        } else if (whitelistStatus === "expired") {
-            errors.push(
-                `- [NEW] ${finding.file}:${finding.line}: @swallow-error whitelist has expired (${finding.whitelist.expires}).\n  Snippet: ${finding.snippet}`,
-            );
+    if (!whitelistStatus) {
+        errors.push(
+            `- [NEW] ${finding.file}:${finding.line}: Missing or invalid @swallow-error comment.\n  Snippet: ${finding.snippet}`,
+        );
+    } else if (whitelistStatus === "expired") {
+        errors.push(
+            `- [NEW] ${finding.file}:${finding.line}: @swallow-error whitelist has expired (${finding.whitelist.expires}).\n  Snippet: ${finding.snippet}`,
+        );
+    }
+}
+
+for (const finding of findings) {
+    if (!baselineIds.has(finding.id)) continue;
+
+    // 对于 baseline 中的存量项：默认仅告警；若 --strict-baseline 或 BASELINE_STRICT=true 则阻断
+    const whitelistStatus = validateWhitelist(finding);
+    if (!whitelistStatus) {
+        const msg = `- [BASELINE] ${finding.file}:${finding.line}: Mandatory @swallow-error comment missing.\n  Snippet: ${finding.snippet}`;
+        if (baselineStrict) {
+            errors.push(msg);
+        } else {
+            console.warn(`[swallow-fallback] Warning: ${msg}`);
         }
-    } else {
-        // 对于 baseline 中的存量项：默认仅告警；若 --strict-baseline 或 BASELINE_STRICT=true 则阻断
-        if (!whitelistStatus) {
-            const msg = `- [BASELINE] ${finding.file}:${finding.line}: Mandatory @swallow-error comment missing.\n  Snippet: ${finding.snippet}`;
-            if (baselineStrict) {
-                errors.push(msg);
-            } else {
-                console.warn(`[swallow-fallback] Warning: ${msg}`);
-            }
-        } else if (whitelistStatus === "expired") {
-            console.warn(
-                `[swallow-fallback] Warning: Baseline entry ${finding.file}:${finding.line} has expired whitelist (${finding.whitelist.expires})`,
-            );
-        }
+    } else if (whitelistStatus === "expired") {
+        console.warn(
+            `[swallow-fallback] Warning: Baseline entry ${finding.file}:${finding.line} has expired whitelist (${finding.whitelist.expires})`,
+        );
     }
 }
 
@@ -169,5 +190,6 @@ if (errors.length > 0) {
 }
 
 console.log(
-    `[swallow-fallback] quality gate passed (current: ${findings.length}, baseline: ${(baseline.findings ?? []).length})`,
+    `[swallow-fallback] quality gate passed (current: ${findings.length}, baseline: ${baselineEntries.length} ` +
+        `[matched: ${matchedBaselineIds.length}, stale: ${staleBaselineIds.length}], new: ${newFindings.length})`,
 );

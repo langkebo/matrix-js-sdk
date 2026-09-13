@@ -69,6 +69,28 @@ jobs:
             - name: Run Linter
               run: "pnpm run lint:js"
 
+    dependency_audit:
+        name: "Dependency Audit"
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+            - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+            - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+              with:
+                  cache: "pnpm"
+                  node-version-file: package.json
+
+            - name: Install Deps
+              run: "pnpm install --frozen-lockfile"
+
+            # `audit:prod` only sees runtime dependencies, so 19 high advisories in
+            # dev tooling (all transitive, all with patched releases) stayed invisible
+            # to every PR-level check while `release.yml` silently gated on the full
+            # scope. `audit:high` is now the same full-scope command release.yml runs.
+            - name: Audit all dependency scopes
+              run: "pnpm run audit:high"
+
     node_example_lint:
         name: "Node.js example"
         runs-on: ubuntu-latest

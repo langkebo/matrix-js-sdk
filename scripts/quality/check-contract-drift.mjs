@@ -162,7 +162,7 @@ function main() {
     }
     for (const item of observed) {
         log(
-            `  ${item.kind === "sdk-only" ? "SDK 表有、ledger 无" : "ledger 有、SDK 表无"}: ${item.moduleName} ${item.entry}`,
+            `  ${item.kind === "sdk-only" ? "SDK 表有、ledger 无" : "ledger 有、SDK 表无"}: ${item.sdkDir} ${item.entry}`,
         );
     }
 
