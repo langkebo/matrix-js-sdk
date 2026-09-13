@@ -157,15 +157,18 @@ export abstract class BaseManager<
     private _withRetryDepth = 0;
 
     /**
-     * 每层 `withRetry()` 在途期间实际发出的 HTTP 方法（S-8）。
+     * 每层 `withRetry()` 在途期间实际发出的请求（方法与成败，S-8）。
      *
      * `withRetry()` 接收的是闭包，自身无法得知内部会发什么请求，因此这里用一个
      * 与方法调用栈同构的数组：进入 `withRetry()` 时压入一个空帧，`request()` 在被
-     * 包装（`_withRetryDepth > 0`）时把方法追加到栈顶帧，`withRetry()` 退出时弹出。
-     * 并发的多个 `withRetry()` 各自持有独立帧，互不干扰（与 `_withRetryDepth` 的
-     * 并发安全设计一致）。
+     * 包装（`_withRetryDepth > 0`）时把 `{ method, ok }` 追加到栈顶帧，`withRetry()`
+     * 退出时弹出。并发的多个 `withRetry()` 各自持有独立帧，互不干扰（与
+     * `_withRetryDepth` 的并发安全设计一致）。
+     *
+     * 之所以连`ok` 一起记录：限流（429 / `M_LIMIT_EXCEEDED`）重试会**重跑整个闭包**，
+     * 若闭包中已有写请求成功返回，重放会造成重复提交 —— 此时必须放弃重试。
      */
-    private readonly _retryObservedMethods: string[][] = [];
+    private readonly _retryObserved: { method: string; ok: boolean }[][] = [];
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super();
@@ -239,17 +242,20 @@ export abstract class BaseManager<
 
         // 被外层 withRetry 包装时：仅做单次调用，不重试、不写统计
         if (this._withRetryDepth > 0) {
-            // 记录本次调用实际发出的 HTTP 方法，供外层 withRetry() 推断幂等性（S-8）
-            this._retryObservedMethods[this._retryObservedMethods.length - 1]?.push(spec.method);
+            // 记录本次调用实际发出的请求（方法 + 成败），供外层 withRetry() 判定（S-8）
+            const frame = this._retryObserved[this._retryObserved.length - 1];
             try {
-                return await this.transport.request<T>(
+                const result = await this.transport.request<T>(
                     spec.method,
                     spec.path,
                     spec.queryParams,
                     spec.body as Body | undefined,
                     opts,
                 );
+                frame?.push({ method: spec.method, ok: true });
+                return result;
             } catch (error) {
+                frame?.push({ method: spec.method, ok: false });
                 throw this.normalizeError(error, label);
             }
         }
@@ -291,8 +297,11 @@ export abstract class BaseManager<
                     const isRetryableErr =
                         normalized instanceof RetryableError ||
                         (error instanceof HTTPError && typeof error.httpStatus === "number" && error.httpStatus >= 500);
+                    // 限流是"服务端执行前拒绝、无副作用"，因此即便非幂等也安全重试（S-8 例外）。
+                    // 这里每次循环只发一个请求，不存在"重跑闭包导致重复提交"的问题。
+                    const rateLimited = BaseManager.isRateLimitRejection(error, normalized);
 
-                    if (canRetry && isRetryableErr) {
+                    if ((canRetry || rateLimited) && isRetryableErr) {
                         this.requestStats.retried++;
                         const delay = this.computeRetryDelay(
                             currentDelay,
@@ -621,16 +630,17 @@ export abstract class BaseManager<
         let currentDelay = retryDelay;
 
         /**
-         * 本次 withRetry 期间实际发出的 HTTP 方法（由 `request()` 回填，见 S-8）。
-         * 幂等性在**每次需要重试时**按已观测到的方法重新判定，而不是在入口处一次性
-         * 取默认值——这样 POST/PUT/DELETE 不会被默认重试。
+         * 本次 withRetry 期间实际发出的请求（方法与成败，由 `request()` 回填，见 S-8）。
+         * 幂等性在**每次需要重试时**按已观测到的请求重新判定，而不是在入口处一次性
+         * 取默认值——这样 POST/PUT/DELETE 不会被默认重试；而 `ok` 用于判断限流重试
+         * 是否会重放一次已经成功的写入。
          */
-        const observedMethods: string[] = [];
+        const observedMethods: { method: string; ok: boolean }[] = [];
 
         // 标记进入 withRetry：内部 request() 将退化为单次调用，避免双重计数与嵌套重试。
         // 使用深度计数器而非布尔标志，确保并发 withRetry() 调用互不干扰（FT-115）：
         // 任一调用先结束只会把深度减 1，不会让其它在途调用误判为「已离开 withRetry」。
-        this._retryObservedMethods.push(observedMethods);
+        this._retryObserved.push(observedMethods);
         this._withRetryDepth++;
         try {
             for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -657,7 +667,12 @@ export abstract class BaseManager<
                                 this.retryOptions.idempotent ??
                                 this.inferIdempotentFromMethods(observedMethods));
 
-                        if (idempotent && isRetryableErr) {
+                        // 限流例外：429/M_LIMIT_EXCEEDED 是"执行前拒绝"，非幂等也能安全重试；
+                        // 但重试会重跑闭包，若其中已有写请求成功，则放弃重试以免重复提交（S-8）。
+                        const rateLimited = BaseManager.isRateLimitRejection(error, normalized);
+                        const mayRetry = idempotent || (rateLimited && this.canRetryRateLimited(observedMethods));
+
+                        if (mayRetry && isRetryableErr) {
                             this.requestStats.retried++;
                             const delay = this.computeRetryDelay(currentDelay, error, normalized, jitterRatio);
                             logger.warn(
@@ -677,7 +692,7 @@ export abstract class BaseManager<
             throw this.normalizeError(lastError, label);
         } finally {
             this._withRetryDepth--;
-            this._retryObservedMethods.pop();
+            this._retryObserved.pop();
         }
     }
 
@@ -690,11 +705,38 @@ export abstract class BaseManager<
      *   `true` 以保持既有行为，避免对这类调用造成可用性回归；调用方若确需不重试，
      *   显式传 `idempotent: false` 即可。
      */
-    private inferIdempotentFromMethods(observedMethods: string[]): boolean {
-        if (observedMethods.length === 0) {
+    private inferIdempotentFromMethods(observed: { method: string; ok: boolean }[]): boolean {
+        if (observed.length === 0) {
             return true;
         }
-        return observedMethods.every((method) => BaseManager.isIdempotentMethod(method));
+        return observed.every((entry) => BaseManager.isIdempotentMethod(entry.method));
+    }
+
+    /**
+     * 判断错误是否为服务端的**限流拒绝**（HTTP 429 或 `M_LIMIT_EXCEEDED`）。
+     *
+     * 归一化后的错误与原始错误都要查：`normalizeError()` 已把 429 转成
+     * {@link RetryableError}，但 `withRetry()` 的闭包可能抛出尚未归一化的
+     * {@link HTTPError}。
+     */
+    private static isRateLimitRejection(error: unknown, normalized: SdkError): boolean {
+        if (normalized instanceof RetryableError && normalized.isRateLimitError()) {
+            return true;
+        }
+        return error instanceof HTTPError && error.isRateLimitError();
+    }
+
+    /**
+     * 限流请求是否可以安全重试（S-8 的例外条款）。
+     *
+     * 429 / `M_LIMIT_EXCEEDED` 表示服务端在**执行前**拒绝了请求，没有副作用被提交，
+     * 因此对非幂等方法重试也不会重复写入 —— 这与 5xx（可能已提交）有本质区别。
+     *
+     * 唯一的例外：`withRetry()` 的重试会重跑整个闭包。若闭包中**已有写请求成功返回**，
+     * 重放会把那次成功写入再做一遍。此时返回 `false`，放弃重试。
+     */
+    private canRetryRateLimited(observed: { method: string; ok: boolean }[]): boolean {
+        return !observed.some((entry) => entry.ok && !BaseManager.isIdempotentMethod(entry.method));
     }
 
     /**

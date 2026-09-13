@@ -83,8 +83,10 @@
         "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
-        "audit:high": "pnpm audit --audit-level=high",
-        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && node scripts/check-bundle-size.mjs"
+        "audit:high": "pnpm audit --prod --audit-level=high",
+        "audit:all": "pnpm audit --audit-level=high",
+        "quality:bundle-size": "node scripts/check-bundle-size.mjs",
+        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && pnpm quality:bundle-size"
     },
     "keywords": [
         "matrix-org"

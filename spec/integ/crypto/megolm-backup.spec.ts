@@ -575,8 +575,11 @@ describe("megolm-keys backup", () => {
 
             await aliceCrypto.importRoomKeys(someRoomKeys);
 
-            // The backup loop is waiting a random amount of time to avoid different clients firing at the same time.
-            vi.runAllTimers();
+            // The backup loop waits a random 0-10s before its first iteration
+            // (`backupKeysLoop(maxDelay = 10000)`). Advance past that window instead of
+            // `runAllTimers()`, which chases the loop's self-rescheduling timer forever and
+            // aborts with "running 10000 timers, assuming an infinite loop".
+            await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
 
             await Promise.all(uploadPromises);
 
@@ -600,7 +603,9 @@ describe("megolm-keys backup", () => {
 
             await aliceCrypto.importRoomKeys([newKey]);
 
-            vi.runAllTimers();
+            // Bounded advance: the backup loop reschedules itself, so `runAllTimers()`
+            // would chase it forever and abort with "running 10000 timers".
+            await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
             await newKeyUploadPromise;
         });
 
@@ -634,8 +639,11 @@ describe("megolm-keys backup", () => {
             mockUploadEmitter(testData.SIGNED_BACKUP_DATA.version!);
             await aliceCrypto.importRoomKeys(someRoomKeys);
 
-            // The backup loop is waiting a random amount of time to avoid different clients firing at the same time.
-            vi.runAllTimers();
+            // The backup loop waits a random 0-10s before its first iteration
+            // (`backupKeysLoop(maxDelay = 10000)`). Advance past that window instead of
+            // `runAllTimers()`, which chases the loop's self-rescheduling timer forever and
+            // aborts with "running 10000 timers, assuming an infinite loop".
+            await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
 
             // wait for all keys to be backed up
             await remainingZeroPromise;
@@ -689,12 +697,16 @@ describe("megolm-keys backup", () => {
 
             await aliceCrypto.importRoomKeys([newKey]);
 
-            vi.runAllTimers();
+            // Bounded advance: the backup loop reschedules itself, so `runAllTimers()`
+            // would chase it forever and abort with "running 10000 timers".
+            await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
 
             await disableOldBackup;
             await enableNewBackup;
 
-            vi.runAllTimers();
+            // Bounded advance: the backup loop reschedules itself, so `runAllTimers()`
+            // would chase it forever and abort with "running 10000 timers".
+            await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
 
             await Promise.all(uploadPromises);
             await newKeyUploadPromise;

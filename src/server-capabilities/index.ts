@@ -112,6 +112,32 @@ export function isCapabilityEnabled(capabilities: Capabilities | undefined, capa
     return capabilityEnabled(capabilities?.[capability]);
 }
 
+/**
+ * Resolve whether the backing server advertises a synapse-rust specific feature.
+ *
+ * ## `fallback` policy (S-13)
+ *
+ * `fallback` is what callers get when the capability probe is **unavailable**
+ * (an old server without the discovery method) or **throws**. The choice is a
+ * product decision per feature, and the fork's rule is:
+ *
+ * - **fail-closed (`false`)** — the default for features the backend has no
+ *   route for: `Voice`, `OpenClaw`, `AIConnection`, `Widget`,
+ *   `DehydratedDevice`. Reporting "supported" would make callers fire requests
+ *   at endpoints that answer 404.
+ * - **fail-open (`true`)** — only for features the backend is known to serve:
+ *   `SlidingSync`, `Friends`. Guessing "unsupported" here would silently
+ *   disable working functionality.
+ *
+ * Do not flip a feature to `true` without confirming a backend route exists
+ * (see `synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md`).
+ *
+ * @param client - object exposing the optional `doesServerAdvertiseSynapseRustFeature` probe.
+ * @param feature - the feature name to probe.
+ * @param fallback - value returned when the probe is missing or throws; see the policy above.
+ * @param onError - optional callback invoked with the probe error (for logging).
+ * @returns whether the feature is advertised.
+ */
 export async function doesClientAdvertiseSynapseRustFeature(
     client: SynapseRustFeatureDiscoveryClient,
     feature: SynapseRustFeatureName,

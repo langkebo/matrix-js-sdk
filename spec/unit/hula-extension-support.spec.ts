@@ -5,12 +5,15 @@ import { OpenClawManager } from "../../src/open-claw";
 import { VoiceManager } from "../../src/voice";
 
 describe("Hula extension feature discovery", () => {
-    it("defaults voice, openclaw, and ai-connection managers to supported for legacy clients", async () => {
+    it("defaults voice, openclaw, and ai-connection managers to unsupported for legacy clients (fail-closed)", async () => {
         const client = {} as ConstructorParameters<typeof VoiceManager>[0];
 
-        await expect(new VoiceManager(client).isSupported()).resolves.toBe(true);
-        await expect(new OpenClawManager(client).isSupported()).resolves.toBe(true);
-        await expect(new AIConnectionManager(client).isSupported()).resolves.toBe(true);
+        // S-13：后端对这些能力没有对应路由，探测不可用时必须判为「不支持」，
+        // 否则会误启用并打到 404。只有确认后端有路由的能力（SlidingSync / Friends）
+        // 才保留 fail-open —— 见 docs/MSC_SEMANTICS.md 与 CLAUDE.md 常见陷阱。
+        await expect(new VoiceManager(client).isSupported()).resolves.toBe(false);
+        await expect(new OpenClawManager(client).isSupported()).resolves.toBe(false);
+        await expect(new AIConnectionManager(client).isSupported()).resolves.toBe(false);
     });
 
     it.each([
