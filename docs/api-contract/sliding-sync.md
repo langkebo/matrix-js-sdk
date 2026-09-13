@@ -248,9 +248,9 @@ export interface SlidingSyncRoom {
     /** 时间线事件 */
     timeline?: SlidingSyncTimeline;
     /** 临时事件 */
-    ephemeral?: Array<{ type: string; sender?: string; content: unknown }>;
+    ephemeral?: Array<{ type: string; sender?: string; content: IContent }>;
     /** 账户数据事件 */
-    account_data?: Array<{ type: string; content: unknown }>;
+    account_data?: Array<{ type: string; content: IContent }>;
     /** 未读通知数 */
     unread_count?: number;
     /** Joined 成员数 */
@@ -272,7 +272,7 @@ export interface SlidingSyncStateEvent {
     type: string;
     state_key: string;
     sender?: string;
-    content: unknown;
+    content: IContent;
     /** 事件 ID（可选） */
     event_id?: string;
     /** 服务器时间戳（可选） */
@@ -284,7 +284,7 @@ export interface SlidingSyncStateEvent {
  */
 export interface SlidingSyncTimeline {
     /** 事件数组 */
-    events: unknown[];
+    events: (IRoomEvent | IStateEvent)[];
     /** 是否被截断 */
     limited?: boolean;
     /** 上一页 batch token */
@@ -320,12 +320,12 @@ export interface SlidingSyncE2EEExtensionResponse {
 
 /** ToDevice 扩展响应 */
 export interface SlidingSyncToDeviceExtensionResponse {
-    events: unknown[];
+    events: IToDeviceEvent[];
 }
 
 /** 账户数据扩展响应 */
 export interface SlidingSyncAccountDataExtensionResponse {
-    events: Array<{ type: string; content: unknown }>;
+    events: Array<{ type: string; content: IContent }>;
 }
 
 /** Receipt */

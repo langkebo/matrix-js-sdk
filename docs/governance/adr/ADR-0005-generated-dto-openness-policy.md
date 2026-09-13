@@ -122,12 +122,29 @@ export interface IContent {
 
 ## 后续工作（已排入阶段 3，见报告 §4 阶段 3）
 
-| 项    | 内容                                                                                                                                                                                                                                                          | 验收                                                               | 状态          |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------- |
-| DTO-1 | `key-backup` 的 `auth_data` / `session_data` 改形（7 处并集 + 2 个接口加索引签名）                                                                                                                                                                            | `auth_data.public_key` 为 `string`、未知键可访问、codegen check 绿 | ✅ 2026-09-13 |
-| DTO-2 | 事件内容统一到 `IContent` 风格（sliding-sync 5 处 + `ephemeral`/`sync`/`room` 的 `Record<string, unknown>` 收敛）                                                                                                                                             | 同一概念不再出现三种写法                                           | ⬜            |
-| DTO-3 | 基线随改形下降并提交（禁止手工刷）                                                                                                                                                                                                                            | 基线条数 = 实际命中条数                                            | ✅ 109 → 97   |
-| DTO-4 | **实施 DTO-1 时的新发现**：手写公开类型同病 —— `src/crypto-api/keybackup.ts` 的 `auth_data: ISigned & (Curve25519AuthData \| Aes256AuthData)` 同样让具名键不可直取，`rust-crypto/*` 因此遍地 `as Curve25519AuthData`。属公开 API 且影响 Tjg，需单独评估后再改 | 具名键可直接访问；`as` 断言数量下降                                | ⬜            |
+| 项    | 内容                                                                                                                                                                                                                                                             | 验收                                                                                                         | 状态          |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------- |
+| DTO-1 | `key-backup` 的 `auth_data` / `session_data` 改形（7 处并集 + 2 个接口加索引签名）                                                                                                                                                                               | `auth_data.public_key` 为 `string`、未知键可访问、codegen check 绿                                           | ✅ 2026-09-13 |
+| DTO-2 | ✅ 事件内容统一到 `IContent`：sliding-sync/ephemeral/sync/room 四个契约文档共 18 处 `content` 改 `IContent`；sliding-sync 的 timeline 改用运行时同款 `(IRoomEvent \| IStateEvent)[]`、to-device 改 `IToDeviceEvent[]`；codegen 导入表加 `IContent`/`IStateEvent` | `contract:codegen:check` 绿 + `tsc` 通过 + 基线 97 → 67 + `spec/unit/event-content-unification.spec.ts` 7 例 |
+| DTO-3 | 基线随改形下降并提交（禁止手工刷）                                                                                                                                                                                                                               | 基线条数 = 实际命中条数                                                                                      | ✅ 109 → 97   |
+| DTO-4 | **实施 DTO-1 时的新发现**：手写公开类型同病 —— `src/crypto-api/keybackup.ts` 的 `auth_data: ISigned & (Curve25519AuthData \| Aes256AuthData)` 同样让具名键不可直取，`rust-crypto/*` 因此遍地 `as Curve25519AuthData`。属公开 API 且影响 Tjg，需单独评估后再改    | 具名键可直接访问；`as` 断言数量下降                                                                          | ⬜            |
+
+### DTO-2 实施记录（2026-09-13）
+
+- 唯一写法定为 **`IContent`**（导入 `src/models/event.ts`），不再各模块自写 `unknown` /
+  `Record<string, unknown>`。改动落在契约文档（DTO 来源）：`sliding-sync.md` 6 处、
+  `sync.md` 6 处、`room.md` 5 处、`ephemeral.md` 1 处。
+- 事件**数组**一并收敛到运行时同款 canonical 类型，避免"第四种写法"：
+  `SlidingSyncTimeline.events: (IRoomEvent | IStateEvent)[]`（与 `MSC3575RoomData.timeline` 逐字一致）、
+  ToDevice 扩展 `events: IToDeviceEvent[]`。codegen 的 `DTO_EXTERNAL_TYPE_IMPORTS` 相应增加
+  `IContent`（models/event.ts）与 `IStateEvent`（sync-accumulator.ts），均为 `import type`，无运行时耦合。
+- 有意**不改**的：`rendezvous` 的 `content`（MSC4108 会合协议的报文载荷，不是 Matrix 事件内容）、
+  `relations` 里已经是具体内联形状的 `content`、以及 `capabilities` / `metadata` / `config` 这类
+  非事件内容的口袋（属 §Decision 的"部署/算法可扩展"，继续用 `Record<string, unknown>`）。
+- 证据：`pnpm contract:codegen:check` = 47 modules in sync；`tsc --noEmit` 通过（说明这些生成类型
+  确实没有消费者，收窄无破坏面）；DTO 严格性基线 **97 → 67**（`record-unknown` 40 → 28、
+  `bare-unknown` 57 → 39）；新用例 `spec/unit/event-content-unification.spec.ts` 7 例，其中一条用
+  **编译期双向可赋值**断言"生成 timeline ≡ 运行时 `MSC3575RoomData.timeline`"。
 
 ### DTO-1 实施记录（2026-09-13）
 

@@ -80,6 +80,13 @@ const DTO_EXTERNAL_TYPE_IMPORTS = [
         typeName: "IEvent",
         importPath: "../../models/event.ts",
     },
+    // ADR-0005 / DTO-2：事件内容的唯一写法。契约文档里的 `content` 字段一律用
+    // `IContent`（`[key: string]: unknown` + 具名可选键），而不是每个模块各写一份
+    // `unknown` / `Record<string, unknown>` —— 同一概念三种写法会让消费端无所适从。
+    {
+        typeName: "IContent",
+        importPath: "../../models/event.ts",
+    },
     {
         typeName: "ISignatures",
         importPath: "../../@types/signed.ts",
@@ -134,6 +141,11 @@ const DTO_EXTERNAL_TYPE_IMPORTS = [
     },
     {
         typeName: "IToDeviceEvent",
+        importPath: "../../sync-accumulator.ts",
+    },
+    // sliding-sync 的 timeline 需要与运行时 `MSC3575RoomData.timeline` 完全一致的写法
+    {
+        typeName: "IStateEvent",
         importPath: "../../sync-accumulator.ts",
     },
     // Admin-surface interfaces authored in src/admin/index.ts.

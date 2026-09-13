@@ -42,7 +42,7 @@ interface EphemeralEventsResponse {
     chunk: Array<{
         type: string;
         sender: string;
-        content: Record<string, unknown>;
+        content: IContent;
         origin_server_ts: number;
         stream_id: number;
         event_id: string;
