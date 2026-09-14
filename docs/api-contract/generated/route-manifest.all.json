@@ -1,7 +1,7 @@
 {
-  "schema_version": "3",
-  "generated_at": "2026-09-13T23:46:47Z",
-  "synapse_rust_commit": "7694b7cef7231454988b44c8315124e22f2c10d7",
+  "schema_version": "4",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
   "state_profile": "all",
   "profile_flags": {
     "oidc_enabled": true,
@@ -1044,22 +1044,14 @@
       "path": "/_matrix/client/r0/push/devices",
       "registered_by": "push_notification",
       "path_params": [],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushers"
-      }
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/r0/push/devices",
       "registered_by": "push_notification",
       "path_params": [],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushers"
-      }
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1068,33 +1060,21 @@
       "path_params": [
         "device_id"
       ],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushers"
-      }
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/r0/push/rules",
       "registered_by": "push_notification",
       "path_params": [],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushrules"
-      }
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/r0/push/rules",
       "registered_by": "push_notification",
       "path_params": [],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushrules"
-      }
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -1105,22 +1085,14 @@
         "kind",
         "rule_id"
       ],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushrules"
-      }
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/r0/push/send",
       "registered_by": "push_notification",
       "path_params": [],
-      "query_params": [],
-      "status": {
-        "state": "deprecated",
-        "replacement": "/_matrix/client/v3/pushrules"
-      }
+      "query_params": []
     },
     {
       "method": "GET",

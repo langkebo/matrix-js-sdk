@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "3",
+  "ledger_schema": "4",
   "module": "feature_flags",
-  "synapse_rust_commit": "7694b7cef7231454988b44c8315124e22f2c10d7",
-  "generated_at": "2026-09-13T23:46:47Z",
+  "synapse_rust_commit": "0000000000000000000000000000000000000000",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 4,
   "entries": [

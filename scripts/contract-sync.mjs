@@ -78,6 +78,10 @@ const GENERATED_SCHEMA_VERSION = "1";
 //               defaulted to `registered_by`, was populated for only 3 of 1320
 //               routes, and no consumer read it — this script groups modules by
 //               `registered_by` (`moduleKeyFor` below), so nothing here changes.
+//   "3" -> "4"  REMOVAL (synapse-rust B-7 follow-up): `entries[].status`
+//               deleted. Its only writer (`push_notification.rs`'s
+//               `with_status`) was removed, so `status` had zero consumers —
+//               same rationale as `module`. Script behavior is unchanged.
 // This pin must track the backend, not the generated mirror above.
 //
 // Bumping this pin is a CONTRACT change: it must be accompanied by
@@ -87,7 +91,7 @@ const GENERATED_SCHEMA_VERSION = "1";
 // how this chain silently froze once already (backend schema 1->2 left the pin
 // at "1", every published artifact failed `parsed.schema_version !==
 // LEDGER_SCHEMA_VERSION`, and the mirror went stale for a day).
-const LEDGER_SCHEMA_VERSION = "3";
+const LEDGER_SCHEMA_VERSION = "4";
 const DRAFT_ENTRY_SOFT_CAP = 10;
 const DRAFT_ENTRY_HARD_CAP = 25;
 const DRAFT_SNIPPET_TARGET_LINES = 400;
