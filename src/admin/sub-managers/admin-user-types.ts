@@ -27,11 +27,7 @@ import type { PaginatedResult } from "../../common/pagination";
  *
  * @see `buildPaginationParams` in `src/common/pagination.ts`
  */
-export type {
-    PaginatedResult,
-    PaginationCursor,
-    PaginatedPage,
-} from "../../common/pagination";
+export type { PaginatedResult, PaginationCursor, PaginatedPage } from "../../common/pagination";
 
 /** @deprecated Use `PaginatedResult` from the shared pagination module instead. */
 export type PaginatedResponse<T> = PaginatedResult<T>;

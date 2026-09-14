@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-09-13T23:11:53.595Z",
+    "generatedAt": "2026-09-14T02:28:38.732Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -32,9 +32,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-room-manager.ts:145:b9f41ab779858153fede1ca3d7d254854dbbdd87",
+            "id": "src/admin/sub-managers/admin-room-manager.ts:142:93e5c6d530d84fbe1585ce1ea3fee385e0587b50",
             "file": "src/admin/sub-managers/admin-room-manager.ts",
-            "line": 145,
+            "line": 142,
             "snippet": "catch (e) { const err = e as MatrixError; if ( !throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) ) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -42,9 +42,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:151:068386ef3845076fb4ee939d6b66e7e37396d718",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:148:9cf1efc5d63f2933a87adb6ae7fdf6353b627b7f",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 151,
+            "line": 148,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { logger.warn(`AdminUserManager.getUser failed for ${userId}:`, e); return null;",
             "whitelist": {
                 "owner": "admin",
@@ -52,9 +52,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:419:2fb9603bfa3ff147e652ffa8b8ec1bacd0986c2c",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:416:97233f7ae264abf698358a4e37023fca259aac9b",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 419,
+            "line": 416,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -62,9 +62,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:441:8c706f265a98d431e063665187c5e2ca6eaa0d3e",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:438:51ef7710b7f2c10945608a9aba4b8e51b096d212",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 441,
+            "line": 438,
             "snippet": "catch (e) { if (throwOnError) { throw e; } logger.warn(`AdminUserManager.isAdmin failed for ${userId}:`, e); return false;",
             "whitelist": {
                 "owner": "admin",
@@ -72,9 +72,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:468:e3182118fa64050f772464e189c261c65812fe2a",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:465:301c4eb3ac3cd77b36dc077d3f93e8e56147a532",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 468,
+            "line": 465,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -82,9 +82,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:505:ab2271a6c747041da95b0a55a60a7528a0bd087c",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:502:7d7ddc7f89d05634272d2abe8432dad118b78aff",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 505,
+            "line": 502,
             "snippet": "catch (e) { const err = e as MatrixError; if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))) return null;",
             "whitelist": {
                 "owner": "admin",

@@ -159,7 +159,16 @@ function findWaiver(waivers, check) {
 }
 
 /** Compare pin against the sibling repos. Exported so it can be unit-tested. */
-export function evaluatePin({ pin, sdkHead, backendHead, tarballSha, sdkLedgerSchema, backendSchemaVersion, waivers, today = new Date() }) {
+export function evaluatePin({
+    pin,
+    sdkHead,
+    backendHead,
+    tarballSha,
+    sdkLedgerSchema,
+    backendSchemaVersion,
+    waivers,
+    today = new Date(),
+}) {
     const actual = {
         sdk_commit: sdkHead,
         synapse_rust_commit: backendHead,
@@ -175,7 +184,9 @@ export function evaluatePin({ pin, sdkHead, backendHead, tarballSha, sdkLedgerSc
             results.push({
                 ...check,
                 expected: schemaActual[0] || "(empty)",
-                actual: schemaMatches ? schemaActual[0] : `${schemaActual[1] || "(unset)"} (SDK) / ${schemaActual[2] || "(unset)"} (backend)`,
+                actual: schemaMatches
+                    ? schemaActual[0]
+                    : `${schemaActual[1] || "(unset)"} (SDK) / ${schemaActual[2] || "(unset)"} (backend)`,
                 status: schemaMatches ? "ok" : "drift",
                 note: "",
             });

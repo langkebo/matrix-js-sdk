@@ -71,13 +71,9 @@ export function buildPaginationParams(
  * // { items: [...], next: "tok" }
  * ```
  */
-export function toPaginatedResult<T>(
-    raw: Record<string, unknown>,
-    itemKey: string,
-): PaginatedResult<T> {
+export function toPaginatedResult<T>(raw: Record<string, unknown>, itemKey: string): PaginatedResult<T> {
     const items = (Array.isArray(raw[itemKey]) ? raw[itemKey] : []) as T[];
-    const cursor =
-        raw.next_token ?? raw.next_batch ?? raw.nextToken ?? raw.next;
+    const cursor = raw.next_token ?? raw.next_batch ?? raw.nextToken ?? raw.next;
     const result: PaginatedResult<T> = { items };
     if (typeof cursor === "string" && cursor.length > 0) {
         // `next` is the canonical cursor field; `nextToken` is written as a
