@@ -21,6 +21,7 @@ import { logger } from "../../logger";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
+import { toPaginatedResult } from "../../common/pagination";
 import type {
     DeviceInfo,
     MediaInfo,
@@ -112,11 +113,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
             }
         }
 
-        return {
-            items: response.users || [],
-            nextToken: response.next_token,
-            total: response.total,
-        };
+        return toPaginatedResult<AdminAccountDetails>(response as unknown as Record<string, unknown>, "users");
     }
 
     /**

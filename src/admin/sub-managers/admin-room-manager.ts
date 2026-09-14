@@ -20,6 +20,7 @@ import { NotFoundError, ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
+import { toPaginatedResult } from "../../common/pagination";
 import type {
     RoomInfo,
     RoomStateEvent,
@@ -110,11 +111,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             total?: number;
         }>(Method.Get, "/rooms", buildQueryParams(queryParams));
 
-        return {
-            items: response.rooms || [],
-            nextToken: response.next_token,
-            total: response.total,
-        };
+        return toPaginatedResult<RoomInfo>(response as unknown as Record<string, unknown>, "rooms");
     }
 
     async searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchResult> {
