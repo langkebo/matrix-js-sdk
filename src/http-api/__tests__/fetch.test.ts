@@ -41,8 +41,10 @@ import { gunzipSync, strFromU8 } from "fflate";
 
 function makeApi(opts: Partial<IHttpOpts> = {}): {
     api: FetchHttpApi<IHttpOpts>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
     captured: { url: any; init: RequestInit | undefined };
 } {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
     const captured: { url: any; init: RequestInit | undefined } = { url: undefined, init: undefined };
     const baseOpts: IHttpOpts = {
         baseUrl: "https://hs.example.com",

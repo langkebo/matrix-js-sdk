@@ -300,7 +300,6 @@ describe("ModuleManager", () => {
     // ==================== 账户有效性 ====================
 
     describe("account validity", () => {
-        // eslint-disable-next-line vitest/expect-expect
         it("should check account validity with required body", async () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);

@@ -76,6 +76,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
 
             // 初始化 Rust crypto（内存 store，无 keychain 依赖）
             // SDK 自动上传 device keys + OTKs
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             await clientB.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true } as any);
             clientB.startClient({ initialSyncLimit: 10 });
             // 等待首次 sync（触发 device keys + OTK 上传）
@@ -90,6 +91,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
             // 3. 用 OlmMachine.sign() 对 {"key": "<value>"} 签名
             // 4. 构造 fallback_keys 上传请求
             // 5. 通过 /keys/upload 上传
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const cryptoB = clientB.getCrypto() as any;
             const olmMachine = cryptoB?.olmMachine;
             if (!olmMachine) {
@@ -107,6 +109,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
             // 用 OlmMachine.sign() 对 key 对象签名
             // sign() 返回 Signatures 对象，需用 asJSON() 获取签名 JSON
             const keyObj = { key: fallbackPubKey };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const signatures: any = await olmMachine.sign(JSON.stringify(keyObj));
             // Signatures 对象的 asJSON() 返回 {"@user:server":{"ed25519:DEVICE_ID":"<sig>"}}
             const sigJsonStr = typeof signatures === "string" ? signatures : signatures.asJSON();
@@ -182,6 +185,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
         //   若 OTK 耗尽且无 fallback，则 one_time_keys.[userId].[deviceId] = {}
         const claimedKeyIds: string[] = [];
         for (let i = 0; i < CLAIM_COUNT; i++) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             let claimResp: any;
             try {
                 claimResp = await clientA!.http.authedRequest("POST", "/keys/claim", undefined, {
@@ -189,6 +193,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
                         [userIdB]: { [deviceIdB]: "signed_curve25519" },
                     },
                 });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             } catch (e: any) {
                 // 429 限流：等待后重试本次 claim
                 if (e?.httpStatus === 429 || e?.errcode === "M_LIMIT_EXCEEDED") {

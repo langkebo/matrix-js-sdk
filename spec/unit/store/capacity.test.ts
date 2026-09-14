@@ -119,6 +119,7 @@ describe("MemoryStore 缓存统计集成", () => {
         // 写入 60 个 room，超出默认 50 上限 → 淘汰 10 个
         for (let i = 0; i < 60; i++) {
             await store.setOutOfBandMembers(`!room${i}:server`, [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 { type: "m.room.member", content: { membership: "join" } } as any,
             ]);
         }
@@ -162,6 +163,7 @@ describe("MemoryStore 缓存统计集成", () => {
         const store = new MemoryStore({ capacity: { maxOutOfBandMembersRooms: 2 } });
         for (let i = 0; i < 4; i++) {
             await store.setOutOfBandMembers(`!room${i}:server`, [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 { type: "m.room.member", content: { membership: "join" } } as any,
             ]);
         }
@@ -185,6 +187,7 @@ describe("MemoryStore 缓存统计集成", () => {
             ({
                 roomId: id,
                 currentState: { on: () => {}, off: () => {}, getMembers: () => [], removeListener: () => {} },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             }) as any;
         store.storeRoom(makeRoom("!r1:server"));
         store.storeRoom(makeRoom("!r2:server"));
@@ -199,6 +202,7 @@ describe("MemoryStore 缓存统计集成", () => {
         try {
             const store = new MemoryStore();
             await store.setOutOfBandMembers("!room:server", [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 { type: "m.room.member", content: { membership: "join" } } as any,
             ]);
             expect(await store.getOutOfBandMembers("!room:server")).not.toBeNull(); // 未过期命中
@@ -217,6 +221,7 @@ describe("MemoryStore 缓存统计集成", () => {
             const store = new MemoryStore({
                 oobMembersTtl: (roomId) => (roomId.startsWith("!dynamic") ? 60 : CacheTtl.ROOM_MEMBERS),
             });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const member = { type: "m.room.member", content: { membership: "join" } } as any;
             await store.setOutOfBandMembers("!dynamic:server", [member]);
             await store.setOutOfBandMembers("!static:server", [member]);
@@ -235,6 +240,7 @@ describe("MemoryStore 缓存统计集成", () => {
         try {
             const store = new MemoryStore({ oobMembersTtl: () => 0 });
             await store.setOutOfBandMembers("!room:server", [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 { type: "m.room.member", content: { membership: "join" } } as any,
             ]);
             expect(await store.getOutOfBandMembers("!room:server")).toBeNull();

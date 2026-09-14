@@ -47,6 +47,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
 
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.setSyncData(makeSyncData("token1") as any);
         await b1.syncToDatabase([]); // 写 sync 快照 + expiry deadline
         await b1.destroy();
@@ -67,6 +68,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
 
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.setSyncData(makeSyncData("token1") as any);
         await b1.syncToDatabase([]);
         await b1.destroy();
@@ -86,6 +88,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         const presenceEvent = { type: "m.presence", content: { presence: "online" } };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.syncToDatabase([["@alice:server", presenceEvent as any]]); // 写 presence + expiry
         await b1.destroy();
 
@@ -104,6 +107,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         const presenceEvent = { type: "m.presence", content: { presence: "online" } };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.syncToDatabase([["@alice:server", presenceEvent as any]]);
         await b1.destroy();
 
@@ -129,6 +133,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.setOutOfBandMembers("!r:server", [member as any], CacheTtl.ROOM_MEMBERS);
         await b1.destroy();
 
@@ -152,6 +157,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.setOutOfBandMembers("!r:server", [member as any], CacheTtl.ROOM_MEMBERS);
         await b1.destroy();
 
@@ -177,6 +183,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.setOutOfBandMembers("!r:server", [member as any], 60); // 动态房间 60s
         await b1.destroy();
 
@@ -200,6 +207,7 @@ describe("IndexedDB 持久化 TTL（per-key deadline 表）", () => {
         };
         const b1 = new LocalIndexedDBStoreBackend(indexedDB, dbName);
         await b1.connect();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await b1.setOutOfBandMembers("!r:server", [member as any], 0); // 禁用缓存
         await b1.destroy();
 

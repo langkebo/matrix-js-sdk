@@ -89,6 +89,7 @@ describe("client send http helper", () => {
         let http: MatrixHttpApi<{ baseUrl: string; prefix: string; onlyData: true }>;
 
         beforeEach(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const emitter = new TypedEventEmitter<any, any>();
             http = new MatrixHttpApi(emitter, {
                 baseUrl,

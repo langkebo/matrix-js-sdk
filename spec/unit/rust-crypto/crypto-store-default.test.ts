@@ -65,12 +65,16 @@ describe("ISSUE-08b crypto store default encryption", () => {
         await expect(
             initRustCrypto({
                 logger: new DebugLogger(debug("matrix-js-sdk:test:crypto-store-default")),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 http: {} as any,
                 userId: "@alice:example.org",
                 deviceId: "DEVICE",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 secretStorage: {} as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 cryptoCallbacks: {} as any,
                 // 故意不传 storePrefix / storeKey / storePassphrase / allowInMemoryStore
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             } as any),
         ).rejects.toThrow(/unencrypted in-memory crypto store/);
     });
@@ -83,12 +87,16 @@ describe("ISSUE-08b crypto store default encryption", () => {
         await expect(
             initRustCrypto({
                 logger: new DebugLogger(debug("matrix-js-sdk:test:crypto-store-default")),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 http: {} as any,
                 userId: "@alice:example.org",
                 deviceId: "DEVICE",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 secretStorage: {} as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                 cryptoCallbacks: {} as any,
                 allowInMemoryStore: true,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             } as any),
         ).resolves.not.toThrow();
     });
