@@ -1,7 +1,7 @@
 ---
 module: verification_routes
 generated_from: docs/api-contract/generated/modules/verification_routes.json
-generated_hash: sha256-9229ae7305c71a4f078bc7ced94a3c880875e5568458bc5d1d0af870d24cf4a5
+generated_hash: sha256-1870ef915c2dbacc1194747a68dd18039e1c40c3438abf54a1084fe21defbe9e
 ledger_schema: 4
 last_reviewed: 2026-06-01
 ---

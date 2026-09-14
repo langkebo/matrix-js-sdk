@@ -61,7 +61,7 @@ const waiversPath = path.join(sdkRoot, "scripts", "quality", "cross-repo-pin-wai
 
 const strict = process.argv.includes("--strict") || process.env.CROSS_REPO_PIN_STRICT === "1";
 
-/** The three bindings, in reporting order. */
+/** The bindings, in reporting order. */
 export const CHECKS = [
     {
         key: "sdk_commit",
@@ -74,11 +74,41 @@ export const CHECKS = [
         pinField: "synapse_rust_commit",
     },
     {
+        key: "ledger_schema",
+        label: "ledger_schema == SDK LEDGER_SCHEMA_VERSION == backend SCHEMA_VERSION",
+        pinField: "ledger_schema",
+    },
+    {
         key: "tarball_sha256",
         label: "tarball_sha256 == sha256(vendor/matrix-js-sdk.tgz)",
         pinField: "tarball_sha256",
     },
 ];
+
+/**
+ * The two places the ledger schema version is declared as source of truth:
+ *   - SDK:   LEDGER_SCHEMA_VERSION in scripts/contract-sync.mjs
+ *   - backend: pub const SCHEMA_VERSION in src/web/routes/ledger_export.rs
+ * Both must equal the pin's `ledger_schema`. This is the binding that was
+ * missing when backend schema 1→2→3→4 left the pin frozen at "1" — the three
+ * commit/hash bindings can all be green while the schema silently drifts.
+ */
+const SDK_CONTRACT_SYNC = "scripts/contract-sync.mjs";
+const BACKEND_LEDGER_EXPORT = "src/web/routes/ledger_export.rs";
+
+function readSdkLedgerSchema(root) {
+    const file = path.join(root, SDK_CONTRACT_SYNC);
+    if (!fs.existsSync(file)) return "";
+    const m = /LEDGER_SCHEMA_VERSION\s*=\s*["']([^"']+)["']/.exec(fs.readFileSync(file, "utf8"));
+    return m ? m[1] : "";
+}
+
+function readBackendSchemaVersion(root) {
+    const file = path.join(root, BACKEND_LEDGER_EXPORT);
+    if (!fs.existsSync(file)) return "";
+    const m = /SCHEMA_VERSION\s*:\s*&str\s*=\s*["']([^"']+)["']/.exec(fs.readFileSync(file, "utf8"));
+    return m ? m[1] : "";
+}
 
 function gitHead(repoRoot) {
     try {
@@ -129,15 +159,28 @@ function findWaiver(waivers, check) {
 }
 
 /** Compare pin against the sibling repos. Exported so it can be unit-tested. */
-export function evaluatePin({ pin, sdkHead, backendHead, tarballSha, waivers, today = new Date() }) {
+export function evaluatePin({ pin, sdkHead, backendHead, tarballSha, sdkLedgerSchema, backendSchemaVersion, waivers, today = new Date() }) {
     const actual = {
         sdk_commit: sdkHead,
         synapse_rust_commit: backendHead,
         tarball_sha256: tarballSha,
     };
 
+    const schemaActual = [pin?.ledger_schema ?? "", sdkLedgerSchema ?? "", backendSchemaVersion ?? ""];
+    const schemaMatches = schemaActual.every((v) => v !== "" && v === schemaActual[0]);
+
     const results = [];
     for (const check of CHECKS) {
+        if (check.key === "ledger_schema") {
+            results.push({
+                ...check,
+                expected: schemaActual[0] || "(empty)",
+                actual: schemaMatches ? schemaActual[0] : `${schemaActual[1] || "(unset)"} (SDK) / ${schemaActual[2] || "(unset)"} (backend)`,
+                status: schemaMatches ? "ok" : "drift",
+                note: "",
+            });
+            continue;
+        }
         const expected = pin?.[check.pinField] ?? "";
         const found = actual[check.key] ?? "";
         const matches = expected !== "" && expected === found;
@@ -188,6 +231,8 @@ function main() {
         sdkHead: gitHead(sdkRoot),
         backendHead: gitHead(backendRoot),
         tarballSha: sha256File(tarballPath),
+        sdkLedgerSchema: readSdkLedgerSchema(sdkRoot),
+        backendSchemaVersion: readBackendSchemaVersion(backendRoot),
         waivers,
     });
 

@@ -17,16 +17,27 @@
  *   contract-sync.mjs --source=<dir>      → ingest from custom dir
  *   contract-sync.mjs --check             → recompute in memory, fail if disk drifts
  *
+ * Backend commit stamping:
+ *   Fixtures from `generate_sdk_ledger_fixtures.sh` carry a zero placeholder
+ *   `synapse_rust_commit` (byte-stable for tests); CI's ledger-export job
+ *   stamps the real `${GITHUB_SHA}`. When this script runs with a
+ *   `../synapse-rust` checkout visible (the workspace layout), the placeholder
+ *   is replaced by that repo's live HEAD so the mirror carries a verifiable
+ *   commit and `Tjg/scripts/verify-sdk-pin.mjs` can cross-check the pin.
+ *   Without the sibling checkout (SDK-only CI) the fixture value passes
+ *   through untouched.
+ *
  * Referenced as D3 in
  *   docs/api-contract/LEDGER_DRIVEN_SDK_PLAN_2026-05-02.md
  *
  * Schema kept in lockstep with
- *   synapse-rust/docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md (v1).
+ *   synapse-rust/docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md (v4).
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const entryFilePath = fileURLToPath(import.meta.url);
@@ -282,6 +293,44 @@ function buildOutputs(profiles) {
     const index = buildIndex(profiles, modules, profileFiles, moduleFiles);
     const indexFile = Buffer.from(renderJson(index), "utf8");
     return { profileFiles, moduleFiles, indexFile, moduleNames: modules.map((m) => m.module) };
+}
+
+/**
+ * Stamp `synapse_rust_commit` on profiles ingested from the fixture lane.
+ *
+ * `generate_sdk_ledger_fixtures.sh` writes a zero placeholder for byte-stable
+ * test goldens, and SDK-only CI has no sibling checkout to stamp from. When a
+ * `../synapse-rust` checkout IS visible (workspace layout) the placeholder is
+ * replaced with that repo's live HEAD so the mirror carries a verifiable
+ * backend commit — that is what `Tjg/scripts/verify-sdk-pin.mjs` cross-checks
+ * against the pin. A non-placeholder fixture value (CI artifact lane) is
+ * never overwritten.
+ */
+function backendCommitForStamp() {
+    const sibling = path.resolve(repoRoot, "..", "synapse-rust");
+    if (!fs.existsSync(path.join(sibling, "Cargo.toml"))) return null;
+    try {
+        const head = execFileSync("git", ["rev-parse", "HEAD"], {
+            cwd: sibling,
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+        return /^[0-9a-f]{40}$/.test(head) ? head : null;
+    } catch {
+        return null;
+    }
+}
+
+function applyBackendCommitStamp(profiles) {
+    const stamp = backendCommitForStamp();
+    if (!stamp) return;
+    const placeholder = /^(0{40}|0{7}|\s*)$/;
+    for (const name of PROFILES) {
+        const commit = profiles[name]?.parsed?.synapse_rust_commit;
+        if (typeof commit === "string" && placeholder.test(commit)) {
+            profiles[name].parsed.synapse_rust_commit = stamp;
+        }
+    }
 }
 
 function ensureDir(dir) {
@@ -914,6 +963,13 @@ function run(argv) {
     const profiles = {};
     for (const name of PROFILES) {
         profiles[name] = readProfile(args.sourceDir, name);
+    }
+    // In ingest mode, stamp fixture placeholders with the live backend HEAD when
+    // a sibling synapse-rust checkout is visible (workspace layout). In --check
+    // mode the disk generated/ tree is already the source of truth, so never
+    // stamp there (that would cause false drift in SDK-only CI).
+    if (args.mode !== "check") {
+        applyBackendCommitStamp(profiles);
     }
     const outputs = buildOutputs(profiles);
 

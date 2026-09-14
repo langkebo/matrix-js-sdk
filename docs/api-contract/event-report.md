@@ -1,7 +1,7 @@
 ---
 module: event_report
 generated_from: docs/api-contract/generated/modules/event_report.json
-generated_hash: sha256-b4b90b90c022870952a9ded4666b70c38e5bf2a825a972c6d88e8ca511996348
+generated_hash: sha256-17d398e5968111dfa3271bc6030361805edfc9e98385e4f3b8025be000e6ee00
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

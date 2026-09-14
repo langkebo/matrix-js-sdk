@@ -1,7 +1,7 @@
 ---
 module: admin
 generated_from: docs/api-contract/generated/modules/admin.json
-generated_hash: sha256-01204eb51afe505f22d5fd1be631ab93735201ffcc2c13a085a5156c56da58a5
+generated_hash: sha256-649dca52c6357cfa85cd86040b3f1288b9de1d09e29551280018c77066dbddef
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
