@@ -2,99 +2,11 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "verification_routes",
-  "synapse_rust_commit": "c5a5df0daad261ecb5a22a3dcfbe87b7f2453ce1",
+  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 36,
+  "entry_count": 24,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/keys/device_signing/requests",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/keys/device_signing/verify_accept",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_signing/verify_cancel",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_signing/verify_done",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_signing/verify_key_agreement",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_signing/verify_mac",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_signing/verify_start",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/qr_code/scan",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/keys/qr_code/show",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/verification/request",
-      "registered_by": "verification_routes",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/keys/verification/{transaction_id}",
-      "registered_by": "verification_routes",
-      "path_params": [
-        "transaction_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/verification/{transaction_id}/cancel",
-      "registered_by": "verification_routes",
-      "path_params": [
-        "transaction_id"
-      ],
-      "query_params": []
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/keys/device_signing/requests",

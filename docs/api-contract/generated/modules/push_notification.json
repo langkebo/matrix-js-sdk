@@ -2,28 +2,28 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "push_notification",
-  "synapse_rust_commit": "c5a5df0daad261ecb5a22a3dcfbe87b7f2453ce1",
+  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 9,
+  "entry_count": 8,
   "entries": [
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/push/devices",
+      "path": "/_matrix/client/v3/push/devices",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/r0/push/devices",
+      "path": "/_matrix/client/v3/push/devices",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/r0/push/devices/{device_id}",
+      "path": "/_matrix/client/v3/push/devices/{device_id}",
       "registered_by": "push_notification",
       "path_params": [
         "device_id"
@@ -31,33 +31,8 @@
       "query_params": []
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/r0/push/rules",
-      "registered_by": "push_notification",
-      "path_params": [],
-      "query_params": []
-    },
-    {
       "method": "POST",
-      "path": "/_matrix/client/r0/push/rules",
-      "registered_by": "push_notification",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}",
-      "registered_by": "push_notification",
-      "path_params": [
-        "scope",
-        "kind",
-        "rule_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/push/send",
+      "path": "/_matrix/client/v3/push/send",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []
@@ -65,6 +40,20 @@
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/push/cleanup",
+      "registered_by": "push_notification",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/push/config",
+      "registered_by": "push_notification",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_synapse/admin/v1/push/config",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []

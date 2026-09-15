@@ -15,14 +15,12 @@ import { ClientPrefix } from "../http-api/prefix";
 import type { VerificationPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 type VerificationManagerPathPattern =
-    | StripR0<VerificationPathPattern>
     | StripV1<VerificationPathPattern>
     | StripV3<VerificationPathPattern>;
-type VerificationApiVersion = "r0" | "v1" | "v3";
+type VerificationApiVersion = "v1" | "v3";
 
 function vp<P extends VerificationManagerPathPattern>(path: P): P {
     return path;
@@ -30,10 +28,7 @@ function vp<P extends VerificationManagerPathPattern>(path: P): P {
 
 function verificationPrefix(
     version: VerificationApiVersion = "v1",
-): ClientPrefix.R0 | ClientPrefix.V1 | ClientPrefix.V3 {
-    if (version === "r0") {
-        return ClientPrefix.R0;
-    }
+): ClientPrefix.V1 | ClientPrefix.V3 {
     if (version === "v3") {
         return ClientPrefix.V3;
     }

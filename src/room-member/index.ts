@@ -142,7 +142,7 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
 
     /**
      * Get membership event history for a room.
-     * POST /_matrix/client/r0/rooms/{room_id}/get_membership_events
+     * POST /_matrix/client/v3/rooms/{room_id}/get_membership_events
      *
      * @param roomId - The room ID.
      * @param params - Optional parameters.
@@ -156,7 +156,7 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
                 method: Method.Post,
                 path,
                 body: params,
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "getMembershipEvents");
     }

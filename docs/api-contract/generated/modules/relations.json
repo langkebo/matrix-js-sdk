@@ -2,45 +2,11 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "relations",
-  "synapse_rust_commit": "c5a5df0daad261ecb5a22a3dcfbe87b7f2453ce1",
+  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 11,
+  "entry_count": 8,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
-      "registered_by": "relations",
-      "path_params": [
-        "room_id",
-        "event_id",
-        "rel_type"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}",
-      "registered_by": "relations",
-      "path_params": [
-        "room_id",
-        "event_id",
-        "rel_type"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
-      "registered_by": "relations",
-      "path_params": [
-        "room_id",
-        "event_id",
-        "rel_type",
-        "txn_id"
-      ],
-      "query_params": []
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}",

@@ -4,7 +4,7 @@
  *
  * Module:        SAML 契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       16 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       24 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `saml` module (mirrored from the backend contract). */
@@ -25,6 +25,14 @@ export const SAML_ROUTES = [
     { method: "PUT", path: "/_synapse/admin/v1/saml/mapping/{name_id}" },
     { method: "GET", path: "/_synapse/admin/v1/saml/mappings" },
     { method: "POST", path: "/_synapse/admin/v1/saml/metadata/refresh" },
+    { method: "GET", path: "/_matrix/client/v3/logout/saml" },
+    { method: "GET", path: "/_matrix/client/v3/logout/saml/callback" },
+    { method: "GET", path: "/_matrix/client/v3/login/saml/callback" },
+    { method: "POST", path: "/_matrix/client/v3/login/saml/callback" },
+    { method: "GET", path: "/_matrix/client/v3/login/sso/redirect/saml" },
+    { method: "GET", path: "/_matrix/client/v3/saml/metadata" },
+    { method: "GET", path: "/_matrix/client/v3/saml/sp_metadata" },
+    { method: "POST", path: "/_matrix/client/v3/login/sso/redirect/saml" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SAML_ROUTES`. */

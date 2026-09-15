@@ -6,10 +6,10 @@
 
 import { SAML_ROUTES } from "./route-table";
 
-export const SAML_ROUTES_ENTRY_COUNT = 16 as const;
+export const SAML_ROUTES_ENTRY_COUNT = 24 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _SamlEntryCountAssertion: 16 = SAML_ROUTES.length;
+const _SamlEntryCountAssertion: 24 = SAML_ROUTES.length;
 void _SamlEntryCountAssertion;
 
 export const SAML_ROUTES_STATUS_SCENARIOS = [

@@ -1,7 +1,7 @@
 ---
 module: module
 generated_from: docs/api-contract/generated/modules/module.json
-generated_hash: sha256-761912754b81dd0ae5e19b0e12855130df50b6a4b8b74db13de564a848a7c245
+generated_hash: sha256-063fd2695fdf8e275b4f4fdc81a9a01eee9cfea69e403307cc0916c60c1f9aa1
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

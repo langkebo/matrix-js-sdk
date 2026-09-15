@@ -6,10 +6,10 @@
 
 import { ROOM_ROUTES } from "./route-table";
 
-export const ROOM_ROUTES_ENTRY_COUNT = 144 as const;
+export const ROOM_ROUTES_ENTRY_COUNT = 149 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _RoomEntryCountAssertion: 144 = ROOM_ROUTES.length;
+const _RoomEntryCountAssertion: 149 = ROOM_ROUTES.length;
 void _RoomEntryCountAssertion;
 
 export const ROOM_ROUTES_STATUS_SCENARIOS = [

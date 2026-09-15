@@ -4,7 +4,7 @@
  *
  * Module:        Room 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       144 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       149 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
@@ -153,6 +153,11 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/user/mutual_rooms" },
     { method: "GET", path: "/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms" },
     { method: "GET", path: "/_matrix/client/v1/user/mutual_rooms" },
+    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/get_membership_events" },
+    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary" },
+    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/members" },
+    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/state" },
+    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/stats" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_ROUTES`. */

@@ -2,31 +2,11 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "moderation",
-  "synapse_rust_commit": "c5a5df0daad261ecb5a22a3dcfbe87b7f2453ce1",
+  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 9,
+  "entry_count": 7,
   "entries": [
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/rooms/{room_id}/report/{event_id}",
-      "registered_by": "moderation",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/report/{event_id}/score",
-      "registered_by": "moderation",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}",

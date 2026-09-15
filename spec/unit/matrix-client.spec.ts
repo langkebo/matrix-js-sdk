@@ -2965,7 +2965,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("supports r0 prefix for acceptDeviceSigningVerification", async () => {
+        it("supports v3 prefix for acceptDeviceSigningVerification", async () => {
             vi.mocked(client.http.authedRequest)
                 .mockClear()
                 .mockResolvedValue({
@@ -2982,7 +2982,7 @@ describe("MatrixClient", function () {
                     key_agreement_protocol: "curve25519-hkdf-sha256",
                     hash: "sha256",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -2995,7 +2995,7 @@ describe("MatrixClient", function () {
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("uses v1 prefix for sendDeviceSigningVerificationKeyAgreement by default", async () => {
@@ -3021,7 +3021,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("supports r0 prefix for confirmDeviceSigningVerificationMac", async () => {
+        it("supports v3 prefix for confirmDeviceSigningVerificationMac", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 transaction_id: "txn-1",
                 verified: true,
@@ -3032,7 +3032,7 @@ describe("MatrixClient", function () {
                     transaction_id: "txn-1",
                     mac: "mac-value",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3044,7 +3044,7 @@ describe("MatrixClient", function () {
                 transaction_id: "txn-1",
                 mac: "mac-value",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("uses v1 prefix for completeDeviceSigningVerification by default", async () => {
@@ -3067,7 +3067,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("supports r0 prefix for cancelDeviceSigningVerification", async () => {
+        it("supports v3 prefix for cancelDeviceSigningVerification", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 transaction_id: "txn-1",
                 state: "cancelled",
@@ -3079,7 +3079,7 @@ describe("MatrixClient", function () {
                     code: "m.user",
                     reason: "Cancelled by user",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3092,15 +3092,15 @@ describe("MatrixClient", function () {
                 code: "m.user",
                 reason: "Cancelled by user",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
-        it("gets verification requests on the selected legacy prefix", async () => {
+        it("gets verification requests on the selected v3 prefix", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 requests: [],
             });
 
-            await client.getKeyVerificationManager().getVerificationRequestsHttp("r0");
+            await client.getKeyVerificationManager().getVerificationRequestsHttp("v3");
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
                 .calls[0];
@@ -3108,7 +3108,7 @@ describe("MatrixClient", function () {
             expect(path).toBe("/keys/device_signing/requests");
             expect(queryParams).toBeUndefined();
             expect(requestContent).toBeUndefined();
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("shows QR codes on the v1 verification prefix", async () => {
@@ -3127,7 +3127,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("scans QR codes on the selected legacy prefix", async () => {
+        it("scans QR codes on the selected v3 prefix", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 transaction_id: "txn-qr",
                 state: "pending",
@@ -3142,7 +3142,7 @@ describe("MatrixClient", function () {
                     device_ed25519_key: "ed25519",
                     device_curve25519_key: "curve25519",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3158,7 +3158,7 @@ describe("MatrixClient", function () {
                 device_ed25519_key: "ed25519",
                 device_curve25519_key: "curve25519",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("sends contract-compliant payload for createSecureBackup", async () => {

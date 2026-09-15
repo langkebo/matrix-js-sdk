@@ -2,63 +2,63 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "saml",
-  "synapse_rust_commit": "c5a5df0daad261ecb5a22a3dcfbe87b7f2453ce1",
+  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 16,
   "entries": [
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/login/saml/callback",
+      "path": "/_matrix/client/v3/login/saml/callback",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/r0/login/saml/callback",
+      "path": "/_matrix/client/v3/login/saml/callback",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/login/sso/redirect/saml",
+      "path": "/_matrix/client/v3/login/sso/redirect/saml",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/r0/login/sso/redirect/saml",
+      "path": "/_matrix/client/v3/login/sso/redirect/saml",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/logout/saml",
+      "path": "/_matrix/client/v3/logout/saml",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/logout/saml/callback",
+      "path": "/_matrix/client/v3/logout/saml/callback",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/saml/metadata",
+      "path": "/_matrix/client/v3/saml/metadata",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/saml/sp_metadata",
+      "path": "/_matrix/client/v3/saml/sp_metadata",
       "registered_by": "saml",
       "path_params": [],
       "query_params": []

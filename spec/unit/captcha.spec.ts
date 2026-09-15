@@ -61,16 +61,16 @@ describe("CaptchaManager", () => {
         expect(authedRequest).not.toHaveBeenCalled();
     });
 
-    it("allows callers to select the r0 public captcha route explicitly", async () => {
+    it("allows callers to select the v3 public captcha route explicitly", async () => {
         request.mockResolvedValue({ verified: true });
-        await manager.verifyCaptcha("c1", "1234", "r0");
+        await manager.verifyCaptcha("c1", "1234", "v3");
 
         expect(request).toHaveBeenCalledWith(
             Method.Post,
             "/register/captcha/verify",
             undefined,
             { captcha_id: "c1", code: "1234" },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
     });
 

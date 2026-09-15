@@ -44,8 +44,8 @@ describe("KeyVerificationManager", () => {
 
     it("routes verification start helpers to the existing HTTP endpoint", async () => {
         await manager.requestVerification("@alice:test", ["m.sas.v1"]);
-        await manager.requestRoomKeyVerification("!room:test", "@bob:test", "r0");
-        await manager.beginKeyVerification("m.qr_code.show.v1", "@carol:test", "CAROL", "r0");
+        await manager.requestRoomKeyVerification("!room:test", "@bob:test", "v3");
+        await manager.beginKeyVerification("m.qr_code.show.v1", "@carol:test", "CAROL", "v3");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -69,7 +69,7 @@ describe("KeyVerificationManager", () => {
                 to_user: "@bob:test",
                 method: "sas",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             3,
@@ -82,7 +82,7 @@ describe("KeyVerificationManager", () => {
                 to_device: "CAROL",
                 method: "m.qr_code.show.v1",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
     });
 
@@ -103,8 +103,8 @@ describe("KeyVerificationManager", () => {
     });
 
     it("supports custom cancel metadata and request listing versions", async () => {
-        await manager.cancelKeyVerification("txn-2", "Timed out", "m.timeout", "r0");
-        await manager.getVerificationRequests("r0");
+        await manager.cancelKeyVerification("txn-2", "Timed out", "m.timeout", "v3");
+        await manager.getVerificationRequests("v3");
         await manager.getVerificationRequests("@ignored:test", "v1");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
@@ -117,7 +117,7 @@ describe("KeyVerificationManager", () => {
                 code: "m.timeout",
                 reason: "Timed out",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -125,7 +125,7 @@ describe("KeyVerificationManager", () => {
             "/keys/device_signing/requests",
             undefined,
             undefined,
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             3,
@@ -144,7 +144,7 @@ describe("KeyVerificationManager", () => {
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             },
-            "r0",
+            "v3",
         );
         await manager.sendKeyAgreement(
             {
@@ -158,7 +158,7 @@ describe("KeyVerificationManager", () => {
                 transaction_id: "txn-mac",
                 mac: "mac-value",
             },
-            "r0",
+            "v3",
         );
         await manager.completeKeyVerification("txn-done");
 
@@ -172,7 +172,7 @@ describe("KeyVerificationManager", () => {
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -194,7 +194,7 @@ describe("KeyVerificationManager", () => {
                 transaction_id: "txn-mac",
                 mac: "mac-value",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             4,
@@ -216,7 +216,7 @@ describe("KeyVerificationManager", () => {
             device_ed25519_key: "ed25519:key",
             device_curve25519_key: "curve25519:key",
         };
-        await manager.scanQrCode(scanRequest, "r0");
+        await manager.scanQrCode(scanRequest, "v3");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -232,7 +232,7 @@ describe("KeyVerificationManager", () => {
             "/keys/qr_code/scan",
             undefined,
             scanRequest,
-            { prefix: "/_matrix/client/r0" },
+            { prefix: "/_matrix/client/v3" },
         );
     });
 
@@ -246,10 +246,10 @@ describe("KeyVerificationManager", () => {
             device_ed25519_key: "ed25519:key",
             device_curve25519_key: "curve25519:key",
         };
-        await manager.scanQrCode(request, "r0");
+        await manager.scanQrCode(request, "v3");
 
         expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/keys/qr_code/scan", undefined, request, {
-            prefix: ClientPrefix.R0,
+            prefix: ClientPrefix.V3,
         });
     });
 

@@ -1,7 +1,7 @@
 ---
 module: e2ee
 generated_from: docs/api-contract/generated/modules/e2ee.json
-generated_hash: sha256-a3bdd6f4ddcb66794c5697d2046d40265c0709cd7759a91d2328d07f4ea691a4
+generated_hash: sha256-879598116e2d7ebf1180dda1c29853ea97ac1cba43cb387a4ac13b1e79d16531
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

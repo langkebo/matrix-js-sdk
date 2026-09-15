@@ -2,52 +2,11 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "tags",
-  "synapse_rust_commit": "c5a5df0daad261ecb5a22a3dcfbe87b7f2453ce1",
+  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 8,
+  "entry_count": 4,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/tags",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id",
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/tags/{tag}",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "tag"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/tags/{tag}",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "tag"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/tags",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags",

@@ -45,7 +45,7 @@ describe("SamlAuthManager", () => {
                 "/login/sso/redirect/saml",
                 undefined,
                 { redirectUrl: "https://app.test/callback" },
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -60,7 +60,7 @@ describe("SamlAuthManager", () => {
                 "/login/saml/callback",
                 undefined,
                 { SAMLResponse: "<saml>response</saml>", RelayState: "relay-state-123" },
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -75,7 +75,7 @@ describe("SamlAuthManager", () => {
                 "/login/saml/callback",
                 { SAMLResponse: "encoded", RelayState: "relay" },
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -90,7 +90,7 @@ describe("SamlAuthManager", () => {
                 "/login/sso/redirect/saml",
                 { redirectUrl: "https://app.test/callback" },
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -105,7 +105,7 @@ describe("SamlAuthManager", () => {
                 "/logout/saml",
                 { redirectUrl: "https://app.test/bye" },
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -120,7 +120,7 @@ describe("SamlAuthManager", () => {
                 "/saml/metadata",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
@@ -135,14 +135,14 @@ describe("SamlAuthManager", () => {
                 "/saml/sp_metadata",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
 
         it("getLoginRedirectUrl should return a URL with encoded redirectUrl parameter", () => {
             const url = manager.getLoginRedirectUrl("https://app.test/callback");
             expect(url).toBe(
-                "https://matrix.test/_matrix/client/r0/login/sso/redirect/saml?redirectUrl=https%3A%2F%2Fapp.test%2Fcallback",
+                "https://matrix.test/_matrix/client/v3/login/sso/redirect/saml?redirectUrl=https%3A%2F%2Fapp.test%2Fcallback",
             );
         });
     });
@@ -294,7 +294,7 @@ describe("SamlAuthManager", () => {
             const opts = call[4];
 
             expect(path).not.toContain("_matrix/client");
-            expect(opts!.prefix).toBe("/_matrix/client/r0");
+            expect(opts!.prefix).toBe("/_matrix/client/v3");
         });
 
         it("should not embed prefix in the path for admin endpoints", async () => {
@@ -322,7 +322,7 @@ describe("SamlAuthManager", () => {
                 "/logout/saml/callback",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+                expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
     });

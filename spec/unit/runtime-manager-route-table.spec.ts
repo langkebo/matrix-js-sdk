@@ -602,7 +602,7 @@ describe("runtime manager route-table contract", () => {
         expect(hasRouteTableMatch(ROOM_SUMMARY_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
-    it("keeps CaptchaManager explicit r0 calls on the generated captcha route-table", async () => {
+    it("keeps CaptchaManager explicit v3 calls on the generated captcha route-table", async () => {
         const request = vi.fn().mockResolvedValue({
             captcha_id: "captcha-1",
             expires_in: 300,
@@ -611,7 +611,7 @@ describe("runtime manager route-table contract", () => {
         const client = { http: { request } } as unknown as ConstructorParameters<typeof CaptchaManager>[0];
         const manager = new CaptchaManager(client);
 
-        await manager.sendCaptcha("email", "alice@example.org", undefined, "r0");
+        await manager.sendCaptcha("email", "alice@example.org", undefined, "v3");
 
         const [method, path, , , options] = request.mock.calls[0] as [string, string, unknown, unknown, RequestOptions];
         const runtimePath = fullRuntimePath(path, options);

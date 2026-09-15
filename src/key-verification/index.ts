@@ -56,14 +56,13 @@ import {
     showQrCodeHttpRequest,
     scanQrCodeHttpRequest,
 } from "../client-crypto-requests";
-import { getLegacyClientPrefix } from "../client-internals";
 import { ClientPrefix } from "../http-api/prefix";
 
-type VerificationApiVersion = "v1" | "r0" | "v3";
+type VerificationApiVersion = "v1" | "v3";
 
 function resolveVerificationPrefix(version: VerificationApiVersion): string {
     if (version === "v3") return ClientPrefix.V3;
-    return getLegacyClientPrefix(version);
+    return ClientPrefix.V1;
 }
 
 const DEFAULT_CANCEL_CODE = "m.user";
@@ -200,7 +199,7 @@ export class KeyVerificationManager extends BaseManager {
         _userIdOrVersion?: string,
         version: VerificationApiVersion = "v1",
     ): Promise<IVerificationRequestsResponse> {
-        if (_userIdOrVersion === "v1" || _userIdOrVersion === "r0" || _userIdOrVersion === "v3") {
+        if (_userIdOrVersion === "v1" || _userIdOrVersion === "v3") {
             return this.getVerificationRequestsHttp(_userIdOrVersion);
         }
 
