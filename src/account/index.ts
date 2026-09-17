@@ -35,7 +35,6 @@ import { type AuthDict } from "../interactive-auth";
 import { type IdServerUnbindResult } from "../@types/partials";
 import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
-import { IGuestAccessOpts } from "../@types/requests";
 import type { IContent } from "../models/event";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { normalizeExpiresInMs } from "../auth/normalize-expires";
@@ -343,22 +342,6 @@ export class AccountManager extends BaseManager {
                 prefix: ClientPrefix.V3,
             });
         }, "getEventStream");
-    }
-
-    /**
-     * Set guest access
-     */
-    public async setGuestAccess(roomId: string, opts: IGuestAccessOpts): Promise<void> {
-        const path = utils.encodeUri("/rooms/$roomId/guest_access", {
-            $roomId: roomId,
-        });
-        await this.withRetry(async () => {
-            await this.request({
-                method: Method.Put,
-                path,
-                body: opts,
-            });
-        }, "setGuestAccess");
     }
 }
 
