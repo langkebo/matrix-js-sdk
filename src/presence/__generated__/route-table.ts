@@ -4,14 +4,11 @@
  *
  * Module:        Presence 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       11 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       9 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `presence` module (mirrored from the backend contract). */
 export const PRESENCE_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/presence/{user_id}/status" },
-    { method: "POST", path: "/_matrix/client/r0/presence/{user_id}/status" },
-    { method: "PUT", path: "/_matrix/client/r0/presence/{user_id}/status" },
     { method: "GET", path: "/_matrix/client/v1/presence/{user_id}/status" },
     { method: "POST", path: "/_matrix/client/v1/presence/{user_id}/status" },
     { method: "PUT", path: "/_matrix/client/v1/presence/{user_id}/status" },
@@ -20,6 +17,7 @@ export const PRESENCE_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/presence/{user_id}/status" },
     { method: "POST", path: "/_matrix/client/v3/presence/{user_id}/status" },
     { method: "PUT", path: "/_matrix/client/v3/presence/{user_id}/status" },
+    { method: "GET", path: "/_matrix/client/v3/presence/list" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `PRESENCE_ROUTES`. */

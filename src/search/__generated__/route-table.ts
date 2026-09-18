@@ -4,14 +4,11 @@
  *
  * Module:        搜索契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       13 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       10 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `search` module (mirrored from the backend contract). */
 export const SEARCH_ROUTES = [
-    { method: "POST", path: "/_matrix/client/r0/search" },
-    { method: "POST", path: "/_matrix/client/r0/search_recipients" },
-    { method: "POST", path: "/_matrix/client/r0/search_rooms" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/context/{event_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/hierarchy" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/timestamp_to_event" },

@@ -6,10 +6,10 @@
 
 import { AUTH_ROUTES } from "./route-table";
 
-export const AUTH_ROUTES_ENTRY_COUNT = 158 as const;
+export const AUTH_ROUTES_ENTRY_COUNT = 96 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _AuthEntryCountAssertion: 158 = AUTH_ROUTES.length;
+const _AuthEntryCountAssertion: 96 = AUTH_ROUTES.length;
 void _AuthEntryCountAssertion;
 
 export const AUTH_ROUTES_STATUS_SCENARIOS = [

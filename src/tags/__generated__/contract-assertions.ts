@@ -6,10 +6,10 @@
 
 import { TAGS_ROUTES } from "./route-table";
 
-export const TAGS_ROUTES_ENTRY_COUNT = 8 as const;
+export const TAGS_ROUTES_ENTRY_COUNT = 4 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _TagsEntryCountAssertion: 8 = TAGS_ROUTES.length;
+const _TagsEntryCountAssertion: 4 = TAGS_ROUTES.length;
 void _TagsEntryCountAssertion;
 
 export const TAGS_ROUTES_STATUS_SCENARIOS = [

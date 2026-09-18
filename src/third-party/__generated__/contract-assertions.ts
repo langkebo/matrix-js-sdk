@@ -6,10 +6,10 @@
 
 import { THIRDPARTY_ROUTES } from "./route-table";
 
-export const THIRDPARTY_ROUTES_ENTRY_COUNT = 12 as const;
+export const THIRDPARTY_ROUTES_ENTRY_COUNT = 6 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _ThirdpartyEntryCountAssertion: 12 = THIRDPARTY_ROUTES.length;
+const _ThirdpartyEntryCountAssertion: 6 = THIRDPARTY_ROUTES.length;
 void _ThirdpartyEntryCountAssertion;
 
 export const THIRDPARTY_ROUTES_STATUS_SCENARIOS = [

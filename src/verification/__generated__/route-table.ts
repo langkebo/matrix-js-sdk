@@ -4,23 +4,11 @@
  *
  * Module:        Verification 契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       36 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       24 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `verification` module (mirrored from the backend contract). */
 export const VERIFICATION_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/keys/device_signing/requests" },
-    { method: "PUT", path: "/_matrix/client/r0/keys/device_signing/verify_accept" },
-    { method: "POST", path: "/_matrix/client/r0/keys/device_signing/verify_cancel" },
-    { method: "POST", path: "/_matrix/client/r0/keys/device_signing/verify_done" },
-    { method: "POST", path: "/_matrix/client/r0/keys/device_signing/verify_key_agreement" },
-    { method: "POST", path: "/_matrix/client/r0/keys/device_signing/verify_mac" },
-    { method: "POST", path: "/_matrix/client/r0/keys/device_signing/verify_start" },
-    { method: "POST", path: "/_matrix/client/r0/keys/qr_code/scan" },
-    { method: "GET", path: "/_matrix/client/r0/keys/qr_code/show" },
-    { method: "POST", path: "/_matrix/client/r0/keys/verification/request" },
-    { method: "GET", path: "/_matrix/client/r0/keys/verification/{transaction_id}" },
-    { method: "POST", path: "/_matrix/client/r0/keys/verification/{transaction_id}/cancel" },
     { method: "GET", path: "/_matrix/client/v1/keys/device_signing/requests" },
     { method: "PUT", path: "/_matrix/client/v1/keys/device_signing/verify_accept" },
     { method: "POST", path: "/_matrix/client/v1/keys/device_signing/verify_cancel" },

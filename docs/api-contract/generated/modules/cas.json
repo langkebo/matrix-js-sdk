@@ -2,11 +2,18 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "cas",
-  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
+  "synapse_rust_commit": "7cb39946ea4a92ef81809796f55af668d6c4cfd4",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 16,
+  "entry_count": 17,
   "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/login/sso/redirect/cas",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/cas/services",

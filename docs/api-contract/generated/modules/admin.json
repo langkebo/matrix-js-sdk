@@ -2,11 +2,20 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "admin",
-  "synapse_rust_commit": "576e0d8174665b60b063715ea92b06cb2be999cb",
+  "synapse_rust_commit": "7cb39946ea4a92ef81809796f55af668d6c4cfd4",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 161,
+  "entry_count": 164,
   "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/admin/room/{room_id}/redact",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
     {
       "method": "GET",
       "path": "/_synapse/admin/info",
@@ -861,6 +870,13 @@
     },
     {
       "method": "GET",
+      "path": "/_synapse/admin/v1/server",
+      "registered_by": "admin::server",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_synapse/admin/v1/server_notices",
       "registered_by": "admin::notification",
       "path_params": [],
@@ -1301,6 +1317,13 @@
         "user_id",
         "token_id"
       ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/whoami",
+      "registered_by": "admin::server",
+      "path_params": [],
       "query_params": []
     },
     {

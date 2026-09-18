@@ -6,10 +6,10 @@
 
 import { CAPTCHA_ROUTES } from "./route-table";
 
-export const CAPTCHA_ROUTES_ENTRY_COUNT = 8 as const;
+export const CAPTCHA_ROUTES_ENTRY_COUNT = 5 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _CaptchaEntryCountAssertion: 8 = CAPTCHA_ROUTES.length;
+const _CaptchaEntryCountAssertion: 5 = CAPTCHA_ROUTES.length;
 void _CaptchaEntryCountAssertion;
 
 export const CAPTCHA_ROUTES_STATUS_SCENARIOS = [

@@ -4,19 +4,11 @@
  *
  * Module:        SAML 契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       24 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       16 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `saml` module (mirrored from the backend contract). */
 export const SAML_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/login/saml/callback" },
-    { method: "POST", path: "/_matrix/client/r0/login/saml/callback" },
-    { method: "GET", path: "/_matrix/client/r0/login/sso/redirect/saml" },
-    { method: "POST", path: "/_matrix/client/r0/login/sso/redirect/saml" },
-    { method: "GET", path: "/_matrix/client/r0/logout/saml" },
-    { method: "GET", path: "/_matrix/client/r0/logout/saml/callback" },
-    { method: "GET", path: "/_matrix/client/r0/saml/metadata" },
-    { method: "GET", path: "/_matrix/client/r0/saml/sp_metadata" },
     { method: "GET", path: "/_synapse/admin/v1/saml/config" },
     { method: "PUT", path: "/_synapse/admin/v1/saml/config" },
     { method: "POST", path: "/_synapse/admin/v1/saml/logout" },

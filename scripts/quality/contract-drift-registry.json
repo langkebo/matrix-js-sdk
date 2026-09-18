@@ -1,31 +1,7 @@
 {
     "$comment": "契约差集登记表（阶段 3 · SDK-2）。比对单位是 SDK 目录（映射多对一，同目录的兄弟 ledger 模块取并集）：sdk-only = 表里有、任一映射到该目录的 ledger 模块都没声明；ledger-only = ledger 声明了但表里没有。每条必须写 reason + expires；修好后必须删条目，否则门禁报 stale。判定见 scripts/quality/check-contract-drift.mjs。",
-    "generatedAt": "2026-09-13T08:50:30.509Z",
+    "generatedAt": "2026-09-18T16:53:33.000Z",
     "entries": [
-        {
-            "key": "cas:sdk-only:GET /_matrix/client/v3/login/sso/redirect/cas",
-            "dir": "cas",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/v3/login/sso/redirect/cas",
-            "reason": "后端 cas.rs:148 注册了该路由，ledger 的 cas 模块未声明（B-11）",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "e2ee:sdk-only:GET /_matrix/client/v3/keys/history",
-            "dir": "e2ee",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/v3/keys/history",
-            "reason": "后端 e2ee/keys.rs:51 注册了该路由，ledger 未声明（B-11）",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "e2ee:sdk-only:POST /_matrix/client/v3/keys/upload/{device_id}",
-            "dir": "e2ee",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/client/v3/keys/upload/{device_id}",
-            "reason": "后端 e2ee/keys.rs:24 注册了带 device_id 的形态，ledger 只有不带 device_id 的 /keys/upload（B-11）",
-            "expires": "2026-12-31"
-        },
         {
             "key": "media:sdk-only:GET /_matrix/media/v3/upload/provider",
             "dir": "media",
@@ -40,22 +16,6 @@
             "kind": "sdk-only",
             "entry": "POST /_matrix/media/v3/upload/token",
             "reason": "后端 media/upload.rs 注册了该路由，ledger 未声明（B-11）",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "push:sdk-only:GET /_matrix/client/v3/pushers/",
-            "dir": "push",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/v3/pushers/",
-            "reason": "后端 push.rs:16 注册了 /pushers/（GET+POST），ledger 未声明、文档只有 GET（B-10）",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/anti_screenshot",
-            "dir": "room",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/v3/rooms/{room_id}/anti_screenshot",
-            "reason": "后端 room.rs:145 注册了 GET+PUT 两种方法，ledger 未声明、文档只有 GET（B-11）",
             "expires": "2026-12-31"
         },
         {

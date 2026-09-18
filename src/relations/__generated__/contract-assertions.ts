@@ -6,10 +6,10 @@
 
 import { RELATIONS_ROUTES } from "./route-table";
 
-export const RELATIONS_ROUTES_ENTRY_COUNT = 11 as const;
+export const RELATIONS_ROUTES_ENTRY_COUNT = 8 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _RelationsEntryCountAssertion: 11 = RELATIONS_ROUTES.length;
+const _RelationsEntryCountAssertion: 8 = RELATIONS_ROUTES.length;
 void _RelationsEntryCountAssertion;
 
 export const RELATIONS_ROUTES_STATUS_SCENARIOS = [

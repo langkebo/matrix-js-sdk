@@ -1,17 +1,17 @@
 ---
 module: reactions
 generated_from: docs/api-contract/generated/modules/reactions.json
-generated_hash: sha256-702f107c25199ea1ce78d2d729e7171d81f6f5f7142e120726f989ac321211b7
+generated_hash: sha256-4bba80d15b231252ab80887c884682b3440cc5ccaa75fae093dcaf9bd31b3fa3
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Reactions API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/reactions.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/reactions.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
-> 挂载版本: `r0`, `v3`
+> 挂载版本: `v3`
 
 ## 一、模块概述
 
@@ -32,9 +32,9 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ### 2.1 发送反应
 
-**路径**: `PUT /_matrix/client/{r0,v3}/rooms/{room_id}/send/m.reaction/{txn_id}`  
+**路径**: `PUT /_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v3`
+**挂载版本**: `v3`
 
 **路径参数**:
 | 参数 | 类型 | 说明 |
@@ -66,9 +66,9 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点                        | SDK 方法                   | 状态      |
-| ------------------------------- | -------------------------- | --------- |
-| `PUT /send/m.reaction/{txn_id}` | `MatrixClient.sendEvent()` | ✅ 已封装 |
+| 后端端点 | SDK 方法 | 状态 |
+| -------- | -------- | ---- |
+| `PUT /_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` | `MatrixClient.sendEvent()` | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 

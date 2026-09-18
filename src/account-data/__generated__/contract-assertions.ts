@@ -6,10 +6,10 @@
 
 import { ACCOUNT_DATA_ROUTES } from "./route-table";
 
-export const ACCOUNT_DATA_ROUTES_ENTRY_COUNT = 26 as const;
+export const ACCOUNT_DATA_ROUTES_ENTRY_COUNT = 15 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _AccountDataEntryCountAssertion: 26 = ACCOUNT_DATA_ROUTES.length;
+const _AccountDataEntryCountAssertion: 15 = ACCOUNT_DATA_ROUTES.length;
 void _AccountDataEntryCountAssertion;
 
 export const ACCOUNT_DATA_ROUTES_STATUS_SCENARIOS = [

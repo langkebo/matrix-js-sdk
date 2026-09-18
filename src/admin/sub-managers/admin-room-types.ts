@@ -60,6 +60,29 @@ export interface RoomEventSearchPayload {
     [key: string]: unknown;
 }
 
+/**
+ * 请求体：`POST /_matrix/client/v3/admin/room/{room_id}/redact`（后端 `admin::room`）。
+ *
+ * 按 `origin_server_ts` 落在 `(after_ts, before_ts)` 区间内的事件批量撤回，
+ * 与 Element Synapse 的同名管理端点一致。全部字段可选，省略即"不限"。
+ */
+export interface AdminRoomRedactPayload {
+    /** 仅撤回 `origin_server_ts < before_ts` 的事件（毫秒时间戳）。 */
+    before_ts?: number;
+    /** 仅撤回 `origin_server_ts > after_ts` 的事件（毫秒时间戳）。 */
+    after_ts?: number;
+    /** 单次最多撤回的事件条数，取值 1..10000；后端默认 1000，越界返回 400。 */
+    limit?: number;
+    /** 写入审计日志的原因。 */
+    reason?: string;
+    [key: string]: unknown;
+}
+
+/** 响应体：`{"redacted": <实际撤回条数>}`。 */
+export interface AdminRoomRedactResult {
+    redacted: number;
+}
+
 // ===== Room info types =====
 
 export interface RoomInfo {

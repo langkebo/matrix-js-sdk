@@ -4,18 +4,11 @@
  *
  * Module:        通知契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       15 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       8 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `notifications` module (mirrored from the backend contract). */
 export const NOTIFICATIONS_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/push/devices" },
-    { method: "POST", path: "/_matrix/client/r0/push/devices" },
-    { method: "DELETE", path: "/_matrix/client/r0/push/devices/{device_id}" },
-    { method: "GET", path: "/_matrix/client/r0/push/rules" },
-    { method: "POST", path: "/_matrix/client/r0/push/rules" },
-    { method: "DELETE", path: "/_matrix/client/r0/push/rules/{scope}/{kind}/{rule_id}" },
-    { method: "POST", path: "/_matrix/client/r0/push/send" },
     { method: "POST", path: "/_synapse/admin/v1/push/cleanup" },
     { method: "POST", path: "/_synapse/admin/v1/push/process" },
     { method: "GET", path: "/_matrix/client/v3/push/devices" },

@@ -4,15 +4,11 @@
  *
  * Module:        Room Summary 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       24 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       21 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room-summary` module (mirrored from the backend contract). */
 export const ROOM_SUMMARY_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/members" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/state" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/summary/stats" },
     { method: "DELETE", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
@@ -33,6 +29,7 @@ export const ROOM_SUMMARY_ROUTES = [
     { method: "POST", path: "/_synapse/room_summary/v1/summaries" },
     { method: "POST", path: "/_synapse/room_summary/v1/summaries/batch" },
     { method: "POST", path: "/_synapse/room_summary/v1/updates/process" },
+    { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/summary" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_SUMMARY_ROUTES`. */

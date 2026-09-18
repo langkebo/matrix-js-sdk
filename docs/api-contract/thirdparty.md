@@ -1,14 +1,14 @@
 ---
 module: thirdparty
 generated_from: docs/api-contract/generated/modules/thirdparty.json
-generated_hash: sha256-605b426cdc4ad055948ff9044a230cfc32c80f2a9389ed63a90099129789f17e
+generated_hash: sha256-d7d10e0b9645fe5d5efc806a1ef9bf8c292349fc240c242cef7db47fc23d17f6
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Thirdparty Integration API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/thirdparty.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/thirdparty.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `r0`, `v3`

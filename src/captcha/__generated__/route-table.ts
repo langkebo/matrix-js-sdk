@@ -4,14 +4,11 @@
  *
  * Module:        CAPTCHA
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       8 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       5 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `captcha` module (mirrored from the backend contract). */
 export const CAPTCHA_ROUTES = [
-    { method: "POST", path: "/_matrix/client/r0/register/captcha/send" },
-    { method: "GET", path: "/_matrix/client/r0/register/captcha/status" },
-    { method: "POST", path: "/_matrix/client/r0/register/captcha/verify" },
     { method: "POST", path: "/_matrix/client/v3/register/captcha/send" },
     { method: "GET", path: "/_matrix/client/v3/register/captcha/status" },
     { method: "POST", path: "/_matrix/client/v3/register/captcha/verify" },

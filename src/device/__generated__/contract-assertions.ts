@@ -6,10 +6,10 @@
 
 import { DEVICE_ROUTES } from "./route-table";
 
-export const DEVICE_ROUTES_ENTRY_COUNT = 12 as const;
+export const DEVICE_ROUTES_ENTRY_COUNT = 6 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _DeviceEntryCountAssertion: 12 = DEVICE_ROUTES.length;
+const _DeviceEntryCountAssertion: 6 = DEVICE_ROUTES.length;
 void _DeviceEntryCountAssertion;
 
 export const DEVICE_ROUTES_STATUS_SCENARIOS = [

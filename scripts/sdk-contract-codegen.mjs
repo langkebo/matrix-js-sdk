@@ -1118,6 +1118,33 @@ function renderAcceptanceTest(module) {
     return lines.join("\n");
 }
 
+function countLedgerClientR0Routes() {
+    /**
+     * 统计 ledger 中 client 面 r0 路由数量。
+     * 后端 synapse-rust 已移除 client 面 r0（仅保留 media r0 兼容），
+     * 若全量为 0，说明 r0 client 路由已全部下线，应剔除 route-table 中的历史残留。
+     */
+    const indexPath = path.join(repoRoot, "docs", "api-contract", "generated", "index.json");
+    if (!fs.existsSync(indexPath)) return 0;
+    const idx = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+    const modules = idx.modules ?? {};
+    let count = 0;
+    for (const mod of Object.values(modules)) {
+        const manifestPath = path.join(repoRoot, "docs", "api-contract", "generated", mod.file);
+        if (!fs.existsSync(manifestPath)) continue;
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        for (const entry of manifest.entries ?? []) {
+            const p = entry.path ?? "";
+            if (p.startsWith("/_matrix/client/r0/")) count++;
+        }
+    }
+    return count;
+}
+
+function isClientR0Path(path) {
+    return path.startsWith("/_matrix/client/r0/");
+}
+
 function render(module, lookups) {
     const contractDocText = fs.existsSync(module.docPath) ? fs.readFileSync(module.docPath, "utf8") : "";
     // Gather contract routes for this module's backend labels, resolve to full paths.
@@ -1141,7 +1168,7 @@ function render(module, lookups) {
     //   2. ledger 清单：权威路由源（启动时校验过），补上文档漏掉的方法形态；
     //   3. ROUTE_CONTRACT.md：只用来补 ledger 也没有、但文档声明的路径（历史/未导出路由）。
     const seenFull = new Set();
-    const entries = [];
+    let entries = [];
     const globalLedgerKeys = loadGlobalLedgerKeys();
     const ledgerEntriesForThisDir = loadLedgerEntriesForSdkDir(module.sdkDir);
     const ownedByThisDir = new Set(ledgerEntriesForThisDir.map((e) => `${e.method} ${e.path}`));
@@ -1156,6 +1183,22 @@ function render(module, lookups) {
             if (seenFull.has(key)) continue;
             seenFull.add(key);
             entries.push(e);
+        }
+    }
+    // R0 pruning: if ledger has ZERO client r0 routes, all client r0 routes
+    // are dead (backend removed them in B1-3).  Strip them from the merged
+    // output so the route-table mirrors reality and the drift gate stops
+    // flagging 245 stale entries.
+    // media 模块的 r0 路径是 /_matrix/media/r0/，不是 client 面，不受此条。
+    const r0InLedger = countLedgerClientR0Routes();
+    if (r0InLedger === 0) {
+        const before = entries.length;
+        entries = entries.filter((e) => !isClientR0Path(e.path));
+        const pruned = before - entries.length;
+        if (pruned > 0) {
+            console.log(
+                `  codegen-prune: ${module.sdkDir} dropped ${pruned} r0 client routes (ledger has 0 client r0 entries)`,
+            );
         }
     }
     const entryCount = entries.length;

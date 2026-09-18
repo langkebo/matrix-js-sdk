@@ -4,39 +4,11 @@
  *
  * Module:        Friend 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       93 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       65 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `friend` module (mirrored from the backend contract). */
 export const FRIEND_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/friends/check/{user_id}" },
-    { method: "GET", path: "/_matrix/client/r0/friends/dm/{user_id}" },
-    { method: "POST", path: "/_matrix/client/r0/friends/dm/{user_id}" },
-    { method: "GET", path: "/_matrix/client/r0/friends/groups" },
-    { method: "POST", path: "/_matrix/client/r0/friends/groups" },
-    { method: "DELETE", path: "/_matrix/client/r0/friends/groups/{group_id}" },
-    { method: "POST", path: "/_matrix/client/r0/friends/groups/{group_id}/add/{user_id}" },
-    { method: "GET", path: "/_matrix/client/r0/friends/groups/{group_id}/friends" },
-    { method: "PUT", path: "/_matrix/client/r0/friends/groups/{group_id}/name" },
-    { method: "DELETE", path: "/_matrix/client/r0/friends/groups/{group_id}/remove/{user_id}" },
-    { method: "POST", path: "/_matrix/client/r0/friends/request" },
-    { method: "GET", path: "/_matrix/client/r0/friends/request/received" },
-    { method: "POST", path: "/_matrix/client/r0/friends/request/{user_id}/accept" },
-    { method: "POST", path: "/_matrix/client/r0/friends/request/{user_id}/cancel" },
-    { method: "POST", path: "/_matrix/client/r0/friends/request/{user_id}/reject" },
-    { method: "GET", path: "/_matrix/client/r0/friends/requests/incoming" },
-    { method: "GET", path: "/_matrix/client/r0/friends/requests/outgoing" },
-    { method: "GET", path: "/_matrix/client/r0/friends/search" },
-    { method: "GET", path: "/_matrix/client/r0/friends/suggestions" },
-    { method: "DELETE", path: "/_matrix/client/r0/friends/{user_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/friends/{user_id}/displayname" },
-    { method: "GET", path: "/_matrix/client/r0/friends/{user_id}/groups" },
-    { method: "GET", path: "/_matrix/client/r0/friends/{user_id}/info" },
-    { method: "PUT", path: "/_matrix/client/r0/friends/{user_id}/note" },
-    { method: "GET", path: "/_matrix/client/r0/friends/{user_id}/status" },
-    { method: "PUT", path: "/_matrix/client/r0/friends/{user_id}/status" },
-    { method: "GET", path: "/_matrix/client/r0/friendships" },
-    { method: "POST", path: "/_matrix/client/r0/friendships" },
     { method: "GET", path: "/_matrix/client/v1/friends" },
     { method: "POST", path: "/_matrix/client/v1/friends" },
     { method: "GET", path: "/_matrix/client/v1/friends/check/{user_id}" },

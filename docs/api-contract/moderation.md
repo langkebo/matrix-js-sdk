@@ -1,14 +1,14 @@
 ---
 module: moderation
 generated_from: docs/api-contract/generated/modules/moderation.json
-generated_hash: sha256-2b1473cff81d85795963e747f9b6b5b87fd6fc3519005ac553bd6afd33815f31
+generated_hash: sha256-ff318d5f27905d12f9b74973024075cfd68d64c10101403e24f215baef3ed2da
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Moderation API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/moderation.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/moderation.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `r0`, `v1`, `v3`
@@ -38,9 +38,9 @@ Moderation API 提供内容审核功能，用于：
 
 ### 2.1 举报事件
 
-**路径**: `POST /_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}`  
+**路径**: `POST /_matrix/client/v3/rooms/{room_id}/report/{event_id}`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v1`, `v3`
+**挂载版本**: `v3`
 
 **路径参数**:
 | 参数 | 类型 | 说明 |
@@ -71,9 +71,9 @@ Moderation API 提供内容审核功能，用于：
 
 ### 2.2 对举报评分
 
-**路径**: `PUT /_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}/score`  
+**路径**: `PUT /_matrix/client/{v1,v3}/rooms/{room_id}/report/{event_id}/score`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v1`, `v3`
+**挂载版本**: `v1`, `v3`
 
 **请求体**:
 

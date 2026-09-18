@@ -1,17 +1,17 @@
 ---
 module: relations
 generated_from: docs/api-contract/generated/modules/relations.json
-generated_hash: sha256-33ce3a193891abac591091a068f854584326a0c2a26bc6b60b5d107ec0e41e2a
+generated_hash: sha256-fc526ecab03d6d39d6e6f113d126cc8125a795060d5467b9da800d6613de3b92
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Relations API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/relations.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/relations.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
-> 挂载版本: `r0`, `v1`, `v3`
+> 挂载版本: `v1`, `v3`
 
 ## 一、模块概述
 
@@ -25,8 +25,8 @@ Relations API 提供事件关系查询功能，支持：
 
 ### 1.2 路由前缀
 
-- `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/relations/{event_id}`
-- `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/aggregations/{event_id}`
+- `/_matrix/client/{v1,v3}/rooms/{room_id}/relations/{event_id}`
+- `/_matrix/client/{v1,v3}/rooms/{room_id}/aggregations/{event_id}`
 
 ### 1.3 认证要求
 
@@ -37,9 +37,9 @@ Relations API 提供事件关系查询功能，支持：
 
 ### 2.1 查询事件的所有关系
 
-**路径**: `GET /_matrix/client/{r0,v1,v3}/rooms/{room_id}/relations/{event_id}`  
+**路径**: `GET /_matrix/client/{v1,v3}/rooms/{room_id}/relations/{event_id}`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v1`, `v3`
+**挂载版本**: `v1`, `v3`
 
 **路径参数**:
 | 参数 | 类型 | 说明 |
@@ -67,9 +67,9 @@ interface RelationsResponse {
 
 ### 2.2 按关系类型查询
 
-**路径**: `GET /_matrix/client/{r0,v1,v3}/rooms/{room_id}/relations/{event_id}/{rel_type}`  
+**路径**: `GET /_matrix/client/{v1,v3}/rooms/{room_id}/relations/{event_id}/{rel_type}`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v1`, `v3`
+**挂载版本**: `v1`, `v3`
 
 **路径参数**:
 | 参数 | 类型 | 说明 |
@@ -84,17 +84,17 @@ interface RelationsResponse {
 
 ### 2.3 创建关系事件
 
-**路径**: `PUT /_matrix/client/{r0,v1,v3}/rooms/{room_id}/relations/{event_id}/{rel_type}/{target_event_id}`  
+**路径**: `PUT /_matrix/client/{v1,v3}/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v1`, `v3`
+**挂载版本**: `v1`, `v3`
 
 **路径参数**:
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `room_id` | string | 房间 ID |
-| `event_id` | string | 关系事件所属上下文事件 ID |
-| `rel_type` | string | 允许 `m.reference`、`m.replace`、`m.annotation` |
-| `target_event_id` | string | 被关联的目标事件 ID |
+| `event_id` | string | 被关联的目标事件 ID（上下文事件） |
+| `rel_type` | string | 允许 `m.reference`、`m.replace`、`m.annotation`、`m.thread` |
+| `txn_id` | string | 事务 ID，用于幂等去重（后端按 `txn_id` 命名该段，**并非目标事件 ID**） |
 
 **请求体**:
 
@@ -134,9 +134,9 @@ interface RelationsResponse {
 
 ### 2.4 查询关系聚合
 
-**路径**: `GET /_matrix/client/{r0,v1,v3}/rooms/{room_id}/aggregations/{event_id}/{rel_type}`  
+**路径**: `GET /_matrix/client/{v1,v3}/rooms/{room_id}/aggregations/{event_id}/{rel_type}`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `r0`, `v1`, `v3`
+**挂载版本**: `v1`, `v3`
 
 **响应**: `200 OK`
 

@@ -111,7 +111,7 @@ const DRAFT_TOKEN_SOFT_CAP = 6000;
 const DRAFT_TOKEN_HARD_CAP = 10000;
 
 function parseArgs(argv) {
-    const out = { mode: "ingest", sourceDir: null, help: false, renderDrafts: false };
+    const out = { mode: "ingest", sourceDir: null, explicitSource: false, help: false, renderDrafts: false };
     for (let i = 2; i < argv.length; i += 1) {
         const arg = argv[i];
         if (arg === "--help" || arg === "-h") {
@@ -124,9 +124,11 @@ function parseArgs(argv) {
             const next = argv[i + 1];
             if (!next) throw new Error("--source requires a path");
             out.sourceDir = path.resolve(next);
+            out.explicitSource = true;
             i += 1;
         } else if (arg.startsWith("--source=")) {
             out.sourceDir = path.resolve(arg.slice("--source=".length));
+            out.explicitSource = true;
         } else {
             throw new Error(`unknown argument: ${arg}`);
         }
@@ -968,7 +970,15 @@ function run(argv) {
     // a sibling synapse-rust checkout is visible (workspace layout). In --check
     // mode the disk generated/ tree is already the source of truth, so never
     // stamp there (that would cause false drift in SDK-only CI).
-    if (args.mode !== "check") {
+    //
+    // …unless the caller **explicitly** pointed --check at an external source
+    // (`--source=../synapse-rust/tests/unit/fixtures/ledger_export_sdk`). That is
+    // the only way to ask "is my mirror behind the backend?", and it is useless
+    // without stamping: the on-disk manifests carry the stamped HEAD while the
+    // recomputed ones would carry the raw `00000000` placeholder, so every single
+    // file reports drift and a genuinely-stale mirror is indistinguishable from a
+    // fresh one. Stamp in that case so the two sides are comparable.
+    if (args.mode !== "check" || args.explicitSource) {
         applyBackendCommitStamp(profiles);
     }
     const outputs = buildOutputs(profiles);
