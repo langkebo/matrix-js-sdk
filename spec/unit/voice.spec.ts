@@ -5,6 +5,18 @@ import { Method } from "../../src/http-api/method";
 import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix";
 import { HTTPError } from "../../src/http-api/errors";
 
+/** Helper to construct a minimal FormData with just a file field. */
+function makeVoiceMultipart(content: Blob, extraFields?: Record<string, string>): FormData {
+    const fd = new FormData();
+    fd.append("file", content);
+    if (extraFields) {
+        for (const [k, v] of Object.entries(extraFields)) {
+            fd.append(k, v);
+        }
+    }
+    return fd;
+}
+
 describe("VoiceManager", () => {
     let transport: FakeTransport;
     let manager: VoiceManager;
@@ -158,6 +170,55 @@ describe("VoiceManager", () => {
         await expect(manager.uploadVoiceMessage({ content: "data", content_type: "audio/ogg" })).rejects.toThrow();
 
         // Non-idempotent POST must not retry
+        expect(transport.request).toHaveBeenCalledTimes(1);
+    });
+
+    // ─── uploadVoiceMessageMultipart ────────────────────────────────
+
+    it("uploadVoiceMessageMultipart should POST /voice/upload with FormData and emit MessageUploaded", async () => {
+        const audioBlob = new Blob(["dummy-audio-bytes"], { type: "audio/ogg" });
+        const formData = makeVoiceMultipart(audioBlob, {
+            room_id: "!room:example.com",
+            duration_ms: "5000",
+            content_type: "audio/ogg",
+        });
+        const response = {
+            message_id: "msg1",
+            url: "https://example.com/audio",
+            mxc_url: "mxc://example.com/audio",
+            content_type: "audio/ogg",
+            size_bytes: 1024,
+            duration_ms: 5000,
+        };
+        const emitSpy = vi.spyOn(manager, "emit");
+        transport.respondWith(response);
+        const result = await manager.uploadVoiceMessageMultipart({ formData });
+        expect(result).toEqual(response);
+        expect(emitSpy).toHaveBeenCalledWith(VoiceEvent.MessageUploaded, response);
+        expect(transport.request).toHaveBeenCalledTimes(1);
+        const call = transport.request.mock.calls[0];
+        expect(call[0]).toBe(Method.Post);
+        expect(call[1]).toBe("/voice/upload");
+        // body should be a FormData instance
+        expect(call[3] instanceof FormData).toBe(true);
+    });
+
+    it("uploadVoiceMessageMultipart should throw ValidationError for empty file", async () => {
+        const formData = new FormData();
+        formData.append("file", new Blob([])); // empty blob
+        await expect(manager.uploadVoiceMessageMultipart({ formData })).rejects.toThrow("Voice upload file is empty");
+    });
+
+    it("uploadVoiceMessageMultipart should throw ValidationError when file field missing", async () => {
+        const formData = new FormData();
+        formData.append("room_id", "!room:example.com");
+        await expect(manager.uploadVoiceMessageMultipart({ formData })).rejects.toThrow("Voice upload requires 'file' field in FormData");
+    });
+
+    it("uploadVoiceMessageMultipart does not retry on 500 (non-idempotent POST)", async () => {
+        transport.rejectWith(new HTTPError("Internal Server Error", 500));
+        const audioBlob = new Blob(["dummy"], { type: "audio/ogg" });
+        await expect(manager.uploadVoiceMessageMultipart({ formData: makeVoiceMultipart(audioBlob) })).rejects.toThrow();
         expect(transport.request).toHaveBeenCalledTimes(1);
     });
 

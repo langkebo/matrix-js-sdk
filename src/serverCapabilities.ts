@@ -85,10 +85,18 @@ export interface Capabilities {
     "io.hula.voice_extended"?: ICapability;
     /** Matrix 标准语音（与 io.hula.voice_extended 别名等价） */
     "m.voice"?: ICapability;
+    /** 不稳定特性集合（unstable features） - 后端返回在顶层 unstable_features */
+    unstable_features?: Record<string, boolean>;
 }
 
 type CapabilitiesResponse = {
     capabilities: Capabilities;
+    /**
+     * Synapse-Rust 后端在响应顶层返回 `unstable_features`
+     * （如 `org.matrix.msc4204`、`io.hula.friends` 等能力开关），
+     * 标准客户端通常忽略，但本 fork 需要 `hasUnstableFeature()` 判定。
+     */
+    unstable_features?: Record<string, boolean>;
 };
 
 /**
@@ -96,6 +104,11 @@ type CapabilitiesResponse = {
  */
 export class ServerCapabilities {
     private capabilities?: Capabilities;
+    /**
+     * Top-level `unstable_features` from the `/capabilities` response.
+     * Synapse-Rust returns it alongside `capabilities`; stock servers omit it.
+     */
+    private unstableFeatures?: Record<string, boolean>;
     private retryTimeout?: ReturnType<typeof setTimeout>;
     // S-15: was typed as `ReturnType<typeof setInterval>` while `poll()` assigns a `setTimeout`
     // handle to it. Corrected to `setTimeout` so `clearTimeouts()` clears it with the matching
@@ -148,8 +161,36 @@ export class ServerCapabilities {
     public fetchCapabilities = async (): Promise<Capabilities> => {
         const resp = await this.http.authedRequest<CapabilitiesResponse>(Method.Get, "/capabilities");
         this.capabilities = resp["capabilities"];
+        // Preserve the top-level unstable_features that synapse-rust returns alongside
+        // `capabilities`; stock servers omit it and the field simply stays undefined.
+        this.unstableFeatures = resp["unstable_features"];
         return this.capabilities;
     };
+
+    /**
+     * Returns the cached `unstable_features` from the last capabilities fetch,
+     * or undefined if none are cached (or the server did not send any).
+     *
+     * Synapse-Rust 后端在 `/capabilities` 响应顶层返回 `unstable_features`，
+     * 包含如 `org.matrix.msc4204`、`io.hula.friends` 等布尔型能力开关。
+     */
+    public getUnstableFeatures(): Record<string, boolean> | undefined {
+        return this.unstableFeatures;
+    }
+
+    /**
+     * Checks whether the server supports a specific unstable feature.
+     *
+     * If `name` does not start with `org.matrix.msc`, the prefix is added
+     * automatically so callers can write `hasUnstableFeature('msc4204')`
+     * instead of `hasUnstableFeature('org.matrix.msc4204')`.
+     */
+    public hasUnstableFeature(name: string): boolean {
+        const features = this.unstableFeatures;
+        if (!features) return false;
+        const key = name.startsWith("org.matrix.msc") ? name : `org.matrix.msc${name}`;
+        return features[key] === true;
+    }
 
     private poll = async (): Promise<void> => {
         try {

@@ -193,12 +193,17 @@ export class ServerCapabilitiesManager extends BaseManager<
             return this.cachedCapabilities;
         }
         return this.withRetry(async () => {
-            const resp = await this.request<{ capabilities: Capabilities }>({
+            const resp = await this.request<{ capabilities: Capabilities; unstable_features?: Record<string, boolean> }>({
                 method: Method.Get,
                 path: "/capabilities",
                 prefix: ClientPrefix.V3,
             });
             this.cachedCapabilities = resp["capabilities"];
+            // Preserve the top-level unstable_features that synapse-rust returns alongside
+            // `capabilities`; stock servers omit it and the field simply stays undefined.
+            if (resp["unstable_features"]) {
+                this.cachedCapabilities.unstable_features = resp["unstable_features"];
+            }
             this.capabilitiesFetchedAt = Date.now();
             return this.cachedCapabilities!;
         }, "getServerCapabilities");

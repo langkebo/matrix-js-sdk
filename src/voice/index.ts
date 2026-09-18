@@ -22,6 +22,7 @@ import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
+import { ValidationError } from "../errors";
 
 export interface IVoiceStats {
     total_messages: number;
@@ -50,10 +51,29 @@ export interface IVoiceConfig {
 }
 
 export interface IVoiceUploadRequest {
+    /** @deprecated Use uploadVoiceMessage(formData) with FormData instead. */
     content: string;
     content_type: string;
     room_id?: string;
     filename?: string;
+}
+
+/**
+ * Upload a voice message using multipart/form-data (raw binary, no base64 overhead).
+ *
+ * This is the recommended upload path for P0-2: it sends the raw audio bytes
+ * in a multipart form, avoiding the ~33% size inflation of base64 JSON encoding.
+ *
+ * The FormData fields are:
+ *   - `file`: the audio file (File or Blob)
+ *   - `room_id` (optional): target room ID
+ *   - `duration_ms` (optional): audio duration in milliseconds
+ *   - `waveform` (optional): comma-separated uint16 waveform samples
+ *   - `content_type` (optional): MIME type; default "audio/ogg"
+ */
+export interface IVoiceUploadRequestMultipart {
+    formData: FormData;
+    prefix?: string;
 }
 
 export interface IVoiceUploadResponse {
@@ -253,6 +273,46 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return response;
         } catch (e) {
             throw this.normalizeError(e, "uploadVoiceMessage");
+        }
+    }
+
+    /**
+     * Upload a voice message using multipart/form-data (P0-2 fix).
+     *
+     * Avoids the ~33% base64 expansion of the JSON upload path by sending
+     * raw audio bytes in a multipart form. Backend must accept multipart
+     * (synapse-web `voice.rs` extractor switched to `Multipart`).
+     */
+    public async uploadVoiceMessageMultipart(
+        request: IVoiceUploadRequestMultipart,
+    ): Promise<IVoiceUploadResponse> {
+        try {
+            const response = await this.withRetry(
+                async () => {
+                    const formData = request.formData;
+                    // Check for required file field
+                    if (!formData.has("file")) {
+                        throw new ValidationError("Voice upload requires 'file' field in FormData");
+                    }
+                    const fileValue = formData.get("file");
+                    if (!fileValue || (typeof Blob !== "undefined" && fileValue instanceof Blob && fileValue.size === 0)) {
+                        throw new ValidationError("Voice upload file is empty");
+                    }
+                    return await this.request<IVoiceUploadResponse>({
+                        method: Method.Post,
+                        path: "/voice/upload",
+                        body: formData,
+                        prefix: request.prefix ?? VendorPrefix,
+                        // Let the browser set Content-Type with boundary; override only if
+                        // the caller explicitly sets content_type in the FormData fields.
+                    });
+                },
+                { idempotent: false, label: "uploadVoiceMessageMultipart" },
+            );
+            this.emit(VoiceEvent.MessageUploaded, response);
+            return response;
+        } catch (e) {
+            throw this.normalizeError(e, "uploadVoiceMessageMultipart");
         }
     }
 

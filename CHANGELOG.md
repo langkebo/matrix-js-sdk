@@ -4,6 +4,15 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `ServerCapabilities`: 新增 `getUnstableFeatures()` 与 `hasUnstableFeature(name)` 方法，保留 synapse-rust 后端返回的顶层 `unstable_features`（原 `fetchCapabilities` 会丢弃，`Capabilities` 类型亦补全字段声明）。
+
+### Fixed
+
+- `serverCapabilities.ts`: `fetchCapabilities` 现在缓存顶层 `unstable_features`（synapse-rust `/capabilities` 响应包含该字段）；`Capabilities` 接口新增 `unstable_features?: Record<string, boolean>` 字段声明。
+- `server-capabilities/index.ts`: `getServerCapabilities()` 读取响应时同步合并 `unstable_features` 到 `cachedCapabilities`。
+
 ## [40.2.0] - 2026-04-16
 
 ### 🎉 Major Optimization Release
