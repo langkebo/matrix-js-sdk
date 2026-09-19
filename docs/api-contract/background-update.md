@@ -1,7 +1,7 @@
 ---
 module: background_update
 generated_from: docs/api-contract/generated/modules/background_update.json
-generated_hash: sha256-17b9e1cc1e5c1a8a985d4419229dd4b6143e54f7a736c78273bd8fae82a8503a
+generated_hash: sha256-4d9f9cc4d155fac6fec51aa13a93107b14639ab2d489cf0a2d8762364ec70d09
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

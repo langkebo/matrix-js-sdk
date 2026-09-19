@@ -1,7 +1,7 @@
 ---
 module: sliding_sync
 generated_from: docs/api-contract/generated/modules/sliding_sync.json
-generated_hash: sha256-d1f8c24da0d23e6581a604346055067e7e6210050179e2e6e2295915cf900ec7
+generated_hash: sha256-6226acfeab95c02241bed549ca20271fa77c07af95d0f1656d72507b3c6b34b8
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

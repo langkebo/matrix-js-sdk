@@ -1,7 +1,7 @@
 ---
 module: cas
 generated_from: docs/api-contract/generated/modules/cas.json
-generated_hash: sha256-bafc06262debefae506501945064c3d2a9bc6e4e5a33359ea4b312e1d971449d
+generated_hash: sha256-335f8e890de28e4f81d8254f74f9970982dc8aad12c4677484bcbe94ecfb7787
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
