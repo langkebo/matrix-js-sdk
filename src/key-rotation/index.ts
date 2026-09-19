@@ -19,16 +19,20 @@ limitations under the License.
  *
  * 提供加密密钥轮换状态查询、手动轮换、轮换历史、密钥吊销、配置更新等功能
  * 对接后端: synapse-rust/src/web/routes/key_rotation.rs
- * API 前缀: /_matrix/client/v1/keys/rotation
+ * API 前缀: /_matrix/client/v1/keys/rotation (与 /_matrix/vendor/v1/keys/rotation)
+ *
+ * ⚠️ **requires server admin**: 所有 5 个端点均要求调用方为 server admin（`auth_user.is_admin`）。
+ *    非管理员调用会返回 403 Forbidden，且 `withRetry` **不会重试** 4xx 错误（仅重试 5xx / 超时）。
+ *    建议在调用前检查 `client.getUserId()` 是否为管理员账户。
  *
  * 使用方式:
  * ```typescript
  * const manager = client.getKeyRotationManager();
- * // 获取轮换状态
+ * // 获取轮换状态（需 admin）
  * const status = await manager.getStatus();
- * // 手动轮换密钥
+ * // 手动轮换密钥（需 admin）
  * const result = await manager.rotateKey({ key_id: "key-v1" });
- * // 吊销密钥
+ * // 吊销密钥（需 admin）
  * await manager.revokeKey({ key_id: "key-1" });
  * ```
  */
@@ -190,7 +194,7 @@ export class KeyRotationManager extends BaseManager {
      * }
      * ```
      *
-     * @throws {ApiError} If the API call fails.
+     * @throws {ApiError} If the API call fails (including 403 Forbidden for non-admin users).
      */
     public async getStatus(forceRefresh = false): Promise<KeyRotationStatus> {
         if (!forceRefresh && this.statusCache && this.statusCache.expiresAt > Date.now()) {

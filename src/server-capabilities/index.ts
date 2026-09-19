@@ -49,7 +49,12 @@ export const SynapseRustFeature = {
     Widget: "org.matrix.msc4261.widget",
     BurnAfterRead: "io.hula.burn_after_read",
     Friends: "io.hula.friends",
-    Voice: "org.matrix.msc3245",
+    /**
+     * ⚠️ 真实 key 为 `org.matrix.msc3245.voice`（后端 `capability_governance.rs:454`）。
+     * 别名 `org.matrix.msc3245` 与 `m.voice` 由服务端在 `/versions` 中保留（:259），
+     * 本 SDK 通过 SYNAPSE_RUST_CAPABILITY_ALIASES 兜底匹配。
+     */
+    Voice: "org.matrix.msc3245.voice",
 } as const;
 
 export type SynapseRustFeatureName = (typeof SynapseRustFeature)[keyof typeof SynapseRustFeature];
