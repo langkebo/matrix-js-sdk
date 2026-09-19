@@ -1,6 +1,6 @@
 {
     "name": "@langkebo/matrix-js-sdk",
-    "version": "40.2.0-langkebo.2",
+    "version": "40.2.0-langkebo.3",
     "description": "Matrix Client-Server SDK for Javascript (langkebo fork of matrix-org/matrix-js-sdk, extended for synapse-rust)",
     "engines": {
         "node": ">=22.0.0"
