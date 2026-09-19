@@ -174,6 +174,7 @@ import { M_BEACON_INFO, type MBeaconInfoEventContent } from "./@types/beacon";
 import { type CryptoBackend } from "./common-crypto/CryptoBackend";
 import { RUST_SDK_STORE_PREFIX } from "./rust-crypto/constants";
 import { type CryptoApi, type CryptoCallbacks, CryptoEvent, type CryptoEventHandlerMap } from "./crypto-api/index";
+import type { UserDeviceMap } from "./matrix-client-extensions";
 import {
     type SecretStorageKeyDescription,
     type ServerSideSecretStorage,
@@ -1296,6 +1297,67 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      */
     public fetchCapabilities(): Promise<Capabilities> {
         return this.serverCapabilitiesService.fetchCapabilities();
+    }
+
+    /**
+     * The top-level `unstable_features` map from the last `/capabilities`
+     * fetch, or `undefined` if the server did not send one.
+     *
+     * synapse-rust returns this alongside `capabilities`
+     * (`synapse-services/src/capability_governance.rs:451-465`); stock servers
+     * omit it.
+     */
+    public getUnstableFeatures(): Record<string, boolean> | undefined {
+        return this.serverCapabilitiesService.getUnstableFeatures();
+    }
+
+    /**
+     * Whether the homeserver advertises a specific unstable feature.
+     *
+     * Matching is exact against the keys the server sent — see
+     * {@link ServerCapabilities.hasUnstableFeature} for the real key set and
+     * why prefix guessing was removed.
+     *
+     * @param name - exact feature key, or a bare `"4204"` / `"msc4204"` form
+     */
+    public hasUnstableFeature(name: string): boolean {
+        return this.serverCapabilitiesService.hasUnstableFeature(name);
+    }
+
+    /**
+     * Get the device-key map for an arbitrary user via `POST /keys/query`.
+     *
+     * Returns a map of `deviceId → device content` for the requested user, which
+     * is the shape `DeviceKeysManager.getUserDevices()` and the frontend device
+     * list consume.
+     *
+     * **Why not `GET /devices`?** That endpoint is scoped to the *authenticated*
+     * caller: `synapse-web/src/routes/device.rs` has no `{user_id}` path segment
+     * and resolves the user from `auth_user.user_id`, returning
+     * `{ devices: [ { device_id, display_name, ... } ] }` — an array, not a map.
+     * Routing a third-party lookup (e.g. a friend's device list) through it
+     * silently returns the caller's own devices and always misses the requested
+     * `userId` key. `POST /keys/query` is the only endpoint that can look up
+     * another user's devices, and it is what the E2EE stack uses anyway.
+     *
+     * @param userId - The user ID to query devices for
+     * @returns A promise resolving to the `deviceId → device content` map; an
+     *          empty object when the server reports no keys for the user.
+     */
+    public async getUserDevices(userId: string): Promise<UserDeviceMap> {
+        if (!userId) {
+            throw new Error("getUserDevices requires a userId");
+        }
+        const response = await this.http.authedRequest<{ device_keys?: Record<string, UserDeviceMap> }>(
+            Method.Post,
+            "/keys/query",
+            undefined,
+            // Empty device list means "all devices of this user".
+            { device_keys: { [userId]: [] } },
+            // 5th parameter is IRequestOpts, not a bare prefix.
+            { prefix: ClientPrefix.V3 },
+        );
+        return response?.device_keys?.[userId] ?? {};
     }
 
     /**

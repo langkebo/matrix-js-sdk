@@ -263,53 +263,56 @@ export interface RoomKeyRequestRequest {
 
 // ─── Device Verification (v3-only) ────────────────────────────
 export interface DeviceVerificationRequest {
-    user_id?: string;
     new_device_id?: string;
     device_id?: string;
-    method?: string;
+    method?: "sas" | "qr" | "emoji";
 }
+// POST /device_verification/request 的响应
+// （devices.rs::request_device_verification）
 export interface DeviceVerificationResponse {
-    transaction_id?: string;
-    state?: string;
-    device_id?: string;
-    verified?: boolean;
-}
-export interface DeviceVerificationStatusResponse {
+    request_token: string;
     token: string;
-    state: "pending" | "verified" | "cancelled" | "expired";
-    device_id?: string;
-    requested_ts?: number;
-    completed_ts?: number;
+    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
+    expires_at: number;
+    methods_available: ("sas" | "qr" | "emoji")[];
+}
+// GET /device_verification/status/{token}
+// 未知 token 时返回 200 { "status": "not_found" }，故除 status 外均可选
+export interface DeviceVerificationStatusResponse {
+    request_token?: string;
+    token?: string;
+    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
+    expires_at?: number;
+    methods_available?: ("sas" | "qr" | "emoji")[];
 }
 
 // ─── Device Trust (v3-only) ───────────────────────────────────
+// trust_level 仅可能是 verified / unverified / blocked
+// （synapse-e2ee/src/device_trust/models.rs:26-29 的 Display）
 export interface DeviceTrustEntry {
     device_id: string;
-    user_id?: string;
-    trust_level?: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
+    trust_level: "verified" | "unverified" | "blocked";
+    verified_at?: number;
+    verified_by?: string;
 }
 export interface DeviceTrustListResponse {
     devices: DeviceTrustEntry[];
 }
 export interface DeviceTrustResponse {
     device_id: string;
-    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
+    trust_level: "verified" | "unverified" | "blocked";
+    verified_at?: number;
+    verified_by?: string;
 }
 
 // ─── Security Summary (v3-only) ───────────────────────────────
 export interface SecuritySummaryResponse {
     verified_devices: number;
     unverified_devices: number;
-    key_backup_configured: boolean;
-    cross_signing_setup: boolean;
-    backed_up_sessions?: number;
-    total_sessions?: number;
+    blocked_devices: number;
+    has_cross_signing_master: boolean;
+    security_score: number;
+    recommendations: string[];
 }
 
 // ─── Secure Backup (v3-only) ──────────────────────────────────

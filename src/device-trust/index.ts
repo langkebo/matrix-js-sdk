@@ -44,7 +44,16 @@ export enum DeviceTrustEvent {
     SecuritySummaryUpdated = "SecuritySummaryUpdated",
 }
 
-export type TrustLevel = "verified" | "cross_signed" | "unverified" | "blacklisted";
+/**
+ * Device trust levels, mirroring `synapse-e2ee/src/device_trust/models.rs`
+ * `DeviceTrustLevel` (`Display` impl at `models.rs:26-29`).
+ *
+ * Only these three values ever appear on the wire: `verified`, `unverified`,
+ * `blocked`. The previous union included `cross_signed` and `blacklisted`,
+ * which the backend cannot emit — `isDeviceBlocked()` therefore never matched
+ * and always reported `false`.
+ */
+export type TrustLevel = "verified" | "unverified" | "blocked";
 
 export type VerificationStatus = "pending" | "approved" | "rejected" | "expired" | "not_found";
 
@@ -56,6 +65,13 @@ export interface IDeviceVerificationRequest {
     method?: VerificationMethod;
 }
 
+/**
+ * Response of `POST /device_verification/request`.
+ *
+ * Contract source: `synapse-web/src/routes/e2ee/devices.rs::request_device_verification`
+ * → `{ request_token, token, status, expires_at, methods_available }`
+ * (`token` is an alias of `request_token`).
+ */
 export interface IDeviceVerificationResponse {
     request_token: string;
     token: string;
@@ -64,11 +80,47 @@ export interface IDeviceVerificationResponse {
     methods_available: VerificationMethod[];
 }
 
+/**
+ * Response of `GET /device_verification/status/{token}`.
+ *
+ * Contract source: `devices.rs::get_verification_status` — returns the same
+ * fields as the request response, **or** `{ "status": "not_found" }` with HTTP
+ * 200 when the token is unknown (it never 404s). Hence every field except
+ * `status` is optional here.
+ */
+export interface IVerificationStatusResponse {
+    request_token?: string;
+    token?: string;
+    status: VerificationStatus;
+    expires_at?: number;
+    methods_available?: VerificationMethod[];
+}
+
+/**
+ * Response of `POST /device_verification/respond`.
+ *
+ * Contract source: `devices.rs::respond_device_verification` →
+ * `{ success, trust_level }`. The request body must carry
+ * `request_token` (or its `token` alias) **and `approved: boolean`** —
+ * `approved` defaults to `false`, so omitting it silently turns an "accept"
+ * into a "reject".
+ */
 export interface IVerificationRespondResult {
     success: boolean;
     trust_level: TrustLevel;
 }
 
+/**
+ * One device's trust record.
+ *
+ * Contract source: `synapse-web/src/routes/e2ee/devices.rs::get_device_trust_list`
+ * and `::get_device_trust` → `{ device_id, trust_level, verified_at, verified_by }`.
+ *
+ * The backend does **not** return `user_id`, `display_name`, `last_seen_ts` or
+ * `last_seen_ip` here — those live on `GET /devices` and `POST /keys/query`.
+ * Filtering this list by `user_id` (as `CryptoDeviceAdapter.getDevices` used to)
+ * therefore always yields an empty result.
+ */
 export interface IDeviceTrustInfo {
     device_id: string;
     trust_level: TrustLevel;
@@ -80,6 +132,17 @@ export interface IDeviceTrustListResponse {
     devices: IDeviceTrustInfo[];
 }
 
+/**
+ * Response of `GET /security/summary`.
+ *
+ * Contract source: `devices.rs::get_security_summary` →
+ * `{ verified_devices, unverified_devices, blocked_devices,
+ *    has_cross_signing_master, security_score, recommendations }`.
+ *
+ * NOTE: the field names are *not* the `devices_total` / `devices_verified` /
+ * `devices_unverified` / `cross_signing_ready` set that used to be declared
+ * here and in `device-keys`/`e2ee`; those names never existed on the wire.
+ */
 export interface ISecuritySummary {
     verified_devices: number;
     unverified_devices: number;
@@ -155,10 +218,10 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
         }
     }
 
-    async getVerificationStatus(token: string): Promise<IDeviceVerificationResponse> {
+    async getVerificationStatus(token: string): Promise<IVerificationStatusResponse> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<IDeviceVerificationResponse>({
+                return await this.request<IVerificationStatusResponse>({
                     method: Method.Get,
                     path: `/device_verification/status/${encodeURIComponent(token)}`,
                     prefix: ClientPrefix.V3,
@@ -263,7 +326,9 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
         if (!trustInfo) {
             return false;
         }
-        return trustInfo.trust_level === "verified" || trustInfo.trust_level === "cross_signed";
+        // `cross_signed` is not a wire value: the backend only emits
+        // verified / unverified / blocked (models.rs:26-29).
+        return trustInfo.trust_level === "verified";
     }
 
     async isDeviceBlocked(deviceId: string): Promise<boolean> {
@@ -271,7 +336,9 @@ export class DeviceTrustManager extends BaseManager<DeviceTrustEvent, DeviceTrus
         if (!trustInfo) {
             return false;
         }
-        return trustInfo.trust_level === "blacklisted";
+        // Was `=== "blacklisted"`, which the backend never emits (the level is
+        // spelled `blocked`), so this always returned false.
+        return trustInfo.trust_level === "blocked";
     }
 
     clearCache(): void {

@@ -7,9 +7,22 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 ### Added
 
 - `ServerCapabilities`: 新增 `getUnstableFeatures()` 与 `hasUnstableFeature(name)` 方法，保留 synapse-rust 后端返回的顶层 `unstable_features`（原 `fetchCapabilities` 会丢弃，`Capabilities` 类型亦补全字段声明）。
+- `MatrixClient.getUnstableFeatures()` / `MatrixClient.hasUnstableFeature(name)` 透传入口（原 `hasUnstableFeature` 实现存在但零可达调用方，等同死代码）。
+- `spec/unit/api-consistency/synapse-rust-dto-contracts.spec.ts`：针对 synapse-rust 后端的契约回归测试（私有端点路径 + `unstable_features` 真实 key 逐条断言）。
+
+### Changed
+
+- **BREAKING** `voice`: 列表/详情 DTO 与端点路径按 synapse-rust 真实实现对齐。路径去掉错误的 `/messages` 后缀（正确路径为 `/_matrix/{client/v3,vendor/v1}/voice/room/{roomId}` 与 `/voice/user/{userId}`）；`IVoiceMessage` 收敛为后端真实 8 字段（`media_id`/`user_id`/`room_id`/`content_uri`/`content_type`/`duration_ms`/`size_bytes`/`created_ts`）；`IVoiceMessageList` 删除后端并不返回的 `has_more`，`next_batch` 改为毫秒时间戳游标 `number | null`；`IVoiceListQueryParams.from` 由 `string` 改为 `number`；`IVoiceUploadResponse` 按后端返回形状修正。`getRoomVoice`/`getUserVoice` 改为委托列表方法，不再各自打一遍 HTTP。
+- **BREAKING** `device-trust`: `TrustLevel` 由 `verified | cross_signed | unverified | blacklisted` 收敛为后端枚举 `verified | unverified | blocked`；`ISecuritySummary` 字段改为后端真实形状（`verified_devices` / `unverified_devices` / `blocked_devices` / `has_cross_signing_master` / `security_score` / `recommendations`）；新增 `IVerificationStatusResponse`（状态字段为 `status` 而非 `state`）。
+- `device-keys` 与 `e2ee` 子路径不再各自维护一份设备信任 DTO：类型改为从 `device-trust` re-export，方法改为委托 `DeviceTrustManager`，消除同一契约三处并行封装（此前 `device-keys`/`e2ee` 的字段声明与后端完全不符且长期未被发现）。
+- `e2ee/__generated__/dto.ts`: 按修正后的 `docs/api-contract/e2ee.md` 重新生成；契约源文档中的 DTO 片段同步改为后端真实响应形状。
 
 ### Fixed
 
+- `MatrixClient.getUserDevices()` 改回 `POST /keys/query`。`GET /devices` 在 synapse-rust 上没有 `{userId}` 路径段、只能查自己，原实现查他人设备必然得到空集，导致前端好友设备列表恒空（功能回归）。
+- `respondDeviceVerification()` 以 `approved` 为规范字段（后端只读取 `request_token|token` 与 `approved`，`approved` 缺省即 `false`），同时保留旧 `{ token, action }` 入参的归一化兼容，避免"接受"被静默降级为"拒绝"。
+- `hasUnstableFeature(name)` 改为对服务端返回的 `unstable_features` 精确查表，仅对 `mscNNNN` / `NNNN` 形式做受限展开（结果仍需存在于服务端 map 中），不再做前缀拼接（原实现只能命中 synapse-rust 实际发出的 9 个 key 中的 5 个）。
+- `isDeviceBlocked()` 改为比较 `blocked`；原实现比较后端从未返回过的 `blacklisted`，条件恒为假。
 - `serverCapabilities.ts`: `fetchCapabilities` 现在缓存顶层 `unstable_features`（synapse-rust `/capabilities` 响应包含该字段）；`Capabilities` 接口新增 `unstable_features?: Record<string, boolean>` 字段声明。
 - `server-capabilities/index.ts`: `getServerCapabilities()` 读取响应时同步合并 `unstable_features` 到 `cachedCapabilities`。
 

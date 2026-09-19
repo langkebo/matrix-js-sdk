@@ -179,17 +179,47 @@ export class ServerCapabilities {
     }
 
     /**
-     * Checks whether the server supports a specific unstable feature.
+     * Checks whether the server advertises a specific unstable feature.
      *
-     * If `name` does not start with `org.matrix.msc`, the prefix is added
-     * automatically so callers can write `hasUnstableFeature('msc4204')`
-     * instead of `hasUnstableFeature('org.matrix.msc4204')`.
+     * Matching is **exact**, against the keys the server actually sent in the
+     * top-level `unstable_features` map.
+     *
+     * The previous implementation guessed the key by string-prefixing the
+     * argument (`org.matrix.msc${name}`). That happened to work for keys the
+     * server already spells `org.matrix.mscNNNN…`, but produced garbage for
+     * every other key: `io.hula.friends` was looked up as
+     * `org.matrix.mscio.hula.friends`, `uk.tcpip.msc4133` as
+     * `org.matrix.mscuk.tcpip.msc4133`. Of the nine keys the synapse-rust
+     * backend emits (`synapse-services/src/capability_governance.rs:451-465`)
+     * only five were ever matchable.
+     *
+     * The real key set is:
+     * `io.hula.friends`, `org.matrix.msc3245.voice`,
+     * `org.matrix.msc3983.thread`, `org.matrix.msc3886.sliding_sync`,
+     * `org.matrix.simplified_msc3575`, `org.matrix.msc4186`,
+     * `io.hula.burn_after_read`, `org.matrix.msc4108`, `uk.tcpip.msc4133`.
+     *
+     * @param name - the exact feature key. A bare MSC number (`"4204"` or
+     *   `"msc4204"`) is also accepted and expanded to `org.matrix.msc4204`;
+     *   anything else must be passed verbatim.
+     * @returns true only when the server sent that key with a `true` value.
      */
     public hasUnstableFeature(name: string): boolean {
         const features = this.unstableFeatures;
-        if (!features) return false;
-        const key = name.startsWith("org.matrix.msc") ? name : `org.matrix.msc${name}`;
-        return features[key] === true;
+        if (!features || !name) return false;
+
+        if (features[name] === true) return true;
+
+        // Convenience expansion for the two common MSC spellings. The result is
+        // still required to be present in the server's map, so this can only
+        // ever produce a false *negative*, never a false positive — and a key
+        // living under another namespace (e.g. `uk.tcpip.msc4133`) must be
+        // passed in full.
+        const mscMatch = /^(?:org\.matrix\.)?(?:msc)?(\d+)$/.exec(name);
+        if (mscMatch) {
+            return features[`org.matrix.msc${mscMatch[1]}`] === true;
+        }
+        return false;
     }
 
     private poll = async (): Promise<void> => {

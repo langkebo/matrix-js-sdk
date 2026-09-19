@@ -2,10 +2,14 @@
  * Voice Manager - 语音消息管理 API 封装
  *
  * 提供语音消息统计查询、配置获取、上传/获取/删除语音消息等功能
- * 对接后端: synapse-rust/src/web/routes/voice.rs
- * API 前缀: /_matrix/client/v3/voice（v3）和 /_matrix/client/v1/voice（v1）
+ * 对接后端: synapse-rust/synapse-web/src/routes/voice.rs
+ * API 前缀: /_matrix/client/v3/voice（v3）和 /_matrix/vendor/v1/voice（vendor v1）
  *
  * 注意：MSC3245 协议规定语音转码/转录/优化在客户端完成
+ *
+ * 路径契约（勿凭直觉补后缀）：`/voice/{media_id}/convert|optimize|transcription`
+ * 带 `{media_id}`，而 `/voice/room/{room_id}` 与 `/voice/user/{user_id}` **不带任何后缀**
+ * （列表与内容共用同一路由，仅响应体不同）。
  *
  * 使用方式:
  * ```typescript
@@ -76,13 +80,23 @@ export interface IVoiceUploadRequestMultipart {
     prefix?: string;
 }
 
+/**
+ * Response of `POST /voice/upload`.
+ *
+ * Contract source: `synapse-services/src/voice_service.rs::upload_voice_message`
+ * → `json!({ "content_uri", "content", "content_type", "duration_ms", "size" })`.
+ *
+ * The stored media URI is exposed as `content_uri` (there is no `url`/`mxc_url`
+ * alias) and the byte count is `size` (not `size_bytes`); the endpoint does not
+ * return a `message_id` — callers derive it from `content_uri` via
+ * `MediaLocator::parse`.
+ */
 export interface IVoiceUploadResponse {
-    message_id: string;
-    url: string;
-    mxc_url: string;
+    content_uri: string;
+    content: Record<string, unknown>;
     content_type: string;
-    size_bytes: number;
     duration_ms: number;
+    size: number;
 }
 
 export interface IVoiceTranscriptionResponse {
@@ -92,13 +106,25 @@ export interface IVoiceTranscriptionResponse {
     confidence: number;
 }
 
+/**
+ * A stored voice message record.
+ *
+ * Contract source: `synapse-services/src/voice_service.rs::record_to_message_json`
+ * → `{ media_id, user_id, room_id, content_uri, content_type, duration_ms,
+ *      size_bytes, created_ts }`.
+ *
+ * Returned by both the list endpoints and `GET /voice/{media_id}`. The previous
+ * shape (`message_id` / `url` / `mxc_url`) never existed on the wire; the mxc
+ * URI is `content_uri` and the identifier is `media_id`.
+ */
 export interface IVoiceMessage {
-    message_id: string;
-    url: string;
-    mxc_url: string;
+    media_id: string;
+    user_id: string;
+    room_id: string | null;
+    content_uri: string;
     content_type: string;
-    size_bytes: number;
     duration_ms: number;
+    size_bytes: number;
     created_ts: number;
 }
 
@@ -115,6 +141,43 @@ export interface IVoiceRoomInfo {
 export interface IVoiceUserInfo {
     user_id: string;
     [key: string]: unknown;
+}
+
+/**
+ * @deprecated The backend never returned `event_id` / `sender` / `duration` /
+ * `timestamp` for voice list rows. Alias of {@link IVoiceMessage}.
+ */
+export type IVoiceMessageItem = IVoiceMessage;
+
+/**
+ * Response of `GET /voice/room/{room_id}` and `GET /voice/user/{user_id}`.
+ *
+ * Contract source: `synapse-services/src/voice_service.rs`
+ * (`get_room_voice_messages` / `get_user_voice_messages`) →
+ * `{ room_id|user_id, messages: [...], next_batch: <i64|null> }`.
+ *
+ * `next_batch` is a **keyset cursor carrying the `created_ts` (ms) of the last
+ * row**, or `null` when the page is empty. It is a number, not an opaque
+ * string, and the backend does **not** return `has_more` — termination is
+ * signalled by `messages.length < limit` or `next_batch === null`.
+ */
+export interface IVoiceMessageList {
+    room_id?: string;
+    user_id?: string;
+    messages: IVoiceMessage[];
+    next_batch: number | null;
+}
+
+/**
+ * Query parameters for the voice list endpoints.
+ *
+ * Backend `VoiceListQuery` is `#[serde(deny_unknown_fields)]` and only accepts
+ * `limit` + `from`; `from` is the millisecond `created_ts` cursor echoed back
+ * as `next_batch` by the previous page.
+ */
+export interface IVoiceListQueryParams {
+    limit?: number;
+    from?: number;
 }
 
 export interface IVoiceConvertOptions {
@@ -283,9 +346,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
      * raw audio bytes in a multipart form. Backend must accept multipart
      * (synapse-web `voice.rs` extractor switched to `Multipart`).
      */
-    public async uploadVoiceMessageMultipart(
-        request: IVoiceUploadRequestMultipart,
-    ): Promise<IVoiceUploadResponse> {
+    public async uploadVoiceMessageMultipart(request: IVoiceUploadRequestMultipart): Promise<IVoiceUploadResponse> {
         try {
             const response = await this.withRetry(
                 async () => {
@@ -295,7 +356,10 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                         throw new ValidationError("Voice upload requires 'file' field in FormData");
                     }
                     const fileValue = formData.get("file");
-                    if (!fileValue || (typeof Blob !== "undefined" && fileValue instanceof Blob && fileValue.size === 0)) {
+                    if (
+                        !fileValue ||
+                        (typeof Blob !== "undefined" && fileValue instanceof Blob && fileValue.size === 0)
+                    ) {
                         throw new ValidationError("Voice upload file is empty");
                     }
                     return await this.request<IVoiceUploadResponse>({
@@ -348,34 +412,108 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * @deprecated The backend exposes a single route for this path; it returns a
+     * **voice-message page**, not a room-info object. Use
+     * {@link listRoomVoiceMessages} for the correctly-typed result. Kept as a
+     * thin delegate so existing callers keep the same request.
+     */
     public async getRoomVoice(roomId: string, prefix: string = VendorPrefix): Promise<IVoiceRoomInfo> {
+        this.requireNonEmptyString(roomId, "Room ID");
+        const page = await this.listRoomVoiceMessages(roomId, {}, prefix);
+        return { ...page, room_id: page.room_id ?? roomId };
+    }
+
+    /**
+     * List voice messages in a room with keyset pagination.
+     * GET /_matrix/vendor/v1/voice/room/{room_id}
+     *
+     * NOTE: the route has **no `/messages` suffix** — it is the same path as
+     * `getRoomVoice`, distinguished only by the way the handler renders the
+     * body. `synapse-web/src/routes/voice.rs` registers exactly
+     * `/voice/room/{room_id}` for both v3 and vendor/v1; appending `/messages`
+     * would produce a 404.
+     *
+     * Backend returns `{ room_id, messages: [...], next_batch: <ms>|null }`.
+     *
+     * @param roomId - The room ID to list messages for
+     * @param params - Optional pagination parameters (`limit`, `from`)
+     * @param prefix - API prefix (default: VendorPrefix)
+     */
+    public async listRoomVoiceMessages(
+        roomId: string,
+        params: IVoiceListQueryParams = {},
+        prefix: string = VendorPrefix,
+    ): Promise<IVoiceMessageList> {
         this.requireNonEmptyString(roomId, "Room ID");
         try {
             return await this.withRetry(async () => {
-                return await this.request<IVoiceRoomInfo>({
+                const queryParams: Record<string, string | number | undefined> = {
+                    limit: params.limit ?? 50,
+                };
+                if (params.from !== undefined && params.from !== null) {
+                    queryParams.from = params.from;
+                }
+                return await this.request<IVoiceMessageList>({
                     method: Method.Get,
                     path: `/voice/room/${encodeURIComponent(roomId)}`,
+                    queryParams,
                     prefix,
                 });
-            }, "getRoomVoice");
+            }, "listRoomVoiceMessages");
         } catch (e) {
-            throw this.normalizeError(e, "getRoomVoice");
+            throw this.normalizeError(e, "listRoomVoiceMessages");
         }
     }
 
-    public async getUserVoice(userId: string, prefix: string = VendorPrefix): Promise<IVoiceUserInfo> {
+    /**
+     * List voice messages for a user with keyset pagination.
+     * GET /_matrix/vendor/v1/voice/user/{user_id}
+     *
+     * NOTE: see {@link listRoomVoiceMessages} — no `/messages` suffix exists on
+     * the server side, and the caller must be the user themselves
+     * (`voice.rs::get_user_voice_messages` rejects cross-user reads with 403).
+     *
+     * Backend returns `{ user_id, messages: [...], next_batch: <ms>|null }`.
+     *
+     * @param userId - The user ID to list messages for (must be the caller)
+     * @param params - Optional pagination parameters (`limit`, `from`)
+     * @param prefix - API prefix (default: VendorPrefix)
+     */
+    public async listUserVoiceMessages(
+        userId: string,
+        params: IVoiceListQueryParams = {},
+        prefix: string = VendorPrefix,
+    ): Promise<IVoiceMessageList> {
         this.requireNonEmptyString(userId, "User ID");
         try {
             return await this.withRetry(async () => {
-                return await this.request<IVoiceUserInfo>({
+                const queryParams: Record<string, string | number | undefined> = {
+                    limit: params.limit ?? 50,
+                };
+                if (params.from !== undefined && params.from !== null) {
+                    queryParams.from = params.from;
+                }
+                return await this.request<IVoiceMessageList>({
                     method: Method.Get,
                     path: `/voice/user/${encodeURIComponent(userId)}`,
+                    queryParams,
                     prefix,
                 });
-            }, "getUserVoice");
+            }, "listUserVoiceMessages");
         } catch (e) {
-            throw this.normalizeError(e, "getUserVoice");
+            throw this.normalizeError(e, "listUserVoiceMessages");
         }
+    }
+
+    /**
+     * @deprecated Same route as {@link listUserVoiceMessages}, which returns the
+     * correctly-typed voice-message page. Kept as a thin delegate.
+     */
+    public async getUserVoice(userId: string, prefix: string = VendorPrefix): Promise<IVoiceUserInfo> {
+        this.requireNonEmptyString(userId, "User ID");
+        const page = await this.listUserVoiceMessages(userId, {}, prefix);
+        return { ...page, user_id: page.user_id ?? userId };
     }
 
     public async convertVoiceMessage(

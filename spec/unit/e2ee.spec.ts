@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { E2EEManager } from "../../src/e2ee/index";
 import { Method } from "../../src/http-api/method";
@@ -23,11 +23,23 @@ import { FakeTransport } from "../test-utils/FakeTransport";
 describe("E2EEManager", () => {
     let transport: FakeTransport;
     let e2eeManager: E2EEManager;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let trust: any;
 
     beforeEach(() => {
         transport = new FakeTransport();
+        // Device-trust / verification calls are delegated to DeviceTrustManager,
+        // which is the single owner of those contracts.
+        trust = {
+            requestVerification: vi.fn(),
+            respondToVerification: vi.fn(),
+            getVerificationStatus: vi.fn(),
+            getDeviceTrustList: vi.fn(),
+            getDeviceTrust: vi.fn(),
+            getSecuritySummary: vi.fn(),
+        };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        e2eeManager = new E2EEManager({} as any, { transport });
+        e2eeManager = new E2EEManager({ getDeviceTrustManager: () => trust } as any, { transport });
     });
 
     // ============ Key Management ============
@@ -102,41 +114,79 @@ describe("E2EEManager", () => {
     // ============ Device Verification ============
 
     describe("requestDeviceVerification", () => {
-        it("should request device verification", async () => {
-            transport.respondWith({ token: "verify-token-123" });
+        it("should delegate to DeviceTrustManager with the canonical body fields", async () => {
+            const response = {
+                request_token: "verify-token-123",
+                token: "verify-token-123",
+                status: "pending",
+                expires_at: 1700000000000,
+                methods_available: ["sas"],
+            };
+            trust.requestVerification.mockResolvedValue(response);
 
             const result = await e2eeManager.requestDeviceVerification({
-                user_id: "@alice:example.com",
-                device_id: "DEVICE1",
-                method: "m.sas.v1",
+                new_device_id: "DEVICE1",
+                method: "sas",
             });
 
-            expect(result.token).toBe("verify-token-123");
-            transport.expectCalledWith(Method.Post, "/device_verification/request");
+            expect(result.request_token).toBe("verify-token-123");
+            expect(trust.requestVerification).toHaveBeenCalledWith({
+                new_device_id: "DEVICE1",
+                device_id: undefined,
+                method: "sas",
+            });
         });
 
         it("should reject if no device_id and no new_device_id", async () => {
-            await expect(e2eeManager.requestDeviceVerification({ user_id: "@alice:example.com" })).rejects.toThrow();
+            await expect(e2eeManager.requestDeviceVerification({})).rejects.toThrow(
+                "device_id or new_device_id is required",
+            );
+            expect(trust.requestVerification).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("respondDeviceVerification", () => {
+        it("should send approved=true for an explicit accept (not an action string)", async () => {
+            trust.respondToVerification.mockResolvedValue({ success: true, trust_level: "verified" });
+
+            const result = await e2eeManager.respondDeviceVerification({ token: "t1", approved: true });
+
+            expect(trust.respondToVerification).toHaveBeenCalledWith("t1", true);
+            expect(result.trust_level).toBe("verified");
+        });
+
+        it("should honour request_token as the token source", async () => {
+            trust.respondToVerification.mockResolvedValue({ success: true, trust_level: "verified" });
+
+            await e2eeManager.respondDeviceVerification({ request_token: "rt1", approved: true });
+
+            expect(trust.respondToVerification).toHaveBeenCalledWith("rt1", true);
+        });
+
+        it("should normalise the legacy { action: 'accept' } form into approved=true", async () => {
+            trust.respondToVerification.mockResolvedValue({ success: true, trust_level: "verified" });
+
+            await e2eeManager.respondDeviceVerification({ token: "t2", action: "accept" });
+
+            expect(trust.respondToVerification).toHaveBeenCalledWith("t2", true);
+        });
+
+        it("should reject when no token is supplied", async () => {
+            await expect(e2eeManager.respondDeviceVerification({ approved: true })).rejects.toThrow(
+                "request_token (or token) is required",
+            );
+            expect(trust.respondToVerification).not.toHaveBeenCalled();
         });
     });
 
     describe("getDeviceVerificationStatus", () => {
-        it("should get verification status", async () => {
-            transport.respondWith({
-                token: "verify-token-123",
-                state: "pending",
-            });
+        it("should delegate and keep the backend's `status` field", async () => {
+            trust.getVerificationStatus.mockResolvedValue({ status: "pending", token: "t1", request_token: "t1" });
 
-            const result = await e2eeManager.getDeviceVerificationStatus("verify-token-123");
+            const result = await e2eeManager.getDeviceVerificationStatus("t1");
 
-            expect(result.state).toBe("pending");
-            transport.expectCalledWithArgs(
-                Method.Get,
-                "/device_verification/status/verify-token-123",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            expect(result.status).toBe("pending");
+            expect(trust.getVerificationStatus).toHaveBeenCalledWith("t1");
         });
 
         it("should reject empty token", async () => {
@@ -147,21 +197,20 @@ describe("E2EEManager", () => {
     // ============ Device Trust ============
 
     describe("getDeviceTrustList", () => {
-        it("should get device trust list", async () => {
-            transport.respondWith({
-                DEVICE1: {
-                    user_id: "@alice:example.com",
-                    device_id: "DEVICE1",
-                    trust_level: "verified",
-                },
-            });
+        it("should delegate and return the backend's `devices` array (not a map)", async () => {
+            const devices = [
+                { device_id: "DEVICE1", trust_level: "verified", verified_at: 1700000000000 },
+                { device_id: "DEVICE2", trust_level: "unverified" },
+            ];
+            trust.getDeviceTrustList.mockResolvedValue(devices);
 
             const result = await e2eeManager.getDeviceTrustList();
 
-            expect(result.DEVICE1.trust_level).toBe("verified");
-            transport.expectCalledWithArgs(Method.Get, "/device_trust", undefined, undefined, {
-                prefix: "/_matrix/client/v3",
-            });
+            expect(result).toEqual(devices);
+            expect(Array.isArray(result)).toBe(true);
+            // The old declaration was `Record<string, DeviceTrustInfo>` keyed by
+            // device id, which never matched `{ devices: [...] }`.
+            expect(result[0].trust_level).toBe("verified");
         });
     });
 

@@ -104,40 +104,74 @@ export interface KeyHistoryResponse {
     next_batch: string | null;
 }
 
-export interface DeviceVerificationRequestBody {
-    user_id?: string;
-    new_device_id?: string;
-    device_id?: string;
-    method?: string;
-}
+/**
+ * Device-trust / device-verification DTOs.
+ *
+ * Re-exported from the single authoritative module `src/device-trust/index.ts`.
+ * This file used to declare its own copies with wrong wire field names (e.g.
+ * `state` for the backend's `status`, `devices_total` for
+ * `verified_devices`) and a respond body of `{ token, action }` that the
+ * backend silently ignores. Do not re-declare these locally.
+ */
+export type {
+    TrustLevel,
+    VerificationStatus,
+    VerificationMethod,
+    IDeviceVerificationRequest,
+    IDeviceVerificationResponse,
+    IVerificationStatusResponse,
+    IVerificationRespondResult,
+    IDeviceTrustInfo,
+    IDeviceTrustListResponse,
+    ISecuritySummary,
+} from "../device-trust/index";
 
+import type {
+    IDeviceVerificationRequest,
+    IDeviceVerificationResponse,
+    IVerificationStatusResponse,
+    IVerificationRespondResult,
+    IDeviceTrustInfo,
+    ISecuritySummary,
+} from "../device-trust/index";
+
+/** @deprecated Use {@link IDeviceVerificationRequest} (same shape). */
+export type DeviceVerificationRequestBody = IDeviceVerificationRequest;
+
+/**
+ * Body of `POST /device_verification/respond`.
+ *
+ * The backend (`devices.rs::respond_device_verification`) reads
+ * `request_token` (falling back to `token`) and **`approved: boolean`**, which
+ * defaults to `false` — an omitted `approved` is a *rejection*. The
+ * `action: "accept" | "reject"` form is accepted here only for backward
+ * compatibility and is normalised to `approved` before the request is sent.
+ */
 export interface DeviceVerificationRespondBody {
-    token: string;
-    action: "accept" | "reject";
+    request_token?: string;
+    token?: string;
+    /** Canonical field. When omitted, `action` is consulted, then defaults to `false`. */
+    approved?: boolean;
+    /** @deprecated Legacy alias, normalised into `approved`. */
+    action?: "accept" | "reject";
 }
 
-export interface DeviceVerificationStatusResponse {
-    token: string;
-    state: "pending" | "verified" | "cancelled" | "expired";
-    device_id?: string;
-    requested_ts?: number;
-    completed_ts?: number;
-}
+/** @deprecated Use {@link IDeviceVerificationResponse} (same shape). */
+export type DeviceVerificationRequestResponse = IDeviceVerificationResponse;
+/** @deprecated Use {@link IVerificationRespondResult} (same shape). */
+export type DeviceVerificationRespondResponse = IVerificationRespondResult;
+/** @deprecated Use {@link IVerificationStatusResponse} (same shape). */
+export type DeviceVerificationStatusResponse = IVerificationStatusResponse;
+/** @deprecated Use {@link IDeviceTrustInfo} (same shape). */
+export type DeviceTrustInfo = IDeviceTrustInfo;
+/** @deprecated Use {@link ISecuritySummary} (same shape). */
+export type SecuritySummaryResponse = ISecuritySummary;
 
-export interface DeviceTrustInfo {
-    user_id: string;
-    device_id: string;
-    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
-    verified_at?: number;
-}
-
-export interface SecuritySummaryResponse {
-    devices_total: number;
-    devices_verified: number;
-    devices_unverified: number;
-    cross_signing_ready: boolean;
-    [key: string]: unknown;
-}
+export type {
+    TrustLevel as DeviceTrustLevel,
+    VerificationStatus as DeviceVerificationStatus,
+    VerificationMethod as DeviceVerificationMethod,
+} from "../device-trust/index";
 
 export interface SecureBackupInfo {
     backup_id: string;
@@ -226,17 +260,6 @@ export interface DeviceSigningUploadResponse {
 
 export interface SendToDeviceResponse {
     failures?: Record<string, Record<string, string>>;
-}
-
-export interface DeviceVerificationRequestResponse {
-    token: string;
-    expires_at?: number;
-    [key: string]: unknown;
-}
-
-export interface DeviceVerificationRespondResponse {
-    success?: boolean;
-    [key: string]: unknown;
 }
 
 export type SendToDeviceVersion = "v1" | "v3";
@@ -379,64 +402,80 @@ export class E2EEManager extends BaseManager {
 
     // -------- v3-only ----------
 
-    public async requestDeviceVerification(
-        body: DeviceVerificationRequestBody,
-    ): Promise<DeviceVerificationRequestResponse> {
+    /**
+     * Request verification of one of the caller's own devices.
+     *
+     * Delegates to {@link DeviceTrustManager.requestVerification} — the single
+     * implementation of the `POST /device_verification/request` contract
+     * (`devices.rs::request_device_verification` reads `new_device_id` or
+     * `device_id`, plus an optional `method`, and ignores anything else).
+     */
+    public async requestDeviceVerification(body: DeviceVerificationRequestBody): Promise<IDeviceVerificationResponse> {
         if (!body.device_id && !body.new_device_id) {
             throw new InvalidParamError("device_id or new_device_id is required");
         }
-        return this.post(ep("/device_verification/request"), body, "requestDeviceVerification");
+        return await this.trustManager.requestVerification({
+            new_device_id: body.new_device_id,
+            device_id: body.device_id,
+            method: body.method,
+        });
     }
 
-    public async respondDeviceVerification(
-        body: DeviceVerificationRespondBody,
-    ): Promise<DeviceVerificationRespondResponse> {
-        return this.post(ep("/device_verification/respond"), body, "respondDeviceVerification");
+    /**
+     * Approve or reject a pending verification request.
+     *
+     * ⚠️ `approved` is what the backend reads, and it **defaults to `false`**
+     * (`devices.rs::respond_device_verification:480`). Posting `{ token, action }`
+     * — the shape this method used to forward verbatim — made every "accept"
+     * a silent rejection. The legacy `action` field is still accepted from
+     * callers and normalised here.
+     */
+    public async respondDeviceVerification(body: DeviceVerificationRespondBody): Promise<IVerificationRespondResult> {
+        const token = body.request_token ?? body.token;
+        if (!token) {
+            throw new InvalidParamError("request_token (or token) is required");
+        }
+        const approved = typeof body.approved === "boolean" ? body.approved : body.action === "accept";
+        return await this.trustManager.respondToVerification(token, approved);
     }
 
-    public async getDeviceVerificationStatus(token: string): Promise<DeviceVerificationStatusResponse> {
+    public async getDeviceVerificationStatus(token: string): Promise<IVerificationStatusResponse> {
         this.requireNonEmptyString(token, "token");
-        return await this.withRetry(async () => {
-            return await this.request<DeviceVerificationStatusResponse>({
-                method: Method.Get,
-                path: ep(`/device_verification/status/${encodeURIComponent(token)}` as StripV3<E2eePathPattern>),
-                prefix: ClientPrefix.V3,
-            });
-        }, "getDeviceVerificationStatus");
+        return await this.trustManager.getVerificationStatus(token);
     }
 
-    public async getDeviceTrustList(): Promise<Record<string, DeviceTrustInfo>> {
-        return await this.withRetry(async () => {
-            return await this.request<Record<string, DeviceTrustInfo>>({
-                method: Method.Get,
-                path: ep("/device_trust"),
-                prefix: ClientPrefix.V3,
-            });
-        }, "getDeviceTrustList");
+    public async getDeviceTrustList(): Promise<IDeviceTrustInfo[]> {
+        return await this.trustManager.getDeviceTrustList();
     }
 
-    public async getDeviceTrust(deviceId: string): Promise<DeviceTrustInfo> {
+    public async getDeviceTrust(deviceId: string): Promise<IDeviceTrustInfo | null> {
         this.requireNonEmptyString(deviceId, "deviceId");
-        return await this.withRetry(async () => {
-            return await this.request<DeviceTrustInfo>({
-                method: Method.Get,
-                path: ep(`/device_trust/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),
-                prefix: ClientPrefix.V3,
-            });
-        }, "getDeviceTrust");
+        return await this.trustManager.getDeviceTrust(deviceId);
     }
 
-    public async getSecuritySummary(): Promise<SecuritySummaryResponse> {
+    public async getSecuritySummary(): Promise<ISecuritySummary> {
         try {
-            return await this.request<SecuritySummaryResponse>({
-                method: Method.Get,
-                path: ep("/security/summary"),
-                prefix: ClientPrefix.V3,
-            });
+            return await this.trustManager.getSecuritySummary();
         } catch (e) {
             logger.warn("E2EEManager.getSecuritySummary failed", e);
-            return { devices_total: 0, devices_verified: 0, devices_unverified: 0, cross_signing_ready: false };
+            return {
+                verified_devices: 0,
+                unverified_devices: 0,
+                blocked_devices: 0,
+                has_cross_signing_master: false,
+                security_score: 0,
+                recommendations: [],
+            };
         }
+    }
+
+    /**
+     * The single authoritative device-trust implementation lives on
+     * `DeviceTrustManager`; reached through the client to avoid a runtime
+     * import cycle (`device-trust` → `client`).
+     */
+    private get trustManager(): import("../device-trust/index").DeviceTrustManager {
+        return this.client.getDeviceTrustManager();
     }
 
     public async createSecureBackup(body: SecurityBackupCreateBody): Promise<SecureBackupCreateResponse> {

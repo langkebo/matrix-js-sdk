@@ -129,13 +129,13 @@ describe("VoiceManager", () => {
 
     it("uploadVoiceMessage should POST /voice/upload and emit MessageUploaded", async () => {
         const uploadReq = { content: "base64audio...", content_type: "audio/ogg", room_id: "!room:example.com" };
+        // 契约来源：voice_service.rs::upload_voice_message 的 json!({...})
         const uploadResp = {
-            message_id: "msg1",
-            url: "https://example.com/audio",
-            mxc_url: "mxc://example.com/audio",
+            content_uri: "mxc://example.com/audio",
+            content: { msgtype: "m.audio", body: "voice.ogg", url: "mxc://example.com/audio" },
             content_type: "audio/ogg",
-            size_bytes: 2048,
             duration_ms: 3000,
+            size: 2048,
         };
         const emitSpy = vi.spyOn(manager, "emit");
         transport.respondWith(uploadResp);
@@ -183,12 +183,11 @@ describe("VoiceManager", () => {
             content_type: "audio/ogg",
         });
         const response = {
-            message_id: "msg1",
-            url: "https://example.com/audio",
-            mxc_url: "mxc://example.com/audio",
+            content_uri: "mxc://example.com/audio",
+            content: { msgtype: "m.audio", body: "voice.ogg", url: "mxc://example.com/audio" },
             content_type: "audio/ogg",
-            size_bytes: 1024,
             duration_ms: 5000,
+            size: 1024,
         };
         const emitSpy = vi.spyOn(manager, "emit");
         transport.respondWith(response);
@@ -225,13 +224,15 @@ describe("VoiceManager", () => {
     // ─── getVoiceMessage ─────────────────────────────────────────────
 
     it("getVoiceMessage should GET a single voice message", async () => {
+        // 契约来源：voice_service.rs::record_to_message_json
         const msg = {
-            message_id: "msg1",
-            url: "https://example.com/audio",
-            mxc_url: "mxc://example.com/audio",
+            media_id: "msg1",
+            user_id: "@alice:example.com",
+            room_id: "!room:example.com",
+            content_uri: "mxc://example.com/audio",
             content_type: "audio/ogg",
-            size_bytes: 2048,
             duration_ms: 3000,
+            size_bytes: 2048,
             created_ts: 1234567890,
         };
         transport.respondWith(msg);
@@ -259,17 +260,105 @@ describe("VoiceManager", () => {
         await expect(manager.deleteVoiceMessage("")).rejects.toThrow("Message ID is required");
     });
 
-    // ─── getRoomVoice / getUserVoice ─────────────────────────────────
+    // ─── listRoomVoiceMessages / listUserVoiceMessages ───────────────
+    //
+    // 契约铁律：后端路由是 `/voice/room/{room_id}` 与 `/voice/user/{user_id}`，
+    // **没有 `/messages` 段**（voice.rs:57-58/69-70 注册的就是这个路径），
+    // 且 `next_batch` 是 i64 毫秒时间戳而不是不透明字符串，也没有 `has_more`。
+
+    it("listRoomVoiceMessages should GET /voice/room/{id} WITHOUT a /messages suffix", async () => {
+        const page = {
+            room_id: "!room:example.com",
+            messages: [
+                {
+                    media_id: "media1",
+                    user_id: "@alice:example.com",
+                    room_id: "!room:example.com",
+                    content_uri: "mxc://example.com/media1",
+                    content_type: "audio/ogg",
+                    duration_ms: 1200,
+                    size_bytes: 4096,
+                    created_ts: 1700000001000,
+                },
+            ],
+            next_batch: 1700000001000,
+        };
+        transport.respondWith(page);
+
+        const result = await manager.listRoomVoiceMessages("!room:example.com");
+
+        expect(result).toEqual(page);
+        // Guard against the 404 regression: no `/messages` segment may be appended.
+        transport.expectCalledWith(Method.Get, "/voice/room/!room%3Aexample.com");
+        const path = transport.request.mock.calls[0][1] as string;
+        expect(path.endsWith("/messages")).toBe(false);
+    });
+
+    it("listRoomVoiceMessages should pass limit and the numeric from cursor", async () => {
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: null });
+
+        await manager.listRoomVoiceMessages("!room:example.com", { limit: 10, from: 1700000001000 });
+
+        const query = transport.request.mock.calls[0][2] as Record<string, unknown>;
+        expect(query.limit).toBe(10);
+        expect(query.from).toBe(1700000001000);
+    });
+
+    it("listRoomVoiceMessages should default limit to 50 and omit from when absent", async () => {
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: null });
+
+        await manager.listRoomVoiceMessages("!room:example.com");
+
+        const query = transport.request.mock.calls[0][2] as Record<string, unknown>;
+        expect(query.limit).toBe(50);
+        expect("from" in query).toBe(false);
+    });
+
+    it("listRoomVoiceMessages should surface next_batch as a number, not a string", async () => {
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: 42 });
+
+        const result = await manager.listRoomVoiceMessages("!room:example.com");
+
+        expect(typeof result.next_batch).toBe("number");
+        // `has_more` is not part of the contract.
+        expect("has_more" in result).toBe(false);
+    });
+
+    it("listRoomVoiceMessages should throw ValidationError for empty room ID", async () => {
+        await expect(manager.listRoomVoiceMessages("")).rejects.toThrow("Room ID is required");
+    });
+
+    it("listUserVoiceMessages should GET /voice/user/{id} WITHOUT a /messages suffix", async () => {
+        const page = {
+            user_id: "@alice:example.com",
+            messages: [],
+            next_batch: null,
+        };
+        transport.respondWith(page);
+
+        const result = await manager.listUserVoiceMessages("@alice:example.com");
+
+        expect(result).toEqual(page);
+        transport.expectCalledWith(Method.Get, "/voice/user/%40alice%3Aexample.com");
+        const path = transport.request.mock.calls[0][1] as string;
+        expect(path.endsWith("/messages")).toBe(false);
+    });
+
+    it("listUserVoiceMessages should throw ValidationError for empty user ID", async () => {
+        await expect(manager.listUserVoiceMessages("")).rejects.toThrow("User ID is required");
+    });
+
+    // ─── getRoomVoice / getUserVoice (deprecated delegates) ──────────
 
     it("getRoomVoice should GET /voice/room/{id}", async () => {
-        transport.respondWith({ room_id: "!room:example.com", voice_enabled: true });
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: null });
         const result = await manager.getRoomVoice("!room:example.com");
         expect(result.room_id).toBe("!room:example.com");
         transport.expectCalledWith(Method.Get, "/voice/room/!room%3Aexample.com");
     });
 
     it("getUserVoice should GET /voice/user/{id}", async () => {
-        transport.respondWith({ user_id: "@user:example.com", voice_enabled: true });
+        transport.respondWith({ user_id: "@user:example.com", messages: [], next_batch: null });
         const result = await manager.getUserVoice("@user:example.com");
         expect(result.user_id).toBe("@user:example.com");
         transport.expectCalledWith(Method.Get, "/voice/user/%40user%3Aexample.com");
