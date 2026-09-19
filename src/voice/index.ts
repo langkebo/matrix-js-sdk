@@ -213,6 +213,34 @@ export interface IVoiceTranscribeResponse {
     [key: string]: unknown;
 }
 
+/**
+ * Request body for `POST /voice/register` - registering an encrypted voice attachment.
+ *
+ * Used after uploading via standard media service (`uploadEncryptedFile`) in encrypted
+ * rooms: the encrypted file is stored in the `media` table, but we need to register it
+ * in `voice_usage_stats` so it appears in the voice lists.
+ */
+export interface IVoiceRegisterRequest {
+    /** The room_id the voice belongs to */
+    room_id: string;
+    /** The media_id extracted from mxc:// URL */
+    media_id: string;
+    /** The content type (e.g., "audio/webm") */
+    content_type: string;
+    /** Duration in milliseconds */
+    duration_ms: number;
+    /** File size in bytes */
+    size_bytes: number;
+}
+
+/**
+ * Response of `POST /voice/register`.
+ */
+export interface IVoiceRegisterResponse {
+    content_uri: string;
+    exists: boolean;
+}
+
 export enum VoiceEvent {
     StatsUpdated = "StatsUpdated",
     ConfigUpdated = "ConfigUpdated",
@@ -573,6 +601,50 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             }, "transcribeVoiceMessage");
         } catch (e) {
             throw this.normalizeError(e, "transcribeVoiceMessage");
+        }
+    }
+
+    /**
+     * Register an encrypted voice attachment to the voice_usage_stats table.
+     *
+     * Phase 2.3 - After uploading encrypted voice via standard media service
+     * (e.g., `matrixMediaService.uploadEncryptedFile`), call this method to
+     * register the voice so it appears in lists.
+     *
+     * @param roomId - The room the voice belongs to
+     * @param mediaId - The media_id from the mxc:// URL
+     * @param durationMs - Duration in milliseconds
+     * @param sizeBytes - File size in bytes
+     * @param contentType - Content type (e.g., "audio/webm")
+     * @param prefix - API prefix (default: VendorPrefix)
+     */
+    public async registerEncryptedVoice(
+        roomId: string,
+        mediaId: string,
+        durationMs: number,
+        sizeBytes: number,
+        contentType: string = "audio/webm",
+        prefix: string = VendorPrefix,
+    ): Promise<IVoiceRegisterResponse> {
+        this.requireNonEmptyString(roomId, "Room ID");
+        this.requireNonEmptyString(mediaId, "Media ID");
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<IVoiceRegisterResponse>({
+                    method: Method.Post,
+                    path: "/voice/register",
+                    body: {
+                        room_id: roomId,
+                        media_id: mediaId,
+                        content_type: contentType,
+                        duration_ms: durationMs,
+                        size_bytes: sizeBytes,
+                    },
+                    prefix,
+                });
+            }, "registerEncryptedVoice");
+        } catch (e) {
+            throw this.normalizeError(e, "registerEncryptedVoice");
         }
     }
 
