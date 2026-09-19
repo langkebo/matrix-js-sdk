@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "admin",
-  "synapse_rust_commit": "7cb39946ea4a92ef81809796f55af668d6c4cfd4",
+  "synapse_rust_commit": "4936570871d083dc51a87cdfadb983ed1d5a8e36",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 164,
+  "entry_count": 165,
   "entries": [
     {
       "method": "POST",
@@ -386,6 +386,13 @@
       "path_params": [
         "media_id"
       ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/admin/v1/rate-limit-status",
+      "registered_by": "admin::server",
+      "path_params": [],
       "query_params": []
     },
     {
