@@ -91,14 +91,57 @@ export interface RevokeKeyResponse {
     message: string;
 }
 
+/**
+ * Update rotation configuration request.
+ *
+ * Aligns with backend `key_rotation.rs:140-147` (8 configurable fields).
+ * Fields are optional to support partial updates (only changed values need to be sent).
+ */
 export interface UpdateRotationConfigRequest {
+    /** Enable or disable automatic key rotation (boolean) */
     enabled?: boolean;
+    /** Rotation interval in milliseconds (positive integer) */
     interval_ms?: number;
+    /** Rotation interval in days (positive integer) */
+    rotation_interval_days?: number;
+    /** Rotation threshold in days (positive integer) */
+    rotation_threshold_days?: number;
+    /** Grace period in minutes (positive integer) */
+    grace_period_minutes?: number;
+    /** Olm key rotation interval in days (positive integer) */
+    olm_rotation_days?: number;
+    /** Megolm key rotation threshold by message count (positive integer) */
+    megolm_rotation_messages?: number;
+    /** Maximum session age in days (positive integer) */
+    max_session_age_days?: number;
 }
 
+/**
+ * Update rotation configuration response.
+ *
+ * Returned by the server after applying the configuration; mirrors the 8
+ * configurable fields of {@link UpdateRotationConfigRequest} plus the
+ * `config_applied` confirmation flag observed in backend responses.
+ */
 export interface UpdateRotationConfigResponse {
+    /** Whether automatic key rotation is enabled */
     enabled: boolean;
+    /** Rotation interval in milliseconds */
     interval_ms: number;
+    /** Rotation interval in days */
+    rotation_interval_days?: number;
+    /** Rotation threshold in days */
+    rotation_threshold_days?: number;
+    /** Grace period in minutes */
+    grace_period_minutes?: number;
+    /** Olm key rotation interval in days */
+    olm_rotation_days?: number;
+    /** Megolm key rotation threshold by message count */
+    megolm_rotation_messages?: number;
+    /** Maximum session age in days */
+    max_session_age_days?: number;
+    /** Whether the configuration was applied by the server */
+    config_applied?: boolean;
 }
 
 export interface KeyCheckResponse {
@@ -301,8 +344,8 @@ export class KeyRotationManager extends BaseManager {
      *
      * Clears the cached status so that the next `getStatus` call uses the new configuration.
      *
-     * @param request - The configuration to apply; `request.enabled` toggles rotation and
-     *     `request.interval_ms` sets the rotation interval in milliseconds.
+     * @param request - The configuration to apply. Supports partial updates; only
+     *     provided fields are sent to the server. See {@link UpdateRotationConfigRequest}.
      * @returns The configuration as applied by the server.
      *
      * @example
@@ -312,16 +355,27 @@ export class KeyRotationManager extends BaseManager {
      * console.log(`rotation enabled: ${config.enabled}, interval: ${config.interval_ms}ms`);
      * ```
      *
-     * @throws {InvalidParamError} If `request.enabled` is not a boolean or `request.interval_ms`
-     *     is not a positive integer.
+     * @throws {InvalidParamError} If any provided field has an invalid type or range.
      * @throws {ApiError} If the API call fails.
      */
     public async updateConfig(request: UpdateRotationConfigRequest): Promise<UpdateRotationConfigResponse> {
         if (request.enabled !== undefined && typeof request.enabled !== "boolean") {
             throw new InvalidParamError("enabled must be a boolean");
         }
-        if (request.interval_ms !== undefined && (!Number.isInteger(request.interval_ms) || request.interval_ms <= 0)) {
-            throw new InvalidParamError("interval_ms must be a positive integer");
+        const positiveIntFields: Array<keyof UpdateRotationConfigRequest> = [
+            "interval_ms",
+            "rotation_interval_days",
+            "rotation_threshold_days",
+            "grace_period_minutes",
+            "olm_rotation_days",
+            "megolm_rotation_messages",
+            "max_session_age_days",
+        ];
+        for (const field of positiveIntFields) {
+            const value = request[field];
+            if (value !== undefined && (typeof value !== "number" || !Number.isInteger(value) || value <= 0)) {
+                throw new InvalidParamError(`${field} must be a positive integer`);
+            }
         }
 
         const result = await this.withRetry(async () => {
@@ -345,8 +399,20 @@ export class KeyRotationManager extends BaseManager {
         if (request.enabled !== undefined && typeof request.enabled !== "boolean") {
             throw new InvalidParamError("enabled must be a boolean");
         }
-        if (request.interval_ms !== undefined && (!Number.isInteger(request.interval_ms) || request.interval_ms <= 0)) {
-            throw new InvalidParamError("interval_ms must be a positive integer");
+        const positiveIntFields: Array<keyof UpdateRotationConfigRequest> = [
+            "interval_ms",
+            "rotation_interval_days",
+            "rotation_threshold_days",
+            "grace_period_minutes",
+            "olm_rotation_days",
+            "megolm_rotation_messages",
+            "max_session_age_days",
+        ];
+        for (const field of positiveIntFields) {
+            const value = request[field];
+            if (value !== undefined && (typeof value !== "number" || !Number.isInteger(value) || value <= 0)) {
+                throw new InvalidParamError(`${field} must be a positive integer`);
+            }
         }
 
         const result = await this.withRetry(async () => {

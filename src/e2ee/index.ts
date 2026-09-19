@@ -13,6 +13,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
+import { ValidationError } from "../errors";
 import type { E2eePathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type {
@@ -330,7 +331,55 @@ export class E2EEManager extends BaseManager {
         return this.post(ep("/keys/signatures/upload"), body, "uploadSignaturesAlt");
     }
 
+    /**
+     * Upload device signing (cross-signing) keys.
+     *
+     * Adds client-side validation before sending to the backend:
+     * - At least one of `master_key`, `self_signing_key`, `user_signing_key` must be provided
+     * - `usage` field (if present) must be a valid array of strings
+     * - `user_id` in key objects must match the current authenticated user
+     *
+     * @param body - The request body containing cross-signing keys to upload
+     * @returns The response from the server (empty object on success)
+     *
+     * @throws {ValidationError} If validation fails before sending the request
+     * @throws {ApiError} If the API call fails
+     */
     public async uploadDeviceSigning(body: UploadDeviceSigningRequest): Promise<DeviceSigningUploadResponse> {
+        // Validate: at least one key must be provided
+        const keyFields: Array<keyof UploadDeviceSigningRequest> = ["master_key", "self_signing_key", "user_signing_key"];
+        const hasAnyKey = keyFields.some((field) => {
+            const key = body[field];
+            return key && typeof key === "object" && Object.keys(key).length > 0;
+        });
+
+        if (!hasAnyKey) {
+            throw new ValidationError(
+                "At least one of master_key, self_signing_key, or user_signing_key is required",
+            );
+        }
+
+        // Validate each provided key
+        const currentUser = this.client.getUserId();
+        for (const field of keyFields) {
+            const key = body[field];
+            if (!key || typeof key !== "object") continue;
+
+            // Validate usage field if present
+            const usage = (key as { usage?: unknown }).usage;
+            if (usage !== undefined && !Array.isArray(usage)) {
+                throw new ValidationError(`Invalid usage field in ${field}: must be an array of strings`);
+            }
+
+            // Validate user_id matches current user
+            const keyUserId = (key as { user_id?: string }).user_id;
+            if (keyUserId !== undefined && keyUserId !== currentUser) {
+                throw new ValidationError(
+                    `user_id in ${field} (${keyUserId}) does not match authenticated user (${currentUser})`,
+                );
+            }
+        }
+
         return this.post(ep("/keys/device_signing/upload"), body, "uploadDeviceSigning");
     }
 
