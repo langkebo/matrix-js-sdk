@@ -4,7 +4,7 @@
  *
  * Module:        Room 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       104 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       102 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
@@ -106,8 +106,6 @@ export const ROOM_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/translate" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
-    { method: "GET", path: "/_matrix/client/v3/uk.half-shot.msc2666/user/mutual_rooms" },
-    { method: "GET", path: "/_matrix/client/v3/user/mutual_rooms" },
     { method: "GET", path: "/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms" },
     { method: "GET", path: "/_matrix/client/v1/user/mutual_rooms" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/get_membership_events" },

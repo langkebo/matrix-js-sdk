@@ -367,10 +367,19 @@ function buildSdkTableLookup() {
 // ISSUE-13: Private endpoints migrated to vendor prefix (/_matrix/vendor/v1)
 const VENDOR_ENDPOINTS = new Set(["/my_rooms", "/search_rooms", "/search_recipients"]);
 
-function resolveFullPath(method, resourcePath, sdkDir, lookups) {
+export function resolveFullPath(method, resourcePath, sdkDir, lookups, rawPath) {
     const key = `${method} ${resourcePath}`;
     if (lookups.backend.has(key)) return lookups.backend.get(key);
     if (lookups.sdk.has(key)) return lookups.sdk.get(key);
+    // 文档原文若已声明绝对路径（`/_matrix/...` / `/_synapse/...`），直接采用文档前缀。
+    // 注意必须判 `rawPath` 而不是 `resourcePath`：`resourcePath` 已被 `normalizeResourcePath`
+    // 剥掉版本前缀（`/_matrix/(client|media)/(v\\d+|r\\d+|unstable)`），据此无从判断该路由落在
+    // client / media / vendor 哪个前缀面。历史实现只检查归一化后的路径，使本分支**永不生效**、
+    // 退化到按 `sdkDir` 猜前缀 —— media 目录因此把文档里 client 面的
+    // `/_matrix/client/v3/upload/{provider,token}` 渲染成了不存在的 `/_matrix/media/v3/upload/...`。
+    if (rawPath !== undefined && (rawPath.startsWith("/_matrix/") || rawPath.startsWith("/_synapse/"))) {
+        return rawPath;
+    }
     // 已是 vendor 完整路径（如 /_matrix/vendor/v1/friends/...）→ 直接使用，
     // 不再叠加 default 前缀（否则产生 /_matrix/client/v3/_matrix/vendor/v1/... 双重前缀）。
     // 已经是绝对路径（`/_matrix/...` 或 `/_synapse/...`）就不要再加前缀 —— 否则会拼出
@@ -1155,7 +1164,7 @@ function render(module, lookups) {
         for (const e of list) {
             contractEntries.push({
                 method: e.method,
-                path: resolveFullPath(e.method, e.resourcePath, module.sdkDir, lookups),
+                path: resolveFullPath(e.method, e.resourcePath, module.sdkDir, lookups, e.rawPath),
             });
         }
     }

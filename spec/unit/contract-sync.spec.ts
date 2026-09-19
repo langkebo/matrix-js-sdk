@@ -95,7 +95,10 @@ describe("contract-sync draft rendering", () => {
     });
 });
 
-function fakeProfiles(entries, { commit = "0123456789abcdef0123456789abcdef01234567", generatedAt = "2026-05-02T00:00:00Z" } = {}) {
+function fakeProfiles(
+    entries: { method: string; path: string; registered_by: string; [key: string]: unknown }[],
+    { commit = "0123456789abcdef0123456789abcdef01234567", generatedAt = "2026-05-02T00:00:00Z" } = {},
+) {
     return {
         all: {
             parsed: {

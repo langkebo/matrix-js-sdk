@@ -4,7 +4,7 @@
  *
  * Module:        Media 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       38 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       36 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `media` module (mirrored from the backend contract). */
@@ -41,8 +41,6 @@ export const MEDIA_ROUTES = [
     { method: "GET", path: "/_matrix/media/v3/thumbnail/{server_name}/{media_id}" },
     { method: "POST", path: "/_matrix/media/v3/upload" },
     { method: "PUT", path: "/_matrix/media/v3/upload/{server_name}/{media_id}" },
-    { method: "GET", path: "/_matrix/media/v3/upload/provider" },
-    { method: "POST", path: "/_matrix/media/v3/upload/token" },
     { method: "POST", path: "/_matrix/media/r0/delete/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/r0/download/{server_name}/{media_id}" },
     { method: "GET", path: "/_matrix/media/r0/download/{server_name}/{media_id}/{filename}" },

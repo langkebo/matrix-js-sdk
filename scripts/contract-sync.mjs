@@ -276,6 +276,12 @@ function buildIndex(profiles, modules, profileFiles, moduleFiles) {
         generated_at: profiles.default.parsed.generated_at ?? null,
         synapse_rust_commit: profiles.default.parsed.synapse_rust_commit ?? null,
         ledger_entry_count: profiles.default.parsed.entry_count,
+        freshness: {
+            source_timestamp: new Date().toISOString(),
+            backend_commit_sha: profiles.default.parsed.synapse_rust_commit ?? null,
+            backend_commit_date: profiles.default.parsed.generated_at ?? null,
+            mirror_profiles: Object.keys(profiles),
+        },
         profiles: {},
         modules: {},
     };
