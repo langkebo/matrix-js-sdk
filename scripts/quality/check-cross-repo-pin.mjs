@@ -43,7 +43,10 @@
  *
  * Exit codes:
  *   0  all three bindings agree (or the check was skipped and not strict)
- *   1  drift detected, or skipped under --strict, or a waiver is malformed/expired
+ *   1  drift detected, or skipped/unknown under --strict, or a waiver is malformed/expired
+ *
+ * `unknown` (a declaration could not be read, e.g. the backend module moved) is
+ * reported as its own status rather than as drift — see the candidate path list below.
  */
 
 import crypto from "node:crypto";
@@ -88,13 +91,22 @@ export const CHECKS = [
 /**
  * The two places the ledger schema version is declared as source of truth:
  *   - SDK:   LEDGER_SCHEMA_VERSION in scripts/contract-sync.mjs
- *   - backend: pub const SCHEMA_VERSION in src/web/routes/ledger_export.rs
+ *   - backend: pub const SCHEMA_VERSION in the ledger-export module
  * Both must equal the pin's `ledger_schema`. This is the binding that was
  * missing when backend schema 1→2→3→4 left the pin frozen at "1" — the three
  * commit/hash bindings can all be green while the schema silently drifts.
+ *
+ * The backend path is a **candidate list**, not a single hard-coded path: the
+ * backend crate split moved it from `src/web/routes/` to `synapse-web/src/routes/`,
+ * and the stale single path made this sub-check report `(unset) (backend)` — i.e.
+ * it turned "could not read it" into a fake "drift". A file that does not exist
+ * must never be reported as a disagreement.
  */
 const SDK_CONTRACT_SYNC = "scripts/contract-sync.mjs";
-const BACKEND_LEDGER_EXPORT = "src/web/routes/ledger_export.rs";
+const BACKEND_LEDGER_EXPORT_CANDIDATES = [
+    "synapse-web/src/routes/ledger_export.rs", // current layout (crate split)
+    "src/web/routes/ledger_export.rs", // pre-split layout
+];
 
 function readSdkLedgerSchema(root) {
     const file = path.join(root, SDK_CONTRACT_SYNC);
@@ -103,11 +115,15 @@ function readSdkLedgerSchema(root) {
     return m ? m[1] : "";
 }
 
+/** @returns `""` when no candidate layout exists or declares SCHEMA_VERSION. */
 function readBackendSchemaVersion(root) {
-    const file = path.join(root, BACKEND_LEDGER_EXPORT);
-    if (!fs.existsSync(file)) return "";
-    const m = /SCHEMA_VERSION\s*:\s*&str\s*=\s*["']([^"']+)["']/.exec(fs.readFileSync(file, "utf8"));
-    return m ? m[1] : "";
+    for (const relative of BACKEND_LEDGER_EXPORT_CANDIDATES) {
+        const file = path.join(root, relative);
+        if (!fs.existsSync(file)) continue;
+        const m = /SCHEMA_VERSION\s*:\s*&str\s*=\s*["']([^"']+)["']/.exec(fs.readFileSync(file, "utf8"));
+        if (m) return m[1];
+    }
+    return "";
 }
 
 function gitHead(repoRoot) {
@@ -175,20 +191,26 @@ export function evaluatePin({
         tarball_sha256: tarballSha,
     };
 
-    const schemaActual = [pin?.ledger_schema ?? "", sdkLedgerSchema ?? "", backendSchemaVersion ?? ""];
-    const schemaMatches = schemaActual.every((v) => v !== "" && v === schemaActual[0]);
+    const schemaValues = [pin?.ledger_schema ?? "", sdkLedgerSchema ?? "", backendSchemaVersion ?? ""];
+    // "cannot read" ≠ "disagrees": a missing declaration must not be reported as drift,
+    // otherwise a stale reader path below is indistinguishable from a real version skew
+    // (that is exactly how a wrong `src/web/routes/...` path reported `(unset)` as drift).
+    const schemaUnknown = schemaValues.some((v) => v === "");
+    const schemaMatches = !schemaUnknown && schemaValues.every((v) => v === schemaValues[0]);
 
     const results = [];
     for (const check of CHECKS) {
         if (check.key === "ledger_schema") {
             results.push({
                 ...check,
-                expected: schemaActual[0] || "(empty)",
+                expected: schemaValues[0] || "(empty)",
                 actual: schemaMatches
-                    ? schemaActual[0]
-                    : `${schemaActual[1] || "(unset)"} (SDK) / ${schemaActual[2] || "(unset)"} (backend)`,
-                status: schemaMatches ? "ok" : "drift",
-                note: "",
+                    ? schemaValues[0]
+                    : `${schemaValues[1] || "(unset)"} (SDK) / ${schemaValues[2] || "(unset)"} (backend)`,
+                status: schemaUnknown ? "unknown" : schemaMatches ? "ok" : "drift",
+                note: schemaUnknown
+                    ? "one of the three declarations could not be read; --strict turns this into a failure"
+                    : "",
             });
             continue;
         }
@@ -247,7 +269,11 @@ function main() {
         waivers,
     });
 
-    const failures = results.filter((r) => r.status === "drift" || r.status === "expired-waiver");
+    // `unknown` means "could not check"; it fails only under --strict, matching this
+    // file's existing convention for "cannot locate the sibling checkouts".
+    const failures = results.filter(
+        (r) => r.status === "drift" || r.status === "expired-waiver" || (strict && r.status === "unknown"),
+    );
 
     for (const result of results) {
         const marker = result.status === "ok" ? "ok" : result.status;
