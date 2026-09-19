@@ -32,16 +32,6 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-room-manager.ts:142:93e5c6d530d84fbe1585ce1ea3fee385e0587b50",
-            "file": "src/admin/sub-managers/admin-room-manager.ts",
-            "line": 142,
-            "snippet": "catch (e) { const err = e as MatrixError; if ( !throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) ) { return null;",
-            "whitelist": {
-                "owner": "admin",
-                "expires": "2026-12-31"
-            }
-        },
-        {
             "id": "src/admin/sub-managers/admin-user-manager.ts:148:9cf1efc5d63f2933a87adb6ae7fdf6353b627b7f",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
             "line": 148,
@@ -208,16 +198,6 @@
             "snippet": "catch (e) { abortWithException(txn, <Error>e); } }; }, ); if (result.length === 0) { // No sessions left. return null;",
             "whitelist": {
                 "owner": "crypto",
-                "expires": "2026-12-31"
-            }
-        },
-        {
-            "id": "src/device-trust/index.ts:225:6140c05a9e14f2cda2b8a537af5e6e1c0dcf26b5",
-            "file": "src/device-trust/index.ts",
-            "line": 225,
-            "snippet": "catch (error) { const httpStatus = (error as { httpStatus?: number })?.httpStatus; const errcode = (error as { errcode?: string })?.errcode; if (httpStatus === 404 || errcode === \"M_NOT_FOUND\") { return null;",
-            "whitelist": {
-                "owner": "crypto-rtc",
                 "expires": "2026-12-31"
             }
         },
