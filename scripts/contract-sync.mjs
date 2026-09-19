@@ -14,8 +14,20 @@
  *
  * Mode selection:
  *   contract-sync.mjs                     → ingest from default fixture dir, write generated/
- *   contract-sync.mjs --source=<dir>      → ingest from custom dir
- *   contract-sync.mjs --check             → recompute in memory, fail if disk drifts
+ *   contract-sync.mjs --source=<dir>      → ingest from custom dir, write generated/
+ *   contract-sync.mjs --check             → recompute from the committed generated/ tree,
+ *                                           fail on drift (byte-exact self-consistency)
+ *   contract-sync.mjs --check --source=<dir>
+ *                                         → SEMANTIC check: compare the committed mirror's
+ *                                           route entries against an external ledger export,
+ *                                           ignoring stamp fields. This answers "is my mirror
+ *                                           behind the backend?" — byte comparison here is
+ *                                           useless because the mirror's committed stamps
+ *                                           (e.g. the May placeholder 7cb39946…) can never
+ *                                           equal the incoming artifact's stamps, which made
+ *                                           all 54 files report drift while only real
+ *                                           entry-level differences matter (observed signal
+ *                                           to noise: 1:53, see A1 audit 2026-09-19).
  *
  * Backend commit stamping:
  *   Fixtures from `generate_sdk_ledger_fixtures.sh` carry a zero placeholder
@@ -155,6 +167,12 @@ function printHelp() {
             `  --render-drafts compare the incoming manifests against the currently committed\n` +
             `                 generated/ tree and emit prompt drafts under docs/api-contract/drafts/\n` +
             `  --check        dry-run; exit 1 if anything on disk would change\n` +
+            `  --check --source=DIR\n` +
+            `                 semantic check: compare the committed mirror's route entries against\n` +
+            `                 DIR's ledger manifests, ignoring stamp fields (synapse_rust_commit /\n` +
+            `                 generated_at). Use this to ask "is my mirror behind the backend?".\n` +
+            `                 Without --source, --check recomputes from the committed generated/ tree\n` +
+            `                 and is byte-exact instead.\n` +
             `  --help, -h     show this message\n`,
     );
 }
@@ -629,6 +647,132 @@ function collectModuleDiffs(beforeProfiles, afterProfiles) {
     return diffs;
 }
 
+/**
+ * Order-independent JSON for deep comparison of plain entry objects.
+ * Entry objects carry no stamps (those live at manifest level), so this is a
+ * faithful equality test for "same route, same shape".
+ */
+function stableJson(value) {
+    if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+    if (value && typeof value === "object") {
+        const keys = Object.keys(value).sort();
+        return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(value[k])}`).join(",")}}`;
+    }
+    return JSON.stringify(value);
+}
+
+/**
+ * Semantic mirror-vs-backend drift summary (方案 A, A1 audit 2026-09-19).
+ *
+ * Compares the committed generated/ mirror against an incoming ledger export
+ * **per module, per route entry**, ignoring `synapse_rust_commit` /
+ * `generated_at` stamps entirely. This is what `--check --source=<dir>` runs:
+ * the byte-level comparison used there before reported every file as drifting
+ * whenever stamps differed (54/54 files, of which only 1 module had a real
+ * entry difference), making the check useless for triage.
+ *
+ * Deliberately stricter than `collectModuleDiffs` (used for prompt drafts):
+ * entries with the same (method, path) key but changed payload fields
+ * (e.g. `query_params`, `registered_by`) are reported as modified, not equal.
+ */
+export function summarizeBackendSemanticDrift(diskProfiles, sourceProfiles) {
+    const diskModules = buildModuleIndex(diskProfiles.all);
+    const sourceModules = buildModuleIndex(sourceProfiles.all);
+    const allNames = new Set([...diskModules.keys(), ...sourceModules.keys()]);
+    const moduleDiffs = [];
+    for (const moduleName of [...allNames].sort()) {
+        const disk = diskModules.get(moduleName);
+        const source = sourceModules.get(moduleName);
+        const diskEntries = new Map((disk?.entries ?? []).map((entry) => [entryTupleKey(entry), entry]));
+        const sourceEntries = new Map((source?.entries ?? []).map((entry) => [entryTupleKey(entry), entry]));
+        const added = [];
+        const removed = [];
+        const modified = [];
+        for (const [key, entry] of sourceEntries) {
+            if (!diskEntries.has(key)) {
+                added.push(entry);
+            } else if (stableJson(diskEntries.get(key)) !== stableJson(entry)) {
+                modified.push(entry);
+            }
+        }
+        for (const [key, entry] of diskEntries) {
+            if (!sourceEntries.has(key)) removed.push(entry);
+        }
+        if (added.length > 0 || removed.length > 0 || modified.length > 0) {
+            moduleDiffs.push({ moduleName, added, removed, modified });
+        }
+    }
+    return {
+        moduleDiffs,
+        diskModuleCount: diskModules.size,
+        sourceModuleCount: sourceModules.size,
+        sourceEntryCount: sourceProfiles.all.parsed.entry_count ?? sourceProfiles.all.parsed.entries.length,
+    };
+}
+
+function formatSemanticDriftLines(summary) {
+    const lines = [];
+    for (const diff of summary.moduleDiffs) {
+        const counts = `(+${diff.added.length} ~${diff.modified.length} -${diff.removed.length})`;
+        lines.push(`  ${diff.moduleName} ${counts}:`);
+        for (const e of diff.added) {
+            lines.push(`    + ${e.method} ${e.path}   [backend has, mirror lacks; registered_by: ${e.registered_by}]`);
+        }
+        for (const e of diff.modified) {
+            lines.push(`    ~ ${e.method} ${e.path}   [entry payload changed; registered_by: ${e.registered_by}]`);
+        }
+        for (const e of diff.removed) {
+            lines.push(`    - ${e.method} ${e.path}   [mirror has, backend removed; registered_by: ${e.registered_by}]`);
+        }
+    }
+    return lines;
+}
+
+/**
+ * `--check --source=<dir>`: is the committed mirror behind the backend export?
+ * Exit 1 only on real entry-level differences; stamp differences are reported
+ * as informational context, never as failures.
+ */
+function runBackendSemanticCheck(sourceProfiles, sourceDir) {
+    const diskProfiles = tryReadProfilesFromSourceDir(GENERATED_DIR);
+    if (!diskProfiles) {
+        process.stderr.write(
+            `contract-sync: cannot read all ${PROFILES.length} profile manifests from ${GENERATED_DIR}; ` +
+                `run \`node scripts/contract-sync.mjs\` first.\n`,
+        );
+        return 1;
+    }
+    const summary = summarizeBackendSemanticDrift(diskProfiles, sourceProfiles);
+    const diskStamp = diskProfiles.all.parsed.synapse_rust_commit ?? "(none)";
+    const diskGeneratedAt = diskProfiles.all.parsed.generated_at ?? "(none)";
+    const sourceStamp = sourceProfiles.all.parsed.synapse_rust_commit ?? "(none)";
+
+    if (summary.moduleDiffs.length > 0) {
+        process.stderr.write(
+            `contract-sync: mirror is behind the backend source (${sourceDir}):\n` +
+                `${summary.moduleDiffs.length} of ${summary.sourceModuleCount} module(s) have entry differences:\n` +
+                `${formatSemanticDriftLines(summary).join("\n")}\n\n` +
+                `Refresh with: node scripts/contract-sync.mjs --source=${sourceDir}\n`,
+        );
+        return 1;
+    }
+    process.stdout.write(
+        `contract-sync: mirror route entries match the backend source ` +
+            `(${summary.sourceModuleCount} modules, ${summary.sourceEntryCount} entries; ` +
+            `no added / removed / modified routes).\n` +
+            `provenance (informational, never a failure):\n` +
+            `  mirror synapse_rust_commit:  ${diskStamp}  (generated_at: ${diskGeneratedAt})\n` +
+            `  source synapse_rust_commit:  ${sourceStamp}\n`,
+    );
+    if (/^(0{40}|0{7}|\s*)$/.test(sourceStamp)) {
+        process.stdout.write(
+            `  (source fixtures carry a zero placeholder — no artifact provenance available;\n` +
+                `  the committed mirror's stamp stays authoritative until the next artifact sync)\n`,
+        );
+    }
+    return 0;
+}
+
 const MODULE_FILE_ALIASES = {
     key_backup: ["key-backup"],
     friend_room: ["friend"],
@@ -969,21 +1113,24 @@ function run(argv) {
     // In ingest mode, stamp fixture placeholders with the live backend HEAD when
     // a sibling synapse-rust checkout is visible (workspace layout). In --check
     // mode the disk generated/ tree is already the source of truth, so never
-    // stamp there (that would cause false drift in SDK-only CI).
-    //
-    // …unless the caller **explicitly** pointed --check at an external source
-    // (`--source=../synapse-rust/tests/unit/fixtures/ledger_export_sdk`). That is
-    // the only way to ask "is my mirror behind the backend?", and it is useless
-    // without stamping: the on-disk manifests carry the stamped HEAD while the
-    // recomputed ones would carry the raw `00000000` placeholder, so every single
-    // file reports drift and a genuinely-stale mirror is indistinguishable from a
-    // fresh one. Stamp in that case so the two sides are comparable.
-    if (args.mode !== "check" || args.explicitSource) {
+    // stamp there:
+    //   - default (self) check: stamping would falsify the byte-exact comparison;
+    //   - explicit-source check now runs the SEMANTIC comparison
+    //     (summarizeBackendSemanticDrift) which ignores stamps entirely, so
+    //     stamping would only mislabel the source's provenance in the report.
+    if (args.mode !== "check") {
         applyBackendCommitStamp(profiles);
     }
     const outputs = buildOutputs(profiles);
 
     if (args.mode === "check") {
+        if (args.explicitSource) {
+            // "Is my mirror behind the backend?" — entry-level comparison,
+            // stamp-insensitive. Byte comparison here used to report every file
+            // (54/54) whenever stamps differed, drowning the single module with
+            // a real difference.
+            return runBackendSemanticCheck(profiles, args.sourceDir);
+        }
         const drifts = checkDrift(outputs);
         const frontmatterErrors = validateFrontmatter(collectModuleDocs());
         if (drifts.length > 0 || frontmatterErrors.length > 0) {
