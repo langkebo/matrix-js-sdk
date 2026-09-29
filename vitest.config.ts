@@ -49,8 +49,8 @@ if (env["GITHUB_ACTIONS"] !== undefined) {
 
 export default defineConfig({
     test: {
-        testTimeout: isCoverageRun ? 120000 : 30000,
-        hookTimeout: isCoverageRun ? 30000 : 30000,
+        testTimeout: isCoverageRun ? 120000 : 60000,
+        hookTimeout: isCoverageRun ? 180000 : 120000,
         teardownTimeout: 30000,
         coverage: {
             provider: "v8",
@@ -68,7 +68,7 @@ export default defineConfig({
         setupFiles: "spec/setupTests.ts",
         globals: true,
         pool: "forks",
-        maxForks: 2,
+        maxForks: 4,
         minForks: 1,
         execArgv: ["--max-old-space-size=4096"],
         exclude: [

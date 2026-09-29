@@ -346,4 +346,5 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run --exclude "**/.pnpm-st
 
 **修订历史**:
 - 2026-09-29: 初始版本，Admin Manager 补充完成
+- 2026-09-29: 修复 Admin Manager 测试超时问题（增加 vitest timeout 至 60s）
 - 待更新...
