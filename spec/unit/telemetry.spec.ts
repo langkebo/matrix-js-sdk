@@ -301,4 +301,86 @@ describe("TelemetryManager", () => {
             await expect(telemetryManager.acknowledgeServerAlert("")).rejects.toThrow("Alert ID is required");
         });
     });
+
+    // ===== 性能监控测试 =====
+
+    describe("trackCacheHitMiss", () => {
+        it("should track cache hit event", () => {
+            telemetryManager.enable();
+            telemetryManager.trackCacheHitMiss("query_highFreq", true, 5);
+            const events = telemetryManager.getPendingEvents();
+            expect(events).toHaveLength(1);
+            expect(events[0].event).toBe("cache_query_highFreq");
+            expect(events[0].data).toEqual({ hit: true, duration_ms: 5 });
+        });
+
+        it("should track cache miss event", () => {
+            telemetryManager.enable();
+            telemetryManager.trackCacheHitMiss("hierarchy", false, 45);
+            const events = telemetryManager.getPendingEvents();
+            expect(events[0].data).toEqual({ hit: false, duration_ms: 45 });
+        });
+
+        it("should not track when disabled", () => {
+            telemetryManager.trackCacheHitMiss("test", true);
+            expect(telemetryManager.getPendingEvents()).toHaveLength(0);
+        });
+    });
+
+    describe("trackRequestTiming", () => {
+        it("should track successful request timing", () => {
+            telemetryManager.enable();
+            telemetryManager.trackRequestTiming("GET", 50, "success", "/spaces");
+            const events = telemetryManager.getPendingEvents();
+            expect(events[0].event).toBe("request_timing");
+            expect(events[0].data).toEqual({
+                method: "GET",
+                duration_ms: 50,
+                status: "success",
+                endpoint: "/spaces",
+            });
+        });
+
+        it("should track slow requests (> 200ms) as separate event", () => {
+            telemetryManager.enable();
+            telemetryManager.trackRequestTiming("GET", 250, "success", "/spaces");
+            const events = telemetryManager.getPendingEvents();
+            expect(events).toHaveLength(2);
+            expect(events[1].event).toBe("slow_request");
+        });
+
+        it("should track failed request", () => {
+            telemetryManager.enable();
+            telemetryManager.trackRequestTiming("POST", 100, "failure", "/pushers");
+            const events = telemetryManager.getPendingEvents();
+            expect(events.length).toBeGreaterThan(0);
+            const evt = events[0]!;
+            expect(evt.data!.status).toBe("failure");
+        });
+    });
+
+    describe("trackPerformanceBaseline", () => {
+        it("should track metric against threshold", () => {
+            telemetryManager.enable();
+            telemetryManager.trackPerformanceBaseline("getSpaceHierarchy", 85, 100);
+            const events = telemetryManager.getPendingEvents();
+            expect(events.length).toBeGreaterThan(0);
+            expect(events[0]!.event).toBe("performance_baseline");
+            expect(events[0]!.data).toEqual({
+                metric: "getSpaceHierarchy",
+                value: 85,
+                threshold: 100,
+                passed: true,
+            });
+        });
+
+        it("should mark as failed when threshold exceeded", () => {
+            telemetryManager.enable();
+            telemetryManager.trackPerformanceBaseline("getSpaceHierarchy", 150, 100);
+            const events = telemetryManager.getPendingEvents();
+            expect(events.length).toBeGreaterThan(0);
+            const evt = events[0]!;
+            expect(evt.data!.passed).toBe(false);
+        });
+    });
 });

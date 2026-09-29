@@ -318,6 +318,12 @@ export interface MatrixClientExtensionMethods {
     getAdminFederationManager(): import("./admin/sub-managers/admin-federation-manager").AdminFederationManager;
     getAdminMediaManager(): import("./admin/sub-managers/admin-media-manager").AdminMediaManager;
     getAdminConfigManager(): import("./admin/sub-managers/admin-config-manager").AdminConfigManager;
+    getAdminExternalServiceManager(): import("./admin/sub-managers/admin-external-service-manager").AdminExternalServiceManager;
+    // 新的 Admin Sub-Managers
+    getAdminCleanupManager(): import("./admin/sub-managers/admin-cleanup-manager").AdminCleanupManager;
+    getAdminNotificationManager(): import("./admin/sub-managers/admin-notification-manager").AdminNotificationManager;
+    getAdminReportManager(): import("./admin/sub-managers/admin-report-manager").AdminReportManager;
+    getAdminPolicyManager(): import("./admin/sub-managers/admin-policy-manager").AdminPolicyManager;
     // 顶级 admin 模块便捷访问（AdminManager 集成的子入口）
     getAdminBackgroundUpdates(): import("./background-update/index").BackgroundUpdateManager;
     getAdminEventReports(): import("./event-report/index").EventReportManager;

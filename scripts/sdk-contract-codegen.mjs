@@ -67,7 +67,6 @@ const SKIP_ROUTE_TABLE_MODULES = new Set([
     "key-rotation",
     "moderation",
     "reactions",
-    "voice",
 ]);
 
 const SDK_DIR_ALIASES = {

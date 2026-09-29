@@ -1,14 +1,14 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "4936570871d083dc51a87cdfadb983ed1d5a8e36",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
   "state_profile": "all",
   "profile_flags": {
     "oidc_enabled": true,
     "worker_enabled": true,
     "saml_enabled": true
   },
-  "entry_count": 1148,
+  "entry_count": 1166,
   "entries": [
     {
       "method": "GET",
@@ -106,6 +106,76 @@
       "query_params": []
     },
     {
+      "method": "DELETE",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "HEAD",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_matrix/app/v1/rooms/{alias}",
       "registered_by": "app_service",
@@ -192,7 +262,7 @@
       "query_params": []
     },
     {
-      "method": "POST",
+      "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
       "registered_by": "assembly::create_router",
       "path_params": [
@@ -1030,6 +1100,76 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "HEAD",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
       ],
       "query_params": []
     },
@@ -2063,6 +2203,13 @@
     {
       "method": "GET",
       "path": "/_matrix/client/v1/voice/config",
+      "registered_by": "voice",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/voice/register",
       "registered_by": "voice",
       "path_params": [],
       "query_params": []
@@ -4017,42 +4164,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/invite_allowlist",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/invite_allowlist",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/invite_blocklist",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/invite_blocklist",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/rooms/{room_id}/invites",
       "registered_by": "room",
       "path_params": [
@@ -5630,6 +5741,13 @@
       "query_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/v3/voice/register",
+      "registered_by": "voice",
+      "path_params": [],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_matrix/client/v3/voice/room/{room_id}",
       "registered_by": "voice",
@@ -6844,6 +6962,42 @@
       "query_params": []
     },
     {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist",
+      "registered_by": "vendor",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist",
+      "registered_by": "vendor",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist",
+      "registered_by": "vendor",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist",
+      "registered_by": "vendor",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "POST",
       "path": "/_matrix/vendor/v1/search_recipients",
       "registered_by": "vendor",
@@ -6874,6 +7028,13 @@
     {
       "method": "GET",
       "path": "/_matrix/vendor/v1/voice/config",
+      "registered_by": "voice",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/voice/register",
       "registered_by": "voice",
       "path_params": [],
       "query_params": []
@@ -8395,6 +8556,15 @@
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/rooms/{room_id}/block",
+      "registered_by": "admin::room",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/cascade_redact",
       "registered_by": "admin::room",
       "path_params": [
         "room_id"

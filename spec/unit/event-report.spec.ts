@@ -286,4 +286,63 @@ describe("EventReportManager", () => {
             prefix: AdminPrefix.V1,
         });
     });
+
+    it("fetches reports by reporter user id with validated user id", async () => {
+        mockAuthedRequest.mockResolvedValueOnce([]);
+
+        await manager.getReportsByReporter("@alice:example.com", { limit: 30 });
+
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/event_reports/reporter/%40alice%3Aexample.com",
+            { limit: 30 },
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    });
+
+    it("checks rate limit for blocked user", async () => {
+        mockAuthedRequest.mockResolvedValueOnce({
+            is_allowed: false,
+            remaining_reports: 0,
+            block_reason: "spam",
+        });
+
+        const result = await manager.checkRateLimit("@blocked:example.com");
+
+        expect(result).toEqual({
+            is_allowed: false,
+            remaining_reports: 0,
+            block_reason: "spam",
+        });
+    });
+
+    it("validates room id format in getReportsByRoom", async () => {
+        await expect(manager.getReportsByRoom("invalid-room-id")).rejects.toThrow(ValidationError);
+    });
+
+    it("handles empty report list", async () => {
+        mockAuthedRequest.mockResolvedValueOnce([]);
+
+        const result = await manager.listReports({ limit: 50 });
+
+        expect(result).toEqual([]);
+    });
+
+    it("handles pagination with cursor params", async () => {
+        mockAuthedRequest.mockResolvedValueOnce([
+            { id: 1, event_id: "$event1:id" },
+            { id: 2, event_id: "$event2:id" },
+        ]);
+
+        await manager.getAllReports({ limit: 10, since_id: 5, since_ts: 1234567890 });
+
+        expect(mockAuthedRequest).toHaveBeenCalledWith(
+            Method.Get,
+            "/event_reports",
+            { limit: 10, since_id: 5, since_ts: 1234567890 },
+            undefined,
+            { prefix: AdminPrefix.V1 },
+        );
+    });
 });

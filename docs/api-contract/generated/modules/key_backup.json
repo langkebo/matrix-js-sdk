@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "key_backup",
-  "synapse_rust_commit": "4936570871d083dc51a87cdfadb983ed1d5a8e36",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 66,

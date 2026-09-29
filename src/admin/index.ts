@@ -17,7 +17,7 @@ limitations under the License.
 /**
  * Admin Manager - 管理员 API 统一入口
  *
- * 采用组合模式，将 200+ 个方法按领域拆分为 7 个子 Manager + 8 个顶级模块入口：
+ * 采用组合模式，将 200+ 个方法按领域拆分为 11 个子 Manager + 8 个顶级模块入口：
  * 子 Manager（带 AdminError 事件转发）：
  * - users: 用户管理（CRUD、设备、令牌、会话、速率限制、影子封禁）
  * - rooms: 房间管理（CRUD、成员、消息、状态、Space）
@@ -26,6 +26,10 @@ limitations under the License.
  * - media: 媒体管理（CRUD、隔离、清理）
  * - config: 配置管理（保留策略、功能标志、模块、报告、审计、令牌）
  * - externalService: 外部服务管理（CRUD、健康检查，后端字段格式）
+ * - cleanup: 数据库清理管理（全局清理、房间清理、令牌清理）
+ * - notifications: 服务器通知管理（列表、创建、更新、删除）
+ * - reports: 事件举报管理（列表、详情、删除）
+ * - policy: 策略服务器管理（MSC4284，状态查询、策略检查）
  *
  * 顶级模块入口（独立 BaseManager，无 AdminError 转发）：
  * - backgroundUpdates: 数据库后台更新任务
@@ -186,6 +190,10 @@ import { AdminFederationManager } from "./sub-managers/admin-federation-manager"
 import { AdminMediaManager } from "./sub-managers/admin-media-manager";
 import { AdminConfigManager } from "./sub-managers/admin-config-manager";
 import { AdminExternalServiceManager } from "./sub-managers/admin-external-service-manager";
+import { AdminCleanupManager } from "./sub-managers/admin-cleanup-manager";
+import { AdminNotificationManager } from "./sub-managers/admin-notification-manager";
+import { AdminReportManager } from "./sub-managers/admin-report-manager";
+import { AdminPolicyManager } from "./sub-managers/admin-policy-manager";
 
 // 顶级 admin 模块（每模块均独立 BaseManager，并已挂到 client facade）
 // 集成到 AdminManager 的子入口，便于 `client.getAdminManager().backgroundUpdates.xxx()` 一站式访问
@@ -216,7 +224,40 @@ export {
     type HealthCheckResult,
 } from "./sub-managers/admin-external-service-manager";
 
-/** 7+8 个子 Manager 的联合类型（用于 Proxy 路由 + AdminManager 构造初始化） */
+// 新的 Admin Sub-Managers 导出
+export {
+    AdminCleanupManager,
+    type CleanupAllRequest,
+    type CleanupAllResponse,
+    type CleanupRoomsRequest,
+    type CleanupRoomsResponse,
+    type CleanupTokensResponse,
+} from "./sub-managers/admin-cleanup-manager";
+
+export {
+    AdminNotificationManager,
+    type ServerNotification,
+    type NotificationsListResponse,
+    type CreateNotificationRequest,
+    type UpdateNotificationRequest,
+    type NotificationPaginationOptions,
+} from "./sub-managers/admin-notification-manager";
+
+export {
+    AdminReportManager,
+    type EventReport,
+    type ReportsListResponse,
+    type ReportPaginationOptions,
+} from "./sub-managers/admin-report-manager";
+
+export {
+    AdminPolicyManager,
+    type PolicyServerStatus,
+    type PolicyCheckRequest,
+    type PolicyCheckResponse,
+} from "./sub-managers/admin-policy-manager";
+
+/** 11+8 个子 Manager 的联合类型（用于 Proxy 路由 + AdminManager 构造初始化） */
 type AdminSubManager =
     | AdminUserManager
     | AdminRoomManager
@@ -225,6 +266,10 @@ type AdminSubManager =
     | AdminMediaManager
     | AdminConfigManager
     | AdminExternalServiceManager
+    | AdminCleanupManager
+    | AdminNotificationManager
+    | AdminReportManager
+    | AdminPolicyManager
     | BackgroundUpdateManager
     | EventReportManager
     | ModuleManager
@@ -581,6 +626,12 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
     public readonly config: AdminConfigManager;
     public readonly externalService: AdminExternalServiceManager;
 
+    // ===== 新子 Manager =====
+    public readonly cleanup: AdminCleanupManager;
+    public readonly notifications: AdminNotificationManager;
+    public readonly reports: AdminReportManager;
+    public readonly policy: AdminPolicyManager;
+
     // ===== 顶级 admin 模块（BaseManager 子入口，路由表同样转发） =====
     public readonly backgroundUpdates: BackgroundUpdateManager;
     public readonly eventReports: EventReportManager;
@@ -611,6 +662,12 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         this.config = new AdminConfigManager(client, onError, opts);
         this.externalService = new AdminExternalServiceManager(client, onError, opts);
 
+        // 新的 Admin Sub-Managers
+        this.cleanup = new AdminCleanupManager(client, onError, opts);
+        this.notifications = new AdminNotificationManager(client, onError, opts);
+        this.reports = new AdminReportManager(client, onError, opts);
+        this.policy = new AdminPolicyManager(client, onError, opts);
+
         // 顶级 admin 模块子入口：BaseManager，无 onError / AdminError 事件转发
         // TelemetryManager 构造签名: (client, config?, opts?)，需显式传 undefined 跳过后端配置参数
         this.backgroundUpdates = new BackgroundUpdateManager(client, opts);
@@ -636,6 +693,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
             this.media,
             this.config,
             this.externalService,
+            this.cleanup,
+            this.notifications,
+            this.reports,
+            this.policy,
             this.backgroundUpdates,
             this.eventReports,
             this.modules,
@@ -720,6 +781,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         this.media.removeAllListeners();
         this.config.removeAllListeners();
         this.externalService.removeAllListeners();
+        this.cleanup.removeAllListeners();
+        this.notifications.removeAllListeners();
+        this.reports.removeAllListeners();
+        this.policy.removeAllListeners();
         // 顶级模块无 AdminError 事件转发，无需清理
     }
 }
@@ -748,6 +813,20 @@ export function extendMatrixClient(): void {
     };
     MatrixClient.prototype.getAdminConfigManager = function (): AdminConfigManager {
         return this.getAdminManager().config;
+    };
+
+    // 新的 Admin Sub-Managers 便捷访问方法
+    MatrixClient.prototype.getAdminCleanupManager = function (): AdminCleanupManager {
+        return this.getAdminManager().cleanup;
+    };
+    MatrixClient.prototype.getAdminNotificationManager = function (): AdminNotificationManager {
+        return this.getAdminManager().notifications;
+    };
+    MatrixClient.prototype.getAdminReportManager = function (): AdminReportManager {
+        return this.getAdminManager().reports;
+    };
+    MatrixClient.prototype.getAdminPolicyManager = function (): AdminPolicyManager {
+        return this.getAdminManager().policy;
     };
 
     // 顶级 admin 模块便捷访问（AdminManager 集成的子入口）

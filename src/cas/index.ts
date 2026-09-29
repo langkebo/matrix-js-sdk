@@ -20,6 +20,21 @@ limitations under the License.
  * 提供 CAS SSO 认证功能，包括服务管理、用户属性管理、
  * CAS 协议验证（serviceValidate/proxyValidate/p3/serviceValidate）、代理票据获取、登录登出等
  * 对应后端: synapse-rust/src/web/routes/cas.rs
+ *
+ * ⚠️ 后端路由挂载差异（2026-09-29 发现，待后端修复）:
+ * 本 SDK 假设 CAS public 端点挂载在 /_synapse/cas 下，但后端 `cas_routes()`
+ * 实际以 root-level 方式注册（无 nest 前缀），导致以下端点后端实际路径与
+ * SDK 期望不一致：
+ * - SDK 期望: /_synapse/cas/login, /_synapse/cas/serviceValidate ...
+ * - 后端实际: /login, /serviceValidate ... （根级路径）
+ *
+ * 其中 `/_matrix/client/v3/login/sso/redirect/cas` 与
+ * `/_synapse/admin/v1/cas/*` 管理端点不受影响（两者均为完整路径注册）。
+ *
+ * 详见后端 issue 文档：
+ * synapse-rust/docs/audit/CAS_ROUTER_PREFIX_MISSING_2026-09-29.md
+ *
+ * 后端修复（加 nest("/_synapse/cas") 后）本文件无需改动，即可直接联调。
  */
 
 import { MatrixClient } from "../client";

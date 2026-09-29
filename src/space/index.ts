@@ -137,7 +137,8 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
     // ===== 顶层协调方法 =====
 
     public getMetrics(): SpaceManagerMetrics {
-        const cacheStats = this.query.getCacheStats();
+        const queryAggregated = this.query.getAggregatedCacheStats();
+        const hierarchyCache = this.hierarchy.getCacheStats();
         const stats = [this.lifecycle, this.query, this.child, this.member, this.hierarchy]
             .map((m) => m.getRequestStats())
             .reduce(
@@ -149,11 +150,23 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
                 }),
                 { total: 0, successful: 0, failed: 0, retried: 0 },
             );
-        return { cache: cacheStats, requests: stats };
+        return {
+            cache: {
+                query: {
+                    highFreq: queryAggregated.highFreq,
+                    lowFreq: queryAggregated.lowFreq,
+                    space: queryAggregated.space,
+                    total: queryAggregated.total,
+                },
+                hierarchy: hierarchyCache,
+            },
+            requests: stats,
+        };
     }
 
     clearCache(): void {
         this.query.clearCache();
+        this.hierarchy.clearHierarchyCache();
     }
 
     start(): void {

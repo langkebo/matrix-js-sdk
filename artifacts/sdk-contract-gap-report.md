@@ -1,8 +1,8 @@
 # SDK 契约缺口报告：后端路由 ↔ SDK 封装面
 
-> 生成时间：2026-09-18 18:49:21
+> 生成时间：2026-09-24 07:18:33
 > 后端事实来源：`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json`（RouteLedger schema v4，profile=`all`）
-> SDK 镜像底座：`docs/api-contract/generated/route-manifest.all.json` @ `7cb39946`
+> SDK 镜像底座：`docs/api-contract/generated/route-manifest.all.json` @ `7eb0ff20`
 > 生成器：`matrix-js-sdk/scripts/audit/compare-routes.mjs`（可重跑，无人工维护的映射表）
 
 ## 0. 方法论：为什么"后端有 / SDK 未封装"需要三级证据
@@ -29,7 +29,7 @@
 | 惯用法 | 条数 |
 | --- | --- |
 | `adminRequest()` | 207 |
-| `object-literal {path}` | 152 |
+| `object-literal {path}` | 154 |
 | `builder: utils.encodeUri()` | 54 |
 | `authedRequest(Method, path)` | 37 |
 | `builder: this.roomSummaryPath()` | 30 |
@@ -57,43 +57,44 @@
 
 | 维度 | 数量 | 说明 |
 | --- | --- | --- |
-| 后端注册路由（事实面） | **1147** | distinct 1142 |
-| └ 客户端面 `CLIENT_FACING` | **767** | 前端 SDK 应封装的面 |
-| └ 服务端/运维面 `SERVER_ONLY` | 366 | federation / appservice / key 交换 / admin，**不应**封装 |
+| 后端注册路由（事实面） | **1166** | distinct 1161 |
+| └ 客户端面 `CLIENT_FACING` | **777** | 前端 SDK 应封装的面 |
+| └ 服务端/运维面 `SERVER_ONLY` | 375 | federation / appservice / key 交换 / admin，**不应**封装 |
 | └ 根级与 SSO `ROOT_OR_SSO` | 13 | 探活、CAS/SSO 重定向，浏览器处理 |
 | └ 非 Matrix 命名空间 `NON_NAMESPACED` | 1 | — |
-| **实现面覆盖（T1∪T2，客户端面）** | **684 / 767 = 89.2%** | 主指标 |
-| └ 其中 T1 有真实调用点 | 133 | 最强证据 |
-| └ 其中 T2 仅构造证据 | 551 | 见 §3 需复核 |
-| **声明面覆盖（T3，全后端）** | **72.7%** | 830/1142 |
-| **缺口（三级证据全无）** | **56** | 其中客户端面 0 |
+| **实现面覆盖（T1∪T2，客户端面）** | **687 / 777 = 88.4%** | 主指标 |
+| └ 其中 T1 有真实调用点 | 130 | 最强证据 |
+| └ 其中 T2 仅构造证据 | 557 | 见 §3 需复核 |
+| **声明面覆盖（T3，全后端）** | **73.6%** | 855/1161 |
+| **缺口（三级证据全无）** | **72** | 其中客户端面 7 |
 | 版本/前缀漂移 | 0 | 签名相同、前缀不同 |
 
 ### 1.1 后端路由的证据分布（全量）
 
 | 证据等级 | 条数 | 含义 |
 | --- | --- | --- |
-| T1 调用点命中 | 342 | Manager 真实发起请求 |
-| T2 构造命中 | 643 | 有路径构造器，无精确调用点 |
+| T1 调用点命中 | 339 | Manager 真实发起请求 |
+| T2 构造命中 | 649 | 有路径构造器，无精确调用点 |
 | T3 仅声明 | 106 | route-table 有常量、仓内无调用方 |
 | 漂移 | 0 | 末段签名一致、前缀/版本不同 |
-| 缺口 | 56 | 三级证据全无 |
+| 缺口 | 72 | 三级证据全无 |
 
 ### 1.2 处置清单（按优先级）
 
 | 优先级 | 动作 | 为什么 | 验证方式 |
 | --- | --- | --- | --- |
-| **P0** | 刷新 SDK 底座：`pnpm contract:sync && pnpm contract:codegen` | SDK 镜像已落后后端 **0** 条（镜像停留在 `7cb39946`）。底座不刷新时，codegen 渲染的 route-table 与"真相"不一致，任何覆盖率数字都不可信。 | 重跑本脚本，§1.4 归零 |
-| **P1** | 补 0 条客户端面真缺口（§2） | 已被人工核实为「后端有、SDK 完全无」。其中 `admin/room/{id}/redact` 属运维面，可先确认是否由前端直连。 | 补完后 §2 归零；`pnpm quality:manager-codegen` 仍绿 |
+| **P0** | 刷新 SDK 底座：`pnpm contract:sync && pnpm contract:codegen` | SDK 镜像已落后后端 **0** 条（镜像停留在 `7eb0ff20`）。底座不刷新时，codegen 渲染的 route-table 与"真相"不一致，任何覆盖率数字都不可信。 | 重跑本脚本，§1.4 归零 |
+| **P1** | 补 7 条客户端面真缺口（§2） | 已被人工核实为「后端有、SDK 完全无」。其中 `admin/room/{id}/redact` 属运维面，可先确认是否由前端直连。 | 补完后 §2 归零；`pnpm quality:manager-codegen` 仍绿 |
 | **P1** | 对照 Sprint 4 交付范围核实 MSC4155 / MSC4156（§7） | 两个不稳定端点在本仓 `src` 中 **0 命中**，与「Sprint 4 已交付」的记忆不一致；需确认是只交付了后端，还是前端走了 `relations` 自建实现。 | `grep -rn "msc4155\\|msc4156" src --include='*.ts' \| grep -v __generated__` |
-| **P2** | 清理 §3 的 551 条 T2 弱证据 | 这些端点只有构造点、没有可静态求值的调用点，混着「变量路径（真已封装）」与「死构造器（真问题）」两类。 | 按 §3 结论逐模块抽查，把确认已封装的补进 §7 人工复核表 |
+| **P2** | 清理 §3 的 557 条 T2 弱证据 | 这些端点只有构造点、没有可静态求值的调用点，混着「变量路径（真已封装）」与「死构造器（真问题）」两类。 | 按 §3 结论逐模块抽查，把确认已封装的补进 §7 人工复核表 |
 | **P3** | 把 §7 人工复核结论回写进 `contract-module-map`/审计文档 | 让下轮审计不必重复人工判断；同时 §7.1 的解析器盲区可作为下一版生成器的待办。 | 本轮结束后重跑，§7 结论与 §2/§3.5 不冲突 |
 
 ### 1.3 缺口按范围拆分（决定该不该补）
 
 | 范围 | 条数 | 是否应在 SDK 封装 |
 | --- | --- | --- |
-| `SERVER_ONLY` | **56** | ❌ 否 — 服务端/运维面 |
+| `SERVER_ONLY` | **65** | ❌ 否 — 服务端/运维面 |
+| `CLIENT_FACING` | **7** | ⚠️ **是** — 需逐个判定，见 §2 |
 
 ### 1.4 底座漂移（后端已注册、SDK 镜像未收录）
 
@@ -101,12 +102,32 @@
 
 ---
 
-## 2. 客户端面缺口（三级证据全无）— 0 条
+## 2. 客户端面缺口（三级证据全无）— 7 条
 
-✅ 客户端面路由均有至少一级证据。
+判定口径：该 `(method, path)` 既无 L2 调用点、也无 L1 声明、也无 L3 路径构造证据。
+
+### 2.1 `app_service` — 7 条（已确认为 P3，不封装）
+
+| Method | Path | registered_by | 处置建议 |
+| --- | --- | --- | --- |
+| `DELETE` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — Application Service 代理端点（MSC4150），仅在部署 App Service 时有意义 |
+| `GET` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — 同上 |
+| `HEAD` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — 同上 |
+| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — 同上 |
+| `PATCH` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — 同上 |
+| `POST` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — 同上 |
+| `PUT` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | P3 — 同上 |
+
+**处置理由**：
+- 这些端点是 MSC4150 Application Service Proxy，用于客户端与 Application Service 之间的代理通信
+- 仅在部署了 App Service（如 Bridge 服务）时才有意义
+- HuLa/Tjg 作为标准 Matrix 客户端，不涉及 App Service 代理场景
+- 后端同时注册了 `/_matrix/app/v1/proxy/{as_id}/{*path}`（7 条 SERVER_ONLY）和 `/_matrix/client/v1/proxy/{as_id}/{*path}`（7 条 CLIENT_FACING）
+- **结论**：不封装，降级为 P3
+
 ---
 
-## 3. 仅构造证据（T2，无精确调用点）— 客户端面 551 条
+## 3. 仅构造证据（T2，无精确调用点）— 客户端面 557 条
 
 这些路由在 `src` 里有路径构造器，但解析器**没有**看到把对应前缀用上去的调用点。两种可能：
 (a) 调用点路径是变量（L2 无法静态求值）→ **实际已封装**，属解析误报；
@@ -125,13 +146,13 @@
 | `friend_room` | 63 |
 | `space` | 48 |
 | `key_backup` | 46 |
-| `assembly` | 41 |
+| `assembly` | 42 |
 | `e2ee` | 24 |
 | `burn_after_read` | 21 |
 | `thread` | 21 |
 | `room_summary` | 18 |
 | `widget` | 18 |
-| `voice` | 16 |
+| `voice` | 17 |
 | `push` | 15 |
 | `account_data` | 15 |
 | `media` | 11 |
@@ -146,6 +167,7 @@
 | `external_service` | 6 |
 | `rendezvous` | 6 |
 | `device` | 6 |
+| `vendor` | 6 |
 | `typing` | 5 |
 | `sliding_sync` | 4 |
 | `guest` | 3 |
@@ -153,7 +175,6 @@
 | `tags` | 3 |
 | `sync` | 2 |
 | `thirdparty` | 2 |
-| `vendor` | 2 |
 | `msc4108_rendezvous` | 1 |
 | `delayed_events` | 1 |
 | `ephemeral` | 1 |
@@ -163,7 +184,7 @@
 
 | Method | Path | 构造证据 |
 | --- | --- | --- |
-| `GET` | `/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms` | `src/server-capabilities/index.ts:400` (/uk.half-shot.msc2666/user/mutual_rooms) |
+| `GET` | `/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms` | `src/server-capabilities/index.ts:410` (/uk.half-shot.msc2666/user/mutual_rooms) |
 | `GET` | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/` | `src/room-summary/sub-managers/room-event-operation-manager.ts:808` (/rooms/$roomId/state/m.room.power_levels/) |
 | `PUT` | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/` | `src/room-summary/sub-managers/room-event-operation-manager.ts:808` (/rooms/$roomId/state/m.room.power_levels/) |
 | `POST` | `/_matrix/client/v3/createRoom` | ⚠️ `src/http-api/fetch.ts:139` (/createRoom) |
@@ -427,13 +448,14 @@
 
 </details>
 
-<details><summary><code>assembly</code> — 41 条</summary>
+<details><summary><code>assembly</code> — 42 条</summary>
 
 | Method | Path | 构造证据 |
 | --- | --- | --- |
 | `GET` | `/.well-known/matrix/client` | `src/discovery/index.ts:147` (/.well-known/matrix/client) |
 | `GET` | `/.well-known/matrix/server` | `src/discovery/index.ts:169` (/.well-known/matrix/server) |
 | `GET` | `/.well-known/matrix/support` | `src/discovery/index.ts:180` (/.well-known/matrix/support) |
+| `GET` | `/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events` | `src/rust-crypto/DehydratedDeviceManager.ts:269` (/dehydrated_device/$device_id/events) |
 | `GET` | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}` | `src/client-profile-requests.ts:25` (/profile/$userId) |
 | `DELETE` | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}` | `src/client-profile-requests.ts:29` (/profile/$userId/$field) |
 | `GET` | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}` | `src/client-profile-requests.ts:29` (/profile/$userId/$field) |
@@ -470,7 +492,7 @@
 | `GET` | `/_matrix/client/v3/rooms/{room_id}/call/{call_id}` | `src/room/RoomManager.ts:792` (/rooms/{}/call/{}) |
 | `POST` | `/_matrix/client/v3/user_directory/list` | `src/discovery/index.ts:263` (/user_directory/list) |
 | `GET` | `/_matrix/client/v3/user_directory/profiles/{user_id}` | `src/discovery/index.ts:269` (/user_directory/profiles/{}) |
-| `POST` | `/_matrix/client/v3/voip/turnServer` | `src/client.ts:3084` (/voip/turnServer) |
+| `POST` | `/_matrix/client/v3/voip/turnServer` | `src/client.ts:3146` (/voip/turnServer) |
 | `GET` | `/_matrix/server_version` | `src/discovery/index.ts:195` (/_matrix/server_version) |
 
 </details>
@@ -484,10 +506,10 @@
 | `POST` | `/_matrix/client/v1/keys/device_list/update` | `src/crypto-keys/index.ts:235` (/keys/device_list/update) |
 | `POST` | `/_matrix/client/v1/keys/device_signing/upload` | `src/client-crypto-requests.ts:105` (/keys/device_signing/upload) |
 | `POST` | `/_matrix/client/v1/keys/query` | `src/client-crypto-requests.ts:59` (/keys/query) |
-| `POST` | `/_matrix/client/v1/keys/signatures` | `src/device-keys/index.ts:364` (/keys/signatures) |
+| `POST` | `/_matrix/client/v1/keys/signatures` | `src/device-keys/index.ts:374` (/keys/signatures) |
 | `POST` | `/_matrix/client/v1/keys/signatures/upload` | `src/client-crypto-requests.ts:39` (/keys/signatures/upload) |
 | `POST` | `/_matrix/client/v1/keys/upload` | `src/client-crypto-requests.ts:35` (/keys/upload) |
-| `POST` | `/_matrix/client/v1/keys/upload/{device_id}` | `src/e2ee/index.ts:265` (/keys/upload/{}) |
+| `POST` | `/_matrix/client/v1/keys/upload/{device_id}` | `src/e2ee/index.ts:289` (/keys/upload/{}) |
 | `GET` | `/_matrix/client/v1/room_keys/request` | `src/client-crypto-requests.ts:111` (/room_keys/request) |
 | `POST` | `/_matrix/client/v1/room_keys/request` | `src/client-crypto-requests.ts:111` (/room_keys/request) |
 | `DELETE` | `/_matrix/client/v1/room_keys/request/{request_id}` | `src/client-crypto-requests.ts:123` (/room_keys/request/$requestId) |
@@ -500,8 +522,8 @@
 | `POST` | `/_matrix/client/v3/keys/backup/secure/{backup_id}/keys` | `src/client-secure-backup-requests.ts:40` (/keys/backup/secure/$backupId/keys) |
 | `POST` | `/_matrix/client/v3/keys/backup/secure/{backup_id}/restore` | `src/client-secure-backup-requests.ts:44` (/keys/backup/secure/$backupId/restore) |
 | `POST` | `/_matrix/client/v3/keys/backup/secure/{backup_id}/verify` | `src/client-secure-backup-requests.ts:36` (/keys/backup/secure/$backupId/verify) |
-| `GET` | `/_matrix/client/v3/keys/history` | `src/e2ee/index.ts:536` (/keys/history) |
-| `POST` | `/_matrix/client/v3/keys/upload/{device_id}` | `src/e2ee/index.ts:265` (/keys/upload/{}) |
+| `GET` | `/_matrix/client/v3/keys/history` | `src/e2ee/index.ts:624` (/keys/history) |
+| `POST` | `/_matrix/client/v3/keys/upload/{device_id}` | `src/e2ee/index.ts:289` (/keys/upload/{}) |
 | `POST` | `/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId) |
 
 </details>
@@ -612,26 +634,27 @@
 
 </details>
 
-<details><summary><code>voice</code> — 16 条</summary>
+<details><summary><code>voice</code> — 17 条</summary>
 
 | Method | Path | 构造证据 |
 | --- | --- | --- |
-| `GET` | `/_matrix/client/v1/voice/config` | `src/voice/index.ts:222` (/voice/config) |
-| `GET` | `/_matrix/client/v1/voice/room/{room_id}/stats` | `src/voice/index.ts:182` (/voice/room/{}/stats) |
-| `GET` | `/_matrix/client/v1/voice/stats` | `src/voice/index.ts:167` (/voice/stats) |
-| `POST` | `/_matrix/client/v1/voice/upload` | `src/voice/index.ts:245` (/voice/upload) |
-| `GET` | `/_matrix/client/v1/voice/user/{user_id}/stats` | `src/voice/index.ts:197` (/voice/user/{}/stats) |
-| `GET` | `/_matrix/client/v3/voice/room/{room_id}` | `src/voice/index.ts:297` (/voice/room/{}) |
-| `GET` | `/_matrix/client/v3/voice/room/{room_id}/stats` | `src/voice/index.ts:182` (/voice/room/{}/stats) |
-| `GET` | `/_matrix/client/v3/voice/stats` | `src/voice/index.ts:167` (/voice/stats) |
-| `POST` | `/_matrix/client/v3/voice/upload` | `src/voice/index.ts:245` (/voice/upload) |
-| `GET` | `/_matrix/client/v3/voice/user/{user_id}` | `src/voice/index.ts:312` (/voice/user/{}) |
-| `GET` | `/_matrix/client/v3/voice/user/{user_id}/stats` | `src/voice/index.ts:197` (/voice/user/{}/stats) |
-| `GET` | `/_matrix/client/v3/voice/{media_id}` | `src/voice/index.ts:265` (/voice/{}) |
-| `POST` | `/_matrix/client/v3/voice/{media_id}/convert` | `src/voice/index.ts:331` (/voice/{}/convert) |
-| `POST` | `/_matrix/client/v3/voice/{media_id}/optimize` | `src/voice/index.ts:351` (/voice/{}/optimize) |
-| `POST` | `/_matrix/client/v3/voice/{media_id}/transcription` | `src/voice/index.ts:371` (/voice/{}/transcription) |
-| `GET` | `/_matrix/vendor/v1/voice/config` | `src/voice/index.ts:222` (/voice/config) |
+| `GET` | `/_matrix/client/v1/voice/config` | `src/voice/index.ts:333` (/voice/config) |
+| `POST` | `/_matrix/client/v1/voice/register` | `src/voice/index.ts:635` (/voice/register) |
+| `GET` | `/_matrix/client/v1/voice/room/{room_id}/stats` | `src/voice/index.ts:293` (/voice/room/{}/stats) |
+| `GET` | `/_matrix/client/v1/voice/stats` | `src/voice/index.ts:278` (/voice/stats) |
+| `POST` | `/_matrix/client/v1/voice/upload` | `src/voice/index.ts:356` (/voice/upload) |
+| `GET` | `/_matrix/client/v1/voice/user/{user_id}/stats` | `src/voice/index.ts:308` (/voice/user/{}/stats) |
+| `POST` | `/_matrix/client/v3/voice/register` | `src/voice/index.ts:635` (/voice/register) |
+| `GET` | `/_matrix/client/v3/voice/room/{room_id}` | `src/voice/index.ts:11` (/voice/room/{room_id}) |
+| `GET` | `/_matrix/client/v3/voice/room/{room_id}/stats` | `src/voice/index.ts:293` (/voice/room/{}/stats) |
+| `GET` | `/_matrix/client/v3/voice/stats` | `src/voice/index.ts:278` (/voice/stats) |
+| `GET` | `/_matrix/client/v3/voice/user/{user_id}` | `src/voice/index.ts:11` (/voice/user/{user_id}) |
+| `GET` | `/_matrix/client/v3/voice/user/{user_id}/stats` | `src/voice/index.ts:308` (/voice/user/{}/stats) |
+| `GET` | `/_matrix/client/v3/voice/{media_id}` | `src/voice/index.ts:417` (/voice/{}) |
+| `POST` | `/_matrix/client/v3/voice/{media_id}/convert` | `src/voice/index.ts:557` (/voice/{}/convert) |
+| `POST` | `/_matrix/client/v3/voice/{media_id}/optimize` | `src/voice/index.ts:577` (/voice/{}/optimize) |
+| `POST` | `/_matrix/client/v3/voice/{media_id}/transcription` | `src/voice/index.ts:597` (/voice/{}/transcription) |
+| `GET` | `/_matrix/vendor/v1/voice/config` | `src/voice/index.ts:333` (/voice/config) |
 
 </details>
 
@@ -718,15 +741,15 @@
 
 | Method | Path | 构造证据 |
 | --- | --- | --- |
-| `GET` | `/_matrix/client/v1/keys/rotation/check` | `src/key-rotation/index.ts:411` (/keys/rotation/check) |
-| `POST` | `/_matrix/client/v1/keys/rotation/check` | `src/key-rotation/index.ts:411` (/keys/rotation/check) |
-| `POST` | `/_matrix/client/v1/keys/rotation/config` | `src/key-rotation/index.ts:330` (/keys/rotation/config) |
-| `PUT` | `/_matrix/client/v1/keys/rotation/config` | `src/key-rotation/index.ts:330` (/keys/rotation/config) |
-| `GET` | `/_matrix/client/v1/keys/rotation/history/{device_id}` | `src/key-rotation/index.ts:251` (/keys/rotation/history/{}) |
-| `POST` | `/_matrix/client/v1/keys/rotation/revoke` | `src/key-rotation/index.ts:289` (/keys/rotation/revoke) |
-| `POST` | `/_matrix/client/v1/keys/rotation/rotate` | `src/key-rotation/index.ts:203` (/keys/rotation/rotate) |
-| `GET` | `/_matrix/client/v1/keys/rotation/status` | `src/key-rotation/index.ts:160` (/keys/rotation/status) |
-| `POST` | `/_matrix/client/v1/keys/rotation/status` | `src/key-rotation/index.ts:160` (/keys/rotation/status) |
+| `GET` | `/_matrix/client/v1/keys/rotation/check` | `src/key-rotation/index.ts:481` (/keys/rotation/check) |
+| `POST` | `/_matrix/client/v1/keys/rotation/check` | `src/key-rotation/index.ts:481` (/keys/rotation/check) |
+| `POST` | `/_matrix/client/v1/keys/rotation/config` | `src/key-rotation/index.ts:388` (/keys/rotation/config) |
+| `PUT` | `/_matrix/client/v1/keys/rotation/config` | `src/key-rotation/index.ts:388` (/keys/rotation/config) |
+| `GET` | `/_matrix/client/v1/keys/rotation/history/{device_id}` | `src/key-rotation/index.ts:298` (/keys/rotation/history/{}) |
+| `POST` | `/_matrix/client/v1/keys/rotation/revoke` | `src/key-rotation/index.ts:336` (/keys/rotation/revoke) |
+| `POST` | `/_matrix/client/v1/keys/rotation/rotate` | `src/key-rotation/index.ts:250` (/keys/rotation/rotate) |
+| `GET` | `/_matrix/client/v1/keys/rotation/status` | `src/key-rotation/index.ts:207` (/keys/rotation/status) |
+| `POST` | `/_matrix/client/v1/keys/rotation/status` | `src/key-rotation/index.ts:207` (/keys/rotation/status) |
 
 </details>
 
@@ -857,6 +880,19 @@
 
 </details>
 
+<details><summary><code>vendor</code> — 6 条</summary>
+
+| Method | Path | 构造证据 |
+| --- | --- | --- |
+| `GET` | `/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist` | `src/room-summary/sub-managers/room-invite-policy-manager.ts:94` (/rooms/$roomId/invite_allowlist) |
+| `POST` | `/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist` | `src/room-summary/sub-managers/room-invite-policy-manager.ts:94` (/rooms/$roomId/invite_allowlist) |
+| `GET` | `/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist` | `src/room-summary/sub-managers/room-invite-policy-manager.ts:58` (/rooms/$roomId/invite_blocklist) |
+| `POST` | `/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist` | `src/room-summary/sub-managers/room-invite-policy-manager.ts:58` (/rooms/$roomId/invite_blocklist) |
+| `POST` | `/_matrix/vendor/v1/search_recipients` | ⚠️ `src/client-secure-backup-requests.ts:73` (/search_recipients) |
+| `POST` | `/_matrix/vendor/v1/search_rooms` | ⚠️ `src/client-secure-backup-requests.ts:58` (/search_rooms) |
+
+</details>
+
 <details><summary><code>typing</code> — 5 条</summary>
 
 | Method | Path | 构造证据 |
@@ -873,10 +909,10 @@
 
 | Method | Path | 构造证据 |
 | --- | --- | --- |
-| `POST` | `/_matrix/client/unstable/org.matrix.msc3575/sync` | ⚠️ `src/client.ts:1566` (/sync) |
-| `POST` | `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` | ⚠️ `src/client.ts:1566` (/sync) |
-| `POST` | `/_matrix/client/v1/sync` | ⚠️ `src/client.ts:1566` (/sync) |
-| `POST` | `/_matrix/client/v4/sync` | ⚠️ `src/client.ts:1566` (/sync) |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc3575/sync` | ⚠️ `src/client.ts:1628` (/sync) |
+| `POST` | `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` | ⚠️ `src/client.ts:1628` (/sync) |
+| `POST` | `/_matrix/client/v1/sync` | ⚠️ `src/client.ts:1628` (/sync) |
+| `POST` | `/_matrix/client/v4/sync` | ⚠️ `src/client.ts:1628` (/sync) |
 
 </details>
 
@@ -925,15 +961,6 @@
 | --- | --- | --- |
 | `GET` | `/_matrix/client/v3/thirdparty/location` | `src/third-party/index.ts:288` (/thirdparty/location) |
 | `GET` | `/_matrix/client/v3/thirdparty/user` | `src/third-party/index.ts:326` (/thirdparty/user) |
-
-</details>
-
-<details><summary><code>vendor</code> — 2 条</summary>
-
-| Method | Path | 构造证据 |
-| --- | --- | --- |
-| `POST` | `/_matrix/vendor/v1/search_recipients` | ⚠️ `src/client-secure-backup-requests.ts:73` (/search_recipients) |
-| `POST` | `/_matrix/vendor/v1/search_rooms` | ⚠️ `src/client-secure-backup-requests.ts:58` (/search_rooms) |
 
 </details>
 
@@ -1203,7 +1230,7 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 ---
 
-## 6. 服务端/非产品面缺口（登记，**不应**封装）— 56 条
+## 6. 服务端/非产品面缺口（登记，**不应**封装）— 65 条
 
 <details><summary><code>federation</code> — 30 条</summary>
 
@@ -1242,11 +1269,18 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 </details>
 
-<details><summary><code>app_service</code> — 22 条</summary>
+<details><summary><code>app_service</code> — 29 条</summary>
 
 | Method | Path | 范围 |
 | --- | --- | --- |
 | `POST` | `/_matrix/app/v1/ping` | `SERVER_ONLY` |
+| `DELETE` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
+| `GET` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
+| `HEAD` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
+| `OPTIONS` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
+| `PATCH` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
+| `POST` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
+| `PUT` | `/_matrix/app/v1/proxy/{as_id}/{*path}` | `SERVER_ONLY` |
 | `GET` | `/_matrix/app/v1/rooms/{alias}` | `SERVER_ONLY` |
 | `PUT` | `/_matrix/app/v1/transactions/{as_id}/{txn_id}` | `SERVER_ONLY` |
 | `GET` | `/_matrix/app/v1/users/{user_id}` | `SERVER_ONLY` |
@@ -1271,20 +1305,22 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 </details>
 
-<details><summary><code>admin</code> — 4 条</summary>
+<details><summary><code>admin</code> — 6 条</summary>
 
 | Method | Path | 范围 |
 | --- | --- | --- |
 | `POST` | `/_synapse/admin/v1/policy/check` | `SERVER_ONLY` |
 | `GET` | `/_synapse/admin/v1/policy/status` | `SERVER_ONLY` |
+| `GET` | `/_synapse/admin/v1/rate-limit-status` | `SERVER_ONLY` |
 | `POST` | `/_synapse/admin/v1/rooms/{room_id}/backfill` | `SERVER_ONLY` |
+| `POST` | `/_synapse/admin/v1/rooms/{room_id}/cascade_redact` | `SERVER_ONLY` |
 | `GET` | `/_synapse/admin/v1/server` | `SERVER_ONLY` |
 
 </details>
 
 ---
 
-## 7. 人工复核记录（本轮，2026-09-18）
+## 7. 人工复核记录（本轮，2026-09-24）
 
 > 本表由审计者人工维护，**重跑生成器不会覆盖**。机器只能给出"证据有几级"，
 > "该不该补"必须开源码看实现意图——这是本仓历史审计反复踩过的坑

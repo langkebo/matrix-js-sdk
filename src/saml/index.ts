@@ -100,6 +100,44 @@ export class SamlAuthManager extends BaseManager {
         return `${baseUrl}/_matrix/client/v3/login/sso/redirect/saml${params}`;
     }
 
+    /**
+     * GET variant of initiateLogin.
+     * Initiates SAML SSO login via redirect (GET /_matrix/client/v3/login/sso/redirect/saml).
+     * When the browser is expected to handle the redirect directly.
+     *
+     * @param redirectUrl - Optional URL to redirect to after SSO completion
+     * @returns The redirect URL to navigate the browser to
+     */
+    async initiateLoginGet(redirectUrl?: string): Promise<SamlLoginResponse> {
+        return await this.withRetry(async () => {
+            const queryParams = redirectUrl ? { redirectUrl } : undefined;
+            return await this.request<SamlLoginResponse>({
+                method: Method.Get,
+                path: cp("/login/sso/redirect/saml"),
+                queryParams: queryParams,
+                prefix: ClientPrefix.V3,
+            });
+        }, "initiateLoginGet");
+    }
+
+    getLogoutRedirectUrl(redirectUrl?: string): string {
+        const baseUrl = this.client.getHomeserverUrl();
+        const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
+        return `${baseUrl}/_matrix/client/v3/logout/saml${params}`;
+    }
+
+    async initiateLogout(redirectUrl?: string): Promise<SamlLogoutResponse> {
+        return await this.withRetry(async () => {
+            const params = redirectUrl ? { redirectUrl } : undefined;
+            return await this.request<SamlLogoutResponse>({
+                method: Method.Get,
+                path: cp("/logout/saml"),
+                queryParams: params,
+                prefix: ClientPrefix.V3,
+            });
+        }, "initiateLogout");
+    }
+
     async handleCallback(samlResponse: string, relayState?: string): Promise<SamlAuthResult> {
         return await this.withRetry(async () => {
             return await this.request<SamlAuthResult>({
