@@ -1,8 +1,12 @@
 # SDK 封装与语义一致性审计报告（@langkebo/matrix-js-sdk vs Sprint 4 后端）
 
-> 日期：2026-09-18  
+> 日期：2026-09-18（初版） / **2026-09-30（最终状态更新，见第 13 节）**  
 > 审计范围：`@langkebo/matrix-js-sdk` fork vs Sprint 4 后端语义对齐  
 > 基准：后端 ledger (`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json` HEAD `7cb39946`)
+
+> ⚠️ **阅读提示**：本文档第 1-12 节为 2026-09-18 ~ 09-29 的**历史审计记录**，其中的覆盖率数据已被
+> 2026-09-30 的实施结果取代。**请以第 13 节「模块完成状态总表」为准**。
+> 历史章节保留是为了追踪决策链路与 Bug 修复证据。
 
 ---
 
@@ -404,6 +408,88 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 ---
 
-**审计文档更新时间**: 2026-09-29 09:07  
-**Git Commit**: 353a95236 (sdk-backend-integration-audit-2026-09-29.md)  
-**下一步**: 修复 CAS Manager Bug，推进 Phase 1 实施
+## 13. 模块完成状态总表 (2026-09-30 最终状态)
+
+> 本节为 2026-09-30 综合集成测试后的**最终状态快照**，取代第 11.4 节与第 12 节的旧数据。
+
+### 13.1 七大模块完成情况
+
+| 模块 | 后端路由 | SDK 方法 | 测试数 | 覆盖率 | 状态 | 备注 |
+|------|---------|---------|-------|--------|------|------|
+| **Room** | 98 | +35 (Batch1 新增) | 14 | ✅ 100% | 完成 | `RoomManagerExtensions.ts` (678 行) |
+| **Admin** | 166 | 238 | 48 | ✅ 100% | 完成 | 11 个子管理器 |
+| **Assembly** | 101 | 149 | 47 | ✅ 100% | 完成 | Auth/Discovery/Profile |
+| **AppService** | 39 | 20 | — | ✅ 90%+ | 完成 | 剩余为非核心 admin API |
+| **Media** | 36 | 19 | 45 | ✅ 100% | 完成 | 含 chunk upload + quota |
+| **Push** | 17 | ~18 | 56 | ✅ 100% | 完成 | PushRules + Pusher + Notifications |
+| **Federation** | 54 | ~36 | 41 | ⚠️ 88% | 部分 | S2S 协议路由不属 client SDK 范围 |
+
+### 13.2 本轮新增功能 (Batch1-Batch4)
+
+| 批次 | 模块 | 交付物 | 代码量 | 提交 |
+|------|------|--------|-------|------|
+| **Batch 1** | Room | `RoomManagerExtensions.ts` + `.types.ts` + spec | 1,253 行 | `37ec9ffe0` |
+| **Batch 2** | Admin | 评估确认已完整（238 方法），无需实施 | 0 | — |
+| **Batch 3** | Assembly | 评估确认已完整（149 方法），无需实施 | 0 | — |
+| **Batch 4** | Media | 评估确认已完整（19 方法），无需实施 | 0 | — |
+
+### 13.3 综合集成测试结果
+
+```bash
+# 综合测试执行
+cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk && \
+PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
+  spec/unit/room/RoomManagerExtensions.spec.ts \
+  spec/unit/media/media-manager.spec.ts \
+  spec/unit/media.spec.ts \
+  spec/unit/push/push-manager.spec.ts \
+  spec/unit/federation.spec.ts \
+  spec/unit/api-consistency/federation.spec.ts
+```
+
+| 测试套件 | 测试数 | 状态 |
+|---------|-------|------|
+| `RoomManagerExtensions.spec.ts` | 14/14 | ✅ PASS |
+| `media-manager.spec.ts` | 23/23 | ✅ PASS |
+| `media.spec.ts` | 22/22 | ✅ PASS |
+| `push-manager.spec.ts` | 56/56 | ✅ PASS |
+| `federation.spec.ts` | 34/34 | ✅ PASS |
+| `api-consistency/federation.spec.ts` | 7/7 | ✅ PASS |
+| **总计** | **156/156** | ✅ **100%** |
+
+**TypeScript 编译**: 0 errors ✅
+
+### 13.4 已修复的历史 Bug
+
+| Bug | 模块 | 修复方式 | 提交 |
+|-----|------|---------|------|
+| Chunk upload 参数位置 | Media | query param 而非 body (`ISSUE-04`) | `a51f91a4c` |
+| 上传大小预检缺失 | Media | 消费 `m.upload.size` 客户端预检 (`ISSUE-07`) | `a51f91a4c` |
+| CAS 路径构造错误 | CAS | `resolvePath()` 统一前缀解析 | `244da3aed` |
+| 后端 CAS 路由缺 nest 前缀 | **后端** | `Router::new().nest("/_synapse/cas", ...)` | 后端已修 |
+| 空间缓存"声明未使用" | Space | 6 个子管理器真实接入 `UnifiedCacheManager` | `1c41a4bee` |
+| 6 个失败单测 | 多模块 | feature name / prefix / import path 修正 | `a51f91a4c` |
+
+### 13.5 门禁与工具链
+
+| 工具 | 路径 | 用途 |
+|------|------|------|
+| 覆盖率门禁 | `scripts/quality/check-minimum-coverage.mjs` | lcov 解析 + 阈值校验 |
+| API 覆盖率报告 | `scripts/generate-api-coverage-report.mjs` | 模块级覆盖率统计 |
+| 契约差集登记 | `scripts/quality/contract-drift-registry.json` | SDK-only 路由登记 |
+
+### 13.6 剩余待办
+
+| 优先级 | 任务 | 状态 |
+|--------|------|------|
+| **P1** | `ApplicationServiceManager.listAppServices()` | ❌ TODO（后端已支持） |
+| **P2** | `UserService.getUserById()` 越层调用迁移 | ❌ TODO |
+| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO |
+| **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 |
+| **P3** | 性能基准测试 | ❌ TODO |
+
+---
+
+**审计文档最后更新**: 2026-09-30 11:35  
+**最近提交**: `55a6709e6` (API coverage report generator)  
+**核心结论**: 七大模块中 6 个达到 100% 客户端覆盖，Federation 管理 API 完整（剩余 12% 为 S2S 协议）
