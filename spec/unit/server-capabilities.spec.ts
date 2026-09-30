@@ -171,7 +171,7 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({
                 versions: ["v1.11"],
-                unstable_features: { "org.matrix.msc3245": true },
+                unstable_features: { "org.matrix.msc3245.voice": true },
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });

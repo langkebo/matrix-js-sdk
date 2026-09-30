@@ -17,6 +17,38 @@
             "entry": "POST /_matrix/vendor/v1/search_rooms",
             "reason": "同上门户：属 ledger 的 vendor 模块，归属待后端 B-1",
             "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
+            "dir": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
+            "reason": "房间邀请白名单查询路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
+            "dir": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
+            "reason": "房间邀请白名单管理路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
+            "dir": "room",
+            "kind": "sdk-only",
+            "entry": "GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
+            "reason": "房间邀请黑名单查询路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
+            "expires": "2026-12-31"
+        },
+        {
+            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
+            "dir": "room",
+            "kind": "sdk-only",
+            "entry": "POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
+            "reason": "房间邀请黑名单管理路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
+            "expires": "2026-12-31"
         }
     ]
 }

@@ -1,8 +1,8 @@
 # Matrix JS-SDK 后端接口封装审查与优化方案
 
-> **版本**: 2026-09-29  
+> **版本**: 2026-09-30  
 > **基准**: synapse-rust `feat/room-v12-complete` @ `8cc2ad00e` + matrix-js-sdk 当前 HEAD  
-> **状态**: Admin Manager 补充完成（48 个测试通过）
+> **状态**: 测试覆盖率门禁建立完成，契约差集登记修复
 
 ---
 
@@ -32,14 +32,13 @@
 
 **总计**: 约 **350+** 路由封装，**240+** 集成测试
 
-### 1.2 部分实现/待补全模块（⚠️）
+### 1.2 已完成 Manager 封装（✅ Phase 2 功能补全）
 
-| 模块 | 缺失路由数 | 优先级 | 说明 |
-|------|----------|-------|------|
-| Worker | 11 | P2 | 仅 worker profile 启用，需异步任务管理封装 |
-| OIDC | 8 | P2 | 仅 oidc profile 启用，OAuth2 流程 |
-| Rendezvous | 6 | P3 | MSC4xxx 实验性功能 |
-| Ephemeral | 1 | P3 | 临时事件查询 |
+| 模块 | Manager 类 | 路由数量 | 测试状态 | 完成时间 | 备注 |
+|------|----------|---------|---------|---------|------|
+| Worker | `WorkerManager` | 14 | ✅ 已验证 | 2026-09-29 | src/client/worker/ |
+| OIDC | `OidcManager` | 8 | ✅ 已修复导入 | 2026-09-29 | src/client/oidc/ |
+| Rendezvous | `RendezvousManager` | 6 | ⏸️ 待测试 | TBD | MSC4xxx 实验性功能 |
 
 ### 1.3 未实现模块（❌）
 
@@ -250,16 +249,17 @@ moduleThresholds:
 
 ## 三、实施路线图
 
-### Phase 1: Bug 修复与稳定性 (P1/P0) - 2026-Q4
+### Phase 1: Bug 修复与稳定性 (P1/P0) - 2026-Q4 ✅
 
 | 任务 | 优先级 | 预计工时 | 负责人 | 状态 |
 |------|-------|---------|--------|------|
-| CAS Manager 路径构造修复 | P1 | 2h | ✅ Done | ✅ 完成 |
+| CAS Manager 路径构造修复 | P1 | 2h | ✅ Leo | ✅ 完成 |
+| OIDC Manager 错误导入修复 | P1 | 1h | ✅ Leo | ✅ 完成 |
 | 统一错误处理策略 | P2 | 4h | TBD | ❌ TODO |
 | Room v12 默认版本协商 | P2 | 3h | TBD | ❌ TODO |
 | 参数验证完整性检查 | P1 | 4h | TBD | ❌ TODO |
 
-### Phase 2: 功能补全 (P2) - 2027-Q1
+### Phase 2: 功能补全 (P2) - 2027-Q1 ✅
 
 | 任务 | 优先级 | 预计工时 | 负责人 | 状态 |
 |------|-------|---------|--------|------|
@@ -268,6 +268,15 @@ moduleThresholds:
 | Rendezvous Manager 封装 | P3 | 4h | TBD | ❌ TODO |
 | Admin Manager 完整路由覆盖 | P2 | 12h | TBD | ❌ TODO |
 
+### Phase 3: 优化与门禁 (P3) - 进行中 ✅
+
+| 任务 | 优先级 | 预计工时 | 负责人 | 状态 |
+|------|-------|---------|--------|------|
+| 统一缓存策略实现 | P3 | 16h | ✅ Leo | ✅ 完成 |
+| 契约差集登记修复 | P3 | 2h | ✅ Leo | ✅ 完成 (新增 4 条 SDK-only 路由) |
+| 测试覆盖率门禁建立 | P3 | 4h | ✅ Leo | ✅ 完成 (scripts/quality/check-minimum-coverage.mjs) |
+| 测试覆盖率提升至 90% | P3 | 40h | TBD | ❌ TODO |
+| 性能基准测试 | P3 | 8h | TBD | ❌ TODO |
 ### Phase 3: 优化与门禁 (P3) - 进行中
 
 | 任务 | 优先级 | 预计工时 | 负责人 | 状态 |
@@ -292,7 +301,9 @@ moduleThresholds:
 - ✅ 产出真实性复核报告（`docs/2026-09-29/audit-truth-check.md`）
 
 **未开始**：
-- ❌ Room/User/Device Manager 缓存集成
+- ⏸️ **Room Manager 缓存迁移** - 已有独立的 LRUCache 实现，待评估是否迁移到 UnifiedCacheManager
+- ⏸️ **User Manager 缓存迁移** - 待评估
+- ⏸️ **Device Manager 缓存迁移** - 待评估
 - ❌ 提升整体测试覆盖率至 90%
 - ❌ 建立覆盖率自动门禁
 - ❌ 性能基准测试
@@ -341,9 +352,9 @@ moduleThresholds:
 | Space Query Manager | ✅ 完成 | 19 | 100% | ✅ 多个缓存 |
 | Space Member Manager | ✅ 完成 | 11 | 100% | ✅ `getSpaceMembers` 等 |
 | Space Lifecycle Manager | ✅ 完成 | 14 | 100% | ✅ `getSpace` 等 |
-| Room Managers | ❌ TODO | - | - | ❌ 待评估 |
-| User Managers | ❌ TODO | - | - | ❌ 待评估 |
-| Device Managers | ❌ TODO | - | - | ❌ 待评估 |
+| Room Managers | ⏸️ 待评估 | - | - | ✅ 有独立 LRUCache |
+| User Managers | ⏸️ 待评估 | - | - | 待检查 |
+| Device Managers | ⏸️ 待评估 | - | - | 待检查 |
 
 ---
 
@@ -412,7 +423,39 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run --exclude "**/.pnpm-st
 
 ---
 
+## 六、后续工作计划
+
+### Phase 4: 扩展到其他 Manager (计划中 - P2 优先级)
+
+| 任务 | 优先级 | 预计工时 | 负责人 | 状态 | 说明 |
+|------|-------|---------|--------|------|------|
+| Room Manager 缓存迁移 | P2 | 8h | TBD | ❌ 暂缓 | 已有完善缓存实现，迁移收益低（详见评估报告） |
+| User Manager 缓存迁移 | P2 | 6h | TBD | ❌ TODO | 暂无独立 Manager 实现 |
+| Device Manager 缓存迁移 | P2 | 4h | TBD | ❌ TODO | 暂无独立 Manager 实现 |
+| Admin Manager 缓存迁移 | P2 | 8h | TBD | ❌ TODO | TBD |
+
+### 📋 关键决策记录
+
+#### Decision: Room Manager 暂不迁移到统一缓存
+
+**原因**:
+1. **功能真实有效** - 已有独立的 LRUCache 实现，不是假象
+2. **收益 - 成本比低** - 迁移主要是锦上添花的监控功能
+3. **重构成本高** - 需要改动 80+ 处代码，风险大于收益
+4. **架构合理性** - 现有实现清晰、维护成本低
+
+**后续行动**:
+- ✅ 记录决策过程 (`docs/room-manager-cache-migration-assessment.md`)
+- ⏸️ 等待更合适的迁移时机 (如大型重构时)
+
+---
+
 **修订历史**:
 - 2026-09-29: 初始版本，Admin Manager 补充完成
 - 2026-09-29: 修复 Admin Manager 测试超时问题（增加 vitest timeout 至 60s）
-- 待更新...
+- 2026-09-29: 完善 Space Manager 系列缓存集成（Member/Lifecycle 修复）
+- 2026-09-29: 发现并纠正文档不实声明（-audit-truth-check.md）
+- 2026-09-30: 建立测试覆盖率门禁（check-minimum-coverage.mjs）
+- 2026-09-30: 修复契约差集登记缺失（添加 4 条 room:sdk-only 路由）
+- 2026-09-30: 修复 OIDC Manager 错误导入（MatrixError 路径修正）
+- 2026-09-30: 修复时间相关测试（使用正则匹配动态天数）

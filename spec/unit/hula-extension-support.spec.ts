@@ -12,7 +12,7 @@ describe("Hula extension feature discovery", () => {
         await expect(new VoiceManager(client).isSupported()).resolves.toBe(false);
     });
 
-    it.each([["voice", VoiceManager, "org.matrix.msc3245"]] as const)(
+    it.each([["voice", VoiceManager, "org.matrix.msc3245.voice"]] as const)(
         "uses centralized discovery for %s",
         async (_label, Manager, feature) => {
             const client = {

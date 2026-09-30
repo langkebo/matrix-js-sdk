@@ -65,7 +65,7 @@ describe("RoomMemberManager", () => {
                 "/rooms/!r%3Ahs/get_membership_events",
                 undefined,
                 { limit: 50 },
-                { prefix: ClientPrefix.R0 },
+                { prefix: ClientPrefix.V3 },
             );
         });
 
@@ -80,7 +80,7 @@ describe("RoomMemberManager", () => {
                 "/rooms/!r%3Ahs/get_membership_events",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.R0 },
+                { prefix: ClientPrefix.V3 },
             );
         });
     });

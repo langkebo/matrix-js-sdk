@@ -34,7 +34,8 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import type { ManagerOpts } from "../managers/base-manager";
-import { InvalidParamError, MatrixError } from "../common/errors";
+import { InvalidParamError } from "../common/errors";
+import { MatrixError } from "../http-api/errors";
 
 // ============================================================================
 // 类型定义
