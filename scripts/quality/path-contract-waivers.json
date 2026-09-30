@@ -1,0 +1,127 @@
+{
+    "note": "SDK 声明了但后端 ledger 里查不到的路径。每条必须写清「为什么后端没有」和「什么条件下可以删掉这条豁免」。expires 到期即门禁失败——这是为了让豁免不会变成永久性的静态白噪音（参见 check-manager-codegen-coverage.mjs 里 WAIVED_MODULES 的同款思路：豁免要有主人和期限）。",
+    "verifiedAgainst": "synapse-rust commit 7cb39946, ledger 1149 entries",
+    "verifiedAt": "2026-10-01",
+    "waivers": [
+        {
+            "sdkCall": "POST /_matrix/client/v1/login/get_token",
+            "file": "src/account/index.ts",
+            "reason": "第三方登录 token 交换。后端未实现 get_token 端点（synapse-rust 仅有 refresh_token_service 内部的同名私有方法，不是 HTTP 路由）。SDK 保留了封装以兼容其他 homeserver。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/register/captcha",
+            "file": "src/auth/index.ts",
+            "reason": "注册 captcha 校验。后端 auth 模块未实现该端点；若后端引入 captcha 强制校验则需要补齐。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_start",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "MSC3882 设备签名交互式验证。后端 device_signing 只实现了 upload（ledger 中仅 POST /keys/device_signing/upload），verify_* 全系列未实现。属于上游 MSC 尚未落地，不是 SDK 缺陷。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "PUT /_matrix/client/v3/keys/device_signing/verify_accept",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_key_agreement",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_mac",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_done",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_cancel",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/keys/device_signing/requests",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882：查询待处理的设备签名验证请求。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/keys/qr_code/show",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "MSC3882 二维码验证。后端未实现 qr_code 系列端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/qr_code/scan",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "MSC3882 二维码验证。后端未实现 qr_code 系列端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/device_verification/request",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信验证。后端 routes/ 下零命中（grep device_verification 无结果），端点未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/device_verification/respond",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信验证应答。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/device_trust",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信列表查询。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/security/summary",
+            "file": "src/device-trust/index.ts",
+            "reason": "安全摘要（E2EE 状态总览）。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_synapse/admin/v1/federation/blacklist/add",
+            "file": "src/federation/sub-managers/federation-blacklist-manager.ts",
+            "reason": "后端只在 synapse-web/src/utils/admin_auth.rs:236 的鉴权规则里为 '/federation/blacklist' 预留了敏感操作标记，但从未注册对应路由（ledger 零条目）。SDK 封装超前于后端实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_synapse/admin/v1/federation/blacklist/remove",
+            "file": "src/federation/sub-managers/federation-blacklist-manager.ts",
+            "reason": "同 blacklist/add：鉴权规则已预留，路由未注册。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/oidc/register",
+            "file": "src/oidc/manager.ts",
+            "reason": "OIDC registration 端点。后端 OIDC 模块未实现该路径。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/login/failures",
+            "file": "src/security/index.ts",
+            "reason": "登录失败统计。后端 auth 模块未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/rtc/transports",
+            "file": "src/server-capabilities/index.ts",
+            "reason": "RTC transports（MSC4143）。后端实际使用 unstable 前缀：GET /_matrix/client/unstable/org.matrix.msc4143/rtc/transports。SDK 前缀错误。",
+            "expires": "2026-12-31"
+        }
+    ]
+}

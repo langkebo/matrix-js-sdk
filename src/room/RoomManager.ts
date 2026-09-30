@@ -1274,7 +1274,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         features: Record<string, boolean>;
         defaults: Record<string, unknown>; // Dynamic: server-defined default configuration values
     }> {
-        return this.request({ method: Method.Get, path: "/_matrix/client/v1/config/client", prefix: ClientPrefix.V3 });
+        return this.request({ method: Method.Get, path: "/config/client", prefix: ClientPrefix.V1 });
     }
 
     /**
@@ -1289,7 +1289,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }> {
         return this.request({
             method: Method.Get,
-            path: "/_matrix/client/v3/login/sso/userinfo",
+            path: "/login/sso/userinfo",
             prefix: ClientPrefix.V3,
         });
     }
