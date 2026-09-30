@@ -480,13 +480,63 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 ### 13.6 剩余待办
 
-| 优先级 | 任务 | 状态 |
-|--------|------|------|
-| **P1** | `ApplicationServiceManager.listAppServices()` | ❌ TODO（后端已支持） |
-| **P2** | `UserService.getUserById()` 越层调用迁移 | ❌ TODO |
-| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO |
-| **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 |
-| **P3** | 性能基准测试 | ❌ TODO |
+| 优先级 | 任务 | 状态 | 备注/完成证据 |
+|--------|------|------|--------------|
+| **P1** | `ApplicationServiceManager.listAppServices()` | ❌ TODO（后端已支持） | - |
+| **P2** | `UserService.getUserById()` 越层调用迁移 | ❌ TODO | - |
+| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO | 当前 ~46% |
+| **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 | 已评估 |
+| **P3** | 性能基准测试 | ✅ **已完成** | 见第 13.7 节 |
+
+### 13.7 性能基准测试结果（2026-09-30）
+
+#### 测试文件
+- **`spec/unit/integration/cross-module.spec.ts`** — 跨模块集成测试（16 个测试）
+- **`perf/benchmarks.spec.ts`** — 性能基准测试（11 个测试）
+
+#### 运行命令
+```bash
+cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk && \
+PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
+  --exclude "**/Tjg/**" --exclude "**/.pnpm-store/**" --exclude "**/.worktrees/**" \
+  spec/unit/integration/cross-module.spec.ts perf/benchmarks.spec.ts
+```
+
+#### 测试结果汇总
+| 测试套件 | 测试数 | 状态 | 平均耗时 |
+|---------|-------|------|---------|
+| `cross-module.spec.ts` (集成) | 16/16 | ✅ PASS | - |
+| `benchmarks.spec.ts` (性能) | 11/11 | ✅ PASS | 详见下方 |
+| **总计** | **27/27** | ✅ **100%** | - |
+
+#### 详细性能数据
+
+**Cache Operations** (目标 < 1ms):
+- Cache set/get: **0.00 ms** ✅
+- Cache hit (getOrFetch): **0.00 ms** ✅
+- Wildcard invalidation: **< 2ms** ✅
+- LRU eviction: **< 2ms** ✅
+
+**LRUCache Internals** (目标 < 5-10ms):
+- Batch set (100 items): **< 5ms** ✅
+- Batch get (100 items): **< 5ms** ✅
+- Mixed read/write: **< 3ms** ✅
+- Eviction stress (200 items, 10 rounds): **< 10ms** ✅
+
+**String Operations** (目标 < 2-3ms):
+- encodeURIComponent: **< 3ms** ✅
+- String normalization: **< 2ms** ✅
+
+#### 关键发现
+1. **Space 子管理器实际不使用 UnifiedCacheManager**：只有 `hierarchyCache` 在 `SpaceHierarchyManager` 中使用，之前设计的"member/lifecycle 写操作后缓存失效"场景不成立，测试已调整为聚焦真实基础设施层。
+2. **CacheStats 接口无 name 字段**：实际结构为 `{size, maxSize, hits, misses, hitRate, evictions, expiredPurges}`。
+3. **LRUCache 延迟检查过期**：只有在 get() 时才会检查 TTL，set 后立即等待过期可能观察不到预期行为。
+4. **所有性能指标远超目标阈值**：cache ops < 0.01ms，远低于 < 1ms 的目标。
+
+#### 提交记录
+- Commit: `e1cbedc92`
+- Branch: `feat/sdk-contract-gap-implementation`
+- Files: `spec/unit/integration/cross-module.spec.ts`, `perf/benchmarks.spec.ts`
 
 ---
 
