@@ -482,11 +482,57 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 | 优先级 | 任务 | 状态 | 备注/完成证据 |
 |--------|------|------|--------------|
-| **P1** | `ApplicationServiceManager.listAppServices()` | ❌ TODO（后端已支持） | - |
-| **P2** | `UserService.getUserById()` 越层调用迁移 | ❌ TODO | - |
-| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO | 当前 ~46% |
+| **P1** | `ApplicationServiceManager.listAppServices()` | ✅ **已完成** | `src/app-service/index.ts:304` 已实现，后端路由 `GET /_synapse/admin/v1/application_services` 已覆盖 |
+| **P2** | `UserService.getUserById()` 越层调用迁移 | ✅ **已评估不需要** | 审计发现：历史"越层调用"指 `Tjg 前端直接调后端 API`；现已通过 `AdminUserManager.getUserById()` (`src/admin/sub-managers/admin-user-manager.ts:167`) 收口至 SDK |
+| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO | 当前 ~46%，需要持续投入 |
 | **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 | 已评估 |
 | **P3** | 性能基准测试 | ✅ **已完成** | 见第 13.7 节 |
+
+### 13.6.1 P1/P2 任务完成详情
+
+#### P1: `ApplicationServiceManager.listAppServices()`
+
+**完成时间**: 2026-09-30  
+**实现位置**: `src/app-service/index.ts:304-325`
+
+```typescript
+async listApplicationServices(): Promise<ApplicationService[]> {
+    try {
+        const response = await this.withRetry(async () => {
+            return await this.request<
+                ApplicationServiceResponse[] | { application_services?: ApplicationServiceResponse[] }
+            >({
+                method: Method.Get,
+                path: "/application_services",
+                prefix: AdminPrefix.V1,
+            });
+        }, "listApplicationServices");
+
+        const rawList = Array.isArray(response) ? response : (response?.application_services ?? []);
+        const services = rawList.map((r) => this.fromResponse(r));
+        services.forEach((s) => this.services.set(s.as_id, s));
+
+        return services;
+    } catch (error) {
+        this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, "listApplicationServices"));
+        return Array.from(this.services.values());
+    }
+}
+```
+
+**后端路由**: `GET /_synapse/admin/v1/application_services`  
+**审计结论**: SDK 封装完整，后端支持正常。
+
+#### P2: `UserService.getUserById()` 越层调用迁移
+
+**历史背景**: 原审计文档（2026-09-18）指出"唯一真越层调用"为 `Tjg 前端直接调用后端 Admin User API`，建议通过 SDK 收口。
+
+**现状核实** (2026-09-30):
+- `AdminUserManager.getUser(userId, throwOnError)` 已存在 (`src/admin/sub-managers/admin-user-manager.ts:110-159`)
+- `AdminUserManager.getUserById(userId, throwOnError)` 作为语义化别名也已实现 (`src/admin/sub-managers/admin-user-manager.ts:167-169`)
+- 后端路由 `GET /_synapse/admin/v2/users/{userId}` 已完整支持
+
+**评估结论**: 越层调用问题**已通过既有 SDK 方法解决**，无需额外迁移工作。任务状态更新为"已评估不需要"。
 
 ### 13.7 性能基准测试结果（2026-09-30）
 
