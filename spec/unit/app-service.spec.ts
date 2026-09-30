@@ -41,7 +41,7 @@ describe("ApplicationServiceManager", () => {
 
             expect(result.as_id).toBe("my-bridge");
             expect(result.sender).toBe("@bridge_bot:example.com");
-            transport.expectCalledWith(Method.Post, "/application_services");
+            transport.expectCalledWith(Method.Post, "/appservices");
         });
 
         it("should reject registration with missing required fields", async () => {
@@ -120,7 +120,7 @@ describe("ApplicationServiceManager", () => {
 
             expect(result).not.toBeNull();
             expect(result!.as_id).toBe("remote-as");
-            transport.expectCalledWith(Method.Get, "/application_services/remote-as");
+            transport.expectCalledWith(Method.Get, "/appservices/remote-as");
         });
 
         it("should return cached service without HTTP call", async () => {
@@ -171,7 +171,7 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.updateApplicationService("update-me", { url: "https://updated.example.com" });
 
             expect(result.url).toBe("https://updated.example.com");
-            transport.expectCalledWith(Method.Put, "/application_services/update-me");
+            transport.expectCalledWith(Method.Put, "/appservices/update-me");
         });
 
         it("should emit ServiceUpdated event", async () => {
@@ -202,7 +202,7 @@ describe("ApplicationServiceManager", () => {
 
             await manager.unregisterApplicationService("to-delete");
 
-            transport.expectCalledWith(Method.Delete, "/application_services/to-delete");
+            transport.expectCalledWith(Method.Delete, "/appservices/to-delete");
             expect(emitSpy).toHaveBeenCalledWith(AppServiceEvent.ServiceUnregistered, "to-delete");
         });
     });
@@ -238,7 +238,7 @@ describe("ApplicationServiceManager", () => {
             expect(services).toHaveLength(2);
             expect(services[0].as_id).toBe("as1");
             expect(services[1].as_id).toBe("as2");
-            transport.expectCalledWith(Method.Get, "/application_services");
+            transport.expectCalledWith(Method.Get, "/appservices");
         });
     });
 
@@ -278,7 +278,7 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.pingApplicationService("my-bridge");
 
             expect(result.duration).toBeGreaterThanOrEqual(0);
-            transport.expectCalledWith(Method.Post, "/application_services/my-bridge/ping");
+            transport.expectCalledWith(Method.Post, "/appservices/my-bridge/ping");
         });
 
         it("should return duration -1 on error", async () => {
@@ -336,7 +336,7 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.getApplicationServiceState("as1");
 
             expect(result).toEqual(state);
-            transport.expectCalledWith(Method.Get, "/application_services/as1/state");
+            transport.expectCalledWith(Method.Get, "/appservices/as1/state");
         });
 
         it("should set application service state", async () => {
@@ -346,7 +346,7 @@ describe("ApplicationServiceManager", () => {
 
             await manager.setApplicationServiceState("as1", "mykey", "myvalue");
 
-            transport.expectCalledWith(Method.Put, "/application_services/as1/state/mykey");
+            transport.expectCalledWith(Method.Put, "/appservices/as1/state/mykey");
         });
 
         it("should list application service users", async () => {
@@ -365,7 +365,7 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.queryApplicationServiceUser("as1", "@test:example.com");
 
             expect(result.exists).toBe(true);
-            transport.expectCalledWith(Method.Get, "/application_services/as1/query/user/%40test%3Aexample.com");
+            transport.expectCalledWith(Method.Get, "/appservices/as1/query/user/%40test%3Aexample.com");
         });
     });
 

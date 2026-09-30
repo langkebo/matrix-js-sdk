@@ -482,11 +482,70 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 | 优先级 | 任务 | 状态 | 备注/完成证据 |
 |--------|------|------|--------------|
-| **P1** | `ApplicationServiceManager.listAppServices()` | ✅ **已完成** | `src/app-service/index.ts:304` 已实现，后端路由 `GET /_synapse/admin/v1/application_services` 已覆盖 |
-| **P2** | `UserService.getUserById()` 越层调用迁移 | ✅ **已评估不需要** | 审计发现：历史"越层调用"指 `Tjg 前端直接调后端 API`；现已通过 `AdminUserManager.getUserById()` (`src/admin/sub-managers/admin-user-manager.ts:167`) 收口至 SDK |
-| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO | 当前 ~46%，需要持续投入 |
+| **P1** | `ApplicationServiceManager` appservice 路径契约修复 | ✅ **已修复** | **2026-09-30 联调发现真实缺陷**：SDK 全部 14 处路径误用 `/application_services`（下划线），后端实际注册 `/_synapse/admin/v1/appservices`（无下划线）。已批量替换并回归 35/35 单测通过。详见 §13.6.1 |
+| **P2** | `UserService.getUserById()` 越层调用迁移 | ✅ **已评估不需要** | `AdminUserManager.getUserById()` (`src/admin/sub-managers/admin-user-manager.ts:167`) 已收口至 SDK |
+| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ TODO | 当前 ~46%，需持续投入 |
 | **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 | 已评估 |
 | **P3** | 性能基准测试 | ✅ **已完成** | 见第 13.7 节 |
+
+### 13.6.1 P1 缺陷：appservice 路径契约不符（联调发现，2026-09-30）
+
+#### 现象
+
+在 `https://matrix.test` 上用 server admin token 实测：
+
+```bash
+# SDK 使用的路径 → 404
+curl -H "Authorization: Bearer $ADMIN" \
+  https://matrix.test/_synapse/admin/v1/application_services
+# → {"errcode":"M_UNRECOGNIZED","error":"Unrecognized request"}
+
+# 后端真实路径 → 200
+curl -H "Authorization: Bearer $ADMIN" \
+  https://matrix.test/_synapse/admin/v1/appservices
+# → []
+```
+
+#### 根因
+
+| 侧 | 路径 | 来源 |
+|----|------|------|
+| SDK | `/_synapse/admin/v1/application_services` | `src/app-service/index.ts` 14 处硬编码 |
+| 后端 | `/_synapse/admin/v1/appservices` | `synapse-web/src/routes/app_service.rs:728-742`（16 条 admin 路由） |
+
+SDK 侧从单测到集成测试全部自洽（mock 层不校验真实路径），因此该缺陷在纯 mock 测试下**完全不可见**——这正是"单测全绿 ≠ 联调通过"的典型案例。
+
+#### 影响面
+
+`ApplicationServiceManager` 的 **全部 14 个方法**均受影响，包括：
+`registerAppService` / `getApplicationService` / `updateApplicationService` /
+`unregisterApplicationService` / `listApplicationServices` / `pingApplicationService` /
+`getApplicationServiceState` / `setApplicationServiceState` / `listApplicationServiceUsers` /
+`getApplicationServiceNamespaces` / `listApplicationServiceEvents` /
+`getApplicationServiceStatistics` / `queryApplicationServiceUser` / `queryApplicationServiceAlias`
+
+另 2 处 `checkUserId` / `checkAlias` 走 `/_matrix/client/v3/appservice/*`（**正确**，不受影响）。
+
+#### 修复内容
+
+1. `src/app-service/index.ts`：14 处 `path: "/application_services..."` → `"/appservices..."`
+2. 同文件 2 处注释同步更新
+3. 响应归一化字段：`application_services?` → `services?`（后端返回裸数组，该分支为兼容兜底）
+4. `spec/unit/app-service.spec.ts`：9 处路径断言同步更新
+
+#### 回归验证
+
+```
+spec/unit/app-service.spec.ts   29 tests ✅
+spec/unit/appservice.spec.ts     6 tests ✅
+总计                            35/35 ✅
+```
+
+#### 审计方法论教训
+
+> **B2 维度（SDK 能力存在性）的反向缺口**：审计时只检查"SDK 有没有这个方法"，
+> 没有检查"这个方法打的 URL 对不对"。建议在 `check-manager-codegen-coverage.mjs`
+> 门禁中增加**路径字面量与后端 ledger 的交叉校验**，把这类缺陷左移到 CI 而非联调。
 
 ### 13.6.1 P1/P2 任务完成详情
 

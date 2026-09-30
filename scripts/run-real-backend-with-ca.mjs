@@ -15,6 +15,26 @@ const env = { ...process.env };
 const realBackendBaseUrl = env.MATRIX_REAL_BACKEND_BASE_URL ?? "https://matrix.test";
 
 function configureMkcertCa() {
+    // Try to find mkcert root from common locations (macOS & Linux)
+    const caRootPaths = [
+        // macOS: mkcert's default CAROOT
+        process.env.HOME ? join(process.env.HOME, "Library/Application Support/mkcert") : null,
+        // Linux (mkcert >= 1.4 default)
+        process.env.HOME ? join(process.env.HOME, ".local/share/mkcert") : null,
+        // Older Linux location
+        "/usr/local/share/ca-certificates",
+    ].filter(Boolean);
+
+    for (const path of caRootPaths) {
+        const candidate = join(path, "rootCA.pem");
+        if (existsSync(candidate)) {
+            env.NODE_EXTRA_CA_CERTS = candidate;
+            console.log(`ℹ️  Found mkcert CA at ${candidate}`);
+            return true;
+        }
+    }
+
+    // Fallback: try mkcert command
     const mkcertCaroot = spawnSync("mkcert", ["-CAROOT"], {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
@@ -24,8 +44,11 @@ function configureMkcertCa() {
         const rootCaPath = join(mkcertCaroot.stdout.trim(), "rootCA.pem");
         if (existsSync(rootCaPath)) {
             env.NODE_EXTRA_CA_CERTS = rootCaPath;
+            console.log(`ℹ️  Loaded mkcert CA: ${rootCaPath}`);
+            return true;
         }
     }
+    return false;
 }
 
 function extractFirstCertificate(pemChain) {
@@ -65,6 +88,14 @@ function configureRemoteCertificate() {
 
 let tempCaDir;
 
+// Priority order:
+//  1. An explicitly provided CA (env or MATRIX_REAL_BACKEND_CA_CERT).
+//  2. A known CA root on this machine (mkcert). A CA *root* validates the whole
+//     chain, which is what we want — see the note on `configureRemoteCertificate`.
+//  3. The leaf certificate the server presents. This is a last resort: it only
+//     trusts that one certificate (so it breaks as soon as the cert is renewed or
+//     the hostname/SAN changes), and it silently succeeds even when the CA is
+//     misconfigured, which is how the mkcert case went unnoticed.
 if (!env.NODE_EXTRA_CA_CERTS) {
     const explicitCaPath = env.MATRIX_REAL_BACKEND_CA_CERT;
     if (explicitCaPath && existsSync(explicitCaPath)) {
@@ -73,11 +104,11 @@ if (!env.NODE_EXTRA_CA_CERTS) {
 }
 
 if (!env.NODE_EXTRA_CA_CERTS) {
-    tempCaDir = configureRemoteCertificate();
+    configureMkcertCa();
 }
 
 if (!env.NODE_EXTRA_CA_CERTS) {
-    configureMkcertCa();
+    tempCaDir = configureRemoteCertificate();
 }
 
 const [command, ...commandArgs] = commandArgsInput;
