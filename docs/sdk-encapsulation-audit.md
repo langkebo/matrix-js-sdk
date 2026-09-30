@@ -542,11 +542,12 @@ spec/unit/appservice.spec.ts     6 tests ✅
 总计                            35/35 ✅
 ```
 
-#### 审计方法论教训
+#### 审计方法论教训 → 已落地为 P2-a 门禁
 
 > **B2 维度（SDK 能力存在性）的反向缺口**：审计时只检查"SDK 有没有这个方法"，
-> 没有检查"这个方法打的 URL 对不对"。建议在 `check-manager-codegen-coverage.mjs`
-> 门禁中增加**路径字面量与后端 ledger 的交叉校验**，把这类缺陷左移到 CI 而非联调。
+> 没有检查"这个方法打的 URL 对不对"。
+
+该教训已转化为 CI 门禁，见 §13.6.3。
 
 #### 提交记录
 
@@ -565,6 +566,101 @@ spec/unit/appservice.spec.ts     6 tests ✅
 - 后端路由 `GET /_synapse/admin/v2/users/{userId}` 已完整支持
 
 **评估结论**: 越层调用问题**已通过既有 SDK 方法解决**，无需额外迁移工作。任务关闭。
+
+### 13.6.3 P2-a：SDK ↔ 后端路径契约交叉校验门禁（2026-10-01）
+
+#### 动机
+
+§13.6.1 的 P1 缺陷暴露了审计方法的盲区：**单测全绿 ≠ 路径正确**。mock 层不校验真实 URL，
+所以拼错前缀这类缺陷在纯 mock 环境下完全不可见。P2-a 建门禁把这类缺陷左移到 CI。
+
+#### 交付物
+
+| 文件 | 作用 |
+|------|------|
+| `scripts/quality/verify-path-contract.mjs` | 门禁主体 |
+| `scripts/quality/path-contract-waivers.json` | 20 条已登记豁免 |
+| `package.json` | `quality:path-contract`，挂进 `quality:contracts` |
+
+#### 工作原理
+
+1. 从后端 ledger（`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json`，**1149 条**）读出注册路由建索引
+2. 从 SDK 源码提取 `(prefix, path, method)` 三元组，拼接成完整路径后比对
+3. 参数化路径归一化：`{roomId}` / `$roomId` / `:roomId` → `{X}`
+4. 拼接后路径不在 ledger → 报错，并给出 ledger 中最接近的候选路径
+
+#### 实现中解决的提取难题
+
+| 难题 | 症状 | 解法 |
+|------|------|------|
+| 字段顺序不固定 | `path` 在 `body` 前、`prefix` 在 `body` 后，相隔 12 行 | 锚定 `method:` + 括号配平扫描对象范围 |
+| 默认前缀 | 位置参数调用无 `prefix:` 字段 | 补 `DEFAULT_PREFIX`（依据 `base-manager.ts:269`）|
+| 位置参数第 5 参 | `authedRequest(..., undefined, undefined, { prefix })` 读不到 prefix | 扩展扫描参数列表尾部 |
+| 注释里的示例 | JSDoc `@example` 含完整 request 示例 | `stripComments()` 状态机（保留列宽维持行号）|
+| 模板字面量前缀 | `` `${ClientPrefix.Unstable}/org.matrix.msc4143` `` | 加模板解析分支 |
+
+匹配率演进：21/128 → 62/128 → 100/128 → 102/124 → **104/124 + 20 豁免，0 不匹配**
+
+#### 门禁抓到的第二个真实缺陷（双前缀）
+
+`src/room/RoomManager.ts:1277` 的 `getClientConfig()` 同时传了完整路径和 prefix：
+
+```typescript
+// 修复前 —— 实际拼成 /_matrix/client/v3/_matrix/client/v1/config/client
+this.request({ method: Method.Get, path: "/_matrix/client/v1/config/client", prefix: ClientPrefix.V3 });
+
+// 修复后
+this.request({ method: Method.Get, path: "/config/client", prefix: ClientPrefix.V1 });
+```
+
+`getSSOUserInfo()`（`:1291`）同样问题。两者均已修复。
+
+#### 变异自证（关键）
+
+把 P1 缺陷重新注入（`/appservices` → `/application_services`），验证门禁**确实能抓**：
+
+```
+$ python3 -c "把 src/app-service/index.ts 的 /appservices 改回 /application_services"
+$ node scripts/quality/verify-path-contract.mjs
+exit=1  (期望 1)
+  不匹配       : 1
+  POST /_synapse/admin/v1/application_services
+$ # 恢复代码后
+✅ 全部静态请求路径均与后端 ledger 一致
+```
+
+证明门禁不是空跑（不会因为提取器没抓到东西而"永远绿"）。
+
+#### Waiver 设计：防"豁免注水"
+
+借鉴 `check-manager-codegen-coverage.mjs` 的 `WAIVED_MODULES` 思路，三条约束：
+
+1. 每条豁免必须同时有 `reason` 和 `expires`，缺任一 → 门禁 exit 2
+2. **过期即失败** —— 强制定期复核
+3. **未被引用的豁免也失败** —— 后端补齐后忘记删条目，会让门禁失败面被旧条目遮住
+
+20 条豁免分类：
+
+| 类别 | 数量 | 说明 |
+|------|------|------|
+| MSC3882 设备签名验证 | 9 | 后端只实现了 `upload`，`verify_*` / `qr_code` 全系列未实现 |
+| device-trust / security | 4 | 后端路由文件零命中 |
+| 其他单点 | 7 | `oidc/register`、`login/get_token`、`register/captcha`、`login/failures`、`federation/blacklist` × 2 |
+
+> `federation/blacklist` 值得注意：后端只在 `synapse-web/src/utils/admin_auth.rs:236`
+> 的**鉴权规则**里预留了路径（标记为敏感操作），但从未注册路由（ledger 零条目）。
+> 说明后端预留了接口但没实现。
+
+#### 已知局限
+
+门禁只覆盖**静态字面量路径**，**165 处动态路径被跳过**（模板插值、变量拼接），
+实际覆盖率约 **43%**（104 匹配 / 269 提取总数）。要补齐需要接 TypeScript AST 或改用
+codegen 生成的路由表。
+
+#### 提交记录
+
+- Commit: `e0e8808cd`
+- 回归：152/152 通过（room-manager 117 + app-service 29 + appservice 6）
 
 ### 13.7 性能基准测试结果（2026-09-30）
 
@@ -619,5 +715,5 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 ---
 
 **审计文档最后更新**: 2026-10-01  
-**最近提交**: `27b459196` (appservice 路径契约修复)  
+**最近提交**: `e0e8808cd` (path-contract 门禁)
 **核心结论**: 七大模块中 6 个达到 100% 客户端覆盖，Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）
