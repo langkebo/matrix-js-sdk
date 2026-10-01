@@ -38,6 +38,35 @@ export function readRouteTable(sdkDir: string, root?: string): Set<string> | nul
 /** 读一个 ledger 模块镜像（`docs/api-contract/generated/modules/<name>.json`）。 */
 export function readLedgerManifest(moduleName: string, root?: string): Set<string> | null;
 
+/**
+ * 该目录的模块文档是否声明 `umbrella: true`。
+ *
+ * umbrella 聚合页（`auth`/`README`）不参与 1:1 ledger pin，其路由表是跨模块聚合，
+ * 因此不适用孤立表检查。
+ */
+export function isUmbrellaDoc(sdkDir: string, root?: string): boolean;
+
+export interface OrphanTable {
+    sdkDir: string;
+    /** 表内既不属本目录 ledger 映射、也不在全局 ledger 中的条目数。 */
+    unbacked: number;
+}
+
+export interface ObservedDrift {
+    observed: DriftItem[];
+    /** 目录已无任何 ledger 模块映射、且含无背书条目的表。 */
+    orphanTables: OrphanTable[];
+    ledgerModuleNames: string[];
+}
+
+/**
+ * 收集仓库当前的全部差集（含孤立表），门禁与负向测试共用同一实现。
+ *
+ * 从**磁盘上存在的 route-table 目录**出发，因此"后端整模块被删除"也能被捕获
+ * （只从 ledger 模块反查目录会静默跳过该目录）。
+ */
+export function collectObservedDrift(root?: string): ObservedDrift;
+
 /** 计算一个模块的双向差集。 */
 export function diffModule(sdkDir: string, ledgerEntries: Set<string>, tableEntries: Set<string>): ModuleDiff;
 

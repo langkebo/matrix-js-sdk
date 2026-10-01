@@ -14,6 +14,10 @@
  *   - `sdk-only`  —— 表里有、ledger 里没有（历史遗留条目 / 人工补充），必须登记 reason + 到期日；
  *   - `ledger-only` —— ledger 里有、表里没有（文档漏了、路径族变了），同样必须登记；
  *   - 已修好的条目要**随手删掉登记**，否则算 stale（和定时器门禁同款机制）。
+ *   - **孤立表**：目录已不对应任何 ledger 模块（后端整模块被删），且表内条目在全局
+ *     ledger 也查不到 → 按 `sdk-only` 记账。2026-10-01 之前只从 ledger 模块反查目录，
+ *     这种情形会被整目录静默跳过（`verification_routes` 被删后 12 条死路由长期全绿）。
+ *     umbrella 聚合页（auth/README）显式豁免。
  *
  * 只检查**有 route-table 的目录**：没有表的模块（admin/voice/… 9 个 SKIP 模块）由
  * `check-manager-codegen-coverage.mjs` 的白名单负责，不在这里重复记账。
@@ -38,7 +42,6 @@ import { findLedgerModulesForSdkDir, findSdkDirForModule } from "../contract-mod
 const rootDir = process.cwd();
 const registryPath = path.join(rootDir, "scripts", "quality", "contract-drift-registry.json");
 const modulesDir = path.join(rootDir, "docs", "api-contract", "generated", "modules");
-const generatedIndexPath = path.join(rootDir, "docs", "api-contract", "generated", "index.json");
 const codegenPath = path.join(rootDir, "scripts", "sdk-contract-codegen.mjs");
 
 const shouldList = process.argv.includes("--list");
@@ -71,6 +74,21 @@ export function readLedgerManifest(moduleName, root = rootDir) {
     const payload = JSON.parse(fs.readFileSync(file, "utf8"));
     const entries = Array.isArray(payload.entries) ? payload.entries : [];
     return new Set(entries.map((entry) => `${String(entry.method).toUpperCase()} ${entry.path}`));
+}
+
+/**
+ * 该目录的模块文档是否声明 `umbrella: true`。
+ *
+ * umbrella 页（`auth.md`、`README.md`）显式声明不参与 1:1 ledger pin，其路由表是
+ * 多个 ledger 模块的聚合 + 人工补充，因此孤立表检查对它们不适用（否则 `auth`
+ * 的 MSC3814/MSC4108 等 SDK-only 条目会被误报）。
+ */
+export function isUmbrellaDoc(sdkDir, root = rootDir) {
+    const docBase = sdkDir === "third-party" ? "thirdparty" : sdkDir;
+    const docPath = path.join(root, "docs", "api-contract", `${docBase}.md`);
+    if (!fs.existsSync(docPath)) return false;
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(fs.readFileSync(docPath, "utf8"));
+    return frontmatter ? /^umbrella:\s*true\s*$/m.test(frontmatter[1]) : false;
 }
 
 /**
@@ -113,32 +131,69 @@ export function evaluateDrift(key, registry, today = new Date()) {
     return { ok: true, key, detail: entry.reason };
 }
 
-function main() {
-    const index = JSON.parse(fs.readFileSync(generatedIndexPath, "utf8"));
-    const registry = readRegistry();
-    const today = new Date();
-
-    const observed = [];
-    const skippedNoTable = [];
+/**
+ * 收集仓库当前的全部差集（含孤立表），供门禁与负向测试共用一份实现。
+ *
+ * 从**磁盘上存在的 route-table 目录**出发，而不是只从 ledger 模块反查：后者在
+ * "后端整模块被删除"时会静默跳过该目录（2026-10-01 实测：后端删
+ * `verification_routes` 后，`src/verification/__generated__/route-table.ts` 的
+ * 12 条死路由从未进入差集，门禁长期全绿）。孤立表若含全局 ledger（含 assembly）
+ * 里查不到的条目，就按 `sdk-only` 记账、必须登记处置。
+ */
+export function collectObservedDrift(root = rootDir) {
+    const index = JSON.parse(
+        fs.readFileSync(path.join(root, "docs", "api-contract", "generated", "index.json"), "utf8"),
+    );
+    const ledgerModuleNames = Object.keys(index.modules).filter((name) => name !== "assembly");
+    // 全局 ledger 键集必须包含 `assembly`——它是 ledger 的兜底分组，
+    // profile/dehydrated-device 等大量路由都归在它名下。
+    const globalLedger = new Set();
     for (const moduleName of Object.keys(index.modules)) {
-        if (moduleName === "assembly") continue;
-        const sdkDir = findSdkDirForModule(moduleName);
-        if (readRouteTable(sdkDir) === null) skippedNoTable.push(moduleName);
+        for (const entry of readLedgerManifest(moduleName, root) ?? []) globalLedger.add(entry);
     }
 
-    const ledgerModuleNames = Object.keys(index.modules).filter((name) => name !== "assembly");
-    const sdkDirs = [...new Set(ledgerModuleNames.map((name) => findSdkDirForModule(name)))].sort();
-    for (const sdkDir of sdkDirs) {
-        const table = readRouteTable(sdkDir);
-        if (table === null) continue;
+    const tableDirs = fs
+        .readdirSync(path.join(root, "src"), { withFileTypes: true })
+        .filter((dirent) => dirent.isDirectory())
+        .map((dirent) => dirent.name)
+        .filter((sdkDir) => readRouteTable(sdkDir, root) !== null)
+        .sort();
+
+    const observed = [];
+    const orphanTables = [];
+    for (const sdkDir of tableDirs) {
+        const table = readRouteTable(sdkDir, root);
+        const mappedModules = findLedgerModulesForSdkDir(sdkDir, ledgerModuleNames);
+        if (mappedModules.length === 0) {
+            // umbrella 聚合页（auth/README）显式不参与 1:1 pin，其表是跨模块聚合，
+            // 孤立表检查对它们不适用。
+            if (isUmbrellaDoc(sdkDir, root)) continue;
+            const sdkOnly = [...table].filter((entry) => !globalLedger.has(entry)).sort();
+            if (sdkOnly.length > 0) orphanTables.push({ sdkDir, unbacked: sdkOnly.length });
+            for (const entry of sdkOnly) observed.push({ sdkDir, kind: "sdk-only", entry });
+            continue;
+        }
         // 同一目录的兄弟 ledger 模块取并集（多对一映射，见文件头注释）
         const ledgerUnion = new Set();
-        for (const moduleName of findLedgerModulesForSdkDir(sdkDir, ledgerModuleNames)) {
-            for (const entry of readLedgerManifest(moduleName) ?? []) ledgerUnion.add(entry);
+        for (const moduleName of mappedModules) {
+            for (const entry of readLedgerManifest(moduleName, root) ?? []) ledgerUnion.add(entry);
         }
         const { sdkOnly, ledgerOnly } = diffModule(sdkDir, ledgerUnion, table);
         for (const entry of sdkOnly) observed.push({ sdkDir, kind: "sdk-only", entry });
         for (const entry of ledgerOnly) observed.push({ sdkDir, kind: "ledger-only", entry });
+    }
+    return { observed, orphanTables, ledgerModuleNames };
+}
+
+function main() {
+    const registry = readRegistry();
+    const today = new Date();
+
+    const { observed, orphanTables, ledgerModuleNames } = collectObservedDrift();
+    const skippedNoTable = [];
+    for (const moduleName of ledgerModuleNames) {
+        const sdkDir = findSdkDirForModule(moduleName);
+        if (readRouteTable(sdkDir) === null) skippedNoTable.push(moduleName);
     }
 
     const logLines = [];
@@ -173,6 +228,7 @@ function main() {
         registered: registry.entries.length,
         stale: staleEntries,
         modulesWithoutTable: skippedNoTable,
+        orphanTables,
         perModule: Object.fromEntries(perModule),
     };
 
@@ -187,6 +243,12 @@ function main() {
         `\n[contract-drift] ${payload.driftedModules} 个模块有差集：` +
             `SDK 表多 ${payload.sdkOnly} 条、ledger 多 ${payload.ledgerOnly} 条；已登记 ${payload.registered} 条`,
     );
+    if (orphanTables.length > 0) {
+        writeStdout(
+            `[contract-drift] 孤立路由表（目录已无任何 ledger 模块映射）：` +
+                orphanTables.map((table) => `${table.sdkDir}(${table.unbacked} 条无背书)`).join("、"),
+        );
+    }
 
     if (failures.length > 0) {
         writeStderr(`[contract-drift] 门禁失败：${failures.length} 处差集没有有效登记`);

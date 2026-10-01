@@ -12,14 +12,15 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+    collectObservedDrift,
     diffModule,
     driftKey,
     evaluateDrift,
+    isUmbrellaDoc,
     readLedgerManifest,
     readRegistry,
     readRouteTable,
 } from "../../scripts/quality/check-contract-drift.mjs";
-import { findLedgerModulesForSdkDir, findSdkDirForModule } from "../../scripts/contract-module-map.mjs";
 
 function makeTree(files: Record<string, string>): string {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-js-sdk-contract-drift-"));
@@ -97,6 +98,55 @@ describe("契约差集门禁: 判定", () => {
     });
 });
 
+describe("契约差集门禁: 后端整模块被删除后的孤立表", () => {
+    it("目录已无 ledger 映射时，全局 ledger 查不到的条目按 sdk-only 记账", () => {
+        // 复现 verification_routes 被删的场景：只从 ledger 模块反查目录会让整目录
+        // 被静默跳过；这里必须把"无背书"的条目揪出来。
+        const root = makeTree({
+            "src/zz-removed/__generated__/route-table.ts": [
+                "export const ZZ = [",
+                '    { method: "GET", path: "/gone" },',
+                '    { method: "GET", path: "/still-served" },',
+                "] as const;",
+            ].join("\n"),
+            "docs/api-contract/generated/modules/other.json": JSON.stringify({
+                module: "other",
+                entries: [{ method: "GET", path: "/still-served" }],
+            }),
+            "docs/api-contract/generated/index.json": JSON.stringify({
+                schema_version: "1",
+                modules: { other: { entry_count: 1, file: "modules/other.json", sha256: "x" } },
+            }),
+        });
+
+        const { observed, orphanTables } = collectObservedDrift(root);
+
+        expect(orphanTables).toEqual([{ sdkDir: "zz-removed", unbacked: 1 }]);
+        expect(observed).toEqual([{ sdkDir: "zz-removed", kind: "sdk-only", entry: "GET /gone" }]);
+    });
+
+    it("umbrella 聚合页豁免孤立表检查（auth 的跨模块聚合不应误报）", () => {
+        const root = makeTree({
+            "src/hub/__generated__/route-table.ts": 'export const H = [{ method: "GET", path: "/unbacked" }] as const;',
+            "docs/api-contract/hub.md":
+                "---\numbrella: true\numbrella_sources:\n    - a.rs\nledger_schema: 4\n---\n\n# Hub\n",
+            "docs/api-contract/generated/index.json": JSON.stringify({ schema_version: "1", modules: {} }),
+        });
+
+        expect(isUmbrellaDoc("hub", root)).toBe(true);
+        expect(collectObservedDrift(root).observed).toEqual([]);
+    });
+
+    it("非 umbrella 文档不豁免孤立表检查", () => {
+        const root = makeTree({
+            "docs/api-contract/plain.md": "---\nmodule: plain\nledger_schema: 4\n---\n\n# Plain\n",
+        });
+
+        expect(isUmbrellaDoc("plain", root)).toBe(false);
+        expect(isUmbrellaDoc("absent", root)).toBe(false);
+    });
+});
+
 describe("契约差集门禁: 仓库现状", () => {
     it("每条登记都有 reason/expires，且 key 与 module/kind/entry 自洽", () => {
         const registry = readRegistry();
@@ -111,29 +161,14 @@ describe("契约差集门禁: 仓库现状", () => {
     });
 
     it("登记表与当前差集一一对应（没有未登记，也没有已修好却没删的 stale）", () => {
-        // 与门禁本身同源地算一遍仓库现状：这是"登记表没有腐化"的唯一机械保证
+        // 复用门禁自身的收集实现：两边各写一份会漂移，正是这个门禁要防的病
         const registry = readRegistry();
-        const index = JSON.parse(fs.readFileSync(path.resolve("docs/api-contract/generated/index.json"), "utf8"));
-        const observed = new Set<string>();
-
-        const moduleNames = Object.keys(index.modules).filter((name) => name !== "assembly");
-        const sdkDirs = [...new Set(moduleNames.map((name) => findSdkDirForModule(name)))].sort();
-        for (const sdkDir of sdkDirs) {
-            const table = readRouteTable(sdkDir);
-            if (table === null) continue;
-            // 同一目录的兄弟 ledger 模块取并集（映射多对一）
-            const ledger = new Set<string>();
-            for (const moduleName of findLedgerModulesForSdkDir(sdkDir, moduleNames)) {
-                for (const entry of readLedgerManifest(moduleName) ?? []) ledger.add(entry);
-            }
-            const diff = diffModule(sdkDir, ledger, table);
-            for (const entry of diff.sdkOnly) observed.add(driftKey(sdkDir, "sdk-only", entry));
-            for (const entry of diff.ledgerOnly) observed.add(driftKey(sdkDir, "ledger-only", entry));
-        }
+        const { observed } = collectObservedDrift();
+        const observedKeys = new Set(observed.map((item) => driftKey(item.sdkDir, item.kind, item.entry)));
 
         const registered = new Set(registry.entries.map((entry) => entry.key));
-        const missing = [...observed].filter((key) => !registered.has(key)).sort();
-        const stale = [...registered].filter((key) => !observed.has(key)).sort();
+        const missing = [...observedKeys].filter((key) => !registered.has(key)).sort();
+        const stale = [...registered].filter((key) => !observedKeys.has(key)).sort();
 
         expect(missing, "有差集但没登记").toEqual([]);
         expect(stale, "登记了但差集已消失（应删登记）").toEqual([]);
