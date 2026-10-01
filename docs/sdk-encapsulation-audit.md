@@ -484,8 +484,9 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 |--------|------|------|--------------|
 | **P1** | `ApplicationServiceManager` appservice 路径契约修复 | ✅ **已修复** | **2026-09-30 联调发现真实缺陷**：SDK 全部 14 处路径误用 `/application_services`（下划线），后端实际注册 `/_synapse/admin/v1/appservices`（无下划线）。已批量替换并回归 35/35 单测通过。详见 §13.6.1 |
 | **P2-a** | SDK ↔ 后端路径契约交叉校验门禁 | ✅ **已完成** | 新增 `scripts/quality/verify-path-contract.mjs` + `path-contract-waivers.json`，挂进 `quality:contracts`。**变异自证通过**。详见 §13.6.3 |
+| **P2-b** | 调整 critical-module floorPercent 为实测值 | ✅ **已完成** | 定向测量各模块（避免全仓跑触发限流）：admin 70.37% / dm 65.75% / space 77.21% / room-summary 73.23%。已更新 `critical-modules.json`（`measuredAt=2026-10-01`）。floor 是 ratchet，只能向上。 |
 | **P2** | `UserService.getUserById()` 越层调用迁移 | ✅ **已评估不需要** | `AdminUserManager.getUserById()` (`src/admin/sub-managers/admin-user-manager.ts:167`) 已收口至 SDK |
-| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ 建议重定义目标 | 现状 ~46%，全仓 90% 需数千用例。建议改为「关键模块 ≥85% + 全仓 ≥65%」。见 §13.8 |
+| **P2** | 测试覆盖率提升至 90%（行覆盖） | ❌ 建议重定义目标 | 现状 ~46%，全仓 90% 需数千用例。建议改为「关键模块 ≥85% + 全仓 ≥65%」。|
 | **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 | 已评估 |
 | **P3** | 性能基准测试 | ✅ **已完成** | 见第 13.7 节 |
 
