@@ -174,6 +174,7 @@ import { M_BEACON_INFO, type MBeaconInfoEventContent } from "./@types/beacon";
 import { type CryptoBackend } from "./common-crypto/CryptoBackend";
 import { RUST_SDK_STORE_PREFIX } from "./rust-crypto/constants";
 import { type CryptoApi, type CryptoCallbacks, CryptoEvent, type CryptoEventHandlerMap } from "./crypto-api/index";
+import type { UserDeviceMap } from "./matrix-client-extensions";
 import {
     type SecretStorageKeyDescription,
     type ServerSideSecretStorage,
@@ -192,6 +193,9 @@ import { type Transport } from "./matrix-rtc/index";
 import { prepareSendCompleteEventLifecycle } from "./client-send-lifecycle";
 import { encryptAndSendEventWorkflow } from "./client-encrypt-send";
 import { dispatchSendEventHttpRequest } from "./client-send-http";
+import { buildEditContent, buildReplyContent, normalizeThreadBodyArgs } from "./client-message-composition.ts";
+import { createSchedulerProcessFunction } from "./client-scheduler-process.ts";
+import { makeKeyBackupPath } from "./key-backup-paths.ts";
 import { dispatchDelayedStateEventRequest, dispatchStateEventRequest } from "./client-send-state";
 import { prepareSendEventParams, type PreparedSendEventParams } from "./client-send-event";
 import { normalizeRedactEventArgs, normalizeThreadHtmlArgs } from "./client-send-args";
@@ -273,18 +277,6 @@ import { EventManager } from "./event/EventManager";
 export type {
     IClientWellKnown,
     ICreateRoomKeyRequest,
-    IDeviceSigningVerificationAcceptRequest,
-    IDeviceSigningVerificationAcceptResponse,
-    IDeviceSigningVerificationCancelRequest,
-    IDeviceSigningVerificationCancelResponse,
-    IDeviceSigningVerificationDoneRequest,
-    IDeviceSigningVerificationDoneResponse,
-    IDeviceSigningVerificationKeyAgreementRequest,
-    IDeviceSigningVerificationKeyAgreementResponse,
-    IDeviceSigningVerificationMacRequest,
-    IDeviceSigningVerificationMacResponse,
-    IDeviceSigningVerificationStartRequest,
-    IDeviceSigningVerificationStartResponse,
     IClaimKeysRequest,
     IClaimOTKsResult,
     IDownloadKeyResult,
@@ -305,20 +297,17 @@ export type {
     IRoomKeyRequestCreateResponse,
     IRoomKeyRequestsResponse,
     IRoomInitialSyncResponse,
-    IScanQrCodeRequest,
-    IScanQrCodeResponse,
     ISecureBackupInfo,
     ISecureBackupRestoreResponse,
     ISecureBackupSessionKey,
     ISecureBackupStoreKeysResponse,
     ISecureBackupVerifyResponse,
-    IShowQrCodeResponse,
     IServerVersions,
+    ITileServerWellKnown,
     ITurnServer,
     ITurnServerResponse,
     IUploadKeySignaturesResponse,
     RoomSummary,
-    IVerificationRequestsResponse,
     IWellKnownConfig,
     KeySignatures,
     CrossSigningKeys,
@@ -796,6 +785,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public serverCapabilitiesService: ServerCapabilities; // Intended private, used in lifecycle helpers.
 
+    /**
+     * Manager 扩展初始化完成的 Promise（由 createClient 注入）。
+     * createClient 同步返回时仅 8 个核心 manager 可用，其余约 55 个私有
+     * manager（friend/ai/...）经异步动态 import 挂载。调用方在使用这些
+     * manager 前应 `await client.whenManagerExtensionsReady()`。
+     */
+    private managerExtensionsReady?: Promise<void>;
+
     public constructor(opts: IMatrixClientCreateOpts) {
         super();
 
@@ -830,7 +827,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             onlyData: true,
             extraParams: opts.queryParams,
             localTimeoutMs: opts.localTimeoutMs,
-            useAuthorizationHeader: opts.useAuthorizationHeader,
             logger: this.logger,
         });
 
@@ -842,19 +838,15 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
         this.scheduler = opts.scheduler;
         if (this.scheduler) {
-            this.scheduler.setProcessFunction(async (eventToSend: MatrixEvent) => {
-                const room = this.getRoom(eventToSend.getRoomId());
-                if (eventToSend.status !== EventStatus.SENDING) {
-                    this.updatePendingEventStatus(room, eventToSend, EventStatus.SENDING);
-                }
-                const res = await this.sendEventHttpRequest(eventToSend);
-                if (room) {
-                    // ensure we update pending event before the next scheduler run so that any listeners to event id
-                    // updates on the synchronous event emitter get a chance to run first.
-                    room.updatePendingEvent(eventToSend, EventStatus.SENT, res.event_id);
-                }
-                return res;
-            });
+            // 回调实现已抽到 client-scheduler-process.ts（P3-5），这里只注入依赖
+            this.scheduler.setProcessFunction(
+                createSchedulerProcessFunction({
+                    getRoom: (roomId) => this.getRoom(roomId),
+                    updatePendingEventStatus: (room, event, status) =>
+                        this.updatePendingEventStatus(room, event, status),
+                    sendEventHttpRequest: (event) => this.sendEventHttpRequest(event),
+                }),
+            );
         }
 
         this.disableVoip = opts.disableVoip ?? false;
@@ -916,6 +908,26 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public set store(newStore: Store) {
         this._store = newStore;
         this._store.setUserCreator((userId) => User.createUser(userId, this));
+    }
+
+    /**
+     * 注入 manager 扩展初始化的 Promise（由 createClient 调用）。
+     * @internal
+     */
+    public setManagerExtensionsReady(promise: Promise<void>): void {
+        this.managerExtensionsReady = promise;
+    }
+
+    /**
+     * 等待所有 manager 扩展异步挂载完成。
+     *
+     * `createClient()` 同步返回时仅核心 manager 可用，friend/ai/... 等私有
+     * manager 经异步动态 import 挂载。使用这些 manager 前应 `await` 本方法。
+     *
+     * @returns 当 manager 初始化完成（或已跳过/失败）时 resolve 的 Promise。
+     */
+    public whenManagerExtensionsReady(): Promise<void> {
+        return this.managerExtensionsReady ?? Promise.resolve();
     }
 
     public getEventManager(): EventManager {
@@ -1272,6 +1284,67 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     /**
+     * The top-level `unstable_features` map from the last `/capabilities`
+     * fetch, or `undefined` if the server did not send one.
+     *
+     * synapse-rust returns this alongside `capabilities`
+     * (`synapse-services/src/capability_governance.rs:451-465`); stock servers
+     * omit it.
+     */
+    public getUnstableFeatures(): Record<string, boolean> | undefined {
+        return this.serverCapabilitiesService.getUnstableFeatures();
+    }
+
+    /**
+     * Whether the homeserver advertises a specific unstable feature.
+     *
+     * Matching is exact against the keys the server sent — see
+     * {@link ServerCapabilities.hasUnstableFeature} for the real key set and
+     * why prefix guessing was removed.
+     *
+     * @param name - exact feature key, or a bare `"4204"` / `"msc4204"` form
+     */
+    public hasUnstableFeature(name: string): boolean {
+        return this.serverCapabilitiesService.hasUnstableFeature(name);
+    }
+
+    /**
+     * Get the device-key map for an arbitrary user via `POST /keys/query`.
+     *
+     * Returns a map of `deviceId → device content` for the requested user, which
+     * is the shape `DeviceKeysManager.getUserDevices()` and the frontend device
+     * list consume.
+     *
+     * **Why not `GET /devices`?** That endpoint is scoped to the *authenticated*
+     * caller: `synapse-web/src/routes/device.rs` has no `{user_id}` path segment
+     * and resolves the user from `auth_user.user_id`, returning
+     * `{ devices: [ { device_id, display_name, ... } ] }` — an array, not a map.
+     * Routing a third-party lookup (e.g. a friend's device list) through it
+     * silently returns the caller's own devices and always misses the requested
+     * `userId` key. `POST /keys/query` is the only endpoint that can look up
+     * another user's devices, and it is what the E2EE stack uses anyway.
+     *
+     * @param userId - The user ID to query devices for
+     * @returns A promise resolving to the `deviceId → device content` map; an
+     *          empty object when the server reports no keys for the user.
+     */
+    public async getUserDevices(userId: string): Promise<UserDeviceMap> {
+        if (!userId) {
+            throw new Error("getUserDevices requires a userId");
+        }
+        const response = await this.http.authedRequest<{ device_keys?: Record<string, UserDeviceMap> }>(
+            Method.Post,
+            "/keys/query",
+            undefined,
+            // Empty device list means "all devices of this user".
+            { device_keys: { [userId]: [] } },
+            // 5th parameter is IRequestOpts, not a bare prefix.
+            { prefix: ClientPrefix.V3 },
+        );
+        return response?.device_keys?.[userId] ?? {};
+    }
+
+    /**
      * Initialise support for end-to-end encryption in this client, using the rust matrix-sdk-crypto.
      *
      * **WARNING**: the cryptography stack is not thread-safe. Having multiple `MatrixClient` instances connected to
@@ -1332,16 +1405,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.logger.debug("Downloading Rust crypto library");
         const RustCrypto = await import("./rust-crypto/index");
 
-        // ISSUE-08: 删除 "DEFAULT_KEY" 公开兜底——那等于用公开密钥解密本地
-        // 密钥库。存在 legacy store 却未提供 pickleKey 时显式失败（breaking，
-        // 但必须的取舍），而非静默使用弱密钥。
-        if (this.legacyCryptoStore && !this.legacyPickleKey) {
-            throw new Error(
-                "Cannot initialise crypto with a legacy crypto store but no pickle key: " +
-                    'pass `pickleKey` in createClient(). The insecure "DEFAULT_KEY" fallback was removed (ISSUE-08).',
-            );
-        }
-
+        // ISSUE-08: "DEFAULT_KEY" 公开兜底已删除。不在 client 层早期失败——
+        // createClient() 总会创建空 MemoryCryptoStore，故 legacyCryptoStore 恒被设置。
+        // pickleKey 仅在 store 实际持有待迁移加密数据时才需要；空 store 直接跳过迁移。
+        // 真正需要 pickleKey 的检查下沉到 migrateFromLegacyCrypto() 内（libolm_migration.ts）。
         const rustCrypto = await RustCrypto.initRustCrypto({
             logger: this.logger,
             http: this.http,
@@ -1356,7 +1423,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
             allowInMemoryStore: args.allowInMemoryStore,
 
             legacyCryptoStore: this.legacyCryptoStore,
-            // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"，缺失时上方已显式报错
+            // ISSUE-08: 不再兜底公开的 "DEFAULT_KEY"；空 store 无需 pickleKey，有数据时迁移层校验
             legacyPickleKey: this.legacyPickleKey,
             legacyMigrationProgressListener: (progress: number, total: number): void => {
                 this.emit(CryptoEvent.LegacyCryptoStoreMigrationProgress, progress, total);
@@ -1455,21 +1522,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     }
 
     private makeKeyBackupPath(roomId?: string, sessionId?: string, version?: string): IKeyBackupPath {
-        let path: string;
-        if (sessionId !== undefined) {
-            path = utils.encodeUri("/room_keys/keys/$roomId/$sessionId", {
-                $roomId: roomId!,
-                $sessionId: sessionId,
-            });
-        } else if (roomId !== undefined) {
-            path = utils.encodeUri("/room_keys/keys/$roomId", {
-                $roomId: roomId,
-            });
-        } else {
-            path = "/room_keys/keys";
-        }
-        const queryData = version === undefined ? undefined : { version };
-        return { path, queryData };
+        // 实现已抽到 key-backup-paths.ts（P3-5），保留私有方法以维持调用点不变
+        return makeKeyBackupPath(roomId, sessionId, version);
     }
 
     public deleteKeysFromBackup(roomId: undefined, sessionId: undefined, version?: string): Promise<void>;
@@ -1813,6 +1867,41 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         content: TimelineEvents[K],
         txnId?: string,
     ): Promise<ISendEventResponse>;
+    /**
+     * Send a Matrix timeline event, optionally into a thread.
+     *
+     * Call the four-argument form to send into the room's main timeline, or the
+     * five-argument form with a `threadId` to send the event into a thread.
+     *
+     * @param roomId - The room to send the event to.
+     * @param threadId - The thread to send the event into, or `null` for the main timeline.
+     *   Omitted entirely when calling the four-argument form.
+     * @param eventType - The event type, for example `m.room.message`.
+     * @param content - The event content.
+     * @param txnId - An optional ID to deduplicate requests in case of repeated attempts.
+     * @returns Promise which resolves: to an object containing the new event's `event_id`.
+     * @returns Rejects: with an error response if the event could not be sent.
+     * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
+     * @see MatrixSafetyError
+     * @example
+     * ```typescript
+     * // Send an event into the room's main timeline.
+     * await client.sendEvent("!abcdef:example.org", "m.room.message", {
+     *     msgtype: "m.text",
+     *     body: "Hello world",
+     * });
+     *
+     * // Send an event into a thread (pass the thread's root event ID second).
+     * const threadId = "$root-event:example.org";
+     * await client.sendEvent("!abcdef:example.org", threadId, "m.room.message", {
+     *     msgtype: "m.text",
+     *     body: "Hello from a thread",
+     * });
+     *
+     * // Pass an explicit transaction ID so a retry is deduplicated by the server.
+     * await client.sendEvent("!abcdef:example.org", "m.room.message", { msgtype: "m.text", body: "Hi" }, "txn-1");
+     * ```
+     */
     public sendEvent(
         roomId: string,
         threadIdOrEventType: string | null,
@@ -2081,6 +2170,52 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Replies to a given event with the given content.
+     *
+     * The reply content's `m.relates_to.m.in_reply_to` relation is built
+     * automatically from the target event, and the reply is sent in the
+     * target event's thread (if any).
+     *
+     * @param roomId - The room ID the target event is in.
+     * @param event - The event to reply to.
+     * @param content - The content of the reply event.
+     * @param txnId - Optional transaction ID.
+     * @returns Promise which resolves to the sent event's response.
+     */
+    public replyToEvent(
+        roomId: string,
+        event: MatrixEvent,
+        content: RoomMessageEventContent,
+        txnId?: string,
+    ): Promise<ISendEventResponse> {
+        // 关系构建与房间校验已抽到 client-message-composition.ts（P3-5）
+        return this.sendMessage(roomId, event.threadRootId ?? null, buildReplyContent(roomId, event, content), txnId);
+    }
+
+    /**
+     * Edits the given event with the given content.
+     *
+     * The edit is sent as an `m.replace` relation, with the new content
+     * stored under `m.new_content`. The edit is sent in the target event's
+     * thread (if any).
+     *
+     * @param roomId - The room ID the target event is in.
+     * @param event - The event to edit.
+     * @param content - The new content for the event.
+     * @param txnId - Optional transaction ID.
+     * @returns Promise which resolves to the sent event's response.
+     */
+    public editEvent(
+        roomId: string,
+        event: MatrixEvent,
+        content: RoomMessageEventContent,
+        txnId?: string,
+    ): Promise<ISendEventResponse> {
+        // 关系构建与房间校验已抽到 client-message-composition.ts（P3-5）
+        return this.sendMessage(roomId, event.threadRootId ?? null, buildEditContent(roomId, event, content), txnId);
+    }
+
     public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public sendTextMessage(
         roomId: string,
@@ -2094,19 +2229,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        let threadId: string | null;
-        let body: string;
-        let actualTxnId: string | undefined;
-
-        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
-            threadId = null;
-            body = threadIdOrBody;
-            actualTxnId = bodyOrTxnId;
-        } else {
-            threadId = threadIdOrBody;
-            body = bodyOrTxnId!;
-            actualTxnId = txnId;
-        }
+        const { threadId, body, txnId: actualTxnId } = normalizeThreadBodyArgs(threadIdOrBody, bodyOrTxnId, txnId);
 
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body }, actualTxnId);
     }
@@ -2124,19 +2247,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        let threadId: string | null;
-        let body: string;
-        let actualTxnId: string | undefined;
-
-        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
-            threadId = null;
-            body = threadIdOrBody;
-            actualTxnId = bodyOrTxnId;
-        } else {
-            threadId = threadIdOrBody;
-            body = bodyOrTxnId!;
-            actualTxnId = txnId;
-        }
+        const { threadId, body, txnId: actualTxnId } = normalizeThreadBodyArgs(threadIdOrBody, bodyOrTxnId, txnId);
 
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body }, actualTxnId);
     }
@@ -2154,19 +2265,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         bodyOrTxnId?: string,
         txnId?: string,
     ): Promise<ISendEventResponse> {
-        let threadId: string | null;
-        let body: string;
-        let actualTxnId: string | undefined;
-
-        if (threadIdOrBody !== null && !threadIdOrBody.startsWith("$")) {
-            threadId = null;
-            body = threadIdOrBody;
-            actualTxnId = bodyOrTxnId;
-        } else {
-            threadId = threadIdOrBody;
-            body = bodyOrTxnId!;
-            actualTxnId = txnId;
-        }
+        const { threadId, body, txnId: actualTxnId } = normalizeThreadBodyArgs(threadIdOrBody, bodyOrTxnId, txnId);
 
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body }, actualTxnId);
     }
@@ -2549,6 +2648,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @example
+     * ```typescript
+     * // Mark the user as typing for 5 seconds.
+     * await client.sendTyping("!abcdef:example.org", true, 5000);
+     *
+     * // Stop showing the user as typing.
+     * await client.sendTyping("!abcdef:example.org", false, 0);
+     * ```
      */
     public sendTyping(roomId: string, isTyping: boolean, timeoutMs: number): Promise<EmptyObject> {
         return this.getTypingManager().sendTyping(roomId, isTyping, timeoutMs);
@@ -2558,6 +2665,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get typing users in a room
      * @param roomId - The room ID
      * @returns Array of user IDs currently typing
+     * @example
+     * ```typescript
+     * const typingUserIds = await client.getRoomTyping("!abcdef:example.org");
+     * console.log("Currently typing:", typingUserIds);
+     * ```
      */
     public async getRoomTyping(roomId: string): Promise<string[]> {
         return this.getRoomManager().getRoomTyping(roomId);
@@ -2567,6 +2679,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get typing users in multiple rooms
      * @param roomIds - Array of room IDs
      * @returns Map of room ID to array of typing user IDs
+     * @example
+     * ```typescript
+     * const typingByRoom = await client.getBatchTyping(["!abcdef:example.org", "!ghijkl:example.org"]);
+     * for (const [roomId, userIds] of Object.entries(typingByRoom)) {
+     *     console.log(`${roomId}: ${userIds.length} user(s) typing`);
+     * }
+     * ```
      */
     public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>> {
         return this.getRoomManager().getBatchTyping(roomIds);
@@ -3860,12 +3979,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public getUnsentEvents(_roomId: string): MatrixEvent[] {
         return [];
     }
-    public reactToMessage(roomId: string, eventId: string, key: string): Promise<void> {
+    public reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined> {
         return this.getRoomEventsManager()
             .sendReaction(roomId, eventId, key)
-            .then(() => undefined);
+            .then((response: { event_id?: string }) => response?.event_id);
     }
-    public async redactReaction(_roomId: string, _eventId: string): Promise<void> {}
+    public redactReaction(roomId: string, eventId: string, reason?: string): Promise<{ event_id: string }> {
+        return this.redactEvent(roomId, eventId, reason);
+    }
     public getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>> {
         return this.getReactionsManager()
             .getReactionUsers(roomId, eventId)

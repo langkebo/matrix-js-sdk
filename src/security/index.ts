@@ -17,33 +17,21 @@ limitations under the License.
 /**
  * Security Manager - 安全模块
  *
- * 提供账户安全相关功能，包括账户状态查询、登录失败记录等
- * 注意: 这些是客户端可用的安全功能，不涉及管理员操作
+ * 只保留**有后端契约**的能力：会话安全评估（设备清单来自规范 `/devices`，设备信任来自
+ * `CryptoApi.getDeviceVerificationStatus()` 的交叉签名推导）。
+ *
+ * ⚠️ 2026-10-01：删掉两个**不存在**的端点调用（`GET /account_status/{userId}`、
+ * `GET /login/failures`）及其派生方法（`isAccountLocked` / `isAccountSuspended`）。
+ * 判据：后端 ledger（`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json`，1149 条路由）
+ * 里 `account_status` / `security/summary` / `login/failures` **零命中**；上游 Synapse v1.162.0
+ * 只有 `POST /_matrix/client/unstable/org.matrix.msc3720/account_status`（批量、unstable，
+ * MSC3720 "Account status"），形状与 SDK 原先的 `GET /v3/account_status/{user_id}` 完全不同。
+ * 属于"SDK 自造端点 + 假兜底"，按铁律 1/2 删除，而不是给它加一个永久 waiver。
  */
 
 import { MatrixClient } from "../client";
-import { Method } from "../http-api/index";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import { logger } from "../logger";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-
-const _ADMIN_PREFIX = { prefix: "/_synapse/admin/v1" };
-
-export interface AccountStatus {
-    locked: boolean;
-    suspended: boolean;
-    verified: boolean;
-}
-
-export interface LoginFailure {
-    timestamp: number;
-    ip: string;
-    userAgent?: string;
-}
-
-export interface LoginFailuresResponse {
-    failures: LoginFailure[];
-}
 
 export class SecurityManager extends BaseManager {
     public constructor(client: MatrixClient, opts?: ManagerOpts) {
@@ -51,83 +39,13 @@ export class SecurityManager extends BaseManager {
     }
 
     /**
-     * 获取用户账户状态
-     * 对应 API: GET /_synapse/admin/v1/account_status/{user_id}
-     */
-    public async getAccountStatus(userId: string): Promise<AccountStatus | null> {
-        try {
-            const response = await this.request<{
-                locked?: boolean;
-                suspended?: boolean;
-                verified?: boolean;
-            }>({
-                method: Method.Get,
-                path: `/account_status/${encodeURIComponent(userId)}`,
-            });
-
-            return {
-                locked: response.locked ?? false,
-                suspended: response.suspended ?? false,
-                verified: response.verified ?? false,
-            };
-            // @swallow-error { owner: "security", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("SecurityManager.getAccountStatus failed", e);
-            return null;
-        }
-    }
-
-    /**
-     * 检查账户是否被锁定
-     */
-    public async isAccountLocked(userId: string): Promise<boolean> {
-        const status = await this.getAccountStatus(userId);
-        return status?.locked ?? false;
-    }
-
-    /**
-     * 检查账户是否被暂停
-     */
-    public async isAccountSuspended(userId: string): Promise<boolean> {
-        const status = await this.getAccountStatus(userId);
-        return status?.suspended ?? false;
-    }
-
-    /**
-     * 获取登录失败记录
-     * 对应 API: GET /_synapse/admin/v1/login/failures
-     */
-    public async listLoginFailures(): Promise<LoginFailure[]> {
-        try {
-            const response = await this.request<{
-                failures?: Record<string, { time: string; ip: string; userAgent?: string }[]>;
-            }>({
-                method: Method.Get,
-                path: "/login/failures",
-            });
-
-            const failures: LoginFailure[] = [];
-            if (response.failures) {
-                for (const [timestamp, data] of Object.entries(response.failures)) {
-                    for (const entry of data) {
-                        failures.push({
-                            timestamp: new Date(timestamp).getTime(),
-                            ip: entry.ip,
-                            userAgent: entry.userAgent,
-                        });
-                    }
-                }
-            }
-            return failures;
-            // @swallow-error { owner: "security", expires: "2026-12-31" }
-        } catch (e) {
-            logger.warn("SecurityManager.listLoginFailures failed", e);
-            return [];
-        }
-    }
-
-    /**
-     * 检查当前客户端会话是否安全
+     * 检查当前客户端的会话安全性。
+     *
+     * 设备"是否已信任"**只能**来自规范的交叉签名推导
+     * （`CryptoApi.getDeviceVerificationStatus(userId, deviceId).isVerified()`），
+     * 不能自己算、更不能写死：本方法此前把 `hasVerifiedDevices` 实现成
+     * `devices.some((_d) => true)`（只要设备非空就恒为真），于是 "No verified devices"
+     * 这条 issue 永远不可能被记录 —— 一个不会失败的门禁（铁律 8 的反面）。
      */
     public async checkSessionSecurity(): Promise<{
         isSecure: boolean;
@@ -136,19 +54,30 @@ export class SecurityManager extends BaseManager {
         const issues: string[] = [];
         let isSecure = true;
 
-        const devices = await this.client.getDeviceManager().getDevices();
-
-        if (!devices || devices.length === 0) {
+        const devices = (await this.client.getDeviceManager().getDevices()) ?? [];
+        if (devices.length === 0) {
             issues.push("No devices found");
             isSecure = false;
         }
 
-        const hasVerifiedDevices = devices.some((_d) => {
-            return true;
-        });
-
-        if (!hasVerifiedDevices) {
-            issues.push("No verified devices");
+        const crypto = this.client.getCrypto();
+        const userId = this.client.getUserId();
+        if (!crypto) {
+            // 没有加密时**无法**评估设备信任 —— 如实报告，而不是假装安全。
+            issues.push("Encryption is not enabled on this client; device trust cannot be evaluated");
+            isSecure = false;
+        } else if (userId) {
+            let unverified = 0;
+            for (const device of devices) {
+                const status = await crypto.getDeviceVerificationStatus(userId, device.device_id);
+                if (!status?.isVerified()) {
+                    unverified += 1;
+                }
+            }
+            if (unverified > 0) {
+                issues.push(`${unverified} device(s) are not verified`);
+                isSecure = false;
+            }
         }
 
         return { isSecure, issues };

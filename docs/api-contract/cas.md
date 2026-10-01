@@ -1,8 +1,8 @@
 ---
 module: cas
 generated_from: docs/api-contract/generated/modules/cas.json
-generated_hash: sha256-313425b933a5636fb92e4d1a8fbb579d32a54eda2e21b1a8a49bce8797ffe03e
-ledger_schema: 1
+generated_hash: sha256-3d6f5229a07e4b6ccc50d33672caea8c44a078ab3ba1da10e629da61572d1531
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
@@ -15,14 +15,19 @@ last_reviewed: 2026-05-03
 
 ### 公共 CAS 协议端点
 
-| 方法 | 路径                  | 说明                     | 认证 |
-| ---- | --------------------- | ------------------------ | ---- |
-| GET  | `/login`              | 发起 CAS 登录            | 公开 |
-| GET  | `/logout`             | 发起 CAS 登出            | 公开 |
-| GET  | `/serviceValidate`    | 标准 service ticket 校验 | 公开 |
-| GET  | `/proxyValidate`      | proxy ticket 校验        | 公开 |
-| GET  | `/p3/serviceValidate` | CAS 3.0 service 校验     | 公开 |
-| GET  | `/proxy`              | 代理票据交换             | 公开 |
+> 后端 2026-09 已把这些端点从根级路径迁到 `/_synapse/cas` 前缀下（SDK 的
+> `CAS_API_PREFIX.cas` 一直按 `/_synapse/cas` 构建 URL，故 SDK 侧无需改动）。
+> 根级 `/login`、`/serviceValidate` 等旧路径已下线，**不得**再写回契约表。
+
+| 方法 | 路径                                        | 说明                     | 认证 |
+| ---- | ------------------------------------------- | ------------------------ | ---- |
+| GET  | `/_synapse/cas/login`                       | 发起 CAS 登录            | 公开 |
+| GET  | `/_synapse/cas/logout`                      | 发起 CAS 登出            | 公开 |
+| GET  | `/_synapse/cas/serviceValidate`             | 标准 service ticket 校验 | 公开 |
+| GET  | `/_synapse/cas/proxyValidate`               | proxy ticket 校验        | 公开 |
+| GET  | `/_synapse/cas/p3/serviceValidate`          | CAS 3.0 service 校验     | 公开 |
+| GET  | `/_synapse/cas/proxy`                       | 代理票据交换             | 公开 |
+| GET  | `/_matrix/client/v3/login/sso/redirect/cas` | CAS SSO 重定向           | 公开 |
 
 ### 管理端点
 
@@ -46,26 +51,27 @@ last_reviewed: 2026-05-03
 
 ## SDK 对齐状态
 
-| 端点                                                     | SDK Manager  | 方法                  | 状态          |
-| -------------------------------------------------------- | ------------ | --------------------- | ------------- |
-| `GET /login`                                             | `CasManager` | `buildLoginUrl()`     | ✅ URL helper |
-| `GET /logout`                                            | `CasManager` | `buildLogoutUrl()`    | ✅ URL helper |
-| `GET /serviceValidate`                                   | `CasManager` | `buildValidateUrl()`  | ✅ URL helper |
-| `GET /proxyValidate`                                     | `CasManager` | `buildValidateUrl()`  | ✅ URL helper |
-| `GET /p3/serviceValidate`                                | `CasManager` | `buildValidateUrl()`  | ✅ URL helper |
-| `GET /proxy`                                             | `CasManager` | `buildValidateUrl()`  | ✅ URL helper |
-| `GET /_synapse/admin/v1/cas/services`                    | `CasManager` | `listServices()`      | ✅            |
-| `POST /_synapse/admin/v1/cas/services`                   | `CasManager` | `registerService()`   | ✅            |
-| `DELETE /_synapse/admin/v1/cas/services/{service_id}`    | `CasManager` | `deleteService()`     | ✅            |
-| `GET /_synapse/admin/v1/cas/users/{user_id}/attributes`  | `CasManager` | `getUserAttributes()` | ✅            |
-| `POST /_synapse/admin/v1/cas/users/{user_id}/attributes` | `CasManager` | `setUserAttribute()`  | ✅            |
+| 端点                                                     | SDK Manager  | 方法                  | 状态              |
+| -------------------------------------------------------- | ------------ | --------------------- | ----------------- |
+| `GET /_synapse/cas/login`                                | `CasManager` | `buildLoginUrl()`     | ✅ URL helper     |
+| `GET /_synapse/cas/logout`                               | `CasManager` | `buildLogoutUrl()`    | ✅ URL helper     |
+| `GET /_synapse/cas/serviceValidate`                      | `CasManager` | `buildValidateUrl()`  | ✅ URL helper     |
+| `GET /_synapse/cas/proxyValidate`                        | `CasManager` | `buildValidateUrl()`  | ✅ URL helper     |
+| `GET /_synapse/cas/p3/serviceValidate`                   | `CasManager` | `buildValidateUrl()`  | ✅ URL helper     |
+| `GET /_synapse/cas/proxy`                                | `CasManager` | `buildValidateUrl()`  | ✅ URL helper     |
+| `GET /_matrix/client/v3/login/sso/redirect/cas`          | —            | —                     | 服务端 SSO 重定向 |
+| `GET /_synapse/admin/v1/cas/services`                    | `CasManager` | `listServices()`      | ✅                |
+| `POST /_synapse/admin/v1/cas/services`                   | `CasManager` | `registerService()`   | ✅                |
+| `DELETE /_synapse/admin/v1/cas/services/{service_id}`    | `CasManager` | `deleteService()`     | ✅                |
+| `GET /_synapse/admin/v1/cas/users/{user_id}/attributes`  | `CasManager` | `getUserAttributes()` | ✅                |
+| `POST /_synapse/admin/v1/cas/users/{user_id}/attributes` | `CasManager` | `setUserAttribute()`  | ✅                |
 
 ## 覆盖率口径
 
-- **后端 Ledger 路由总数**: 16
+- **后端 Ledger 路由总数**: 17
 - **SDK 已封装路由数**: 11 (主干端点与 URL helpers)
 - **已绑定生成路由模板**: 11
 - **契约覆盖率**: 100%
 - **说明**:
-    - `serviceValidate`、`proxyValidate`、`p3/serviceValidate`、`proxy` 属于 CAS 协议 XML 端点，通过 `buildValidateUrl()` helper 绑定。
+    - `/_synapse/cas/serviceValidate`、`/_synapse/cas/proxyValidate`、`/_synapse/cas/p3/serviceValidate`、`/_synapse/cas/proxy` 属于 CAS 协议 XML 端点，通过 `buildValidateUrl()` helper 绑定。
     - 后端保留的 5 条无前缀兼容别名（如 `GET /admin/services`）与 `/_synapse/admin/v1/cas/*` 逻辑完全一致，SDK 统一采用 V1 路径进行封装，视为逻辑覆盖 100%。

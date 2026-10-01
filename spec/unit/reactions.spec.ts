@@ -38,7 +38,29 @@ describe("ReactionsManager", () => {
         await manager.redactReaction(roomId, "$r1");
         expect(mockClient.redactReaction).toHaveBeenCalledWith(roomId, "$r1");
 
+        // getReactionUsers reads from room relations cache, not client.getReactionUsers
+        mockClient.getRoom.mockReturnValue({
+            relations: {
+                getChildEventsForEvent: vi.fn(() => ({
+                    getRelations: () => [
+                        { getSender: () => "@a:hs", getRelation: () => ({ key: "👍" }), getId: () => "$r1" },
+                        { getSender: () => "@b:hs", getRelation: () => ({ key: "👍" }), getId: () => "$r2" },
+                    ],
+                })),
+            },
+        });
         await expect(manager.getReactionUsers(roomId, eventId)).resolves.toEqual(["@a:hs", "@b:hs"]);
+
+        // hasReaction also reads from room relations cache
+        mockClient.getRoom.mockReturnValue({
+            relations: {
+                getChildEventsForEvent: vi.fn(() => ({
+                    getRelations: () => [
+                        { getSender: () => "@me:hs", getRelation: () => ({ key: "👎" }), getId: () => "$r3" },
+                    ],
+                })),
+            },
+        });
         await expect(manager.hasReaction(roomId, eventId, "@me:hs", "👍")).resolves.toBe(false);
     });
 

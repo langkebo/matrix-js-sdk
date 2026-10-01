@@ -28,6 +28,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
+import { logger } from "../logger";
 
 const TURN_CHECK_INTERVAL = 30 * 1000;
 
@@ -66,8 +67,11 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
             if (res.uris) {
                 return res.uris;
             }
-        } catch {
-            // Fall through to empty
+        } catch (error) {
+            // No TURN servers available (VoIP unsupported, or the endpoint 404s on
+            // homeservers without a TURN config). Degrade to an empty list rather than
+            // throwing, but record the reason so the failure is not silent.
+            logger.warn("TurnServerManager: failed to fetch TURN server URIs, returning empty list", error);
         }
         return [];
     }

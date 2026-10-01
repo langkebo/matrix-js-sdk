@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        External Service
- * Source:        docs/api-contract/generated/modules/external_service.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       20 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `external_service` module. */
+/** Routes served by the synapse-rust `external-service` module (mirrored from the backend contract). */
 export const EXTERNAL_SERVICE_ROUTES = [
     { method: "GET", path: "/_matrix/admin/v1/external_services" },
     { method: "POST", path: "/_matrix/admin/v1/external_services" },
@@ -26,9 +24,11 @@ export const EXTERNAL_SERVICE_ROUTES = [
     { method: "PUT", path: "/_synapse/admin/v1/external_services/{as_id}" },
     { method: "GET", path: "/_synapse/admin/v1/external_services/{as_id}/health" },
     { method: "POST", path: "/_synapse/admin/v1/external_services/{as_id}/health/check" },
-    { method: "POST", path: "/_synapse/external/openclaw/{service_id}/webhook" },
     { method: "POST", path: "/_synapse/external/trendradar/{service_id}/webhook" },
     { method: "POST", path: "/_synapse/external/webhook/{service_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/external_services/health" },
+    { method: "PUT", path: "/_matrix/vendor/v1/external_services/{service_id}" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/external_services/{service_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `EXTERNAL_SERVICE_ROUTES`. */

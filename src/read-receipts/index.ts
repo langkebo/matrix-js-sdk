@@ -237,14 +237,11 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
      * @param eventId - The event ID to acknowledge
      */
     public async sendReceiptForce(roomId: string, receiptType: string, eventId: string): Promise<void> {
-        const path = utils.encodeUri(
-            "/rooms/$roomId/receipt/$receiptType/$eventId",
-            {
-                $roomId: roomId,
-                $receiptType: receiptType,
-                $eventId: eventId,
-            },
-        );
+        const path = utils.encodeUri("/rooms/$roomId/receipt/$receiptType/$eventId", {
+            $roomId: roomId,
+            $receiptType: receiptType,
+            $eventId: eventId,
+        });
         await this.request<EmptyObject>({
             method: Method.Post,
             path: path,

@@ -103,7 +103,10 @@ describe("refreshToken", () => {
     it("re-raises non-M_UNRECOGNIZED exceptions from /v3", async () => {
         const client = createExampleMatrixClient();
 
-        fetchMock.postOnce(client.http.getUrl("/refresh", undefined, ClientPrefix.V3).toString(), 429);
+        // Persistent mock: a 429 is now retried (it is rejected before execution), so the
+        // route must keep answering 429 for every attempt — otherwise the retry would hit
+        // an unmocked route and surface a ConnectionError instead of the original status.
+        fetchMock.post(client.http.getUrl("/refresh", undefined, ClientPrefix.V3).toString(), 429);
         fetchMock.postOnce(client.http.getUrl("/refresh", undefined, ClientPrefix.V1).toString(), () => {
             throw new Error("/v1/refresh unexpectedly called");
         });
@@ -118,7 +121,8 @@ describe("refreshToken", () => {
             status: 400,
             body: { errcode: "M_UNRECOGNIZED" },
         });
-        fetchMock.postOnce(client.http.getUrl("/refresh", undefined, ClientPrefix.V1).toString(), 429);
+        // See the /v3 case above: persistent 429 so the retry still sees a rate limit.
+        fetchMock.post(client.http.getUrl("/refresh", undefined, ClientPrefix.V1).toString(), 429);
 
         await expect(client.refreshToken("initial_refresh_token")).rejects.toMatchObject({ httpStatus: 429 });
     });

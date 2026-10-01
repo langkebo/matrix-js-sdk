@@ -19,18 +19,19 @@ limitations under the License.
  *
  * 提供房间邀请黑名单/白名单管理功能
  * 对应后端 API:
- * - GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist - 获取邀请黑名单
- * - POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist - 设置邀请黑名单
- * - GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 获取邀请白名单
- * - POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 设置邀请白名单
+ * - GET /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist - 获取邀请黑名单
+ * - POST /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist - 设置邀请黑名单
+ * - GET /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist - 获取邀请白名单
+ * - POST /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist - 设置邀请白名单
  */
 
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { VendorPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
+import { EventType, type InvitePermissionConfigContent } from "../@types/event";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum InviteBlocklistEvent {
@@ -77,7 +78,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Get invite blocklist for a room
-     * GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist
+     * GET /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist
      */
     public async getBlocklist(roomId: string): Promise<string[]> {
         if (!roomId) {
@@ -89,7 +90,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                 return await this.request<IBlocklistResponse>({
                     method: Method.Get,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "getBlocklist");
 
@@ -104,7 +105,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Set invite blocklist for a room (room admin only)
-     * POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist
+     * POST /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist
      */
     public async setBlocklist(roomId: string, userIds: string[]): Promise<IBlocklistResult> {
         if (!roomId) {
@@ -121,7 +122,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                     method: Method.Post,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
                     body: { user_ids: userIds },
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "setBlocklist");
 
@@ -167,7 +168,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Get invite allowlist for a room
-     * GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist
+     * GET /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist
      */
     public async getAllowlist(roomId: string): Promise<string[]> {
         if (!roomId) {
@@ -179,7 +180,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                 return await this.request<IAllowlistResponse>({
                     method: Method.Get,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "getAllowlist");
 
@@ -194,7 +195,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Set invite allowlist for a room (room admin only)
-     * POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist
+     * POST /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist
      */
     public async setAllowlist(roomId: string, userIds: string[]): Promise<IAllowlistResult> {
         if (!roomId) {
@@ -211,7 +212,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                     method: Method.Post,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
                     body: { user_ids: userIds },
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "setAllowlist");
 
@@ -269,6 +270,64 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
     public async isUserAllowed(roomId: string, userId: string): Promise<boolean> {
         const allowlist = await this.getAllowlist(roomId);
         return allowlist.includes(userId);
+    }
+
+    /**
+     * Get the user's invite permission config (MSC4155).
+     * Reads the global account data event `m.invite_permission_config`.
+     *
+     * **Draft — not implemented by synapse-rust.** The backend borrows the
+     * `msc4155` namespace for its thread-subscription endpoints and does not
+     * implement MSC4155 invite filtering, so this read is never served with a
+     * meaningful value: an unset event 404s and is treated as "not configured"
+     * (`null`). No invite filtering is applied server-side. See
+     * `docs/MSC_SEMANTICS.md`.
+     *
+     * @returns the config content, or null if it is not set / cannot be read.
+     * @example
+     * ```typescript
+     * const config = await client.getInviteBlocklistManager().getInvitePermissionConfig();
+     * if (config?.default_action === "block") {
+     *     console.log("invites blocked by default (client-side policy only)");
+     * }
+     * ```
+     */
+    public async getInvitePermissionConfig(): Promise<InvitePermissionConfigContent | null> {
+        try {
+            return await this.client.getAccountDataFromServer(EventType.InvitePermissionConfig);
+            // 未设置时服务端返回 404；读取失败一律降级为"未配置"（null）并记录 warn，
+            // 以免阻断邀请流程。调用方按 null 走默认允许策略。
+            // @swallow-error { owner: "invite-blocklist", expires: "2026-12-31" }
+        } catch (error) {
+            logger.warn("InviteBlocklistManager.getInvitePermissionConfig failed:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Set the user's invite permission config (MSC4155).
+     * Writes the global account data event `m.invite_permission_config`.
+     *
+     * **Draft — not implemented by synapse-rust.** The event is stored as
+     * ordinary account data and the backend performs no invite filtering based
+     * on it. See `docs/MSC_SEMANTICS.md`.
+     *
+     * @param content - the invite permission configuration to store.
+     * @example
+     * ```typescript
+     * await client.getInviteBlocklistManager().setInvitePermissionConfig({
+     *     default_action: "block",
+     *     user_exceptions: { "@trusted:example.org": {} },
+     * });
+     * ```
+     */
+    public async setInvitePermissionConfig(content: InvitePermissionConfigContent): Promise<void> {
+        try {
+            await this.client.setAccountData(EventType.InvitePermissionConfig, content);
+        } catch (error) {
+            logger.error("InviteBlocklistManager.setInvitePermissionConfig failed:", error);
+            throw error;
+        }
     }
 
     /**

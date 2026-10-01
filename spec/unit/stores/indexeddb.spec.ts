@@ -23,6 +23,7 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 
 import { IndexedDBStore, type IStateEventWithRoomId, MemoryStore, User, UserEvent } from "../../../src";
+import { PendingEventsCipher } from "../../../src/store/pending-events-cipher";
 import { emitPromise } from "../../test-utils/test-utils";
 import { type LocalIndexedDBStoreBackend } from "../../../src/store/indexeddb-local-backend";
 
@@ -174,7 +175,7 @@ describe("IndexedDBStore", () => {
         expect(MemoryStore.prototype.getPendingEvents).toHaveBeenCalledWith(roomId);
     });
 
-    it("should persist pending events to localStorage if available", async () => {
+    it("should not persist pending events to localStorage in plaintext without a cipher", async () => {
         vi.spyOn(MemoryStore.prototype, "setPendingEvents");
         vi.spyOn(MemoryStore.prototype, "getPendingEvents");
 
@@ -187,10 +188,33 @@ describe("IndexedDBStore", () => {
         await expect(store.getPendingEvents(roomId)).resolves.toEqual([]);
         const events = [{ type: "test" }];
         await store.setPendingEvents(roomId, events);
-        expect(MemoryStore.prototype.setPendingEvents).not.toHaveBeenCalled();
+        // 无 cipher：拒绝明文落盘，回退到内存（super），localStorage 无明文
+        expect(MemoryStore.prototype.setPendingEvents).toHaveBeenCalledWith(roomId, events);
+        expect(mockLocalStorage.getItem("mx_pending_events_" + roomId)).toBeNull();
         await expect(store.getPendingEvents(roomId)).resolves.toEqual(events);
-        expect(MemoryStore.prototype.getPendingEvents).not.toHaveBeenCalled();
-        expect(mockLocalStorage.getItem("mx_pending_events_" + roomId)).toBe(JSON.stringify(events));
+        expect(MemoryStore.prototype.getPendingEvents).toHaveBeenCalledWith(roomId);
+    });
+
+    it("should encrypt pending events in localStorage when a cipher is provided", async () => {
+        const cipher = await PendingEventsCipher.fromStorageKey(new Uint8Array(32));
+        const store = new IndexedDBStore({
+            indexedDB: indexedDB,
+            dbName: "database",
+            localStorage: mockLocalStorage as unknown as Storage,
+            pendingEventsCipher: cipher,
+        });
+
+        const events = [{ type: "test" }];
+        await store.setPendingEvents(roomId, events);
+        // 加密落盘：带 v1: 前缀且不含明文 JSON
+        const stored = mockLocalStorage.getItem("mx_pending_events_" + roomId);
+        expect(stored).not.toBeNull();
+        expect(stored!.startsWith("v1:")).toBe(true);
+        expect(stored).not.toContain('"type":"test"');
+        // 解密读取
+        await expect(store.getPendingEvents(roomId)).resolves.toEqual(events);
+
+        // 清空
         await store.setPendingEvents(roomId, []);
         expect(mockLocalStorage.getItem("mx_pending_events_" + roomId)).toBeNull();
     });

@@ -61,16 +61,16 @@ describe("CaptchaManager", () => {
         expect(authedRequest).not.toHaveBeenCalled();
     });
 
-    it("allows callers to select the r0 public captcha route explicitly", async () => {
+    it("allows callers to select the v3 public captcha route explicitly", async () => {
         request.mockResolvedValue({ verified: true });
-        await manager.verifyCaptcha("c1", "1234", "r0");
+        await manager.verifyCaptcha("c1", "1234", "v3");
 
         expect(request).toHaveBeenCalledWith(
             Method.Post,
             "/register/captcha/verify",
             undefined,
             { captcha_id: "c1", code: "1234" },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
     });
 
@@ -79,6 +79,15 @@ describe("CaptchaManager", () => {
         await manager.cleanupExpiredCaptchas();
         expect(authedRequest).toHaveBeenCalledWith(Method.Post, "/captcha/cleanup", undefined, undefined, {
             prefix: AdminPrefix.V1,
+        });
+    });
+
+    it("deleteExpiredCaptchas uses the client v3 DELETE route", async () => {
+        authedRequest.mockResolvedValue({ cleaned_count: 5, message: "Cleaned up 5 expired captchas" });
+        const result = await manager.deleteExpiredCaptchas();
+        expect(result).toEqual({ cleaned_count: 5, message: "Cleaned up 5 expired captchas" });
+        expect(authedRequest).toHaveBeenCalledWith(Method.Delete, "/register/captcha/clean", undefined, undefined, {
+            prefix: ClientPrefix.V3,
         });
     });
 });

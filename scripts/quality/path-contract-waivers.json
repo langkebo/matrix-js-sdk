@@ -1,0 +1,43 @@
+{
+    "note": "SDK 声明了但后端 ledger 里查不到的路径。每条必须写清「为什么后端没有」和「什么条件下可以删掉这条豁免」。expires 到期即门禁失败——这是为了让豁免不会变成永久性的静态白噪音（参见 check-manager-codegen-coverage.mjs 里 WAIVED_MODULES 的同款思路：豁免要有主人和期限）。",
+    "verifiedAgainst": "synapse-rust commit 7cb39946, ledger 1149 entries",
+    "verifiedAt": "2026-10-01",
+    "waivers": [
+    {
+        "sdkCall": "POST /_matrix/client/v1/login/get_token",
+        "file": "src/account/index.ts",
+        "reason": "第三方登录 token 交换。后端未实现 get_token 端点（synapse-rust 仅有 refresh_token_service 内部的同名私有方法，不是 HTTP 路由）。SDK 保留了封装以兼容其他 homeserver。",
+        "expires": "2026-12-31"
+    },
+    {
+        "sdkCall": "GET /_matrix/client/v3/register/captcha",
+        "file": "src/auth/index.ts",
+        "reason": "注册 captcha 校验。后端 auth 模块未实现该端点；若后端引入 captcha 强制校验则需要补齐。",
+        "expires": "2026-12-31"
+    },
+    {
+        "sdkCall": "POST /_matrix/client/unstable/org.matrix.msc3720/account_status",
+        "file": "src/account/index.ts",
+        "reason": "MSC3720 账户状态查询。后端未实现该端点（MSC 未标准化，仅 stock Synapse 的 v3 有 `/account/status` 但非不稳定前缀）。SDK 保留封装以便对接其他 homeserver。",
+        "expires": "2026-12-31"
+    },
+    {
+        "sdkCall": "POST /_matrix/client/v3/oidc/register",
+        "file": "src/oidc/manager.ts",
+        "reason": "OIDC registration 端点。后端 OIDC 模块未实现该路径。",
+        "expires": "2026-12-31"
+    },
+    {
+        "sdkCall": "GET /_matrix/client/unstable/im.nheko.summary/summary/{X}",
+        "file": "src/room-summary/index.ts",
+        "reason": "不稳定的 im.nheko.summary 摘要。后端未实现，该路径仅用于从失败的主摘要路径中回退。",
+        "expires": "2026-12-31"
+    },
+    {
+        "sdkCall": "DELETE /_matrix/client/v3/voice/{X}",
+        "file": "src/voice/index.ts",
+        "reason": "删除语音消息。后端 voice 模块未实现 DELETE 端点（ledger 仅有 GET/POST 的 config/register/stats/upload）。SDK 超前封装。",
+        "expires": "2026-12-31"
+    }
+    ]
+}

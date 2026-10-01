@@ -1,9 +1,13 @@
 {
-    "name": "matrix-js-sdk",
-    "version": "40.2.0",
-    "description": "Matrix Client-Server SDK for Javascript",
+    "name": "@langkebo/matrix-js-sdk",
+    "version": "40.2.0-langkebo.5",
+    "description": "Matrix Client-Server SDK for Javascript (langkebo fork of matrix-org/matrix-js-sdk, extended for synapse-rust)",
     "engines": {
         "node": ">=22.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/langkebo/matrix-js-sdk.git"
     },
     "scripts": {
         "prepare": "pnpm build",
@@ -13,7 +17,7 @@
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
         "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
-        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key",
+        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key && pnpm quality:real-backend-types && pnpm quality:timer-pairing && pnpm quality:contract-drift",
         "lint:js": "eslint src spec && node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --check .",
         "lint:js-fix": "node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --log-level=warn --write . && eslint --fix src spec",
         "lint:types": "tsc --noEmit",
@@ -24,11 +28,11 @@
         "test": "vitest run",
         "test:real-backend": "pnpm test:real-backend:smoke && pnpm test:real-backend:setup && pnpm test:real-backend:batch",
         "test:real-backend:batch": "node scripts/run-real-backend-batch.mjs",
+        "test:real-backend:l4": "node scripts/run-l4-weak-network.mjs",
         "test:real-backend:smoke": "node scripts/run-real-backend-with-ca.mjs pnpm exec vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/smoke.spec.ts",
         "test:real-backend:setup": "node scripts/run-real-backend-with-ca.mjs node scripts/ensure-real-backend-users.mjs",
         "test:real-backend:with-ca": "node scripts/run-real-backend-with-ca.mjs",
         "test:real-backend:tsx": "node scripts/run-real-backend-with-ca.mjs npx tsx",
-        "test:real-backend:verification": "node scripts/run-real-backend-with-ca.mjs pnpm exec vitest run --config vitest.real-backend.config.ts spec/integ/real-backend/key-verification-manager.spec.ts",
         "test:real-backend:device": "node scripts/run-real-backend-with-ca.mjs pnpm exec vitest run --no-file-parallelism --config vitest.real-backend.config.ts spec/integ/real-backend/device-manager.spec.ts spec/integ/real-backend/device-step2.spec.ts spec/integ/real-backend/device-delete-devices.spec.ts spec/integ/real-backend/device-list-updates.spec.ts",
         "test:watch": "vitest --watch",
         "test:perf": "vitest run spec/perf",
@@ -38,6 +42,8 @@
         "perf:compare": "node scripts/perf/generate-comparison-report.mjs",
         "coverage": "pnpm test --coverage",
         "quality:coverage:critical": "node scripts/quality/check-critical-coverage.mjs coverage/lcov.info",
+        "quality:coverage:repo": "node scripts/quality/check-repo-coverage.mjs coverage/lcov.info",
+        "quality:coverage": "pnpm quality:coverage:repo && pnpm quality:coverage:critical",
         "quality:exports": "node scripts/quality/check-exports-docs.mjs",
         "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
         "quality:sdk-contracts": "node scripts/quality/check-sdk-contract-alignment.mjs",
@@ -56,7 +62,6 @@
         "quality:burn-after-read": "node scripts/quality/check-burn-after-read-granular-coverage.mjs",
         "quality:captcha": "node scripts/quality/check-captcha-granular-coverage.mjs",
         "quality:event-report": "node scripts/quality/check-event-report-granular-coverage.mjs",
-        "quality:ai-connection": "node scripts/quality/check-ai-connection-granular-coverage.mjs",
         "quality:external-service": "node scripts/quality/check-external-service-granular-coverage.mjs",
         "quality:user-directory": "node scripts/quality/check-user-directory-granular-coverage.mjs",
         "quality:telemetry": "node scripts/quality/check-telemetry-granular-coverage.mjs",
@@ -64,27 +69,39 @@
         "quality:generated-dto-strictness": "node scripts/quality/check-generated-dto-strictness.mjs",
         "quality:public-jsdoc-examples": "node scripts/quality/check-public-jsdoc-examples.mjs",
         "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
+        "quality:coverage:weak-files": "node scripts/quality/find-lowest-coverage-files.mjs",
+        "quality:coverage:weak-modules": "node scripts/quality/find-lowest-coverage-modules.mjs",
+        "quality:path-contract": "node scripts/quality/verify-path-contract.mjs",
+        "quality:msc": "node scripts/quality/check-msc-changes.mjs",
+        "quality:msc:strict": "node scripts/quality/check-msc-changes.mjs --strict",
+        "quality:msc:update": "node scripts/quality/check-msc-changes.mjs --update-baseline",
+        "quality:waiver-expiry": "node scripts/quality/check-waiver-expiry.mjs",
+        "quality:waiver-expiry:strict": "node scripts/quality/check-waiver-expiry.mjs --strict",
         "quality:swallow-fallbacks": "node scripts/quality/check-swallow-fallbacks.mjs",
         "quality:debt-markers": "node scripts/quality/scan-technical-debt.mjs",
         "quality:no-default-key": "node scripts/quality/check-no-default-key.mjs",
+        "quality:real-backend-types": "node scripts/quality/check-real-backend-types.mjs",
+        "quality:timer-pairing": "node scripts/quality/check-timer-pairing.mjs",
+        "quality:contract-drift": "node scripts/quality/check-contract-drift.mjs",
         "quality:log-sensitive": "node scripts/quality/check-log-sensitive.mjs",
         "quality:type-coverage": "node scripts/quality/check-type-coverage.mjs",
         "contract:sync": "node scripts/contract-sync.mjs",
         "contract:sync:drafts": "node scripts/contract-sync.mjs --render-drafts",
-        "contract:check": "node scripts/contract-sync.mjs --check && node scripts/sdk-contract-codegen.mjs --check",
+        "contract:check": "node scripts/contract-sync.mjs --check && node scripts/sdk-contract-codegen.mjs --check && node scripts/quality/check-vendor-prefix-migration.mjs",
         "contract:codegen": "node scripts/sdk-contract-codegen.mjs",
         "contract:codegen:check": "node scripts/sdk-contract-codegen.mjs --check",
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",
         "generate:manager-extensions": "node scripts/generate-manager-extensions.mjs",
-        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples",
+        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:path-contract && pnpm quality:msc && pnpm quality:waiver-expiry",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
         "audit:high": "pnpm audit --audit-level=high",
-        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && node scripts/check-bundle-size.mjs"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/matrix-org/matrix-js-sdk.git"
+        "audit:prod": "pnpm audit --prod --audit-level=high",
+        "audit:all": "pnpm audit",
+        "quality:bundle-size": "node scripts/check-bundle-size.mjs",
+        "quality:cross-repo-pin": "node scripts/quality/check-cross-repo-pin.mjs",
+        "quality:cross-repo-pin:strict": "node scripts/quality/check-cross-repo-pin.mjs --strict",
+        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && pnpm quality:bundle-size"
     },
     "keywords": [
         "matrix-org"
@@ -145,10 +162,6 @@
         "./admin": {
             "import": "./lib/admin/index.js",
             "types": "./lib/admin/index.d.ts"
-        },
-        "./ai-connection": {
-            "import": "./lib/ai-connection/index.js",
-            "types": "./lib/ai-connection/index.d.ts"
         },
         "./saml": {
             "import": "./lib/saml/index.js",
@@ -254,10 +267,6 @@
             "import": "./lib/key-rotation/index.js",
             "types": "./lib/key-rotation/index.d.ts"
         },
-        "./key-verification": {
-            "import": "./lib/key-verification/index.js",
-            "types": "./lib/key-verification/index.d.ts"
-        },
         "./e2ee": {
             "import": "./lib/e2ee/index.js",
             "types": "./lib/e2ee/index.d.ts"
@@ -294,13 +303,13 @@
             "import": "./lib/room-summary/index.js",
             "types": "./lib/room-summary/index.d.ts"
         },
-        "./verification": {
-            "import": "./lib/verification/index.js",
-            "types": "./lib/verification/index.d.ts"
-        },
         "./rendezvous": {
             "import": "./lib/rendezvous/index.js",
             "types": "./lib/rendezvous/index.d.ts"
+        },
+        "./threading": {
+            "import": "./lib/threading/index.js",
+            "types": "./lib/threading/index.d.ts"
         }
     },
     "sideEffects": false,
@@ -322,6 +331,8 @@
         "@matrix-org/matrix-sdk-crypto-wasm": "^17.1.0",
         "bs58": "^6.0.0",
         "content-type": "^1.0.5",
+        "events": "^3.3.0",
+        "fflate": "^0.8.3",
         "jwt-decode": "^4.0.0",
         "loglevel": "^1.9.2",
         "matrix-events-sdk": "0.0.1",
@@ -336,7 +347,7 @@
         "@action-validator/cli": "^0.6.0",
         "@action-validator/core": "^0.6.0",
         "@babel/cli": "^7.28.6",
-        "@babel/core": "^7.29.0",
+        "@babel/core": "^7.29.6",
         "@babel/eslint-parser": "^7.28.6",
         "@babel/eslint-plugin": "^7.27.1",
         "@babel/plugin-proposal-decorators": "^7.29.0",
@@ -357,9 +368,9 @@
         "@types/sdp-transform": "^2.15.0",
         "@typescript-eslint/eslint-plugin": "^8.56.1",
         "@typescript-eslint/parser": "^8.56.1",
-        "@vitest/coverage-v8": "^4.0.18",
+        "@vitest/coverage-v8": "^4.1.11",
         "@vitest/eslint-plugin": "^1.6.9",
-        "@vitest/ui": "^4.0.18",
+        "@vitest/ui": "^4.1.11",
         "another-json": "^0.2.0",
         "babel-plugin-search-and-replace": "^1.1.1",
         "debug": "^4.4.3",
@@ -388,8 +399,25 @@
         "typedoc-plugin-missing-exports": "^4.1.2",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.60.0",
-        "vitest": "^4.0.18",
+        "vite": "^7.3.5",
+        "vitest": "^4.1.11",
         "vitest-sonar-reporter": "^3.0.0"
+    },
+    "pnpm": {
+        "overrides": {
+            "brace-expansion@<1.1.18": "1.1.18",
+            "brace-expansion@>=4.0.0 <5.0.9": "5.0.9",
+            "browserslist@<=4.28.6": "4.28.7",
+            "esbuild@>=0.27.3 <0.28.1": "0.28.1",
+            "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
+            "linkify-it@<=5.0.1": "5.0.2",
+            "markdown-it@<=14.1.1": "14.3.2",
+            "nanoid@<3.3.18": "3.3.18",
+            "postcss@<=8.5.22": "8.5.28",
+            "smol-toml@<=1.7.0": "1.7.1",
+            "vite@>=7.0.0 <=7.3.4": "7.3.5",
+            "ws@>=8.0.0 <8.21.0": "8.21.0"
+        }
     },
     "packageManager": "pnpm@10.29.3+sha512.498e1fb4cca5aa06c1dcf2611e6fafc50972ffe7189998c409e90de74566444298ffe43e6cd2acdc775ba1aa7cc5e092a8b7054c811ba8c5770f84693d33d2dc"
 }

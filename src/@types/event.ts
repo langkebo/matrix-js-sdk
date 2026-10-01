@@ -42,6 +42,8 @@ import { type IGroupCallRoomMemberState, type IGroupCallRoomState } from "../web
 import { type MSC3089EventContent } from "../models/MSC3089Branch";
 import { type EmptyObject } from "./common";
 import { type ReactionEventContent, type RoomMessageEventContent, type StickerEventContent } from "./events";
+import { M_BEACON, M_BEACON_INFO, type MBeaconEventContent, type MBeaconInfoEventContent } from "./beacon";
+import { M_LOCATION, type MLocationEventContent } from "./location";
 import {
     type MCallAnswer,
     type MCallBase,
@@ -152,7 +154,7 @@ export enum EventType {
     PushRules = "m.push_rules",
     Direct = "m.direct",
     IgnoredUserList = "m.ignored_user_list",
-    InvitePermissionConfig = "m.invite_permission_config", // MSC4380
+    InvitePermissionConfig = "m.invite_permission_config", // MSC4155
 
     // to_device events
     RoomKey = "m.room_key",
@@ -364,6 +366,14 @@ export interface TimelineEvents {
     [EventType.RTCNotification]: IRTCNotificationContent;
     [EventType.RTCDecline]: IRTCDeclineContent;
     [EventType.RTCMembership]: RtcMembershipData | { msc4354_sticky_key: string };
+
+    // MSC3488
+    [M_LOCATION.name]: MLocationEventContent;
+    [M_LOCATION.altName]: MLocationEventContent;
+    // MSC3672
+    [M_BEACON.name]: MBeaconEventContent;
+    [M_BEACON.altName]: MBeaconEventContent;
+
     [key: string]: unknown;
 }
 
@@ -408,6 +418,10 @@ export interface StateEvents {
     // MSC3089
     [UNSTABLE_MSC3089_BRANCH.name]: MSC3089EventContent;
 
+    // MSC3672
+    [M_BEACON_INFO.name]: MBeaconInfoEventContent;
+    [M_BEACON_INFO.altName]: MBeaconInfoEventContent;
+
     [key: string]: unknown;
 }
 
@@ -419,6 +433,24 @@ export interface RoomAccountDataEvents extends SecretStorageAccountDataEvents {
     [EventType.Tag]: { tags: { [name: string]: { order?: number } } };
     [EventType.SpaceOrder]: { order: string };
     [EventType.MarkedUnread]: { unread: boolean };
+}
+
+/**
+ * Content of the `m.invite_permission_config` global account data event (MSC4155).
+ * Controls whether the user receives invites by default, with optional server/user exceptions.
+ *
+ * **Draft against synapse-rust**: the backing server does not implement MSC4155
+ * invite filtering — it borrows the `msc4155` namespace for its thread
+ * subscription endpoints — so writing this event has no server-side effect.
+ * See `docs/MSC_SEMANTICS.md`.
+ */
+export interface InvitePermissionConfigContent {
+    /** "allow" = receive invites by default; "block" = reject invites by default. */
+    default_action?: "allow" | "block";
+    /** Per-user overrides that invert `default_action` (MSC4155). */
+    user_exceptions?: { [userId: string]: Record<string, never> };
+    /** Per-server overrides that invert `default_action` (MSC4155). */
+    server_exceptions?: { [serverName: string]: Record<string, never> };
 }
 
 /**
@@ -440,7 +472,7 @@ export interface AccountDataEvents extends SecretStorageAccountDataEvents {
     [POLICIES_ACCOUNT_EVENT_TYPE.name]: Policies;
     [POLICIES_ACCOUNT_EVENT_TYPE.altName]: Policies;
 
-    [EventType.InvitePermissionConfig]: { default_action?: string };
+    [EventType.InvitePermissionConfig]: InvitePermissionConfigContent;
 
     // Allow custom account data event types
     [key: string]: unknown;

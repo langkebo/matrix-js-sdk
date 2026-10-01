@@ -59,8 +59,6 @@ const MODULE_DEFS = [
     { option: "includeAuth", module: "auth" },
     { option: "includeCapabilities", module: "capabilities" },
     { option: "includeCryptoKeys", module: "crypto-keys" },
-    { option: "includeKeyVerification", module: "key-verification" },
-    { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
@@ -98,11 +96,8 @@ const MODULE_DEFS = [
     { option: "includeFeatureFlag", module: "feature-flags" },
     { option: "includeEventReport", module: "event-report" },
     { option: "includeBurnAfterRead", module: "burn-after-read" },
-    { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body", standalone: false },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw", path: "open-claw/index.js" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml", standalone: false },
     { option: "includeCas", module: "cas" },
@@ -129,6 +124,9 @@ const MODULE_DEFS = [
     { option: "includeServerTime", module: "server-time" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
+    { option: "includeReactions", module: "reactions" },
+    { option: "includeBeacon", module: "beacon" },
+    { option: "includeAppService", module: "app-service" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────

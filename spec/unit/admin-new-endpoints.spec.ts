@@ -1152,4 +1152,47 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(result).toHaveProperty("disabled");
         });
     });
+
+    // --------- getUserMedia / deleteUserMedia ---------
+    describe("getUserMedia", () => {
+        it("GETs /v1/users/{user_id}/media", async () => {
+            req.mockResolvedValue({ media: [], next_token: undefined });
+            const result = await manager.media.getUserMedia("@alice:example.org");
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe("/users/%40alice%3Aexample.org/media");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
+            expect(result.media).toEqual([]);
+        });
+
+        it("passes limit/from as query params", async () => {
+            req.mockResolvedValue({ media: [], next_token: "token123" });
+            await manager.media.getUserMedia("@alice:example.org", { limit: 50, from: "token123" });
+            expect(req.mock.calls[0][2]).toEqual({ limit: "50", from: "token123" });
+        });
+
+        it("rejects empty userId", async () => {
+            await expect(manager.media.getUserMedia("")).rejects.toThrow(ValidationError);
+        });
+    });
+
+    describe("deleteUserMedia", () => {
+        it("DELETes /v1/users/{user_id}/media and returns deleted count", async () => {
+            req.mockResolvedValue({ deleted: 42 });
+            const result = await manager.media.deleteUserMedia("@bob:example.org");
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe("/users/%40bob%3Aexample.org/media");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
+            expect(result.deleted).toBe(42);
+        });
+
+        it("defaults deleted to 0 when missing", async () => {
+            req.mockResolvedValue({});
+            const result = await manager.media.deleteUserMedia("@charlie:example.org");
+            expect(result.deleted).toBe(0);
+        });
+
+        it("rejects empty userId", async () => {
+            await expect(manager.media.deleteUserMedia("")).rejects.toThrow(ValidationError);
+        });
+    });
 });

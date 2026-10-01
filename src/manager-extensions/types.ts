@@ -21,8 +21,6 @@ export interface ManagerExtensionsOptions {
     includeAuth?: boolean;
     includeCapabilities?: boolean;
     includeCryptoKeys?: boolean;
-    includeKeyVerification?: boolean;
-    includeDeviceTrust?: boolean;
     includeDiscovery?: boolean;
     includeDm?: boolean;
     includeGuest?: boolean;
@@ -60,15 +58,13 @@ export interface ManagerExtensionsOptions {
     includeFeatureFlag?: boolean;
     includeEventReport?: boolean;
     includeBurnAfterRead?: boolean;
-    includeVerification?: boolean;
     includeE2EE?: boolean;
     includeWorkerBody?: boolean;
-    includeAiConnection?: boolean;
-    includeOpenClaw?: boolean;
     includeVoice?: boolean;
     includeSamlAuth?: boolean;
     includeCas?: boolean;
     includeExternalService?: boolean;
+    includeAppService?: boolean;
     includeDehydratedDevice?: boolean;
     includeDelayedEvents?: boolean;
     includeThread?: boolean;
@@ -91,6 +87,8 @@ export interface ManagerExtensionsOptions {
     includeServerTime?: boolean;
     includeBackgroundUpdate?: boolean;
     includeUserDirectory?: boolean;
+    includeReactions?: boolean;
+    includeBeacon?: boolean;
     includeManagerAccessor?: boolean;
     includeAll?: boolean;
 }

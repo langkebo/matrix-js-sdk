@@ -38,7 +38,12 @@ import { DMEvent, type DirectMessageManagerEventMap } from "./events";
 import { DmRoomListManager } from "./sub-managers/dm-room-list-manager";
 import { DmRoomCreationManager } from "./sub-managers/dm-room-creation-manager";
 import { DmRoomOperationManager } from "./sub-managers/dm-room-operation-manager";
-import type { DmRoomInfo, IDirectRoomsMap, DmPartnerResponse } from "./sub-managers/dm-room-list-types";
+import type {
+    DmRoomInfo,
+    IDirectRoomsMap,
+    DmPartnerResponse,
+    DmRoomCheckResponse,
+} from "./sub-managers/dm-room-list-types";
 import type {
     CreateDmOptions,
     CreateDmRoomResponse,
@@ -121,26 +126,41 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
 
     // ===== 顶层协调方法 =====
 
+    // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
+    private startPromise: Promise<void> | null = null;
+
     /** 初始化 DM 管理器 */
     async start(): Promise<void> {
         if (this.isInitialized) return;
-        try {
-            const dmMap = await this.list.getDirectRoomsByUser();
-            for (const [userId, roomIds] of Object.entries(dmMap)) {
-                if (roomIds.length > 0) {
-                    this.list.userDmMapCache.set(userId, roomIds[0]);
-                }
-            }
-            this.isInitialized = true;
-        } catch (e) {
-            logger.warn("DirectMessageManager.start failed:", e);
+        if (this.startPromise) {
+            return this.startPromise;
         }
+        this.startPromise = (async () => {
+            try {
+                const dmMap = await this.list.getDirectRoomsByUser();
+                for (const [userId, roomIds] of Object.entries(dmMap)) {
+                    if (roomIds.length > 0) {
+                        this.list.userDmMapCache.set(userId, roomIds[0]);
+                    }
+                }
+                this.isInitialized = true;
+            } catch (e) {
+                logger.warn("DirectMessageManager.start failed:", e);
+                // 本轮初始化失败：清空 promise 让下次重试；成功路径由 isInitialized 持续守卫。
+                this.startPromise = null;
+            }
+        })();
+        return this.startPromise;
     }
 
     /** 停止 DM 管理器 */
     stop(): void {
         this.list.clearCache();
         this.isInitialized = false;
+        // 必须同时清空 startPromise：start() 的第二个守卫是 `if (this.startPromise) return this.startPromise`，
+        // 只重置 isInitialized 的话，stop() 之后的 start() 会直接返回上一次已 resolve 的 promise，
+        // 永远不会重新拉取 m.direct —— 表现为「stop 后重启无效」，且不报错、很难定位。
+        this.startPromise = null;
         // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
         this.list.removeAllListeners();
         this.creation.removeAllListeners();
@@ -250,6 +270,18 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     /** @deprecated 使用 `dmManager.list.getDmPartnerFromServer()` 替代 */
     async getDmPartnerFromServer(roomId: string, throwOnError = true): Promise<DmPartnerResponse | null> {
         return this.list.getDmPartnerFromServer(roomId, throwOnError);
+    }
+
+    // ===== 服务端 DM REST API（synapse-rust 自定义端点，供前端迁移裸调） =====
+
+    /** 获取房间 DM 原始信息（GET /_matrix/client/v3/rooms/{room_id}/dm）。 */
+    async getRoomDm(roomId: string): Promise<DmRoomCheckResponse> {
+        return this.list.getRoomDm(roomId);
+    }
+
+    /** 设置房间为 DM 关系（PUT /_matrix/client/v3/direct/{room_id}）。 */
+    async setDirect(roomId: string): Promise<void> {
+        return this.list.setDirect(roomId);
     }
 
     /** @deprecated 使用 `dmManager.operation.leaveDm()` 替代 */

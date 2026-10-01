@@ -23,7 +23,6 @@ limitations under the License.
 import type { MatrixClient } from "./client";
 import type { Room } from "./models/room";
 import type { MatrixEvent } from "./models/event";
-import type { CryptoBackend } from "./common-crypto/CryptoBackend";
 import { EventType } from "./@types/event";
 import { EventStatus } from "./models/event-status";
 
@@ -47,12 +46,6 @@ export interface EncryptionUtils {
         eventType?: EventType | string | null,
     ): EventType | string | null | undefined;
     updatePendingEventStatus(room: Room | null, event: MatrixEvent, newStatus: EventStatus): void;
-}
-
-interface ClientInternals {
-    cryptoBackend?: CryptoBackend;
-    usingExternalCrypto: boolean;
-    enableEncryptedStateEvents?: boolean;
 }
 
 export function createEncryptionUtils(client: MatrixClient): EncryptionUtils {

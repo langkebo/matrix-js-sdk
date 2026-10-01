@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `background_update`.
+ * DTO snippets extracted from the contract doc for `background-update`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

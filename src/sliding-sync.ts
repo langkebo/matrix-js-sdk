@@ -34,26 +34,23 @@ export const MSC3575_STATE_KEY_LAZY = "$LAZY";
 /**
  * 检测是否为 abort 类错误（包括被 BaseManager.normalizeError 包装成 ApiError 的情况）。
  *
- * 浏览器中止 fetch 时可能抛出：
- * - `DOMException` (name="AbortError") — 标准 AbortController.abort()
- * - `TypeError: fetch failed` / `Failed to fetch` — Tauri nativeFetch 或浏览器网络层
- * 这些错误经 BaseManager 包装后变成 `ApiError: RoomManager.POST /sync failed: fetch failed: ...`，
- * 原始 AbortError 被保存在 `error.cause` 中。
+ * 主动中止（resend()/stop()）已由 `needsResend` 与 `terminated` 两个 flag 在
+ * start() 循环内覆盖，本函数只负责识别「非主动 flag 触发的」标准 AbortError
+ * （如外部 AbortController、页面切换）。因此**不再**把 `fetch failed` /
+ * `Failed to fetch` 归为 abort——那是网络层失败（断网/DNS/连接重置），应落入
+ * generic 指数退避，否则断网时请求立刻失败 → 被误判为主动中止 → 无退避忙循环。
+ *
+ * 浏览器中止 fetch 时抛出 `DOMException` (name="AbortError")；这些错误经
+ * BaseManager 包装后原始 AbortError 被保存在 `error.cause` 中。
  */
 function isAbortLikeError(err: unknown): boolean {
     if (!err || typeof err !== "object") return false;
     const error = err as { name?: string; message?: string; cause?: unknown };
     // 1. 直接的 AbortError
     if (error.name === "AbortError") return true;
-    // 2. 错误消息包含 abort/fetch failed/Failed to fetch 等特征
+    // 2. 主动中止的明确信号（不含网络层失败 fetch failed / Failed to fetch）
     const msg = error.message ?? "";
-    if (
-        msg.includes("aborted") ||
-        msg.includes("fetch failed") ||
-        msg.includes("Failed to fetch") ||
-        msg.includes("ERR_ABORTED") ||
-        msg.includes("The user aborted a request")
-    ) {
+    if (msg.includes("aborted") || msg.includes("ERR_ABORTED") || msg.includes("The user aborted a request")) {
         return true;
     }
     // 3. 递归检查 cause 链（BaseManager 包装后原始错误在 cause 中）
@@ -650,10 +647,26 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
         // Initialize from persisted pos (if set via setInitialPos) for incremental sync.
         // If the server rejects this pos (400), the resetup logic below will clear it.
         let currentPos: string | undefined = this.initialPos;
+        // MSC4186: txn_id idempotency. The server caches the response under
+        // (user, device, txn_id) and replays it on retry. To benefit from this,
+        // we reuse the same txn_id when retrying a request for the same pos
+        // (e.g. after a network error) and rotate to a new txn_id once a
+        // successful response advances the pos.
+        let currentTxnId: string | undefined;
+        let lastRequestedPos: string | undefined;
+        let hasRequestedOnce = false;
         while (!this.terminated) {
             this.needsResend = false;
             let resp: MSC3575SlidingSyncResponse | undefined;
             try {
+                // Rotate txn_id only when starting a genuinely new request —
+                // i.e. the pos changed since the last attempt, or this is the
+                // very first attempt. A retry for the same pos reuses the id.
+                if (!hasRequestedOnce || currentPos !== lastRequestedPos) {
+                    currentTxnId = this.client.makeTxnId();
+                    lastRequestedPos = currentPos;
+                    hasRequestedOnce = true;
+                }
                 const reqLists: Record<string, MSC3575List> = {};
                 this.lists.forEach((l: SlidingList, key: string) => {
                     reqLists[key] = l.getList(true);
@@ -661,6 +674,7 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 const reqBody: MSC3575SlidingSyncRequest = {
                     lists: reqLists,
                     pos: currentPos,
+                    txn_id: currentTxnId,
                     timeout: this.timeoutMS,
                     clientTimeout: this.timeoutMS + BUFFER_PERIOD_MS,
                     extensions: await this.getExtensionRequest(currentPos === undefined),
@@ -683,6 +697,13 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                         }
                         reqBody.room_subscriptions[roomId] = sub;
                     }
+                }
+                // resend() 可能在 getExtensionRequest 的 await 期间被调用：此时
+                // abortController 已被替换、needsResend 已置位。若仍用旧列表发出请求，
+                // 会丢一轮列表/订阅变更。这里发请求前二次检查，命中则跳过本轮重来。
+                if (this.needsResend) {
+                    logger.debug("[SlidingSync] resend requested during request construction, restarting loop");
+                    continue;
                 }
                 this.pendingReq = this.client.slidingSync(reqBody, this.proxyBaseUrl, this.abortController.signal);
                 resp = await this.pendingReq;
@@ -736,13 +757,18 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
                 if ((<HTTPError>err).httpStatus) {
                     this.invokeLifecycleListeners(SlidingSyncState.RequestFinished, null, <Error>err);
                     if ((<HTTPError>err).httpStatus === 400) {
-                        // Known limitation: session-expiry handling is inferred from status only; no dedicated errcode yet.
-                        // so drop state and re-request
-                        this.resetup();
-                        currentPos = undefined;
-                        this.initialPos = undefined; // Clear persisted pos so stop+start doesn't reuse it
-                        await sleep(50); // in case the 400 was for something else; don't tightloop
-                        continue;
+                        // MSC4186: 仅当 errcode 为 M_UNKNOWN_POS（pos 过期/非法）时才
+                        // resetup 并清 pos；其他 400（如 list 定义非法）落到 generic
+                        // 退避，避免把无关错误误判为 pos 过期而反复 resetup 空转。
+                        const errcode = (err as { errcode?: string }).errcode;
+                        if (errcode === "M_UNKNOWN_POS") {
+                            this.resetup();
+                            currentPos = undefined;
+                            this.initialPos = undefined; // Clear persisted pos so stop+start doesn't reuse it
+                            await sleep(50); // don't tightloop on an expired pos
+                            continue;
+                        }
+                        // fallthrough to generic error handling
                     } else if ((<HTTPError>err).httpStatus === 429) {
                         // Rate limited: use server's retry_after_ms if available, with exponential backoff
                         const backoffMs = safeGetRetryAfterMs(err, 5000);
@@ -767,14 +793,25 @@ export class SlidingSync extends TypedEventEmitter<SlidingSyncEvent, SlidingSync
             if (!resp) {
                 continue;
             }
-            await this.onPreExtensionsResponse(resp.extensions);
 
-            for (const roomId in resp.rooms) {
-                await this.invokeRoomDataListeners(roomId, resp!.rooms[roomId]);
+            // 响应处理段：逐阶段/逐房间隔离异常，避免单个房间监听器或扩展 onResponse
+            // 抛错穿透 start() 的 while 循环导致同步永久终止。
+            try {
+                await this.onPreExtensionsResponse(resp.extensions);
+
+                for (const roomId in resp.rooms) {
+                    try {
+                        await this.invokeRoomDataListeners(roomId, resp.rooms[roomId]);
+                    } catch (err) {
+                        logger.error(`[SlidingSync] error processing room data for ${roomId}`, err);
+                    }
+                }
+
+                this.invokeLifecycleListeners(SlidingSyncState.Complete, resp);
+                await this.onPostExtensionsResponse(resp.extensions);
+            } catch (err) {
+                logger.error("[SlidingSync] error processing sync response (extensions/lifecycle)", err);
             }
-
-            this.invokeLifecycleListeners(SlidingSyncState.Complete, resp);
-            await this.onPostExtensionsResponse(resp.extensions);
         }
     }
 }

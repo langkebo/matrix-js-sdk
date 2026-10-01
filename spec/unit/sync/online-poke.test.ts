@@ -72,7 +72,10 @@ describe("SyncApi online event poke keep-alive (ISSUE-10a regression)", () => {
         const syncApi = new SyncApi(client, undefined, createSyncApiOptions());
 
         // Stub doSync so sync() resolves cleanly right after the listener is wired up.
-        vi.spyOn(syncApi as never, "doSync").mockResolvedValue(undefined);
+        // doSync is private, so we cast to any to spy on it.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
+        const doSyncSpy = vi.spyOn(syncApi as any, "doSync");
+        doSyncSpy.mockResolvedValue(undefined);
 
         await syncApi.sync();
 
@@ -87,7 +90,9 @@ describe("SyncApi online event poke keep-alive (ISSUE-10a regression)", () => {
     it("the registered 'online' listener triggers startKeepAlives(0) for immediate reconnection", async () => {
         const client = createMinimalClient();
         const syncApi = new SyncApi(client, undefined, createSyncApiOptions());
-        vi.spyOn(syncApi as never, "doSync").mockResolvedValue(undefined);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
+        const doSyncSpy = vi.spyOn(syncApi as any, "doSync");
+        doSyncSpy.mockResolvedValue(undefined);
 
         await syncApi.sync();
 
@@ -96,9 +101,9 @@ describe("SyncApi online event poke keep-alive (ISSUE-10a regression)", () => {
 
         // Spy on the private startKeepAlives so we can assert the poke happens
         // with no delay, without performing a real HTTP /versions request.
-        const startKeepAlivesSpy = vi
-            .spyOn(syncApi as never, "startKeepAlives")
-            .mockResolvedValue(true);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
+        const startKeepAlivesSpy = vi.spyOn(syncApi as any, "startKeepAlives");
+        startKeepAlivesSpy.mockResolvedValue(true);
 
         // Replay the browser-fired "online" event using the exact handler SyncApi registered.
         capturedOnlineListener!();
@@ -111,7 +116,9 @@ describe("SyncApi online event poke keep-alive (ISSUE-10a regression)", () => {
     it("stop() removes the same 'online' event listener that sync() registered", async () => {
         const client = createMinimalClient();
         const syncApi = new SyncApi(client, undefined, createSyncApiOptions());
-        vi.spyOn(syncApi as never, "doSync").mockResolvedValue(undefined);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
+        const doSyncSpy = vi.spyOn(syncApi as any, "doSync");
+        doSyncSpy.mockResolvedValue(undefined);
 
         await syncApi.sync();
         const registeredListener = capturedOnlineListener;

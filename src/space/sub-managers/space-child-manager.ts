@@ -29,11 +29,13 @@ import { SpaceEvent, type SpaceManagerEventMap } from "../events";
 import type { AddChildOptions, Space, SpaceChild, SpaceListResponse, SpaceQueryOptions } from "../types";
 import { asBoolean, asNumber, asString, asStringArray, extractSpaces, sp, spacePath } from "../utils";
 import type { SpaceManager } from "../index";
+import { CacheManagerFactory } from "../../managers/cache-manager";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
 
 export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> {
     private parent: SpaceManager | null = null;
+    private childrenCache = CacheManagerFactory.createSpaceCache();
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
@@ -48,14 +50,23 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
 
     async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
         try {
-            const response = await this.withRetry(async () => {
-                return await this.doRequest<JsonObject | SpaceChild[]>(
-                    Method.Get,
-                    spacePath("/spaces/$spaceId/children", spaceId),
-                    options,
-                );
-            }, "getSpaceChildren");
-            return this.extractChildren(response, spaceId);
+            // 使用 getOrFetch 自动处理缓存
+            const children = await this.childrenCache.getOrFetch(
+                `children:${spaceId}`,
+                async () => {
+                    const response = await this.withRetry(async () => {
+                        return await this.doRequest<JsonObject | SpaceChild[]>(
+                            Method.Get,
+                            spacePath("/spaces/$spaceId/children", spaceId),
+                            options,
+                        );
+                    }, "getSpaceChildren");
+                    
+                    return this.extractChildren(response, spaceId);
+                }
+            );
+            
+            return children;
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceChildren"));
             throw error;
@@ -106,7 +117,9 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                     suggested: options.suggested,
                 });
             }, "addChild");
-            this.parent!.query.clearCache();
+            
+            // 使用统一的缓存无效化策略
+            this.childrenCache.invalidate(["*", `children:${spaceId}`]);
             this.emit(SpaceEvent.ChildAdded, spaceId, options.room_id);
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "addChild"));
@@ -122,7 +135,9 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                     sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),
                 );
             }, "removeChild");
-            this.parent!.query.clearCache();
+            
+            // 使用统一的缓存无效化策略
+            this.childrenCache.invalidate(["*", `children:${spaceId}`]);
             this.emit(SpaceEvent.ChildRemoved, spaceId, roomId);
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "removeChild"));

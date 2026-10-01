@@ -80,6 +80,23 @@ export interface MediaThumbnailUrlOptions {
     timestamp?: number; // m-30: timestamp for signature verification
 }
 
+export interface UploadProviderInfo {
+    provider: string;
+    supports_chunked_upload: boolean;
+    supports_resume: boolean;
+    max_file_size: number;
+    chunk_size: number;
+}
+
+export interface UploadTokenResponse {
+    upload_token: string;
+    storage_type: string;
+    upload_url: string;
+    filename: string;
+    content_type: string;
+    max_file_size: number;
+}
+
 export interface MediaQuotaCheckResponse {
     limit: number;
     used: number;
@@ -194,6 +211,42 @@ export class MediaManager extends BaseManager {
                 prefix: useAuthenticatedMedia ? ClientPrefix.V1 : MediaPrefix.V3,
             });
         }, "getMediaConfig");
+    }
+
+    /**
+     * Get the upload provider configuration for the homeserver.
+     * GET /_matrix/client/v3/upload/provider
+     *
+     * Returns information about the server's media upload capabilities,
+     * including supported upload modes and size limits.
+     */
+    public getUploadProvider(): Promise<UploadProviderInfo> {
+        return this.withRetry(async () => {
+            return await this.request<UploadProviderInfo>({
+                method: Method.Get,
+                path: "/upload/provider",
+                prefix: ClientPrefix.V3,
+            });
+        }, "getUploadProvider");
+    }
+
+    /**
+     * Request an upload token from the homeserver.
+     * POST /_matrix/client/v3/upload/token
+     *
+     * @param filename - The name of the file to upload.
+     * @param contentType - The MIME type of the file.
+     * @returns Upload token and related metadata for the upload session.
+     */
+    public getUploadToken(filename: string, contentType: string): Promise<UploadTokenResponse> {
+        return this.withRetry(async () => {
+            return await this.request<UploadTokenResponse>({
+                method: Method.Post,
+                path: "/upload/token",
+                body: { filename, content_type: contentType },
+                prefix: ClientPrefix.V3,
+            });
+        }, "getUploadToken");
     }
 
     /**

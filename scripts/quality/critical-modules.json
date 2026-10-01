@@ -1,0 +1,16 @@
+{
+    "note": "Single source of truth for the 'critical module' coverage set. Consumed by scripts/quality/check-critical-coverage.mjs (CI gate) and scripts/quality-report.mjs (reporting) so the two can no longer disagree — before 2026-09-13 they listed 5 and 8 modules respectively. `floorPercent` is a ratchet minimum measured from a real coverage run; raise it when coverage improves, and never lower it without explaining why in the commit message. `targetPercent` is the aspiration for every module.",
+    "measuredAt": "2026-10-01",
+    "measuredBy": "targeted per-module runs (`vitest run <该模块的 spec> --coverage --coverage.include='src/<模块>/**'`)，避免全仓跑触发限流。数字是各模块自身 spec 的定向覆盖率，可能低于全仓覆盖率（跨模块 import 会顺带覆盖）。",
+    "targetPercent": 90,
+    "modules": [
+        { "path": "src/admin/index.ts", "floorPercent": 70 },
+        { "path": "src/auth/index.ts", "floorPercent": 87 },
+        { "path": "src/dm/index.ts", "floorPercent": 95 },
+        { "path": "src/event/EventManager.ts", "floorPercent": 99 },
+        { "path": "src/push/index.ts", "floorPercent": 89 },
+        { "path": "src/room/RoomManager.ts", "floorPercent": 92 },
+        { "path": "src/room-summary/index.ts", "floorPercent": 81 },
+        { "path": "src/space/index.ts", "floorPercent": 77 }
+    ]
+}

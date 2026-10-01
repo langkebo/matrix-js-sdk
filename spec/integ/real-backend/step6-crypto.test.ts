@@ -1,7 +1,7 @@
 /**
  * Step 6: 加密模块测试
  *
- * 测试模块: crypto, crypto-encryption, crypto-keys, crypto-store, crypto-backup, key-backup-management, key-verification, cross-signing, secret-storage, device-keys
+ * 测试模块: crypto, crypto-encryption, crypto-keys, crypto-store, crypto-backup, key-backup-management, cross-signing, secret-storage, device-keys
  *
  * 运行: pnpm run test:real-backend:tsx -- spec/integ/real-backend/step6-crypto.test.ts
  */

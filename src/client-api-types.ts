@@ -235,119 +235,6 @@ export interface IRoomKeyRequestsResponse {
     requests: IRoomKeyRequest[];
 }
 
-export interface IDeviceSigningVerificationStartRequest {
-    from_device: string;
-    to_user: string;
-    to_device?: string;
-    transaction_id?: string;
-    method?: string;
-}
-
-export interface IDeviceSigningVerificationStartResponse {
-    transaction_id: string;
-    method: string;
-    key_agreement_protocol: string[];
-    hash: string[];
-    short_authentication_string: string[];
-}
-
-export interface IDeviceSigningVerificationAcceptRequest {
-    transaction_id: string;
-    key_agreement_protocol: string;
-    hash: string;
-    commitment?: string;
-}
-
-export interface IDeviceSigningVerificationAcceptResponse {
-    transaction_id: string;
-    method: string;
-    key_agreement_protocol: string[];
-    hash: string[];
-    short_authentication_string: string[];
-    commitment?: string;
-}
-
-export interface IDeviceSigningVerificationKeyAgreementRequest {
-    transaction_id: string;
-    pubkey: string;
-}
-
-export interface IDeviceSigningVerificationKeyAgreementResponse {
-    transaction_id: string;
-    confirmed: boolean;
-    short_authentication_string?: Record<string, unknown>; // Dynamic: SAS verification methods vary
-}
-
-export interface IDeviceSigningVerificationMacRequest {
-    transaction_id: string;
-    mac: string;
-}
-
-export interface IDeviceSigningVerificationMacResponse {
-    transaction_id: string;
-    verified: boolean;
-}
-
-export interface IDeviceSigningVerificationDoneRequest {
-    transaction_id: string;
-}
-
-export interface IDeviceSigningVerificationDoneResponse {
-    transaction_id: string;
-}
-
-export interface IDeviceSigningVerificationCancelRequest {
-    transaction_id: string;
-    code: string;
-    reason: string;
-}
-
-export interface IDeviceSigningVerificationCancelResponse {
-    transaction_id: string;
-    state: "cancelled";
-    code: string;
-    reason: string;
-}
-
-export interface IVerificationRequestInfo {
-    transaction_id: string;
-    from_user: string;
-    from_device: string;
-    to_user: string;
-    to_device?: string | null;
-    method: "sas" | "qr" | "emoji" | "decimal";
-    state: "requested" | "ready" | "pending" | "done" | "cancelled";
-    created_ts: number;
-    updated_ts: number;
-}
-
-export interface IVerificationRequestsResponse {
-    requests: IVerificationRequestInfo[];
-}
-
-export interface IShowQrCodeResponse {
-    transaction_id: string;
-    server_name: string;
-    user_id: string;
-    device_id: string;
-    device_ed25519_key: string;
-    device_curve25519_key: string;
-}
-
-export interface IScanQrCodeRequest {
-    transaction_id: string;
-    server_name: string;
-    user_id: string;
-    device_id: string;
-    device_ed25519_key: string;
-    device_curve25519_key: string;
-}
-
-export interface IScanQrCodeResponse {
-    transaction_id: string;
-    state: string;
-}
-
 export interface ISecureBackupInfo {
     backup_id: string;
     version: string;
@@ -439,10 +326,15 @@ export interface IServerVersions {
     unstable_features: Record<string, boolean>;
 }
 
+export interface ITileServerWellKnown {
+    map_style_url?: string;
+}
+
 export interface IClientWellKnown {
     [key: string]: unknown;
     "m.homeserver"?: IWellKnownConfig;
     "m.identity_server"?: IWellKnownConfig;
+    "m.tile_server"?: ITileServerWellKnown;
 }
 
 export interface IWellKnownConfig<T = IClientWellKnown> {

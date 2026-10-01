@@ -1,8 +1,8 @@
 ---
 module: key_backup
 generated_from: docs/api-contract/generated/modules/key_backup.json
-generated_hash: sha256-dabf89c9f756c8af2de209d2d85137c1bfb668dc7b4d1c07817111159d1a97ad
-ledger_schema: 1
+generated_hash: sha256-c1a5482df68834778972e5aee439c38ad667a4ec7a0ac7c9e6317bde4f656c17
+ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
@@ -18,7 +18,7 @@ last_reviewed: 2026-05-11
 - 后端 `/_matrix/client/{v1,r0,v3}/room_keys/keys*` 现在完整提供 `GET / PUT / DELETE` 三组读写删除路由；SDK 本轮已补齐原先缺失的房间级 `PUT` 与三组 `DELETE` wrapper。
 - `getRoomKeys()` 的真实响应是 `{ sessions: ... }`，不是旧文档里暗示的 `{ rooms: ... }`。
 - `getSessionKey()` 的真实响应是单个 `session_data` payload，本轮已把 SDK 返回类型从恢复接口包裹对象修正为原始 session payload。
-- `POST /room_keys/version` 后端要求 UIA `auth`；SDK `createBackupVersion()` 现已补充可选 `auth` 参数透传。
+- `POST /room_keys/version` 后端仅读 `algorithm` + `auth_data`（`key_backup.rs` `create_backup` 不处理 UIA `auth`）；SDK `createBackupVersion()` 不暴露 `auth` 参数（ISSUE-6.3：口令/令牌不应上送服务端，客户端派生密钥）。
 
 ## 路由分组
 
@@ -65,17 +65,12 @@ last_reviewed: 2026-05-11
 }
 ```
 
-- `createBackupVersion(algorithm, authData?, auth?)` 现在支持透传 UIA:
+- `createBackupVersion(algorithm, authData?)` 请求体仅含 `algorithm` + `auth_data`（客户端派生 curve25519 公钥后上传，口令/私钥永不上送服务端）:
 
 ```json
 {
     "algorithm": "m.megolm_backup.v1.curve25519-aes-sha2",
-    "auth_data": { "public_key": "..." },
-    "auth": {
-        "type": "m.login.password",
-        "session": "uia-session",
-        "password": "secret"
-    }
+    "auth_data": { "public_key": "..." }
 }
 ```
 
@@ -136,18 +131,17 @@ last_reviewed: 2026-05-11
 
 ## 错误语义
 
-| 场景                                  | 后端行为                 | SDK 表现                                                   |
-| ------------------------------------- | ------------------------ | ---------------------------------------------------------- |
-| `POST /room_keys/version` 缺少 `auth` | `401` + `M_UIA_REQUIRED` | `createBackupVersion()` 抛标准化错误，调用方可重试并补 UIA |
-| `auth_data` 缺少 `public_key`         | `400 Bad Request`        | `createBackupVersion()` 抛标准化错误                       |
-| 备份版本不存在                        | `404 Not Found`          | 相关 `get* / put* / delete* / recover*` 方法抛标准化错误   |
-| 会话不存在                            | `404 Not Found`          | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误     |
+| 场景                          | 后端行为          | SDK 表现                                                 |
+| ----------------------------- | ----------------- | -------------------------------------------------------- |
+| `auth_data` 缺少 `public_key` | `400 Bad Request` | `createBackupVersion()` 抛标准化错误                     |
+| 备份版本不存在                | `404 Not Found`   | 相关 `get* / put* / delete* / recover*` 方法抛标准化错误 |
+| 会话不存在                    | `404 Not Found`   | `getSessionKey()` / `recoverSessionKey()` 抛标准化错误   |
 
 ## 人工 Review 对齐
 
 - `spec/unit/key-backup.spec.ts` 已补:
     - 版本读取 `count` / `etag`
-    - `createBackupVersion()` 的 UIA `auth` 透传
+    - `createBackupVersion()`（`algorithm` + `auth_data`，无 `auth`）
     - `putRoomKeys()`
     - `deleteAllRoomKeys()` / `deleteRoomKeys()` / `deleteSessionKey()`
     - `getSessionKey()` 的真实返回结构
@@ -171,21 +165,28 @@ export interface EncryptedData {
     ciphertext: string;
     ephemeral: string;
     mac: string;
+    /**
+     * 算法/实现可扩展：不同备份算法会带自己的字段，客户端必须能透传未知键，
+     * 同时具名键仍是真实类型（`ciphertext: string`），不因并集退化成 `unknown`。
+     */
+    [key: string]: unknown;
 }
 export interface AuthData {
     public_key: string;
     signatures?: Record<string, Record<string, string>>;
+    /** 同上：`auth_data` 的形状由备份算法决定，未知键必须能通过。 */
+    [key: string]: unknown;
 }
 export interface SessionData {
     first_message_index: number;
     forwarded_count: number;
     is_verified: boolean;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData;
 }
 export interface BackupVersionInfo {
     version: string;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData;
     count?: number;
     etag?: string;
 }
@@ -214,7 +215,7 @@ export interface BatchRecoverResult {
 export interface ExportedRoomKey {
     room_id: string;
     session_id: string;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData;
     first_message_index: number;
     forwarded_count: number;
     is_verified: boolean;
@@ -231,7 +232,7 @@ export interface ImportResult {
 export interface VerifyResult {
     valid: boolean;
     algorithm: string;
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData;
     key_count: number;
     signatures?: Record<string, Record<string, string>>;
 }
@@ -241,21 +242,12 @@ export interface PutRoomKeysBody {
 export interface PutRoomSessionsBody {
     sessions: Record<string, SessionData>;
 }
-export interface KeyBackupAuthData {
-    type: string;
-    session?: string;
-    password?: string;
-    token?: string;
-    user?: string;
-    [key: string]: unknown;
-}
 export interface CreateBackupVersionRequest {
     algorithm: string;
-    auth_data?: AuthData | Record<string, unknown>;
-    auth?: KeyBackupAuthData;
+    auth_data?: AuthData;
 }
 export interface UpdateBackupVersionRequest {
-    auth_data: AuthData | Record<string, unknown>;
+    auth_data: AuthData;
 }
 export interface RecoverKeysRequest {
     version: string;
@@ -293,6 +285,6 @@ export interface RecoverRoomKeysResult {
 export interface RecoverSessionKeyResult {
     room_id: string;
     session_id: string;
-    session_data: EncryptedData | Record<string, unknown>;
+    session_data: EncryptedData;
 }
 ```

@@ -44,9 +44,18 @@ describe("AIModule", () => {
     });
 
     describe("setEndpoint", () => {
-        it("should set custom endpoint", () => {
-            module.setEndpoint("http://custom.endpoint:8080/mcp");
-            expect(module.getEndpoint()).toBe("http://custom.endpoint:8080/mcp");
+        it("should set a secure (https) custom endpoint", () => {
+            module.setEndpoint("https://custom.endpoint:8080/mcp");
+            expect(module.getEndpoint()).toBe("https://custom.endpoint:8080/mcp");
+        });
+
+        it("should allow localhost http endpoints (local MCP server)", () => {
+            module.setEndpoint("http://127.0.0.1:4000/mcp");
+            expect(module.getEndpoint()).toBe("http://127.0.0.1:4000/mcp");
+        });
+
+        it("should reject non-https, non-localhost endpoints (data-leak guard)", () => {
+            expect(() => module.setEndpoint("http://custom.endpoint:8080/mcp")).toThrow();
         });
     });
 
@@ -316,9 +325,9 @@ describe("getAIModule", () => {
 
 describe("createAIModule", () => {
     it("should create new instance with custom endpoint", () => {
-        const instance = createAIModule("http://custom:8080/mcp");
+        const instance = createAIModule("https://custom:8080/mcp");
 
-        expect(instance.getEndpoint()).toBe("http://custom:8080/mcp");
+        expect(instance.getEndpoint()).toBe("https://custom:8080/mcp");
     });
 
     it("should create instance without endpoint", () => {

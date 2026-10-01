@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { ApplicationServiceManager, AppServiceEvent } from "../../src/app-service/index";
 import { Method } from "../../src/http-api/method";
+import { AdminPrefix } from "../../src/http-api/prefix";
 import { ValidationError } from "../../src/errors";
 
 describe("ApplicationServiceManager", () => {
@@ -41,7 +42,7 @@ describe("ApplicationServiceManager", () => {
 
             expect(result.as_id).toBe("my-bridge");
             expect(result.sender).toBe("@bridge_bot:example.com");
-            transport.expectCalledWith(Method.Post, "/application_services");
+            transport.expectCalledWith(Method.Post, "/appservices");
         });
 
         it("should reject registration with missing required fields", async () => {
@@ -120,7 +121,7 @@ describe("ApplicationServiceManager", () => {
 
             expect(result).not.toBeNull();
             expect(result!.as_id).toBe("remote-as");
-            transport.expectCalledWith(Method.Get, "/application_services/remote-as");
+            transport.expectCalledWith(Method.Get, "/appservices/remote-as");
         });
 
         it("should return cached service without HTTP call", async () => {
@@ -171,7 +172,7 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.updateApplicationService("update-me", { url: "https://updated.example.com" });
 
             expect(result.url).toBe("https://updated.example.com");
-            transport.expectCalledWith(Method.Put, "/application_services/update-me");
+            transport.expectCalledWith(Method.Put, "/appservices/update-me");
         });
 
         it("should emit ServiceUpdated event", async () => {
@@ -202,7 +203,7 @@ describe("ApplicationServiceManager", () => {
 
             await manager.unregisterApplicationService("to-delete");
 
-            transport.expectCalledWith(Method.Delete, "/application_services/to-delete");
+            transport.expectCalledWith(Method.Delete, "/appservices/to-delete");
             expect(emitSpy).toHaveBeenCalledWith(AppServiceEvent.ServiceUnregistered, "to-delete");
         });
     });
@@ -238,7 +239,7 @@ describe("ApplicationServiceManager", () => {
             expect(services).toHaveLength(2);
             expect(services[0].as_id).toBe("as1");
             expect(services[1].as_id).toBe("as2");
-            transport.expectCalledWith(Method.Get, "/application_services");
+            transport.expectCalledWith(Method.Get, "/appservices");
         });
     });
 
@@ -278,7 +279,7 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.pingApplicationService("my-bridge");
 
             expect(result.duration).toBeGreaterThanOrEqual(0);
-            transport.expectCalledWith(Method.Post, "/application_services/my-bridge/ping");
+            transport.expectCalledWith(Method.Post, "/appservices/my-bridge/ping");
         });
 
         it("should return duration -1 on error", async () => {
@@ -336,17 +337,20 @@ describe("ApplicationServiceManager", () => {
             const result = await manager.getApplicationServiceState("as1");
 
             expect(result).toEqual(state);
-            transport.expectCalledWith(Method.Get, "/application_services/as1/state");
+            transport.expectCalledWith(Method.Get, "/appservices/as1/state");
         });
 
         it("should set application service state", async () => {
-            expect.assertions(0);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
 
             await manager.setApplicationServiceState("as1", "mykey", "myvalue");
 
-            transport.expectCalledWith(Method.Put, "/application_services/as1/state/mykey");
+            // 后端形状：POST + body `{state_key, state_value}`（`SetStateBody`）。
+            transport.expectCalledWith(Method.Post, "/appservices/as1/state", {
+                state_key: "mykey",
+                state_value: "myvalue",
+            });
         });
 
         it("should list application service users", async () => {
@@ -358,14 +362,47 @@ describe("ApplicationServiceManager", () => {
             expect(users).toEqual(result);
         });
 
+        it("should get global application service statistics", async () => {
+            const stats = { total: 3 };
+            transport.respondWith(stats);
+
+            const result = await manager.getApplicationServiceStatistics();
+
+            expect(result).toEqual(stats);
+            // 后端统计是全局的，路径里没有 `{as_id}`。
+            transport.expectCalledWith(Method.Get, "/appservices/statistics");
+        });
+
         it("should query application service user", async () => {
             const queryResult = { user_id: "@test:example.com", application_service: "as1", exists: true };
             transport.respondWith(queryResult);
 
-            const result = await manager.queryApplicationServiceUser("as1", "@test:example.com");
+            const result = await manager.queryApplicationServiceUser("@test:example.com");
 
             expect(result.exists).toBe(true);
-            transport.expectCalledWith(Method.Get, "/application_services/as1/query/user/%40test%3Aexample.com");
+            transport.expectCalledWithArgs(
+                Method.Get,
+                "/appservices/query/user",
+                { user_id: "@test:example.com" },
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        });
+
+        it("should query application service alias", async () => {
+            const queryResult = { alias: "#room:example.com", application_service: "as1", exists: true };
+            transport.respondWith(queryResult);
+
+            const result = await manager.queryApplicationServiceAlias("#room:example.com");
+
+            expect(result.exists).toBe(true);
+            transport.expectCalledWithArgs(
+                Method.Get,
+                "/appservices/query/alias",
+                { alias: "#room:example.com" },
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
         });
     });
 

@@ -49,8 +49,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeAuth", module: "auth" },
     { option: "includeCapabilities", module: "capabilities" },
     { option: "includeCryptoKeys", module: "crypto-keys" },
-    { option: "includeKeyVerification", module: "key-verification" },
-    { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
@@ -88,17 +86,13 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeFeatureFlag", module: "feature-flags" },
     { option: "includeEventReport", module: "event-report" },
     { option: "includeBurnAfterRead", module: "burn-after-read" },
-    { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body" },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml" },
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },
-    { option: "includeDelayedEvents", module: "delayed-events" },
     { option: "includeThread", module: "thread" },
     { option: "includeWidget", module: "widget" },
 
@@ -119,6 +113,9 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeServerTime", module: "server-time" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
+    { option: "includeReactions", module: "reactions" },
+    { option: "includeBeacon", module: "beacon" },
+    { option: "includeAppService", module: "app-service" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -128,8 +125,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeAuth: true,
     includeCapabilities: true,
     includeCryptoKeys: true,
-    includeKeyVerification: true,
-    includeDeviceTrust: true,
     includeDiscovery: true,
     includeDm: true,
     includeGuest: true,
@@ -167,17 +162,13 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeFeatureFlag: true,
     includeEventReport: true,
     includeBurnAfterRead: true,
-    includeVerification: true,
     includeE2EE: true,
     includeWorkerBody: true,
-    includeAiConnection: true,
-    includeOpenClaw: true,
     includeVoice: true,
     includeSamlAuth: true,
     includeCas: true,
     includeExternalService: true,
     includeDehydratedDevice: true,
-    includeDelayedEvents: true,
     includeThread: true,
     includeWidget: true,
 
@@ -198,6 +189,9 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeServerTime: true,
     includeBackgroundUpdate: true,
     includeUserDirectory: true,
+    includeReactions: true,
+    includeBeacon: true,
+    includeAppService: true,
 };
 
 let isInitialized = false;
@@ -308,18 +302,6 @@ export async function extendMatrixClientWithManagers(
                 );
             }
 
-            if (currentOptions.includeKeyVerification || all) {
-                promises.push(
-                    safeDynamicImport(import("../key-verification/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeDeviceTrust || all) {
-                promises.push(
-                    safeDynamicImport(import("../device-trust/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
             if (currentOptions.includeDiscovery || all) {
                 promises.push(safeDynamicImport(import("../discovery/index.js").then((m) => m?.extendMatrixClient())));
             }
@@ -358,10 +340,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeRoomList || all) {
                 promises.push(safeDynamicImport(import("../room-list/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeRoom || all) {
-                promises.push(safeDynamicImport(import("../room-alias/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSecurity || all) {
@@ -496,24 +474,8 @@ export async function extendMatrixClientWithManagers(
                 );
             }
 
-            if (currentOptions.includeVerification || all) {
-                promises.push(
-                    safeDynamicImport(import("../verification/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
             if (currentOptions.includeE2EE || all) {
                 promises.push(safeDynamicImport(import("../e2ee/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeAiConnection || all) {
-                promises.push(
-                    safeDynamicImport(import("../ai-connection/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeOpenClaw || all) {
-                promises.push(safeDynamicImport(import("../open-claw/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeVoice || all) {
@@ -533,12 +495,6 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeDehydratedDevice || all) {
                 promises.push(
                     safeDynamicImport(import("../dehydrated-device/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeDelayedEvents || all) {
-                promises.push(
-                    safeDynamicImport(import("../delayed-events/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 
@@ -639,6 +595,20 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeUserDirectory || all) {
                 promises.push(
                     safeDynamicImport(import("../user-directory/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeReactions || all) {
+                promises.push(safeDynamicImport(import("../reactions/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeBeacon || all) {
+                promises.push(safeDynamicImport(import("../beacon/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeAppService || all) {
+                promises.push(
+                    safeDynamicImport(import("../app-service/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 

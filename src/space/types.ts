@@ -122,6 +122,14 @@ export interface AddChildOptions {
 }
 
 export interface SpaceManagerMetrics {
-    cache: { size: number; hits: number; misses: number; hitRate: number };
+    cache: { 
+        query: { 
+            highFreq: { size: number; hits: number; misses: number; hitRate: number };
+            lowFreq: { size: number; hits: number; misses: number; hitRate: number };
+            space: { size: number; hits: number; misses: number; hitRate: number };
+            total: { size: number; hits: number; misses: number; hitRate: number };
+        };
+        hierarchy: { size: number; hits: number; misses: number; hitRate: number };
+    };
     requests: { total: number; successful: number; failed: number; retried: number };
 }

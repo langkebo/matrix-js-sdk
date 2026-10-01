@@ -1,77 +1,105 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "saml",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 16,
   "entries": [
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/login/saml/callback",
+      "path": "/_matrix/client/v3/login/saml/callback",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "RelayState",
+        "SAMLRequest",
+        "SAMLResponse",
+        "relay_state",
+        "saml_request",
+        "saml_response"
+      ]
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/r0/login/saml/callback",
+      "path": "/_matrix/client/v3/login/saml/callback",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/login/sso/redirect/saml",
+      "path": "/_matrix/client/v3/login/sso/redirect/saml",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "redirectUrl",
+        "redirect_url"
+      ]
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/r0/login/sso/redirect/saml",
+      "path": "/_matrix/client/v3/login/sso/redirect/saml",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/logout/saml",
+      "path": "/_matrix/client/v3/logout/saml",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/logout/saml/callback",
+      "path": "/_matrix/client/v3/logout/saml/callback",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "RelayState",
+        "SAMLRequest",
+        "SAMLResponse",
+        "relay_state",
+        "saml_request",
+        "saml_response"
+      ]
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/saml/metadata",
+      "path": "/_matrix/client/v3/saml/metadata",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/r0/saml/sp_metadata",
+      "path": "/_matrix/client/v3/saml/sp_metadata",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/saml/config",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "PUT",
       "path": "/_synapse/admin/v1/saml/config",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/saml/logout",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -79,7 +107,8 @@
       "registered_by": "saml",
       "path_params": [
         "name_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -87,7 +116,8 @@
       "registered_by": "saml",
       "path_params": [
         "name_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -95,19 +125,25 @@
       "registered_by": "saml",
       "path_params": [
         "name_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/saml/mappings",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/saml/metadata/refresh",
       "registered_by": "saml",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     }
   ]
 }

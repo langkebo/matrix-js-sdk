@@ -26,7 +26,7 @@ import {
 } from "../../src/friend/index.ts";
 import { InvalidParamError } from "../../src/common/errors.ts";
 import { Method } from "../../src/http-api/method.ts";
-import { ClientPrefix } from "../../src/http-api/prefix.ts";
+import { VendorPrefix } from "../../src/http-api/prefix.ts";
 import { NotFoundError } from "../../src/errors";
 
 describe("FriendManager", () => {
@@ -76,7 +76,7 @@ describe("FriendManager", () => {
                 "/friends/request",
                 undefined,
                 { user_id: "@bob:example.com", message: "Hello!" },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(eventSpy).toHaveBeenCalledWith(
@@ -107,7 +107,7 @@ describe("FriendManager", () => {
                 "/friends/request",
                 undefined,
                 { user_id: "@bob:example.com", message: undefined },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -141,7 +141,7 @@ describe("FriendManager", () => {
                 "/friends/request/%40bob%3Aexample.com/accept",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(acceptedSpy).toHaveBeenCalledWith("@bob:example.com");
@@ -173,7 +173,7 @@ describe("FriendManager", () => {
                 "/friends/request/%40bob%3Aexample.com/reject",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(rejectedSpy).toHaveBeenCalledWith("@bob:example.com");
@@ -198,7 +198,7 @@ describe("FriendManager", () => {
                 "/friends/request/%40bob%3Aexample.com/cancel",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(cancelledSpy).toHaveBeenCalledWith("@bob:example.com");
@@ -225,7 +225,7 @@ describe("FriendManager", () => {
                 "/friends/%40bob%3Aexample.com",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(removedSpy).toHaveBeenCalledWith("@bob:example.com");
@@ -249,7 +249,7 @@ describe("FriendManager", () => {
             const friends = await friendManager.getFriends();
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
 
             expect(friends).toEqual(mockFriends);
@@ -294,9 +294,7 @@ describe("FriendManager", () => {
         it("should fall back to items when friends is an empty array (FT-085)", async () => {
             // 后端同时返回 friends: [] 和 items: [data]；空数组是 truthy，
             // 旧的 `friends || items || []` 短路到空数组，静默丢失 items 数据。
-            const itemsData: Friend[] = [
-                { user_id: "@dave:example.com", status: "normal", since: 123456 },
-            ];
+            const itemsData: Friend[] = [{ user_id: "@dave:example.com", status: "normal", since: 123456 }];
             mockAuthedRequest.mockResolvedValue({ friends: [], items: itemsData });
 
             const friends = await friendManager.getFriends();
@@ -306,12 +304,8 @@ describe("FriendManager", () => {
         });
 
         it("should prefer friends when both friends and items are non-empty (FT-085)", async () => {
-            const friendsData: Friend[] = [
-                { user_id: "@bob:example.com", status: "normal", since: 1 },
-            ];
-            const itemsData: Friend[] = [
-                { user_id: "@dave:example.com", status: "normal", since: 2 },
-            ];
+            const friendsData: Friend[] = [{ user_id: "@bob:example.com", status: "normal", since: 1 }];
+            const itemsData: Friend[] = [{ user_id: "@dave:example.com", status: "normal", since: 2 }];
             mockAuthedRequest.mockResolvedValue({ friends: friendsData, items: itemsData });
 
             const friends = await friendManager.getFriends();
@@ -320,9 +314,7 @@ describe("FriendManager", () => {
         });
 
         it("should fall back to items when friends is undefined (FT-085)", async () => {
-            const itemsData: Friend[] = [
-                { user_id: "@dave:example.com", status: "normal", since: 123456 },
-            ];
+            const itemsData: Friend[] = [{ user_id: "@dave:example.com", status: "normal", since: 123456 }];
             mockAuthedRequest.mockResolvedValue({ items: itemsData });
 
             const friends = await friendManager.getFriends();
@@ -342,7 +334,7 @@ describe("FriendManager", () => {
             expect(roomId).toBe("!friends:example.com");
             expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 
@@ -355,15 +347,13 @@ describe("FriendManager", () => {
             expect(roomId).toBe("");
             expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 
         it("should accept next_batch pagination token in response (FT-095)", async () => {
             // FT-095: IFriendsResponse 此前缺少 next_batch 字段，与后端分页响应类型漂移
-            const mockFriends: Friend[] = [
-                { user_id: "@bob:example.com", status: "normal", since: 1 },
-            ];
+            const mockFriends: Friend[] = [{ user_id: "@bob:example.com", status: "normal", since: 1 }];
             mockAuthedRequest.mockResolvedValue({
                 friends: mockFriends,
                 next_batch: "page2_token",
@@ -390,7 +380,7 @@ describe("FriendManager", () => {
                 "/friends/requests/incoming",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(requests).toEqual(mockRequests);
@@ -434,7 +424,7 @@ describe("FriendManager", () => {
                 "/friends/requests/incoming",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
     });
@@ -454,7 +444,7 @@ describe("FriendManager", () => {
                 "/friends/requests/outgoing",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(requests).toEqual(mockRequests);
@@ -482,7 +472,7 @@ describe("FriendManager", () => {
                 "/friends/%40bob%3Aexample.com/status",
                 undefined,
                 { status: "favorite" },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(updatedSpy).toHaveBeenCalledWith(
@@ -533,7 +523,7 @@ describe("FriendManager", () => {
                 "/friends/groups",
                 undefined,
                 { name: "Best Friends" },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
 
             expect(group.id).toBe("group123");
@@ -550,7 +540,7 @@ describe("FriendManager", () => {
                 "/friends/groups/group123/add/%40bob%3Aexample.com",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -564,7 +554,7 @@ describe("FriendManager", () => {
                 "/friends/groups/group123/remove/%40bob%3Aexample.com",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -578,7 +568,7 @@ describe("FriendManager", () => {
                 "/friends/groups/group123",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -592,7 +582,7 @@ describe("FriendManager", () => {
                 "/friends/groups/group123/name",
                 undefined,
                 { name: "New Name" },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -680,7 +670,7 @@ describe("FriendManager", () => {
                 "/friends/check/%40bob%3Aexample.com",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -694,7 +684,7 @@ describe("FriendManager", () => {
                 "/friends/%40bob%3Aexample.com/note",
                 undefined,
                 { note: "My best friend" },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -710,7 +700,7 @@ describe("FriendManager", () => {
                 "/friends/suggestions",
                 { limit: "5" },
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -724,7 +714,7 @@ describe("FriendManager", () => {
                 "/friends/%40bob%3Aexample.com/displayname",
                 undefined,
                 { displayname: "Bobby" },
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -756,7 +746,7 @@ describe("FriendManager", () => {
                 "/friends/%40bob%3Aexample.com/status",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V1 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -805,7 +795,7 @@ describe("FriendManager", () => {
             const response = await friendManager.searchUsers("bob");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends/search", { q: "bob" }, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
 
             expect(response.results).toHaveLength(2);
@@ -834,7 +824,7 @@ describe("FriendManager", () => {
                 "/friends/search",
                 { q: "@bob:example.com", mode: "exact" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
 
             expect(response.mode).toBe("exact");
@@ -856,7 +846,7 @@ describe("FriendManager", () => {
                 "/friends/search",
                 { q: "test", limit: 5 },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -899,7 +889,7 @@ describe("FriendManager", () => {
             await friendManager.searchUsers("  alice  ");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/friends/search", { q: "alice" }, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 

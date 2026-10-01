@@ -106,7 +106,6 @@ describe("matrix manager extension defaults", () => {
         // expect(typeof AIConnectionManager).toBe("function");
         // expect(typeof CapabilitiesManager).toBe("function");
         // expect(typeof CryptoKeysManager).toBe("function");
-        // expect(typeof DeviceTrustManager).toBe("function");
         // expect(typeof ExternalServiceManager).toBe("function");
         // expect(typeof FederationBlacklistManager).toBe("function");
         // expect(typeof GuestManager).toBe("function");

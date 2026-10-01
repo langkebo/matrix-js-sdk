@@ -1,29 +1,34 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "external_service",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 18,
+  "entry_count": 20,
   "entries": [
     {
       "method": "GET",
       "path": "/_matrix/admin/v1/external_services",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "service_type"
+      ]
     },
     {
       "method": "POST",
       "path": "/_matrix/admin/v1/external_services",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/admin/v1/external_services/health",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -31,7 +36,8 @@
       "registered_by": "external_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -39,13 +45,15 @@
       "registered_by": "external_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/external_services/health",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -53,7 +61,8 @@
       "registered_by": "external_service",
       "path_params": [
         "service_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -61,25 +70,56 @@
       "registered_by": "external_service",
       "path_params": [
         "service_id"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/external_services/health",
+      "registered_by": "external_service",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/external_services/{service_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/external_services/{service_id}",
+      "registered_by": "external_service",
+      "path_params": [
+        "service_id"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/external_services",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "service_type"
+      ]
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/external_services",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/external_services/health",
       "registered_by": "external_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -87,7 +127,8 @@
       "registered_by": "external_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -95,7 +136,8 @@
       "registered_by": "external_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -103,7 +145,8 @@
       "registered_by": "external_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -111,15 +154,8 @@
       "registered_by": "external_service",
       "path_params": [
         "as_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/external/openclaw/{service_id}/webhook",
-      "registered_by": "external_service",
-      "path_params": [
-        "service_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -127,7 +163,8 @@
       "registered_by": "external_service",
       "path_params": [
         "service_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -135,7 +172,8 @@
       "registered_by": "external_service",
       "path_params": [
         "service_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

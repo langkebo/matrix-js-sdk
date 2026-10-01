@@ -65,13 +65,9 @@ describe("AdminExternalServiceManager", () => {
     it("listServices omits filter when serviceType is 'all'", async () => {
         mockClient.http.authedRequest.mockResolvedValue([]);
         await manager.listServices("all");
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            "GET",
-            "/external_services",
-            undefined,
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/external_services", undefined, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
     });
 
     it("registerService POSTs payload and returns created service", async () => {
@@ -92,13 +88,9 @@ describe("AdminExternalServiceManager", () => {
         mockClient.http.authedRequest.mockResolvedValue(created);
         const result = await manager.registerService(payload);
         expect(result).toEqual(created);
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            "POST",
-            "/external_services",
-            undefined,
-            payload,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith("POST", "/external_services", undefined, payload, {
+            prefix: "/_synapse/admin/v1",
+        });
     });
 
     it("updateService PUTs payload to /external_services/{asId}", async () => {

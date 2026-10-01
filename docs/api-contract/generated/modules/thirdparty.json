@@ -1,59 +1,23 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "thirdparty",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 12,
+  "entry_count": 6,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/thirdparty/location",
-      "registered_by": "thirdparty",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/thirdparty/location/{protocol}",
-      "registered_by": "thirdparty",
-      "path_params": [
-        "protocol"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/thirdparty/protocol/{protocol}",
-      "registered_by": "thirdparty",
-      "path_params": [
-        "protocol"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/thirdparty/protocols",
-      "registered_by": "thirdparty",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/thirdparty/user",
-      "registered_by": "thirdparty",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/thirdparty/user/{protocol}",
-      "registered_by": "thirdparty",
-      "path_params": [
-        "protocol"
-      ]
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/thirdparty/location",
       "registered_by": "thirdparty",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "alias",
+        "channel",
+        "search",
+        "server"
+      ]
     },
     {
       "method": "GET",
@@ -61,6 +25,12 @@
       "registered_by": "thirdparty",
       "path_params": [
         "protocol"
+      ],
+      "query_params": [
+        "alias",
+        "channel",
+        "search",
+        "server"
       ]
     },
     {
@@ -69,19 +39,27 @@
       "registered_by": "thirdparty",
       "path_params": [
         "protocol"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/thirdparty/protocols",
       "registered_by": "thirdparty",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/thirdparty/user",
       "registered_by": "thirdparty",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "nickname",
+        "search",
+        "server",
+        "userid"
+      ]
     },
     {
       "method": "GET",
@@ -89,6 +67,12 @@
       "registered_by": "thirdparty",
       "path_params": [
         "protocol"
+      ],
+      "query_params": [
+        "nickname",
+        "search",
+        "server",
+        "userid"
       ]
     }
   ]

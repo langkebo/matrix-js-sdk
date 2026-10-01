@@ -168,10 +168,12 @@ describe("SlidingSync", () => {
                     };
                 });
 
-            // Mock 3: session expired → HTTP 400
+            // Mock 3: session expired → HTTP 400 with M_UNKNOWN_POS errcode
+            // (MSC4186: 仅 M_UNKNOWN_POS 触发 resetup；普通 400 走 generic 退避)
             httpBackend!.when("POST", syncUrl).respond(400, function () {
                 logger.debug("sending session expired 400");
                 return {
+                    errcode: "M_UNKNOWN_POS",
                     error: "HTTP 400 : session expired",
                 };
             });
@@ -830,6 +832,7 @@ describe("SlidingSync", () => {
 
         it("should be able to register an extension", async () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const ext: Extension<any, any> = {
                 name: () => preExtName,
                 onRequest: async () => extReq,
@@ -867,6 +870,7 @@ describe("SlidingSync", () => {
 
         it("should be able to send nothing in an extension request/response", async () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const ext: Extension<any, any> = {
                 name: () => preExtName,
                 onRequest: async () => undefined,
@@ -902,6 +906,7 @@ describe("SlidingSync", () => {
         it("is possible to register extensions after start() has been called", async () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
             // Register pre-extension before start
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const extPre: Extension<any, any> = {
                 name: () => preExtName,
                 onRequest: async () => undefined,
@@ -916,6 +921,7 @@ describe("SlidingSync", () => {
             await httpBackend!.flushAllExpected();
 
             // Now register another extension "after start"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const extPost: Extension<any, any> = {
                 name: () => postExtName,
                 onRequest: async () => extReq,
@@ -956,6 +962,7 @@ describe("SlidingSync", () => {
 
         it("is not possible to register the same extension name twice", () => {
             const slidingSync = new SlidingSync(proxyBaseUrl, new Map(), {}, client!, 1);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             const ext: Extension<any, any> = {
                 name: () => preExtName,
                 onRequest: async () => ({}),

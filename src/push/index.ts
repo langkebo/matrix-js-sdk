@@ -135,6 +135,77 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     // ==================== Pushers ====================
 
     /**
+     * 获取所有推送器（兼容带斜杠路径）
+     * 对应 GET /_matrix/client/v3/pushers/
+     * Note: 此方法与 getPushers() 功能相同，仅为了完整覆盖后端路由
+     */
+    async getPushersWithTrailingSlash(forceRefresh = false): Promise<IPusher[]> {
+        if (!forceRefresh) {
+            const cached = this.pushersCache.get("pushers_slash");
+            if (cached) return cached;
+        }
+
+        try {
+            const response = await this.request<{ pushers: IPusher[] }>({
+                method: Method.Get,
+                path: pp("/pushers/"),
+                prefix: ClientPrefix.V3,
+            });
+
+            let pushers = response?.pushers || [];
+
+            // 兼容性处理
+            const supportsRemoteToggle = await this.client.doesServerSupportUnstableFeature?.("org.matrix.msc3881");
+            if (!supportsRemoteToggle) {
+                pushers = pushers.map((pusher) => {
+                    if (!pusher.hasOwnProperty(PUSHER_ENABLED.name)) {
+                        (pusher as unknown as Record<string, unknown>) /* Dynamic: adding unstable feature property */[
+                            PUSHER_ENABLED.name
+                        ] = true;
+                    }
+                    return pusher;
+                });
+            }
+
+            this.pushersCache.set("pushers_slash", pushers);
+            this.emit(PushEvent.PushersUpdated, pushers);
+            return pushers;
+        } catch (error) {
+            this.emit(PushEvent.PushError, this.normalizeError(error, "getPushersWithTrailingSlash"));
+            throw this.normalizeError(error, "getPushersWithTrailingSlash");
+        }
+    }
+
+    /**
+     * 设置推送器（兼容不带 set 后缀的路径）
+     * 对应 POST /_matrix/client/v3/pushers
+     * Note: 此方法与 setPusher() 功能相同，仅为了完整覆盖后端路由
+     */
+    async createPusher(pusher: IPusherRequest): Promise<void> {
+        if (!pusher.pushkey) throw new InvalidParamError("pushkey is required");
+        if (!pusher.app_id) throw new InvalidParamError("app_id is required");
+        if (!pusher.device_id) throw new InvalidParamError("device_id is required for pusher authentication (P2 #32)");
+
+        try {
+            await this.withRetry(async () => {
+                return await this.request({
+                    method: Method.Post,
+                    path: pp("/pushers"),
+                    body: pusher,
+                    prefix: ClientPrefix.V3,
+                });
+            }, "createPusher");
+
+            this.pushersCache.delete("pushers");
+            this.pushersCache.delete("pushers_slash");
+            await this.getPushers(true);
+        } catch (error) {
+            this.emit(PushEvent.PushError, this.normalizeError(error, "createPusher"));
+            throw this.normalizeError(error, "createPusher");
+        }
+    }
+
+    /**
      * 获取所有推送器
      * 对应 GET /_matrix/client/v3/pushers
      */
@@ -639,14 +710,25 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
 
     // ==================== Lifecycle ====================
 
+    // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
+    private startPromise: Promise<void> | null = null;
+
     async start(): Promise<void> {
         if (this.initialized) return;
-        try {
-            await Promise.all([this.getPushers(), this.getPushRules()]);
-            this.initialized = true;
-        } catch (e) {
-            logger.warn("PushManager.start failed:", e);
+        if (this.startPromise) {
+            return this.startPromise;
         }
+        this.startPromise = (async () => {
+            try {
+                await Promise.all([this.getPushers(), this.getPushRules()]);
+                this.initialized = true;
+            } catch (e) {
+                logger.warn("PushManager.start failed:", e);
+                // 本轮初始化失败：清空 promise 让下次重试；成功路径由 initialized 持续守卫。
+                this.startPromise = null;
+            }
+        })();
+        return this.startPromise;
     }
 
     stop(): void {

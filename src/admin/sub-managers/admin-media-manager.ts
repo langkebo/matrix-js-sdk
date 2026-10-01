@@ -176,4 +176,68 @@ export class AdminMediaManager extends AdminBaseManager {
             next_token: response.next_token,
         };
     }
+
+    /**
+     * 获取用户上传的所有媒体
+     *
+     * 调用 `GET /_synapse/admin/v1/users/{user_id}/media` 端点，
+     * 返回指定用户上传的全部媒体列表。
+     *
+     * @param userId - 用户 MXC ID（如 `@user:example.org`）
+     * @param options - 可选分页参数
+     * @param options.from - 分页起点 token
+     * @param options.limit - 返回条数上限
+     * @returns 用户媒体列表
+     *
+     * @example
+     * ```typescript
+     * const result = await adminManager.media.getUserMedia("@alice:example.org", { limit: 100 });
+     * console.log(result.media);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
+    async getUserMedia(
+        userId: string,
+        options?: { from?: string; limit?: number },
+    ): Promise<{ media: MediaInfo[]; next_token?: string }> {
+        if (!userId) {
+            throw new ValidationError("User ID is required");
+        }
+        const queryParams = buildPaginationParams(options?.limit, options?.from);
+        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(
+            Method.Get,
+            `/users/${encodeURIComponent(userId)}/media`,
+            queryParams,
+        );
+        return { media: response.media || [], next_token: response.next_token };
+    }
+
+    /**
+     * 删除用户上传的所有媒体
+     *
+     * 调用 `DELETE /_synapse/admin/v1/users/{user_id}/media` 端点，
+     * 删除指定用户上传的全部本地媒体。
+     *
+     * @param userId - 用户 MXC ID（如 `@user:example.org`）
+     * @returns 删除的媒体数量
+     *
+     * @example
+     * ```typescript
+     * const result = await adminManager.media.deleteUserMedia("@bob:example.org");
+     * console.log(`deleted ${result.deleted} media items`);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
+    async deleteUserMedia(userId: string): Promise<{ deleted: number }> {
+        if (!userId) {
+            throw new ValidationError("User ID is required");
+        }
+        const result = await this.adminRequest<{ deleted?: number }>(
+            Method.Delete,
+            `/users/${encodeURIComponent(userId)}/media`,
+        );
+        return { deleted: result?.deleted ?? 0 };
+    }
 }

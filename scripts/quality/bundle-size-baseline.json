@@ -1,0 +1,6 @@
+{
+    "generatedAt": "2026-09-13T02:18:01.650Z",
+    "note": "Budget = measured payload + 2% headroom. Raise deliberately via --update-baseline and explain the growth in the commit message.",
+    "maxTotalBytes": 21832704,
+    "maxLibBytes": 16483328
+}

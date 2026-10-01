@@ -55,8 +55,6 @@ export default {
         "src/auth/index.ts",
         "src/capabilities/index.ts",
         "src/crypto-keys/index.ts",
-        "src/key-verification/index.ts",
-        "src/device-trust/index.ts",
         "src/discovery/index.ts",
         "src/dm/index.ts",
         "src/guest/index.ts",
@@ -98,13 +96,8 @@ export default {
         "src/feature-flags/index.ts",
         "src/event-report/index.ts",
         "src/burn-after-read/index.ts",
-        "src/verification/index.ts",
         "src/e2ee/index.ts",
         "src/worker-body/index.ts",
-        "src/ai-connection/index.ts",
-        // Module name in MANAGER_EXTENSION_MODULES is "openclaw" but the actual
-        // directory is `open-claw` (dynamic import: `../open-claw/index.js`)
-        "src/open-claw/index.ts",
         "src/voice/index.ts",
         "src/cas/index.ts",
         "src/external-service/index.ts",

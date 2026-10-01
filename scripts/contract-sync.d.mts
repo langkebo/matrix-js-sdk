@@ -32,3 +32,40 @@ export function renderOverflowStub(args: {
 }): string;
 
 export function buildDraftDocument(options: DraftDocumentOptions): DraftDocumentResult;
+
+export interface LedgerProfileBundle {
+    parsed: {
+        schema_version?: string;
+        state_profile?: string;
+        entry_count?: number;
+        synapse_rust_commit?: string | null;
+        generated_at?: string | null;
+        entries: {
+            method: string;
+            path: string;
+            registered_by: string;
+            [key: string]: unknown;
+        }[];
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
+export interface BackendSemanticModuleDiff {
+    moduleName: string;
+    added: Record<string, unknown>[];
+    removed: Record<string, unknown>[];
+    modified: Record<string, unknown>[];
+}
+
+export interface BackendSemanticDriftSummary {
+    moduleDiffs: BackendSemanticModuleDiff[];
+    diskModuleCount: number;
+    sourceModuleCount: number;
+    sourceEntryCount: number;
+}
+
+export function summarizeBackendSemanticDrift(
+    diskProfiles: { all: LedgerProfileBundle },
+    sourceProfiles: { all: LedgerProfileBundle },
+): BackendSemanticDriftSummary;

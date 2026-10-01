@@ -20,7 +20,7 @@ limitations under the License.
  * 提供登录、登出、Token 管理等功能
  */
 
-import { BaseManager, type ManagerOpts } from "../managers/base-manager";
+import { BaseManager } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
@@ -33,9 +33,8 @@ import {
 } from "../@types/auth";
 import { type AuthDict } from "../interactive-auth";
 import { type IdServerUnbindResult } from "../@types/partials";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
-import { IGuestAccessOpts } from "../@types/requests";
 import type { IContent } from "../models/event";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { normalizeExpiresInMs } from "../auth/normalize-expires";
@@ -79,6 +78,28 @@ export interface EventsRequestOptions {
     dir?: "f" | "b";
     limit?: number;
     timeout?: number;
+}
+
+/**
+ * One account's status, as reported by MSC3720.
+ *
+ * `deactivated` is omitted by the server when `exists` is false.
+ */
+export interface AccountStatus {
+    exists: boolean;
+    deactivated?: boolean;
+}
+
+/**
+ * Response of `POST /_matrix/client/unstable/org.matrix.msc3720/account_status`.
+ *
+ * An empty `userIds` request yields `{}` (the MSC specifies an empty body), so
+ * both fields are optional. `account_statuses` and `failures` together cover
+ * every user ID that was requested.
+ */
+export interface AccountStatusResponse {
+    account_statuses?: Record<string, AccountStatus>;
+    failures?: string[];
 }
 
 export class AccountManager extends BaseManager {
@@ -285,6 +306,35 @@ export class AccountManager extends BaseManager {
     }
 
     /**
+     * MSC3720: look up the account status of one or more users.
+     *
+     * `POST /_matrix/client/unstable/org.matrix.msc3720/account_status`
+     * (unstable-only; the MSC has not been stabilised).
+     *
+     * The server must advertise the `org.matrix.msc3720.account_status`
+     * capability (see `GET /_matrix/client/v3/capabilities`); otherwise the
+     * endpoint fails closed with 403 `M_FORBIDDEN`. Callers that want to hide
+     * the feature should check that capability first.
+     *
+     * Local users are reported directly; remote users are looked up over
+     * federation by the server, and any user whose status could not be
+     * retrieved appears in `failures` instead of `account_statuses`.
+     *
+     * @param userIds - Matrix user IDs to look up.
+     * @returns The statuses that could be retrieved, plus the failures.
+     */
+    public async getAccountStatuses(userIds: string[]): Promise<AccountStatusResponse> {
+        return await this.withRetry(async () => {
+            return await this.request<AccountStatusResponse>({
+                method: Method.Post,
+                path: "/org.matrix.msc3720/account_status",
+                body: { user_ids: userIds },
+                prefix: ClientPrefix.Unstable,
+            });
+        }, "getAccountStatuses");
+    }
+
+    /**
      * Get fallback auth URL
      */
     public getFallbackAuthUrl(loginType: string, authSessionId: string): string {
@@ -297,14 +347,14 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get my rooms
-     * GET /_matrix/client/v3/my_rooms
+     * GET /_matrix/vendor/v1/my_rooms
      */
     public async getMyRooms(): Promise<MyRoomsResponse> {
         return this.withRetry(async () => {
             return await this.request<MyRoomsResponse>({
                 method: Method.Get,
                 path: "/my_rooms",
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "getMyRooms");
     }
@@ -343,22 +393,6 @@ export class AccountManager extends BaseManager {
                 prefix: ClientPrefix.V3,
             });
         }, "getEventStream");
-    }
-
-    /**
-     * Set guest access
-     */
-    public async setGuestAccess(roomId: string, opts: IGuestAccessOpts): Promise<void> {
-        const path = utils.encodeUri("/rooms/$roomId/guest_access", {
-            $roomId: roomId,
-        });
-        await this.withRetry(async () => {
-            await this.request({
-                method: Method.Put,
-                path,
-                body: opts,
-            });
-        }, "setGuestAccess");
     }
 }
 

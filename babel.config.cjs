@@ -27,18 +27,27 @@ module.exports = {
         [
             "search-and-replace",
             {
-                // Since rewriteImportExtensions doesn't work on dynamic imports (yet), we need to manually replace
-                // the dynamic rust-crypto import.
-                // (see https://github.com/babel/babel/issues/16750)
-                rules:
-                    process.env.NODE_ENV !== "test"
+                rules: [
+                    // Stamp the package version into src/version.ts so that built artifacts can
+                    // identify themselves in logs and User-Agent strings. Always enabled: unlike
+                    // the rust-crypto rule below this is harmless under NODE_ENV=test, and leaving
+                    // it conditional would make the version depend on how the build was invoked.
+                    {
+                        search: "__SDK_VERSION__",
+                        replace: require("./package.json").version,
+                    },
+                    // Since rewriteImportExtensions doesn't work on dynamic imports (yet), we need to manually replace
+                    // the dynamic rust-crypto import.
+                    // (see https://github.com/babel/babel/issues/16750)
+                    ...(process.env.NODE_ENV !== "test"
                         ? [
                               {
                                   search: "./rust-crypto/index.ts",
                                   replace: "./rust-crypto/index.js",
                               },
                           ]
-                        : [],
+                        : []),
+                ],
             },
         ],
     ],

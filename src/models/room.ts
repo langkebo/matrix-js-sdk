@@ -136,6 +136,12 @@ export interface IRecommendedVersion {
 // price to pay to keep matrix-js-sdk responsive.
 const MAX_NUMBER_OF_VISIBILITY_EVENTS_TO_SCAN_THROUGH = 30;
 
+// 历史 timeline（back-pagination 产生的非 live timeline）数量上限。
+// 每个历史 timeline 的事件数已受 maxTimelineEvents 约束，此处限制 timeline 数量，
+// 防止 timelineSupport=true 时用户大量向前翻历史导致 timelines[] 无界累积。
+// 超过上限时淘汰最老的历史 timeline（保留 live timeline 与最近的历史）。
+const MAX_HISTORY_TIMELINES = 20;
+
 export type NotificationCount = Partial<Record<NotificationCountType, number>>;
 
 export enum NotificationCountType {
@@ -3206,53 +3212,76 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
      *
      * ISSUE-11b: now also trims filtered timeline sets (index 1+) and thread
      * timeline sets, which previously grew unbounded.
+     *
+     * 经 EventTimelineSet.removeEvent 走完整清理链（_eventIdToTimeline 映射删除 +
+     * baseIndex 递减），此前直接 splice getEvents() 返回的内部数组会导致映射悬空、
+     * baseIndex 不递减、compareEventOrdering/getTimelineForEvent 索引错乱。
      */
     private cleanupOldEvents(): void {
         // Clean the live (unfiltered) timeline.
-        const liveTimeline = this.getLiveTimeline();
-        const events = liveTimeline.getEvents();
-
-        if (events.length > this.maxTimelineEvents) {
-            const eventsToRemove = events.length - this.maxTimelineEvents;
-            // Remove oldest events from the beginning of the timeline
-            events.splice(0, eventsToRemove);
-
-            // Log cleanup for monitoring
-            logger.debug(
-                `[Room ${this.roomId}] Cleaned up ${eventsToRemove} old events, ` +
-                    `timeline now has ${events.length} events`,
-            );
-        }
+        this.trimTimelineSet(this.getUnfilteredTimelineSet());
 
         // Clean filtered timeline sets (index 1+ in this.timelineSets).
         for (let i = 1; i < this.timelineSets.length; i++) {
-            const ts = this.timelineSets[i];
-            const tl = ts.getLiveTimeline();
-            const tlEvents = tl.getEvents();
-            if (tlEvents.length > this.maxTimelineEvents) {
-                const remove = tlEvents.length - this.maxTimelineEvents;
-                tlEvents.splice(0, remove);
-                logger.debug(
-                    `[Room ${this.roomId}] Cleaned up ${remove} old events from filtered timeline ${i}, ` +
-                        `now has ${tlEvents.length} events`,
-                );
-            }
+            this.trimTimelineSet(this.timelineSets[i]);
         }
 
         // Clean thread timeline sets (may be uninitialised — empty array).
-        if (this.threadsTimelineSets.length > 0) {
-            for (const ts of this.threadsTimelineSets) {
-                const tl = ts.getLiveTimeline();
-                const tlEvents = tl.getEvents();
-                if (tlEvents.length > this.maxTimelineEvents) {
-                    const remove = tlEvents.length - this.maxTimelineEvents;
-                    tlEvents.splice(0, remove);
-                    logger.debug(
-                        `[Room ${this.roomId}] Cleaned up ${remove} old events from thread timeline, ` +
-                            `now has ${tlEvents.length} events`,
-                    );
-                }
+        for (const ts of this.threadsTimelineSets) {
+            this.trimTimelineSet(ts);
+        }
+
+        // 历史 timeline 数量淘汰（timelineSupport=true 时 back-pagination 持续 push
+        // 新 timeline，否则 timelines[] 无界累积）。
+        this.trimHistoryTimelines(this.getUnfilteredTimelineSet());
+        for (let i = 1; i < this.timelineSets.length; i++) {
+            this.trimHistoryTimelines(this.timelineSets[i]);
+        }
+        for (const ts of this.threadsTimelineSets) {
+            this.trimHistoryTimelines(ts);
+        }
+    }
+
+    /**
+     * 裁剪单个 timelineSet 的 live timeline 中超出 maxTimelineEvents 的最老事件。
+     * 通过 removeEvent 逐条删除，保证 _eventIdToTimeline 与 baseIndex 同步维护。
+     */
+    private trimTimelineSet(timelineSet: EventTimelineSet): void {
+        const liveTimeline = timelineSet.getLiveTimeline();
+        const events = liveTimeline.getEvents();
+        if (events.length <= this.maxTimelineEvents) {
+            return;
+        }
+        const remove = events.length - this.maxTimelineEvents;
+        for (let i = 0; i < remove; i++) {
+            // 每次取最老（索引 0）事件的 id，经 removeEvent 删除
+            const oldest = timelineSet.getLiveTimeline().getEvents()[0];
+            const eventId = oldest?.getId();
+            if (!eventId) {
+                break;
             }
+            timelineSet.removeEvent(eventId);
+        }
+    }
+
+    /**
+     * 裁剪历史 timeline（非 live timeline）数量，超过 {@link MAX_HISTORY_TIMELINES}
+     * 时淘汰最老的。live timeline 永不删除。
+     */
+    private trimHistoryTimelines(timelineSet: EventTimelineSet): void {
+        const timelines = timelineSet.getTimelines();
+        const historyCount = timelines.length - 1; // 减掉 live timeline
+        if (historyCount <= MAX_HISTORY_TIMELINES) {
+            return;
+        }
+        const remove = historyCount - MAX_HISTORY_TIMELINES;
+        for (let i = 0; i < remove; i++) {
+            // 最老的历史 timeline 在 live 之后（索引 1）
+            const oldest = timelineSet.getTimelines()[1];
+            if (!oldest) {
+                break;
+            }
+            timelineSet.removeTimeline(oldest);
         }
     }
 

@@ -3,57 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Room 模块契约
- * Source:        docs/api-contract/generated/modules/room.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       102 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `room` module. */
+/** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
 export const ROOM_ROUTES = [
-    { method: "POST", path: "/_matrix/client/r0/createRoom" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/aliases" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/ban" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/event/{event_id}" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/forget" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/get_membership_events" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/initialSync" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/invite" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/invites" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/join" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/joined_members" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/kick" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/leave" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/members" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/members/recent" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/membership/{user_id}" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/messages" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/pinned_events" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/pinned_events" },
-    { method: "DELETE", path: "/_matrix/client/r0/rooms/{room_id}/pinned_events/{event_id}" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/read_markers" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/read_markers" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/receipt/{receipt_type}/{event_id}" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/receipts/{receipt_type}/{event_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/redact/{event_id}/{txn_id}" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/search" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/send/{event_type}/{txn_id}" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/m.room.power_levels/" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/m.room.power_levels/" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/{state_key}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/state/{event_type}/{state_key}" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/unban" },
-    { method: "POST", path: "/_matrix/client/r0/rooms/{room_id}/upgrade" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/version" },
-    { method: "GET", path: "/_matrix/client/r0/user/{user_id}/rooms" },
     { method: "POST", path: "/_matrix/client/v1/rooms/create_private" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/" },
     { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/" },
@@ -150,6 +105,12 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/visibility" },
     { method: "POST", path: "/_matrix/client/v3/translate" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms" },
+    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
+    { method: "GET", path: "/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms" },
+    { method: "GET", path: "/_matrix/client/v1/user/mutual_rooms" },
+    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/get_membership_events" },
+    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
+    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_ROUTES`. */

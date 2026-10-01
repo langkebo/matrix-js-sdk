@@ -1,8 +1,8 @@
 ---
 module: thread
 generated_from: docs/api-contract/generated/modules/thread.json
-generated_hash: sha256-3d8ca5421257b08711fa212b1cbecb4a6778a8d6d6cfee8b4b88a4ff278c395e
-ledger_schema: 1
+generated_hash: sha256-ad43033156eb715ccb4f9c8df3900c7dab2bd0c144648f293b7bf79a7974314b
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 

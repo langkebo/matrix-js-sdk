@@ -3,17 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Relations
- * Source:        docs/api-contract/generated/modules/relations.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       8 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `relations` module. */
+/** Routes served by the synapse-rust `relations` module (mirrored from the backend contract). */
 export const RELATIONS_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
-    { method: "GET", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}" },
-    { method: "PUT", path: "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}" },

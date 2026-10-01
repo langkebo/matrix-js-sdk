@@ -15,7 +15,15 @@ limitations under the License.
 */
 
 import { MsgType } from "./@types/event";
-import { type IMessageRendering } from "./@types/extensible_events";
+import { type IMessageRendering, M_TEXT, REFERENCE_RELATION } from "./@types/extensible_events";
+import {
+    M_ASSET,
+    LocationAssetType,
+    M_LOCATION,
+    M_TIMESTAMP,
+    type LegacyLocationEventContent,
+    type MLocationEventContent,
+} from "./@types/location";
 import { type MRoomTopicEventContent, type MTopicContent, M_TOPIC, type MTopicEvent } from "./@types/topic";
 import { type RoomMessageEventContent } from "./@types/events";
 import { type MBeaconInfoEventContent, type MBeaconEventContent } from "./@types/beacon";
@@ -147,6 +155,57 @@ export const parseTopicContent = (content: MRoomTopicEventContent): TopicState =
     return { text, html };
 };
 
+/** Location content helpers */
+
+export const getTextForLocationEvent = (
+    uri: string | undefined,
+    assetType: LocationAssetType,
+    timestamp?: number,
+    description?: string | null,
+): string => {
+    const date = `at ${new Date(timestamp!).toISOString()}`;
+    const assetName = assetType === LocationAssetType.Self ? "User" : undefined;
+    const quotedDescription = description ? `"${description}"` : undefined;
+
+    return [assetName, "Location", quotedDescription, uri, date].filter(Boolean).join(" ");
+};
+
+/**
+ * Generates the content for a Location event
+ * @param uri - a geo:// uri for the location
+ * @param timestamp - the timestamp when the location was correct (milliseconds since the UNIX epoch)
+ * @param description - the (optional) label for this location on the map
+ * @param assetType - the (optional) asset type of this location e.g. "m.self"
+ * @param text - optional. A text for the location
+ */
+export const makeLocationContent = (
+    // this is first but optional
+    // to avoid a breaking change
+    text?: string,
+    uri?: string,
+    timestamp?: number,
+    description?: string | null,
+    assetType?: LocationAssetType,
+): LegacyLocationEventContent & MLocationEventContent => {
+    const defaultedText =
+        text ?? getTextForLocationEvent(uri, assetType || LocationAssetType.Self, timestamp, description);
+    const timestampEvent = timestamp ? { [M_TIMESTAMP.name]: timestamp } : {};
+    return {
+        msgtype: MsgType.Location,
+        body: defaultedText,
+        geo_uri: uri,
+        [M_LOCATION.name]: {
+            description,
+            uri,
+        },
+        [M_ASSET.name]: {
+            type: assetType || LocationAssetType.Self,
+        },
+        [M_TEXT.name]: defaultedText,
+        ...timestampEvent,
+    } as LegacyLocationEventContent & MLocationEventContent;
+};
+
 /**
  * Beacon event helpers
  */
@@ -156,7 +215,7 @@ export interface BeaconInfoState {
     timeout: number;
     live?: boolean;
     timestamp?: number;
-    assetType?: string;
+    assetType?: LocationAssetType;
 }
 
 export interface BeaconLocationState {
@@ -174,9 +233,42 @@ export const parseBeaconInfoContent = (content: MBeaconInfoEventContent): Beacon
         timeout: content.timeout,
         live: content.live,
         timestamp: ts as number | undefined,
-        assetType: (asset as { type?: string })?.type,
+        assetType: (asset as { type?: LocationAssetType })?.type,
     };
 };
+
+export const makeBeaconInfoContent = (
+    timeout: number,
+    isLive?: boolean,
+    description?: string,
+    assetType?: LocationAssetType,
+    timestamp?: number,
+): MBeaconInfoEventContent => ({
+    description,
+    timeout,
+    live: isLive,
+    [M_TIMESTAMP.name]: timestamp || Date.now(),
+    [M_ASSET.name]: {
+        type: assetType ?? LocationAssetType.Self,
+    },
+});
+
+export const makeBeaconContent = (
+    uri: string,
+    timestamp: number,
+    beaconInfoEventId: string,
+    description?: string,
+): MBeaconEventContent => ({
+    [M_LOCATION.name]: {
+        description,
+        uri,
+    },
+    [M_TIMESTAMP.name]: timestamp,
+    "m.relates_to": {
+        rel_type: REFERENCE_RELATION.name,
+        event_id: beaconInfoEventId,
+    },
+});
 
 export const parseBeaconContent = (content: MBeaconEventContent): BeaconLocationState => {
     const c = content as IContent;

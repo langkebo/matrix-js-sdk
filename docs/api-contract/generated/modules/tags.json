@@ -1,49 +1,12 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "tags",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 8,
+  "entry_count": 4,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/tags",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id",
-        "room_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/tags/{tag}",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "tag"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/tags/{tag}",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "tag"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/tags",
-      "registered_by": "tags",
-      "path_params": [
-        "user_id"
-      ]
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags",
@@ -51,7 +14,8 @@
       "path_params": [
         "user_id",
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -61,7 +25,8 @@
         "user_id",
         "room_id",
         "tag"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -71,7 +36,8 @@
         "user_id",
         "room_id",
         "tag"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -79,7 +45,8 @@
       "registered_by": "tags",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

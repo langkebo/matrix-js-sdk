@@ -93,58 +93,6 @@ export interface RoomKeyRequestRequest {
     devices?: Array<{ user_id: string; device_id: string }>;
 }
 
-export interface DeviceVerificationRequest {
-    user_id?: string;
-    new_device_id?: string;
-    device_id?: string;
-    method?: string;
-}
-
-export interface DeviceVerificationResponse {
-    transaction_id?: string;
-    state?: string;
-    device_id?: string;
-    verified?: boolean;
-}
-
-export interface DeviceVerificationStatusResponse {
-    token: string;
-    state: "pending" | "verified" | "cancelled" | "expired";
-    device_id?: string;
-    requested_ts?: number;
-    completed_ts?: number;
-}
-
-export interface DeviceTrustEntry {
-    device_id: string;
-    user_id?: string;
-    trust_level?: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
-}
-
-export interface DeviceTrustListResponse {
-    devices: DeviceTrustEntry[];
-}
-
-export interface DeviceTrustResponse {
-    device_id: string;
-    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
-}
-
-export interface SecuritySummaryResponse {
-    verified_devices: number;
-    unverified_devices: number;
-    key_backup_configured: boolean;
-    cross_signing_setup: boolean;
-    backed_up_sessions?: number;
-    total_sessions?: number;
-}
-
 export interface SecurityBackupCreateRequest {
     algorithm?: string;
     auth_data?: Record<string, unknown>;

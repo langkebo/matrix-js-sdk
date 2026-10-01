@@ -31,7 +31,11 @@ export async function deriveKeys(key: Uint8Array<ArrayBuffer>, name: string): Pr
         {
             name: "HKDF",
             salt: zeroSalt,
-            // @ts-ignore: https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/879
+            // S-16: removed the inherited `@ts-ignore`. It suppressed `HkdfParams.info` rejecting
+            // `TextEncoder().encode()`'s `Uint8Array<ArrayBufferLike>`
+            // (https://github.com/microsoft/TypeScript-DOM-lib-generator/pull/879); that is fixed in
+            // the current DOM lib types, and converting the directive to `@ts-expect-error` flagged
+            // it as unused (TS2578). No suppression needed.
             info: new TextEncoder().encode(name),
             hash: "SHA-256",
         },

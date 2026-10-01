@@ -1,29 +1,37 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "event_report",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 19,
+  "entry_count": 18,
   "entries": [
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/event_reports",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "limit",
+        "since_id",
+        "since_score",
+        "since_ts"
+      ]
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/event_reports",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/event_reports/count",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -31,7 +39,8 @@
       "registered_by": "event_report",
       "path_params": [
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -39,7 +48,8 @@
       "registered_by": "event_report",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -47,7 +57,8 @@
       "registered_by": "event_report",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -55,7 +66,8 @@
       "registered_by": "event_report",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -63,6 +75,12 @@
       "registered_by": "event_report",
       "path_params": [
         "reporter_user_id"
+      ],
+      "query_params": [
+        "limit",
+        "since_id",
+        "since_score",
+        "since_ts"
       ]
     },
     {
@@ -71,13 +89,20 @@
       "registered_by": "event_report",
       "path_params": [
         "room_id"
+      ],
+      "query_params": [
+        "limit",
+        "since_id",
+        "since_score",
+        "since_ts"
       ]
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/event_reports/stats",
       "registered_by": "event_report",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -85,6 +110,12 @@
       "registered_by": "event_report",
       "path_params": [
         "status"
+      ],
+      "query_params": [
+        "limit",
+        "since_id",
+        "since_score",
+        "since_ts"
       ]
     },
     {
@@ -93,7 +124,8 @@
       "registered_by": "event_report",
       "path_params": [
         "status"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -101,7 +133,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -109,7 +142,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -117,7 +151,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -125,7 +160,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -133,15 +169,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/admin/v1/event_reports/{id}/history",
-      "registered_by": "event_report",
-      "path_params": [
-        "id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -149,7 +178,8 @@
       "registered_by": "event_report",
       "path_params": [
         "id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

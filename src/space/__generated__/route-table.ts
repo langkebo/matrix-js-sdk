@@ -3,38 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Space 模块契约
- * Source:        docs/api-contract/generated/modules/space.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       48 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `space` module. */
+/** Routes served by the synapse-rust `space` module (mirrored from the backend contract). */
 export const SPACE_ROUTES = [
-    { method: "POST", path: "/_matrix/client/r0/spaces" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/public" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/room/{room_id}" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/room/{room_id}/parents" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/search" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/statistics" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/user" },
-    { method: "DELETE", path: "/_matrix/client/r0/spaces/{space_id}" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/spaces/{space_id}" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/children" },
-    { method: "POST", path: "/_matrix/client/r0/spaces/{space_id}/children" },
-    { method: "DELETE", path: "/_matrix/client/r0/spaces/{space_id}/children/{room_id}" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/hierarchy" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/hierarchy/v1" },
-    { method: "POST", path: "/_matrix/client/r0/spaces/{space_id}/invite" },
-    { method: "POST", path: "/_matrix/client/r0/spaces/{space_id}/join" },
-    { method: "POST", path: "/_matrix/client/r0/spaces/{space_id}/leave" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/members" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/rooms" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/state" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/summary" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/summary/with_children" },
-    { method: "GET", path: "/_matrix/client/r0/spaces/{space_id}/tree_path" },
     { method: "POST", path: "/_matrix/client/v1/spaces" },
     { method: "GET", path: "/_matrix/client/v1/spaces/public" },
     { method: "GET", path: "/_matrix/client/v1/spaces/room/{room_id}" },

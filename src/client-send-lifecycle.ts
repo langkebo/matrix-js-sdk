@@ -67,8 +67,13 @@ export function prepareSendCompleteEventLifecycle({
     // 被置为 NOT_SENT/QUEUED），直接复用该回显，而不是新建回显后再
     // addPendingEvent（后者对已知 txnId 会抛 "known txnId" 错误）。这样整个
     // 重试生命周期只有一条本地回显，服务端也只会收到同一 txnId 的幂等请求。
-    if (!delayOpts) {
-        const existing = room?.getPendingEvents().find((e) => e.getTxnId() === resolvedTxnId);
+    if (!delayOpts && room) {
+        let existing: MatrixEvent | undefined;
+        try {
+            existing = room.getPendingEvents().find((e) => e.getTxnId() === resolvedTxnId);
+        } catch {
+            // pendingEventOrdering != 'detached' — 无 pendingEventList，无本地回显可复用
+        }
         if (existing) {
             logger.debug(`sendEvent retry reuses local echo for txnId ${resolvedTxnId} in ${roomId}`);
             existing.setStatus(EventStatus.SENDING);

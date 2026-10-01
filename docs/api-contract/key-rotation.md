@@ -1,14 +1,14 @@
 ---
 module: key_rotation
 generated_from: docs/api-contract/generated/modules/key_rotation.json
-generated_hash: sha256-7c2a021d71a614166fbd1735073c0b12d8cf72982454dd6fb91342f4e5c0a437
-ledger_schema: 1
+generated_hash: sha256-559d695c89c596f47b91adfbd3b19df90177ef47c5df743b008829069f11cf36
+ledger_schema: 4
 last_reviewed: 2026-05-26
 ---
 
 # Key Rotation API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/key_rotation.rs`
+> 后端代码: `synapse-rust/synapse-web/src/routes/key_rotation.rs`
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`
 > 更新日期: 2026-05-26
 > 挂载版本: `v1`

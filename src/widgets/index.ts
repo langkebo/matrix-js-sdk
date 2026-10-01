@@ -197,7 +197,8 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
     }
 
     public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Widget, true);
+        // 后端未实 Widget 路由：探测失败时绝不能误判支持（FT-S13）
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Widget, false);
     }
 
     private doRequest<T>(method: Method, path: string, body?: unknown): Promise<T> {

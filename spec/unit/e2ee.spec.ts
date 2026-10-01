@@ -99,90 +99,26 @@ describe("E2EEManager", () => {
         });
     });
 
-    // ============ Device Verification ============
-
-    describe("requestDeviceVerification", () => {
-        it("should request device verification", async () => {
-            transport.respondWith({ token: "verify-token-123" });
-
-            const result = await e2eeManager.requestDeviceVerification({
-                user_id: "@alice:example.com",
-                device_id: "DEVICE1",
-                method: "m.sas.v1",
-            });
-
-            expect(result.token).toBe("verify-token-123");
-            transport.expectCalledWith(Method.Post, "/device_verification/request");
-        });
-
-        it("should reject if no device_id and no new_device_id", async () => {
-            await expect(e2eeManager.requestDeviceVerification({ user_id: "@alice:example.com" })).rejects.toThrow();
-        });
-    });
-
-    describe("getDeviceVerificationStatus", () => {
-        it("should get verification status", async () => {
-            transport.respondWith({
-                token: "verify-token-123",
-                state: "pending",
-            });
-
-            const result = await e2eeManager.getDeviceVerificationStatus("verify-token-123");
-
-            expect(result.state).toBe("pending");
-            transport.expectCalledWithArgs(
-                Method.Get,
-                "/device_verification/status/verify-token-123",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
-        });
-
-        it("should reject empty token", async () => {
-            await expect(e2eeManager.getDeviceVerificationStatus("")).rejects.toThrow();
-        });
-    });
-
-    // ============ Device Trust ============
-
-    describe("getDeviceTrustList", () => {
-        it("should get device trust list", async () => {
-            transport.respondWith({
-                DEVICE1: {
-                    user_id: "@alice:example.com",
-                    device_id: "DEVICE1",
-                    trust_level: "verified",
-                },
-            });
-
-            const result = await e2eeManager.getDeviceTrustList();
-
-            expect(result.DEVICE1.trust_level).toBe("verified");
-            transport.expectCalledWithArgs(Method.Get, "/device_trust", undefined, undefined, {
-                prefix: "/_matrix/client/v3",
-            });
-        });
-    });
-
     // ============ Room Key Requests ============
 
     describe("listRoomKeyRequests", () => {
         it("should list room key requests", async () => {
-            transport.respondWith([
-                {
-                    request_id: "req1",
-                    room_id: "!room:example.com",
-                    session_id: "s1",
-                    algorithm: "m.megolm.v1.aes-sha2",
-                    state: "pending",
-                },
-            ]);
+            transport.respondWith({
+                requests: [
+                    {
+                        request_id: "req1",
+                        room_id: "!room:example.com",
+                        session_id: "s1",
+                        algorithm: "m.megolm.v1.aes-sha2",
+                        state: "pending",
+                    },
+                ],
+            });
 
             const result = await e2eeManager.listRoomKeyRequests();
 
-            expect(result).toHaveLength(1);
-            expect(result[0].request_id).toBe("req1");
+            expect(result.requests).toHaveLength(1);
+            expect(result.requests[0].request_id).toBe("req1");
             transport.expectCalledWithArgs(Method.Get, "/room_keys/request", undefined, undefined, {
                 prefix: "/_matrix/client/v3",
             });

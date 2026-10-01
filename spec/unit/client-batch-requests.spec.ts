@@ -29,7 +29,7 @@ import {
     getOpenIdTokenRequest,
 } from "../../src/client-batch-requests.ts";
 import { getMyRoomsRequest } from "../../src/client-secure-backup-requests.ts";
-import { Method, ClientPrefix } from "../../src/http-api/index.ts";
+import { Method, ClientPrefix, VendorPrefix } from "../../src/http-api/index.ts";
 import { ReceiptType } from "../../src/@types/read_receipts.ts";
 import { Visibility } from "../../src/@types/partials.ts";
 
@@ -215,7 +215,7 @@ describe("client-batch-requests", () => {
             const result = await getMyRoomsRequest(mockAuthedRequest);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/my_rooms", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
             expect(result).toEqual(mockResponse);
         });

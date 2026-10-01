@@ -1,8 +1,8 @@
 ---
 module: telemetry
 generated_from: docs/api-contract/generated/modules/telemetry.json
-generated_hash: sha256-8a580ec273dcffee9744d8be5082788b98cdc758080205294d9ec38ff27816db
-ledger_schema: 1
+generated_hash: sha256-2dc94ebe1357a407f82bef372e2c34edd1cd454266624313730520ab1cc40beb
+ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 

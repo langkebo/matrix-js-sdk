@@ -31,6 +31,7 @@ export interface ICreateClientOpts {
     tokenRefreshFunction?: TokenRefreshFunction;
     identityServer?: IIdentityServerProvider;
     localTimeoutMs?: number;
+    /** @deprecated Token is always sent via Authorization header (ISSUE-09). This option is ignored. */
     useAuthorizationHeader?: boolean;
     timelineSupport?: boolean;
     queryParams?: QueryDict;

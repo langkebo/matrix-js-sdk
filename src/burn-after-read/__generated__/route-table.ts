@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Burn After Read
- * Source:        docs/api-contract/generated/modules/burn_after_read.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       21 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `burn_after_read` module. */
+/** Routes served by the synapse-rust `burn-after-read` module (mirrored from the backend contract). */
 export const BURN_AFTER_READ_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/burn" },
     { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/burn" },
@@ -25,6 +23,13 @@ export const BURN_AFTER_READ_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/burn/{event_id}" },
     { method: "PUT", path: "/_matrix/client/v3/user/burn/config" },
     { method: "GET", path: "/_matrix/client/v3/user/burn/stats" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/burn/pending" },
+    { method: "GET", path: "/_matrix/vendor/v1/user/burn/stats" },
+    { method: "POST", path: "/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}" },
+    { method: "PUT", path: "/_matrix/vendor/v1/rooms/{room_id}/burn" },
+    { method: "PUT", path: "/_matrix/vendor/v1/user/burn/config" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/burn" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `BURN_AFTER_READ_ROUTES`. */

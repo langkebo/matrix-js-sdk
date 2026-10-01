@@ -188,16 +188,13 @@ function collectCoverageMetrics() {
 }
 
 function collectCriticalCoverage() {
-    const criticalTargets = [
-        "src/admin/index.ts",
-        "src/dm/index.ts",
-        "src/push/index.ts",
-        "src/space/index.ts",
-        "src/room-summary/index.ts",
-        "src/room/RoomManager.ts",
-        "src/event/EventManager.ts",
-        "src/auth/index.ts",
-    ];
+    // Single source of truth, shared with scripts/quality/check-critical-coverage.mjs.
+    // The two used to hardcode different module lists (5 vs 8), so the report and the
+    // gate could disagree about whether the repo was healthy.
+    const criticalConfig = JSON.parse(
+        fs.readFileSync(path.join(projectRoot, "scripts", "quality", "critical-modules.json"), "utf8"),
+    );
+    const targetPercent = criticalConfig.targetPercent ?? 90;
 
     const lcovPath = path.join(projectRoot, "coverage", "lcov.info");
     if (!fs.existsSync(lcovPath)) {
@@ -207,13 +204,16 @@ function collectCriticalCoverage() {
     const records = parseLcov(fs.readFileSync(lcovPath, "utf8"));
     const results = [];
 
-    for (const target of criticalTargets) {
+    for (const entry of criticalConfig.modules) {
+        const target = entry.path;
+        const required = entry.floorPercent ?? targetPercent;
         const record = records.get(target) ?? records.get(normalizeCoveragePath(path.resolve(projectRoot, target)));
         results.push({
             file: target,
             coverage: record ? record.linesRatio.toFixed(2) : "N/A",
-            threshold: 90,
-            passed: record ? record.linesRatio >= 90 : false,
+            threshold: required,
+            target: targetPercent,
+            passed: record ? record.linesRatio >= required : false,
         });
     }
 
@@ -222,6 +222,65 @@ function collectCriticalCoverage() {
         passed: results.every((r) => r.passed),
         threshold: 90,
     };
+}
+
+/**
+ * codegen 覆盖证据强度（C-2）。
+ *
+ * 直接消费 `check-manager-codegen-coverage.mjs --json`，而不是在报告里重算一遍 ——
+ * 否则"报告显示的覆盖"和"门禁判定的覆盖"迟早会漂移。这里同时给出**强证据**（src 下
+ * 有人 import 该模块的 route-table）与**弱证据**（生成了表但没人读）两栏，
+ * 避免一个"覆盖率 100%"把"这张表没人读"掩盖掉。
+ */
+function collectCodegenCoverage() {
+    const raw = runCommand("node scripts/quality/check-manager-codegen-coverage.mjs --json", true);
+    const payload = extractJsonPayload(raw);
+    if (!payload) {
+        return { available: false, covered: 0, strong: [], weak: [], waived: 0, missing: 0 };
+    }
+    try {
+        const parsed = JSON.parse(payload);
+        return {
+            available: true,
+            covered: parsed.covered ?? 0,
+            coverageRate: parsed.coverageRate ?? 0,
+            strong: parsed.strong ?? [],
+            weak: parsed.weak ?? [],
+            waived: parsed.waived ?? 0,
+            missing: parsed.missing ?? 0,
+            missingModules: parsed.missingModules ?? [],
+        };
+    } catch {
+        return { available: false, covered: 0, strong: [], weak: [], waived: 0, missing: 0 };
+    }
+}
+
+/**
+ * 契约差集（SDK-2）。
+ *
+ * 消费 `check-contract-drift.mjs --json`：SDK 生成 route-table 与后端 ledger 的双向差集数量。
+ * "覆盖 100%" 不该掩盖"表与 ledger 不一致"，所以这里把两个方向都摊开。
+ */
+function collectContractDrift() {
+    const raw = runCommand("node scripts/quality/check-contract-drift.mjs --json", true);
+    const payload = extractJsonPayload(raw);
+    if (!payload) {
+        return { available: false, driftedModules: 0, sdkOnly: 0, ledgerOnly: 0, registered: 0, stale: 0 };
+    }
+    try {
+        const parsed = JSON.parse(payload);
+        return {
+            available: true,
+            driftedModules: parsed.driftedModules ?? 0,
+            sdkOnly: parsed.sdkOnly ?? 0,
+            ledgerOnly: parsed.ledgerOnly ?? 0,
+            registered: parsed.registered ?? 0,
+            stale: (parsed.stale ?? []).length,
+            perModule: parsed.perModule ?? {},
+        };
+    } catch {
+        return { available: false, driftedModules: 0, sdkOnly: 0, ledgerOnly: 0, registered: 0, stale: 0 };
+    }
 }
 
 function collectComplexityMetrics() {
@@ -250,30 +309,121 @@ function collectComplexityMetrics() {
     };
 }
 
-function collectSecurityAudit() {
-    const result = runCommand("pnpm audit --audit-level=high --json", true);
-    if (!result) {
-        return { error: "pnpm audit failed" };
-    }
-
+/**
+ * `pnpm audit` exits non-zero whenever it *finds* anything at the configured
+ * level, and only writes its JSON payload after that decision. A plain
+ * `execSync` therefore throws away the whole report exactly when it matters
+ * most, which is how this section used to render "❌ 0 vulnerabilities".
+ * Capture stdout from both the success and the failure path instead.
+ */
+function runCommandCapture(cmd) {
     try {
-        const audit = JSON.parse(result);
-        const metadata = audit.metadata || {};
-
         return {
-            vulnerabilities: {
-                critical: metadata.vulnerabilities?.critical || 0,
-                high: metadata.vulnerabilities?.high || 0,
-                moderate: metadata.vulnerabilities?.moderate || 0,
-                low: metadata.vulnerabilities?.low || 0,
-                info: metadata.vulnerabilities?.info || 0,
-                total: metadata.vulnerabilities?.total || 0,
-            },
-            passed: (metadata.vulnerabilities?.high || 0) === 0 && (metadata.vulnerabilities?.critical || 0) === 0,
+            exitCode: 0,
+            stdout: execSync(cmd, { encoding: "utf8", cwd: projectRoot, stdio: "pipe", maxBuffer: 20 * 1024 * 1024 }),
         };
     } catch (e) {
-        return { error: "Failed to parse audit output" };
+        return {
+            exitCode: typeof e.status === "number" ? e.status : 1,
+            stdout: typeof e.stdout === "string" ? e.stdout : "",
+        };
     }
+}
+
+function summariseAuditPayload(stdout) {
+    let audit;
+    try {
+        audit = JSON.parse(stdout);
+    } catch {
+        return null;
+    }
+
+    const advisories = Object.values(audit.advisories || {});
+    const counts = { critical: 0, high: 0, moderate: 0, low: 0, info: 0, total: advisories.length };
+    const modules = new Set();
+
+    for (const advisory of advisories) {
+        const severity = advisory.severity || "info";
+        counts[severity] = (counts[severity] || 0) + 1;
+        modules.add(advisory.module_name || "unknown");
+    }
+
+    return { counts, modules, advisories, muted: Object.keys(audit.muted || {}).length };
+}
+
+function collectSecurityAudit() {
+    // Full scope (runtime + dev). `audit:high` is `--prod`-only, but
+    // `release.yml` gates on the full scope, and dev-tooling advisories still
+    // ship in `pnpm-lock.yaml` for every contributor and CI runner.
+    const fullScope = runCommandCapture("pnpm audit --json");
+    const full = summariseAuditPayload(fullScope.stdout);
+    if (!full) {
+        return { error: "Failed to parse `pnpm audit --json` output", passed: false, exitCode: fullScope.exitCode };
+    }
+
+    // Runtime scope needs its own call: pnpm's advisory payload carries no
+    // `dev` flag on findings, so "prod" cannot be derived from the full report.
+    const prodScope = runCommandCapture("pnpm audit --prod --json");
+    const prod = summariseAuditPayload(prodScope.stdout);
+
+    const blockingAdvisories = full.advisories
+        .filter((a) => a.severity === "high" || a.severity === "critical")
+        .map((a) => ({
+            severity: a.severity,
+            module: a.module_name || "unknown",
+            title: (a.title || "").trim(),
+            vulnerableVersions: a.vulnerable_versions || "unknown",
+            patchedVersions: a.patched_versions || "none",
+            prod: prod ? prod.modules.has(a.module_name) : null,
+        }))
+        .sort((a, b) =>
+            a.severity === b.severity ? a.module.localeCompare(b.module) : a.severity === "critical" ? -1 : 1,
+        );
+
+    return {
+        // Kept for backwards compatibility with older report consumers: these
+        // are the full-scope counts.
+        vulnerabilities: full.counts,
+        scopes: { all: full.counts, prod: prod ? prod.counts : null },
+        blockingAdvisories,
+        muted: full.muted,
+        passed: full.counts.high === 0 && full.counts.critical === 0,
+    };
+}
+
+/**
+ * 安全段的 markdown 渲染（报告正文与 `--security-only` 诊断共用同一份实现，
+ * 保证“能展示真实计数”这件事本身可被单独验证）。
+ */
+function renderSecuritySection(security) {
+    const prod = security?.scopes?.prod ?? null;
+    const all = security?.vulnerabilities ?? {};
+
+    return [
+        `| Severity | Runtime (\`--prod\`) | All scopes |`,
+        `|----------|------------------|------------|`,
+        `| Critical | ${prod?.critical ?? "-"} | ${all.critical || 0} |`,
+        `| High | ${prod?.high ?? "-"} | ${all.high || 0} |`,
+        `| Moderate | ${prod?.moderate ?? "-"} | ${all.moderate || 0} |`,
+        `| Low | ${prod?.low ?? "-"} | ${all.low || 0} |`,
+        `| Muted | - | ${security?.muted ?? 0} |`,
+        "",
+        `**Status**: ${security?.passed ? "✅ No high/critical vulnerabilities in any scope" : "❌ High/critical vulnerabilities found"}`,
+        ...(security?.error ? [`**Error**: ${security.error}`] : []),
+        ...(security?.blockingAdvisories?.length
+            ? [
+                  "",
+                  "| Severity | Package | Vulnerable | Patched | Scope |",
+                  "|----------|---------|-----------|---------|-------|",
+                  ...security.blockingAdvisories
+                      .slice(0, 15)
+                      .map(
+                          (a) =>
+                              `| ${a.severity} | \`${a.module}\` | \`${a.vulnerableVersions}\` | \`${a.patchedVersions}\` | ${a.prod ? "runtime" : "dev-only"} |`,
+                      ),
+              ]
+            : []),
+    ];
 }
 
 function collectTechnicalDebt() {
@@ -444,6 +594,8 @@ function generateReport() {
         metrics: {
             coverage: collectCoverageMetrics(),
             criticalCoverage: collectCriticalCoverage(),
+            codegenCoverage: collectCodegenCoverage(),
+            contractDrift: collectContractDrift(),
             complexity: collectComplexityMetrics(),
             security: collectSecurityAudit(),
             technicalDebt: collectTechnicalDebt(),
@@ -503,12 +655,28 @@ function generateMarkdownSummary(report) {
         `| Branches | ${report.metrics.coverage.branches?.percentage || "N/A"}% | ${report.metrics.coverage.branches?.threshold || 60}% | ${report.metrics.coverage.branches?.passed ? "✅" : "❌"} |`,
         `| Functions | ${report.metrics.coverage.functions?.percentage || "N/A"}% | ${report.metrics.coverage.functions?.threshold || 70}% | ${report.metrics.coverage.functions?.passed ? "✅" : "❌"} |`,
         "",
-        "### Critical Module Coverage (>= 90%)",
-        `| Module | Coverage | Status |`,
-        `|--------|----------|--------|`,
+        `### Critical Module Coverage (target ${report.metrics.criticalCoverage?.threshold ?? 90}%, ratchet floors per module)`,
+        `| Module | Coverage | Floor | Status |`,
+        `|--------|----------|-------|--------|`,
         ...(report.metrics.criticalCoverage?.modules || []).map(
-            (m) => `| ${m.file} | ${m.coverage}% | ${m.passed ? "✅" : "❌"} |`,
+            (m) => `| ${m.file} | ${m.coverage}% | ${m.threshold}% | ${m.passed ? "✅" : "❌"} |`,
         ),
+        "",
+        "### Codegen Coverage (route-table 消费证据)",
+        `| 层级 | 数量 | 说明 |`,
+        `|------|------|------|`,
+        `| 强证据（src 下有人 import 该模块 route-table） | ${report.metrics.codegenCoverage?.strong?.length ?? "N/A"} | 跨模块导入也算，判定见 check-manager-codegen-coverage.mjs |`,
+        `| 弱证据（生成了表但没人读，已白名单说明原因） | ${report.metrics.codegenCoverage?.weak?.length ?? "N/A"} | ${(report.metrics.codegenCoverage?.weak || []).join(", ") || "（无）"} |`,
+        `| 白名单（codegen 有意跳过 / 无消费者） | ${report.metrics.codegenCoverage?.waived ?? "N/A"} | 每条带 reason + 到期日 |`,
+        `| 缺失 | ${report.metrics.codegenCoverage?.missing ?? "N/A"} | 非 0 即门禁红 |`,
+        "",
+        "### Contract Drift (SDK route-table ↔ 后端 ledger)",
+        `| 方向 | 数量 | 说明 |`,
+        `|------|------|------|`,
+        `| 有差集的模块 | ${report.metrics.contractDrift?.driftedModules ?? "N/A"} | 逐条登记在 scripts/quality/contract-drift-registry.json |`,
+        `| SDK 表有、ledger 无 | ${report.metrics.contractDrift?.sdkOnly ?? "N/A"} | 历史/人工条目，待 SDK-3/SDK-5 定性 |`,
+        `| ledger 有、SDK 表无 | ${report.metrics.contractDrift?.ledgerOnly ?? "N/A"} | 文档漏覆盖或路径族变化，SDK-1 以 ledger 为源后收敛 |`,
+        `| 已验证修好但没删登记（stale） | ${report.metrics.contractDrift?.stale ?? "N/A"} | 非 0 即门禁红 |`,
         "",
         "### Code Quality",
         `| Metric | Value | Baseline | Change |`,
@@ -519,14 +687,7 @@ function generateMarkdownSummary(report) {
         `| Manager Migration | ${report.metrics.managerMigration?.coverage || 0}% | 95% | ${report.metrics.managerMigration?.passed ? "✅" : "❌"} |`,
         "",
         "### Security",
-        `| Severity | Count |`,
-        `|----------|-------|`,
-        `| Critical | ${report.metrics.security?.vulnerabilities?.critical || 0} |`,
-        `| High | ${report.metrics.security?.vulnerabilities?.high || 0} |`,
-        `| Moderate | ${report.metrics.security?.vulnerabilities?.moderate || 0} |`,
-        `| Low | ${report.metrics.security?.vulnerabilities?.low || 0} |`,
-        "",
-        `**Status**: ${report.metrics.security?.passed ? "✅ No high/critical vulnerabilities" : "❌ Vulnerabilities found"}`,
+        ...renderSecuritySection(report.metrics.security),
         "",
         "### Tests",
         `| Metric | Value |`,
@@ -543,6 +704,16 @@ function generateMarkdownSummary(report) {
 
     fs.writeFileSync(mdFile, lines.join("\n"));
     console.log(`[quality-report] Markdown summary saved to: ${mdFile}`);
+}
+
+// Fast diagnostic: render only the security section (no coverage run, no file
+// writes), so the section's ability to surface non-zero counts can be verified
+// end-to-end without a full two-minute report. Exit code mirrors the gate.
+if (process.argv.includes("--security-only")) {
+    const security = collectSecurityAudit();
+    console.log(JSON.stringify(security, null, 2));
+    console.log("\n### Security\n" + renderSecuritySection(security).join("\n"));
+    process.exit(security.passed ? 0 : 1);
 }
 
 const report = generateReport();

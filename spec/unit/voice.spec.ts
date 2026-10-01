@@ -2,8 +2,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { VoiceManager, VoiceEvent, type IVoiceConfig } from "../../src/voice/index";
 import { Method } from "../../src/http-api/method";
-import { ClientPrefix } from "../../src/http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix";
 import { HTTPError } from "../../src/http-api/errors";
+
+/** Helper to construct a minimal FormData with just a file field. */
+function makeVoiceMultipart(content: Blob, extraFields?: Record<string, string>): FormData {
+    const fd = new FormData();
+    fd.append("file", content);
+    if (extraFields) {
+        for (const [k, v] of Object.entries(extraFields)) {
+            fd.append(k, v);
+        }
+    }
+    return fd;
+}
 
 describe("VoiceManager", () => {
     let transport: FakeTransport;
@@ -42,11 +54,11 @@ describe("VoiceManager", () => {
         expect(opts.prefix).toBe(ClientPrefix.V1);
     });
 
-    it("getVoiceStats should default to V3 prefix when omitted (FT-093)", async () => {
+    it("getVoiceStats should default to VendorPrefix when omitted (FT-093)", async () => {
         transport.respondWith({});
         await manager.getVoiceStats();
         const opts = transport.request.mock.calls[0][4] as { prefix: string };
-        expect(opts.prefix).toBe(ClientPrefix.V3);
+        expect(opts.prefix).toBe(VendorPrefix);
     });
 
     // ─── getRoomVoiceStats ──────────────────────────────────────────
@@ -117,13 +129,13 @@ describe("VoiceManager", () => {
 
     it("uploadVoiceMessage should POST /voice/upload and emit MessageUploaded", async () => {
         const uploadReq = { content: "base64audio...", content_type: "audio/ogg", room_id: "!room:example.com" };
+        // 契约来源：voice_service.rs::upload_voice_message 的 json!({...})
         const uploadResp = {
-            message_id: "msg1",
-            url: "https://example.com/audio",
-            mxc_url: "mxc://example.com/audio",
+            content_uri: "mxc://example.com/audio",
+            content: { msgtype: "m.audio", body: "voice.ogg", url: "mxc://example.com/audio" },
             content_type: "audio/ogg",
-            size_bytes: 2048,
             duration_ms: 3000,
+            size: 2048,
         };
         const emitSpy = vi.spyOn(manager, "emit");
         transport.respondWith(uploadResp);
@@ -161,16 +173,66 @@ describe("VoiceManager", () => {
         expect(transport.request).toHaveBeenCalledTimes(1);
     });
 
+    // ─── uploadVoiceMessageMultipart ────────────────────────────────
+
+    it("uploadVoiceMessageMultipart should POST /voice/upload with FormData and emit MessageUploaded", async () => {
+        const audioBlob = new Blob(["dummy-audio-bytes"], { type: "audio/ogg" });
+        const formData = makeVoiceMultipart(audioBlob, {
+            room_id: "!room:example.com",
+            duration_ms: "5000",
+            content_type: "audio/ogg",
+        });
+        const response = {
+            content_uri: "mxc://example.com/audio",
+            content: { msgtype: "m.audio", body: "voice.ogg", url: "mxc://example.com/audio" },
+            content_type: "audio/ogg",
+            duration_ms: 5000,
+            size: 1024,
+        };
+        const emitSpy = vi.spyOn(manager, "emit");
+        transport.respondWith(response);
+        const result = await manager.uploadVoiceMessageMultipart({ formData });
+        expect(result).toEqual(response);
+        expect(emitSpy).toHaveBeenCalledWith(VoiceEvent.MessageUploaded, response);
+        expect(transport.request).toHaveBeenCalledTimes(1);
+        const call = transport.request.mock.calls[0];
+        expect(call[0]).toBe(Method.Post);
+        expect(call[1]).toBe("/voice/upload");
+        // body should be a FormData instance
+        expect(call[3] instanceof FormData).toBe(true);
+    });
+
+    it("uploadVoiceMessageMultipart should throw ValidationError for empty file", async () => {
+        const formData = new FormData();
+        formData.append("file", new Blob([])); // empty blob
+        await expect(manager.uploadVoiceMessageMultipart({ formData })).rejects.toThrow("Voice upload file is empty");
+    });
+
+    it("uploadVoiceMessageMultipart should throw ValidationError when file field missing", async () => {
+        const formData = new FormData();
+        formData.append("room_id", "!room:example.com");
+        await expect(manager.uploadVoiceMessageMultipart({ formData })).rejects.toThrow("Voice upload requires 'file' field in FormData");
+    });
+
+    it("uploadVoiceMessageMultipart does not retry on 500 (non-idempotent POST)", async () => {
+        transport.rejectWith(new HTTPError("Internal Server Error", 500));
+        const audioBlob = new Blob(["dummy"], { type: "audio/ogg" });
+        await expect(manager.uploadVoiceMessageMultipart({ formData: makeVoiceMultipart(audioBlob) })).rejects.toThrow();
+        expect(transport.request).toHaveBeenCalledTimes(1);
+    });
+
     // ─── getVoiceMessage ─────────────────────────────────────────────
 
     it("getVoiceMessage should GET a single voice message", async () => {
+        // 契约来源：voice_service.rs::record_to_message_json
         const msg = {
-            message_id: "msg1",
-            url: "https://example.com/audio",
-            mxc_url: "mxc://example.com/audio",
+            media_id: "msg1",
+            user_id: "@alice:example.com",
+            room_id: "!room:example.com",
+            content_uri: "mxc://example.com/audio",
             content_type: "audio/ogg",
-            size_bytes: 2048,
             duration_ms: 3000,
+            size_bytes: 2048,
             created_ts: 1234567890,
         };
         transport.respondWith(msg);
@@ -198,17 +260,105 @@ describe("VoiceManager", () => {
         await expect(manager.deleteVoiceMessage("")).rejects.toThrow("Message ID is required");
     });
 
-    // ─── getRoomVoice / getUserVoice ─────────────────────────────────
+    // ─── listRoomVoiceMessages / listUserVoiceMessages ───────────────
+    //
+    // 契约铁律：后端路由是 `/voice/room/{room_id}` 与 `/voice/user/{user_id}`，
+    // **没有 `/messages` 段**（voice.rs:57-58/69-70 注册的就是这个路径），
+    // 且 `next_batch` 是 i64 毫秒时间戳而不是不透明字符串，也没有 `has_more`。
+
+    it("listRoomVoiceMessages should GET /voice/room/{id} WITHOUT a /messages suffix", async () => {
+        const page = {
+            room_id: "!room:example.com",
+            messages: [
+                {
+                    media_id: "media1",
+                    user_id: "@alice:example.com",
+                    room_id: "!room:example.com",
+                    content_uri: "mxc://example.com/media1",
+                    content_type: "audio/ogg",
+                    duration_ms: 1200,
+                    size_bytes: 4096,
+                    created_ts: 1700000001000,
+                },
+            ],
+            next_batch: 1700000001000,
+        };
+        transport.respondWith(page);
+
+        const result = await manager.listRoomVoiceMessages("!room:example.com");
+
+        expect(result).toEqual(page);
+        // Guard against the 404 regression: no `/messages` segment may be appended.
+        transport.expectCalledWith(Method.Get, "/voice/room/!room%3Aexample.com");
+        const path = transport.request.mock.calls[0][1] as string;
+        expect(path.endsWith("/messages")).toBe(false);
+    });
+
+    it("listRoomVoiceMessages should pass limit and the numeric from cursor", async () => {
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: null });
+
+        await manager.listRoomVoiceMessages("!room:example.com", { limit: 10, from: 1700000001000 });
+
+        const query = transport.request.mock.calls[0][2] as Record<string, unknown>;
+        expect(query.limit).toBe(10);
+        expect(query.from).toBe(1700000001000);
+    });
+
+    it("listRoomVoiceMessages should default limit to 50 and omit from when absent", async () => {
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: null });
+
+        await manager.listRoomVoiceMessages("!room:example.com");
+
+        const query = transport.request.mock.calls[0][2] as Record<string, unknown>;
+        expect(query.limit).toBe(50);
+        expect("from" in query).toBe(false);
+    });
+
+    it("listRoomVoiceMessages should surface next_batch as a number, not a string", async () => {
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: 42 });
+
+        const result = await manager.listRoomVoiceMessages("!room:example.com");
+
+        expect(typeof result.next_batch).toBe("number");
+        // `has_more` is not part of the contract.
+        expect("has_more" in result).toBe(false);
+    });
+
+    it("listRoomVoiceMessages should throw ValidationError for empty room ID", async () => {
+        await expect(manager.listRoomVoiceMessages("")).rejects.toThrow("Room ID is required");
+    });
+
+    it("listUserVoiceMessages should GET /voice/user/{id} WITHOUT a /messages suffix", async () => {
+        const page = {
+            user_id: "@alice:example.com",
+            messages: [],
+            next_batch: null,
+        };
+        transport.respondWith(page);
+
+        const result = await manager.listUserVoiceMessages("@alice:example.com");
+
+        expect(result).toEqual(page);
+        transport.expectCalledWith(Method.Get, "/voice/user/%40alice%3Aexample.com");
+        const path = transport.request.mock.calls[0][1] as string;
+        expect(path.endsWith("/messages")).toBe(false);
+    });
+
+    it("listUserVoiceMessages should throw ValidationError for empty user ID", async () => {
+        await expect(manager.listUserVoiceMessages("")).rejects.toThrow("User ID is required");
+    });
+
+    // ─── getRoomVoice / getUserVoice (deprecated delegates) ──────────
 
     it("getRoomVoice should GET /voice/room/{id}", async () => {
-        transport.respondWith({ room_id: "!room:example.com", voice_enabled: true });
+        transport.respondWith({ room_id: "!room:example.com", messages: [], next_batch: null });
         const result = await manager.getRoomVoice("!room:example.com");
         expect(result.room_id).toBe("!room:example.com");
         transport.expectCalledWith(Method.Get, "/voice/room/!room%3Aexample.com");
     });
 
     it("getUserVoice should GET /voice/user/{id}", async () => {
-        transport.respondWith({ user_id: "@user:example.com", voice_enabled: true });
+        transport.respondWith({ user_id: "@user:example.com", messages: [], next_batch: null });
         const result = await manager.getUserVoice("@user:example.com");
         expect(result.user_id).toBe("@user:example.com");
         transport.expectCalledWith(Method.Get, "/voice/user/%40user%3Aexample.com");
@@ -305,6 +455,23 @@ describe("VoiceManager", () => {
         const result = await manager.getVoiceConfig();
         expect(result).toEqual(config);
         expect(transport.request).not.toHaveBeenCalled();
+    });
+
+    // ─── getRtcTransports ─────────────────────────────────────────
+
+    it("getRtcTransports should GET /org.matrix.msc4143/rtc/transports with Unstable prefix", async () => {
+        const transports = { transports: [{ protocol: "org.matrix.msc4143", uri: "wss://example.com" }] };
+        transport.respondWith(transports);
+        const result = await manager.getRtcTransports();
+        expect(result).toEqual(transports);
+        transport.expectCalledWith(Method.Get, "/org.matrix.msc4143/rtc/transports");
+        const opts = transport.request.mock.calls[0][4] as { prefix: string };
+        expect(opts.prefix).toBe(ClientPrefix.Unstable);
+    });
+
+    it("getRtcTransports should reject on failure", async () => {
+        transport.rejectWith(new Error("API error"));
+        await expect(manager.getRtcTransports()).rejects.toThrow();
     });
 
     // ─── extendMatrixClient export ─────────────────────────────────

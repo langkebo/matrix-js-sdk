@@ -74,19 +74,34 @@ describe("FederationManager", () => {
         expect(federationManager.blacklist.getCachedBlacklist()).toEqual([]);
     });
 
-    it("should get server status", async () => {
-        mockAuthedRequest.mockResolvedValue({ online: true, last_successful_connect: 456, latency: 100 });
+    it("should get server status via the destinations endpoint", async () => {
+        // 后端 `DestinationInfo`：`status` 默认 "active"，成功时间在 `last_successful_ts`。
+        mockAuthedRequest.mockResolvedValue({
+            destination: "server4.com",
+            status: "active",
+            last_successful_ts: 456,
+            retry_last_ts: null,
+            failure_count: 0,
+        });
 
         const result = await federationManager.server.getServerStatus("server4.com");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Get,
-            "/federation/status/server4.com",
+            "/federation/destinations/server4.com",
             undefined,
             undefined,
             { prefix: AdminPrefix.V1 },
         );
-        expect(result).toEqual({ online: true, lastSuccessfulConnect: 456, latency: 100 });
+        expect(result).toEqual({ online: true, lastSuccessfulConnect: 456 });
+    });
+
+    it("should report a destination that is not active as offline", async () => {
+        mockAuthedRequest.mockResolvedValue({ destination: "server4b.com", status: "retrying", failure_count: 3 });
+
+        const result = await federationManager.server.getServerStatus("server4b.com");
+
+        expect(result).toEqual({ online: false, lastSuccessfulConnect: undefined });
     });
 
     it("should get federation destinations", async () => {
@@ -101,24 +116,16 @@ describe("FederationManager", () => {
         expect(federationManager.server.getCachedServers()).toEqual([{ serverName: "dest1.com" }]);
     });
 
-    it("should disconnect a server", async () => {
-        await federationManager.server.disconnectServer("server5.com");
+    // ⚠️ `disconnectServer` 用例已删除：上游 Synapse v1.162.0 与本仓后端都**没有**
+    // `/federation/disconnect/{server}`（上游 `rest/admin/federation.py` 只有
+    // `destinations/{destination}` 与 `.../reset_connection`）⇒ SDK 侧方法一并删除。
 
-        expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            "/federation/disconnect/server5.com",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
-    });
-
-    it("should reconnect a server", async () => {
+    it("should reconnect a server via reset_connection", async () => {
         await federationManager.server.reconnectServer("server6.com");
 
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Post,
-            "/federation/reconnect/server6.com",
+            "/federation/destinations/server6.com/reset_connection",
             undefined,
             undefined,
             { prefix: AdminPrefix.V1 },

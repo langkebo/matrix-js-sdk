@@ -30,7 +30,16 @@ function createMockClient(): MatrixClient {
         supportsThreads: vi.fn().mockReturnValue(false),
         decryptEventIfNeeded: vi.fn().mockResolvedValue(undefined),
         getUserId: vi.fn().mockReturnValue(USER_ID),
-        getEventMapper: vi.fn().mockReturnValue((event: Partial<MatrixEvent>) => new MatrixEvent(event)),
+        getEventMapper: vi.fn().mockReturnValue(
+            (
+                event: Partial<{
+                    event_id: string;
+                    type: string;
+                    content: Record<string, unknown>;
+                    sender: string;
+                }>,
+            ) => new MatrixEvent(event),
+        ),
         store: {
             getPendingEvents: vi.fn().mockResolvedValue([]),
             setPendingEvents: vi.fn().mockResolvedValue(undefined),
@@ -143,12 +152,15 @@ describe("ISSUE-11b bounded collections", () => {
                 type: "m.room.message",
                 content: { body: String(i) },
             }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             await store.setPendingEvents(roomId, events as any);
 
             const result = await store.getPendingEvents(roomId);
             expect(result.length).toBe(100);
             // LRU: should keep the most recent 100 (i.e. events 100..199)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             expect((result[0].content as any).body).toBe("100");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             expect((result[99].content as any).body).toBe("199");
         });
 
@@ -159,6 +171,7 @@ describe("ISSUE-11b bounded collections", () => {
                 type: "m.room.message",
                 content: { body: String(i) },
             }));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             await store.setPendingEvents(roomId, events as any);
             const result = await store.getPendingEvents(roomId);
             expect(result.length).toBe(50);
@@ -170,6 +183,7 @@ describe("ISSUE-11b bounded collections", () => {
             const store = new MemoryStore();
             for (let i = 0; i < 60; i++) {
                 await store.setOutOfBandMembers(`!room${i}:server`, [
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
                     { type: "m.room.member", content: { membership: "join" } } as any,
                 ]);
             }
@@ -209,19 +223,29 @@ describe("ISSUE-11b bounded collections", () => {
             });
             const fakeThreadTimelineSet = {
                 getLiveTimeline: () => fakeTimeline,
+                getTimelines: () => [fakeTimeline],
+                removeEvent: (eventId: string) => {
+                    const idx = eventsArr.findIndex((e) => e.getId() === eventId);
+                    if (idx >= 0) eventsArr.splice(idx, 1);
+                    return eventsArr[idx] ?? null;
+                },
             } as unknown as EventTimelineSet;
 
             // Inject into threadsTimelineSets (tuple, starts as []).
             // Cast to any to bypass the tuple type guard.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             (room as any).threadsTimelineSets = [fakeThreadTimelineSet, fakeThreadTimelineSet];
 
             // Trigger cleanupOldEvents (private). Cast to any for direct call.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             (room as any).cleanupOldEvents();
 
             // The thread timeline should have been trimmed to 5 events
             expect(eventsArr.length).toBe(5);
             // Newest 5 kept (t5..t9)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             expect((eventsArr[0].getContent() as any).body).toBe("t5");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             expect((eventsArr[4].getContent() as any).body).toBe("t9");
         });
 
@@ -231,6 +255,7 @@ describe("ISSUE-11b bounded collections", () => {
                 maxTimelineEvents: 5,
             });
             // threadsTimelineSets defaults to []
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             expect(() => (room as any).cleanupOldEvents()).not.toThrow();
         });
     });

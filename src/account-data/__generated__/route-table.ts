@@ -3,27 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Account Data 模块契约
- * Source:        docs/api-contract/generated/modules/account_data.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       15 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `account_data` module. */
+/** Routes served by the synapse-rust `account-data` module (mirrored from the backend contract). */
 export const ACCOUNT_DATA_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/user/{user_id}/account_data/" },
-    { method: "DELETE", path: "/_matrix/client/r0/user/{user_id}/account_data/{type}" },
-    { method: "GET", path: "/_matrix/client/r0/user/{user_id}/account_data/{type}" },
-    { method: "PUT", path: "/_matrix/client/r0/user/{user_id}/account_data/{type}" },
-    { method: "POST", path: "/_matrix/client/r0/user/{user_id}/filter" },
-    { method: "PUT", path: "/_matrix/client/r0/user/{user_id}/filter" },
-    { method: "DELETE", path: "/_matrix/client/r0/user/{user_id}/filter/{filter_id}" },
-    { method: "GET", path: "/_matrix/client/r0/user/{user_id}/filter/{filter_id}" },
-    { method: "GET", path: "/_matrix/client/r0/user/{user_id}/openid/request_token" },
-    { method: "POST", path: "/_matrix/client/r0/user/{user_id}/openid/request_token" },
-    { method: "DELETE", path: "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}" },
-    { method: "GET", path: "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}" },
-    { method: "PUT", path: "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/account_data/" },
     { method: "DELETE", path: "/_matrix/client/v3/user/{user_id}/account_data/{type}" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/account_data/{type}" },
@@ -37,6 +22,8 @@ export const ACCOUNT_DATA_ROUTES = [
     { method: "DELETE", path: "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}" },
     { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}" },
     { method: "PUT", path: "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}" },
+    { method: "POST", path: "/_matrix/client/v3/user/{user_id}/account_data/{type}" },
+    { method: "POST", path: "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ACCOUNT_DATA_ROUTES`. */

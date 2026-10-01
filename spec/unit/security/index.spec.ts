@@ -17,223 +17,86 @@ limitations under the License.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { SecurityManager } from "../../../src/security/index";
-import { logger } from "../../../src/logger";
 
+/**
+ * `SecurityManager` 只保留有后端契约的能力。原先的
+ * `getAccountStatus` / `isAccountLocked` / `isAccountSuspended` / `listLoginFailures`
+ * 调的是**不存在**的端点（`/_synapse/admin/v1/account_status/{user_id}`、
+ * `/_synapse/admin/v1/login/failures`，后端 ledger 零命中）⇒ 已删除，
+ * 因此这里不再有对应的"假兜底"用例。
+ */
 describe("SecurityManager", () => {
     let manager: SecurityManager;
-    let mockClient: {
-        http: {
-            authedRequest: ReturnType<typeof vi.fn>;
-        };
-        getDeviceManager: ReturnType<typeof vi.fn>;
-    };
+    let getDevices: ReturnType<typeof vi.fn>;
+    let getDeviceVerificationStatus: ReturnType<typeof vi.fn>;
+    let mockClient: Record<string, unknown>;
+
+    const devices = [
+        { device_id: "DEVICE_1", display_name: "Device 1" },
+        { device_id: "DEVICE_2", display_name: "Device 2" },
+    ];
 
     beforeEach(() => {
-        const mockDeviceManager = {
-            getDevices: vi.fn().mockResolvedValue([
-                { device_id: "DEVICE_1", display_name: "Device 1" },
-                { device_id: "DEVICE_2", display_name: "Device 2" },
-            ]),
-        };
+        getDevices = vi.fn().mockResolvedValue(devices);
+        getDeviceVerificationStatus = vi.fn().mockResolvedValue({ isVerified: () => true });
 
         mockClient = {
-            http: {
-                authedRequest: vi.fn(),
-            },
-            getDeviceManager: vi.fn().mockReturnValue(mockDeviceManager),
+            getDeviceManager: vi.fn().mockReturnValue({ getDevices }),
+            getCrypto: vi.fn().mockReturnValue({ getDeviceVerificationStatus }),
+            getUserId: vi.fn().mockReturnValue("@user:example.com"),
         };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         manager = new SecurityManager(mockClient as any);
     });
 
-    describe("getAccountStatus", () => {
-        it("should return account status when successful", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                locked: false,
-                suspended: false,
-                verified: true,
-            });
-
-            const status = await manager.getAccountStatus("@user:example.com");
-
-            expect(status).toEqual({
-                locked: false,
-                suspended: false,
-                verified: true,
-            });
-        });
-
-        it("should return null when API fails", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("API Error"));
-
-            const status = await manager.getAccountStatus("@user:example.com");
-
-            expect(status).toBeNull();
-        });
-
-        it("should log a warning (not debug) when API fails", async () => {
-            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
-            const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("API Error"));
-
-            await manager.getAccountStatus("@user:example.com");
-
-            expect(warnSpy).toHaveBeenCalledWith("SecurityManager.getAccountStatus failed", expect.any(Error));
-            expect(debugSpy).not.toHaveBeenCalled();
-            warnSpy.mockRestore();
-            debugSpy.mockRestore();
-        });
-    });
-
-    describe("isAccountLocked", () => {
-        it("should return true when account is locked", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                locked: true,
-                suspended: false,
-                verified: false,
-            });
-
-            const isLocked = await manager.isAccountLocked("@user:example.com");
-
-            expect(isLocked).toBe(true);
-        });
-
-        it("should return false when account is not locked", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                locked: false,
-                suspended: false,
-                verified: false,
-            });
-
-            const isLocked = await manager.isAccountLocked("@user:example.com");
-
-            expect(isLocked).toBe(false);
-        });
-    });
-
-    describe("isAccountSuspended", () => {
-        it("should return true when account is suspended", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                locked: false,
-                suspended: true,
-                verified: false,
-            });
-
-            const isSuspended = await manager.isAccountSuspended("@user:example.com");
-
-            expect(isSuspended).toBe(true);
-        });
-    });
-
-    describe("listLoginFailures", () => {
-        it("should return list of login failures", async () => {
-            mockClient.http.authedRequest.mockResolvedValueOnce({
-                failures: {
-                    "2009-02-13T23:31:30.000Z": [{ ip: "192.168.1.1", userAgent: "Mozilla/5.0" }],
-                    "2009-02-13T23:31:31.000Z": [{ ip: "192.168.1.2" }],
-                },
-            });
-
-            const result = await manager.listLoginFailures();
-
-            expect(result).toEqual([
-                { timestamp: 1234567890000, ip: "192.168.1.1", userAgent: "Mozilla/5.0" },
-                { timestamp: 1234567891000, ip: "192.168.1.2", userAgent: undefined },
-            ]);
-        });
-
-        it("should return empty array when API fails", async () => {
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("API Error"));
-
-            const result = await manager.listLoginFailures();
-
-            expect(result).toEqual([]);
-        });
-
-        it("should log a warning (not debug) when API fails", async () => {
-            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
-            const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
-            mockClient.http.authedRequest.mockRejectedValueOnce(new Error("API Error"));
-
-            await manager.listLoginFailures();
-
-            expect(warnSpy).toHaveBeenCalledWith("SecurityManager.listLoginFailures failed", expect.any(Error));
-            expect(debugSpy).not.toHaveBeenCalled();
-            warnSpy.mockRestore();
-            debugSpy.mockRestore();
-        });
-    });
-
     describe("checkSessionSecurity", () => {
-        it("should return isSecure true when devices exist", async () => {
+        it("returns secure when every device is verified via cross-signing", async () => {
             const result = await manager.checkSessionSecurity();
 
             expect(result.isSecure).toBe(true);
             expect(result.issues).toEqual([]);
+            expect(getDeviceVerificationStatus).toHaveBeenCalledTimes(2);
         });
 
-        it("should return isSecure false when no devices", async () => {
-            const mockDeviceManager = {
-                getDevices: vi.fn().mockResolvedValue([]),
-            };
-            mockClient.getDeviceManager.mockReturnValueOnce(mockDeviceManager);
+        it("returns insecure when no devices are known", async () => {
+            getDevices.mockResolvedValue([]);
 
             const result = await manager.checkSessionSecurity();
 
             expect(result.isSecure).toBe(false);
             expect(result.issues).toContain("No devices found");
         });
-    });
 
-    describe("D7 §2.5: 4xx + typed-error branches", () => {
-        it("getAccountStatus swallows 401 typed errors and returns null", async () => {
-            const err = Object.assign(new Error("Unauthorized"), {
-                httpStatus: 401,
-                errcode: "M_UNKNOWN_TOKEN",
-            });
-            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+        it("returns insecure when encryption is not enabled (device trust cannot be evaluated)", async () => {
+            mockClient.getCrypto = vi.fn().mockReturnValue(undefined);
 
-            await expect(manager.getAccountStatus("@u:example.com")).resolves.toBeNull();
+            const result = await manager.checkSessionSecurity();
+
+            expect(result.isSecure).toBe(false);
+            expect(result.issues).toContain(
+                "Encryption is not enabled on this client; device trust cannot be evaluated",
+            );
         });
 
-        it("getAccountStatus swallows 403 typed errors and returns null", async () => {
-            const err = Object.assign(new Error("Forbidden"), {
-                httpStatus: 403,
-                errcode: "M_FORBIDDEN",
-            });
-            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+        it("counts unverified devices using the crypto API (no always-true check)", async () => {
+            // 第二个设备未通过交叉签名验证 ⇒ 必须被计入并判为不安全。
+            getDeviceVerificationStatus.mockImplementation((_userId: string, deviceId: string) =>
+                Promise.resolve({ isVerified: () => deviceId === "DEVICE_1" }),
+            );
 
-            await expect(manager.getAccountStatus("@u:example.com")).resolves.toBeNull();
+            const result = await manager.checkSessionSecurity();
+
+            expect(result.isSecure).toBe(false);
+            expect(result.issues).toContain("1 device(s) are not verified");
         });
 
-        it("listLoginFailures swallows 4xx errors and returns []", async () => {
-            const err = Object.assign(new Error("Forbidden"), {
-                httpStatus: 403,
-                errcode: "M_FORBIDDEN",
-            });
-            mockClient.http.authedRequest.mockRejectedValueOnce(err);
+        it("treats a missing verification status as unverified", async () => {
+            getDeviceVerificationStatus.mockResolvedValue(null);
 
-            await expect(manager.listLoginFailures()).resolves.toEqual([]);
-        });
+            const result = await manager.checkSessionSecurity();
 
-        it("isAccountLocked falls back to false when API errors out", async () => {
-            const err = Object.assign(new Error("Internal"), {
-                httpStatus: 500,
-                errcode: "M_UNKNOWN",
-            });
-            mockClient.http.authedRequest.mockRejectedValueOnce(err);
-
-            await expect(manager.isAccountLocked("@u:example.com")).resolves.toBe(false);
-        });
-
-        it("isAccountSuspended falls back to false when API errors out", async () => {
-            const err = Object.assign(new Error("Not Found"), {
-                httpStatus: 404,
-                errcode: "M_NOT_FOUND",
-            });
-            mockClient.http.authedRequest.mockRejectedValueOnce(err);
-
-            await expect(manager.isAccountSuspended("@u:example.com")).resolves.toBe(false);
+            expect(result.isSecure).toBe(false);
+            expect(result.issues).toContain("2 device(s) are not verified");
         });
     });
 });

@@ -28,14 +28,18 @@ import { SpaceEvent, type SpaceManagerEventMap } from "../events";
 import type { SpaceHierarchy, SpaceHierarchyPage, SpaceQueryOptions } from "../types";
 import { spacePath } from "../utils";
 import type { SpaceManager } from "../index";
+import { UnifiedCacheManager, CacheManagerFactory } from "../../managers/cache-manager";
+import { TelemetryManager } from "../../telemetry/index";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space hierarchy response content
 
 export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> {
     private parent: SpaceManager | null = null;
+    private hierarchyCache: UnifiedCacheManager;
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
+        this.hierarchyCache = CacheManagerFactory.createSpaceCache();
     }
 
     /**
@@ -45,13 +49,58 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         this.parent = parent;
     }
 
-    async getSpaceHierarchy(spaceId: string): Promise<SpaceHierarchy> {
-        const [space, children, members] = await Promise.all([
-            this.parent!.lifecycle.getSpace(spaceId),
-            this.parent!.child.getSpaceChildren(spaceId),
-            this.parent!.member.getSpaceMembers(spaceId),
-        ]);
-        return { space, children, members };
+    /** 清空层级缓存（供顶层 SpaceManager.clearCache 委托） */
+    clearHierarchyCache(): void {
+        this.hierarchyCache.invalidate(["*"]);
+    }
+
+    /** 获取缓存统计信息（供性能监控使用） */
+    getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
+        const stats = this.hierarchyCache.getStats();
+        return {
+            size: stats.size,
+            hits: stats.hits,
+            misses: stats.misses,
+            hitRate: stats.hitRate,
+        };
+    }
+
+    async getSpaceHierarchy(spaceId: string, forceRefresh = false): Promise<SpaceHierarchy> {
+        const start = performance.now();
+        let cacheHit = false;
+
+        if (!forceRefresh) {
+            const cached = this.hierarchyCache.get<SpaceHierarchy>(spaceId);
+            if (cached) {
+                cacheHit = true;
+                const duration = performance.now() - start;
+                const telemetry = (this.client as MatrixClient & { getTelemetryManager?: () => TelemetryManager }).getTelemetryManager?.();
+                telemetry?.trackCacheHitMiss("hierarchy", cacheHit, duration);
+                telemetry?.trackRequestTiming("GET", duration, "success", `/spaces/${encodeURIComponent(spaceId)}/hierarchy`);
+                telemetry?.trackPerformanceBaseline("getSpaceHierarchy", duration, 100);
+                return cached;
+            }
+        }
+
+        // 使用 getOrFetch 简化逻辑
+        const hierarchy = await this.hierarchyCache.getOrFetch(spaceId, async () => {
+            const [space, children, members] = await Promise.all([
+                this.parent!.lifecycle.getSpace(spaceId),
+                this.parent!.child.getSpaceChildren(spaceId),
+                this.parent!.member.getSpaceMembers(spaceId),
+            ]);
+            
+            const hierarchy: SpaceHierarchy = { space, children, members };
+            const duration = performance.now() - start;
+            const telemetry = (this.client as MatrixClient & { getTelemetryManager?: () => TelemetryManager }).getTelemetryManager?.();
+            telemetry?.trackCacheHitMiss("hierarchy", cacheHit, duration);
+            telemetry?.trackRequestTiming("GET", duration, "success", `/spaces/${encodeURIComponent(spaceId)}/hierarchy`);
+            telemetry?.trackPerformanceBaseline("getSpaceHierarchy", duration, 100);
+            
+            return hierarchy;
+        });
+        
+        return hierarchy;
     }
 
     async getSpaceHierarchyPage(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {

@@ -14,10 +14,10 @@ function createMockClient(authedRequest?: ReturnType<typeof vi.fn>): MatrixClien
 }
 
 describe("DehydratedDeviceManager", () => {
-    it("defaults to supported for clients without centralized discovery", async () => {
+    it("defaults to unsupported for clients without centralized discovery (safe default)", async () => {
         const manager = new DehydratedDeviceManager({} as ConstructorParameters<typeof DehydratedDeviceManager>[0]);
 
-        await expect(manager.isSupported()).resolves.toBe(true);
+        await expect(manager.isSupported()).resolves.toBe(false);
     });
 
     it("uses centralized synapse-rust dehydrated-device discovery when available", async () => {
@@ -68,7 +68,10 @@ describe("FT-102: DehydratedDeviceManager HTTP 方法与路径匹配后端路由
     });
 
     it("getDevice 使用 GET /dehydrated_device（路径不含 device_id，后端基于 auth_user.user_id）", async () => {
-        authedRequest.mockResolvedValue({ device_id: "DEV123", device_data: { algorithm: "m.megolm.v1", account: "x" } });
+        authedRequest.mockResolvedValue({
+            device_id: "DEV123",
+            device_data: { algorithm: "m.megolm.v1", account: "x" },
+        });
         await manager.getDevice("DEV123");
 
         const call = authedRequest.mock.calls[0];

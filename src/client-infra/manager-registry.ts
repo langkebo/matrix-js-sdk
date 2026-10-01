@@ -81,7 +81,6 @@ export type ManagerName =
     | "accountData"
     | "admin"
     | "aggregations"
-    | "aiConnection"
     | "auth"
     | "backgroundUpdate"
     | "beacon"
@@ -96,7 +95,6 @@ export type ManagerName =
     | "delayedEvents"
     | "device"
     | "deviceKeys"
-    | "deviceTrust"
     | "directory"
     | "discovery"
     | "dm"
@@ -116,7 +114,6 @@ export type ManagerName =
     | "invites"
     | "keyBackup"
     | "keyRotation"
-    | "keyVerification"
     | "lifecycle"
     | "media"
     | "membership"
@@ -124,7 +121,6 @@ export type ManagerName =
     | "module"
     | "notifications"
     | "oidc"
-    | "openclaw"
     | "passwordReset"
     | "pinnedMessages"
     | "presence"
@@ -175,7 +171,6 @@ export type ManagerName =
     | "uploads"
     | "user"
     | "userDirectory"
-    | "verification"
     | "voice"
     | "widget"
     | "widgets"
@@ -191,7 +186,6 @@ export interface ManagerTypeMap {
     accountData: import("../account-data/index").AccountDataManager;
     admin: import("../admin/index").AdminManager;
     aggregations: import("../aggregations/index").AggregationsManager;
-    aiConnection: import("../ai-connection/index").AIConnectionManager;
     auth: import("../auth/index").AuthManager;
     backgroundUpdate: import("../background-update/index").BackgroundUpdateManager;
     beacon: import("../beacon/index").BeaconManager;
@@ -206,7 +200,6 @@ export interface ManagerTypeMap {
     delayedEvents: import("../delayed-events/index").DelayedEventsManager;
     device: import("../device/index").DeviceManager;
     deviceKeys: import("../device-keys/index").DeviceKeysManager;
-    deviceTrust: import("../device-trust/index").DeviceTrustManager;
     directory: import("../directory/index").DirectoryManager;
     discovery: import("../discovery/index").DiscoveryManager;
     dm: import("../dm/index").DirectMessageManager;
@@ -226,7 +219,6 @@ export interface ManagerTypeMap {
     invites: import("../invites/index").InvitesManager;
     keyBackup: import("../key-backup/index").KeyBackupManager;
     keyRotation: import("../key-rotation/index").KeyRotationManager;
-    keyVerification: import("../key-verification/index").KeyVerificationManager;
     lifecycle: import("../lifecycle/index").LifecycleManager;
     media: import("../media/index").MediaManager;
     membership: import("../membership/index").MembershipManager;
@@ -234,7 +226,6 @@ export interface ManagerTypeMap {
     module: import("../module/index").ModuleManager;
     notifications: import("../notifications/index").NotificationsManager;
     oidc: import("../oidc/manager").OidcManager;
-    openclaw: import("../open-claw/index").OpenClawManager;
     passwordReset: import("../password-reset/index").PasswordResetManager;
     pinnedMessages: import("../pinned-messages/index").PinnedMessagesManager;
     presence: import("../presence/index").PresenceManager;
@@ -285,7 +276,6 @@ export interface ManagerTypeMap {
     uploads: import("../uploads/index").UploadsManager;
     user: import("../user/index").UserManager;
     userDirectory: import("../user-directory/index").UserDirectoryManager;
-    verification: import("../verification/index").VerificationManager;
     voice: import("../voice/index").VoiceManager;
     widget: import("../widget/index").WidgetManager;
     widgets: import("../widgets/index").WidgetsManager;

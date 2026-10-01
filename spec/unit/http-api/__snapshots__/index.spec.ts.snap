@@ -3,9 +3,7 @@
 exports[`MatrixHttpApi > should return expected object from \`getContentUri\` 1`] = `
 {
   "base": "https://baseUrl",
-  "params": {
-    "access_token": "token",
-  },
+  "params": {},
   "path": "/_matrix/media/v3/upload",
 }
 `;

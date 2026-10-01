@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Widget 模块契约
- * Source:        docs/api-contract/generated/modules/widget.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       18 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `widget` module. */
+/** Routes served by the synapse-rust `widget` module (mirrored from the backend contract). */
 export const WIDGET_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/widgets" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config" },

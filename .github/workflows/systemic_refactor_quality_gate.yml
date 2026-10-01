@@ -39,19 +39,32 @@ jobs:
             - name: Entrypoint contract gates
               run: pnpm quality:contracts
 
+            - name: MSC change detection (non-strict)
+              run: node scripts/quality/check-msc-changes.mjs
+
+            - name: Swallow fallback guard (strict mode)
+              run: node scripts/quality/check-swallow-fallbacks.mjs --strict-baseline
+
+            - name: P3 waiver expiry guard
+              run: node scripts/quality/check-waiver-expiry.mjs
+
             - name: Sensitive log scan (warning only)
               run: pnpm quality:log-sensitive
-
-            - name: Swallow fallback guard
-              run: pnpm quality:swallow-fallbacks
 
             - name: Unit + integration tests with coverage
               run: pnpm test --coverage
 
-            - name: Critical modules coverage >= 90%
-              env:
-                  CRITICAL_COVERAGE_THRESHOLD: "90"
+            # Per-module ratchet floors live in scripts/quality/critical-modules.json
+            # (target 90%). Do NOT set CRITICAL_COVERAGE_THRESHOLD here: forcing a flat
+            # 90% would pin six modules permanently red and hide the ratchet.
+            - name: Critical modules coverage (ratchet floors, target 90%)
               run: pnpm quality:coverage:critical
+
+            # Surfaces untested source files that carry HTTP calls. Advisory only:
+            # it reports the top-N risk files and writes a markdown snapshot, so a
+            # regression shows up in review without blocking unrelated PRs.
+            - name: Weak coverage report (advisory, non-blocking)
+              run: pnpm quality:coverage:weak-files
 
             - name: High severity audit gate
               run: pnpm audit:high

@@ -3,26 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Push 模块契约
- * Source:        docs/api-contract/generated/modules/push.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       17 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `push` module. */
+/** Routes served by the synapse-rust `push` module (mirrored from the backend contract). */
 export const PUSH_ROUTES = [
-    { method: "GET", path: "/_matrix/client/r0/notifications" },
-    { method: "POST", path: "/_matrix/client/r0/notifications/{notification_id}/ack" },
-    { method: "GET", path: "/_matrix/client/r0/pushers" },
-    { method: "POST", path: "/_matrix/client/r0/pushers" },
-    { method: "POST", path: "/_matrix/client/r0/pushers/set" },
-    { method: "GET", path: "/_matrix/client/r0/pushrules" },
-    { method: "GET", path: "/_matrix/client/r0/pushrules/{scope}" },
-    { method: "GET", path: "/_matrix/client/r0/pushrules/{scope}/{kind}" },
-    { method: "DELETE", path: "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}" },
-    { method: "GET", path: "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}" },
-    { method: "POST", path: "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/pushrules/{scope}/{kind}/{rule_id}" },
     { method: "GET", path: "/_matrix/client/v3/notifications" },
     { method: "POST", path: "/_matrix/client/v3/notifications/{notification_id}/ack" },
     { method: "GET", path: "/_matrix/client/v3/pushers" },
@@ -38,6 +24,8 @@ export const PUSH_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions" },
     { method: "GET", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled" },
     { method: "PUT", path: "/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled" },
+    { method: "GET", path: "/_matrix/client/v3/pushers/" },
+    { method: "POST", path: "/_matrix/client/v3/pushers/" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `PUSH_ROUTES`. */

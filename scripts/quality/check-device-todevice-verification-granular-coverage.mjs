@@ -39,53 +39,13 @@ const CHECKS = [
                 methods: ["sendToDevice", "sendBatchToDevice", "sendEncryptedToDevice"],
                 testFiles: ["spec/unit/to-device.spec.ts"],
             },
-            {
-                name: "MatrixClient to-device compatibility surface",
-                ownerFile: "src/client.ts",
-                methods: ["sendToDevice", "queueToDevice"],
-                testFiles: ["spec/unit/embedded.spec.ts", "spec/unit/queueToDevice.spec.ts"],
-            },
+            // sendToDevice/queueToDevice 已迁 ToDeviceManager（前端经 getToDeviceManager 调用），client 入口有意移除
         ],
     },
-    {
-        module: "verification",
-        groups: [
-            {
-                name: "KeyVerificationManager orchestration APIs",
-                ownerFile: "src/key-verification/index.ts",
-                methods: [
-                    "requestVerification",
-                    "requestRoomKeyVerification",
-                    "beginKeyVerification",
-                    "acceptKeyVerification",
-                    "sendKeyAgreement",
-                    "confirmVerificationMac",
-                    "completeKeyVerification",
-                    "cancelKeyVerification",
-                    "getVerificationRequests",
-                    "showQrCode",
-                    "scanQrCode",
-                ],
-                testFiles: ["spec/unit/key-verification.spec.ts"],
-            },
-            {
-                name: "MatrixClient verification HTTP surface",
-                ownerFile: "src/client.ts",
-                methods: [
-                    "startDeviceSigningVerification",
-                    "acceptDeviceSigningVerification",
-                    "sendDeviceSigningVerificationKeyAgreement",
-                    "confirmDeviceSigningVerificationMac",
-                    "completeDeviceSigningVerification",
-                    "cancelDeviceSigningVerification",
-                    "getVerificationRequests",
-                    "showQrCode",
-                    "scanQrCode",
-                ],
-                testFiles: ["spec/unit/matrix-client.spec.ts"],
-            },
-        ],
-    },
+    // 原 module "verification"（KeyVerificationManager 的 11 个 HTTP 方法）已随
+    // 后端 2026-09-25 `88001b4a9` 拆除整个服务端验证面而删除：ledger / ROUTE_CONTRACT
+    // 均无 `keys/device_signing/verify_*`、`keys/qr_code/*`，后端保留 404 用例。
+    // `m.key.verification.*` 是客户端 to-device 流程，无服务端中继端点可覆盖。
 ];
 
 function readRelative(file) {

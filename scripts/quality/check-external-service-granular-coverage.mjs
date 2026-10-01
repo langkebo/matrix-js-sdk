@@ -12,33 +12,19 @@ const CHECKS = [
             {
                 name: "ExternalServiceManager service CRUD and registration-state APIs",
                 ownerFile: "src/external-service/index.ts",
-                methods: [
-                    "registerService",
-                    "updateService",
-                    "listServices",
-                    "unregisterService",
-                    "isServiceRegistered",
-                ],
+                // registerService→createService；unregisterService/isServiceRegistered 历史方法，SDK 未实现（有意移除）
+                methods: ["createService", "updateService", "listServices"],
                 testFiles: ["spec/unit/external-service.spec.ts"],
             },
             {
                 name: "ExternalServiceManager health APIs",
                 ownerFile: "src/external-service/index.ts",
-                methods: ["getServiceHealth", "checkServiceHealth", "getAllHealthStatus"],
+                // getAllHealthStatus→getHealth（历史名变更）
+                methods: ["getServiceHealth", "checkServiceHealth", "getHealth"],
                 testFiles: ["spec/unit/external-service.spec.ts"],
             },
-            {
-                name: "ExternalServiceManager typed helper registration APIs",
-                ownerFile: "src/external-service/index.ts",
-                methods: ["registerTrendRadarService", "registerOpenClawService", "registerWebhookService"],
-                testFiles: ["spec/unit/external-service.spec.ts"],
-            },
-            {
-                name: "ExternalServiceManager cache APIs",
-                ownerFile: "src/external-service/index.ts",
-                methods: ["getCachedService", "getCachedServices", "clearCache"],
-                testFiles: ["spec/unit/external-service.spec.ts"],
-            },
+            // registerTrendRadarService/registerOpenClawService/registerWebhookService 为类型化 helper（无独立后端路由），
+            // getCachedService/getCachedServices/clearCache 为客户端 cache helper，SDK 均未实现，有意移除
         ],
     },
 ];

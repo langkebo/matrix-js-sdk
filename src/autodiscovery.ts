@@ -277,7 +277,11 @@ export class AutoDiscovery {
                 for (const prop of Object.keys(wellknown[k]!)) {
                     if (notProps.includes(prop)) continue;
                     type Prop = Exclude<keyof IWellKnownConfig, "error" | "state" | "base_url">;
-                    // @ts-ignore - ts gets unhappy as we're mixing types here
+                    // S-16: `@ts-ignore` → `@ts-expect-error`. `k` is a union of `"m.homeserver" | "m.identity_server"`,
+                    // so `clientConfig[k]` resolves to a union of structurally-different config types and TS cannot
+                    // prove the write is safe for every member. Narrowed from a blanket ignore so that if upstream
+                    // ever types this properly, the now-unused directive fails the build instead of silently rotting.
+                    // @ts-expect-error - ts gets unhappy as we're mixing types here
                     clientConfig[k][prop as Prop] = wellknown[k]![prop as Prop];
                 }
             } else {

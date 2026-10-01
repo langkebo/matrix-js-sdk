@@ -194,6 +194,7 @@ export interface ThreadUnreadResponse {
 export interface SubscribedThreadsResponse {
     threads: ThreadSummaryResponse[];
     subscribed: ThreadSubscriptionResponse[];
+    next_batch?: string | null;
 }
 
 export interface ThreadLegacyChunkItem {
@@ -333,8 +334,15 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
-    public async getSubscribedThreads(): Promise<SubscribedThreadsResponse> {
-        return await this.requestThreadV1("getSubscribedThreads", Method.Get, tv1("/threads/subscribed"));
+    public async getSubscribedThreads(
+        query: { limit?: number; from?: string } = {},
+    ): Promise<SubscribedThreadsResponse> {
+        return await this.requestThreadV1(
+            "getSubscribedThreads",
+            Method.Get,
+            tv1("/threads/subscribed"),
+            this.buildQuery({ limit: query.limit, from: query.from }),
+        );
     }
 
     public async getGlobalUnreadThreads(): Promise<ThreadUnreadResponse> {

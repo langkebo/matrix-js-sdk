@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    collectChangedFiles,
     collectJSDocIndexFromSource,
     filterIssuesByChangedFiles,
     findMissingJSDocExamples,
@@ -8,6 +9,22 @@ import {
 } from "../../scripts/quality/check-public-jsdoc-examples.mjs";
 
 describe("check-public-jsdoc-examples", () => {
+    it("scans everything (rather than nothing) when there is no base ref to diff against", () => {
+        // Regression guard for the 2026-09-13 finding (P1-6): `collectChangedFiles`
+        // used to return an EMPTY Set when no base ref was available, and an empty Set
+        // filters every issue away — so the gate passed vacuously in any workflow that
+        // did not set GITHUB_BASE_SHA, letting 43 real gaps accumulate behind it.
+        expect(collectChangedFiles(undefined)).toBeNull();
+        expect(collectChangedFiles("")).toBeNull();
+        // An unresolvable ref must degrade to a full scan too, never to "nothing".
+        expect(collectChangedFiles("refs/heads/does-not-exist-hopefully")).toBeNull();
+
+        const issues = [{ file: "docs/api-contract/dm.md", owner: "DmManager", method: "m1" }];
+        // `null` keeps the issue; an empty Set is the hazard this fix removed.
+        expect(filterIssuesByChangedFiles(issues, null)).toHaveLength(1);
+        expect(filterIssuesByChangedFiles(issues, new Set())).toHaveLength(0);
+    });
+
     it("passes when a documented public API method has an @example tag", () => {
         const references = parseContractPublicApiReferences(
             `

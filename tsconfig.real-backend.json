@@ -1,5 +1,13 @@
 {
     "extends": "./tsconfig.json",
     "include": ["./src/**/*.ts", "./src/**/*.d.ts", "./spec/integ/real-backend/**/*.ts"],
-    "exclude": []
+    "exclude": [],
+    "compilerOptions": {
+        // tsconfig.json enables `incremental` with `node_modules/.tsbuildinfo`. This project
+        // compiles a different file set, so sharing that file makes the two typechecks
+        // invalidate each other: measured on 2026-09-13, alternating `tsc --noEmit` and
+        // `tsc -p tsconfig.real-backend.json --noEmit` re-checked the full program every
+        // time (4.88s / 5.14s) instead of reusing the cache (4.88s then 1.12s).
+        "tsBuildInfoFile": "node_modules/.tsbuildinfo.real-backend"
+    }
 }

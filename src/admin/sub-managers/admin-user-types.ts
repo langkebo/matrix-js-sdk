@@ -14,12 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/** Generic paginated response wrapper used across all admin modules */
-export interface PaginatedResponse<T> {
-    items: T[];
-    nextToken?: string;
-    total?: number;
-}
+import type { PaginatedResult } from "../../common/pagination";
+
+/**
+ * Generic paginated response wrapper used across all admin modules.
+ *
+ * Re-exported from the shared pagination module so admin endpoints and the
+ * rest of the SDK speak one canonical shape (`items` + `next`/`total`/`hasMore`).
+ *
+ * The legacy alias `PaginatedResponse` is preserved for backward compatibility
+ * with existing admin consumers. New code should prefer `PaginatedResult`.
+ *
+ * @see `buildPaginationParams` in `src/common/pagination.ts`
+ */
+export type { PaginatedResult, PaginationCursor, PaginatedPage } from "../../common/pagination";
+
+/** @deprecated Use `PaginatedResult` from the shared pagination module instead. */
+export type PaginatedResponse<T> = PaginatedResult<T>;
 
 /** Admin API error class */
 export class AdminApiError extends Error {

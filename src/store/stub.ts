@@ -29,6 +29,7 @@ import { type ISyncResponse } from "../sync-accumulator";
 import { type IStateEventWithRoomId } from "../@types/search";
 import { type IndexedToDeviceBatch, type ToDeviceBatch } from "../models/ToDeviceMessage";
 import { type IStoredClientOpts } from "../client";
+import { StoreStatsCollector, type StoreStats } from "./stats";
 
 /**
  * Construct a stub store. This does no-ops on most store methods.
@@ -276,5 +277,12 @@ export class StubStore implements IStore {
 
     public async destroy(): Promise<void> {
         // Nothing to do
+    }
+
+    /**
+     * StubStore 不缓存任何数据，返回零值统计快照。
+     */
+    public getStats(): StoreStats {
+        return new StoreStatsCollector().snapshot();
     }
 }

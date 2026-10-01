@@ -26,7 +26,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
+import { AdminPrefix, VendorPrefix } from "../http-api/prefix";
 import type { ExternalServicePathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -51,7 +51,8 @@ export type ExternalServiceApiPrefix = "synapse_admin" | "matrix_admin" | "clien
 const EXTERNAL_SERVICE_PREFIX: Record<ExternalServiceApiPrefix, string> = {
     synapse_admin: AdminPrefix.V1,
     matrix_admin: "/_matrix/admin/v1",
-    client: ClientPrefix.V1,
+    // ISSUE-13: 私有端点迁 vendor 前缀（client 别名后端仍兼容）
+    client: VendorPrefix,
 };
 
 const WEBHOOK_PREFIX = "/_synapse/external";

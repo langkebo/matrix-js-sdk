@@ -1,113 +1,96 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "oidc",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 17,
+  "entry_count": 10,
   "entries": [
     {
       "method": "GET",
       "path": "/.well-known/jwks.json",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/.well-known/openid-configuration",
       "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/login/sso/redirect",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/login/sso/userinfo",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/oidc/authorize",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/oidc/callback",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/oidc/logout",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/oidc/token",
-      "registered_by": "oidc",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/oidc/userinfo",
-      "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/login/sso/redirect",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "redirectUrl",
+        "redirect_url"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/login/sso/userinfo",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/oidc/authorize",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "client_id",
+        "nonce",
+        "redirect_uri",
+        "response_type",
+        "scope",
+        "state"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/oidc/callback",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": [
+        "code",
+        "error",
+        "error_description",
+        "state"
+      ]
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/oidc/login",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/oidc/logout",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/oidc/token",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/oidc/userinfo",
       "registered_by": "oidc",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     }
   ]
 }

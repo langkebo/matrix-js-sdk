@@ -17,6 +17,7 @@ limitations under the License.
 import type { MatrixClient } from "./client";
 import { logger } from "./logger";
 import { getAllManagersForClient, clearManagerRegistry } from "./client-infra/manager-registry";
+import { CacheRegistry } from "./utils/lru-cache";
 
 /**
  * Stop all client lifecycle services (crypto, sync, VOIP, queues, managers, room timers).
@@ -68,4 +69,12 @@ export function stopClientLifecycleServices(client: MatrixClient): void {
 
     // 清空 manager registry，释放引用
     clearManagerRegistry(client);
+
+    // S-11: 与 startClientLifecycleServices 中的 startPurgeTimer 成对，
+    // 避免缓存清理定时器随 client 停止后继续存活。
+    try {
+        CacheRegistry.getInstance().stopPurgeTimer();
+    } catch (e) {
+        logger.warn("Failed to stop cache purge timer during client shutdown", e);
+    }
 }

@@ -6,7 +6,6 @@ export { AccountDataManager } from "./account-data";
 export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
 export { CapabilitiesManager } from "./capabilities";
 export { CryptoKeysManager } from "./crypto-keys";
-export { DeviceTrustManager } from "./device-trust";
 export { DirectMessageManager } from "./dm";
 export {
     DiscoveryManager,
@@ -49,8 +48,6 @@ export type {
 } from "./friend";
 export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
-export { KeyVerificationManager } from "./key-verification";
-export type { IVerificationStatusResponse } from "./key-verification";
 export {
     CasManager,
     type CasApiPrefix,
@@ -169,7 +166,8 @@ export { InvitesManager } from "./invites";
 export { KeyBackupManager } from "./key-backup";
 export { KeyRotationManager } from "./key-rotation";
 export { DelayedEventsManager } from "./delayed-events";
-export { DehydratedDeviceManager,
+export {
+    DehydratedDeviceManager,
     type DehydratedDeviceData,
     type CreateDehydratedDeviceRequest,
     type CreateDehydratedDeviceResponse,
@@ -240,33 +238,3 @@ export type {
     IVoiceDeleteResponse,
 } from "./voice";
 export { WidgetsManager } from "./widgets";
-export { AIConnectionManager, AIConnectionEvent } from "./ai-connection";
-export type {
-    AIConnection,
-    CreateConnectionOptions,
-    McpToolCallRequest,
-    AiApiVersion,
-    McpTool,
-    McpToolListResponse,
-    McpToolCallResponse,
-    ConnectionListResponse,
-} from "./ai-connection";
-export { OpenClawManager, OpenClawEvent } from "./open-claw";
-export type {
-    OpenClawConnection,
-    OpenClawConversation,
-    OpenClawMessage,
-    OpenClawGeneration,
-    OpenClawChatRole,
-    CreateOpenClawConnectionRequest,
-    UpdateOpenClawConnectionRequest,
-    CreateOpenClawConversationRequest,
-    UpdateOpenClawConversationRequest,
-    SendMessageRequest,
-    CreateGenerationRequest,
-    CreateChatRoleRequest,
-    UpdateChatRoleRequest,
-    PaginatedResponse,
-    PaginationParams,
-    ConnectionTestResult,
-} from "./open-claw";

@@ -5,17 +5,12 @@ describe("ISSUE-08c pending events cipher", () => {
     const sample = [{ type: "m.room.message", content: { body: "secret pending msg" } }];
 
     async function makeKey(): Promise<CryptoKey> {
-        return crypto.subtle.importKey(
-            "raw",
-            new Uint8Array(32),
-            { name: "AES-GCM" },
-            false,
-            ["encrypt", "decrypt"],
-        );
+        return crypto.subtle.importKey("raw", new Uint8Array(32), { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
     }
 
     it("encrypts then decrypts round-trips to original", async () => {
         const cipher = new PendingEventsCipher(await makeKey());
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         const blob = await cipher.encryptEvents(sample as any);
         // 密文不含明文
         expect(new TextDecoder().decode(blob)).not.toContain("secret pending msg");
@@ -25,6 +20,7 @@ describe("ISSUE-08c pending events cipher", () => {
 
     it("refuses to persist (encrypt) without key material", async () => {
         const cipher = new PendingEventsCipher(null);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
         await expect(cipher.encryptEvents(sample as any)).rejects.toThrow(/no key material/);
     });
 

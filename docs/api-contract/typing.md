@@ -1,14 +1,14 @@
 ---
 module: typing
 generated_from: docs/api-contract/generated/modules/typing.json
-generated_hash: sha256-bad141e74da92c1036ef0ed2b32b11120345bd706f56dd95b42aea3ed279eb13
-ledger_schema: 1
+generated_hash: sha256-dadc66f2805e6604567ced41c437fb467b789fb61899237f10ce70a60dc75cfd
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Typing Indicators API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/typing.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/typing.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v3`

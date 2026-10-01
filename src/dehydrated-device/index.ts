@@ -64,7 +64,8 @@ export class DehydratedDeviceManager extends BaseManager {
     }
 
     public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.DehydratedDevice, true);
+        // 后端未实 DehydratedDevice：探测失败时绝不能误判支持（FT-S13）
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.DehydratedDevice, false);
     }
 
     public async createDevice(data: CreateDehydratedDeviceRequest): Promise<CreateDehydratedDeviceResponse> {

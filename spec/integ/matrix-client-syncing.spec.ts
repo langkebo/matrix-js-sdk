@@ -41,6 +41,7 @@ import {
     MatrixEventEvent,
 } from "../../src";
 import { ReceiptType } from "../../src/@types/read_receipts";
+import { SyncState } from "../../src/sync";
 import { UNREAD_THREAD_NOTIFICATIONS } from "../../src/@types/sync";
 import * as utils from "../test-utils/test-utils";
 import { TestClient } from "../TestClient";
@@ -123,9 +124,15 @@ describe("MatrixClient syncing", () => {
             httpBackend = testClient.httpBackend;
             client = testClient.client;
 
-            const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
-
-            httpBackend!.when("GET", "/_matrix/client/versions").respond(200, { versions: ["v1.0"] });
+            // A rate-limited POST /filter is retried in place (429 is rejected before
+            // execution), so the client recovers without tearing down and re-running
+            // startClient — hence only ONE /versions fetch is expected here.
+            //
+            // Recovery is asserted by the request ledger itself: `flushAllExpected`
+            // only resolves once BOTH registered /filter responses (429, then 200) have
+            // been consumed, which can only happen if the write was retried. The previous
+            // `Math.random` assertion observed the old sync-level backoff, which this path
+            // no longer reaches.
             httpBackend!.when("GET", "/_matrix/client/versions").respond(200, { versions: ["v1.0"] });
             httpBackend!.when("GET", "/capabilities").respond(200, {
                 capabilities: {},
@@ -135,13 +142,12 @@ describe("MatrixClient syncing", () => {
             httpBackend!.when("GET", "/pushrules").respond(200, {});
             httpBackend!.when("GET", "/sync").respond(200, syncData);
 
-            try {
-                client!.startClient();
-                await httpBackend!.flushAllExpected({ timeout: 10000 });
-                expect(randomSpy).toHaveBeenCalled();
-            } finally {
-                randomSpy.mockRestore();
-            }
+            client!.startClient();
+            await httpBackend!.flushAllExpected({ timeout: 10000 });
+
+            // A 429 on POST /filter is retried in place, so startClient must reach the sync
+            // loop rather than surfacing the rate limit as a startup failure.
+            expect(client!.getSyncState()).toBe(SyncState.Syncing);
         }, 20000);
 
         it("should emit RoomEvent.MyMembership for invite->leave->invite cycles", async () => {

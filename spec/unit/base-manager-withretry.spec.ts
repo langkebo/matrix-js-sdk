@@ -48,8 +48,7 @@ describe("BaseManager.withRetry concurrency (FT-115)", () => {
             releaseBRequest = resolve;
         });
 
-        const fnA = (): Promise<unknown> =>
-            manager.doRequest({ method: Method.Get, path: "/a" });
+        const fnA = (): Promise<unknown> => manager.doRequest({ method: Method.Get, path: "/a" });
         const fnB = async (): Promise<unknown> => {
             await bRequestGate; // wait until A has fully settled
             return manager.doRequest({ method: Method.Get, path: "/b" });
@@ -88,8 +87,7 @@ describe("BaseManager.withRetry concurrency (FT-115)", () => {
             releaseBRequest = resolve;
         });
 
-        const fnA = (): Promise<unknown> =>
-            manager.doRequest({ method: Method.Get, path: "/a" });
+        const fnA = (): Promise<unknown> => manager.doRequest({ method: Method.Get, path: "/a" });
         const fnB = async (): Promise<unknown> => {
             await bRequestGate;
             return manager.doRequest({ method: Method.Get, path: "/b" });

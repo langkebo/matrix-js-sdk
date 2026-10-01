@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Rendezvous
- * Source:        docs/api-contract/generated/modules/rendezvous.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       10 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `rendezvous` module. */
+/** Routes served by the synapse-rust `rendezvous` module (mirrored from the backend contract). */
 export const RENDEZVOUS_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/rendezvous" },
     { method: "DELETE", path: "/_matrix/client/v1/rendezvous/{session_id}" },
@@ -17,6 +15,10 @@ export const RENDEZVOUS_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v1/rendezvous/{session_id}" },
     { method: "GET", path: "/_matrix/client/v1/rendezvous/{session_id}/messages" },
     { method: "POST", path: "/_matrix/client/v1/rendezvous/{session_id}/messages" },
+    { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc4108/rendezvous" },
+    { method: "DELETE", path: "/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}" },
+    { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}" },
+    { method: "PUT", path: "/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `RENDEZVOUS_ROUTES`. */

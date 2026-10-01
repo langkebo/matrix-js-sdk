@@ -26,6 +26,7 @@ import { TypedEventEmitter } from "../models/typed-event-emitter";
 import { type IStateEventWithRoomId } from "../@types/search";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
 import { type IStoredClientOpts } from "../client";
+import { encodeBase64, decodeBase64 } from "../base64";
 
 /**
  * This is an internal module. See {@link IndexedDBStore} for the public class.
@@ -175,8 +176,12 @@ export class IndexedDBStore extends MemoryStore {
      * client state to where it was at the last save, or null if there
      * is no saved sync data.
      */
-    public getSavedSync = this.degradable((): Promise<ISavedSync | null> => {
-        return this.backend.getSavedSync();
+    public getSavedSync = this.degradable(async (): Promise<ISavedSync | null> => {
+        const saved = await this.backend.getSavedSync();
+        // 对齐 MemoryStore 的读路径埋点：sync 缓存命中/未命中计入统计。
+        if (saved === null) this.stats.recordMiss();
+        else this.stats.recordHit();
+        return saved;
     }, "getSavedSync");
 
     /** @returns whether or not the database was newly created in this session. */
@@ -188,8 +193,11 @@ export class IndexedDBStore extends MemoryStore {
      * @returns If there is a saved sync, the nextBatch token
      * for this sync, otherwise null.
      */
-    public getSavedSyncToken = this.degradable((): Promise<string | null> => {
-        return this.backend.getNextBatchToken();
+    public getSavedSyncToken = this.degradable(async (): Promise<string | null> => {
+        const token = await this.backend.getNextBatchToken();
+        if (token === null) this.stats.recordMiss();
+        else this.stats.recordHit();
+        return token;
     }, "getSavedSyncToken");
 
     /**
@@ -243,7 +251,9 @@ export class IndexedDBStore extends MemoryStore {
         // work out changed users (this doesn't handle deletions but you
         // can't 'delete' users as they are just presence events).
         const userTuples: [userId: string, presenceEvent: Partial<IEvent>][] = [];
+        const currentUserIds = new Set<string>();
         for (const u of this.getUsers()) {
+            currentUserIds.add(u.userId);
             if (this.userModifiedMap[u.userId] === u.getLastModifiedTime()) continue;
             if (!u.events.presence) continue;
 
@@ -251,6 +261,16 @@ export class IndexedDBStore extends MemoryStore {
 
             // note that we've saved this version of the user
             this.userModifiedMap[u.userId] = u.getLastModifiedTime();
+        }
+
+        // 清理已被 LRU 淘汰的 user 残留条目：userModifiedMap 此前只增不减，
+        // 会随历史出现过的 user 单调增长。
+        if (Object.keys(this.userModifiedMap).length > currentUserIds.size) {
+            for (const userId of Object.keys(this.userModifiedMap)) {
+                if (!currentUserIds.has(userId)) {
+                    delete this.userModifiedMap[userId];
+                }
+            }
         }
 
         return this.backend.syncToDatabase(userTuples);
@@ -266,8 +286,12 @@ export class IndexedDBStore extends MemoryStore {
      * @returns the events, potentially an empty array if OOB loading didn't yield any new members
      * @returns in case the members for this room haven't been stored yet
      */
-    public getOutOfBandMembers = this.degradable((roomId: string): Promise<IStateEventWithRoomId[] | null> => {
-        return this.backend.getOutOfBandMembers(roomId);
+    public getOutOfBandMembers = this.degradable(async (roomId: string): Promise<IStateEventWithRoomId[] | null> => {
+        const members = await this.backend.getOutOfBandMembers(roomId);
+        // 对齐 MemoryStore 的读路径埋点：命中/未命中计入 store 统计。
+        if (members === null) this.stats.recordMiss();
+        else this.stats.recordHit();
+        return members;
     }, "getOutOfBandMembers");
 
     /**
@@ -280,7 +304,8 @@ export class IndexedDBStore extends MemoryStore {
     public setOutOfBandMembers = this.degradable(
         (roomId: string, membershipEvents: IStateEventWithRoomId[]): Promise<void> => {
             super.setOutOfBandMembers(roomId, membershipEvents);
-            return this.backend.setOutOfBandMembers(roomId, membershipEvents);
+            // TTL 按 roomId 动态解析（对齐 MemoryStore），传给 backend 记录 deadline。
+            return this.backend.setOutOfBandMembers(roomId, membershipEvents, this.oobMembersTtl(roomId));
         },
         "setOutOfBandMembers",
     );
@@ -352,32 +377,46 @@ export class IndexedDBStore extends MemoryStore {
     /**
      * Known limitation: Ideally these would be stored in IndexedDB as part of the room,
      * but we don't store rooms as such and instead accumulate entire sync responses atm.
+     *
+     * ISSUE-08c: 待发事件不再明文落 localStorage。提供 `pendingEventsCipher` 时
+     * 走 AES-GCM 加密持久化（`v1:` + base64 前缀标记）；未提供时退化为仅内存
+     * （`super.getPendingEvents`），重启后待发事件不恢复，但绝不明文落盘。
      */
     public async getPendingEvents(roomId: string): Promise<Partial<IEvent>[]> {
         if (!this.localStorage) return super.getPendingEvents(roomId);
 
+        if (!this.pendingEventsCipher) {
+            // 无 key：不读取历史明文，避免继续暴露明文数据。
+            return super.getPendingEvents(roomId);
+        }
+
         const serialized = this.localStorage.getItem(pendingEventsKey(roomId));
-        return Promise.resolve(serialized)
-            .then((value) => {
-                if (!value) {
-                    return [];
-                }
-                return JSON.parse(value) as Partial<IEvent>[];
-            })
-            .then(
-                (value) => value,
-                (error) => {
-                    logger.error("Could not parse persisted pending events", error);
-                    return [];
-                },
-            );
+        if (!serialized || !serialized.startsWith("v1:")) {
+            // 无加密记录（含历史明文遗留）：返回内存副本。
+            return super.getPendingEvents(roomId);
+        }
+
+        try {
+            const blob = decodeBase64(serialized.slice(3));
+            return await this.pendingEventsCipher.decryptEvents(blob);
+        } catch (err) {
+            logger.error("Could not decrypt persisted pending events", err);
+            return super.getPendingEvents(roomId);
+        }
     }
 
     public async setPendingEvents(roomId: string, events: Partial<IEvent>[]): Promise<void> {
         if (!this.localStorage) return super.setPendingEvents(roomId, events);
 
+        if (!this.pendingEventsCipher) {
+            // 无 key：拒绝明文落盘，仅保留内存（带容量裁剪）。
+            await super.setPendingEvents(roomId, events);
+            return;
+        }
+
         if (events.length > 0) {
-            this.localStorage.setItem(pendingEventsKey(roomId), JSON.stringify(events));
+            const blob = await this.pendingEventsCipher.encryptEvents(events);
+            this.localStorage.setItem(pendingEventsKey(roomId), `v1:${encodeBase64(blob)}`);
         } else {
             this.localStorage.removeItem(pendingEventsKey(roomId));
         }

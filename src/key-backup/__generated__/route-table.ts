@@ -3,47 +3,12 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Key Backup 模块
- * Source:        docs/api-contract/generated/modules/key_backup.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  c2e43304843f9460bc5d88d93b708016306d97f1
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       66 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `key_backup` module. */
+/** Routes served by the synapse-rust `key-backup` module (mirrored from the backend contract). */
 export const KEY_BACKUP_ROUTES = [
-    { method: "POST", path: "/_matrix/client/r0/room_keys/batch_recover" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/export" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/export/{version}" },
-    { method: "POST", path: "/_matrix/client/r0/room_keys/import" },
-    { method: "POST", path: "/_matrix/client/r0/room_keys/import/{version}" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/keys" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/keys" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/keys" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/keys/{room_id}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/keys/{room_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/keys/{room_id}" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/keys/{room_id}/{session_id}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/keys/{room_id}/{session_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/keys/{room_id}/{session_id}" },
-    { method: "POST", path: "/_matrix/client/r0/room_keys/recover" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/recover/{version}/{room_id}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/recover/{version}/{room_id}/{session_id}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/recovery/{version}/progress" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/verify/{version}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/version" },
-    { method: "POST", path: "/_matrix/client/r0/room_keys/version" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/version/{version}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/version/{version}" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/version/{version}" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/{version}/keys" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/{version}/keys" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/{version}/keys" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/{version}/keys/{room_id}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/{version}/keys/{room_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/{version}/keys/{room_id}" },
-    { method: "DELETE", path: "/_matrix/client/r0/room_keys/{version}/keys/{room_id}/{session_id}" },
-    { method: "GET", path: "/_matrix/client/r0/room_keys/{version}/keys/{room_id}/{session_id}" },
-    { method: "PUT", path: "/_matrix/client/r0/room_keys/{version}/keys/{room_id}/{session_id}" },
     { method: "POST", path: "/_matrix/client/v1/room_keys/batch_recover" },
     { method: "GET", path: "/_matrix/client/v1/room_keys/export" },
     { method: "GET", path: "/_matrix/client/v1/room_keys/export/{version}" },

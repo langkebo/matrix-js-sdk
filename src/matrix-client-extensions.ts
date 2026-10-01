@@ -250,12 +250,10 @@ export interface MatrixClientExtensionMethods {
     getCryptoStoreManager(): import("./crypto-store/index").CryptoStoreManager;
     getCrossSigningManager(): import("./cross-signing/index").CrossSigningManager;
     getDeviceKeysManager(): import("./device-keys/index").DeviceKeysManager;
-    getKeyVerificationManager(): import("./key-verification/index").KeyVerificationManager;
 
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getSecurityManager(): import("./security/index").SecurityManager;
     getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
-    getDeviceTrustManager(): import("./device-trust/index").DeviceTrustManager;
     getDehydratedDeviceManager(): import("./dehydrated-device/index").DehydratedDeviceManager;
     getDelayedEventsManager(): import("./delayed-events/index").DelayedEventsManager;
     getVerificationRequestsToDevice(userId: string): import("./crypto-api/verification").VerificationRequest[];
@@ -311,12 +309,28 @@ export interface MatrixClientExtensionMethods {
     // ============ Admin & Moderation ============
     // ⚠️ Admin Manager - URL 组装规则：prefix + path（相对路径）
     getAdminManager(): import("./admin/index").AdminManager;
+    getAppServiceManager(): import("./app-service/index").ApplicationServiceManager;
     getAdminUserManager(): import("./admin/sub-managers/admin-user-manager").AdminUserManager;
     getAdminRoomManager(): import("./admin/sub-managers/admin-room-manager").AdminRoomManager;
     getAdminServerManager(): import("./admin/sub-managers/admin-server-manager").AdminServerManager;
     getAdminFederationManager(): import("./admin/sub-managers/admin-federation-manager").AdminFederationManager;
     getAdminMediaManager(): import("./admin/sub-managers/admin-media-manager").AdminMediaManager;
     getAdminConfigManager(): import("./admin/sub-managers/admin-config-manager").AdminConfigManager;
+    getAdminExternalServiceManager(): import("./admin/sub-managers/admin-external-service-manager").AdminExternalServiceManager;
+    // 新的 Admin Sub-Managers
+    getAdminCleanupManager(): import("./admin/sub-managers/admin-cleanup-manager").AdminCleanupManager;
+    getAdminNotificationManager(): import("./admin/sub-managers/admin-notification-manager").AdminNotificationManager;
+    getAdminReportManager(): import("./admin/sub-managers/admin-report-manager").AdminReportManager;
+    getAdminPolicyManager(): import("./admin/sub-managers/admin-policy-manager").AdminPolicyManager;
+    // 顶级 admin 模块便捷访问（AdminManager 集成的子入口）
+    getAdminBackgroundUpdates(): import("./background-update/index").BackgroundUpdateManager;
+    getAdminEventReports(): import("./event-report/index").EventReportManager;
+    getAdminModules(): import("./module/index").ModuleManager;
+    getAdminSaml(): import("./saml/index").SamlAuthManager;
+    getAdminCas(): import("./cas/index").CasManager;
+    getAdminFeatureFlags(): import("./feature-flags/index").FeatureFlagManager;
+    getAdminRetention(): import("./retention/index").RetentionManager;
+    getAdminTelemetry(): import("./telemetry/index").TelemetryManager;
     getBackgroundUpdateManager(): import("./background-update/index").BackgroundUpdateManager;
     getWorkerAdminManager(): import("./worker-admin/index").WorkerAdminManager;
     getWorkerBodyManager(): import("./worker-body/index").WorkerBodyManager;
@@ -364,8 +378,6 @@ export interface MatrixClientExtensionMethods {
     getStateSendManager(): import("./state-send/index").StateSendManager;
     getSessionManager(): import("./session/index").SessionManager;
     getToDeviceManager(): import("./to-device/index").ToDeviceManager;
-    getAIConnectionManager(): import("./ai-connection/index").AIConnectionManager;
-    getOpenClawManager(): import("./open-claw/index").OpenClawManager;
     getSamlAuthManager(): import("./saml/index").SamlAuthManager;
     getE2EEManager(): import("./e2ee/index").E2EEManager;
     getEventReportManager(): import("./event-report/index").EventReportManager;
@@ -374,7 +386,6 @@ export interface MatrixClientExtensionMethods {
     getFilterManager(): import("./filter/index").FilterManager;
     getModerationManager(): import("./moderation/index").ModerationManager;
     getModuleManager(): import("./module/index").ModuleManager;
-    getVerificationManager(): import("./verification/index").VerificationManager;
     getVoiceManager(): import("./voice/index").VoiceManager;
 }
 
@@ -551,8 +562,8 @@ export interface MatrixClientInternalMethods {
     getServerRetention(): Promise<unknown>;
 
     // ============ Reactions ============
-    reactToMessage(roomId: string, eventId: string, key: string): Promise<void>;
-    redactReaction(roomId: string, eventId: string): Promise<void>;
+    reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined>;
+    redactReaction(roomId: string, eventId: string, reason?: string): Promise<{ event_id: string }>;
     getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>>;
     hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean>;
 

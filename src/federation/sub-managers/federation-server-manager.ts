@@ -64,6 +64,15 @@ export class FederationServerManager extends BaseManager<FederationServerEvent, 
     /**
      * 获取服务器状态
      *
+     * 契约（2026-10-01 核对）：上游 Synapse v1.162.0 与本仓后端都**没有**
+     * `/federation/status/{server}`；权威形状是
+     * `GET /_synapse/admin/v1/federation/destinations/{destination}`
+     * （`synapse-web/src/routes/admin/federation.rs::get_destination`），返回
+     * `{destination, retry_last_ts, retry_interval, failure_ts, last_successful_ts,
+     *   failure_count, status, updated_ts}`（`status` 默认 `"active"`）。
+     * 因此 `online` 由 `status === "active"` 推导，`lastSuccessfulConnect` 取
+     * `last_successful_ts`；后端不提供 `latency`，**不再臆造**该字段。
+     *
      * @param serverName - 服务器名称
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 服务器状态
@@ -74,19 +83,21 @@ export class FederationServerManager extends BaseManager<FederationServerEvent, 
         }
 
         return this.request<{
-            online?: boolean;
-            last_successful_connect?: number;
-            latency?: number;
+            destination?: string | null;
+            retry_last_ts?: number | null;
+            failure_ts?: number | null;
+            last_successful_ts?: number | null;
+            failure_count?: number;
+            status?: string;
         }>({
             method: Method.Get,
-            path: `/federation/status/${encodeURIComponent(serverName)}`,
+            path: `/federation/destinations/${encodeURIComponent(serverName)}`,
             prefix: AdminPrefix.V1,
         }).then(
             (response) => {
                 return {
-                    online: response.online || false,
-                    lastSuccessfulConnect: response.last_successful_connect,
-                    latency: response.latency,
+                    online: response.status === "active",
+                    lastSuccessfulConnect: response.last_successful_ts ?? undefined,
                 };
             },
             (e) => {
@@ -126,24 +137,19 @@ export class FederationServerManager extends BaseManager<FederationServerEvent, 
         );
     }
 
-    async disconnectServer(serverName: string): Promise<void> {
-        if (!serverName) {
-            throw new ValidationError("Server name is required");
-        }
-
-        try {
-            await this.request({
-                method: Method.Post,
-                path: `/federation/disconnect/${encodeURIComponent(serverName)}`,
-                prefix: AdminPrefix.V1,
-            });
-        } catch (e) {
-            const error = this.normalizeError(e, "disconnectServer");
-            this.emit(FederationServerEvent.FederationError, error);
-            throw error;
-        }
-    }
-
+    /**
+     * 重置与某目的地的连接（等价于"重新连接"）。
+     *
+     * 契约（2026-10-01 核对）：上游 Synapse v1.162.0 的
+     * `synapse/rest/admin/federation.py` 只有
+     * `POST /_synapse/admin/v1/federation/destinations/{destination}/reset_connection`；
+     * 本仓后端同样注册该路径（外加 `.../reset` 别名）。SDK 原先的
+     * `/federation/reconnect/{server}` **上游与本仓都没有**。
+     *
+     * 与之配套的"断开某 server"（`/federation/disconnect/{server}`）已**删除**：
+     * 上游与本仓都没有该语义，最接近的只有 `reset_connection`（清掉重试状态、允许立即重试），
+     * 而不是"断开"。保留它只会继续对一个不存在的端点发请求。
+     */
     async reconnectServer(serverName: string): Promise<void> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
@@ -152,7 +158,7 @@ export class FederationServerManager extends BaseManager<FederationServerEvent, 
         try {
             await this.request({
                 method: Method.Post,
-                path: `/federation/reconnect/${encodeURIComponent(serverName)}`,
+                path: `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
                 prefix: AdminPrefix.V1,
             });
         } catch (e) {

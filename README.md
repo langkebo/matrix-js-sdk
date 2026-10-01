@@ -334,7 +334,7 @@ The SDK's 51 Manager modules are organized by domain under `src/`:
 | Admin & moderation     | `admin`, `moderation`, `event-report`, `reporting`                                                                                                                                                        |
 | Federation & directory | `federation`, `third-party`, `identity-server`, `discovery`                                                                                                                                               |
 | Auth & SSO             | `auth`, `guest`, `captcha`, `saml`, `cas`, `oidc`, `password-reset`, `interactive-auth`, `rendezvous`                                                                                                     |
-| Custom extensions      | `friend`, `space`, `ai-connection`, `open-claw`, `external-service`, `feature-flags`, `telemetry`, `module`                                                                                               |
+| Custom extensions      | `friend`, `space`, `external-service`, `feature-flags`, `telemetry`, `module`                                                                                                                             |
 
 ### Frontend integration
 

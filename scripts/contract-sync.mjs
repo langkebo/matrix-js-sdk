@@ -3,8 +3,8 @@
  * Ledger-driven SDK contract synchroniser.
  *
  * Consumes the deterministic JSON artefacts produced by the
- * `synapse_ledger_export` binary (one per profile: default / worker /
- * openclaw / all) and materialises them into
+ * `synapse_ledger_export` binary (one per profile: default / worker / all)
+ * and materialises them into
  * `docs/api-contract/generated/` as the SDK's machine-readable mirror.
  *
  * Layout written:
@@ -14,19 +14,42 @@
  *
  * Mode selection:
  *   contract-sync.mjs                     → ingest from default fixture dir, write generated/
- *   contract-sync.mjs --source=<dir>      → ingest from custom dir
- *   contract-sync.mjs --check             → recompute in memory, fail if disk drifts
+ *   contract-sync.mjs --source=<dir>      → ingest from custom dir, write generated/
+ *   contract-sync.mjs --check             → recompute from the committed generated/ tree,
+ *                                           fail on drift (byte-exact self-consistency)
+ *   contract-sync.mjs --check --source=<dir>
+ *                                         → SEMANTIC check: compare the committed mirror's
+ *                                           route entries against an external ledger export,
+ *                                           ignoring stamp fields. This answers "is my mirror
+ *                                           behind the backend?" — byte comparison here is
+ *                                           useless because the mirror's committed stamps
+ *                                           (e.g. the May placeholder 7cb39946…) can never
+ *                                           equal the incoming artifact's stamps, which made
+ *                                           all 54 files report drift while only real
+ *                                           entry-level differences matter (observed signal
+ *                                           to noise: 1:53, see A1 audit 2026-09-19).
+ *
+ * Backend commit stamping:
+ *   Fixtures from `generate_sdk_ledger_fixtures.sh` carry a zero placeholder
+ *   `synapse_rust_commit` (byte-stable for tests); CI's ledger-export job
+ *   stamps the real `${GITHUB_SHA}`. When this script runs with a
+ *   `../synapse-rust` checkout visible (the workspace layout), the placeholder
+ *   is replaced by that repo's live HEAD so the mirror carries a verifiable
+ *   commit and `Tjg/scripts/verify-sdk-pin.mjs` can cross-check the pin.
+ *   Without the sibling checkout (SDK-only CI) the fixture value passes
+ *   through untouched.
  *
  * Referenced as D3 in
  *   docs/api-contract/LEDGER_DRIVEN_SDK_PLAN_2026-05-02.md
  *
  * Schema kept in lockstep with
- *   synapse-rust/docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md (v1).
+ *   synapse-rust/docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md (v4).
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const entryFilePath = fileURLToPath(import.meta.url);
@@ -59,9 +82,39 @@ const DEFAULT_INGEST_SOURCE_DIR = path.resolve(
  * synapse-rust checkout next to the SDK repo.
  */
 const DEFAULT_CHECK_SOURCE_DIR = GENERATED_DIR;
-const PROFILES = ["default", "worker", "openclaw", "all"];
+// Three profiles — exactly what the backend exports. `openclaw` used to be listed
+// here as a fourth profile, but the backend never produced it and has since deleted
+// the capability outright (synapse-rust 67e66bf4, "H-1 product boundary decision"),
+// which made `contract:sync` fail with "missing ledger artefact for profile
+// 'openclaw'". Keep this list in lockstep with
+// synapse-rust/scripts/generate_sdk_ledger_fixtures.sh and
+// synapse-rust/.github/workflows/ledger-export.yml.
+const PROFILES = ["default", "worker", "all"];
 const GENERATED_SCHEMA_VERSION = "1";
-const LEDGER_SCHEMA_VERSION = "1";
+// Input contract version produced by synapse-rust (`SCHEMA_VERSION` in
+// src/web/routes/ledger_export.rs; mirrored in docs/synapse-rust/LEDGER_EXPORT_SCHEMA.md).
+//
+// Backend history:
+//   "1" -> "2"  additive (synapse-rust aa06ca45): entry-level `query_params`
+//               added; `module` / `status` became optional per-entry fields.
+//   "2" -> "3"  REMOVAL (synapse-rust B-7): `entries[].module` deleted. It
+//               defaulted to `registered_by`, was populated for only 3 of 1320
+//               routes, and no consumer read it — this script groups modules by
+//               `registered_by` (`moduleKeyFor` below), so nothing here changes.
+//   "3" -> "4"  REMOVAL (synapse-rust B-7 follow-up): `entries[].status`
+//               deleted. Its only writer (`push_notification.rs`'s
+//               `with_status`) was removed, so `status` had zero consumers —
+//               same rationale as `module`. Script behavior is unchanged.
+// This pin must track the backend, not the generated mirror above.
+//
+// Bumping this pin is a CONTRACT change: it must be accompanied by
+// `node scripts/contract-sync.mjs --render-drafts` re-generating
+// docs/api-contract/ (mirror + doc frontmatter `ledger_schema` + hashes), so
+// the mirror and the pin never diverge. Skipping that regeneration is exactly
+// how this chain silently froze once already (backend schema 1->2 left the pin
+// at "1", every published artifact failed `parsed.schema_version !==
+// LEDGER_SCHEMA_VERSION`, and the mirror went stale for a day).
+const LEDGER_SCHEMA_VERSION = "4";
 const DRAFT_ENTRY_SOFT_CAP = 10;
 const DRAFT_ENTRY_HARD_CAP = 25;
 const DRAFT_SNIPPET_TARGET_LINES = 400;
@@ -70,7 +123,7 @@ const DRAFT_TOKEN_SOFT_CAP = 6000;
 const DRAFT_TOKEN_HARD_CAP = 10000;
 
 function parseArgs(argv) {
-    const out = { mode: "ingest", sourceDir: null, help: false, renderDrafts: false };
+    const out = { mode: "ingest", sourceDir: null, explicitSource: false, help: false, renderDrafts: false };
     for (let i = 2; i < argv.length; i += 1) {
         const arg = argv[i];
         if (arg === "--help" || arg === "-h") {
@@ -83,9 +136,11 @@ function parseArgs(argv) {
             const next = argv[i + 1];
             if (!next) throw new Error("--source requires a path");
             out.sourceDir = path.resolve(next);
+            out.explicitSource = true;
             i += 1;
         } else if (arg.startsWith("--source=")) {
             out.sourceDir = path.resolve(arg.slice("--source=".length));
+            out.explicitSource = true;
         } else {
             throw new Error(`unknown argument: ${arg}`);
         }
@@ -112,6 +167,12 @@ function printHelp() {
             `  --render-drafts compare the incoming manifests against the currently committed\n` +
             `                 generated/ tree and emit prompt drafts under docs/api-contract/drafts/\n` +
             `  --check        dry-run; exit 1 if anything on disk would change\n` +
+            `  --check --source=DIR\n` +
+            `                 semantic check: compare the committed mirror's route entries against\n` +
+            `                 DIR's ledger manifests, ignoring stamp fields (synapse_rust_commit /\n` +
+            `                 generated_at). Use this to ask "is my mirror behind the backend?".\n` +
+            `                 Without --source, --check recomputes from the committed generated/ tree\n` +
+            `                 and is byte-exact instead.\n` +
             `  --help, -h     show this message\n`,
     );
 }
@@ -215,6 +276,12 @@ function buildIndex(profiles, modules, profileFiles, moduleFiles) {
         generated_at: profiles.default.parsed.generated_at ?? null,
         synapse_rust_commit: profiles.default.parsed.synapse_rust_commit ?? null,
         ledger_entry_count: profiles.default.parsed.entry_count,
+        freshness: {
+            source_timestamp: new Date().toISOString(),
+            backend_commit_sha: profiles.default.parsed.synapse_rust_commit ?? null,
+            backend_commit_date: profiles.default.parsed.generated_at ?? null,
+            mirror_profiles: Object.keys(profiles),
+        },
         profiles: {},
         modules: {},
     };
@@ -254,6 +321,44 @@ function buildOutputs(profiles) {
     return { profileFiles, moduleFiles, indexFile, moduleNames: modules.map((m) => m.module) };
 }
 
+/**
+ * Stamp `synapse_rust_commit` on profiles ingested from the fixture lane.
+ *
+ * `generate_sdk_ledger_fixtures.sh` writes a zero placeholder for byte-stable
+ * test goldens, and SDK-only CI has no sibling checkout to stamp from. When a
+ * `../synapse-rust` checkout IS visible (workspace layout) the placeholder is
+ * replaced with that repo's live HEAD so the mirror carries a verifiable
+ * backend commit — that is what `Tjg/scripts/verify-sdk-pin.mjs` cross-checks
+ * against the pin. A non-placeholder fixture value (CI artifact lane) is
+ * never overwritten.
+ */
+function backendCommitForStamp() {
+    const sibling = path.resolve(repoRoot, "..", "synapse-rust");
+    if (!fs.existsSync(path.join(sibling, "Cargo.toml"))) return null;
+    try {
+        const head = execFileSync("git", ["rev-parse", "HEAD"], {
+            cwd: sibling,
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+        return /^[0-9a-f]{40}$/.test(head) ? head : null;
+    } catch {
+        return null;
+    }
+}
+
+function applyBackendCommitStamp(profiles) {
+    const stamp = backendCommitForStamp();
+    if (!stamp) return;
+    const placeholder = /^(0{40}|0{7}|\s*)$/;
+    for (const name of PROFILES) {
+        const commit = profiles[name]?.parsed?.synapse_rust_commit;
+        if (typeof commit === "string" && placeholder.test(commit)) {
+            profiles[name].parsed.synapse_rust_commit = stamp;
+        }
+    }
+}
+
 function ensureDir(dir) {
     fs.mkdirSync(dir, { recursive: true });
 }
@@ -261,6 +366,15 @@ function ensureDir(dir) {
 function writeOutputs(outputs) {
     ensureDir(GENERATED_DIR);
     ensureDir(path.join(GENERATED_DIR, "modules"));
+    // Remove stale profile manifests before writing. A profile dropped from
+    // PROFILES (e.g. `openclaw`, retired together with the backend capability)
+    // must not linger as an orphan that nothing regenerates or validates.
+    for (const existing of fs.readdirSync(GENERATED_DIR)) {
+        const match = /^route-manifest\.(.+)\.json$/.exec(existing);
+        if (match && !PROFILES.includes(match[1])) {
+            fs.unlinkSync(path.join(GENERATED_DIR, existing));
+        }
+    }
     for (const name of PROFILES) {
         fs.writeFileSync(path.join(GENERATED_DIR, `route-manifest.${name}.json`), outputs.profileFiles[name]);
     }
@@ -537,6 +651,134 @@ function collectModuleDiffs(beforeProfiles, afterProfiles) {
     }
 
     return diffs;
+}
+
+/**
+ * Order-independent JSON for deep comparison of plain entry objects.
+ * Entry objects carry no stamps (those live at manifest level), so this is a
+ * faithful equality test for "same route, same shape".
+ */
+function stableJson(value) {
+    if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+    if (value && typeof value === "object") {
+        const keys = Object.keys(value).sort();
+        return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(value[k])}`).join(",")}}`;
+    }
+    return JSON.stringify(value);
+}
+
+/**
+ * Semantic mirror-vs-backend drift summary (方案 A, A1 audit 2026-09-19).
+ *
+ * Compares the committed generated/ mirror against an incoming ledger export
+ * **per module, per route entry**, ignoring `synapse_rust_commit` /
+ * `generated_at` stamps entirely. This is what `--check --source=<dir>` runs:
+ * the byte-level comparison used there before reported every file as drifting
+ * whenever stamps differed (54/54 files, of which only 1 module had a real
+ * entry difference), making the check useless for triage.
+ *
+ * Deliberately stricter than `collectModuleDiffs` (used for prompt drafts):
+ * entries with the same (method, path) key but changed payload fields
+ * (e.g. `query_params`, `registered_by`) are reported as modified, not equal.
+ */
+export function summarizeBackendSemanticDrift(diskProfiles, sourceProfiles) {
+    const diskModules = buildModuleIndex(diskProfiles.all);
+    const sourceModules = buildModuleIndex(sourceProfiles.all);
+    const allNames = new Set([...diskModules.keys(), ...sourceModules.keys()]);
+    const moduleDiffs = [];
+    for (const moduleName of [...allNames].sort()) {
+        const disk = diskModules.get(moduleName);
+        const source = sourceModules.get(moduleName);
+        const diskEntries = new Map((disk?.entries ?? []).map((entry) => [entryTupleKey(entry), entry]));
+        const sourceEntries = new Map((source?.entries ?? []).map((entry) => [entryTupleKey(entry), entry]));
+        const added = [];
+        const removed = [];
+        const modified = [];
+        for (const [key, entry] of sourceEntries) {
+            if (!diskEntries.has(key)) {
+                added.push(entry);
+            } else if (stableJson(diskEntries.get(key)) !== stableJson(entry)) {
+                modified.push(entry);
+            }
+        }
+        for (const [key, entry] of diskEntries) {
+            if (!sourceEntries.has(key)) removed.push(entry);
+        }
+        if (added.length > 0 || removed.length > 0 || modified.length > 0) {
+            moduleDiffs.push({ moduleName, added, removed, modified });
+        }
+    }
+    return {
+        moduleDiffs,
+        diskModuleCount: diskModules.size,
+        sourceModuleCount: sourceModules.size,
+        sourceEntryCount: sourceProfiles.all.parsed.entry_count ?? sourceProfiles.all.parsed.entries.length,
+    };
+}
+
+function formatSemanticDriftLines(summary) {
+    const lines = [];
+    for (const diff of summary.moduleDiffs) {
+        const counts = `(+${diff.added.length} ~${diff.modified.length} -${diff.removed.length})`;
+        lines.push(`  ${diff.moduleName} ${counts}:`);
+        for (const e of diff.added) {
+            lines.push(`    + ${e.method} ${e.path}   [backend has, mirror lacks; registered_by: ${e.registered_by}]`);
+        }
+        for (const e of diff.modified) {
+            lines.push(`    ~ ${e.method} ${e.path}   [entry payload changed; registered_by: ${e.registered_by}]`);
+        }
+        for (const e of diff.removed) {
+            lines.push(
+                `    - ${e.method} ${e.path}   [mirror has, backend removed; registered_by: ${e.registered_by}]`,
+            );
+        }
+    }
+    return lines;
+}
+
+/**
+ * `--check --source=<dir>`: is the committed mirror behind the backend export?
+ * Exit 1 only on real entry-level differences; stamp differences are reported
+ * as informational context, never as failures.
+ */
+function runBackendSemanticCheck(sourceProfiles, sourceDir) {
+    const diskProfiles = tryReadProfilesFromSourceDir(GENERATED_DIR);
+    if (!diskProfiles) {
+        process.stderr.write(
+            `contract-sync: cannot read all ${PROFILES.length} profile manifests from ${GENERATED_DIR}; ` +
+                `run \`node scripts/contract-sync.mjs\` first.\n`,
+        );
+        return 1;
+    }
+    const summary = summarizeBackendSemanticDrift(diskProfiles, sourceProfiles);
+    const diskStamp = diskProfiles.all.parsed.synapse_rust_commit ?? "(none)";
+    const diskGeneratedAt = diskProfiles.all.parsed.generated_at ?? "(none)";
+    const sourceStamp = sourceProfiles.all.parsed.synapse_rust_commit ?? "(none)";
+
+    if (summary.moduleDiffs.length > 0) {
+        process.stderr.write(
+            `contract-sync: mirror is behind the backend source (${sourceDir}):\n` +
+                `${summary.moduleDiffs.length} of ${summary.sourceModuleCount} module(s) have entry differences:\n` +
+                `${formatSemanticDriftLines(summary).join("\n")}\n\n` +
+                `Refresh with: node scripts/contract-sync.mjs --source=${sourceDir}\n`,
+        );
+        return 1;
+    }
+    process.stdout.write(
+        `contract-sync: mirror route entries match the backend source ` +
+            `(${summary.sourceModuleCount} modules, ${summary.sourceEntryCount} entries; ` +
+            `no added / removed / modified routes).\n` +
+            `provenance (informational, never a failure):\n` +
+            `  mirror synapse_rust_commit:  ${diskStamp}  (generated_at: ${diskGeneratedAt})\n` +
+            `  source synapse_rust_commit:  ${sourceStamp}\n`,
+    );
+    if (/^(0{40}|0{7}|\s*)$/.test(sourceStamp)) {
+        process.stdout.write(
+            `  (source fixtures carry a zero placeholder — no artifact provenance available;\n` +
+                `  the committed mirror's stamp stays authoritative until the next artifact sync)\n`,
+        );
+    }
+    return 0;
 }
 
 const MODULE_FILE_ALIASES = {
@@ -821,6 +1063,26 @@ function renderDrafts(beforeProfiles, afterProfiles) {
     return { draftCount, stubCount, changedModules: moduleDiffs.length };
 }
 
+/**
+ * Canonicalise `index.json` for the byte-exact self-check.
+ *
+ * `buildIndex` fills `freshness.source_timestamp` with the wall clock at render
+ * time, so a raw byte comparison can never pass — the value differs on every
+ * run, including the run that wrote the file (observed: `--check` reported
+ * `index.json` drift even on a clean tree, silently reddening
+ * `pnpm quality:contracts`). Everything else in index.json (profile/module
+ * hashes, entry counts, the pinned backend commit) IS deterministic from the
+ * committed manifests, so we null out only that one volatile field and keep
+ * comparing the rest byte-for-byte.
+ */
+function canonicaliseIndex(buf) {
+    const parsed = JSON.parse(buf.toString("utf8"));
+    if (parsed && typeof parsed.freshness === "object" && parsed.freshness !== null) {
+        parsed.freshness.source_timestamp = null;
+    }
+    return renderJson(parsed);
+}
+
 function checkDrift(outputs) {
     const drifts = [];
     for (const name of PROFILES) {
@@ -852,7 +1114,7 @@ function checkDrift(outputs) {
     }
     const indexPath = path.join(GENERATED_DIR, "index.json");
     const onDisk = readIfExists(indexPath);
-    if (!onDisk || !onDisk.equals(outputs.indexFile)) {
+    if (!onDisk || canonicaliseIndex(onDisk) !== canonicaliseIndex(outputs.indexFile)) {
         drifts.push(`  index.json`);
     }
     return drifts;
@@ -876,9 +1138,27 @@ function run(argv) {
     for (const name of PROFILES) {
         profiles[name] = readProfile(args.sourceDir, name);
     }
+    // In ingest mode, stamp fixture placeholders with the live backend HEAD when
+    // a sibling synapse-rust checkout is visible (workspace layout). In --check
+    // mode the disk generated/ tree is already the source of truth, so never
+    // stamp there:
+    //   - default (self) check: stamping would falsify the byte-exact comparison;
+    //   - explicit-source check now runs the SEMANTIC comparison
+    //     (summarizeBackendSemanticDrift) which ignores stamps entirely, so
+    //     stamping would only mislabel the source's provenance in the report.
+    if (args.mode !== "check") {
+        applyBackendCommitStamp(profiles);
+    }
     const outputs = buildOutputs(profiles);
 
     if (args.mode === "check") {
+        if (args.explicitSource) {
+            // "Is my mirror behind the backend?" — entry-level comparison,
+            // stamp-insensitive. Byte comparison here used to report every file
+            // (54/54) whenever stamps differed, drowning the single module with
+            // a real difference.
+            return runBackendSemanticCheck(profiles, args.sourceDir);
+        }
         const drifts = checkDrift(outputs);
         const frontmatterErrors = validateFrontmatter(collectModuleDocs());
         if (drifts.length > 0 || frontmatterErrors.length > 0) {
@@ -919,10 +1199,9 @@ function run(argv) {
     process.stdout.write(
         `contract-sync: wrote ${Object.keys(outputs.moduleFiles).length} module files, ` +
             `${PROFILES.length} profile manifests, and index.json.\n` +
-            `  default profile: ${profiles.default.parsed.entry_count} entries\n` +
-            `  worker profile:  ${profiles.worker.parsed.entry_count} entries\n` +
-            `  openclaw profile: ${profiles.openclaw.parsed.entry_count} entries\n` +
-            `  all profile:     ${profiles.all.parsed.entry_count} entries\n` +
+            PROFILES.map((name) => `  ${name.padEnd(8)} profile: ${profiles[name].parsed.entry_count} entries\n`).join(
+                "",
+            ) +
             `  synapse_rust_commit: ${profiles.default.parsed.synapse_rust_commit ?? "(none)"}\n`,
     );
     if (draftSummary) {

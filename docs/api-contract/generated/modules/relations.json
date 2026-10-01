@@ -1,43 +1,12 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "relations",
-  "synapse_rust_commit": "c2e43304843f9460bc5d88d93b708016306d97f1",
-  "generated_at": "2026-07-31T22:14:32Z",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 11,
+  "entry_count": 8,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
-      "registered_by": "relations",
-      "path_params": [
-        "room_id",
-        "event_id",
-        "rel_type"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}",
-      "registered_by": "relations",
-      "path_params": [
-        "room_id",
-        "event_id",
-        "rel_type"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
-      "registered_by": "relations",
-      "path_params": [
-        "room_id",
-        "event_id",
-        "rel_type",
-        "txn_id"
-      ]
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
@@ -46,7 +15,8 @@
         "room_id",
         "event_id",
         "rel_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -55,6 +25,12 @@
       "path_params": [
         "room_id",
         "event_id"
+      ],
+      "query_params": [
+        "dir",
+        "from",
+        "limit",
+        "to"
       ]
     },
     {
@@ -65,6 +41,12 @@
         "room_id",
         "event_id",
         "rel_type"
+      ],
+      "query_params": [
+        "dir",
+        "from",
+        "limit",
+        "to"
       ]
     },
     {
@@ -76,7 +58,8 @@
         "event_id",
         "rel_type",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -86,7 +69,8 @@
         "room_id",
         "event_id",
         "rel_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -95,6 +79,12 @@
       "path_params": [
         "room_id",
         "event_id"
+      ],
+      "query_params": [
+        "dir",
+        "from",
+        "limit",
+        "to"
       ]
     },
     {
@@ -105,6 +95,12 @@
         "room_id",
         "event_id",
         "rel_type"
+      ],
+      "query_params": [
+        "dir",
+        "from",
+        "limit",
+        "to"
       ]
     },
     {
@@ -116,7 +112,8 @@
         "event_id",
         "rel_type",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

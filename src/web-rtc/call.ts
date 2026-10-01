@@ -428,6 +428,11 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
     // Used to keep the timer for the delay before actually stopping our
     // video track after muting (see setLocalVideoMuted)
     private stopVideoTrackTimer?: ReturnType<typeof setTimeout>;
+    // Used to keep the timer for the deferred flush of the ICE candidate queue
+    // (see queueCandidate / sendCandidateQueue). Holding the handle allows us to
+    // cancel a pending flush on hangup instead of leaking the timer (and the
+    // `this` closure it captures) for the remaining lifetime of the page.
+    private candidateSendTimer?: ReturnType<typeof setTimeout>;
     // Used to allow connection without Video and Audio. To establish a webrtc connection without media a Data channel is
     // needed At the moment this property is true if we allow MatrixClient with isVoipWithNoMediaAllowed = true
     private readonly isOnlyDataChannelAllowed: boolean;
@@ -2578,10 +2583,41 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
         const delay = this.direction === CallDirection.Inbound ? 500 : 2000;
 
         if (this.candidateSendTries === 0) {
-            setTimeout(() => {
-                this.sendCandidateQueue();
-            }, delay);
+            this.scheduleCandidateSend(delay);
         }
+    }
+
+    /**
+     * Schedule a deferred flush of the ICE candidate queue.
+     *
+     * The timer handle is retained on the instance so that a pending flush can be
+     * cancelled when the call ends (see {@link clearCandidateSendTimer}); previously
+     * the handle was dropped, so the timer - and the `this` closure it captures -
+     * survived the call and kept the whole MatrixCall object alive until it fired.
+     *
+     * If a flush is already pending we keep the earliest scheduled one rather than
+     * pushing it back: candidates trickle in continuously during gathering, and
+     * resetting the delay on each arrival could postpone the flush indefinitely.
+     *
+     * @param delayMs - How long to wait before flushing the queue.
+     */
+    private scheduleCandidateSend(delayMs: number): void {
+        if (this.candidateSendTimer !== undefined) return;
+
+        this.candidateSendTimer = setTimeout(() => {
+            this.candidateSendTimer = undefined;
+            this.sendCandidateQueue();
+        }, delayMs);
+    }
+
+    /**
+     * Cancel any pending deferred flush of the ICE candidate queue.
+     */
+    private clearCandidateSendTimer(): void {
+        if (this.candidateSendTimer === undefined) return;
+
+        clearTimeout(this.candidateSendTimer);
+        this.candidateSendTimer = undefined;
     }
 
     // Discard all non-end-of-candidates messages
@@ -2714,6 +2750,10 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
             clearTimeout(this.stopVideoTrackTimer);
             this.stopVideoTrackTimer = undefined;
         }
+        // Cancel any pending deferred flush of the ICE candidate queue: once the call
+        // has ended there is nothing left to signal, and firing the timer would only
+        // send a stray m.call.candidates event for a dead call.
+        this.clearCandidateSendTimer();
 
         for (const [stream, listener] of this.removeTrackListeners) {
             stream.removeEventListener("removetrack", listener);
@@ -2822,9 +2862,7 @@ export class MatrixCall extends TypedEventEmitter<CallEvent, CallEventHandlerMap
                 `Call ${this.callId} sendCandidateQueue() failed to send candidates. Retrying in ${delayMs}ms`,
                 error,
             );
-            setTimeout(() => {
-                this.sendCandidateQueue();
-            }, delayMs);
+            this.scheduleCandidateSend(delayMs);
         }
     }
 

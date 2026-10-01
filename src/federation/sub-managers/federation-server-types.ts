@@ -25,7 +25,8 @@ export interface IFederationServer {
 }
 
 export interface IFederationStatus {
+    /** `status === "active"`（后端 `DestinationInfo.status`，默认即 `"active"`）。 */
     online: boolean;
+    /** 后端 `DestinationInfo.last_successful_ts`；从未成功过则为 `undefined`。 */
     lastSuccessfulConnect?: number;
-    latency?: number;
 }

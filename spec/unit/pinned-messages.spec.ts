@@ -45,6 +45,21 @@ describe("PinnedMessagesManager", () => {
     });
 
     it("does not retry non-idempotent writes by default", async () => {
+        // 5xx 才是 S-8 护栏的目标场景：服务端可能已经提交，重试会造成重复写入。
+        mockClient.http.authedRequest.mockRejectedValue(
+            new MatrixError({ errcode: "M_UNKNOWN", error: "server error" }, 500, undefined),
+        );
+
+        await expect(manager.pinEventToServer("!room:example.com", "$event")).rejects.toMatchObject({
+            name: "RetryableError",
+            isRetryable: true,
+        });
+
+        expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries a rate-limited non-idempotent write (429 is rejected before execution)", async () => {
+        // 限流是 S-8 的例外：服务端在执行前就拒绝了请求，没有副作用会被重复提交。
         mockClient.http.authedRequest.mockRejectedValue(
             new MatrixError({ errcode: "M_LIMIT_EXCEEDED", error: "slow down", retry_after_ms: 325 }, 429, undefined),
         );
@@ -55,7 +70,7 @@ describe("PinnedMessagesManager", () => {
             isRetryable: true,
         });
 
-        expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(1);
+        expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(3);
     });
 });
 

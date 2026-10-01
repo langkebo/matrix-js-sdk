@@ -144,14 +144,6 @@ export interface DeviceListUpdateResponse {
     stream_id?: number;
 }
 
-export interface DeviceVerificationRequestResponse {
-    request_token?: string;
-    token: string;
-    status?: string;
-    expires_at?: number;
-    methods_available?: string[];
-}
-
 export interface RoomKeyRequest {
     request_id: string;
     user_id: string;
@@ -173,29 +165,6 @@ export interface SendToDeviceMessage {
     [userId: string]: {
         [deviceId: string]: IContent;
     };
-}
-
-export interface DeviceVerificationStatusResponse {
-    token: string;
-    state: "pending" | "verified" | "cancelled" | "expired";
-    device_id?: string;
-    requested_ts?: number;
-    completed_ts?: number;
-}
-
-export interface DeviceTrustInfo {
-    user_id: string;
-    device_id: string;
-    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
-    verified_at?: number;
-}
-
-export interface SecuritySummaryResponse {
-    devices_total: number;
-    devices_verified: number;
-    devices_unverified: number;
-    cross_signing_ready: boolean;
-    [key: string]: unknown;
 }
 
 export interface SignaturesUploadResponse {
@@ -234,7 +203,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 上传设备密钥和一次性密钥
-     * POST /_matrix/client/r0/keys/upload
+     * POST /_matrix/client/v3/keys/upload
      */
     async uploadKeys(options: UploadKeysOptions): Promise<UploadKeysResponse> {
         const body: { device_keys?: DeviceKeys; one_time_keys?: OneTimeKeys; fallback_keys?: FallbackKeys } = {};
@@ -267,7 +236,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 查询设备密钥
-     * POST /_matrix/client/r0/keys/query
+     * POST /_matrix/client/v3/keys/query
      */
     async queryKeys(request: QueryKeysRequest): Promise<QueryKeysResponse> {
         const response = await this.request<QueryKeysResponse>({
@@ -286,7 +255,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 声明一次性密钥
-     * POST /_matrix/client/r0/keys/claim
+     * POST /_matrix/client/v3/keys/claim
      */
     async claimKeys(request: ClaimKeysRequest): Promise<ClaimKeysResponse> {
         const response = await this.request<ClaimKeysResponse>({
@@ -305,7 +274,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 获取密钥变化
-     * GET /_matrix/client/r0/keys/changes
+     * GET /_matrix/client/v3/keys/changes
      */
     async getKeyChanges(from: string, to?: string): Promise<KeyChangesResponse> {
         const params: Record<string, string> = { from };
@@ -327,7 +296,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 更新设备列表
-     * POST /_matrix/client/r0/keys/device_list/update
+     * POST /_matrix/client/v3/keys/device_list/update
      */
     async updateDeviceList(users: string[], since?: string): Promise<DeviceListUpdateResponse> {
         const body: { users: string[]; since?: string } = { users };
@@ -369,7 +338,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 上传设备签名密钥
-     * POST /_matrix/client/r0/keys/device_signing/upload
+     * POST /_matrix/client/v3/keys/device_signing/upload
      */
     async uploadDeviceSigning(keys: {
         master_key?: CrossSigningKey;
@@ -386,7 +355,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 创建房间密钥请求
-     * POST /_matrix/client/r0/room_keys/request
+     * POST /_matrix/client/v3/room_keys/request
      */
     async createRoomKeyRequest(request: {
         room_id: string;
@@ -407,7 +376,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 获取房间密钥请求
-     * GET /_matrix/client/r0/room_keys/request
+     * GET /_matrix/client/v3/room_keys/request
      */
     async getRoomKeyRequests(options?: {
         status?: string;
@@ -436,7 +405,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 删除房间密钥请求
-     * DELETE /_matrix/client/r0/room_keys/request/{request_id}
+     * DELETE /_matrix/client/v3/room_keys/request/{request_id}
      */
     async deleteRoomKeyRequest(requestId: string): Promise<void> {
         await this.request<void>({
@@ -448,7 +417,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 获取房间密钥分发
-     * GET /_matrix/client/r0/rooms/{room_id}/keys/distribution
+     * GET /_matrix/client/v3/rooms/{room_id}/keys/distribution
      */
     async getRoomKeyDistribution(roomId: string): Promise<KeyDistributionResponse> {
         return await this.request<KeyDistributionResponse>({
@@ -460,7 +429,7 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     /**
      * 发送设备消息
-     * PUT /_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}
+     * PUT /_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}
      */
     async sendToDevice(eventType: string, transactionId: string, messages: SendToDeviceMessage): Promise<void> {
         await this.request<void>({
@@ -479,6 +448,16 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         return this.client.uploadDeviceKeys(keys);
     }
 
+    /**
+     * Look up the device-key map of an arbitrary user.
+     *
+     * Delegates to {@link MatrixClient.getUserDevices}, which uses
+     * `POST /keys/query` — the only endpoint able to resolve another user's
+     * devices. (`GET /devices` is caller-scoped and cannot be used here.)
+     *
+     * @param userId - target MXID
+     * @returns `deviceId → device content` map (empty object when none)
+     */
     public async getUserDevices(userId: string): Promise<Record<string, IContent>> {
         return this.client.getUserDevices(userId);
     }
@@ -489,71 +468,6 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     public async getDevice(deviceId: string): Promise<IDevice | null> {
         return this.client.getDevice(deviceId);
-    }
-
-    async requestDeviceVerification(
-        targetUserId: string,
-        targetDeviceId: string,
-    ): Promise<DeviceVerificationRequestResponse> {
-        return await this.request<DeviceVerificationRequestResponse>({
-            method: Method.Post,
-            path: "/device_verification/request",
-            body: {
-                // Preserve legacy caller parameters while also sending the canonical
-                // fields the backend currently accepts.
-                target_user_id: targetUserId,
-                target_device_id: targetDeviceId,
-                device_id: targetDeviceId,
-                new_device_id: targetDeviceId,
-            },
-            prefix: ClientPrefix.V3,
-        });
-    }
-
-    async respondDeviceVerification(token: string, actionOrApproved: "accept" | "reject" | boolean): Promise<void> {
-        const approved = typeof actionOrApproved === "boolean" ? actionOrApproved : actionOrApproved === "accept";
-        await this.request<void>({
-            method: Method.Post,
-            path: "/device_verification/respond",
-            body: {
-                token,
-                request_token: token,
-                approved,
-            },
-            prefix: ClientPrefix.V3,
-        });
-    }
-
-    async getVerificationStatus(token: string): Promise<DeviceVerificationStatusResponse> {
-        return await this.request<DeviceVerificationStatusResponse>({
-            method: Method.Get,
-            path: `/device_verification/status/${encodeURIComponent(token)}`,
-            prefix: ClientPrefix.V3,
-        });
-    }
-
-    async getDeviceTrustList(): Promise<Record<string, DeviceTrustInfo>> {
-        return await this.request<Record<string, DeviceTrustInfo>>({
-            method: Method.Get,
-            path: "/device_trust",
-            prefix: ClientPrefix.V3,
-        });
-    }
-
-    async getDeviceTrust(deviceId: string): Promise<DeviceTrustInfo> {
-        return await this.request<DeviceTrustInfo>({
-            method: Method.Get,
-            path: `/device_trust/${encodeURIComponent(deviceId)}`,
-            prefix: ClientPrefix.V3,
-        });
-    }
-
-    async getSecuritySummary(): Promise<SecuritySummaryResponse> {
-        return await this.request<SecuritySummaryResponse>({
-            method: Method.Get,
-            path: "/security/summary",
-            prefix: ClientPrefix.V3,
-        });
     }
 }
 

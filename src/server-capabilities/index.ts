@@ -49,9 +49,12 @@ export const SynapseRustFeature = {
     Widget: "org.matrix.msc4261.widget",
     BurnAfterRead: "io.hula.burn_after_read",
     Friends: "io.hula.friends",
-    Voice: "org.matrix.msc3245",
-    OpenClaw: "openclaw",
-    AIConnection: "ai_connection",
+    /**
+     * ⚠️ 真实 key 为 `org.matrix.msc3245.voice`（后端 `capability_governance.rs:454`）。
+     * 别名 `org.matrix.msc3245` 与 `m.voice` 由服务端在 `/versions` 中保留（:259），
+     * 本 SDK 通过 SYNAPSE_RUST_CAPABILITY_ALIASES 兜底匹配。
+     */
+    Voice: "org.matrix.msc3245.voice",
 } as const;
 
 export type SynapseRustFeatureName = (typeof SynapseRustFeature)[keyof typeof SynapseRustFeature];
@@ -68,8 +71,6 @@ export interface SynapseRustFeatureSupport {
     burnAfterRead: boolean;
     friends: boolean;
     voice: boolean;
-    openClaw: boolean;
-    aiConnection: boolean;
 }
 
 const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, SynapseRustFeatureName> = {
@@ -80,8 +81,6 @@ const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, Synapse
     burnAfterRead: SynapseRustFeature.BurnAfterRead,
     friends: SynapseRustFeature.Friends,
     voice: SynapseRustFeature.Voice,
-    openClaw: SynapseRustFeature.OpenClaw,
-    aiConnection: SynapseRustFeature.AIConnection,
 };
 
 const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, string[]>> = {
@@ -90,8 +89,6 @@ const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, st
     [SynapseRustFeature.BurnAfterRead]: ["io.hula.burn_after_read"],
     [SynapseRustFeature.Friends]: ["io.hula.friends"],
     [SynapseRustFeature.Voice]: ["m.voice", "io.hula.voice_extended"],
-    [SynapseRustFeature.OpenClaw]: ["openclaw"],
-    [SynapseRustFeature.AIConnection]: ["ai_connection"],
 };
 
 function capabilityEnabled(value: unknown): boolean {
@@ -112,6 +109,32 @@ export function isCapabilityEnabled(capabilities: Capabilities | undefined, capa
     return capabilityEnabled(capabilities?.[capability]);
 }
 
+/**
+ * Resolve whether the backing server advertises a synapse-rust specific feature.
+ *
+ * ## `fallback` policy (S-13)
+ *
+ * `fallback` is what callers get when the capability probe is **unavailable**
+ * (an old server without the discovery method) or **throws**. The choice is a
+ * product decision per feature, and the fork's rule is:
+ *
+ * - **fail-closed (`false`)** — the default for features the backend has no
+ *   route for: `Voice`, `Widget`,
+ *   `DehydratedDevice`. Reporting "supported" would make callers fire requests
+ *   at endpoints that answer 404.
+ * - **fail-open (`true`)** — only for features the backend is known to serve:
+ *   `SlidingSync`, `Friends`. Guessing "unsupported" here would silently
+ *   disable working functionality.
+ *
+ * Do not flip a feature to `true` without confirming a backend route exists
+ * (see `synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md`).
+ *
+ * @param client - object exposing the optional `doesServerAdvertiseSynapseRustFeature` probe.
+ * @param feature - the feature name to probe.
+ * @param fallback - value returned when the probe is missing or throws; see the policy above.
+ * @param onError - optional callback invoked with the probe error (for logging).
+ * @returns whether the feature is advertised.
+ */
 export async function doesClientAdvertiseSynapseRustFeature(
     client: SynapseRustFeatureDiscoveryClient,
     feature: SynapseRustFeatureName,
@@ -175,12 +198,17 @@ export class ServerCapabilitiesManager extends BaseManager<
             return this.cachedCapabilities;
         }
         return this.withRetry(async () => {
-            const resp = await this.request<{ capabilities: Capabilities }>({
+            const resp = await this.request<{ capabilities: Capabilities; unstable_features?: Record<string, boolean> }>({
                 method: Method.Get,
                 path: "/capabilities",
                 prefix: ClientPrefix.V3,
             });
             this.cachedCapabilities = resp["capabilities"];
+            // Preserve the top-level unstable_features that synapse-rust returns alongside
+            // `capabilities`; stock servers omit it and the field simply stays undefined.
+            if (resp["unstable_features"]) {
+                this.cachedCapabilities.unstable_features = resp["unstable_features"];
+            }
             this.capabilitiesFetchedAt = Date.now();
             return this.cachedCapabilities!;
         }, "getServerCapabilities");

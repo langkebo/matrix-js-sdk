@@ -5,13 +5,8 @@ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 Please see LICENSE files in the repository root for full details.
 */
 
-import { ClientPrefix } from "./http-api/index";
 import type { SendDelayedEventRequestOpts } from "./@types/requests";
 import type { QueryDict } from "./utils";
-
-export function getLegacyClientPrefix(version: "v1" | "r0" = "v1"): string {
-    return version === "r0" ? "/_matrix/client/r0" : ClientPrefix.V1;
-}
 
 export function buildUnstableDelayQueryOpts(
     delayOpts: SendDelayedEventRequestOpts,

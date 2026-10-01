@@ -9,6 +9,8 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
+import type { IContent } from "../../models/event.ts";
+
 export interface SyncRequest {
     filter?: string;
     full_state?: boolean;
@@ -70,13 +72,13 @@ export interface SyncState {
 }
 
 export interface SyncStateEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
     origin_server_ts: number;
     state_key: string;
-    prev_content?: Record<string, unknown>;
+    prev_content?: IContent;
     unsigned?: Record<string, unknown>;
 }
 
@@ -87,7 +89,7 @@ export interface SyncTimeline {
 }
 
 export interface SyncTimelineEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
@@ -109,7 +111,7 @@ export interface SyncAccountData {
 }
 
 export interface SyncMinimalEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     room_id?: string;
     unsigned?: Record<string, unknown>;
@@ -120,7 +122,7 @@ export interface SyncInviteState {
 }
 
 export interface SyncStrippedState {
-    content: Record<string, unknown>;
+    content: IContent;
     state_key: string;
     type: string;
     sender: string;
@@ -135,7 +137,7 @@ export interface SyncToDevice {
 }
 
 export interface SyncToDeviceEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     sender: string;
     type: string;
 }
