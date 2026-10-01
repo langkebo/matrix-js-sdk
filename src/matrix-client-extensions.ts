@@ -255,7 +255,6 @@ export interface MatrixClientExtensionMethods {
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getSecurityManager(): import("./security/index").SecurityManager;
     getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
-    getDeviceTrustManager(): import("./device-trust/index").DeviceTrustManager;
     getDehydratedDeviceManager(): import("./dehydrated-device/index").DehydratedDeviceManager;
     getDelayedEventsManager(): import("./delayed-events/index").DelayedEventsManager;
     getVerificationRequestsToDevice(userId: string): import("./crypto-api/verification").VerificationRequest[];

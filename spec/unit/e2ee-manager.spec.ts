@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { E2EEManager } from "../../src/e2ee/index";
-import { logger } from "../../src/logger";
 
 describe("E2EEManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,38 +50,6 @@ describe("E2EEManager", () => {
             { passphrase: "secret", session_keys: [] },
             expect.objectContaining({ prefix: "/_matrix/client/v3" }),
         );
-    });
-
-    it("requires device_id or new_device_id for verification requests", async () => {
-        await expect(manager.requestDeviceVerification({})).rejects.toThrow("device_id or new_device_id is required");
-    });
-
-    it("forwards the canonical body fields to DeviceTrustManager, dropping user_id", async () => {
-        const requestVerification = vi.fn().mockResolvedValue({
-            request_token: "tok-1",
-            token: "tok-1",
-            status: "pending",
-            expires_at: 1700000000000,
-            methods_available: ["sas"],
-        });
-        mockClient.getDeviceTrustManager = () => ({ requestVerification });
-
-        await expect(
-            manager.requestDeviceVerification({
-                new_device_id: "DEVICE1",
-                method: "sas",
-            }),
-        ).resolves.toMatchObject({ request_token: "tok-1" });
-
-        // DeviceTrustManager is the single owner of this endpoint's contract;
-        // E2EEManager must not hand-roll the HTTP call any more (the old body
-        // also leaked a `user_id` the backend ignores).
-        expect(requestVerification).toHaveBeenCalledWith({
-            new_device_id: "DEVICE1",
-            device_id: undefined,
-            method: "sas",
-        });
-        expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
     });
 
     it("requires passphrase or algorithm when creating secure backups", async () => {
@@ -177,22 +144,5 @@ describe("E2EEManager", () => {
                 expect.objectContaining({ prefix: "/_matrix/client/v3" }),
             );
         });
-    });
-
-    it("falls back to a zeroed, correctly-shaped summary when the trust manager fails", async () => {
-        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
-        const getSecuritySummary = vi.fn().mockRejectedValue(new Error("boom"));
-        mockClient.getDeviceTrustManager = () => ({ getSecuritySummary });
-
-        await expect(manager.getSecuritySummary()).resolves.toEqual({
-            verified_devices: 0,
-            unverified_devices: 0,
-            blocked_devices: 0,
-            has_cross_signing_master: false,
-            security_score: 0,
-            recommendations: [],
-        });
-        expect(getSecuritySummary).toHaveBeenCalled();
-        expect(warnSpy).toHaveBeenCalledWith("E2EEManager.getSecuritySummary failed", expect.any(Error));
     });
 });

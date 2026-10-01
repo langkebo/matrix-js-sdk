@@ -1,7 +1,7 @@
 ---
 module: event_report
 generated_from: docs/api-contract/generated/modules/event_report.json
-generated_hash: sha256-e7c1b520ad757908a618cba4b485a4f5e4aba01901624cf2008aa0ab24cb3e0d
+generated_hash: sha256-bb57fb0e0f18f4ee84fa7c63a22b2fbea0e991aa61e77c68f190c79cf5cf705d
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -125,43 +125,39 @@ interface EventReportDetail {
 
 **路径**: `POST /_synapse/admin/v1/event_reports/{report_id}/escalate`
 
-### 2.10 举报历史
-
-**路径**: `GET /_synapse/admin/v1/event_reports/{report_id}/history`
-
-### 2.11 按事件查询
+### 2.10 按事件查询
 
 **路径**: `GET /_synapse/admin/v1/event_reports/event/{event_id}`
 
-### 2.12 按房间查询
+### 2.11 按房间查询
 
 **路径**: `GET /_synapse/admin/v1/event_reports/room/{room_id}`
 
-### 2.13 按举报人查询
+### 2.12 按举报人查询
 
 **路径**: `GET /_synapse/admin/v1/event_reports/reporter/{reporter_id}`
 
-### 2.14 按状态查询
+### 2.13 按状态查询
 
 **路径**: `GET /_synapse/admin/v1/event_reports/status/{status}`
 
-### 2.15 状态计数
+### 2.14 状态计数
 
 **路径**: `GET /_synapse/admin/v1/event_reports/status/{status}/count`
 
-### 2.16 统计信息
+### 2.15 统计信息
 
 **路径**: `GET /_synapse/admin/v1/event_reports/stats`
 
-### 2.17 频率限制查询
+### 2.16 频率限制查询
 
 **路径**: `GET /_synapse/admin/v1/event_reports/rate_limit/{user_id}`
 
-### 2.18 封禁用户
+### 2.17 封禁用户
 
 **路径**: `POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block`
 
-### 2.19 解封用户
+### 2.18 解封用户
 
 **路径**: `POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock`
 
@@ -180,7 +176,6 @@ interface EventReportDetail {
 | `POST /event_reports/{id}/resolve`                 | `eventReportManager.resolveReport()`        | ✅ 已封装 |
 | `POST /event_reports/{id}/dismiss`                 | `eventReportManager.dismissReport()`        | ✅ 已封装 |
 | `POST /event_reports/{id}/escalate`                | `eventReportManager.escalateReport()`       | ✅ 已封装 |
-| `GET /event_reports/{id}/history`                  | `eventReportManager.getReportHistory()`     | ✅ 已封装 |
 | `GET /event_reports/event/{event_id}`              | `eventReportManager.getReportsByEvent()`    | ✅ 已封装 |
 | `GET /event_reports/room/{room_id}`                | `eventReportManager.getReportsByRoom()`     | ✅ 已封装 |
 | `GET /event_reports/reporter/{reporter_id}`        | `eventReportManager.getReportsByReporter()` | ✅ 已封装 |
@@ -193,8 +188,8 @@ interface EventReportDetail {
 
 ### 3.2 封装覆盖率
 
-- **总端点数**: 19
-- **已封装**: 19
+- **总端点数**: 18
+- **已封装**: 18
 - **覆盖率**: 100%
 
 ### 3.3 人工 Review 收口

@@ -1,7 +1,7 @@
 ---
 module: reactions
 generated_from: docs/api-contract/generated/modules/reactions.json
-generated_hash: sha256-58f645f2fb85ad7a22779871008bc02c212f989e86dba80651ea53eecc1ae8a9
+generated_hash: sha256-e5c8f2b830ed622ede892a3af09eacd99447791050a10078f8094d874873b489
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -66,8 +66,8 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ### 3.1 SDK Manager 对应关系
 
-| 后端端点 | SDK 方法 | 状态 |
-| -------- | -------- | ---- |
+| 后端端点                                                          | SDK 方法                   | 状态      |
+| ----------------------------------------------------------------- | -------------------------- | --------- |
 | `PUT /_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` | `MatrixClient.sendEvent()` | ✅ 已封装 |
 
 ### 3.2 封装覆盖率

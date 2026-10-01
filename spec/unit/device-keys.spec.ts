@@ -5,25 +5,9 @@ import { DeviceKeysManager, DeviceKeysEvent } from "../../src/device-keys";
 describe("DeviceKeysManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let trust: any;
     let manager: DeviceKeysManager;
 
     beforeEach(() => {
-        trust = {
-            requestVerification: vi.fn().mockResolvedValue({
-                request_token: "tok-1",
-                token: "tok-1",
-                status: "pending",
-                expires_at: 1700000000000,
-                methods_available: ["sas"],
-            }),
-            respondToVerification: vi.fn().mockResolvedValue({ success: true, trust_level: "verified" }),
-            getVerificationStatus: vi.fn().mockResolvedValue({ status: "not_found" }),
-            getDeviceTrustList: vi.fn().mockResolvedValue([]),
-            getDeviceTrust: vi.fn().mockResolvedValue(null),
-            getSecuritySummary: vi.fn(),
-        };
         mockClient = {
             http: {
                 authedRequest: vi.fn(),
@@ -39,7 +23,6 @@ describe("DeviceKeysManager", () => {
             getDevice: vi
                 .fn()
                 .mockReturnValue({ user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} }),
-            getDeviceTrustManager: () => trust,
         };
         manager = new DeviceKeysManager(mockClient);
     });
@@ -113,28 +96,5 @@ describe("DeviceKeysManager", () => {
         await expect(manager.getUserDevices("@a:hs")).resolves.toHaveProperty("D1");
         expect(manager.hasDevice("D1")).toBe(true);
         await expect(manager.getDevice("D1")).resolves.toHaveProperty("device_id", "D1");
-    });
-
-    it("delegates device verification helpers to DeviceTrustManager", async () => {
-        await expect(manager.requestDeviceVerification("@a:hs", "D1")).resolves.toMatchObject({
-            request_token: "tok-1",
-        });
-        await manager.respondDeviceVerification("tok-1", "accept");
-
-        // Single authority: the manager must not hand-roll the request body any more.
-        expect(trust.requestVerification).toHaveBeenCalledWith({ new_device_id: "D1", device_id: "D1" });
-        expect(trust.respondToVerification).toHaveBeenCalledWith("tok-1", true);
-        expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
-    });
-
-    it("normalises the accept/reject/boolean argument into an `approved` boolean", async () => {
-        await manager.respondDeviceVerification("tok-2", false);
-        expect(trust.respondToVerification).toHaveBeenLastCalledWith("tok-2", false);
-
-        await manager.respondDeviceVerification("tok-3", "accept");
-        expect(trust.respondToVerification).toHaveBeenLastCalledWith("tok-3", true);
-
-        await manager.respondDeviceVerification("tok-4", "reject");
-        expect(trust.respondToVerification).toHaveBeenLastCalledWith("tok-4", false);
     });
 });

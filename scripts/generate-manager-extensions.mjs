@@ -60,7 +60,6 @@ const MODULE_DEFS = [
     { option: "includeCapabilities", module: "capabilities" },
     { option: "includeCryptoKeys", module: "crypto-keys" },
     { option: "includeKeyVerification", module: "key-verification" },
-    { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },

@@ -4,7 +4,7 @@
  *
  * Module:        CAS Authentication
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       23 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       17 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `cas` module (mirrored from the backend contract). */
@@ -19,12 +19,6 @@ export const CAS_ROUTES = [
     { method: "DELETE", path: "/admin/services/{service_id}" },
     { method: "GET", path: "/admin/users/{user_id}/attributes" },
     { method: "POST", path: "/admin/users/{user_id}/attributes" },
-    { method: "GET", path: "/login" },
-    { method: "GET", path: "/logout" },
-    { method: "GET", path: "/p3/serviceValidate" },
-    { method: "GET", path: "/proxy" },
-    { method: "GET", path: "/proxyValidate" },
-    { method: "GET", path: "/serviceValidate" },
     { method: "GET", path: "/_matrix/client/v3/login/sso/redirect/cas" },
     { method: "GET", path: "/_synapse/cas/login" },
     { method: "GET", path: "/_synapse/cas/logout" },

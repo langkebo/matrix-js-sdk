@@ -42,7 +42,6 @@ import { ClientPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
 import type { IDevice } from "../device/index";
-import type { DeviceTrustManager } from "../device-trust/index";
 
 export interface DeviceKeys {
     user_id: string;
@@ -144,46 +143,6 @@ export interface DeviceListUpdateResponse {
     left: string[];
     stream_id?: number;
 }
-
-/**
- * Device-trust / device-verification DTOs.
- *
- * These are **re-exports** of the single authoritative definitions in
- * `src/device-trust/index.ts`. Three modules (`device-trust`, `device-keys`,
- * `e2ee`) used to declare their own near-duplicates of the same wire contract;
- * the two copies here had wrong field names (`state` for `status`,
- * `devices_total` for `verified_devices`) and were never caught because no
- * test exercised them against the real backend payload. Keep exactly one
- * definition and import it.
- */
-export type {
-    TrustLevel,
-    VerificationStatus,
-    VerificationMethod,
-    IDeviceVerificationRequest,
-    IDeviceVerificationResponse,
-    IVerificationStatusResponse,
-    IVerificationRespondResult,
-    IDeviceTrustInfo,
-    IDeviceTrustListResponse,
-    ISecuritySummary,
-} from "../device-trust/index";
-
-import type {
-    IDeviceVerificationResponse,
-    IVerificationStatusResponse,
-    IDeviceTrustInfo,
-    ISecuritySummary,
-} from "../device-trust/index";
-
-/** @deprecated Use {@link IDeviceVerificationResponse} (same shape). */
-export type DeviceVerificationRequestResponse = IDeviceVerificationResponse;
-/** @deprecated Use {@link IVerificationStatusResponse} (same shape). */
-export type DeviceVerificationStatusResponse = IVerificationStatusResponse;
-/** @deprecated Use {@link IDeviceTrustInfo} (same shape). */
-export type DeviceTrustInfo = IDeviceTrustInfo;
-/** @deprecated Use {@link ISecuritySummary} (same shape). */
-export type SecuritySummaryResponse = ISecuritySummary;
 
 export interface RoomKeyRequest {
     request_id: string;
@@ -509,65 +468,6 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     public async getDevice(deviceId: string): Promise<IDevice | null> {
         return this.client.getDevice(deviceId);
-    }
-
-    /**
-     * Request verification of one of the caller's own devices.
-     *
-     * Delegates to {@link DeviceTrustManager.requestVerification} so there is a
-     * single implementation of the `POST /device_verification/request` contract
-     * (`devices.rs::request_device_verification` reads `new_device_id` or
-     * `device_id`, plus an optional `method`).
-     */
-    async requestDeviceVerification(
-        targetUserId: string,
-        targetDeviceId: string,
-    ): Promise<IDeviceVerificationResponse> {
-        void targetUserId;
-        return await this.trustManager.requestVerification({
-            new_device_id: targetDeviceId,
-            device_id: targetDeviceId,
-        });
-    }
-
-    /**
-     * Approve or reject a pending verification request.
-     *
-     * ⚠️ The backend reads **`approved: boolean`** and defaults it to `false`
-     * (`devices.rs::respond_device_verification:480`). Sending only an
-     * `action` string therefore silently converts an "accept" into a "reject".
-     * The `"accept" | "reject"` argument form is kept for backward
-     * compatibility and is normalised into `approved` before the call.
-     */
-    async respondDeviceVerification(token: string, actionOrApproved: "accept" | "reject" | boolean): Promise<void> {
-        const approved = typeof actionOrApproved === "boolean" ? actionOrApproved : actionOrApproved === "accept";
-        await this.trustManager.respondToVerification(token, approved);
-    }
-
-    async getVerificationStatus(token: string): Promise<IVerificationStatusResponse> {
-        return await this.trustManager.getVerificationStatus(token);
-    }
-
-    async getDeviceTrustList(): Promise<IDeviceTrustInfo[]> {
-        return await this.trustManager.getDeviceTrustList();
-    }
-
-    async getDeviceTrust(deviceId: string): Promise<IDeviceTrustInfo | null> {
-        return await this.trustManager.getDeviceTrust(deviceId);
-    }
-
-    async getSecuritySummary(): Promise<ISecuritySummary> {
-        return await this.trustManager.getSecuritySummary();
-    }
-
-    /**
-     * The single authoritative device-trust implementation lives on
-     * `DeviceTrustManager`; this manager only adapts its own method names onto
-     * it. Imported as a *type* to avoid a runtime import cycle
-     * (`device-trust` → `client`).
-     */
-    private get trustManager(): DeviceTrustManager {
-        return this.client.getDeviceTrustManager();
     }
 }
 

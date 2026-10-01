@@ -50,7 +50,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeCapabilities", module: "capabilities" },
     { option: "includeCryptoKeys", module: "crypto-keys" },
     { option: "includeKeyVerification", module: "key-verification" },
-    { option: "includeDeviceTrust", module: "device-trust" },
     { option: "includeDiscovery", module: "discovery" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
@@ -129,7 +128,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeCapabilities: true,
     includeCryptoKeys: true,
     includeKeyVerification: true,
-    includeDeviceTrust: true,
     includeDiscovery: true,
     includeDm: true,
     includeGuest: true,
@@ -311,12 +309,6 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeKeyVerification || all) {
                 promises.push(
                     safeDynamicImport(import("../key-verification/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeDeviceTrust || all) {
-                promises.push(
-                    safeDynamicImport(import("../device-trust/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 

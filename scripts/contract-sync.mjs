@@ -728,7 +728,9 @@ function formatSemanticDriftLines(summary) {
             lines.push(`    ~ ${e.method} ${e.path}   [entry payload changed; registered_by: ${e.registered_by}]`);
         }
         for (const e of diff.removed) {
-            lines.push(`    - ${e.method} ${e.path}   [mirror has, backend removed; registered_by: ${e.registered_by}]`);
+            lines.push(
+                `    - ${e.method} ${e.path}   [mirror has, backend removed; registered_by: ${e.registered_by}]`,
+            );
         }
     }
     return lines;
@@ -1061,6 +1063,26 @@ function renderDrafts(beforeProfiles, afterProfiles) {
     return { draftCount, stubCount, changedModules: moduleDiffs.length };
 }
 
+/**
+ * Canonicalise `index.json` for the byte-exact self-check.
+ *
+ * `buildIndex` fills `freshness.source_timestamp` with the wall clock at render
+ * time, so a raw byte comparison can never pass — the value differs on every
+ * run, including the run that wrote the file (observed: `--check` reported
+ * `index.json` drift even on a clean tree, silently reddening
+ * `pnpm quality:contracts`). Everything else in index.json (profile/module
+ * hashes, entry counts, the pinned backend commit) IS deterministic from the
+ * committed manifests, so we null out only that one volatile field and keep
+ * comparing the rest byte-for-byte.
+ */
+function canonicaliseIndex(buf) {
+    const parsed = JSON.parse(buf.toString("utf8"));
+    if (parsed && typeof parsed.freshness === "object" && parsed.freshness !== null) {
+        parsed.freshness.source_timestamp = null;
+    }
+    return renderJson(parsed);
+}
+
 function checkDrift(outputs) {
     const drifts = [];
     for (const name of PROFILES) {
@@ -1092,7 +1114,7 @@ function checkDrift(outputs) {
     }
     const indexPath = path.join(GENERATED_DIR, "index.json");
     const onDisk = readIfExists(indexPath);
-    if (!onDisk || !onDisk.equals(outputs.indexFile)) {
+    if (!onDisk || canonicaliseIndex(onDisk) !== canonicaliseIndex(outputs.indexFile)) {
         drifts.push(`  index.json`);
     }
     return drifts;

@@ -21,20 +21,16 @@ limitations under the License.
  * CAS 协议验证（serviceValidate/proxyValidate/p3/serviceValidate）、代理票据获取、登录登出等
  * 对应后端: synapse-rust/src/web/routes/cas.rs
  *
- * ⚠️ 后端路由挂载差异（2026-09-29 发现，待后端修复）:
- * 本 SDK 假设 CAS public 端点挂载在 /_synapse/cas 下，但后端 `cas_routes()`
- * 实际以 root-level 方式注册（无 nest 前缀），导致以下端点后端实际路径与
- * SDK 期望不一致：
- * - SDK 期望: /_synapse/cas/login, /_synapse/cas/serviceValidate ...
- * - 后端实际: /login, /serviceValidate ... （根级路径）
+ * ✅ 后端路由挂载（2026-10-01 复核）:
+ * 后端 `cas.rs::routes()` 已把 CAS 协议面收敛到 `/_synapse/cas` 前缀
+ * （`Router::new().nest("/_synapse/cas", cas_protocol_routes)`），
+ * 与 SDK 的 `CAS_API_PREFIX.cas` 一致：
+ * - `/_synapse/cas/login`、`/_synapse/cas/logout`
+ * - `/_synapse/cas/serviceValidate`、`proxyValidate`、`p3/serviceValidate`、`proxy`
  *
- * 其中 `/_matrix/client/v3/login/sso/redirect/cas` 与
- * `/_synapse/admin/v1/cas/*` 管理端点不受影响（两者均为完整路径注册）。
- *
- * 详见后端 issue 文档：
- * synapse-rust/docs/audit/CAS_ROUTER_PREFIX_MISSING_2026-09-29.md
- *
- * 后端修复（加 nest("/_synapse/cas") 后）本文件无需改动，即可直接联调。
+ * 历史上后端曾以根级路径注册（`/login`、`/serviceValidate` …），
+ * 对应 issue：synapse-rust/docs/audit/CAS_ROUTER_PREFIX_MISSING_2026-09-29.md
+ * 该 issue 已修复，根级路径已下线 —— 生成表与契约文档中不得再出现它们。
  */
 
 import { MatrixClient } from "../client";
@@ -129,11 +125,11 @@ export class CasManager extends BaseManager {
     /**
      * 解析 API 路径
      * 根据前缀类型返回正确的路径片段（不包含前缀本身）
-     * 
+     *
      * 后端路由契约（ROUTE_CONTRACT.md）:
      * - synapse_admin: /_synapse/admin/v1/cas/services
      * - cas: /_synapse/cas/services
-     * 
+     *
      * @param prefix 前缀类型
      * @param basePath 基础路径（如 /services, /users/{id}/attributes）
      */
@@ -166,7 +162,7 @@ export class CasManager extends BaseManager {
         }, "listServices");
     }
 
-/**
+    /**
      * 创建 CAS 服务
      * 对应 POST /_synapse/admin/v1/cas/services (admin 前缀) 或 POST /_synapse/cas/services (cas 前缀)
      *
@@ -195,7 +191,7 @@ export class CasManager extends BaseManager {
         }, "createService");
     }
 
-/**
+    /**
      * 删除 CAS 服务
      * 对应 DELETE /_synapse/admin/v1/cas/services/{id} (admin 前缀) 或 DELETE /_synapse/cas/services/{id} (cas 前缀)
      */
@@ -216,7 +212,7 @@ export class CasManager extends BaseManager {
         }, "deleteService");
     }
 
-/**
+    /**
      * 获取用户属性
      * 对应 GET /_synapse/admin/v1/cas/users/{id}/attributes (admin 前缀) 或 GET /_synapse/cas/users/{id}/attributes (cas 前缀)
      */
@@ -237,7 +233,7 @@ export class CasManager extends BaseManager {
         }, "getUserAttributes");
     }
 
-/**
+    /**
      * 设置用户属性
      * 对应 POST /_synapse/admin/v1/cas/users/{id}/attributes (admin 前缀) 或 POST /_synapse/cas/users/{id}/attributes (cas 前缀)
      */

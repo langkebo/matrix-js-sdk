@@ -1,7 +1,7 @@
 ---
 module: e2ee
 generated_from: docs/api-contract/generated/modules/e2ee.json
-generated_hash: sha256-f33974b9fcb2ce673d49bfb72ab453c002b1c1a3e417f59384a2acc7f1f1e168
+generated_hash: sha256-1ff29e3e13d494809d85df81a28b823c45d06a27260423da490b0ed898161d56
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
@@ -9,37 +9,38 @@ last_reviewed: 2026-05-11
 # E2EE API 契约
 
 > 审查来源: `synapse-rust/src/web/routes/e2ee_routes.rs`
-> 对应 SDK 模块: `src/device-keys/index.ts`, `src/device-trust/index.ts`, `src/secure-backup/index.ts`, `src/e2ee/index.ts`
+> 对应 SDK 模块: `src/device-keys/index.ts`, `src/secure-backup/index.ts`, `src/e2ee/index.ts`
 
 ## 本次复核结论
 
 - 后端实际分为两层路由:
     - compat 路由同时挂在 `/_matrix/client/r0`、`/_matrix/client/v1`、`/_matrix/client/v3`
     - v3-only 路由只挂在 `/_matrix/client/v3`
-- SDK 并不是单一 `E2EEManager` 封装，而是四层入口并存:
+- SDK 并不是单一 `E2EEManager` 封装，而是三层入口并存:
     - `DeviceKeysManager`: 设备密钥、签名、room key request、to-device
-    - `DeviceTrustManager`: 设备验证、设备信任、安全摘要
     - `SecureBackupManager`: secure backup 的高层类型化封装
     - `E2EEManager`: 面向后端原始端点的低层薄封装
-- `DeviceTrustManager` 与后端 `device_verification/*` 的请求体最贴近；`DeviceKeysManager` 的兼容验证 helper 现已补齐后端兼容字段，但新接入仍建议优先走 `DeviceTrustManager`。
+- 后端 2026-09-25 已按规范拆除 `device_verification/*`、`device_trust*`、`security/summary`
+  整套服务端托管设备私钥面（`m.key.verification.*` 是客户端之间的 to-device 流程），
+  并有用例钉住这些端点必须 404（synapse-rust `tests/integration/api_verification_relay_tests.rs`）
+  ⇒ SDK 侧 `src/device-trust/` 已删除，本节不再声明这些端点。
 - `GET /rooms/{room_id}/keys/distribution` 当前后端直接返回 `403 Forbidden`，属于服务端内部接口，不是可正常消费的客户端业务 API。
 - secure backup 后端返回字段比 SDK 高层类型更丰富，文档以下文“稳定字段 + SDK 实际消费字段”的方式说明。
-- `E2EEManager` 现已绑定生成的 `E2eePathPattern`，并补齐 `requestDeviceVerification()` / `createSecureBackup()` 的后端真实参数语义。
+- `E2EEManager` 现已绑定生成的 `E2eePathPattern`，并补齐 `createSecureBackup()` 的后端真实参数语义。
 
 ## 路由挂载
 
-| 前缀                 | 真实后端暴露                                                                                      |
-| -------------------- | ------------------------------------------------------------------------------------------------- |
-| `/_matrix/client/r0` | compat: `keys/*`、`room_keys/request*`、`sendToDevice`、`rooms/{room_id}/keys/distribution`       |
-| `/_matrix/client/v1` | 同 r0                                                                                             |
-| `/_matrix/client/v3` | compat 全量 + `device_verification/*`、`device_trust*`、`security/summary`、`keys/backup/secure*` |
+| 前缀                 | 真实后端暴露                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `/_matrix/client/r0` | compat: `keys/*`、`room_keys/request*`、`sendToDevice`、`rooms/{room_id}/keys/distribution` |
+| `/_matrix/client/v1` | 同 r0                                                                                       |
+| `/_matrix/client/v3` | compat 全量 + `keys/backup/secure*`                                                         |
 
 ## SDK 入口分层
 
 | SDK 入口              | 主要职责                                                         | 说明                                                                              |
 | --------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | `DeviceKeysManager`   | 密钥上传/查询/claim、设备列表、签名、room key request、to-device | 高层类型较多，但部分返回结构落后于后端                                            |
-| `DeviceTrustManager`  | 验证请求、验证响应、设备信任、安全摘要                           | 与后端 `approved` / `token` 语义一致                                              |
 | `SecureBackupManager` | secure backup 创建、查询、删除、写入、恢复、校验                 | 高层类型化接口，屏蔽部分后端扩展字段                                              |
 | `E2EEManager`         | 全量原始端点薄封装                                               | `Record<string, unknown>` 风格，现已绑定 `E2eePathPattern`，适合契约测试/迁移脚本 |
 
@@ -66,20 +67,14 @@ last_reviewed: 2026-05-11
 
 ### V3-only 路由
 
-| 方法     | 路径                                      | 后端行为                                                  | SDK 主入口                                                                                 |
-| -------- | ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `POST`   | `/device_verification/request`            | 读取 `new_device_id` 或 `device_id`，`method` 默认 `sas`  | `DeviceTrustManager.requestVerification()` / `E2EEManager.requestDeviceVerification()`     |
-| `POST`   | `/device_verification/respond`            | 读取 `request_token` 或 `token`，以及 `approved: boolean` | `DeviceTrustManager.respondToVerification()` / `E2EEManager.respondDeviceVerification()`   |
-| `GET`    | `/device_verification/status/{token}`     | 找不到时返回 `200 { "status": "not_found" }`，不是 404    | `DeviceTrustManager.getVerificationStatus()` / `E2EEManager.getDeviceVerificationStatus()` |
-| `GET`    | `/device_trust`                           | 返回 `{ devices: [...] }`                                 | `DeviceTrustManager.getDeviceTrustList()` / `E2EEManager.getDeviceTrustList()`             |
-| `GET`    | `/device_trust/{device_id}`               | 未找到返回 `404 M_NOT_FOUND`                              | `DeviceTrustManager.getDeviceTrust()` / `E2EEManager.getDeviceTrust()`                     |
-| `GET`    | `/security/summary`                       | 返回安全摘要                                              | `DeviceTrustManager.getSecuritySummary()` / `E2EEManager.getSecuritySummary()`             |
-| `POST`   | `/keys/backup/secure`                     | 仅强制要求 `passphrase`                                   | `SecureBackupManager.createSecureBackup()` / `E2EEManager.createSecureBackup()`            |
-| `GET`    | `/keys/backup/secure/{backup_id}`         | 返回 backup info                                          | `SecureBackupManager.getSecureBackup()` / `E2EEManager.getSecureBackup()`                  |
-| `DELETE` | `/keys/backup/secure/{backup_id}`         | 删除备份                                                  | `SecureBackupManager.deleteSecureBackup()` / `E2EEManager.deleteSecureBackup()`            |
-| `POST`   | `/keys/backup/secure/{backup_id}/keys`    | 返回 `{ count, key_count }`                               | `SecureBackupManager.addKeysToSecureBackup()` / `E2EEManager.storeSecureBackupKeys()`      |
-| `POST`   | `/keys/backup/secure/{backup_id}/restore` | 返回 `{ success, restored_keys, key_count, message? }`    | `SecureBackupManager.restoreFromSecureBackup()` / `E2EEManager.restoreSecureBackup()`      |
-| `POST`   | `/keys/backup/secure/{backup_id}/verify`  | 返回 `{ valid }`                                          | `SecureBackupManager.verifySecureBackup()` / `E2EEManager.verifySecureBackupPassphrase()`  |
+| 方法     | 路径                                      | 后端行为                                               | SDK 主入口                                                                                |
+| -------- | ----------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `POST`   | `/keys/backup/secure`                     | 仅强制要求 `passphrase`                                | `SecureBackupManager.createSecureBackup()` / `E2EEManager.createSecureBackup()`           |
+| `GET`    | `/keys/backup/secure/{backup_id}`         | 返回 backup info                                       | `SecureBackupManager.getSecureBackup()` / `E2EEManager.getSecureBackup()`                 |
+| `DELETE` | `/keys/backup/secure/{backup_id}`         | 删除备份                                               | `SecureBackupManager.deleteSecureBackup()` / `E2EEManager.deleteSecureBackup()`           |
+| `POST`   | `/keys/backup/secure/{backup_id}/keys`    | 返回 `{ count, key_count }`                            | `SecureBackupManager.addKeysToSecureBackup()` / `E2EEManager.storeSecureBackupKeys()`     |
+| `POST`   | `/keys/backup/secure/{backup_id}/restore` | 返回 `{ success, restored_keys, key_count, message? }` | `SecureBackupManager.restoreFromSecureBackup()` / `E2EEManager.restoreSecureBackup()`     |
+| `POST`   | `/keys/backup/secure/{backup_id}/verify`  | 返回 `{ valid }`                                       | `SecureBackupManager.verifySecureBackup()` / `E2EEManager.verifySecureBackupPassphrase()` |
 
 ## 参数与返回值对齐说明
 
@@ -95,24 +90,6 @@ last_reviewed: 2026-05-11
     - 后端 `changed` 实际是设备对象数组，不是 `string[]`
     - 增量响应还可能出现 `deleted[]` 与 `stream_id`
     - `DeviceKeysManager.updateDeviceList()` 现已扩展为返回 `changed[]` 设备对象、`deleted[]`、`left[]`、`stream_id`
-
-### 设备验证与设备信任
-
-- `requestVerification()`:
-    - 后端实际识别 `new_device_id` 或 `device_id`
-    - `DeviceTrustManager.requestVerification()` 与后端匹配
-    - `E2EEManager.requestDeviceVerification()` 现已改为只要求 `device_id | new_device_id`
-    - `DeviceKeysManager.requestDeviceVerification()` 仍保留旧签名 `(targetUserId, targetDeviceId)`，但现在会同时发送 `device_id` / `new_device_id` 以兼容后端当前 handler；推荐新接入仍优先使用 `DeviceTrustManager`
-- `respondToVerification()`:
-    - 后端识别 `{ token | request_token, approved }`
-    - `DeviceTrustManager.respondToVerification(token, approved)` 完全匹配
-    - `DeviceKeysManager.respondDeviceVerification()` 现已将旧的 `"accept" | "reject"` 或布尔值转换为 `{ token, request_token, approved }`
-- `getVerificationStatus()`:
-    - 后端不存在时返回 `{ status: "not_found" }`
-    - 因此 SDK 调用方不能把“未找到”仅理解为 404
-- `getSecuritySummary()`:
-    - `DeviceTrustManager.getSecuritySummary()` 出错时抛异常
-    - `E2EEManager.getSecuritySummary()` 出错时记录 `logger.warn` 并返回 `{}` fallback
 
 ### Secure Backup
 
@@ -134,13 +111,11 @@ last_reviewed: 2026-05-11
 
 ## 错误语义
 
-| 场景                   | 后端典型返回                                  | SDK 语义                                                        |
-| ---------------------- | --------------------------------------------- | --------------------------------------------------------------- |
-| 未认证 / token 无效    | `401` + `M_MISSING_TOKEN` / `M_UNKNOWN_TOKEN` | manager 统一归一化为鉴权错误                                    |
-| 设备不存在             | `404` + `M_NOT_FOUND`                         | `DeviceTrustManager.getDeviceTrust()` 在高层接口中会返回 `null` |
-| 验证 token 不存在      | `200 { "status": "not_found" }`               | 不触发 404，调用方需检查 `status`                               |
-| 房间密钥分发接口       | `403` + forbidden                             | 当前客户端不应依赖该接口                                        |
-| secure backup 缺少口令 | `400 Bad Request`                             | 高层/低层 manager 都会抛标准 API 错误                           |
+| 场景                   | 后端典型返回                                  | SDK 语义                              |
+| ---------------------- | --------------------------------------------- | ------------------------------------- |
+| 未认证 / token 无效    | `401` + `M_MISSING_TOKEN` / `M_UNKNOWN_TOKEN` | manager 统一归一化为鉴权错误          |
+| 房间密钥分发接口       | `403` + forbidden                             | 当前客户端不应依赖该接口              |
+| secure backup 缺少口令 | `400 Bad Request`                             | 高层/低层 manager 都会抛标准 API 错误 |
 
 ## 事件系统
 
@@ -154,22 +129,13 @@ last_reviewed: 2026-05-11
 | `DeviceListUpdated` | `getKeyChanges()`      | `changed[]`, `left[]` |
 | `RoomKeyRequested`  | `getRoomKeyRequests()` | `requests[]`          |
 
-### `DeviceTrustManager`
-
-| 事件                     | 触发方法                      | 载荷                          |
-| ------------------------ | ----------------------------- | ----------------------------- |
-| `VerificationRequested`  | `requestVerification()`       | `IDeviceVerificationResponse` |
-| `VerificationResponded`  | `respondToVerification()`     | `IVerificationRespondResult`  |
-| `SecuritySummaryUpdated` | `getSecuritySummary()` 成功后 | `ISecuritySummary`            |
-| `TrustChanged`           | 当前代码中未看到直接触发点    | 预留事件                      |
-
 ## 当前对齐结论
 
 - 文档已按“后端真实契约 + SDK 当前封装行为”同步，不再把 `E2EEManager` 误写为唯一主入口。
-- `DeviceTrustManager` 是当前最可靠的设备验证入口；`DeviceKeysManager` 中的验证 helper 已补齐后端兼容字段，仍以兼容层定位保留。
+- 后端 2026-09-25 拆除的 `device_verification/*` / `device_trust*` / `security/summary` 面
+  在 SDK 侧已同步删除（`src/device-trust/` 模块与其生成表条目、豁免一并移除）。
 - `room_key_distribution` 已标注为当前不可用客户端接口。
 - secure backup 文档已明确区分后端扩展字段与 SDK 高层稳定字段。
-- `spec/unit/e2ee-manager.spec.ts` 已新增专用断言，覆盖生成路由绑定、验证请求参数语义与 `getSecuritySummary()` fallback。
 
 ## DTO Definitions
 
@@ -259,60 +225,6 @@ export interface RoomKeyRequestRequest {
     session_id?: string;
     algorithm?: string;
     devices?: Array<{ user_id: string; device_id: string }>;
-}
-
-// ─── Device Verification (v3-only) ────────────────────────────
-export interface DeviceVerificationRequest {
-    new_device_id?: string;
-    device_id?: string;
-    method?: "sas" | "qr" | "emoji";
-}
-// POST /device_verification/request 的响应
-// （devices.rs::request_device_verification）
-export interface DeviceVerificationResponse {
-    request_token: string;
-    token: string;
-    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
-    expires_at: number;
-    methods_available: ("sas" | "qr" | "emoji")[];
-}
-// GET /device_verification/status/{token}
-// 未知 token 时返回 200 { "status": "not_found" }，故除 status 外均可选
-export interface DeviceVerificationStatusResponse {
-    request_token?: string;
-    token?: string;
-    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
-    expires_at?: number;
-    methods_available?: ("sas" | "qr" | "emoji")[];
-}
-
-// ─── Device Trust (v3-only) ───────────────────────────────────
-// trust_level 仅可能是 verified / unverified / blocked
-// （synapse-e2ee/src/device_trust/models.rs:26-29 的 Display）
-export interface DeviceTrustEntry {
-    device_id: string;
-    trust_level: "verified" | "unverified" | "blocked";
-    verified_at?: number;
-    verified_by?: string;
-}
-export interface DeviceTrustListResponse {
-    devices: DeviceTrustEntry[];
-}
-export interface DeviceTrustResponse {
-    device_id: string;
-    trust_level: "verified" | "unverified" | "blocked";
-    verified_at?: number;
-    verified_by?: string;
-}
-
-// ─── Security Summary (v3-only) ───────────────────────────────
-export interface SecuritySummaryResponse {
-    verified_devices: number;
-    unverified_devices: number;
-    blocked_devices: number;
-    has_cross_signing_master: boolean;
-    security_score: number;
-    recommendations: string[];
 }
 
 // ─── Secure Backup (v3-only) ──────────────────────────────────

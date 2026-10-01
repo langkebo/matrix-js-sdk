@@ -7,7 +7,6 @@ you may not use this file except in compliance with the License.
     http://www.apache.org/licenses/LICENSE-2.0
 */
 
-import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
@@ -56,12 +55,6 @@ function ep<P extends StripV3<E2eePathPattern>>(path: P): P {
  *   - PUT    /sendToDevice/{event_type}/{transaction_id}
  *
  * 仅 v3 暴露：
- *   - POST   /device_verification/request
- *   - POST   /device_verification/respond
- *   - GET    /device_verification/status/{token}
- *   - GET    /device_trust
- *   - GET    /device_trust/{device_id}
- *   - GET    /security/summary
  *   - POST   /keys/backup/secure
  *   - GET/DELETE /keys/backup/secure/{backup_id}
  *   - POST   /keys/backup/secure/{backup_id}/keys
@@ -104,75 +97,6 @@ export interface KeyHistoryResponse {
     history: KeyAuditEntry[];
     next_batch: string | null;
 }
-
-/**
- * Device-trust / device-verification DTOs.
- *
- * Re-exported from the single authoritative module `src/device-trust/index.ts`.
- * This file used to declare its own copies with wrong wire field names (e.g.
- * `state` for the backend's `status`, `devices_total` for
- * `verified_devices`) and a respond body of `{ token, action }` that the
- * backend silently ignores. Do not re-declare these locally.
- */
-export type {
-    TrustLevel,
-    VerificationStatus,
-    VerificationMethod,
-    IDeviceVerificationRequest,
-    IDeviceVerificationResponse,
-    IVerificationStatusResponse,
-    IVerificationRespondResult,
-    IDeviceTrustInfo,
-    IDeviceTrustListResponse,
-    ISecuritySummary,
-} from "../device-trust/index";
-
-import type {
-    IDeviceVerificationRequest,
-    IDeviceVerificationResponse,
-    IVerificationStatusResponse,
-    IVerificationRespondResult,
-    IDeviceTrustInfo,
-    ISecuritySummary,
-} from "../device-trust/index";
-
-/** @deprecated Use {@link IDeviceVerificationRequest} (same shape). */
-export type DeviceVerificationRequestBody = IDeviceVerificationRequest;
-
-/**
- * Body of `POST /device_verification/respond`.
- *
- * The backend (`devices.rs::respond_device_verification`) reads
- * `request_token` (falling back to `token`) and **`approved: boolean`**, which
- * defaults to `false` — an omitted `approved` is a *rejection*. The
- * `action: "accept" | "reject"` form is accepted here only for backward
- * compatibility and is normalised to `approved` before the request is sent.
- */
-export interface DeviceVerificationRespondBody {
-    request_token?: string;
-    token?: string;
-    /** Canonical field. When omitted, `action` is consulted, then defaults to `false`. */
-    approved?: boolean;
-    /** @deprecated Legacy alias, normalised into `approved`. */
-    action?: "accept" | "reject";
-}
-
-/** @deprecated Use {@link IDeviceVerificationResponse} (same shape). */
-export type DeviceVerificationRequestResponse = IDeviceVerificationResponse;
-/** @deprecated Use {@link IVerificationRespondResult} (same shape). */
-export type DeviceVerificationRespondResponse = IVerificationRespondResult;
-/** @deprecated Use {@link IVerificationStatusResponse} (same shape). */
-export type DeviceVerificationStatusResponse = IVerificationStatusResponse;
-/** @deprecated Use {@link IDeviceTrustInfo} (same shape). */
-export type DeviceTrustInfo = IDeviceTrustInfo;
-/** @deprecated Use {@link ISecuritySummary} (same shape). */
-export type SecuritySummaryResponse = ISecuritySummary;
-
-export type {
-    TrustLevel as DeviceTrustLevel,
-    VerificationStatus as DeviceVerificationStatus,
-    VerificationMethod as DeviceVerificationMethod,
-} from "../device-trust/index";
 
 export interface SecureBackupInfo {
     backup_id: string;
@@ -347,16 +271,18 @@ export class E2EEManager extends BaseManager {
      */
     public async uploadDeviceSigning(body: UploadDeviceSigningRequest): Promise<DeviceSigningUploadResponse> {
         // Validate: at least one key must be provided
-        const keyFields: Array<keyof UploadDeviceSigningRequest> = ["master_key", "self_signing_key", "user_signing_key"];
+        const keyFields: Array<keyof UploadDeviceSigningRequest> = [
+            "master_key",
+            "self_signing_key",
+            "user_signing_key",
+        ];
         const hasAnyKey = keyFields.some((field) => {
             const key = body[field];
             return key && typeof key === "object" && Object.keys(key).length > 0;
         });
 
         if (!hasAnyKey) {
-            throw new ValidationError(
-                "At least one of master_key, self_signing_key, or user_signing_key is required",
-            );
+            throw new ValidationError("At least one of master_key, self_signing_key, or user_signing_key is required");
         }
 
         // Validate each provided key
@@ -450,82 +376,6 @@ export class E2EEManager extends BaseManager {
     }
 
     // -------- v3-only ----------
-
-    /**
-     * Request verification of one of the caller's own devices.
-     *
-     * Delegates to {@link DeviceTrustManager.requestVerification} — the single
-     * implementation of the `POST /device_verification/request` contract
-     * (`devices.rs::request_device_verification` reads `new_device_id` or
-     * `device_id`, plus an optional `method`, and ignores anything else).
-     */
-    public async requestDeviceVerification(body: DeviceVerificationRequestBody): Promise<IDeviceVerificationResponse> {
-        if (!body.device_id && !body.new_device_id) {
-            throw new InvalidParamError("device_id or new_device_id is required");
-        }
-        return await this.trustManager.requestVerification({
-            new_device_id: body.new_device_id,
-            device_id: body.device_id,
-            method: body.method,
-        });
-    }
-
-    /**
-     * Approve or reject a pending verification request.
-     *
-     * ⚠️ `approved` is what the backend reads, and it **defaults to `false`**
-     * (`devices.rs::respond_device_verification:480`). Posting `{ token, action }`
-     * — the shape this method used to forward verbatim — made every "accept"
-     * a silent rejection. The legacy `action` field is still accepted from
-     * callers and normalised here.
-     */
-    public async respondDeviceVerification(body: DeviceVerificationRespondBody): Promise<IVerificationRespondResult> {
-        const token = body.request_token ?? body.token;
-        if (!token) {
-            throw new InvalidParamError("request_token (or token) is required");
-        }
-        const approved = typeof body.approved === "boolean" ? body.approved : body.action === "accept";
-        return await this.trustManager.respondToVerification(token, approved);
-    }
-
-    public async getDeviceVerificationStatus(token: string): Promise<IVerificationStatusResponse> {
-        this.requireNonEmptyString(token, "token");
-        return await this.trustManager.getVerificationStatus(token);
-    }
-
-    public async getDeviceTrustList(): Promise<IDeviceTrustInfo[]> {
-        return await this.trustManager.getDeviceTrustList();
-    }
-
-    public async getDeviceTrust(deviceId: string): Promise<IDeviceTrustInfo | null> {
-        this.requireNonEmptyString(deviceId, "deviceId");
-        return await this.trustManager.getDeviceTrust(deviceId);
-    }
-
-    public async getSecuritySummary(): Promise<ISecuritySummary> {
-        try {
-            return await this.trustManager.getSecuritySummary();
-        } catch (e) {
-            logger.warn("E2EEManager.getSecuritySummary failed", e);
-            return {
-                verified_devices: 0,
-                unverified_devices: 0,
-                blocked_devices: 0,
-                has_cross_signing_master: false,
-                security_score: 0,
-                recommendations: [],
-            };
-        }
-    }
-
-    /**
-     * The single authoritative device-trust implementation lives on
-     * `DeviceTrustManager`; reached through the client to avoid a runtime
-     * import cycle (`device-trust` → `client`).
-     */
-    private get trustManager(): import("../device-trust/index").DeviceTrustManager {
-        return this.client.getDeviceTrustManager();
-    }
 
     public async createSecureBackup(body: SecurityBackupCreateBody): Promise<SecureBackupCreateResponse> {
         // Support both passphrase mode and algorithm+auth_data mode

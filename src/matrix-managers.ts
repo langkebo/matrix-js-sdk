@@ -6,7 +6,6 @@ export { AccountDataManager } from "./account-data";
 export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
 export { CapabilitiesManager } from "./capabilities";
 export { CryptoKeysManager } from "./crypto-keys";
-export { DeviceTrustManager } from "./device-trust";
 export { DirectMessageManager } from "./dm";
 export {
     DiscoveryManager,

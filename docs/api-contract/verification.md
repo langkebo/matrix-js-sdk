@@ -1,18 +1,31 @@
 ---
-module: verification_routes
-generated_from: docs/api-contract/generated/modules/verification_routes.json
-generated_hash: sha256-cc45c7949484bbacc70b7cbecd2ce854da885eea216a961fde0b52d2b09b29bf
+umbrella: true
+umbrella_sources:
+    - synapse-rust/tests/integration/api_verification_relay_tests.rs
+    - docs/api-contract/e2ee.md
 ledger_schema: 4
 last_reviewed: 2026-06-01
 ---
 
 # Verification 契约
 
+> ⚠️ **后端已拆除本模块（2026-09-25 `88001b4a9`）**：`synapse-rust/src/web/routes/verification_routes.rs`
+> 与 `synapse-e2ee/src/device_trust/` 一同删除，ledger 里不再有 `verification_routes` 模块
+> （`docs/api-contract/generated/modules/verification_routes.json` 已随之移除，因此本页改为
+> umbrella，不再做 1:1 manifest pin）。后端保留 404 用例
+> （`synapse-rust/tests/integration/api_verification_relay_tests.rs`）。
+> `m.key.verification.*` 是客户端之间的 to-device 流程，不需要服务端中继端点。
+> **本页记载的 9 条 `keys/device_signing/verify_*` / `keys/qr_code/*` 端点已不存在**，
+> `src/verification/`、`KeyVerificationManager` 中的同名 HTTP helper 与
+> `src/client-crypto-requests.ts` 的对应函数属于同一批待删除的死面（S2b）。
+> 注意：这些豁免此前被误标为 "MSC3882"——MSC3882 实为 _Allow an existing session to
+> sign in a new session_，与设备签名交互式验证无关。
+>
 > **审计状态**: ✅ `VerificationManager` 全部 9 条兼容端点已绑定生成 `VerificationPathPattern`，默认保持 v1，支持调用方显式选择 r0/v3，并补齐专用路径单测
 >
 > 审查来源: `synapse-rust/src/web/routes/verification_routes.rs`
 >
-> 本文覆盖设备交叉签名验证与二维码校验的兼容路由。它们与 `e2ee.md` 中的 v3 `device_verification/*` 属于两套不同接口族，不能混写。
+> 本文覆盖设备交叉签名验证与二维码校验的兼容路由。`e2ee.md` 中曾记载的 v3 `device_verification/*` 一族已随后端 2026-09-25 的拆除一并删除（`m.key.verification.*` 属客户端 to-device 流程），本文件是设备验证路径的唯一契约来源。
 
 ## 挂载版本
 
@@ -92,7 +105,7 @@ last_reviewed: 2026-06-01
 | `GET  .../keys/qr_code/show`                        | `showQrCode()`               |
 | `POST .../keys/qr_code/scan`                        | `scanQrCode()`               |
 
-> SDK 默认用 `ClientPrefix.V1` 保持兼容；调用方可在 `VerificationManager` 方法上传入 `"r0"` 或 `"v3"`，显式绑定生成契约中的对应前缀。`device_verification/*` 仍归 `e2ee_routes`。
+> SDK 默认用 `ClientPrefix.V1` 保持兼容；调用方可在 `VerificationManager` 方法上传入 `"r0"` 或 `"v3"`，显式绑定生成契约中的对应前缀。后端已无 `e2ee` 名下的 `device_verification/*` 端点。
 
 ## SDK 对齐结论
 

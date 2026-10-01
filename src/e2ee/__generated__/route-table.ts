@@ -4,7 +4,7 @@
  *
  * Module:        E2EE
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       44 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       38 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `e2ee` module (mirrored from the backend contract). */
@@ -23,11 +23,6 @@ export const E2EE_ROUTES = [
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/keys/distribution" },
     { method: "POST", path: "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}" },
     { method: "PUT", path: "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}" },
-    { method: "GET", path: "/_matrix/client/v3/device_trust" },
-    { method: "GET", path: "/_matrix/client/v3/device_trust/{device_id}" },
-    { method: "POST", path: "/_matrix/client/v3/device_verification/request" },
-    { method: "POST", path: "/_matrix/client/v3/device_verification/respond" },
-    { method: "GET", path: "/_matrix/client/v3/device_verification/status/{token}" },
     { method: "GET", path: "/_matrix/client/v3/keys/backup/secure" },
     { method: "POST", path: "/_matrix/client/v3/keys/backup/secure" },
     { method: "DELETE", path: "/_matrix/client/v3/keys/backup/secure/{backup_id}" },
@@ -47,7 +42,6 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/room_keys/request" },
     { method: "DELETE", path: "/_matrix/client/v3/room_keys/request/{request_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/keys/distribution" },
-    { method: "GET", path: "/_matrix/client/v3/security/summary" },
     { method: "POST", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
     { method: "PUT", path: "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}" },
     { method: "GET", path: "/_matrix/client/v3/keys/history" },

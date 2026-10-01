@@ -6,10 +6,10 @@
 
 import { EVENT_REPORT_ROUTES } from "./route-table";
 
-export const EVENT_REPORT_ROUTES_ENTRY_COUNT = 19 as const;
+export const EVENT_REPORT_ROUTES_ENTRY_COUNT = 18 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _EventReportEntryCountAssertion: 19 = EVENT_REPORT_ROUTES.length;
+const _EventReportEntryCountAssertion: 18 = EVENT_REPORT_ROUTES.length;
 void _EventReportEntryCountAssertion;
 
 export const EVENT_REPORT_ROUTES_STATUS_SCENARIOS = [

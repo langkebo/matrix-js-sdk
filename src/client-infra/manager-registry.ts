@@ -95,7 +95,6 @@ export type ManagerName =
     | "delayedEvents"
     | "device"
     | "deviceKeys"
-    | "deviceTrust"
     | "directory"
     | "discovery"
     | "dm"
@@ -203,7 +202,6 @@ export interface ManagerTypeMap {
     delayedEvents: import("../delayed-events/index").DelayedEventsManager;
     device: import("../device/index").DeviceManager;
     deviceKeys: import("../device-keys/index").DeviceKeysManager;
-    deviceTrust: import("../device-trust/index").DeviceTrustManager;
     directory: import("../directory/index").DirectoryManager;
     discovery: import("../discovery/index").DiscoveryManager;
     dm: import("../dm/index").DirectMessageManager;

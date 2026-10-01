@@ -1,7 +1,7 @@
 ---
 module: captcha
 generated_from: docs/api-contract/generated/modules/captcha.json
-generated_hash: sha256-bd72f46206653480d504716c820a175cc81c2036ea9af66fe45753c9f4e9cf36
+generated_hash: sha256-d5950ba4cbc019cff22f6112f5d5c727cb4a945c23b9e181a0160e3c7c377cf1
 ledger_schema: 4
 last_reviewed: 2026-06-01
 ---

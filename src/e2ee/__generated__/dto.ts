@@ -93,55 +93,6 @@ export interface RoomKeyRequestRequest {
     devices?: Array<{ user_id: string; device_id: string }>;
 }
 
-export interface DeviceVerificationRequest {
-    new_device_id?: string;
-    device_id?: string;
-    method?: "sas" | "qr" | "emoji";
-}
-
-export interface DeviceVerificationResponse {
-    request_token: string;
-    token: string;
-    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
-    expires_at: number;
-    methods_available: ("sas" | "qr" | "emoji")[];
-}
-
-export interface DeviceVerificationStatusResponse {
-    request_token?: string;
-    token?: string;
-    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
-    expires_at?: number;
-    methods_available?: ("sas" | "qr" | "emoji")[];
-}
-
-export interface DeviceTrustEntry {
-    device_id: string;
-    trust_level: "verified" | "unverified" | "blocked";
-    verified_at?: number;
-    verified_by?: string;
-}
-
-export interface DeviceTrustListResponse {
-    devices: DeviceTrustEntry[];
-}
-
-export interface DeviceTrustResponse {
-    device_id: string;
-    trust_level: "verified" | "unverified" | "blocked";
-    verified_at?: number;
-    verified_by?: string;
-}
-
-export interface SecuritySummaryResponse {
-    verified_devices: number;
-    unverified_devices: number;
-    blocked_devices: number;
-    has_cross_signing_master: boolean;
-    security_score: number;
-    recommendations: string[];
-}
-
 export interface SecurityBackupCreateRequest {
     algorithm?: string;
     auth_data?: Record<string, unknown>;

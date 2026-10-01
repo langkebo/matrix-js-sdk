@@ -22,7 +22,6 @@ export interface ManagerExtensionsOptions {
     includeCapabilities?: boolean;
     includeCryptoKeys?: boolean;
     includeKeyVerification?: boolean;
-    includeDeviceTrust?: boolean;
     includeDiscovery?: boolean;
     includeDm?: boolean;
     includeGuest?: boolean;

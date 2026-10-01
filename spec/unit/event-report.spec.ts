@@ -198,24 +198,14 @@ describe("EventReportManager", () => {
         );
     });
 
-    it("fetches report detail and history by id", async () => {
+    it("fetches report detail by id", async () => {
         mockAuthedRequest.mockResolvedValueOnce({ id: 7 });
-        mockAuthedRequest.mockResolvedValueOnce([{ id: 7 }]);
 
         await manager.getReport(7);
-        await manager.getReportHistory(7);
 
         expect(mockAuthedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/event_reports/7", undefined, undefined, {
             prefix: AdminPrefix.V1,
         });
-        expect(mockAuthedRequest).toHaveBeenNthCalledWith(
-            2,
-            Method.Get,
-            "/event_reports/7/history",
-            undefined,
-            undefined,
-            { prefix: AdminPrefix.V1 },
-        );
     });
 
     it("updates and moderates reports through admin action routes", async () => {

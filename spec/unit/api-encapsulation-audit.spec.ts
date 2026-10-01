@@ -230,7 +230,9 @@ describe("API encapsulation audit", () => {
 
         await manager.listApplicationServices();
 
-        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/application_services", undefined, undefined, {
+        // 后端路由是 `/_synapse/admin/v1/appservices`（ledger `GET /appservices`）；
+        // 旧断言的 `/application_services` 是 SDK 自造路径，会 404。
+        expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/appservices", undefined, undefined, {
             prefix: AdminPrefix.V1,
         });
     });

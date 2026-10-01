@@ -4,7 +4,7 @@
  *
  * Module:        Event Report
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       19 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       18 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `event-report` module (mirrored from the backend contract). */
@@ -26,7 +26,6 @@ export const EVENT_REPORT_ROUTES = [
     { method: "PUT", path: "/_synapse/admin/v1/event_reports/{id}" },
     { method: "POST", path: "/_synapse/admin/v1/event_reports/{id}/dismiss" },
     { method: "POST", path: "/_synapse/admin/v1/event_reports/{id}/escalate" },
-    { method: "GET", path: "/_synapse/admin/v1/event_reports/{id}/history" },
     { method: "POST", path: "/_synapse/admin/v1/event_reports/{id}/resolve" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
