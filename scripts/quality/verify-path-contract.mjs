@@ -411,7 +411,31 @@ for (const file of srcFiles) {
         const combinedPath = isFullUrl ? pathOnly : ((prefix ?? "") + pathOnly);
         const fullPath = normalizePath(combinedPath);
         const key = `${call.method} ${fullPath}`;
-        const matched = backendRoutes.has(key);
+        
+        // 精确匹配
+        let matched = backendRoutes.has(key);
+        
+        // 增强匹配：通配符 vs 字面量（如 send/m.room.message/{txnId} vs send/{event_type}/{txn_id}）
+        if (!matched) {
+            const sdkSegments = fullPath.split("/");
+            for (const [backendKey, originalBackendPath] of backendRoutes.entries()) {
+                // 首先比较 HTTP 方法
+                const [backendMethod] = backendKey.split(" ");
+                if (backendMethod !== call.method) continue;
+                
+                const backendSegments = normalizePath(originalBackendPath).split("/");
+                if (sdkSegments.length === backendSegments.length) {
+                    const isCompatible = sdkSegments.every((seg, i) => {
+                        const bSeg = backendSegments[i];
+                        return seg === bSeg || seg === "{X}" || bSeg.startsWith("{");
+                    });
+                    if (isCompatible) {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+        }
 
         const finding = {
             file: relFile,

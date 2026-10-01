@@ -737,9 +737,9 @@ export async function translateEvent(
     validateRoomId(roomId);
     
     return await client.http.authenticatedRequest({
-        method: Method.Get,
+        method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/translate/${encodeURIComponent(eventId)}`,
-        queryParams: { target_lang: targetLang },
+        body: { target_lang: targetLang },
     });
 }
 

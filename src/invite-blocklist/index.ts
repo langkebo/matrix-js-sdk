@@ -19,15 +19,15 @@ limitations under the License.
  *
  * 提供房间邀请黑名单/白名单管理功能
  * 对应后端 API:
- * - GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist - 获取邀请黑名单
- * - POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist - 设置邀请黑名单
- * - GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 获取邀请白名单
- * - POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist - 设置邀请白名单
+ * - GET /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist - 获取邀请黑名单
+ * - POST /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist - 设置邀请黑名单
+ * - GET /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist - 获取邀请白名单
+ * - POST /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist - 设置邀请白名单
  */
 
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { VendorPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { logger } from "../logger";
 import { MatrixClient } from "../client";
@@ -78,7 +78,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Get invite blocklist for a room
-     * GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist
+     * GET /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist
      */
     public async getBlocklist(roomId: string): Promise<string[]> {
         if (!roomId) {
@@ -90,7 +90,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                 return await this.request<IBlocklistResponse>({
                     method: Method.Get,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "getBlocklist");
 
@@ -105,7 +105,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Set invite blocklist for a room (room admin only)
-     * POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist
+     * POST /_matrix/vendor/v1/rooms/{room_id}/invite_blocklist
      */
     public async setBlocklist(roomId: string, userIds: string[]): Promise<IBlocklistResult> {
         if (!roomId) {
@@ -122,7 +122,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                     method: Method.Post,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
                     body: { user_ids: userIds },
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "setBlocklist");
 
@@ -168,7 +168,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Get invite allowlist for a room
-     * GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist
+     * GET /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist
      */
     public async getAllowlist(roomId: string): Promise<string[]> {
         if (!roomId) {
@@ -180,7 +180,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                 return await this.request<IAllowlistResponse>({
                     method: Method.Get,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "getAllowlist");
 
@@ -195,7 +195,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
 
     /**
      * Set invite allowlist for a room (room admin only)
-     * POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist
+     * POST /_matrix/vendor/v1/rooms/{room_id}/invite_allowlist
      */
     public async setAllowlist(roomId: string, userIds: string[]): Promise<IAllowlistResult> {
         if (!roomId) {
@@ -212,7 +212,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
                     method: Method.Post,
                     path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
                     body: { user_ids: userIds },
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             }, "setAllowlist");
 
