@@ -132,7 +132,9 @@ function resolvePrefix(expr) {
 function normalizePath(p) {
     return (
         p
-            .replace(/\$\{?(\w+)\}?/g, "{X}") // $roomId / ${roomId}
+            // ${encodeURIComponent(x)} / ${this.encode(x)} / ${x || y} 等任意插值表达式 → {X}
+            .replace(/\$\{[^}]*\}/g, "{X}")
+            .replace(/\$(\w+)/g, "{X}") // $roomId（无花括号形态）
             .replace(/\{[^}]+\}/g, "{X}") // {roomId}
             .replace(/:(\w+)/g, "{X}") // :roomId
             .split("?")[0]
@@ -385,14 +387,14 @@ for (const file of srcFiles) {
         if (seen.has(dedupKey)) continue;
         seen.add(dedupKey);
 
-        // 模板字面量（含 ${} 插值）无法静态求值
-        if (call.pathRaw.startsWith("`") && call.pathRaw.includes("${")) {
-            skipped.push({ file: relFile, line: call.line, reason: "模板字面量（含插值）" });
-            continue;
-        }
-
-        const pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
-        if (!pathOnly.startsWith("/")) {
+        // 模板字面量现在可通过归一化处理（${...} → {X}）
+        // 不再跳过，而是直接归一化后校验
+        let pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
+        
+        // 如果包含插值，用 {X} 占位后再校验
+        if (pathOnly.includes("${")) {
+            // 允许带插值的模板字面量进入校验流程
+        } else if (!pathOnly.startsWith("/")) {
             skipped.push({ file: relFile, line: call.line, reason: "非字面量路径" });
             continue;
         }
@@ -403,7 +405,11 @@ for (const file of srcFiles) {
             continue;
         }
 
-        const fullPath = normalizePath((prefix ?? "") + pathOnly);
+        // 如果 pathOnly 本身已是完整路径（以 /_matrix 开头且含 /client/ 或 /admin/），
+        // 则忽略 prefix，直接用 pathOnly（避免双重前缀）
+        const isFullUrl = /^\/_matrix\/(client|admin|vendor)/.test(pathOnly);
+        const combinedPath = isFullUrl ? pathOnly : ((prefix ?? "") + pathOnly);
+        const fullPath = normalizePath(combinedPath);
         const key = `${call.method} ${fullPath}`;
         const matched = backendRoutes.has(key);
 
