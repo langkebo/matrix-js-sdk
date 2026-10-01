@@ -381,4 +381,45 @@ describe("AccountManager", () => {
             expect(result.chunk).toEqual([]);
         });
     });
+
+    describe("getAccountStatuses (MSC3720)", () => {
+        it("should POST to the unstable account_status endpoint with user_ids", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({
+                account_statuses: {
+                    "@alice:example.com": { exists: true, deactivated: false },
+                    "@ghost:example.com": { exists: false },
+                },
+                failures: ["@bob:remote.example"],
+            });
+
+            const result = await accountManager.getAccountStatuses([
+                "@alice:example.com",
+                "@ghost:example.com",
+                "@bob:remote.example",
+            ]);
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/org.matrix.msc3720/account_status",
+                undefined,
+                {
+                    user_ids: ["@alice:example.com", "@ghost:example.com", "@bob:remote.example"],
+                },
+                { prefix: ClientPrefix.Unstable },
+            );
+            expect(result.account_statuses?.["@alice:example.com"]).toEqual({ exists: true, deactivated: false });
+            // `deactivated` is omitted by the server when the account does not exist.
+            expect(result.account_statuses?.["@ghost:example.com"]).toEqual({ exists: false });
+            expect(result.failures).toEqual(["@bob:remote.example"]);
+        });
+
+        it("should tolerate the empty-request response `{}`", async () => {
+            mockClient.http.authedRequest.mockResolvedValueOnce({});
+
+            const result = await accountManager.getAccountStatuses([]);
+
+            expect(result.account_statuses).toBeUndefined();
+            expect(result.failures).toBeUndefined();
+        });
+    });
 });

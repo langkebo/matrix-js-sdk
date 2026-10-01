@@ -80,6 +80,28 @@ export interface EventsRequestOptions {
     timeout?: number;
 }
 
+/**
+ * One account's status, as reported by MSC3720.
+ *
+ * `deactivated` is omitted by the server when `exists` is false.
+ */
+export interface AccountStatus {
+    exists: boolean;
+    deactivated?: boolean;
+}
+
+/**
+ * Response of `POST /_matrix/client/unstable/org.matrix.msc3720/account_status`.
+ *
+ * An empty `userIds` request yields `{}` (the MSC specifies an empty body), so
+ * both fields are optional. `account_statuses` and `failures` together cover
+ * every user ID that was requested.
+ */
+export interface AccountStatusResponse {
+    account_statuses?: Record<string, AccountStatus>;
+    failures?: string[];
+}
+
 export class AccountManager extends BaseManager {
     /**
      * Get the session ID
@@ -281,6 +303,35 @@ export class AccountManager extends BaseManager {
                 prefix: ClientPrefix.V1,
             });
         }, "requestLoginToken");
+    }
+
+    /**
+     * MSC3720: look up the account status of one or more users.
+     *
+     * `POST /_matrix/client/unstable/org.matrix.msc3720/account_status`
+     * (unstable-only; the MSC has not been stabilised).
+     *
+     * The server must advertise the `org.matrix.msc3720.account_status`
+     * capability (see `GET /_matrix/client/v3/capabilities`); otherwise the
+     * endpoint fails closed with 403 `M_FORBIDDEN`. Callers that want to hide
+     * the feature should check that capability first.
+     *
+     * Local users are reported directly; remote users are looked up over
+     * federation by the server, and any user whose status could not be
+     * retrieved appears in `failures` instead of `account_statuses`.
+     *
+     * @param userIds - Matrix user IDs to look up.
+     * @returns The statuses that could be retrieved, plus the failures.
+     */
+    public async getAccountStatuses(userIds: string[]): Promise<AccountStatusResponse> {
+        return await this.withRetry(async () => {
+            return await this.request<AccountStatusResponse>({
+                method: Method.Post,
+                path: "/org.matrix.msc3720/account_status",
+                body: { user_ids: userIds },
+                prefix: ClientPrefix.Unstable,
+            });
+        }, "getAccountStatuses");
     }
 
     /**
