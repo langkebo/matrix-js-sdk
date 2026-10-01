@@ -157,6 +157,10 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     stop(): void {
         this.list.clearCache();
         this.isInitialized = false;
+        // 必须同时清空 startPromise：start() 的第二个守卫是 `if (this.startPromise) return this.startPromise`，
+        // 只重置 isInitialized 的话，stop() 之后的 start() 会直接返回上一次已 resolve 的 promise，
+        // 永远不会重新拉取 m.direct —— 表现为「stop 后重启无效」，且不报错、很难定位。
+        this.startPromise = null;
         // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
         this.list.removeAllListeners();
         this.creation.removeAllListeners();

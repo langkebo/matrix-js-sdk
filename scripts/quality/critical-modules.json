@@ -6,11 +6,11 @@
     "modules": [
         { "path": "src/admin/index.ts", "floorPercent": 70 },
         { "path": "src/auth/index.ts", "floorPercent": 87 },
-        { "path": "src/dm/index.ts", "floorPercent": 65 },
+        { "path": "src/dm/index.ts", "floorPercent": 95 },
         { "path": "src/event/EventManager.ts", "floorPercent": 99 },
         { "path": "src/push/index.ts", "floorPercent": 89 },
         { "path": "src/room/RoomManager.ts", "floorPercent": 92 },
-        { "path": "src/room-summary/index.ts", "floorPercent": 74 },
+        { "path": "src/room-summary/index.ts", "floorPercent": 81 },
         { "path": "src/space/index.ts", "floorPercent": 77 }
     ]
 }

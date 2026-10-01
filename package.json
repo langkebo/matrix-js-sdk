@@ -43,6 +43,8 @@
         "perf:compare": "node scripts/perf/generate-comparison-report.mjs",
         "coverage": "pnpm test --coverage",
         "quality:coverage:critical": "node scripts/quality/check-critical-coverage.mjs coverage/lcov.info",
+        "quality:coverage:repo": "node scripts/quality/check-repo-coverage.mjs coverage/lcov.info",
+        "quality:coverage": "pnpm quality:coverage:repo && pnpm quality:coverage:critical",
         "quality:exports": "node scripts/quality/check-exports-docs.mjs",
         "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
         "quality:sdk-contracts": "node scripts/quality/check-sdk-contract-alignment.mjs",
