@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "thirdparty",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 6,
@@ -12,7 +12,12 @@
       "path": "/_matrix/client/v3/thirdparty/location",
       "registered_by": "thirdparty",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "alias",
+        "channel",
+        "search",
+        "server"
+      ]
     },
     {
       "method": "GET",
@@ -21,7 +26,12 @@
       "path_params": [
         "protocol"
       ],
-      "query_params": []
+      "query_params": [
+        "alias",
+        "channel",
+        "search",
+        "server"
+      ]
     },
     {
       "method": "GET",
@@ -44,7 +54,12 @@
       "path": "/_matrix/client/v3/thirdparty/user",
       "registered_by": "thirdparty",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "nickname",
+        "search",
+        "server",
+        "userid"
+      ]
     },
     {
       "method": "GET",
@@ -53,7 +68,12 @@
       "path_params": [
         "protocol"
       ],
-      "query_params": []
+      "query_params": [
+        "nickname",
+        "search",
+        "server",
+        "userid"
+      ]
     }
   ]
 }

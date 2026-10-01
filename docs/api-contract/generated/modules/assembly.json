@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "assembly",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 101,
+  "entry_count": 103,
   "entries": [
     {
       "method": "GET",
@@ -38,13 +38,6 @@
     {
       "method": "GET",
       "path": "/_health",
-      "registered_by": "assembly::create_router",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/unstable/org.matrix.msc2965/auth_issuer",
       "registered_by": "assembly::create_router",
       "path_params": [],
       "query_params": []
@@ -561,6 +554,36 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/profile/{user_id}/{key_name}",
+      "registered_by": "assembly::create_router",
+      "path_params": [
+        "user_id",
+        "key_name"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/profile/{user_id}/{key_name}",
+      "registered_by": "assembly::create_router",
+      "path_params": [
+        "user_id",
+        "key_name"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/profile/{user_id}/{key_name}",
+      "registered_by": "assembly::create_router",
+      "path_params": [
+        "user_id",
+        "key_name"
       ],
       "query_params": []
     },

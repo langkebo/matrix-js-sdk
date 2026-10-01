@@ -6,10 +6,10 @@
 
 import { CAS_ROUTES } from "./route-table";
 
-export const CAS_ROUTES_ENTRY_COUNT = 17 as const;
+export const CAS_ROUTES_ENTRY_COUNT = 23 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _CasEntryCountAssertion: 17 = CAS_ROUTES.length;
+const _CasEntryCountAssertion: 23 = CAS_ROUTES.length;
 void _CasEntryCountAssertion;
 
 export const CAS_ROUTES_STATUS_SCENARIOS = [

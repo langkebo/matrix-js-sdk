@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { ApplicationServiceManager, AppServiceEvent } from "../../src/app-service/index";
 import { Method } from "../../src/http-api/method";
+import { AdminPrefix } from "../../src/http-api/prefix";
 import { ValidationError } from "../../src/errors";
 
 describe("ApplicationServiceManager", () => {
@@ -340,13 +341,16 @@ describe("ApplicationServiceManager", () => {
         });
 
         it("should set application service state", async () => {
-            expect.assertions(0);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             transport.respondWith(undefined as any);
 
             await manager.setApplicationServiceState("as1", "mykey", "myvalue");
 
-            transport.expectCalledWith(Method.Put, "/appservices/as1/state/mykey");
+            // 后端形状：POST + body `{state_key, state_value}`（`SetStateBody`）。
+            transport.expectCalledWith(Method.Post, "/appservices/as1/state", {
+                state_key: "mykey",
+                state_value: "myvalue",
+            });
         });
 
         it("should list application service users", async () => {
@@ -358,14 +362,47 @@ describe("ApplicationServiceManager", () => {
             expect(users).toEqual(result);
         });
 
+        it("should get global application service statistics", async () => {
+            const stats = { total: 3 };
+            transport.respondWith(stats);
+
+            const result = await manager.getApplicationServiceStatistics();
+
+            expect(result).toEqual(stats);
+            // 后端统计是全局的，路径里没有 `{as_id}`。
+            transport.expectCalledWith(Method.Get, "/appservices/statistics");
+        });
+
         it("should query application service user", async () => {
             const queryResult = { user_id: "@test:example.com", application_service: "as1", exists: true };
             transport.respondWith(queryResult);
 
-            const result = await manager.queryApplicationServiceUser("as1", "@test:example.com");
+            const result = await manager.queryApplicationServiceUser("@test:example.com");
 
             expect(result.exists).toBe(true);
-            transport.expectCalledWith(Method.Get, "/appservices/as1/query/user/%40test%3Aexample.com");
+            transport.expectCalledWithArgs(
+                Method.Get,
+                "/appservices/query/user",
+                { user_id: "@test:example.com" },
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
+        });
+
+        it("should query application service alias", async () => {
+            const queryResult = { alias: "#room:example.com", application_service: "as1", exists: true };
+            transport.respondWith(queryResult);
+
+            const result = await manager.queryApplicationServiceAlias("#room:example.com");
+
+            expect(result.exists).toBe(true);
+            transport.expectCalledWithArgs(
+                Method.Get,
+                "/appservices/query/alias",
+                { alias: "#room:example.com" },
+                undefined,
+                { prefix: AdminPrefix.V1 },
+            );
         });
     });
 

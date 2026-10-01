@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "friend_room",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 65,
@@ -12,7 +12,12 @@
       "path": "/_matrix/client/v1/friends",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "offset",
+        "sort_by"
+      ]
     },
     {
       "method": "POST",
@@ -169,21 +174,33 @@
       "path": "/_matrix/client/v1/friends/search",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "mode",
+        "q",
+        "query"
+      ]
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/friends/search",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "mode",
+        "q",
+        "query"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/friends/suggestions",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit"
+      ]
     },
     {
       "method": "DELETE",
@@ -253,7 +270,12 @@
       "path": "/_matrix/client/v3/friends",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "offset",
+        "sort_by"
+      ]
     },
     {
       "method": "POST",
@@ -290,21 +312,36 @@
       "path": "/_matrix/client/v3/friends/search",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "mode",
+        "q",
+        "query"
+      ]
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/friends/search",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "mode",
+        "q",
+        "query"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/vendor/v1/friends",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "offset",
+        "sort_by"
+      ]
     },
     {
       "method": "POST",
@@ -461,21 +498,33 @@
       "path": "/_matrix/vendor/v1/friends/search",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "mode",
+        "q",
+        "query"
+      ]
     },
     {
       "method": "POST",
       "path": "/_matrix/vendor/v1/friends/search",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "mode",
+        "q",
+        "query"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/vendor/v1/friends/suggestions",
       "registered_by": "friend_room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit"
+      ]
     },
     {
       "method": "DELETE",

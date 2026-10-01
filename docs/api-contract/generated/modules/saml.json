@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "saml",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 16,
@@ -12,7 +12,14 @@
       "path": "/_matrix/client/v3/login/saml/callback",
       "registered_by": "saml",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "RelayState",
+        "SAMLRequest",
+        "SAMLResponse",
+        "relay_state",
+        "saml_request",
+        "saml_response"
+      ]
     },
     {
       "method": "POST",
@@ -26,7 +33,10 @@
       "path": "/_matrix/client/v3/login/sso/redirect/saml",
       "registered_by": "saml",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "redirectUrl",
+        "redirect_url"
+      ]
     },
     {
       "method": "POST",
@@ -47,7 +57,14 @@
       "path": "/_matrix/client/v3/logout/saml/callback",
       "registered_by": "saml",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "RelayState",
+        "SAMLRequest",
+        "SAMLResponse",
+        "relay_state",
+        "saml_request",
+        "saml_response"
+      ]
     },
     {
       "method": "GET",
@@ -116,7 +133,10 @@
       "path": "/_synapse/admin/v1/saml/mappings",
       "registered_by": "saml",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "POST",

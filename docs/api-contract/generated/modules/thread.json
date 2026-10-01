@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "thread",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 23,
@@ -14,14 +14,22 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed",
       "registered_by": "thread",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -40,7 +48,11 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -58,7 +70,10 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "q"
+      ]
     },
     {
       "method": "GET",
@@ -87,7 +102,10 @@
         "room_id",
         "thread_id"
       ],
-      "query_params": []
+      "query_params": [
+        "include_replies",
+        "reply_limit"
+      ]
     },
     {
       "method": "POST",
@@ -127,7 +145,11 @@
         "room_id",
         "thread_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -184,7 +206,11 @@
       "path": "/_matrix/client/v1/threads",
       "registered_by": "thread",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -198,7 +224,11 @@
       "path": "/_matrix/client/v1/threads/subscribed",
       "registered_by": "thread",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -215,7 +245,11 @@
         "user_id",
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     }
   ]
 }

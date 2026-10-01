@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "key_backup",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 66,
@@ -51,21 +51,27 @@
       "path": "/_matrix/client/v1/room_keys/keys",
       "registered_by": "key_backup",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/room_keys/keys",
       "registered_by": "key_backup",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "PUT",
       "path": "/_matrix/client/v1/room_keys/keys",
       "registered_by": "key_backup",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "DELETE",
@@ -74,7 +80,9 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "GET",
@@ -83,7 +91,9 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "PUT",
@@ -92,7 +102,9 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "DELETE",
@@ -102,7 +114,9 @@
         "room_id",
         "session_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "GET",
@@ -112,7 +126,9 @@
         "room_id",
         "session_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "PUT",
@@ -122,7 +138,9 @@
         "room_id",
         "session_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "POST",
@@ -345,21 +363,27 @@
       "path": "/_matrix/client/v3/room_keys/keys",
       "registered_by": "key_backup",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/room_keys/keys",
       "registered_by": "key_backup",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "PUT",
       "path": "/_matrix/client/v3/room_keys/keys",
       "registered_by": "key_backup",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "DELETE",
@@ -368,7 +392,9 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "GET",
@@ -377,7 +403,9 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "PUT",
@@ -386,7 +414,9 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "DELETE",
@@ -396,7 +426,9 @@
         "room_id",
         "session_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "GET",
@@ -406,7 +438,9 @@
         "room_id",
         "session_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "PUT",
@@ -416,7 +450,9 @@
         "room_id",
         "session_id"
       ],
-      "query_params": []
+      "query_params": [
+        "version"
+      ]
     },
     {
       "method": "POST",

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "admin",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 166,
+  "entry_count": 178,
   "entries": [
     {
       "method": "POST",
@@ -46,7 +46,15 @@
       "path": "/_synapse/admin/v1/audit/events",
       "registered_by": "admin::audit",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "action",
+        "actor_id",
+        "from",
+        "limit",
+        "resource_id",
+        "resource_type",
+        "result"
+      ]
     },
     {
       "method": "POST",
@@ -104,7 +112,10 @@
       "path": "/_synapse/admin/v1/federation/blacklist",
       "registered_by": "admin::federation",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "DELETE",
@@ -159,7 +170,11 @@
       "path": "/_synapse/admin/v1/federation/destinations",
       "registered_by": "admin::federation",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "offset"
+      ]
     },
     {
       "method": "DELETE",
@@ -211,7 +226,10 @@
       "path": "/_synapse/admin/v1/federation/pending",
       "registered_by": "admin::federation",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -239,10 +257,30 @@
       "path": "/_synapse/admin/v1/invite/allowlist",
       "registered_by": "admin::server",
       "path_params": [],
+      "query_params": [
+        "limit",
+        "offset"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/invite/allowlist",
+      "registered_by": "admin::server",
+      "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
+      "path": "/_synapse/admin/v1/invite/blocklist",
+      "registered_by": "admin::server",
+      "path_params": [],
+      "query_params": [
+        "limit",
+        "offset"
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/_synapse/admin/v1/invite/blocklist",
       "registered_by": "admin::server",
       "path_params": [],
@@ -263,10 +301,56 @@
       "query_params": []
     },
     {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/media/delete",
+      "registered_by": "admin::media",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/media/protect/{server_name}/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/media/quarantine/{server_name}/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_synapse/admin/v1/media/quota",
       "registered_by": "admin::media",
       "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/media/unprotect/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "media_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/media/unquarantine/{server_name}/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ],
       "query_params": []
     },
     {
@@ -292,7 +376,11 @@
       "path": "/_synapse/admin/v1/notifications",
       "registered_by": "admin::notification",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "audience",
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -414,7 +502,10 @@
       "path": "/_synapse/admin/v1/registration_tokens",
       "registered_by": "admin::token",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "POST",
@@ -563,7 +654,15 @@
       "path": "/_synapse/admin/v1/rooms/search",
       "registered_by": "admin::room",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "is_encrypted",
+        "is_public",
+        "limit",
+        "offset",
+        "order_by",
+        "search_term"
+      ]
     },
     {
       "method": "POST",
@@ -748,6 +847,43 @@
     },
     {
       "method": "GET",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/media",
+      "registered_by": "admin::media",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/media/quarantine",
+      "registered_by": "admin::media",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/media/unquarantine",
+      "registered_by": "admin::media",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/rooms/{room_id}/media/{media_id}",
+      "registered_by": "admin::media",
+      "path_params": [
+        "room_id",
+        "media_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_synapse/admin/v1/rooms/{room_id}/members",
       "registered_by": "admin::room",
       "path_params": [
@@ -847,7 +983,11 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "offset"
+      ]
     },
     {
       "method": "POST",
@@ -896,7 +1036,10 @@
       "path": "/_synapse/admin/v1/server_notices",
       "registered_by": "admin::notification",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "DELETE",
@@ -994,6 +1137,15 @@
       "path": "/_synapse/admin/v1/status",
       "registered_by": "admin::server",
       "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/user/{user_id}/media/quarantine",
+      "registered_by": "admin::media",
+      "path_params": [
+        "user_id"
+      ],
       "query_params": []
     },
     {

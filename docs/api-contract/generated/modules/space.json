@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "space",
-  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 48,
@@ -19,7 +19,10 @@
       "path": "/_matrix/client/v1/spaces/public",
       "registered_by": "space",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -44,14 +47,20 @@
       "path": "/_matrix/client/v1/spaces/search",
       "registered_by": "space",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "query",
+        "search_term"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/spaces/statistics",
       "registered_by": "space",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -122,7 +131,9 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "max_depth"
+      ]
     },
     {
       "method": "GET",
@@ -131,7 +142,12 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "max_depth",
+        "suggested_only"
+      ]
     },
     {
       "method": "POST",
@@ -167,7 +183,10 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -176,7 +195,10 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -226,7 +248,10 @@
       "path": "/_matrix/client/v3/spaces/public",
       "registered_by": "space",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -251,14 +276,20 @@
       "path": "/_matrix/client/v3/spaces/search",
       "registered_by": "space",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit",
+        "query",
+        "search_term"
+      ]
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/spaces/statistics",
       "registered_by": "space",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -329,7 +360,9 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "max_depth"
+      ]
     },
     {
       "method": "GET",
@@ -338,7 +371,12 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit",
+        "max_depth",
+        "suggested_only"
+      ]
     },
     {
       "method": "POST",
@@ -374,7 +412,10 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -383,7 +424,10 @@
       "path_params": [
         "space_id"
       ],
-      "query_params": []
+      "query_params": [
+        "from",
+        "limit"
+      ]
     },
     {
       "method": "GET",

@@ -304,9 +304,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     async listApplicationServices(): Promise<ApplicationService[]> {
         try {
             const response = await this.withRetry(async () => {
-                return await this.request<
-                    ApplicationServiceResponse[] | { services?: ApplicationServiceResponse[] }
-                >({
+                return await this.request<ApplicationServiceResponse[] | { services?: ApplicationServiceResponse[] }>({
                     method: Method.Get,
                     path: "/appservices",
                     prefix: AdminPrefix.V1,
@@ -516,9 +514,13 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     async setApplicationServiceState(asId: string, stateKey: string, value: unknown): Promise<void> {
         await this.withRetry(async () => {
             return await this.request({
-                method: Method.Put,
-                path: `/appservices/${encodeURIComponent(asId)}/state/${encodeURIComponent(stateKey)}`,
-                body: { value },
+                // 后端形状（`app_service.rs::set_app_service_state` + `SetStateBody`）：
+                // `POST /_synapse/admin/v1/appservices/{as_id}/state`，body `{state_key, state_value}`。
+                // 原先的 `PUT .../state/{state_key}` 两边都不存在（上游 `synapse/rest/admin/`
+                // 根本没有 appservice 模块）—— 2026-10-01 契约核对后按后端形状改正。
+                method: Method.Post,
+                path: `/appservices/${encodeURIComponent(asId)}/state`,
+                body: { state_key: stateKey, state_value: value },
                 prefix: AdminPrefix.V1,
             });
         }, "setApplicationServiceState");
@@ -563,33 +565,40 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }, "listApplicationServiceEvents");
     }
 
-    async getApplicationServiceStatistics(
-        asId: string,
-    ): Promise<Record<string, unknown> /* Dynamic: statistics shape varies by backend version */> {
+    async getApplicationServiceStatistics(): Promise<
+        Record<string, unknown> /* Dynamic: statistics shape varies by backend version */
+    > {
         return this.withRetry(async () => {
             return await this.request({
+                // 后端是**全局**统计（`app_service.rs::get_statistics`，路径里没有 `{as_id}`）——
+                // SDK 原先的 `.../{as}/statistics` 形状后端与上游都没有 ⇒ 参数一并去掉。
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/statistics`,
+                path: "/appservices/statistics",
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceStatistics");
     }
 
-    async queryApplicationServiceUser(asId: string, userId: string): Promise<ApplicationServiceQueryUserResult> {
+    async queryApplicationServiceUser(userId: string): Promise<ApplicationServiceQueryUserResult> {
         return this.withRetry(async () => {
             return await this.request({
+                // 后端：`GET .../appservices/query/user?user_id=…`（`query_user` 用 `Query<QueryUser>`），
+                // 语义是"哪个 AS 管理该 user" ⇒ 不需要 `asId`。
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/query/user/${encodeURIComponent(userId)}`,
+                path: "/appservices/query/user",
+                queryParams: { user_id: userId },
                 prefix: AdminPrefix.V1,
             });
         }, "queryApplicationServiceUser");
     }
 
-    async queryApplicationServiceAlias(asId: string, alias: string): Promise<ApplicationServiceQueryAliasResult> {
+    async queryApplicationServiceAlias(alias: string): Promise<ApplicationServiceQueryAliasResult> {
         return this.withRetry(async () => {
             return await this.request({
+                // 同 `queryApplicationServiceUser`：`GET .../appservices/query/alias?alias=…`。
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/query/alias/${encodeURIComponent(alias)}`,
+                path: "/appservices/query/alias",
+                queryParams: { alias },
                 prefix: AdminPrefix.V1,
             });
         }, "queryApplicationServiceAlias");
