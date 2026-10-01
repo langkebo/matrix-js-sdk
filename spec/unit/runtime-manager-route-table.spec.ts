@@ -34,7 +34,6 @@ import { Method } from "../../src/http-api/method";
 import { ClientPrefix } from "../../src/http-api/prefix";
 import { DeviceManager } from "../../src/device";
 import { DEVICE_ROUTES } from "../../src/device/__generated__/route-table";
-import { KeyVerificationManager } from "../../src/key-verification";
 import { MediaManager } from "../../src/media";
 import { MEDIA_ROUTES } from "../../src/media/__generated__/route-table";
 import { NotificationsManager } from "../../src/notifications";
@@ -64,8 +63,6 @@ import { THREAD_ROUTES } from "../../src/thread/__generated__/route-table";
 import { ThreadingManager } from "../../src/threading";
 import { TypingManager } from "../../src/typing";
 import { TYPING_ROUTES } from "../../src/typing/__generated__/route-table";
-import { VerificationManager } from "../../src/verification";
-import { VERIFICATION_ROUTES } from "../../src/verification/__generated__/route-table";
 
 type RouteTable = readonly { readonly method: string; readonly path: string }[];
 type RequestOptions = { prefix?: string };
@@ -221,44 +218,6 @@ describe("runtime manager route-table contract", () => {
         ];
         const runtimePath = fullRuntimePath(path, options);
         expect(hasRouteTableMatch(DEVICE_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps KeyVerificationManager QR calls on the generated verification route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ qr_code_data: "qr", transaction_id: "txn" });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<
-            typeof KeyVerificationManager
-        >[0];
-        const manager = new KeyVerificationManager(client);
-
-        await manager.showQrCode("txn", "v3");
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(VERIFICATION_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps VerificationManager explicit v3 calls on the generated verification route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue({ transaction_id: "txn" });
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof VerificationManager>[0];
-        const manager = new VerificationManager(client);
-
-        await manager.startVerification({ from_device: "DEVICE", to_user: "@alice:example.org" }, "v3");
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(VERIFICATION_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
     it("keeps SecureBackupManager creation on the generated e2ee secure-backup route-table slice", async () => {

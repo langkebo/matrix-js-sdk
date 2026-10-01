@@ -265,7 +265,6 @@ const CONTRACT_MODULE_MAP = {
     输入状态: "typing",
     遥测: "telemetry",
     阅后即焚: "burn-after-read",
-    验证: "verification",
     验证码: "captcha",
 };
 

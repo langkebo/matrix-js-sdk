@@ -31,7 +31,6 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./http-api`           | HTTP 白名单：HTTP API 基础能力与错误类型                          | `MatrixHttpApi`, `HTTPError`, `MatrixError`                                   |
 | `./http-api/errors`    | HTTP 错误白名单：传输层/协议层错误类型                            | `HTTPError`, `MatrixError`, `ConnectionError`                                 |
 | `./key-backup`         | Key Backup 白名单：密钥备份类型                                   | `EncryptedData`, `BackupVersion`                                              |
-| `./key-verification`   | Key Verification 白名单：密钥验证 manager 与验证类型              | `KeyVerificationManager`                                                      |
 | `./media`              | Media 白名单：媒体 manager 与媒体类型                             | `MediaManager`                                                                |
 | `./models/event`       | Event 模型白名单：事件实体与状态相关类型                          | `EventStatus`, `IEvent`, `IContent`                                           |
 | `./models/room`        | Room 模型白名单：房间实体与状态/计数相关类型                      | `RoomEvent`, `NotificationCountType`, `KNOWN_SAFE_ROOM_VERSION`               |
@@ -52,7 +51,6 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./telemetry`          | Telemetry 白名单：遥测管理入口                                    | `TelemetryManager`                                                            |
 | `./threading`          | Threading 白名单：线程 manager 与线程订阅/摘要类型                | `ThreadingManager`, `ThreadSummaryResponse`                                   |
 | `./timeline-window`    | Timeline 白名单：timeline 窗口能力                                | `TimelineWindow`, `TimelineIndex`                                             |
-| `./verification`       | Verification 白名单：密钥验证 manager 与验证类型                  | `VerificationManager`                                                         |
 | `./voice`              | Voice 白名单：语音消息 manager 与语音领域类型                     | `VoiceManager`, `VoiceEvent`, `IVoiceMessage`                                 |
 | `./@types/partials`    | 类型白名单：协议 partial/type 枚举集合                            | `Visibility`, `Preset`, `JoinRule`                                            |
 | `./@types/PushRules`   | 类型白名单：push rules 枚举与动作类型                             | `PushRuleActionName`, `TweakName`, `PushRuleAction`                           |

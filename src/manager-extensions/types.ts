@@ -21,7 +21,6 @@ export interface ManagerExtensionsOptions {
     includeAuth?: boolean;
     includeCapabilities?: boolean;
     includeCryptoKeys?: boolean;
-    includeKeyVerification?: boolean;
     includeDiscovery?: boolean;
     includeDm?: boolean;
     includeGuest?: boolean;
@@ -59,7 +58,6 @@ export interface ManagerExtensionsOptions {
     includeFeatureFlag?: boolean;
     includeEventReport?: boolean;
     includeBurnAfterRead?: boolean;
-    includeVerification?: boolean;
     includeE2EE?: boolean;
     includeWorkerBody?: boolean;
     includeVoice?: boolean;

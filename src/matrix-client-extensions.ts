@@ -250,7 +250,6 @@ export interface MatrixClientExtensionMethods {
     getCryptoStoreManager(): import("./crypto-store/index").CryptoStoreManager;
     getCrossSigningManager(): import("./cross-signing/index").CrossSigningManager;
     getDeviceKeysManager(): import("./device-keys/index").DeviceKeysManager;
-    getKeyVerificationManager(): import("./key-verification/index").KeyVerificationManager;
 
     getSecretStorageManager(): import("./secret-storage/index").SecretStorageManager;
     getSecurityManager(): import("./security/index").SecurityManager;
@@ -387,7 +386,6 @@ export interface MatrixClientExtensionMethods {
     getFilterManager(): import("./filter/index").FilterManager;
     getModerationManager(): import("./moderation/index").ModerationManager;
     getModuleManager(): import("./module/index").ModuleManager;
-    getVerificationManager(): import("./verification/index").VerificationManager;
     getVoiceManager(): import("./voice/index").VoiceManager;
 }
 

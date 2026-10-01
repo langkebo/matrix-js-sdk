@@ -16,60 +16,6 @@
             "expires": "2026-12-31"
         },
         {
-            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_start",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "MSC3882 设备签名交互式验证。后端 device_signing 只实现了 upload（ledger 中仅 POST /keys/device_signing/upload），verify_* 全系列未实现。属于上游 MSC 尚未落地，不是 SDK 缺陷。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "PUT /_matrix/client/v3/keys/device_signing/verify_accept",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_key_agreement",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_mac",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_done",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_cancel",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "GET /_matrix/client/v3/keys/device_signing/requests",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "同 MSC3882：查询待处理的设备签名验证请求。后端未实现。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "GET /_matrix/client/v3/keys/qr_code/show",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "MSC3882 二维码验证。后端未实现 qr_code 系列端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_matrix/client/v3/keys/qr_code/scan",
-            "file": "src/client-crypto-requests.ts",
-            "reason": "MSC3882 二维码验证。后端未实现 qr_code 系列端点。",
-            "expires": "2026-12-31"
-        },
-        {
             "sdkCall": "POST /_matrix/client/v3/oidc/register",
             "file": "src/oidc/manager.ts",
             "reason": "OIDC registration 端点。后端 OIDC 模块未实现该路径。",

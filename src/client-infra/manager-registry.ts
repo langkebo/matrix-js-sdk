@@ -114,7 +114,6 @@ export type ManagerName =
     | "invites"
     | "keyBackup"
     | "keyRotation"
-    | "keyVerification"
     | "lifecycle"
     | "media"
     | "membership"
@@ -172,7 +171,6 @@ export type ManagerName =
     | "uploads"
     | "user"
     | "userDirectory"
-    | "verification"
     | "voice"
     | "widget"
     | "widgets"
@@ -221,7 +219,6 @@ export interface ManagerTypeMap {
     invites: import("../invites/index").InvitesManager;
     keyBackup: import("../key-backup/index").KeyBackupManager;
     keyRotation: import("../key-rotation/index").KeyRotationManager;
-    keyVerification: import("../key-verification/index").KeyVerificationManager;
     lifecycle: import("../lifecycle/index").LifecycleManager;
     media: import("../media/index").MediaManager;
     membership: import("../membership/index").MembershipManager;
@@ -279,7 +276,6 @@ export interface ManagerTypeMap {
     uploads: import("../uploads/index").UploadsManager;
     user: import("../user/index").UserManager;
     userDirectory: import("../user-directory/index").UserDirectoryManager;
-    verification: import("../verification/index").VerificationManager;
     voice: import("../voice/index").VoiceManager;
     widget: import("../widget/index").WidgetManager;
     widgets: import("../widgets/index").WidgetsManager;

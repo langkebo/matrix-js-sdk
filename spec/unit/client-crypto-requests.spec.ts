@@ -14,17 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { Method, type Body, type IRequestOpts } from "../../src/http-api";
+import { Method } from "../../src/http-api";
 import * as cryptoRequests from "../../src/client-crypto-requests";
-import type { QueryDict } from "../../src/utils";
-
-type AuthedRequestFn = <T>(
-    method: Method,
-    path: string,
-    queryParams?: Record<string, unknown>,
-    body?: Body,
-    requestOpts?: IRequestOpts,
-) => Promise<T>;
 
 describe("client-crypto-requests", () => {
     let mockAuthedRequest: ReturnType<typeof vi.fn>;
@@ -42,20 +33,11 @@ describe("client-crypto-requests", () => {
     describe("performSearchRequest", () => {
         it("should perform search request without nextBatch", async () => {
             const body = { search_categories: { room_events: {} } };
-            const result = await cryptoRequests.performSearchRequest(
-                body,
-                undefined,
-                undefined,
-                mockAuthedRequest,
-            );
+            const result = await cryptoRequests.performSearchRequest(body, undefined, undefined, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/search",
-                {},
-                body,
-                { abortSignal: undefined },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/search", {}, body, {
+                abortSignal: undefined,
+            });
             expect(result).toEqual(mockResult);
         });
 
@@ -66,13 +48,9 @@ describe("client-crypto-requests", () => {
 
             await cryptoRequests.performSearchRequest(body, nextBatch, abortSignal, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/search",
-                { next_batch: nextBatch },
-                body,
-                { abortSignal },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/search", { next_batch: nextBatch }, body, {
+                abortSignal,
+            });
         });
     });
 
@@ -81,12 +59,7 @@ describe("client-crypto-requests", () => {
             const content = { device_keys: {}, one_time_keys: {} };
             const result = await cryptoRequests.uploadKeysHttpRequest(content, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/upload",
-                undefined,
-                content,
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/keys/upload", undefined, content);
             expect(result).toEqual(mockResult);
         });
     });
@@ -96,12 +69,7 @@ describe("client-crypto-requests", () => {
             const content = { signatures: {} };
             const result = await cryptoRequests.uploadKeySignaturesHttpRequest(content, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/signatures/upload",
-                undefined,
-                content,
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/keys/signatures/upload", undefined, content);
             expect(result).toEqual(mockResult);
         });
     });
@@ -109,7 +77,7 @@ describe("client-crypto-requests", () => {
     describe("queryKeysForUsersRequest", () => {
         it("should query keys for users without token", async () => {
             const userIds = ["@alice:example.com", "@bob:example.com"];
-            
+
             await cryptoRequests.queryKeysForUsersRequest(userIds, undefined, mockAuthedRequest);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -145,7 +113,10 @@ describe("client-crypto-requests", () => {
 
     describe("claimOneTimeKeysHttpRequest", () => {
         it("should claim one time keys with default algorithm", async () => {
-            const devices = [["@alice:example.com", "DEVICE1"], ["@bob:example.com", "DEVICE2"]];
+            const devices = [
+                ["@alice:example.com", "DEVICE1"],
+                ["@bob:example.com", "DEVICE2"],
+            ];
 
             await cryptoRequests.claimOneTimeKeysHttpRequest(devices, undefined, undefined, mockAuthedRequest);
 
@@ -205,18 +176,17 @@ describe("client-crypto-requests", () => {
 
             await cryptoRequests.getKeyChangesRequest(oldToken, newToken, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/keys/changes",
-                { from: oldToken, to: newToken },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/keys/changes", {
+                from: oldToken,
+                to: newToken,
+            });
         });
     });
 
     describe("uploadDeviceSigningKeysHttpRequest", () => {
         it("should upload device signing keys without auth", async () => {
             const keys = { pub_key: "public_key_data" };
-            
+
             await cryptoRequests.uploadDeviceSigningKeysHttpRequest(undefined, keys, mockAuthedRequest);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -253,13 +223,9 @@ describe("client-crypto-requests", () => {
 
             await cryptoRequests.requestRoomKeyHttpRequest(request, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/room_keys/request",
-                undefined,
-                request,
-                { prefix: expect.any(String) },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/room_keys/request", undefined, request, {
+                prefix: expect.any(String),
+            });
         });
     });
 
@@ -269,13 +235,9 @@ describe("client-crypto-requests", () => {
 
             await cryptoRequests.getRoomKeyRequestsHttpRequest(query, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/room_keys/request",
-                query,
-                undefined,
-                { prefix: expect.any(String) },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/room_keys/request", query, undefined, {
+                prefix: expect.any(String),
+            });
         });
     });
 
@@ -295,90 +257,15 @@ describe("client-crypto-requests", () => {
         });
     });
 
-    describe("Device Signing Verification Requests", () => {
-        const prefixes = ["prefix_v1", "prefix_v2"];
-        
-        describe.each([
-            ["startDeviceSigningVerificationRequest", Method.Post],
-            ["acceptDeviceSigningVerificationRequest", Method.Put],
-            ["sendDeviceSigningVerificationKeyAgreementRequest", Method.Post],
-            ["confirmDeviceSigningVerificationMacRequest", Method.Post],
-            ["completeDeviceSigningVerificationRequest", Method.Post],
-            ["cancelDeviceSigningVerificationRequest", Method.Post],
-        ])("%s", (fnName, expectedMethod) => {
-            it(`should call ${fnName} with request and prefix`, async () => {
-                const request = { user_id: "@user:example.com" };
-                const func = cryptoRequests[fnName] as any;
-
-                await func(request, prefixes[0], mockAuthedRequest);
-
-                expect(mockAuthedRequest).toHaveBeenCalledWith(
-                    expectedMethod,
-                    expect.stringContaining("device_signing"),
-                    undefined,
-                    request,
-                    { prefix: prefixes[0] },
-                );
-            });
-        });
-
-        describe("getVerificationRequestsHttpRequest", () => {
-            it("should get verification requests", async () => {
-                await cryptoRequests.getVerificationRequestsHttpRequest(prefixes[0], mockAuthedRequest);
-
-                expect(mockAuthedRequest).toHaveBeenCalledWith(
-                    Method.Get,
-                    "/keys/device_signing/requests",
-                    undefined,
-                    undefined,
-                    { prefix: prefixes[0] },
-                );
-            });
-        });
-
-        describe("showQrCodeHttpRequest", () => {
-            it("should show QR code", async () => {
-                await cryptoRequests.showQrCodeHttpRequest(prefixes[0], mockAuthedRequest);
-
-                expect(mockAuthedRequest).toHaveBeenCalledWith(
-                    Method.Get,
-                    "/keys/qr_code/show",
-                    undefined,
-                    undefined,
-                    { prefix: prefixes[0] },
-                );
-            });
-        });
-
-        describe("scanQrCodeHttpRequest", () => {
-            it("should scan QR code", async () => {
-                const request = { user_id: "@user:example.com" };
-
-                await cryptoRequests.scanQrCodeHttpRequest(request, prefixes[0], mockAuthedRequest);
-
-                expect(mockAuthedRequest).toHaveBeenCalledWith(
-                    Method.Post,
-                    "/keys/qr_code/scan",
-                    undefined,
-                    request,
-                    { prefix: prefixes[0] },
-                );
-            });
-        });
-    });
-
     describe("Edge Cases", () => {
         it("should handle empty device list in claimOneTimeKeysHttpRequest", async () => {
             const devices: [string, string][] = [];
 
             await cryptoRequests.claimOneTimeKeysHttpRequest(devices, undefined, undefined, mockAuthedRequest);
 
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/claim",
-                undefined,
-                { one_time_keys: {} },
-            );
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/keys/claim", undefined, {
+                one_time_keys: {},
+            });
         });
 
         it("should handle empty userIds list in queryKeysForUsersRequest", async () => {

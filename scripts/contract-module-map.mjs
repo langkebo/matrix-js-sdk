@@ -53,7 +53,6 @@ export const LEDGER_MODULE_ALIASES = {
     thirdparty: "thirdparty",
     thread: "thread",
     typing: "typing",
-    verification: "verification_routes",
     voice: "voice",
     widget: "widget",
     "worker-admin": "worker",

@@ -35,7 +35,6 @@
 | E2EE 核心 | [e2ee.md](e2ee.md)                 | 51     | 100%       | ✅ 完善 |
 | 密钥备份  | [key-backup.md](key-backup.md)     | 99     | 100%       | ✅ 完善 |
 | 密钥轮换  | [key-rotation.md](key-rotation.md) | 6      | 100%       | ✅ 完善 |
-| 设备验证  | [verification.md](verification.md) | 18     | 100%       | ✅ 完善 |
 
 ## 媒体与内容 API
 

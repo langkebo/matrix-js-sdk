@@ -49,7 +49,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeAuth", module: "auth" },
     { option: "includeCapabilities", module: "capabilities" },
     { option: "includeCryptoKeys", module: "crypto-keys" },
-    { option: "includeKeyVerification", module: "key-verification" },
     { option: "includeDiscovery", module: "discovery" },
     { option: "includeDm", module: "dm" },
     { option: "includeGuest", module: "guest" },
@@ -87,7 +86,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeFeatureFlag", module: "feature-flags" },
     { option: "includeEventReport", module: "event-report" },
     { option: "includeBurnAfterRead", module: "burn-after-read" },
-    { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body" },
     { option: "includeVoice", module: "voice" },
@@ -127,7 +125,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeAuth: true,
     includeCapabilities: true,
     includeCryptoKeys: true,
-    includeKeyVerification: true,
     includeDiscovery: true,
     includeDm: true,
     includeGuest: true,
@@ -165,7 +162,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeFeatureFlag: true,
     includeEventReport: true,
     includeBurnAfterRead: true,
-    includeVerification: true,
     includeE2EE: true,
     includeWorkerBody: true,
     includeVoice: true,
@@ -303,12 +299,6 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeCryptoKeys || all) {
                 promises.push(
                     safeDynamicImport(import("../crypto-keys/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeKeyVerification || all) {
-                promises.push(
-                    safeDynamicImport(import("../key-verification/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 
@@ -481,12 +471,6 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeBurnAfterRead || all) {
                 promises.push(
                     safeDynamicImport(import("../burn-after-read/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeVerification || all) {
-                promises.push(
-                    safeDynamicImport(import("../verification/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 

@@ -48,8 +48,6 @@ export type {
 } from "./friend";
 export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
-export { KeyVerificationManager } from "./key-verification";
-export type { IVerificationStatusResponse } from "./key-verification";
 export {
     CasManager,
     type CasApiPrefix,

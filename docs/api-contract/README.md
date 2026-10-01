@@ -41,7 +41,6 @@ last_reviewed: 2026-05-03
 | `friend.md`                   | 好友、好友请求、分组                                      | 覆盖 `friend_room.rs`                                                                   |
 | `widget.md`                   | Widget CRUD、权限、会话、房间级能力与消息                 | 覆盖 `widget.rs`                                                                        |
 | `thread.md`                   | 全局/房间线程、回复、订阅、统计、兼容搜索                 | 覆盖 `handlers/thread.rs`                                                               |
-| `verification.md`             | SAS/二维码设备校验                                        | 覆盖 `verification_routes.rs`                                                           |
 | `federation.md`               | Matrix Federation public/protected 路由                   | 覆盖 `federation.rs`                                                                    |
 | `worker-admin.md`             | Worker 注册、调度、复制与事件流                           | 覆盖 `worker.rs`                                                                        |
 | `backend-route-inventory.md`  | 已挂载后端路由总表                                        | 用于补足未单独拆文档的模块                                                              |
