@@ -175,7 +175,8 @@ export type ManagerName =
     | "widget"
     | "widgets"
     | "workerAdmin"
-    | "workerBody";
+    | "workerBody"
+    | "worker";
 
 /**
  * Maps each manager name to its return type.
@@ -281,4 +282,5 @@ export interface ManagerTypeMap {
     widgets: import("../widgets/index").WidgetsManager;
     workerAdmin: import("../worker-admin/index").WorkerAdminManager;
     workerBody: import("../worker-body/index").WorkerBodyManager;
+    worker: import("../client/worker/worker").WorkerManager;
 }

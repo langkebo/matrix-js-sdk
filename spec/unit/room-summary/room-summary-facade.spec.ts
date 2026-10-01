@@ -23,9 +23,15 @@ Please see LICENSE files in the repository root for full details.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { MockedFunction } from "vitest";
 
 import { RoomSummaryManager, extendMatrixClient, RoomSummaryEvent } from "../../../src/room-summary/index";
 import { MatrixClient } from "../../../src/client";
+
+/**
+ * `request` 是 BaseManager 的 protected 泛型方法，测试中从外部 spy。
+ */
+type RequestSpy = MockedFunction<RoomSummaryManager["request"]>;
 
 /** 一份最小的 client summary，覆盖 `convertClientSummary` 会读到的全部字段。 */
 function clientSummary(overrides: Record<string, unknown> = {}) {
@@ -62,13 +68,23 @@ describe("RoomSummaryManager 门面层", () => {
         };
         manager = new RoomSummaryManager(mockClient);
         // request 是 BaseManager 的 protected 方法，从外部 spy
-        vi.spyOn(manager as never, "request" as never).mockResolvedValue(clientSummary() as never);
+        vi.spyOn(manager as any, "request").mockResolvedValue(clientSummary() as never);
     });
+
+    /**
+     * 取出 request 的 spy句柄。
+     *
+     * `request` 是 protected 泛型方法，`vi.spyOn` / `vi.mocked` 无法在无断言的
+     * 情况下拿到具体类型（会退化为 `never`）。此处集中做一次类型转换，
+     * 让所有调用点都能拿到带 `mockResolvedValue` / `mock.calls` 的强类型句柄。
+     */
+    function requestSpy(): RequestSpy {
+        return (manager as unknown as { request: RequestSpy }).request;
+    }
 
     /** 取出本轮最后一次 request 调用的 spec，便于断言 prefix / path。 */
     function lastRequestSpec(): { method: string; path: string; prefix?: string; body?: unknown } {
-        const spy = vi.mocked((manager as never as { request: unknown }).request as never);
-        const calls = (spy as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+        const calls = requestSpy().mock.calls as unknown as unknown[][];
         return calls[calls.length - 1]?.[0] as never;
     }
 
@@ -86,22 +102,22 @@ describe("RoomSummaryManager 门面层", () => {
 
         it("第二次调用命中缓存，不再打网络", async () => {
             await manager.getRoomSummary("!r:example.com");
-            const spy = vi.mocked((manager as never as { request: unknown }).request as never);
-            const afterFirst = (spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
+            const spy = requestSpy();
+            const afterFirst = spy.mock.calls.length;
 
             await manager.getRoomSummary("!r:example.com");
 
-            expect((spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(afterFirst);
+            expect(spy.mock.calls.length).toBe(afterFirst);
         });
 
         it("forceRefresh=true 绕过缓存重新请求", async () => {
             await manager.getRoomSummary("!r:example.com");
-            const spy = vi.mocked((manager as never as { request: unknown }).request as never);
-            const afterFirst = (spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length;
+            const spy = requestSpy();
+            const afterFirst = spy.mock.calls.length;
 
             await manager.getRoomSummary("!r:example.com", undefined, true);
 
-            expect((spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(afterFirst + 1);
+            expect(spy.mock.calls.length).toBe(afterFirst + 1);
         });
 
         it("缓存 key 用的是传入的 roomIdOrAlias（含 alias 场景）", async () => {
@@ -111,7 +127,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("网络失败且 throwOnError=false 时返回 null 并发射 Error 事件", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockRejectedValue(
+            requestSpy().mockRejectedValue(
                 new Error("network down") as never,
             );
             const onError = vi.fn();
@@ -122,7 +138,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("网络失败且 throwOnError=true 时抛错", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockRejectedValue(
+            requestSpy().mockRejectedValue(
                 new Error("network down") as never,
             );
 
@@ -166,7 +182,7 @@ describe("RoomSummaryManager 门面层", () => {
 
     describe("convertClientSummary 默认值兜底", () => {
         it("join_rule 缺失时兜底为 invite", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ join_rule: undefined }) as never,
             );
 
@@ -176,7 +192,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("join_rule 为空字符串时也兜底为 invite（|| 而非 ??）", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ join_rule: "" }) as never,
             );
 
@@ -184,7 +200,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("history_visibility 缺失时兜底为 shared", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ history_visibility: undefined }) as never,
             );
 
@@ -192,7 +208,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("guest_access 缺失时兜底为 forbidden", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ guest_access: undefined }) as never,
             );
 
@@ -200,7 +216,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("num_joined_members 缺失时 member_count/joined_member_count 兜底为 0", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ num_joined_members: undefined }) as never,
             );
 
@@ -211,7 +227,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("三个布尔字段用 ?? 兜底为 false（保留 false 本身，不被 || 吞掉）", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ is_direct: false, is_space: false, is_encrypted: false }) as never,
             );
 
@@ -233,7 +249,7 @@ describe("RoomSummaryManager 门面层", () => {
 
     describe("heroes 类型守卫", () => {
         it("字符串数组映射为 {user_id, display_name: undefined, avatar_url: undefined}", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ heroes: ["@a:example.com", "@b:example.com"] }) as never,
             );
 
@@ -246,7 +262,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("对象数组保留 display_name 与 avatar_url", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({
                     heroes: [{ user_id: "@a:example.com", display_name: "Alice", avatar_url: "mxc://x" }],
                 }) as never,
@@ -258,7 +274,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("混合数组（字符串 + 对象）都能处理", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({
                     heroes: ["@a:example.com", { user_id: "@b:example.com", display_name: "Bob", avatar_url: null }],
                 }) as never,
@@ -273,7 +289,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("heroes 缺失时返回空数组", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue(
+            requestSpy().mockResolvedValue(
                 clientSummary({ heroes: undefined }) as never,
             );
 
@@ -322,7 +338,7 @@ describe("RoomSummaryManager 门面层", () => {
 
     describe("生命周期", () => {
         it("start() 是幂等的空实现（不抛错、不打网络）", async () => {
-            const spy = vi.mocked((manager as never as { request: unknown }).request as never);
+            const spy = requestSpy();
             await manager.start();
 
             expect(spy).not.toHaveBeenCalled();
@@ -344,7 +360,12 @@ describe("RoomSummaryManager 门面层", () => {
             manager.stop();
             onMembers.mockClear();
 
-            manager.members.emit("MembersUpdated" as never, "!r:example.com", [] as never);
+            // members 子管理器的 emit 签名需要具体事件名，测试只关心"是否解绑"
+            (manager.members as unknown as { emit: (event: string, ...args: unknown[]) => void }).emit(
+                "MembersUpdated",
+                "!r:example.com",
+                [],
+            );
 
             expect(onMembers).not.toHaveBeenCalled();
         });
@@ -410,14 +431,14 @@ describe("RoomSummaryManager 门面层", () => {
 
     describe("内部 summary 端点的前缀", () => {
         it("batchGetSummaries 空数组直接短路，不打网络", async () => {
-            const spy = vi.mocked((manager as never as { request: unknown }).request as never);
+            const spy = requestSpy();
 
             await expect(manager.batchGetSummaries([])).resolves.toEqual({});
             expect(spy).not.toHaveBeenCalled();
         });
 
         it("batchGetSummaries 走 /_synapse/room_summary/v1 前缀", async () => {
-            vi.mocked((manager as never as { request: unknown }).request as never).mockResolvedValue({} as never);
+            requestSpy().mockResolvedValue({} as never);
 
             await manager.batchGetSummaries(["!r:example.com"], true);
 

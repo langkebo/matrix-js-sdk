@@ -14,16 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import type { Mock } from "vitest";
+
 import { Method } from "../../src/http-api";
 import * as cryptoRequests from "../../src/client-crypto-requests";
+import type { QueryDict } from "../../src/utils";
+
+/**
+ * 与 src/client-crypto-requests 中 AuthedRequestFn 匹配的 mock 签名。
+ * 必须是泛型函数，否则 vi.fn() 的 Mock 类型无法赋值给泛型 AuthedRequestFn。
+ */
+type MockAuthedRequest = <T>(
+    method: Method,
+    path: string,
+    queryParams?: QueryDict,
+    body?: unknown,
+    requestOpts?: unknown,
+) => Promise<T>;
 
 describe("client-crypto-requests", () => {
-    let mockAuthedRequest: ReturnType<typeof vi.fn>;
+    let mockAuthedRequest: Mock<MockAuthedRequest> & MockAuthedRequest;
     let mockResult: Record<string, unknown>;
 
     beforeEach(() => {
         mockResult = { success: true, data: "test" };
-        mockAuthedRequest = vi.fn().mockResolvedValue(mockResult);
+        mockAuthedRequest = vi.fn().mockResolvedValue(mockResult) as unknown as Mock<MockAuthedRequest> &
+            MockAuthedRequest;
     });
 
     afterEach(() => {
@@ -113,7 +130,7 @@ describe("client-crypto-requests", () => {
 
     describe("claimOneTimeKeysHttpRequest", () => {
         it("should claim one time keys with default algorithm", async () => {
-            const devices = [
+            const devices: [string, string][] = [
                 ["@alice:example.com", "DEVICE1"],
                 ["@bob:example.com", "DEVICE2"],
             ];
@@ -134,7 +151,7 @@ describe("client-crypto-requests", () => {
         });
 
         it("should use custom key algorithm", async () => {
-            const devices = [["@alice:example.com", "DEVICE1"]];
+            const devices: [string, string][] = [["@alice:example.com", "DEVICE1"]];
             const algorithm = "custom_algo";
 
             await cryptoRequests.claimOneTimeKeysHttpRequest(devices, algorithm, undefined, mockAuthedRequest);
@@ -152,7 +169,7 @@ describe("client-crypto-requests", () => {
         });
 
         it("should include timeout when provided", async () => {
-            const devices = [["@alice:example.com", "DEVICE1"]];
+            const devices: [string, string][] = [["@alice:example.com", "DEVICE1"]];
             const timeout = 5000;
 
             await cryptoRequests.claimOneTimeKeysHttpRequest(devices, undefined, timeout, mockAuthedRequest);

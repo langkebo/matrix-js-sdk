@@ -25,7 +25,7 @@ describe("client-room-upgrade", () => {
                 findPredecessor: vi.fn().mockReturnValue(undefined),
             } as any;
             
-            const getRoom = vi.fn((roomId: string) => {
+            const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room1:example.com") return room1;
                 if (roomId === "!room2:example.com") return room2;
                 return null;
@@ -70,7 +70,7 @@ describe("client-room-upgrade", () => {
                 findPredecessor: vi.fn().mockReturnValue(undefined),
             } as any;
             
-            const getRoom = vi.fn((roomId: string) => {
+            const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room2:example.com") return room2;
                 if (roomId === "!room1:example.com") return room1;
                 return null;
@@ -118,7 +118,7 @@ describe("client-room-upgrade", () => {
                 }
             } as any;
             
-            const getRoom = vi.fn((roomId: string) => {
+            const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room2:example.com") return room2;
                 if (roomId === "!room3:example.com") return room3;
                 return null;
@@ -173,7 +173,7 @@ describe("client-room-upgrade", () => {
                 currentState: { getStateEvents: () => null }
             } as any;
             
-            const getRoom = vi.fn((roomId: string) => {
+            const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room1:example.com") return room1;
                 if (roomId === "!room2:example.com") return room2;
                 if (roomId === "!room3:example.com") return room3;
@@ -215,7 +215,7 @@ describe("client-room-upgrade", () => {
                 currentState: { getStateEvents: () => null }
             } as any;
             
-            const getRoom = vi.fn((roomId: string) => {
+            const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room1:example.com") return room1;
                 if (roomId === "!room2:example.com") return room2;
                 return null;

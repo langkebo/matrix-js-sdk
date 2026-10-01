@@ -37,7 +37,7 @@
 | 模块 | Manager 类 | 路由数量 | 测试状态 | 完成时间 | 备注 |
 |------|----------|---------|---------|---------|------|
 | Worker | `WorkerManager` | 14 | ✅ 已验证 | 2026-09-29 | src/client/worker/ |
-| OIDC | `OidcManager` | 8 | ✅ 已修复导入 | 2026-09-29 | src/client/oidc/ |
+| OIDC | `OidcManager` | 8 | ✅ 已修复导入 | 2026-09-29 | src/client/oidc/ (已于 2026-10-01 移除，见 src/oidc/) |
 | Rendezvous | `RendezvousManager` | 6 | ⏸️ 待测试 | TBD | MSC4xxx 实验性功能 |
 
 ### 1.3 未实现模块（❌）
@@ -264,7 +264,7 @@ moduleThresholds:
 | 任务 | 优先级 | 预计工时 | 负责人 | 状态 |
 |------|-------|---------|--------|------|
 | Worker Manager 封装 (14 routes) | P2 | 8h | ✅ Leo | ✅ 完成 (src/client/worker/) |
-| OIDC Manager 封装 (8 routes) | P2 | 6h | ✅ Leo | ✅ 完成 (src/client/oidc/) |
+| OIDC Manager 封装 (8 routes) | P2 | 6h | ✅ Leo | ✅ 完成 (src/oidc/) | src/client/oidc 已于 2026-10-01 移除（死代码） |
 | Rendezvous Manager 封装 | P3 | 4h | TBD | ❌ TODO |
 | Admin Manager 完整路由覆盖 | P2 | 12h | TBD | ❌ TODO |
 

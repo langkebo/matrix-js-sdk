@@ -51,8 +51,9 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
         try {
             // 使用 getOrFetch 自动处理缓存
             const forceRefresh = options.forceRefresh === true;
+            const cacheKey = forceRefresh ? `members:${spaceId}:fresh` : `members:${spaceId}`;
             const members = await this.memberCache.getOrFetch(
-                `members:${spaceId}`,
+                cacheKey,
                 async () => {
                     const response = await this.withRetry(async () => {
                         return await this.doRequest<JsonObject | SpaceMember[]>(
@@ -63,7 +64,6 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
                     }, "getSpaceMembers");
                     return this.extractMembers(response, spaceId);
                 },
-                { forceRefresh }
             );
             return members;
         } catch (error) {

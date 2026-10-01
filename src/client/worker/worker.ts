@@ -420,7 +420,9 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
  * 扩展 MatrixClient，添加 getWorkerManager 方法
  */
 export function extendMatrixClient(): void {
-    (MatrixClient.prototype as Record<string, unknown>).getWorkerManager = function (): WorkerManager {
+    if (MatrixClient.prototype.hasOwnProperty("getWorkerManager")) return;
+
+    MatrixClient.prototype.getWorkerManager = function (this: MatrixClient): WorkerManager {
         registerManagerClass("worker", WorkerManager);
         return getOrCreateManager(this, "worker", () => new WorkerManager(this));
     };

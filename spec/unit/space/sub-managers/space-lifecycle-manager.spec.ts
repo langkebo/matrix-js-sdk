@@ -19,6 +19,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { SpaceLifecycleManager } from "../../../../src/space/sub-managers/space-lifecycle-manager";
 import { SpaceEvent } from "../../../../src/space/events";
 import { ValidationError } from "../../../../src/errors";
+import type { UnifiedCacheManager } from "../../../../src/managers/cache-manager";
 
 describe("SpaceLifecycleManager", () => {
     let manager: SpaceLifecycleManager;
@@ -45,11 +46,14 @@ describe("SpaceLifecycleManager", () => {
 
         manager = new SpaceLifecycleManager(mockClient);
         manager._setParent(mockParent);
-        
+
         // Mock lifecycleCache.getOrFetch 方法
-        vi.spyOn((manager as any).lifecycleCache, 'getOrFetch').mockImplementation(async (key, fetchFn) => {
-            return await fetchFn();
-        });
+        // 先用 UnifiedCacheManager["getOrFetch"] 固定签名，再 spy 方法本身，
+        // 避免 (manager as any) 让 vi.spyOn 把回调参数推断成 unknown
+        const lifecycleCache = (manager as any).lifecycleCache as {
+            getOrFetch: UnifiedCacheManager["getOrFetch"];
+        };
+        vi.spyOn(lifecycleCache, "getOrFetch").mockImplementation(async (_key, fetchFn) => fetchFn() as never);
     });
 
     describe("createSpace", () => {

@@ -125,14 +125,14 @@ describe("client-room-discovery-requests", () => {
             const timestamp = 1609459200000;
             mockAuthedRequest.mockResolvedValue({ event_id: "$event:example.com" });
 
-            await timestampToEventRequest(roomId, timestamp, Direction.Forwards, mockAuthedRequest);
+            await timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/rooms/!room%3Aexample.com/timestamp_to_event",
                 {
                     ts: "1609459200000",
-                    dir: Direction.Forwards,
+                    dir: Direction.Forward,
                 },
                 undefined,
                 { prefix: ClientPrefix.V1 }
@@ -175,7 +175,7 @@ describe("client-room-discovery-requests", () => {
             mockAuthedRequest.mockRejectedValue(matrixErr);
 
             await expect(
-                timestampToEventRequest(roomId, timestamp, Direction.Forwards, mockAuthedRequest)
+                timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest)
             ).rejects.toEqual(matrixErr);
         });
 
@@ -189,7 +189,7 @@ describe("client-room-discovery-requests", () => {
             mockAuthedRequest.mockRejectedValue(matrixErr);
 
             await expect(
-                timestampToEventRequest(roomId, timestamp, Direction.Forwards, mockAuthedRequest)
+                timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest)
             ).rejects.toEqual(matrixErr);
         });
     });
@@ -204,14 +204,14 @@ describe("client-room-discovery-requests", () => {
             const roomId = "!room:example.com";
             mockAuthedRequest.mockResolvedValue({ event_id: "$event:example.com" });
 
-            await timestampToEventRequest(roomId, 0, Direction.Forwards, mockAuthedRequest);
+            await timestampToEventRequest(roomId, 0, Direction.Forward, mockAuthedRequest);
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/rooms/!room%3Aexample.com/timestamp_to_event",
                 {
                     ts: "0",
-                    dir: Direction.Forwards,
+                    dir: Direction.Forward,
                 },
                 undefined,
                 { prefix: ClientPrefix.V1 }

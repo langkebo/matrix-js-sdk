@@ -334,6 +334,7 @@ export interface MatrixClientExtensionMethods {
     getBackgroundUpdateManager(): import("./background-update/index").BackgroundUpdateManager;
     getWorkerAdminManager(): import("./worker-admin/index").WorkerAdminManager;
     getWorkerBodyManager(): import("./worker-body/index").WorkerBodyManager;
+    getWorkerManager(): import("./client/worker/worker").WorkerManager;
     getReportingManager(): import("./reporting/index").ReportingManager;
     getInviteBlocklistManager(): import("./invite-blocklist/index").InviteBlocklistManager;
 

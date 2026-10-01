@@ -202,8 +202,9 @@ describe("client-room-access", () => {
                 currentState: {
                     getStateEvents: vi.fn((type: string, stateKey: string) => {
                         if (type === EventType.RoomCreate) {
+                            // 普通房间（非 Space）没有 room type 字段 → 应返回 null
                             return {
-                                getContent: () => ({ [RoomCreateTypeField]: RoomType.Chat }),
+                                getContent: () => ({}),
                             };
                         }
                         if (stateKey === UNSTABLE_MSC3089_TREE_SUBTYPE.name) {

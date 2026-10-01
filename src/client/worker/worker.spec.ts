@@ -7,7 +7,7 @@ Please see LICENSE files in the repository root for full details.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { WorkerManager } from "./worker";
+import { WorkerManager, type WorkerInfo } from "./worker";
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { AuthError, NotFoundError, ApiError, RetryableError, ValidationError } from "../../errors";
@@ -31,12 +31,12 @@ describe("WorkerManager", () => {
 
     describe("URL 组装规则", () => {
         it("应该使用相对路径，不包含前缀", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue([]);
+            transport.request = vi.fn().mockResolvedValue([]);
 
             await workerManager.listWorkers();
 
-            expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalled();
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            expect(transport.request).toHaveBeenCalled();
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
 
             const path = call[1];
             expect(path).toBe("/v1/workers");
@@ -47,7 +47,7 @@ describe("WorkerManager", () => {
         });
 
         it("应该正确组装 getWorker URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 id: 1,
                 worker_id: "worker-1",
                 worker_name: "Worker 1",
@@ -61,13 +61,13 @@ describe("WorkerManager", () => {
 
             await workerManager.getWorker("worker-1");
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             expect(call[1]).toBe("/v1/workers/worker-1");
             expect(call[1]).not.toContain("/_synapse/worker");
         });
 
         it("应该正确编码 workerId 中的特殊字符", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 id: 1,
                 worker_id: "worker@test",
                 worker_name: "Test Worker",
@@ -81,7 +81,7 @@ describe("WorkerManager", () => {
 
             await workerManager.getWorker("worker@test");
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             expect(call[1]).toBe("/v1/workers/worker%40test");
         });
     });
@@ -101,11 +101,16 @@ describe("WorkerManager", () => {
                     port: 8080,
                 };
 
-                const mockWorker: ReturnType<typeof workerManager extends { getWorker: (id: string) => Promise<infer T> } ? T : never> = {
+                const mockWorker: WorkerInfo = {
                     id: 1,
                     worker_id: "worker-1",
                     worker_name: "Worker One",
                     worker_type: "frontend",
+                    instance_map_keys: [],
+                    responsibility_domains: [],
+                    owned_route_prefixes: [],
+                    replication_streams: [],
+                    capabilities: {},
                     host: "127.0.0.1",
                     port: 8080,
                     status: "running",
@@ -113,13 +118,13 @@ describe("WorkerManager", () => {
                     started_ts: 1234560000,
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(mockWorker);
+                transport.request = vi.fn().mockResolvedValue(mockWorker);
 
                 const result = await workerManager.registerWorker(workerInfo);
 
                 expect(result.worker_id).toBe("worker-1");
                 expect(result.worker_name).toBe("Worker One");
-                expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+                expect(transport.request).toHaveBeenCalledWith(
                     Method.Post,
                     "/v1/register",
                     undefined,
@@ -164,11 +169,16 @@ describe("WorkerManager", () => {
                     version: "1.0.0",
                 };
 
-                const mockWorker: ReturnType<typeof workerManager extends { getWorker: (id: string) => Promise<infer T> } ? T : never> = {
+                const mockWorker: WorkerInfo = {
                     id: 1,
                     worker_id: "worker-1",
                     worker_name: "Worker One",
                     worker_type: "frontend",
+                    instance_map_keys: [],
+                    responsibility_domains: [],
+                    owned_route_prefixes: [],
+                    replication_streams: [],
+                    capabilities: {},
                     host: "127.0.0.1",
                     port: 8080,
                     status: "running",
@@ -176,7 +186,7 @@ describe("WorkerManager", () => {
                     started_ts: 1234560000,
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(mockWorker);
+                transport.request = vi.fn().mockResolvedValue(mockWorker);
 
                 const result = await workerManager.registerWorker(workerInfo);
 
@@ -211,7 +221,7 @@ describe("WorkerManager", () => {
                     },
                 ];
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({ workers });
+                transport.request = vi.fn().mockResolvedValue({ workers });
 
                 const result = await workerManager.listWorkers();
 
@@ -221,7 +231,7 @@ describe("WorkerManager", () => {
             });
 
             it("应该返回空数组当没有 Workers 时", async () => {
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({ workers: [] });
+                transport.request = vi.fn().mockResolvedValue({ workers: [] });
 
                 const result = await workerManager.listWorkers();
 
@@ -243,7 +253,7 @@ describe("WorkerManager", () => {
                     started_ts: 1234560000,
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(worker);
+                transport.request = vi.fn().mockResolvedValue(worker);
 
                 const result = await workerManager.getWorker("worker-1");
 
@@ -258,11 +268,11 @@ describe("WorkerManager", () => {
 
         describe("unregisterWorker", () => {
             it("应该成功注销 Worker", async () => {
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(undefined);
+                transport.request = vi.fn().mockResolvedValue(undefined);
 
                 await workerManager.unregisterWorker("worker-1");
 
-                expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+                expect(transport.request).toHaveBeenCalledWith(
                     Method.Delete,
                     "/v1/workers/worker-1",
                     undefined,
@@ -283,14 +293,14 @@ describe("WorkerManager", () => {
 
     describe("sendCommand", () => {
         it("应该成功发送命令给 Worker", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(undefined);
+            transport.request = vi.fn().mockResolvedValue(undefined);
 
             await workerManager.sendCommand("worker-1", {
                 command_type: "reload_config",
                 command_data: {},
             });
 
-            expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+            expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
                 "/v1/workers/worker-1/commands",
                 undefined,
@@ -318,7 +328,7 @@ describe("WorkerManager", () => {
         });
 
         it("应该接受可选的 priority 和 max_retries 参数", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(undefined);
+            transport.request = vi.fn().mockResolvedValue(undefined);
 
             await workerManager.sendCommand("worker-1", {
                 command_type: "custom_command",
@@ -327,7 +337,7 @@ describe("WorkerManager", () => {
                 max_retries: 3,
             });
 
-            expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+            expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
                 "/v1/workers/worker-1/commands",
                 undefined,
@@ -364,7 +374,7 @@ describe("WorkerManager", () => {
                     },
                 ];
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({ tasks });
+                transport.request = vi.fn().mockResolvedValue({ tasks });
 
                 const result = await workerManager.listTasks();
 
@@ -374,7 +384,7 @@ describe("WorkerManager", () => {
             });
 
             it("应该返回空数组当没有任务时", async () => {
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({ tasks: [] });
+                transport.request = vi.fn().mockResolvedValue({ tasks: [] });
 
                 const result = await workerManager.listTasks();
 
@@ -391,7 +401,7 @@ describe("WorkerManager", () => {
                     assigned_worker_id: "worker-1",
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(task);
+                transport.request = vi.fn().mockResolvedValue(task);
 
                 const result = await workerManager.assignTask({
                     task_type: "http",
@@ -400,7 +410,7 @@ describe("WorkerManager", () => {
 
                 expect(result.task_id).toBe("task-1");
                 expect(result.assigned_worker_id).toBe("worker-1");
-                expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+                expect(transport.request).toHaveBeenCalledWith(
                     Method.Post,
                     "/v1/tasks",
                     undefined,
@@ -429,7 +439,7 @@ describe("WorkerManager", () => {
                     assigned_worker_id: "worker-2",
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(task);
+                transport.request = vi.fn().mockResolvedValue(task);
 
                 await workerManager.assignTask({
                     task_type: "http",
@@ -438,7 +448,7 @@ describe("WorkerManager", () => {
                     preferred_worker_id: "worker-1",
                 });
 
-                expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+                expect(transport.request).toHaveBeenCalledWith(
                     Method.Post,
                     "/v1/tasks",
                     undefined,
@@ -462,13 +472,13 @@ describe("WorkerManager", () => {
                     assigned_worker_id: "worker-1",
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(task);
+                transport.request = vi.fn().mockResolvedValue(task);
 
                 const result = await workerManager.claimNextTask("worker-1");
 
                 expect(result.task_id).toBe("task-1");
                 expect(result.assigned_worker_id).toBe("worker-1");
-                expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+                expect(transport.request).toHaveBeenCalledWith(
                     Method.Post,
                     "/v1/tasks/claim/worker-1",
                     undefined,
@@ -508,7 +518,7 @@ describe("WorkerManager", () => {
                     ],
                 };
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(topology);
+                transport.request = vi.fn().mockResolvedValue(topology);
 
                 const result = await workerManager.getTopology();
 
@@ -541,7 +551,7 @@ describe("WorkerManager", () => {
                     },
                 ];
 
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(statistics);
+                transport.request = vi.fn().mockResolvedValue(statistics);
 
                 const result = await workerManager.getStatistics();
 
@@ -551,7 +561,7 @@ describe("WorkerManager", () => {
             });
 
             it("应该返回空数组当没有统计信息时", async () => {
-                (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue([]);
+                transport.request = vi.fn().mockResolvedValue([]);
 
                 const result = await workerManager.getStatistics();
 
@@ -566,7 +576,7 @@ describe("WorkerManager", () => {
 
     describe("错误分类测试", () => {
         it("应该对 401 响应抛出 AuthError", async () => {
-            (transport as ReturnType<typeof transport>).request = vi
+            transport.request = vi
                 .fn()
                 .mockRejectedValue(new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" }, 401, undefined));
 
@@ -574,7 +584,7 @@ describe("WorkerManager", () => {
         });
 
         it("应该对 404 响应抛出 NotFoundError", async () => {
-            (transport as ReturnType<typeof transport>).request = vi
+            transport.request = vi
                 .fn()
                 .mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND", error: "Worker not found" }, 404, undefined));
 
@@ -582,7 +592,7 @@ describe("WorkerManager", () => {
         });
 
         it("应该对其他错误码抛出 ApiError", async () => {
-            (transport as ReturnType<typeof transport>).request = vi
+            transport.request = vi
                 .fn()
                 .mockRejectedValue(new MatrixError({ errcode: "M_FORBIDDEN", error: "Forbidden" }, 403, undefined));
 
@@ -590,7 +600,7 @@ describe("WorkerManager", () => {
         });
 
         it("应该对 500 错误抛出 RetryableError", async () => {
-            (transport as ReturnType<typeof transport>).request = vi
+            transport.request = vi
                 .fn()
                 .mockRejectedValue(
                     new MatrixError({ errcode: "M_UNKNOWN", error: "Internal server error" }, 500, undefined),
@@ -600,7 +610,7 @@ describe("WorkerManager", () => {
         });
 
         it("错误消息应该包含类名", async () => {
-            (transport as ReturnType<typeof transport>).request = vi
+            transport.request = vi
                 .fn()
                 .mockRejectedValue(new MatrixError({ errcode: "M_UNKNOWN", error: "Something went wrong" }, 500, undefined));
 
@@ -608,7 +618,7 @@ describe("WorkerManager", () => {
         });
 
         it("错误消息应该包含原始错误信息", async () => {
-            (transport as ReturnType<typeof transport>).request = vi
+            transport.request = vi
                 .fn()
                 .mockRejectedValue(new MatrixError({ errcode: "M_FORBIDDEN", error: "Access denied" }, 403, undefined));
 
@@ -634,11 +644,11 @@ describe("WorkerManager", () => {
                 started_ts: 1234560000,
             };
 
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(worker);
+            transport.request = vi.fn().mockResolvedValue(worker);
 
             await workerManager.getWorker("worker-1");
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -647,11 +657,11 @@ describe("WorkerManager", () => {
         });
 
         it("listWorkers 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({ workers: [] });
+            transport.request = vi.fn().mockResolvedValue({ workers: [] });
 
             await workerManager.listWorkers();
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -660,7 +670,7 @@ describe("WorkerManager", () => {
         });
 
         it("registerWorker 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 id: 1,
                 worker_id: "worker-1",
                 worker_name: "Worker 1",
@@ -680,7 +690,7 @@ describe("WorkerManager", () => {
                 port: 8080,
             });
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -689,14 +699,14 @@ describe("WorkerManager", () => {
         });
 
         it("sendCommand 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({});
+            transport.request = vi.fn().mockResolvedValue({});
 
             await workerManager.sendCommand("worker-1", {
                 command_type: "test",
                 command_data: {},
             });
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -705,7 +715,7 @@ describe("WorkerManager", () => {
         });
 
         it("assignTask 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 task_id: "task-1",
                 task_type: "http",
                 status: "assigned",
@@ -717,7 +727,7 @@ describe("WorkerManager", () => {
                 task_data: {},
             });
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -726,7 +736,7 @@ describe("WorkerManager", () => {
         });
 
         it("claimNextTask 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 task_id: "task-1",
                 task_type: "http",
                 status: "claimed",
@@ -735,7 +745,7 @@ describe("WorkerManager", () => {
 
             await workerManager.claimNextTask("worker-1");
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -744,7 +754,7 @@ describe("WorkerManager", () => {
         });
 
         it("getTopology 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 worker_enabled: true,
                 instance_name: "master",
                 known_instances: [],
@@ -757,7 +767,7 @@ describe("WorkerManager", () => {
 
             await workerManager.getTopology();
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -766,11 +776,11 @@ describe("WorkerManager", () => {
         });
 
         it("getStatistics 不应该产生重复前缀的 URL", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue([]);
+            transport.request = vi.fn().mockResolvedValue([]);
 
             await workerManager.getStatistics();
 
-            const call = ((transport as ReturnType<typeof transport>).request as ReturnType<typeof vi.fn>).mock.calls[0];
+            const call = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0];
             const path = call[1];
             const opts = call[4];
 
@@ -808,11 +818,11 @@ describe("WorkerManager", () => {
                 started_ts: 1234560000,
             };
 
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue(mockWorker);
+            transport.request = vi.fn().mockResolvedValue(mockWorker);
 
             await workerManager.registerWorker(workerInfo);
 
-            expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+            expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
                 "/v1/register",
                 undefined,
@@ -822,7 +832,7 @@ describe("WorkerManager", () => {
         });
 
         it("sendCommand 应该传递正确的 body", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({});
+            transport.request = vi.fn().mockResolvedValue({});
 
             await workerManager.sendCommand("worker-1", {
                 command_type: "custom_command",
@@ -831,7 +841,7 @@ describe("WorkerManager", () => {
                 max_retries: 3,
             });
 
-            expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+            expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
                 "/v1/workers/worker-1/commands",
                 undefined,
@@ -846,7 +856,7 @@ describe("WorkerManager", () => {
         });
 
         it("assignTask 应该传递正确的 body", async () => {
-            (transport as ReturnType<typeof transport>).request = vi.fn().mockResolvedValue({
+            transport.request = vi.fn().mockResolvedValue({
                 task_id: "task-1",
                 task_type: "http",
                 status: "assigned",
@@ -860,7 +870,7 @@ describe("WorkerManager", () => {
                 preferred_worker_id: "worker-1",
             });
 
-            expect((transport as ReturnType<typeof transport>).request).toHaveBeenCalledWith(
+            expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
                 "/v1/tasks",
                 undefined,

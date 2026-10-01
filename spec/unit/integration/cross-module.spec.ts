@@ -154,7 +154,7 @@ describe("Integration: Cache hit/miss patterns", () => {
         });
 
         // 第一次：cache miss，调用 fetchFn
-        const result1 = await cache.getOrFetch(queryKey, fetchFn);
+        const result1 = await cache.getOrFetch<{ children: { room_id: string }[] }>(queryKey, fetchFn);
         expect(fetchFn).toHaveBeenCalledTimes(1);
         expect(result1.children).toHaveLength(1);
 
@@ -196,7 +196,7 @@ describe("Integration: Cache hit/miss patterns", () => {
         }));
 
         // 填充缓存
-        const v1 = await cache.getOrFetch(key, fetchFn);
+        const v1 = await cache.getOrFetch<{ children: string[] }>(key, fetchFn);
         expect(v1.children).toEqual(["child_v1"]);
         
         // 无效化
@@ -205,7 +205,7 @@ describe("Integration: Cache hit/miss patterns", () => {
         
         // 重新请求
         version = 2;
-        const v2 = await cache.getOrFetch(key, fetchFn);
+        const v2 = await cache.getOrFetch<{ children: string[] }>(key, fetchFn);
         expect(v2.children).toEqual(["child_v2"]);
         
         // fetchFn 被调用了 2 次
