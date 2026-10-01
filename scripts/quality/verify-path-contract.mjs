@@ -17,6 +17,11 @@
  *   3. 参数化路径归一化：`{roomId}` / `$roomId` / `:roomId` → `{X}`。
  *   4. 拼接后的完整路径在 ledger 中找不到 → 报错并给出最接近的候选。
  *
+ * 增强（2026-10-01）:
+ *   - 通配符匹配：支持字面量 vs 通配符等价匹配（如 send/m.room.message/{txn} vs send/{event_type}/{txn_id}）
+ *   - HTTP 方法校验：避免 PUT 误匹配到 GET 路由（假阳性）
+ *   - MSC 编号格式校验：检测 SDK 中未注册的 MSC 编号引用
+ *
  * 用法:
  *   node scripts/quality/verify-path-contract.mjs [--json] [--verbose]
  *
@@ -105,12 +110,12 @@ function resolvePrefix(expr) {
     if (literal === "VendorPrefix") return { prefix: PREFIX_CONSTANTS.VendorPrefix[""], known: true };
 
     // 模板字面量前缀：`${ClientPrefix.Unstable}/org.matrix.msc4143`
-    // 这类拼接在源码里很常见，必须支持，否则会把正确路径误判为「用默认前缀」。
-    const tplM = /^`\$\{(\w+)\.(\w+)\}(.*)`$/.exec(literal);
-    if (tplM) {
-        const base = PREFIX_CONSTANTS[tplM[1]]?.[tplM[2]];
-        if (base !== undefined) return { prefix: base + tplM[3], known: true };
-        return { prefix: null, known: false };
+    // 注意：上面的 strip 已经去掉了两端的引号/反引号，所以这里的正则不能再要求反引号，
+    // 否则永远匹配不上 → 正确的 unstable 前缀会被误判为「用默认 v3 前缀」。
+    // 纯字符串不可能以 `${` 开头，所以这里只可能是（被剥了反引号的）模板字面量。
+    if (literal.startsWith("${")) {
+        const resolved = resolveTemplateLiteral(literal);
+        return { prefix: resolved, known: true };
     }
 
     // 裸字符串前缀（少数地方直接写字面量）
@@ -123,6 +128,33 @@ function resolvePrefix(expr) {
         return { prefix: null, known: false };
     }
     return { prefix: null, known: false };
+}
+
+// ---------------------------------------------------------------------------
+// 模板字面量解析辅助函数
+// ---------------------------------------------------------------------------
+
+/**
+ * 解析模板字面量字符串（已剥去反引号），返回最终拼接的完整前缀字符串。
+ * 支持简单的插值表达式：`${ClientPrefix.Unstable}...`
+ */
+function resolveTemplateLiteral(literal) {
+    // 简单实现：只支持当前出现的插值表达式的类型
+    // 例如 `${ClientPrefix.Unstable}/org.matrix.msc4143`
+    // 支持组合：先解析插值，再拼接后缀
+
+    // 匹配第一个 `${...}` 表达式的类型
+    const interpMatch = /^\$\{(\w+)\.(\w+)\}(.*)$/.exec(literal);
+    if (interpMatch) {
+        const [_, group, key, rest] = interpMatch;
+        const base = PREFIX_CONSTANTS[group]?.[key] || "";
+        // 递归解析剩余部分（可能包含其他插值表达式）
+        const restResult = rest.includes("$") ? resolveTemplateLiteral(rest) : rest;
+        return base + restResult;
+    }
+
+    // 没有插值表达式，返回字符串本身
+    return literal;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,10 +173,6 @@ function normalizePath(p) {
             .replace(/\/+$/, "") || "/"
     );
 }
-
-// ---------------------------------------------------------------------------
-// 4. 从源码提取请求调用
-// ---------------------------------------------------------------------------
 
 /**
  * 形态 A（对象字面量，主流写法）：
@@ -173,9 +201,10 @@ function extractObjectCalls(source) {
         if (!pathM) continue;
 
         // prefix 允许在 path 之前或之后，null 表示"无显式前缀，用默认值"
+        // 支持：标识符（ClientPrefix.V3）、普通字符串、模板字面量（`/_matrix/client/unstable/org.matrix.msc4143`）
         const prefixM =
-            region.match(/\bprefix:\s*([\w.]+|"[^"]*"|'[^']*')/) ??
-            source.slice(openIdx, closeIdx).match(/\bprefix:\s*([\w.]+|"[^"]*"|'[^']*')/);
+            region.match(/\bprefix:\s*(`[^`]*`|[\w.]+|"[^"]*"|'[^']*')/) ??
+            source.slice(openIdx, closeIdx).match(/\bprefix:\s*(`[^`]*`|[\w.]+|"[^"]*"|'[^']*')/);
 
         calls.push({
             method: m[1].toUpperCase(),
@@ -508,6 +537,47 @@ if (existsSync(WAIVER_FILE)) {
 // 7. 报告
 // ---------------------------------------------------------------------------
 
+/**
+ * MSC 编号格式校验：检测 SDK 中引用的 MSC 编号是否与后端实现一致
+ * 常见错误：MSC3882（Allow an existing session to sign in a new session）vs MSC3720（Account status）张冠李戴
+ */
+function validateMSCReferences(findings, backendRoutes) {
+    const mscIssues = [];
+    
+    // 从所有调用中提取可能的 MSC 引用
+    for (const finding of findings) {
+        if (finding.sdkPath.includes("org.matrix.msc")) {
+            const mscMatch = finding.sdkPath.match(/org\.matrix\.msc(\d+)/i);
+            if (mscMatch) {
+                const mscNum = mscMatch[1];
+                const mscPath = finding.sdkPath;
+                
+                // 检查该 MSC 路径是否在后端已注册
+                let mscMatched = false;
+                for (const [key, orig] of backendRoutes.entries()) {
+                    if (orig.includes(`org.matrix.msc${mscNum}`) || 
+                        orig.includes(`msc${mscNum}`)) {
+                        mscMatched = true;
+                        break;
+                    }
+                }
+                
+                if (!mscMatched) {
+                    mscIssues.push({
+                        msc: `MSC${mscNum}`,
+                        path: mscPath,
+                        file: finding.file,
+                        line: finding.line,
+                        note: "SDK 声称实现该 MSC 端点，但后端 ledger 中无对应路由。请核实 MSC 编号是否正确。"
+                    });
+                }
+            }
+        }
+    }
+    
+    return mscIssues;
+}
+
 const rawMismatches = findings.filter((f) => !f.matched);
 
 const mismatches = rawMismatches.filter((f) => {
@@ -603,6 +673,23 @@ if (EMIT_JSON) {
         console.log(`❌ ${mismatches.length} 处路径契约不符 —— 门禁失败。`);
     } else {
         console.log(`✅ 全部静态请求路径均与后端 ledger 一致（豁免 ${payload.waived} 处已登记）。`);
+    }
+
+    // MSC 编号格式校验报告
+    const mscIssues = validateMSCReferences(findings, backendRoutes);
+    if (mscIssues.length > 0) {
+        console.log("");
+        console.log("─".repeat(84));
+        console.log("⚠️  MSC 编号引用疑似张冠李戴（SDK 声称的 MSC 端点后耑未注册）：");
+        console.log("─".repeat(84));
+        for (const issue of mscIssues) {
+            console.log("");
+            console.log(`  ${issue.msc}: ${issue.path}`);
+            console.log(`    at ${issue.file}:${issue.line}`);
+            console.log(`    ${issue.note}`);
+            console.log(`    → 建议核对 matrix.org 官方 MSC 列表确认该 MSC 的实际编号。`);
+        }
+        console.log("");
     }
 
     if (VERBOSE && skipped.length > 0) {

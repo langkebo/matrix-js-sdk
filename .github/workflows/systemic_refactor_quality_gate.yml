@@ -39,11 +39,17 @@ jobs:
             - name: Entrypoint contract gates
               run: pnpm quality:contracts
 
+            - name: MSC change detection (non-strict)
+              run: node scripts/quality/check-msc-changes.mjs
+
+            - name: Swallow fallback guard (strict mode)
+              run: node scripts/quality/check-swallow-fallbacks.mjs --strict-baseline
+
+            - name: P3 waiver expiry guard
+              run: node scripts/quality/check-waiver-expiry.mjs
+
             - name: Sensitive log scan (warning only)
               run: pnpm quality:log-sensitive
-
-            - name: Swallow fallback guard
-              run: pnpm quality:swallow-fallbacks
 
             - name: Unit + integration tests with coverage
               run: pnpm test --coverage

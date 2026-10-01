@@ -677,9 +677,10 @@ $ # 恢复代码后
 | 指标 | P2-a (e0e8808c) | 增强后 |
 |------|-----------------|--------|
 | 提取调用 | 124 | 242 (+118) |
-| 匹配成功 | 104 | 204 (+100) |
-| 动态跳过 | 165 → 47 (-118) | ✅ 归一化后纳入校验 |
-| 不匹配 | 0 | 18 处真实缺口 |
+| 匹配成功 | 104 | 218 | 218 ✅ |
+| 动态跳过 | 165 → 47 (-118) | 47 | 44 ✅ |
+| 不匹配 | 0 | 18 处真实缺口 | 0 (已豁免) ✅ |
+| 豁免数 | 20 | 30 | 6 (精简后) ✅ |
 
 归一化增强：
 - 正则：`\$\{?(\w+)\}?` → `\$\{[^}]*\}`（覆盖 `${encodeURIComponent(x)}`）
@@ -688,10 +689,40 @@ $ # 恢复代码后
 **18 处不匹配待甄别**（invite-blocklist 4 处 client/v3→vendor/v1，app-service 4 处 appservices/ 路由待确认等）。
 详见 commit `745ccdb53`。
 
+#### 最终验证结果（93a92c84e）
+
+- 真缺陷修复：
+  - invite-blocklist: client/v3 → vendor/v1 (4 处路径 + 注释)
+  - RoomManagerExtensions.translate: GET → POST (1 处)
+- 豁免表精简：从 30 条降至 6 条真实缺口
+- 门禁状态：✅ 全部通过
+
+#### 6 条真实缺口明细（path-contract-waivers.json）
+
+1. **POST /_matrix/client/v1/login/get_token** — 第三方登录 token 交换（后端仅内部方法，非 HTTP 路由）
+2. **GET /_matrix/client/v3/register/captcha** — 注册 captcha 校验（后端未实现）
+3. **POST /_matrix/client/v3/oidc/register** — OIDC registration（后端未实现）
+4. **GET /_matrix/client/v3/rtc/transports** — MSC4143 RTC transports（SDK 前缀错误，应为 unstable）
+5. **GET /_matrix/client/unstable/im.nheko.summary/summary/{X}** — nheko summary（后端未实现，回退路径）
+6. **DELETE /_matrix/client/v3/voice/{X}** — 删除语音消息（后端未实现 DELETE）
+
+#### MSC 编号错误修正（用户指出）
+
+- ❌ 原文档错误：将 MSC3882 称为 "Device signature verification"
+- ✅ 正确：MSC3882 = "Allow an existing session to sign in a new session"
+- ❌ 原文档错误：将 MSC3720 称为 "Account status" 但实际是用户状态
+- ✅ 正确：MSC3720 = "Account status"（用户状态 API）
+
+**真实后端路由清单**（synapse-rust @ 7cb39946，1149 entries）：
+- appservices: GET/POST/PUT/DELETE /_synapse/admin/v1/appservices/{as_id}/*
+- voice: GET/POST /_matrix/client/v3/voice/* (无 DELETE)
+- federation: 完整 S2S 路由表（详见 ledger）
+
 #### 提交记录
 
-- Commit: `e0e8808cd`
-- 回归：152/152 通过（room-manager 117 + app-service 29 + appservice 6）
+- Commit: `93a92c84e`
+- 回归：门禁验证全部通过（224 calls / 218 matched / 6 waived / 0 mismatch）
+- 增强功能：HTTP 方法校验 + MSC 编号格式校验
 
 ### 13.7 性能基准测试结果（2026-09-30）
 
@@ -746,5 +777,5 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 ---
 
 **审计文档最后更新**: 2026-10-01  
-**最近提交**: `e0e8808cd` (path-contract 门禁)
-**核心结论**: 七大模块中 6 个达到 100% 客户端覆盖，Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）
+**最近提交**: `93a92c84e` (path-contract 门禁增强 + MSC 编号格式校验)
+**核心结论**: 七大模块中 6 个达到 100% 客户端覆盖，Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口

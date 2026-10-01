@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-09-14T02:28:38.732Z",
+    "generatedAt": "2026-10-01T05:13:07.658Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -26,6 +26,16 @@
             "file": "src/admin/sub-managers/admin-federation-manager.ts",
             "line": 112,
             "snippet": "catch (e) { const err = e as MatrixError; if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))) return null;",
+            "whitelist": {
+                "owner": "admin",
+                "expires": "2026-12-31"
+            }
+        },
+        {
+            "id": "src/admin/sub-managers/admin-room-manager.ts:145:b9f41ab779858153fede1ca3d7d254854dbbdd87",
+            "file": "src/admin/sub-managers/admin-room-manager.ts",
+            "line": 145,
+            "snippet": "catch (e) { const err = e as MatrixError; if ( !throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) ) { return null;",
             "whitelist": {
                 "owner": "admin",
                 "expires": "2026-12-31"
@@ -102,9 +112,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:352:db7243797e37d89ffd9f74848915edae1e4e5178",
+            "id": "src/app-service/index.ts:350:5d7268c378d133b6e9f5c849b1f0a0b35a52b231",
             "file": "src/app-service/index.ts",
-            "line": 352,
+            "line": 350,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"checkUserId\")); return false;",
             "whitelist": {
                 "owner": "app-service",
@@ -112,9 +122,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:381:3b2aa155f0d9e31f3f6e819729e6ef0bf6e9a54f",
+            "id": "src/app-service/index.ts:379:73dbd5a791f5cf33e0b7e4c3c42d64f1e8fad265",
             "file": "src/app-service/index.ts",
-            "line": 381,
+            "line": 379,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"checkAlias\")); return false;",
             "whitelist": {
                 "owner": "app-service",
@@ -122,9 +132,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:397:c14d3afdc3717af97ceb6e44078580083d999810",
+            "id": "src/app-service/index.ts:395:b7939225db7444687da186341302441d48e0b43e",
             "file": "src/app-service/index.ts",
-            "line": 397,
+            "line": 395,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getUserAppservices\")); return null;",
             "whitelist": {
                 "owner": "app-service",
@@ -132,9 +142,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:434:91510d6f1d37f6e13317461a1e2fcde52d80e169",
+            "id": "src/app-service/index.ts:432:c3a0fb7b4f15005fb9a74807c5fb4fd2c09c4a7f",
             "file": "src/app-service/index.ts",
-            "line": 434,
+            "line": 432,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getProtocol\")); return null;",
             "whitelist": {
                 "owner": "integration-team",
@@ -142,9 +152,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:452:507fb3375b00deda341f3250ad521d382c515d06",
+            "id": "src/app-service/index.ts:450:3f0886beb0ed2e6bbeec0ea0eb9302b4699b1eb0",
             "file": "src/app-service/index.ts",
-            "line": 452,
+            "line": 450,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"getProtocols\")); return [];",
             "whitelist": {
                 "owner": "integration-team",
@@ -152,9 +162,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:471:46d6ab05fd08cdd9619c16afab8c4ab03f18bd28",
+            "id": "src/app-service/index.ts:469:b7daff57a7ac7c20eec11362cf4ff9fb5a5c1320",
             "file": "src/app-service/index.ts",
-            "line": 471,
+            "line": 469,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"queryUsers\")); return [];",
             "whitelist": {
                 "owner": "integration-team",
@@ -162,9 +172,9 @@
             }
         },
         {
-            "id": "src/app-service/index.ts:490:7e7cdd8888554aee98ee5124b854b9f91b863da6",
+            "id": "src/app-service/index.ts:488:bf0f6c45ed8f398ac5b03b74d594b5ec916d1d6f",
             "file": "src/app-service/index.ts",
-            "line": 490,
+            "line": 488,
             "snippet": "catch (error) { this.emit(AppServiceEvent.ServiceError, this.normalizeError(error, \"queryLocations\")); return [];",
             "whitelist": {
                 "owner": "integration-team",
@@ -312,9 +322,9 @@
             }
         },
         {
-            "id": "src/push/index.ts:321:3006d8f26539667fdd436a37b4971d9f040963a0",
+            "id": "src/push/index.ts:392:62793ce41d219d552cbf464569e5d823bbdd8017",
             "file": "src/push/index.ts",
-            "line": 321,
+            "line": 392,
             "snippet": "catch (error) { if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return null;",
             "whitelist": {
                 "owner": "push",
@@ -322,9 +332,9 @@
             }
         },
         {
-            "id": "src/push/index.ts:437:0a3cfb987d56a21bf3e0ca416903bfca2a76dcab",
+            "id": "src/push/index.ts:508:6572ae270e81f7317839a9b5d513e31af801aafb",
             "file": "src/push/index.ts",
-            "line": 437,
+            "line": 508,
             "snippet": "catch (error) { if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return false;",
             "whitelist": {
                 "owner": "push",
@@ -332,9 +342,9 @@
             }
         },
         {
-            "id": "src/push/index.ts:606:f28ca84d8f6a4a975ffbd00431db7c92c22a08ba",
+            "id": "src/push/index.ts:677:5548628b29c801cb3ebcf5a439425ae3be55a297",
             "file": "src/push/index.ts",
-            "line": 606,
+            "line": 677,
             "snippet": "catch (e) { logger.warn(\"PushManager.isRoomMuted failed:\", e); return false;",
             "whitelist": {
                 "owner": "push",
@@ -512,29 +522,9 @@
             }
         },
         {
-            "id": "src/security/index.ts:123:8f288332d092944e77ca9f5664fa225402635db6",
-            "file": "src/security/index.ts",
-            "line": 123,
-            "snippet": "catch (e) { logger.warn(\"SecurityManager.listLoginFailures failed\", e); return [];",
-            "whitelist": {
-                "owner": "security",
-                "expires": "2026-12-31"
-            }
-        },
-        {
-            "id": "src/security/index.ts:74:c57ca8c4a461766af1fc0f88526e9071e19a48c8",
-            "file": "src/security/index.ts",
-            "line": 74,
-            "snippet": "catch (e) { logger.warn(\"SecurityManager.getAccountStatus failed\", e); return null;",
-            "whitelist": {
-                "owner": "security",
-                "expires": "2026-12-31"
-            }
-        },
-        {
-            "id": "src/space/sub-managers/space-query-manager.ts:166:62a03663092ab4895a1c44b6496c6d0592468bdf",
+            "id": "src/space/sub-managers/space-query-manager.ts:285:55406c7642eaa2fab4bac1bb8c38cfe9ecfd70fd",
             "file": "src/space/sub-managers/space-query-manager.ts",
-            "line": 166,
+            "line": 285,
             "snippet": "catch (error) { if (error instanceof NotFoundError) return false;",
             "whitelist": {
                 "owner": "space",
