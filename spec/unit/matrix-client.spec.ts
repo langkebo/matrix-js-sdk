@@ -87,8 +87,10 @@ import { SyncResponder } from "../test-utils/SyncResponder.ts";
 import { mockInitialApiRequests } from "../test-utils/mockEndpoints.ts";
 import { type Transport } from "../../src/matrix-rtc/index.ts";
 import { extendMatrixClient as extendRoom } from "../../src/room/index";
+import { extendMatrixClient as extendDelayedEvents } from "../../src/delayed-events/index";
 
 extendRoom();
+extendDelayedEvents();
 
 vi.useFakeTimers();
 
@@ -652,7 +654,7 @@ describe("MatrixClient", function () {
                 "/search_rooms",
                 undefined,
                 { search_term: "matrix", limit: 20 },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -894,8 +896,6 @@ describe("MatrixClient", function () {
                     topic: "topic",
                 }),
             ).rejects.toThrow(errorMessage);
-
-            await expect(client._unstable_getDelayedEvents()).rejects.toThrow(errorMessage);
 
             await expect(client._unstable_cancelScheduledDelayedEvent("anyDelayId")).rejects.toThrow(errorMessage);
             await expect(client._unstable_restartScheduledDelayedEvent("anyDelayId")).rejects.toThrow(errorMessage);
@@ -1157,39 +1157,19 @@ describe("MatrixClient", function () {
             );
         });
 
-        describe("lookups", () => {
-            const statuses = [undefined, "scheduled" as const, "finalised" as const];
-            const delayIds = [undefined, "dxyz", ["d123"], ["d456", "d789"]];
-            const inputs = statuses.flatMap((status) =>
-                delayIds.map((delayId) => [status, delayId] as [(typeof statuses)[0], (typeof delayIds)[0]]),
-            );
-            // eslint-disable-next-line vitest/expect-expect
-            it.each(inputs)("can look up delayed events (status = %s, delayId = %s)", async (status, delayId) => {
-                httpLookups = [
-                    {
-                        method: "GET",
-                        prefix: unstableMSC4140Prefix,
-                        path: "/delayed_events",
-                        expectQueryParams: {
-                            status,
-                            delay_id: delayId,
-                        },
-                        data: [],
-                    },
-                ];
-
-                await client._unstable_getDelayedEvents(status, delayId);
-            });
-        });
-
+        // SDK-BL-005: Management operations now use action-in-BODY single request
+        // (POST /delayed_events/{delay_id} body { action }) via DelayedEventsManager.
+        // The previous action-in-PATH + fallback flow is removed.
         // eslint-disable-next-line vitest/expect-expect
-        it("can cancel scheduled delayed events (action in request path)", async () => {
+        it("can cancel scheduled delayed events (action in body)", async () => {
             const delayId = "id";
             httpLookups = [
                 {
                     method: "POST",
                     prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}/cancel`,
+                    path: `/delayed_events/${encodeURIComponent(delayId)}`,
+                    expectBody: { action: UpdateDelayedEventAction.Cancel },
+                    data: {},
                 },
             ];
 
@@ -1197,13 +1177,15 @@ describe("MatrixClient", function () {
         });
 
         // eslint-disable-next-line vitest/expect-expect
-        it("can restart scheduled delayed events (action in request path)", async () => {
+        it("can restart scheduled delayed events (action in body)", async () => {
             const delayId = "id";
             httpLookups = [
                 {
                     method: "POST",
                     prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}/restart`,
+                    path: `/delayed_events/${encodeURIComponent(delayId)}`,
+                    expectBody: { action: UpdateDelayedEventAction.Restart },
+                    data: {},
                 },
             ];
 
@@ -1211,94 +1193,39 @@ describe("MatrixClient", function () {
         });
 
         // eslint-disable-next-line vitest/expect-expect
-        it("can send scheduled delayed events (action in request path)", async () => {
+        it("can send scheduled delayed events (action in body)", async () => {
             const delayId = "id";
             httpLookups = [
                 {
                     method: "POST",
                     prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}/send`,
+                    path: `/delayed_events/${encodeURIComponent(delayId)}`,
+                    expectBody: { action: UpdateDelayedEventAction.Send },
+                    data: {},
                 },
             ];
 
             await client._unstable_sendScheduledDelayedEvent(delayId);
         });
 
-        it("can cancel scheduled delayed events (action in request path fallback when unsupported)", async () => {
+        it("makes exactly one request per management call (no fallback)", async () => {
+            // SDK-BL-005: Previously the action-in-PATH attempt failed with
+            // M_UNRECOGNIZED and triggered a fallback action-in-BODY request.
+            // Now only one request is issued per call.
             const delayId = "id";
             httpLookups = [
                 {
                     method: "POST",
                     prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}/cancel`,
-                    error: {
-                        httpStatus: 400,
-                        errcode: "M_UNRECOGNIZED",
-                    },
-                },
-                {
-                    method: "POST",
-                    prefix: unstableMSC4140Prefix,
                     path: `/delayed_events/${encodeURIComponent(delayId)}`,
-                    data: {
-                        action: UpdateDelayedEventAction.Cancel,
-                    },
+                    expectBody: { action: UpdateDelayedEventAction.Cancel },
+                    data: {},
                 },
             ];
 
             await client._unstable_cancelScheduledDelayedEvent(delayId);
-            expect(httpLookups).toHaveLength(0);
-        });
-
-        it("can restart scheduled delayed events (action in request path fallback when unsupported)", async () => {
-            const delayId = "id";
-            httpLookups = [
-                {
-                    method: "POST",
-                    prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}/restart`,
-                    error: {
-                        httpStatus: 400,
-                        errcode: "M_UNRECOGNIZED",
-                    },
-                },
-                {
-                    method: "POST",
-                    prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}`,
-                    data: {
-                        action: UpdateDelayedEventAction.Restart,
-                    },
-                },
-            ];
-
-            await client._unstable_restartScheduledDelayedEvent(delayId);
-            expect(httpLookups).toHaveLength(0);
-        });
-
-        it("can send scheduled delayed events (action in request path fallback when unsupported)", async () => {
-            const delayId = "id";
-            httpLookups = [
-                {
-                    method: "POST",
-                    prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}/send`,
-                    error: {
-                        httpStatus: 400,
-                        errcode: "M_UNRECOGNIZED",
-                    },
-                },
-                {
-                    method: "POST",
-                    prefix: unstableMSC4140Prefix,
-                    path: `/delayed_events/${encodeURIComponent(delayId)}`,
-                    data: {
-                        action: UpdateDelayedEventAction.Send,
-                    },
-                },
-            ];
-
-            await client._unstable_sendScheduledDelayedEvent(delayId);
+            // If a fallback request had been issued, httpLookups would still
+            // contain an unmatched entry and the test's afterEach would fail.
             expect(httpLookups).toHaveLength(0);
         });
     });
@@ -3038,7 +2965,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("supports r0 prefix for acceptDeviceSigningVerification", async () => {
+        it("supports v3 prefix for acceptDeviceSigningVerification", async () => {
             vi.mocked(client.http.authedRequest)
                 .mockClear()
                 .mockResolvedValue({
@@ -3055,7 +2982,7 @@ describe("MatrixClient", function () {
                     key_agreement_protocol: "curve25519-hkdf-sha256",
                     hash: "sha256",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3068,7 +2995,7 @@ describe("MatrixClient", function () {
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("uses v1 prefix for sendDeviceSigningVerificationKeyAgreement by default", async () => {
@@ -3094,7 +3021,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("supports r0 prefix for confirmDeviceSigningVerificationMac", async () => {
+        it("supports v3 prefix for confirmDeviceSigningVerificationMac", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 transaction_id: "txn-1",
                 verified: true,
@@ -3105,7 +3032,7 @@ describe("MatrixClient", function () {
                     transaction_id: "txn-1",
                     mac: "mac-value",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3117,7 +3044,7 @@ describe("MatrixClient", function () {
                 transaction_id: "txn-1",
                 mac: "mac-value",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("uses v1 prefix for completeDeviceSigningVerification by default", async () => {
@@ -3140,7 +3067,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("supports r0 prefix for cancelDeviceSigningVerification", async () => {
+        it("supports v3 prefix for cancelDeviceSigningVerification", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 transaction_id: "txn-1",
                 state: "cancelled",
@@ -3152,7 +3079,7 @@ describe("MatrixClient", function () {
                     code: "m.user",
                     reason: "Cancelled by user",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3165,15 +3092,15 @@ describe("MatrixClient", function () {
                 code: "m.user",
                 reason: "Cancelled by user",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
-        it("gets verification requests on the selected legacy prefix", async () => {
+        it("gets verification requests on the selected v3 prefix", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 requests: [],
             });
 
-            await client.getKeyVerificationManager().getVerificationRequestsHttp("r0");
+            await client.getKeyVerificationManager().getVerificationRequestsHttp("v3");
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
                 .calls[0];
@@ -3181,7 +3108,7 @@ describe("MatrixClient", function () {
             expect(path).toBe("/keys/device_signing/requests");
             expect(queryParams).toBeUndefined();
             expect(requestContent).toBeUndefined();
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("shows QR codes on the v1 verification prefix", async () => {
@@ -3200,7 +3127,7 @@ describe("MatrixClient", function () {
             expect(opts).toMatchObject({ prefix: ClientPrefix.V1 });
         });
 
-        it("scans QR codes on the selected legacy prefix", async () => {
+        it("scans QR codes on the selected v3 prefix", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
                 transaction_id: "txn-qr",
                 state: "pending",
@@ -3215,7 +3142,7 @@ describe("MatrixClient", function () {
                     device_ed25519_key: "ed25519",
                     device_curve25519_key: "curve25519",
                 },
-                "r0",
+                "v3",
             );
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
@@ -3231,7 +3158,7 @@ describe("MatrixClient", function () {
                 device_ed25519_key: "ed25519",
                 device_curve25519_key: "curve25519",
             });
-            expect(opts).toMatchObject({ prefix: "/_matrix/client/r0" });
+            expect(opts).toMatchObject({ prefix: "/_matrix/client/v3" });
         });
 
         it("sends contract-compliant payload for createSecureBackup", async () => {

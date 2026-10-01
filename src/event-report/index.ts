@@ -60,6 +60,17 @@ export interface ReportResponse {
     sender?: string;
 }
 
+export interface ReportHistoryResponse {
+    id: number;
+    report_id: number;
+    action: string;
+    actor_user_id?: string;
+    old_status?: string;
+    new_status?: string;
+    reason?: string;
+    created_ts: number;
+}
+
 export interface ResolveReportBody {
     resolution_reason?: string;
 }
@@ -136,6 +147,16 @@ export class EventReportManager extends BaseManager {
     /**
      * 创建举报
      * 对应 POST /_synapse/admin/v1/event_reports
+     *
+     * @example
+     * ```typescript
+     * const report = await client.getEventReportManager().createReport({
+     *     event_id: "$event:example.org",
+     *     room_id: "!room:example.org",
+     *     reason: "spam",
+     * });
+     * console.log(report.id, report.status);
+     * ```
      */
     async createReport(body: CreateReportBody): Promise<ReportResponse> {
         this.requireNonEmptyString(body.event_id, "event_id");
@@ -164,6 +185,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 列出举报
      * 对应 GET /_synapse/admin/v1/event_reports
+     *
+     * @example
+     * ```typescript
+     * const reports = await client.getEventReportManager().listReports({ limit: 20, since_id: 100 });
+     * console.log(`fetched ${reports.length} reports`);
+     * ```
      */
     async listReports(params?: QueryParams): Promise<ReportResponse[]> {
         return await this.withRetry(async () => {
@@ -179,6 +206,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 获取举报总数
      * 对应 GET /_synapse/admin/v1/event_reports/count
+     *
+     * @example
+     * ```typescript
+     * const count = await client.getEventReportManager().getReportsCount();
+     * console.log(`total reports: ${count.total_reports}`);
+     * ```
      */
     async getReportsCount(): Promise<EventReportCountResponse> {
         return await this.withRetry(async () => {
@@ -193,6 +226,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 获取举报详情
      * 对应 GET /_synapse/admin/v1/event_reports/{id}
+     *
+     * @example
+     * ```typescript
+     * const report = await client.getEventReportManager().getReport(42);
+     * console.log(report.event_id, report.status, report.score);
+     * ```
      */
     async getReport(id: number): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
@@ -208,6 +247,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 按事件查询举报
      * 对应 GET /_synapse/admin/v1/event_reports/event/{event_id}
+     *
+     * @example
+     * ```typescript
+     * const reports = await client.getEventReportManager().getReportsByEvent("$event:example.org");
+     * console.log(reports.map((r) => r.id));
+     * ```
      */
     async getReportsByEvent(eventId: string): Promise<ReportResponse[]> {
         this.requireNonEmptyString(eventId, "eventId");
@@ -223,6 +268,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 按房间查询举报
      * 对应 GET /_synapse/admin/v1/event_reports/room/{room_id}
+     *
+     * @example
+     * ```typescript
+     * const reports = await client.getEventReportManager().getReportsByRoom("!room:example.org", {
+     *     limit: 50,
+     * });
+     * console.log(reports.length);
+     * ```
      */
     async getReportsByRoom(roomId: string, params?: QueryParams): Promise<ReportResponse[]> {
         validateRoomId(roomId);
@@ -239,6 +292,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 按举报人查询举报
      * 对应 GET /_synapse/admin/v1/event_reports/reporter/{reporter_user_id}
+     *
+     * @example
+     * ```typescript
+     * const reports = await client
+     *     .getEventReportManager()
+     *     .getReportsByReporter("@alice:example.org", { limit: 10 });
+     * console.log(reports.length);
+     * ```
      */
     async getReportsByReporter(reporterUserId: string, params?: QueryParams): Promise<ReportResponse[]> {
         validateUserId(reporterUserId);
@@ -255,6 +316,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 按状态查询举报
      * 对应 GET /_synapse/admin/v1/event_reports/status/{status}
+     *
+     * @example
+     * ```typescript
+     * const openReports = await client
+     *     .getEventReportManager()
+     *     .getReportsByStatus("open", { limit: 100 });
+     * console.log(openReports.length);
+     * ```
      */
     async getReportsByStatus(status: ReportStatus, params?: QueryParams): Promise<ReportResponse[]> {
         this.requireNonEmptyString(status, "status");
@@ -271,6 +340,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 按状态获取举报计数
      * 对应 GET /_synapse/admin/v1/event_reports/status/{status}/count
+     *
+     * @example
+     * ```typescript
+     * const { status, count } = await client.getEventReportManager().getStatusCount("resolved");
+     * console.log(`${status}: ${count}`);
+     * ```
      */
     async getStatusCount(status: ReportStatus): Promise<StatusCountResponse> {
         this.requireNonEmptyString(status, "status");
@@ -286,6 +361,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 更新举报
      * 对应 PUT /_synapse/admin/v1/event_reports/{id}
+     *
+     * @example
+     * ```typescript
+     * const updated = await client
+     *     .getEventReportManager()
+     *     .updateReport(42, { status: "open", score: 5 });
+     * console.log(updated.status, updated.score);
+     * ```
      */
     async updateReport(id: number, body: UpdateReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
@@ -302,6 +385,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 解决举报
      * 对应 POST /_synapse/admin/v1/event_reports/{id}/resolve
+     *
+     * @example
+     * ```typescript
+     * const resolved = await client
+     *     .getEventReportManager()
+     *     .resolveReport(42, { resolution_reason: "confirmed spam" });
+     * console.log(resolved.status);
+     * ```
      */
     async resolveReport(id: number, body?: ResolveReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
@@ -318,6 +409,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 驳回举报
      * 对应 POST /_synapse/admin/v1/event_reports/{id}/dismiss
+     *
+     * @example
+     * ```typescript
+     * const dismissed = await client
+     *     .getEventReportManager()
+     *     .dismissReport(42, { reason: "not a violation" });
+     * console.log(dismissed.status);
+     * ```
      */
     async dismissReport(id: number, body?: DismissReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
@@ -334,6 +433,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 升级举报
      * 对应 POST /_synapse/admin/v1/event_reports/{id}/escalate
+     *
+     * @example
+     * ```typescript
+     * const escalated = await client
+     *     .getEventReportManager()
+     *     .escalateReport(42, { reason: "needs senior review" });
+     * console.log(escalated.status);
+     * ```
      */
     async escalateReport(id: number, body?: EscalateReportBody): Promise<ReportResponse> {
         this.requirePositiveInteger(id, "id");
@@ -350,6 +457,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 删除举报
      * 对应 DELETE /_synapse/admin/v1/event_reports/{id}
+     *
+     * @example
+     * ```typescript
+     * await client.getEventReportManager().deleteReport(42);
+     * console.log("report deleted");
+     * ```
      */
     async deleteReport(id: number): Promise<void> {
         this.requirePositiveInteger(id, "id");
@@ -365,11 +478,17 @@ export class EventReportManager extends BaseManager {
     /**
      * 获取举报历史
      * 对应 GET /_synapse/admin/v1/event_reports/{id}/history
+     *
+     * @example
+     * ```typescript
+     * const history = await client.getEventReportManager().getReportHistory(42);
+     * console.log(history.map((entry) => `${entry.action}: ${entry.new_status}`));
+     * ```
      */
-    async getReportHistory(id: number): Promise<ReportResponse[]> {
+    async getReportHistory(id: number): Promise<ReportHistoryResponse[]> {
         this.requirePositiveInteger(id, "id");
         return await this.withRetry(async () => {
-            return await this.request<ReportResponse[]>({
+            return await this.request<ReportHistoryResponse[]>({
                 method: Method.Get,
                 path: er(`/event_reports/${id}/history`),
                 prefix: AdminPrefix.V1,
@@ -380,6 +499,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 获取举报统计
      * 对应 GET /_synapse/admin/v1/event_reports/stats
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getEventReportManager().getStats();
+     * console.log(`open: ${stats.open}, resolved: ${stats.resolved}, total: ${stats.total}`);
+     * ```
      */
     async getStats(): Promise<StatsResponse> {
         return await this.withRetry(async () => {
@@ -394,6 +519,14 @@ export class EventReportManager extends BaseManager {
     /**
      * 查询用户频率限制状态
      * 对应 GET /_synapse/admin/v1/event_reports/rate_limit/{user_id}
+     *
+     * @example
+     * ```typescript
+     * const limit = await client.getEventReportManager().checkRateLimit("@alice:example.org");
+     * if (!limit.is_allowed) {
+     *     console.log(`blocked: ${limit.block_reason}`);
+     * }
+     * ```
      */
     async checkRateLimit(
         userId: string,
@@ -415,6 +548,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 封禁用户举报频率
      * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block
+     *
+     * @example
+     * ```typescript
+     * const blockedUntil = Date.now() + 24 * 60 * 60 * 1000;
+     * await client.getEventReportManager().blockUser("@alice:example.org", blockedUntil, "report flooding");
+     * ```
      */
     async blockUser(userId: string, blockedUntil: number, reason: string): Promise<void> {
         validateUserId(userId);
@@ -431,6 +570,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 解封用户举报频率
      * 对应 POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/unblock
+     *
+     * @example
+     * ```typescript
+     * await client.getEventReportManager().unblockUser("@alice:example.org");
+     * console.log("user unblocked");
+     * ```
      */
     async unblockUser(userId: string): Promise<void> {
         validateUserId(userId);

@@ -25,6 +25,9 @@ describe("client-lifecycle-stop", () => {
             toDeviceMessageQueue: { stop: vi.fn() },
             matrixRTC: { stop: vi.fn() },
             serverCapabilitiesService: { stop: vi.fn() },
+            // ISSUE-11a: stopClientLifecycleServices now iterates rooms to dispose
+            // NOT_SENT sweep timers and stops registered managers.
+            getRooms: vi.fn(() => []),
         };
     });
 

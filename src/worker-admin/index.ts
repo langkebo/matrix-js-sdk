@@ -264,6 +264,18 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
             wa(`/v1/select/${encodeURIComponent(taskType)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
         );
     }
+
+    // ===== Topology =====
+
+    /** GET /_synapse/worker/v1/topology */
+    async getTopology(): Promise<Record<string, unknown>> {
+        return this.doRequest(Method.Get, wa("/v1/topology"));
+    }
+
+    /** GET /_synapse/worker/v1/topology/validate */
+    async validateTopology(): Promise<{ valid: boolean; errors?: string[] }> {
+        return this.doRequest(Method.Get, wa("/v1/topology/validate"));
+    }
 }
 
 export function extendMatrixClient(): void {

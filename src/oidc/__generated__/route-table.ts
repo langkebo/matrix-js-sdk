@@ -3,23 +3,14 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        OIDC 契约
- * Source:        docs/api-contract/generated/modules/oidc.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       10 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `oidc` module. */
+/** Routes served by the synapse-rust `oidc` module (mirrored from the backend contract). */
 export const OIDC_ROUTES = [
     { method: "GET", path: "/.well-known/jwks.json" },
     { method: "GET", path: "/.well-known/openid-configuration" },
-    { method: "GET", path: "/_matrix/client/r0/login/sso/redirect" },
-    { method: "GET", path: "/_matrix/client/r0/login/sso/userinfo" },
-    { method: "GET", path: "/_matrix/client/r0/oidc/authorize" },
-    { method: "GET", path: "/_matrix/client/r0/oidc/callback" },
-    { method: "POST", path: "/_matrix/client/r0/oidc/logout" },
-    { method: "POST", path: "/_matrix/client/r0/oidc/token" },
-    { method: "GET", path: "/_matrix/client/r0/oidc/userinfo" },
     { method: "GET", path: "/_matrix/client/v3/login/sso/redirect" },
     { method: "GET", path: "/_matrix/client/v3/login/sso/userinfo" },
     { method: "GET", path: "/_matrix/client/v3/oidc/authorize" },

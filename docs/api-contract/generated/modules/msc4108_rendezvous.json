@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "4",
+  "module": "msc4108_rendezvous",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 4,
+  "entries": [
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4108/rendezvous",
+      "registered_by": "msc4108_rendezvous",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+      "registered_by": "msc4108_rendezvous",
+      "path_params": [
+        "session_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+      "registered_by": "msc4108_rendezvous",
+      "path_params": [
+        "session_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}",
+      "registered_by": "msc4108_rendezvous",
+      "path_params": [
+        "session_id"
+      ],
+      "query_params": []
+    }
+  ]
+}

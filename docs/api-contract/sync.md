@@ -1,8 +1,8 @@
 ---
 module: sync
 generated_from: docs/api-contract/generated/modules/sync.json
-generated_hash: sha256-e0097caa9057ffc10f1a70e6bbb3d9b2ff73449f15a605616c2c3ab8c651f109
-ledger_schema: 1
+generated_hash: sha256-fa9feec19436c3846cd929843b2482a55938cae937f3c9aaf4211ffc94b36c6c
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
@@ -221,13 +221,13 @@ export interface SyncState {
     events: SyncStateEvent[];
 }
 export interface SyncStateEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
     origin_server_ts: number;
     state_key: string;
-    prev_content?: Record<string, unknown>;
+    prev_content?: IContent;
     unsigned?: Record<string, unknown>;
 }
 export interface SyncTimeline {
@@ -236,7 +236,7 @@ export interface SyncTimeline {
     prev_batch: string | null;
 }
 export interface SyncTimelineEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
@@ -254,7 +254,7 @@ export interface SyncAccountData {
     events: SyncMinimalEvent[];
 }
 export interface SyncMinimalEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     room_id?: string;
     unsigned?: Record<string, unknown>;
@@ -263,7 +263,7 @@ export interface SyncInviteState {
     events: SyncStrippedState[];
 }
 export interface SyncStrippedState {
-    content: Record<string, unknown>;
+    content: IContent;
     state_key: string;
     type: string;
     sender: string;
@@ -275,7 +275,7 @@ export interface SyncToDevice {
     events: SyncToDeviceEvent[];
 }
 export interface SyncToDeviceEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     sender: string;
     type: string;
 }

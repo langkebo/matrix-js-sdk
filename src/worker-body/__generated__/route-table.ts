@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Worker Body 契约
- * Source:        docs/api-contract/generated/modules/worker_body.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       11 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `worker_body` module. */
+/** Routes served by the synapse-rust `worker-body` module (mirrored from the backend contract). */
 export const WORKER_BODY_ROUTES = [
     { method: "POST", path: "/_synapse/worker/v1/commands/{command_id}/complete" },
     { method: "POST", path: "/_synapse/worker/v1/commands/{command_id}/fail" },

@@ -14,10 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import type { IStoredClientOpts } from "../client-config-types";
 import { MatrixClient } from "../client";
 import { Room } from "../models/room";
-import { SyncApi, SyncState, type ISyncStateData, type SyncApiOptions } from "../sync";
+import { SyncApi, SyncState, type ISyncStateData } from "../sync";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";

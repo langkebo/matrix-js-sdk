@@ -21,6 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { MatrixError } from "../http-api";
 import { Method } from "../http-api/method";
 import { MediaPrefix, ClientPrefix } from "../http-api/prefix";
 import type { UploadResponse } from "../http-api/interface";
@@ -77,6 +78,53 @@ export interface MediaThumbnailUrlOptions {
     animated?: boolean;
     signature?: string; // m-30: HMAC-SHA256 signature for authenticated media URLs
     timestamp?: number; // m-30: timestamp for signature verification
+}
+
+export interface UploadProviderInfo {
+    provider: string;
+    supports_chunked_upload: boolean;
+    supports_resume: boolean;
+    max_file_size: number;
+    chunk_size: number;
+}
+
+export interface UploadTokenResponse {
+    upload_token: string;
+    storage_type: string;
+    upload_url: string;
+    filename: string;
+    content_type: string;
+    max_file_size: number;
+}
+
+export interface MediaQuotaCheckResponse {
+    limit: number;
+    used: number;
+    remaining: number;
+    rule: string;
+}
+
+export interface MediaQuotaStatsResponse {
+    user_id: string;
+    storage_bytes: number;
+    media_count: number;
+    limit_bytes: number;
+    statistics: Record<string, unknown>;
+}
+
+export interface MediaQuotaAlert {
+    alert_id: string;
+    alert_type: "quota_warning" | "quota_exceeded";
+    threshold_percent: number;
+    current_usage_bytes: number;
+    quota_limit_bytes: number;
+    message: string;
+    created_ts: number;
+    is_read: boolean;
+}
+
+export interface MediaQuotaAlertsResponse {
+    alerts: MediaQuotaAlert[];
 }
 
 export interface ChunkUploadStartRequest {
@@ -166,6 +214,42 @@ export class MediaManager extends BaseManager {
     }
 
     /**
+     * Get the upload provider configuration for the homeserver.
+     * GET /_matrix/client/v3/upload/provider
+     *
+     * Returns information about the server's media upload capabilities,
+     * including supported upload modes and size limits.
+     */
+    public getUploadProvider(): Promise<UploadProviderInfo> {
+        return this.withRetry(async () => {
+            return await this.request<UploadProviderInfo>({
+                method: Method.Get,
+                path: "/upload/provider",
+                prefix: ClientPrefix.V3,
+            });
+        }, "getUploadProvider");
+    }
+
+    /**
+     * Request an upload token from the homeserver.
+     * POST /_matrix/client/v3/upload/token
+     *
+     * @param filename - The name of the file to upload.
+     * @param contentType - The MIME type of the file.
+     * @returns Upload token and related metadata for the upload session.
+     */
+    public getUploadToken(filename: string, contentType: string): Promise<UploadTokenResponse> {
+        return this.withRetry(async () => {
+            return await this.request<UploadTokenResponse>({
+                method: Method.Post,
+                path: "/upload/token",
+                body: { filename, content_type: contentType },
+                prefix: ClientPrefix.V3,
+            });
+        }, "getUploadToken");
+    }
+
+    /**
      * 上传媒体内容
      *
      * @param file - 文件内容（File, Blob 或 ArrayBuffer）
@@ -207,7 +291,51 @@ export class MediaManager extends BaseManager {
         if (!file) {
             throw new ValidationError("File content is required");
         }
+        return this.uploadContentWithPrecheck(file, opts);
+    }
+
+    /**
+     * ISSUE-07: 上传前消费 `m.upload.size` 做客户端预检——超限直接抛
+     * M_TOO_LARGE，而不是等服务器拒绝后得到难以识别的错误。
+     * 预检失败（配置拉取异常）不阻断上传，由服务端兜底。
+     */
+    private async uploadContentWithPrecheck(
+        file: File | Blob | ArrayBuffer,
+        opts?: { name?: string; type?: string; progress?: (progress: { loaded: number; total: number }) => void },
+    ): Promise<{ content_uri: string }> {
+        const size = file instanceof ArrayBuffer ? file.byteLength : file.size;
+        if (typeof size === "number" && size > 0) {
+            const limit = await this.getCachedUploadSizeLimit();
+            if (limit !== undefined && size > limit) {
+                throw new MatrixError(
+                    {
+                        errcode: "M_TOO_LARGE",
+                        error: `File size ${size} bytes exceeds the server limit of ${limit} bytes`,
+                    },
+                    413,
+                );
+            }
+        }
         return this.client.http.uploadContent(file as Blob, opts as UploadOpts);
+    }
+
+    private uploadSizeLimitCache?: { value?: number; fetchedAt: number };
+
+    private async getCachedUploadSizeLimit(): Promise<number | undefined> {
+        const now = Date.now();
+        if (this.uploadSizeLimitCache && now - this.uploadSizeLimitCache.fetchedAt < 5 * 60 * 1000) {
+            return this.uploadSizeLimitCache.value;
+        }
+        let limit: number | undefined;
+        try {
+            const config = await this.getMediaConfig();
+            limit = config["m.upload.size"];
+        } catch {
+            // 预检配置拉取失败不阻断上传
+            limit = undefined;
+        }
+        this.uploadSizeLimitCache = { value: limit, fetchedAt: now };
+        return limit;
     }
 
     /**
@@ -377,6 +505,10 @@ export class MediaManager extends BaseManager {
             return await this.request<ChunkUploadResponse>({
                 method: Method.Post,
                 path: `/upload/chunk`,
+                // ISSUE-04: 后端从 query 读取 upload_id/chunk_index
+                // （synapse-rust src/web/routes/media/upload.rs:185-186），
+                // 此前只发 body 导致 upload_id=None、分块上传整体失效。
+                queryParams: { upload_id: uploadId, chunk_index: chunkIndex },
                 body: data,
                 prefix: MediaPrefix.V1,
             });
@@ -417,6 +549,48 @@ export class MediaManager extends BaseManager {
                 prefix: MediaPrefix.V1,
             });
         }, "getChunkUploadProgress");
+    }
+
+    /**
+     * Check media quota status
+     * GET /_matrix/media/v1/quota/check
+     */
+    public async checkMediaQuota(): Promise<MediaQuotaCheckResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MediaQuotaCheckResponse>({
+                method: Method.Get,
+                path: "/quota/check",
+                prefix: MediaPrefix.V1,
+            });
+        }, "checkMediaQuota");
+    }
+
+    /**
+     * Get media quota statistics
+     * GET /_matrix/media/v1/quota/stats
+     */
+    public async getMediaQuotaStats(): Promise<MediaQuotaStatsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MediaQuotaStatsResponse>({
+                method: Method.Get,
+                path: "/quota/stats",
+                prefix: MediaPrefix.V1,
+            });
+        }, "getMediaQuotaStats");
+    }
+
+    /**
+     * Get media quota alerts
+     * GET /_matrix/media/v1/quota/alerts
+     */
+    public async getMediaQuotaAlerts(): Promise<MediaQuotaAlertsResponse> {
+        return this.withRetry(async () => {
+            return await this.request<MediaQuotaAlertsResponse>({
+                method: Method.Get,
+                path: "/quota/alerts",
+                prefix: MediaPrefix.V1,
+            });
+        }, "getMediaQuotaAlerts");
     }
 
     public getThumbnailUrl(mxcUrl: string, options: MediaThumbnailUrlOptions = {}): string {

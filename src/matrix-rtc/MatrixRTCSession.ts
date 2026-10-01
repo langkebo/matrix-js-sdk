@@ -294,7 +294,7 @@ export class MatrixRTCSession extends TypedEventEmitter<
     public get probablyLeft(): boolean | undefined {
         return this.membershipManager?.probablyLeft;
     }
-    public get delayId(): string | undefined {
+    public get delayId(): string | number | undefined {
         return this.membershipManager?.delayId;
     }
 

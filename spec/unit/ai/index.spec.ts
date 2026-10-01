@@ -17,6 +17,7 @@ limitations under the License.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { AIModule, getAIModule, createAIModule, type AITool } from "../../../src/ai/index";
+import { logger } from "../../../src/logger";
 
 describe("AIModule", () => {
     let module: AIModule;
@@ -43,9 +44,18 @@ describe("AIModule", () => {
     });
 
     describe("setEndpoint", () => {
-        it("should set custom endpoint", () => {
-            module.setEndpoint("http://custom.endpoint:8080/mcp");
-            expect(module.getEndpoint()).toBe("http://custom.endpoint:8080/mcp");
+        it("should set a secure (https) custom endpoint", () => {
+            module.setEndpoint("https://custom.endpoint:8080/mcp");
+            expect(module.getEndpoint()).toBe("https://custom.endpoint:8080/mcp");
+        });
+
+        it("should allow localhost http endpoints (local MCP server)", () => {
+            module.setEndpoint("http://127.0.0.1:4000/mcp");
+            expect(module.getEndpoint()).toBe("http://127.0.0.1:4000/mcp");
+        });
+
+        it("should reject non-https, non-localhost endpoints (data-leak guard)", () => {
+            expect(() => module.setEndpoint("http://custom.endpoint:8080/mcp")).toThrow();
         });
     });
 
@@ -281,6 +291,16 @@ describe("AIModule", () => {
             expect(result).toBe(false);
             expect(module.isConnected).toBe(false);
         });
+
+        it("should log a warning when health check fails", async () => {
+            vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+            fetchMock.mockRejectedValueOnce(new Error("Connection failed"));
+
+            const result = await module.healthCheck();
+
+            expect(result).toBe(false);
+            expect(logger.warn).toHaveBeenCalledWith("AIModule.healthCheck failed:", expect.any(Error));
+        });
     });
 
     describe("request timeout", () => {
@@ -305,9 +325,9 @@ describe("getAIModule", () => {
 
 describe("createAIModule", () => {
     it("should create new instance with custom endpoint", () => {
-        const instance = createAIModule("http://custom:8080/mcp");
+        const instance = createAIModule("https://custom:8080/mcp");
 
-        expect(instance.getEndpoint()).toBe("http://custom:8080/mcp");
+        expect(instance.getEndpoint()).toBe("https://custom:8080/mcp");
     });
 
     it("should create instance without endpoint", () => {

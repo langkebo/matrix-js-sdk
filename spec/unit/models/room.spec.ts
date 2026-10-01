@@ -17,6 +17,7 @@ limitations under the License.
 import { type MockedObject } from "vitest";
 
 import { Direction, EventType, type MatrixClient, MatrixEvent, Room } from "../../../src";
+import { logger } from "../../../src/logger";
 
 const CREATOR_USER_ID = "@creator:example.org";
 const MODERATOR_USER_ID = "@moderator:example.org";
@@ -78,6 +79,18 @@ describe("Room", () => {
         expect(timeline[0].isRedacted()).toEqual(true); // test case
         expect(timeline[1].getId()).toEqual(redactionEvent.getId());
         expect(timeline[1].isRedacted()).toEqual(false); // "should never happen"
+    });
+
+    it("createThreadsTimelineSets logs a warning and returns null when creating timeline sets fails", async () => {
+        const mockClient = createMockClient();
+        const room = new Room("!room:example.org", mockClient, CREATOR_USER_ID);
+        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+        // @ts-ignore access to private function
+        vi.spyOn(room, "createThreadTimelineSet").mockRejectedValue(new Error("boom"));
+
+        await expect(room.createThreadsTimelineSets()).resolves.toBeNull();
+        expect(warnSpy).toHaveBeenCalledWith("Room.createThreadsTimelineSets failed:", expect.any(Error));
+        warnSpy.mockRestore();
     });
 
     describe("MSC4293: Redact on ban", () => {

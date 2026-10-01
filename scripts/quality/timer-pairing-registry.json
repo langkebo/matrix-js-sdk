@@ -1,0 +1,185 @@
+{
+    "$comment": "定时器配对登记表（阶段 3 · P3-3）。每条对应 src 下一处 setInterval 或存句柄的 setTimeout；paired=同文件有清理、owned=由 clearedIn/clearedHandle（或 clearCollection）指定处清理、waived=明确不清理（需 reason+expires）。判定逻辑与核对方式见 scripts/quality/check-timer-pairing.mjs；新增定时器必须登记，否则 pnpm lint 变红。",
+    "generatedAt": "2026-09-13T06:23:50.911Z",
+    "sites": [
+        {
+            "key": "src/ToDeviceMessageQueue.ts#stored-timeout#this.retryTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/ai/index.ts#stored-timeout#timeoutId#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/burn-after-read/index.ts#stored-timeout#timer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/client-lifecycle-start.ts#interval#client.checkTurnServersIntervalID#1",
+            "disposition": "owned",
+            "clearedIn": "src/client-lifecycle-stop.ts",
+            "clearedHandle": "client.checkTurnServersIntervalID",
+            "reason": "由 stopClientLifecycleServices 清理（client-lifecycle-stop.ts:39）"
+        },
+        {
+            "key": "src/client-lifecycle-start.ts#interval#client.clientWellKnownIntervalID#1",
+            "disposition": "owned",
+            "clearedIn": "src/client-lifecycle-stop.ts",
+            "clearedHandle": "client.clientWellKnownIntervalID",
+            "reason": "由 stopClientLifecycleServices 清理（client-lifecycle-stop.ts:43）"
+        },
+        {
+            "key": "src/embedded.ts#interval#this.clientWellKnownIntervalID#1",
+            "disposition": "owned",
+            "clearedIn": "src/client-lifecycle-stop.ts",
+            "clearedHandle": "client.clientWellKnownIntervalID",
+            "reason": "RoomWidgetClient 继承 MatrixClient 的 clientWellKnownIntervalID，由 stopClientLifecycleServices 统一清理"
+        },
+        {
+            "key": "src/matrix-rtc/EncryptionManager.ts#stored-timeout#this.makeNewKeyTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/matrix-rtc/EncryptionManager.ts#stored-timeout#this.keysEventUpdateTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/matrix-rtc/EncryptionManager.ts#stored-timeout#this.keysEventUpdateTimeout#2",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/matrix-rtc/EncryptionManager.ts#stored-timeout#useKeyTimeout#1",
+            "disposition": "owned",
+            "clearedIn": "src/matrix-rtc/EncryptionManager.ts",
+            "clearCollection": "setNewKeyTimeouts",
+            "reason": "句柄存入 setNewKeyTimeouts，由 stop() 遍历 clearTimeout（EncryptionManager.ts:180）"
+        },
+        {
+            "key": "src/matrix-rtc/MatrixRTCSession.ts#stored-timeout#this.expiryTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/models/beacon.ts#stored-timeout#this.livenessWatchTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/models/beacon.ts#stored-timeout#this.livenessWatchTimeout#2",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/models/room-sticky-events.ts#stored-timeout#this.stickyEventTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/models/room.ts#interval#this.notSentSweepTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/read-receipts/index.ts#stored-timeout#timer#1",
+            "disposition": "owned",
+            "clearedIn": "src/burn-after-read/index.ts",
+            "clearedHandle": "timer",
+            "reason": "由 read-receipts 的清理函数跨文件 clearTimeout"
+        },
+        {
+            "key": "src/realtime-callbacks.ts#stored-timeout#realCallbackKey#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/rendezvous/transports/MSC4108RendezvousSession.ts#stored-timeout#this.expiresTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/rust-crypto/DehydratedDeviceManager.ts#interval#this.intervalId#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/rust-crypto/rust-crypto.ts#stored-timeout#timeoutId#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/serverCapabilities.ts#stored-timeout#this.refreshTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/serverCapabilities.ts#stored-timeout#this.retryTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/sync.ts#stored-timeout#this.keepAliveTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/sync.ts#stored-timeout#this.keepAliveTimer#2",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/sync.ts#stored-timeout#this.keepAliveTimer#3",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/typing/index.ts#stored-timeout#timer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/utils/lru-cache.ts#interval#this.purgeTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#stored-timeout#ringingTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#stored-timeout#this.stopVideoTrackTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#stored-timeout#this.inviteTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#interval#this.callLengthInterval#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#stored-timeout#this.iceReconnectionTimeOut#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#stored-timeout#this.iceDisconnectedTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/call.ts#stored-timeout#this.candidateSendTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/callFeed.ts#stored-timeout#this.volumeLooperTimeout#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/groupCall.ts#interval#this.retryCallLoopInterval#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/groupCall.ts#interval#this.activeSpeakerLoopInterval#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/groupCall.ts#stored-timeout#this.transmitTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/groupCall.ts#stored-timeout#this.participantsExpirationTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/groupCall.ts#interval#this.resendMemberStateTimer#1",
+            "disposition": "paired"
+        },
+        {
+            "key": "src/web-rtc/stats/groupCallStats.ts#interval#this.timer#1",
+            "disposition": "paired"
+        }
+    ]
+}

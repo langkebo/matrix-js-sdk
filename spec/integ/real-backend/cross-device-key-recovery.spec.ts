@@ -74,7 +74,7 @@ describe("Cross-device key recovery real backend integration", () => {
                 deviceId: "REAL_BACKEND_SOURCE_DEVICE",
             });
 
-            await sourceClient.initRustCrypto({ useIndexedDB: false });
+            await sourceClient.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             await startClientAndSync(sourceClient);
 
             const room = await sourceClient.createRoom({
@@ -133,7 +133,7 @@ describe("Cross-device key recovery real backend integration", () => {
                 ...TestConfig.testUser,
                 deviceId: "REAL_BACKEND_RECOVERY_DEVICE",
             });
-            await recoveryClient.initRustCrypto({ useIndexedDB: false });
+            await recoveryClient.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             await startClientAndSync(recoveryClient);
             await waitForRoom(recoveryClient, encryptedRoomId);
 

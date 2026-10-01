@@ -556,6 +556,59 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     }
 
     /**
+     * Set a property on an arbitrary user's *extended* profile.
+     *
+     * Unlike {@link ProfileManager.setExtendedProfileProperty}, this method accepts an
+     * arbitrary user ID (rather than using the current user) and sends the raw value as
+     * the request body (not wrapped in `{ [key]: value }`).
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param userId The user ID to set the property for.
+     * @param key The key of the property to set.
+     * @param value The raw value to set.
+     *
+     * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
+     */
+    public async setExtendedProfilePropertyForUser(userId: string, key: string, value: unknown): Promise<void> {
+        await this.assertExtendedProfileSupport();
+        const prefix = await this.getExtendedProfileRequestPrefix();
+        const path = `/profile/${encodeURIComponent(userId)}/${encodeURIComponent(key)}`;
+        await this.withRetry(async () => {
+            await this.request<EmptyObject>({
+                method: Method.Put,
+                path,
+                body: value,
+                prefix,
+            });
+        }, "setExtendedProfilePropertyForUser");
+    }
+
+    /**
+     * Delete a property on an arbitrary user's *extended* profile.
+     *
+     * Unlike {@link ProfileManager.deleteExtendedProfileProperty}, this method accepts
+     * an arbitrary user ID (rather than using the current user).
+     *
+     * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
+     * @param userId The user ID to delete the property for.
+     * @param key The key of the property to delete.
+     *
+     * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
+     */
+    public async deleteExtendedProfilePropertyForUser(userId: string, key: string): Promise<void> {
+        await this.assertExtendedProfileSupport();
+        const prefix = await this.getExtendedProfileRequestPrefix();
+        const path = `/profile/${encodeURIComponent(userId)}/${encodeURIComponent(key)}`;
+        await this.withRetry(async () => {
+            await this.request<EmptyObject>({
+                method: Method.Delete,
+                path,
+                prefix,
+            });
+        }, "deleteExtendedProfilePropertyForUser");
+    }
+
+    /**
      * Update multiple properties on your *extended* profile. This will
      * merge with any existing keys.
      *

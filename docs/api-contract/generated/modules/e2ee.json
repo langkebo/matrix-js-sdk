@@ -1,165 +1,90 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "e2ee",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 55,
+  "entry_count": 44,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/keys/changes",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/claim",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_list/update",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/device_signing/upload",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/query",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/signatures",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/signatures/upload",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/keys/upload",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/room_keys/request",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/room_keys/request",
-      "registered_by": "e2ee",
-      "path_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/room_keys/request/{request_id}",
-      "registered_by": "e2ee",
-      "path_params": [
-        "request_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/keys/distribution",
-      "registered_by": "e2ee",
-      "path_params": [
-        "room_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}",
-      "registered_by": "e2ee",
-      "path_params": [
-        "event_type",
-        "transaction_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/sendToDevice/{event_type}/{transaction_id}",
-      "registered_by": "e2ee",
-      "path_params": [
-        "event_type",
-        "transaction_id"
-      ]
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/keys/changes",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/claim",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/device_list/update",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/device_signing/upload",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/query",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/signatures",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/signatures/upload",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/upload",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/keys/upload/{device_id}",
+      "registered_by": "e2ee",
+      "path_params": [
+        "device_id"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/room_keys/request",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/room_keys/request",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -167,7 +92,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "request_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -175,7 +101,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -184,7 +111,8 @@
       "path_params": [
         "event_type",
         "transaction_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -193,13 +121,15 @@
       "path_params": [
         "event_type",
         "transaction_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/device_trust",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -207,19 +137,22 @@
       "registered_by": "e2ee",
       "path_params": [
         "device_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/device_verification/request",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/device_verification/respond",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -227,19 +160,22 @@
       "registered_by": "e2ee",
       "path_params": [
         "token"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/keys/backup/secure",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/backup/secure",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -247,7 +183,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "backup_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -255,7 +192,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "backup_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -263,7 +201,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "backup_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -271,7 +210,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "backup_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -279,67 +219,94 @@
       "registered_by": "e2ee",
       "path_params": [
         "backup_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/keys/changes",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/claim",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/device_list/update",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/device_signing/upload",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/keys/history",
+      "registered_by": "e2ee",
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/query",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/signatures",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/signatures/upload",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/upload",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/keys/upload/{device_id}",
+      "registered_by": "e2ee",
+      "path_params": [
+        "device_id"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/room_keys/request",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/room_keys/request",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -347,7 +314,8 @@
       "registered_by": "e2ee",
       "path_params": [
         "request_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -355,13 +323,15 @@
       "registered_by": "e2ee",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/security/summary",
       "registered_by": "e2ee",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -370,7 +340,8 @@
       "path_params": [
         "event_type",
         "transaction_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -379,7 +350,8 @@
       "path_params": [
         "event_type",
         "transaction_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

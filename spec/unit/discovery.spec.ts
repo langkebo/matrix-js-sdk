@@ -19,6 +19,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { DiscoveryManager } from "../../src/discovery/index";
 import { RoomType } from "../../src/@types/event.ts";
 import { Method, ClientPrefix } from "../../src/http-api";
+import { logger } from "../../src/logger";
 
 describe("DiscoveryManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -202,6 +203,17 @@ describe("DiscoveryManager", () => {
             const result = await discoveryManager.getAliasRoomId("#invalid:example.com");
 
             expect(result).toBeNull();
+        });
+
+        it("should log a warning when alias lookup fails", async () => {
+            const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+            mockAuthedRequest.mockRejectedValue(new Error("Not found"));
+
+            const result = await discoveryManager.getAliasRoomId("#invalid:example.com");
+
+            expect(result).toBeNull();
+            expect(warnSpy).toHaveBeenCalledWith("DiscoveryManager.getAliasRoomId failed:", expect.any(Error));
+            warnSpy.mockRestore();
         });
     });
 

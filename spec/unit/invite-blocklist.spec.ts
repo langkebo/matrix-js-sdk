@@ -47,4 +47,25 @@ describe("InviteBlocklistManager", () => {
         const list = await manager.getAllowlist("!r:x");
         expect(Array.isArray(list)).toBe(true);
     });
+
+    it("getInvitePermissionConfig reads the m.invite_permission_config account data (MSC4155)", async () => {
+        const getAccountDataFromServer = vi.fn().mockResolvedValue({ default_action: "block" });
+        mockClient = { http: { authedRequest }, getAccountDataFromServer };
+        manager = new InviteBlocklistManager(mockClient);
+
+        const config = await manager.getInvitePermissionConfig();
+
+        expect(getAccountDataFromServer).toHaveBeenCalledWith("m.invite_permission_config");
+        expect(config).toEqual({ default_action: "block" });
+    });
+
+    it("setInvitePermissionConfig writes the m.invite_permission_config account data (MSC4155)", async () => {
+        const setAccountData = vi.fn().mockResolvedValue({});
+        mockClient = { http: { authedRequest }, setAccountData };
+        manager = new InviteBlocklistManager(mockClient);
+
+        await manager.setInvitePermissionConfig({ default_action: "allow" });
+
+        expect(setAccountData).toHaveBeenCalledWith("m.invite_permission_config", { default_action: "allow" });
+    });
 });

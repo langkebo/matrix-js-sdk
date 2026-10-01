@@ -509,20 +509,44 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 是否为 DM 房间
      */
+    /**
+     * 获取房间 DM 原始信息（synapse-rust 私有端点）。
+     * GET /_matrix/client/v3/rooms/{room_id}/dm
+     *
+     * 与 `isDmRoomFromServer` 区别：本方法返回后端原始 `DmRoomCheckResponse`，
+     * 供调用方自行解析（如实提取伙伴、权限等）；`isDmRoomFromServer` 仅收敛为是否为 DM 的布尔。
+     *
+     * @param roomId - 房间 ID
+     * @returns 后端原始 DM 检查响应
+     */
+    async getRoomDm(roomId: string): Promise<DmRoomCheckResponse> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+
+        return await this.withRetry(async () => {
+            return await this.request<DmRoomCheckResponse>({
+                method: Method.Get,
+                path: `/rooms/${encodeURIComponent(roomId)}/dm`,
+                prefix: ClientPrefix.V3,
+            });
+        }, "getRoomDm");
+    }
+
+    /**
+     * 检查房间是否为 DM 房间（从服务器获取）。
+     *
+     * @param roomId - 房间 ID
+     * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
+     * @returns 是否为 DM 房间
+     */
     async isDmRoomFromServer(roomId: string, throwOnError = true): Promise<boolean> {
         if (!roomId) {
             throw new InvalidParamError("Room ID is required");
         }
 
         try {
-            const response = await this.withRetry(async () => {
-                return await this.request<DmRoomCheckResponse>({
-                    method: Method.Get,
-                    path: `/rooms/${encodeURIComponent(roomId)}/dm`,
-                    prefix: ClientPrefix.V3,
-                });
-            });
-
+            const response = await this.getRoomDm(roomId);
             return response["m.direct"] ?? false;
         } catch (error: unknown) {
             if (throwOnError) {
@@ -572,6 +596,24 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
             }
             throw this.normalizeError(error, "getDmPartnerFromServer");
         }
+    }
+
+    /**
+     * 设置房间为 DM 关系（synapse-rust 私有端点）。
+     * PUT /_matrix/client/v3/direct/{room_id}
+     */
+    async setDirect(roomId: string): Promise<void> {
+        if (!roomId) {
+            throw new InvalidParamError("Room ID is required");
+        }
+
+        await this.withRetry(async () => {
+            await this.request<void>({
+                method: Method.Put,
+                path: `/direct/${encodeURIComponent(roomId)}`,
+                prefix: ClientPrefix.V3,
+            });
+        }, "setDirect");
     }
 
     /** 清空缓存（供顶层 DirectMessageManager.stop() 委托） */

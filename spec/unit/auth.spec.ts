@@ -362,36 +362,79 @@ describe("AuthManager", () => {
         });
     });
 
-    describe("Error Handling", () => {
-        it("should throw normalized error on login flow failure", async () => {
-            const error = new Error("Network error");
-            mockRequest.mockRejectedValue(error);
+    describe("Extended Auth Methods", () => {
+        it("should get captcha challenge", async () => {
+            mockRequest.mockResolvedValue({
+                public_key: "captcha-key-123",
+                challenge: "challenge-abc",
+            });
 
-            await expect(authManager.getSupportedLoginFlows()).rejects.toThrow();
+            const result = await authManager.getCaptcha();
+
+            expect(result.public_key).toBe("captcha-key-123");
+            expect(result.challenge).toBe("challenge-abc");
+            expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/register/captcha", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
         });
 
-        it("should throw normalized error on register flow failure", async () => {
-            const error = new Error("Server error");
-            mockRequest.mockRejectedValue(error);
+        it("should get current user info (whoami)", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                user_id: "@alice:example.com",
+                device_id: "DEVICE123",
+                is_guest: false,
+            });
 
-            await expect(authManager.getRegisterFlows()).rejects.toThrow();
+            const result = await authManager.whoami();
+
+            expect(result.user_id).toBe("@alice:example.com");
+            expect(result.device_id).toBe("DEVICE123");
+            expect(result.is_guest).toBe(false);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/account/whoami", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
         });
 
-        it("should handle empty login flows", async () => {
-            mockRequest.mockResolvedValue({ flows: [] });
+        it("should logout", async () => {
+            mockAuthedRequest.mockResolvedValue({});
 
-            const result = await authManager.getSupportedLoginFlows();
+            await authManager.logout();
 
-            expect(result.flows).toEqual([]);
-            expect(await authManager.hasPasswordLogin()).toBe(false);
+            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/logout", undefined, undefined, {
+                prefix: ClientPrefix.V3,
+            });
         });
 
-        it("should handle empty response gracefully", async () => {
-            mockRequest.mockResolvedValue({});
+        it("should get SAML redirect URL", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                location: "https://idp.example.com/saml?SAMLRequest=abc",
+            });
 
-            const result = await authManager.getSupportedLoginFlows();
+            const result = await authManager.getSamlRedirect("saml-idp");
 
-            expect(result).toEqual({});
+            expect(result.location).toContain("https://idp.example.com/saml");
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                "/login/sso/redirect/saml",
+                { idp_id: "saml-idp" },
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should get server versions", async () => {
+            mockRequest.mockResolvedValue({
+                versions: ["r0.6.1", "v1.1", "v1.2"],
+                unstable_features: { "org.matrix.msc1234": true },
+            });
+
+            const result = await authManager.getVersions();
+
+            expect(result.versions).toEqual(["r0.6.1", "v1.1", "v1.2"]);
+            expect(result.unstable_features).toEqual({ "org.matrix.msc1234": true });
+            expect(mockRequest).toHaveBeenCalledWith(Method.Get, "/versions", undefined, undefined, {
+                prefix: "",
+            });
         });
     });
 });

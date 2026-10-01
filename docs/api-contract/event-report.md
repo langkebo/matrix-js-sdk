@@ -1,14 +1,14 @@
 ---
 module: event_report
 generated_from: docs/api-contract/generated/modules/event_report.json
-generated_hash: sha256-8736c15d0418af7a79bc921908f19e9bcd04bb835b084f8cf6b651e370f9d646
-ledger_schema: 1
+generated_hash: sha256-e7c1b520ad757908a618cba4b485a4f5e4aba01901624cf2008aa0ab24cb3e0d
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Event Report API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/event_report.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/event_report.rs`  
 > 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v1` (Admin)

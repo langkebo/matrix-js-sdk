@@ -39,7 +39,7 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
  * 同时包含管理端的 SAML 配置和用户映射管理
  * 对接后端: synapse-rust/src/web/routes/saml.rs
  * API 路径:
- *   公共: /_matrix/client/r0/login/sso/redirect/saml, /login/saml/callback, /saml/metadata 等
+ *   公共: /_matrix/client/v3/login/sso/redirect/saml, /login/saml/callback, /saml/metadata 等
  *   管理: /_synapse/admin/v1/saml/config, /saml/mappings 等
  *
  * 使用方式:
@@ -66,7 +66,7 @@ export type {
     SamlRefreshResult,
 };
 
-type StripClient<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
+type StripClient<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 type StripAdmin<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
 
 function cp<P extends StripClient<SamlPathPattern>>(path: P): P {
@@ -88,7 +88,7 @@ export class SamlAuthManager extends BaseManager {
                 method: Method.Post,
                 path: cp("/login/sso/redirect/saml"),
                 body: { redirectUrl },
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
             return response.redirect_url;
         }, "initiateLogin");
@@ -97,7 +97,45 @@ export class SamlAuthManager extends BaseManager {
     getLoginRedirectUrl(redirectUrl: string): string {
         const baseUrl = this.client.getHomeserverUrl();
         const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
-        return `${baseUrl}/_matrix/client/r0/login/sso/redirect/saml${params}`;
+        return `${baseUrl}/_matrix/client/v3/login/sso/redirect/saml${params}`;
+    }
+
+    /**
+     * GET variant of initiateLogin.
+     * Initiates SAML SSO login via redirect (GET /_matrix/client/v3/login/sso/redirect/saml).
+     * When the browser is expected to handle the redirect directly.
+     *
+     * @param redirectUrl - Optional URL to redirect to after SSO completion
+     * @returns The redirect URL to navigate the browser to
+     */
+    async initiateLoginGet(redirectUrl?: string): Promise<SamlLoginResponse> {
+        return await this.withRetry(async () => {
+            const queryParams = redirectUrl ? { redirectUrl } : undefined;
+            return await this.request<SamlLoginResponse>({
+                method: Method.Get,
+                path: cp("/login/sso/redirect/saml"),
+                queryParams: queryParams,
+                prefix: ClientPrefix.V3,
+            });
+        }, "initiateLoginGet");
+    }
+
+    getLogoutRedirectUrl(redirectUrl?: string): string {
+        const baseUrl = this.client.getHomeserverUrl();
+        const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
+        return `${baseUrl}/_matrix/client/v3/logout/saml${params}`;
+    }
+
+    async initiateLogout(redirectUrl?: string): Promise<SamlLogoutResponse> {
+        return await this.withRetry(async () => {
+            const params = redirectUrl ? { redirectUrl } : undefined;
+            return await this.request<SamlLogoutResponse>({
+                method: Method.Get,
+                path: cp("/logout/saml"),
+                queryParams: params,
+                prefix: ClientPrefix.V3,
+            });
+        }, "initiateLogout");
     }
 
     async handleCallback(samlResponse: string, relayState?: string): Promise<SamlAuthResult> {
@@ -106,7 +144,7 @@ export class SamlAuthManager extends BaseManager {
                 method: Method.Post,
                 path: cp("/login/saml/callback"),
                 body: { SAMLResponse: samlResponse, RelayState: relayState },
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "handleCallback");
     }
@@ -123,7 +161,7 @@ export class SamlAuthManager extends BaseManager {
                 method: Method.Get,
                 path: cp("/login/saml/callback"),
                 queryParams: params,
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "getLoginCallback");
     }
@@ -141,7 +179,7 @@ export class SamlAuthManager extends BaseManager {
                 method: Method.Get,
                 path: cp("/login/sso/redirect/saml"),
                 queryParams: queryParams,
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
             return response.redirect_url;
         }, "getSsoRedirect");
@@ -154,7 +192,7 @@ export class SamlAuthManager extends BaseManager {
                 method: Method.Get,
                 path: cp("/logout/saml"),
                 queryParams: params,
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "logout");
     }
@@ -165,7 +203,7 @@ export class SamlAuthManager extends BaseManager {
                 // Dynamic: SAML callback response is opaque
                 method: Method.Get,
                 path: cp("/logout/saml/callback"),
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "handleLogoutCallback");
     }
@@ -175,7 +213,7 @@ export class SamlAuthManager extends BaseManager {
             return await this.request<SamlMetadata>({
                 method: Method.Get,
                 path: cp("/saml/metadata"),
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "getIdpMetadata");
     }
@@ -185,7 +223,7 @@ export class SamlAuthManager extends BaseManager {
             return await this.request<SamlSpMetadata>({
                 method: Method.Get,
                 path: cp("/saml/sp_metadata"),
-                prefix: ClientPrefix.R0,
+                prefix: ClientPrefix.V3,
             });
         }, "getSpMetadata");
     }

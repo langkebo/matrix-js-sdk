@@ -19,7 +19,6 @@ limitations under the License.
  */
 
 import { checkObjectHasKeys } from "../common/safety";
-import { deepCopy } from "../common/collections";
 import { encodeParams } from "./utils";
 import { type TypedEventEmitter } from "../models/typed-event-emitter";
 import { Method } from "./method";
@@ -35,6 +34,29 @@ import {
 import { anySignal, parseErrorResponse, timeoutSignal } from "./utils";
 import { type QueryDict } from "./utils";
 import { TokenRefresher, TokenRefreshOutcome } from "./refresh";
+import { gzipSync, strToU8 } from "fflate";
+
+/**
+ * S-14: Upper bound on how many times a single authenticated request may be (re)attempted
+ * after the homeserver answers `M_UNKNOWN_TOKEN`.
+ *
+ * `doAuthedRequest` recurses on {@link TokenRefreshOutcome.Success}. When the server keeps
+ * rejecting freshly-minted tokens (e.g. the refresh endpoint does not report an `expiry`, so
+ * `TokenRefresher`'s "token should still be valid" short-circuit never fires, or the server
+ * revokes tokens immediately), every iteration refreshes successfully and re-issues the
+ * request — with a `sleep()` of up to 32s in between. That produced an unbounded recursion:
+ * the request neither succeeded nor failed, leaking a pending promise and hammering the
+ * homeserver indefinitely.
+ *
+ * Capping the attempts converts that hang into a deterministically-failing
+ * {@link TokenRefreshError}, which callers (and `MatrixClient`'s retry policy) can act on.
+ *
+ * `attempt` starts at 1, so this permits the initial request plus
+ * `MAX_TOKEN_REFRESH_ATTEMPTS - 1` token refreshes. The value leaves headroom for the
+ * legitimate "token expires imminently" retry path, which needs three refreshes before the
+ * refresher concludes the token is valid and gives up on its own.
+ */
+export const MAX_TOKEN_REFRESH_ATTEMPTS = 5;
 
 export class FetchHttpApi<O extends IHttpOpts> {
     private abortController = new AbortController();
@@ -52,12 +74,6 @@ export class FetchHttpApi<O extends IHttpOpts> {
         if (opts.idBaseUrl) {
             this.validateBaseUrl(opts.idBaseUrl, "idBaseUrl");
         }
-        // Always use Authorization header for security (SEC-08) by default.
-        // Previously this was configurable; now it defaults to true to prevent token leakage via URL.
-        if (opts.useAuthorizationHeader === undefined) {
-            opts.useAuthorizationHeader = true;
-        }
-
         this.tokenRefresher = new TokenRefresher(opts);
     }
 
@@ -153,31 +169,33 @@ export class FetchHttpApi<O extends IHttpOpts> {
         body?: Body,
         paramOpts: IRequestOpts = {},
     ): Promise<T> {
-        // avoid mutating paramOpts so they can be used on retry
-        const opts = deepCopy(paramOpts);
+        // avoid mutating paramOpts so they can be used on retry.
+        // S-10: copy only the layers we actually rewrite. `deepCopy()` walked the whole
+        // opts object on every authenticated request (including high-frequency sends and
+        // uploads) even though nothing is mutated beyond `headers`. Body is passed as a
+        // separate argument, so a shallow copy plus a one-level `headers` copy is
+        // equivalent here and avoids the per-request allocation.
+        const opts: IRequestOpts = { ...paramOpts };
+        if (paramOpts.headers) {
+            opts.headers = { ...paramOpts.headers };
+        }
         // we have to manually copy the abortSignal over as it is not a plain object
         opts.abortSignal = paramOpts.abortSignal;
 
         // Take a snapshot of the current token state before we start the request so we can reference it if we error
         const requestSnapshot = await this.tokenRefresher.prepareForRequest();
         if (requestSnapshot.accessToken) {
-            // Security: Always use Authorization header for token transmission unless explicitly disabled (SEC-08).
-            const useAuthHeader = this.opts.useAuthorizationHeader !== false;
-
-            if (useAuthHeader) {
-                if (!opts.headers) {
-                    opts.headers = {};
-                }
-                if (!opts.headers.Authorization) {
-                    opts.headers.Authorization = `Bearer ${requestSnapshot.accessToken}`;
-                }
-                // Remove access_token from query params if present to prevent token leakage
-                if (queryParams.access_token) {
-                    delete queryParams.access_token;
-                }
-            } else if (!queryParams.access_token) {
-                // If not using header, ensure it's in query params
-                queryParams.access_token = requestSnapshot.accessToken;
+            // Security: Always use Authorization header for token transmission (ISSUE-09).
+            // The access_token query parameter fallback has been removed to prevent token leakage via URLs.
+            if (!opts.headers) {
+                opts.headers = {};
+            }
+            if (!opts.headers.Authorization) {
+                opts.headers.Authorization = `Bearer ${requestSnapshot.accessToken}`;
+            }
+            // Remove access_token from query params if present to prevent token leakage
+            if (queryParams.access_token) {
+                delete queryParams.access_token;
             }
         }
 
@@ -190,6 +208,25 @@ export class FetchHttpApi<O extends IHttpOpts> {
             }
 
             if (error.errcode === "M_UNKNOWN_TOKEN") {
+                // S-14: Bound the refresh/retry recursion. If the server keeps rejecting tokens we
+                // have just refreshed, refreshing again will not help — bail out instead of
+                // recursing forever (see MAX_TOKEN_REFRESH_ATTEMPTS for details).
+                if (attempt >= MAX_TOKEN_REFRESH_ATTEMPTS) {
+                    this.opts.logger?.warn(
+                        `FetchHttpApi: ${method} ${path} still rejected with M_UNKNOWN_TOKEN after ` +
+                            `${attempt} attempt(s); token refresh did not help, treating the session as logged out`,
+                    );
+                    // Surface this exactly like the `TokenRefreshOutcome.Logout` branch below:
+                    // a token the server persistently refuses is a dead session, not a transient
+                    // failure. `TokenRefreshError` would be misleading here — it is documented as
+                    // "assumed to be a temporary failure", which would have callers retry a
+                    // request that can never succeed.
+                    if (!opts?.inhibitLogoutEmit) {
+                        this.eventEmitter.emit(HttpApiEvent.SessionLoggedOut, error);
+                    }
+                    throw error;
+                }
+
                 const outcome = await this.tokenRefresher.handleUnknownToken(requestSnapshot, attempt);
                 if (outcome === TokenRefreshOutcome.Success) {
                     // if we got a new token retry the request
@@ -287,9 +324,28 @@ export class FetchHttpApi<O extends IHttpOpts> {
         // We can't use getPrototypeOf here as objects made in other contexts e.g. over postMessage won't have same ref
         let data: BodyInit;
         if (opts.json !== false && body?.constructor?.name === Object.name) {
-            data = JSON.stringify(body);
+            const jsonStr = JSON.stringify(body);
+            data = jsonStr;
             if (!headers["Content-Type"]) {
                 headers["Content-Type"] = "application/json";
+            }
+            // Optional GZIP compression for JSON request bodies.
+            // Only kicks in for plain JSON objects (not FormData/Blob/etc.) when the
+            // serialized body exceeds `gzipThresholdBytes`. The server is expected
+            // to transparently decompress gzipped request bodies.
+            if (this.opts.gzipRequests !== false && jsonStr.length > (this.opts.gzipThresholdBytes ?? 1024)) {
+                try {
+                    const compressed = gzipSync(strToU8(jsonStr), { level: 6 });
+                    data = compressed as unknown as BodyInit;
+                    headers["Content-Encoding"] = "gzip";
+                } catch (e) {
+                    // Compression failure must not break the request — fall back to uncompressed body.
+                    this.opts.logger?.warn(
+                        `FetchHttpApi: GZIP compression failed, sending uncompressed: ${(e as Error).message}`,
+                    );
+                    data = jsonStr;
+                    delete headers["Content-Encoding"];
+                }
             }
         } else {
             data = body as BodyInit;
@@ -341,7 +397,15 @@ export class FetchHttpApi<O extends IHttpOpts> {
 
         if (opts.rawResponseBody) {
             return (await res.blob()) as T;
-        } else if (jsonResponse) {
+        }
+
+        // Tolerate 204/205 No Content responses so callers don't fail on
+        // an empty body (e.g. DELETE endpoints that return no content).
+        if (res.status === 204 || res.status === 205) {
+            return undefined as T;
+        }
+
+        if (jsonResponse) {
             return await res.json();
         } else {
             return (await res.text()) as T;

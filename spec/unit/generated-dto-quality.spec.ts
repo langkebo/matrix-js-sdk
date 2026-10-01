@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 interface DtoRiskItem {
     filePath: string;
     code: string;
+    snippet: string;
 }
 
 async function loadQualityGate(): Promise<{
@@ -58,5 +59,32 @@ describe("generated dto strictness quality gate", () => {
 
         expect(readBaselineIds(baselinePath)).toEqual(["a", "b"]);
         expect(readBaselineIds(path.join(tempDir, "missing.json"))).toEqual([]);
+    });
+
+    it('does not count the string literal "unknown" as a bare `unknown` type', async () => {
+        // `trust_level: "verified" | "unverified" | "unknown"` is a narrow union; the word
+        // "unknown" inside a literal used to land in the baseline as a widening, which
+        // inflated the very number the gate is judged by (2 of 111 entries on 2026-09-13).
+        const { scanGeneratedDtoRisks } = await loadQualityGate();
+        const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-js-sdk-dto-literal-"));
+        const generatedDir = path.join(tempRoot, "src", "sample", "__generated__");
+        fs.mkdirSync(generatedDir, { recursive: true });
+        fs.writeFileSync(
+            path.join(generatedDir, "dto.ts"),
+            [
+                "export interface TrustDto {",
+                '    trust_level?: "verified" | "unverified" | "unknown";',
+                "    content: unknown;",
+                "}",
+                "",
+            ].join("\n"),
+            "utf8",
+        );
+
+        const risks = scanGeneratedDtoRisks(tempRoot);
+
+        expect(risks).toHaveLength(1);
+        expect(risks[0].code).toBe("bare-unknown");
+        expect(risks[0].snippet).toContain("content: unknown");
     });
 });

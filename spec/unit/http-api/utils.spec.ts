@@ -352,6 +352,49 @@ describe("parseErrorResponse", () => {
             ),
         ).toStrictEqual(new HTTPError("Server returned 418 error: I'm a teapot", 418, expect.any(Headers)));
     });
+
+    // ISSUE-07: 裸 413（body limit 层直接拒绝，text/plain 无 errcode）必须
+    // 兜底映射为 M_TOO_LARGE，应用层才能识别。
+    it("should map a bare text/plain 413 to M_TOO_LARGE", () => {
+        headers.set("Content-Type", "text/plain");
+        const err = parseErrorResponse(
+            {
+                url,
+                headers,
+                status: 413,
+            } as Response,
+            "length limit exceeded",
+        ) as MatrixError;
+        expect(err).toBeInstanceOf(MatrixError);
+        expect(err.errcode).toBe("M_TOO_LARGE");
+        expect(err.httpStatus).toBe(413);
+    });
+
+    it("should map a 413 without Content-Type to M_TOO_LARGE", () => {
+        const err = parseErrorResponse(
+            {
+                url,
+                headers,
+                status: 413,
+            } as Response,
+            undefined,
+        ) as MatrixError;
+        expect(err).toBeInstanceOf(MatrixError);
+        expect(err.errcode).toBe("M_TOO_LARGE");
+    });
+
+    it("should prefer a JSON errcode over the 413 fallback", () => {
+        headers.set("Content-Type", "application/json");
+        const err = parseErrorResponse(
+            {
+                url,
+                headers,
+                status: 413,
+            } as Response,
+            '{"errcode": "M_CUSTOM", "error": "custom"}',
+        ) as MatrixError;
+        expect(err.errcode).toBe("M_CUSTOM");
+    });
 });
 
 describe("retryNetworkOperation", () => {

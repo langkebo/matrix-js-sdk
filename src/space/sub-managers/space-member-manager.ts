@@ -28,31 +28,44 @@ import { SpaceEvent, type SpaceManagerEventMap } from "../events";
 import type { SpaceMember, SpaceQueryOptions } from "../types";
 import { asNumber, asString, spacePath } from "../utils";
 import type { SpaceManager } from "../index";
+import { CacheManagerFactory } from "../../managers/cache-manager";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space member state content
 
 export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> {
     private parent: SpaceManager | null = null;
+    private memberCache = CacheManagerFactory.createSpaceCache();
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
     }
 
-    // 由 SpaceManager 在构造后设置回引，便于跨 sub-manager 访问
+    /**
+     * @internal
+     */
     _setParent(parent: SpaceManager): void {
         this.parent = parent;
     }
 
     async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceMember[]> {
         try {
-            const response = await this.withRetry(async () => {
-                return await this.doRequest<JsonObject | SpaceMember[]>(
-                    Method.Get,
-                    spacePath("/spaces/$spaceId/members", spaceId),
-                    options,
-                );
-            }, "getSpaceMembers");
-            return this.extractMembers(response, spaceId);
+            // 使用 getOrFetch 自动处理缓存
+            const forceRefresh = options.forceRefresh === true;
+            const members = await this.memberCache.getOrFetch(
+                `members:${spaceId}`,
+                async () => {
+                    const response = await this.withRetry(async () => {
+                        return await this.doRequest<JsonObject | SpaceMember[]>(
+                            Method.Get,
+                            spacePath("/spaces/$spaceId/members", spaceId),
+                            options,
+                        );
+                    }, "getSpaceMembers");
+                    return this.extractMembers(response, spaceId);
+                },
+                { forceRefresh }
+            );
+            return members;
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceMembers"));
             throw error;
@@ -67,6 +80,8 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
                     ...body,
                 });
             }, "inviteToSpace");
+            // 邀请成功后清除成员缓存
+            this.memberCache.invalidate([`members:${spaceId}`]);
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "inviteToSpace"));
             throw error;
@@ -83,6 +98,8 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
                     body,
                 );
             }, "joinSpace");
+            // 加入成功后清除成员缓存
+            this.memberCache.invalidate([`members:${spaceId}`]);
             this.emit(SpaceEvent.MemberJoined, spaceId, this.client.getUserId() || "");
             return result;
         } catch (error) {
@@ -96,6 +113,8 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
             await this.withRetry(async () => {
                 await this.doRequest(Method.Post, spacePath("/spaces/$spaceId/leave", spaceId), undefined, body);
             }, "leaveSpace");
+            // 离开成功后清除成员缓存
+            this.memberCache.invalidate([`members:${spaceId}`]);
             this.parent!.query.clearCache();
             this.emit(SpaceEvent.MemberLeft, spaceId, this.client.getUserId() || "");
         } catch (error) {

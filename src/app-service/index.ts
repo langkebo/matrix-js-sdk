@@ -26,6 +26,7 @@ import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { ValidationError } from "../errors";
+import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
@@ -198,7 +199,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Post,
-                    path: "/application_services",
+                    path: "/appservices",
                     body: {
                         id: request.id,
                         url: request.url,
@@ -234,7 +235,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Get,
-                    path: `/application_services/${encodeURIComponent(asId)}`,
+                    path: `/appservices/${encodeURIComponent(asId)}`,
                     prefix: AdminPrefix.V1,
                 });
             }, "getApplicationService");
@@ -258,7 +259,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Put,
-                    path: `/application_services/${encodeURIComponent(asId)}`,
+                    path: `/appservices/${encodeURIComponent(asId)}`,
                     body: request,
                     prefix: AdminPrefix.V1,
                 });
@@ -287,7 +288,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Delete,
-                    path: `/application_services/${encodeURIComponent(asId)}`,
+                    path: `/appservices/${encodeURIComponent(asId)}`,
                     prefix: AdminPrefix.V1,
                 });
             }, "unregisterApplicationService");
@@ -304,15 +305,15 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<
-                    ApplicationServiceResponse[] | { application_services?: ApplicationServiceResponse[] }
+                    ApplicationServiceResponse[] | { services?: ApplicationServiceResponse[] }
                 >({
                     method: Method.Get,
-                    path: "/application_services",
+                    path: "/appservices",
                     prefix: AdminPrefix.V1,
                 });
             }, "listApplicationServices");
 
-            const rawList = Array.isArray(response) ? response : (response?.application_services ?? []);
+            const rawList = Array.isArray(response) ? response : (response?.services ?? []);
             const services = rawList.map((r) => this.fromResponse(r));
             services.forEach((s) => this.services.set(s.as_id, s));
 
@@ -329,7 +330,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
      * @remarks
      * 对应后端 `GET /_matrix/client/v3/appservice/user`，handler 使用 `AdminUser` 提取器，
      * 因此必须以**服务器管理员**身份调用；使用普通用户 access token 会直接 401/403。
-     * 同一逻辑也挂在 `GET /_synapse/admin/v1/application_services/query/user`，推荐管理面板走该路径。
+     * 同一逻辑也挂在 `GET /_synapse/admin/v1/appservices/query/user`，推荐管理面板走该路径。
      */
     async checkUserId(userId: string): Promise<boolean> {
         try {
@@ -406,7 +407,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Post,
-                    path: `/application_services/${encodeURIComponent(serviceId)}/ping`,
+                    path: `/appservices/${encodeURIComponent(serviceId)}/ping`,
                     prefix: AdminPrefix.V1,
                 });
             }, "pingApplicationService");
@@ -497,7 +498,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     }
 
     // ===== Extended appservice admin endpoints (R2-AS-04) =====
-    // The backend registers these under `/_synapse/admin/v1/application_services/...`
+    // The backend registers these under `/_synapse/admin/v1/appservices/...`
     // — they cover operational/introspection surfaces (state, users, namespaces,
     // events, statistics, query/user, query/alias) that were previously unreachable
     // from the SDK.
@@ -506,7 +507,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/state`,
+                path: `/appservices/${encodeURIComponent(asId)}/state`,
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceState");
@@ -516,7 +517,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         await this.withRetry(async () => {
             return await this.request({
                 method: Method.Put,
-                path: `/application_services/${encodeURIComponent(asId)}/state/${encodeURIComponent(stateKey)}`,
+                path: `/appservices/${encodeURIComponent(asId)}/state/${encodeURIComponent(stateKey)}`,
                 body: { value },
                 prefix: AdminPrefix.V1,
             });
@@ -527,7 +528,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/users`,
+                path: `/appservices/${encodeURIComponent(asId)}/users`,
                 prefix: AdminPrefix.V1,
             });
         }, "listApplicationServiceUsers");
@@ -539,7 +540,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/namespaces`,
+                path: `/appservices/${encodeURIComponent(asId)}/namespaces`,
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceNamespaces");
@@ -555,7 +556,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/events`,
+                path: `/appservices/${encodeURIComponent(asId)}/events`,
                 queryParams: q,
                 prefix: AdminPrefix.V1,
             });
@@ -568,7 +569,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/statistics`,
+                path: `/appservices/${encodeURIComponent(asId)}/statistics`,
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceStatistics");
@@ -578,7 +579,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/query/user/${encodeURIComponent(userId)}`,
+                path: `/appservices/${encodeURIComponent(asId)}/query/user/${encodeURIComponent(userId)}`,
                 prefix: AdminPrefix.V1,
             });
         }, "queryApplicationServiceUser");
@@ -588,7 +589,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/application_services/${encodeURIComponent(asId)}/query/alias/${encodeURIComponent(alias)}`,
+                path: `/appservices/${encodeURIComponent(asId)}/query/alias/${encodeURIComponent(alias)}`,
                 prefix: AdminPrefix.V1,
             });
         }, "queryApplicationServiceAlias");
@@ -617,4 +618,18 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         this.services.clear();
         this.initialized = false;
     }
+}
+
+/**
+ * 将 `getAppServiceManager` 挂到 `MatrixClient.prototype` 上，使前端可经 SDK 调用
+ * 应用服务管理端点（对应 `synapse-rust/src/web/routes/app_service.rs` 的 25 条路由）。
+ *
+ * 遵循本 fork 的 `extendMatrixClient` 约定：由 `extendMatrixClientWithManagers()`
+ * 统一动态调用（见 `src/manager-extensions/index.ts`，已登记 `includeAppService`）。
+ */
+export function extendMatrixClient(): void {
+    MatrixClient.prototype.getAppServiceManager = function (): ApplicationServiceManager {
+        registerManagerClass("app-service", ApplicationServiceManager);
+        return getOrCreateManager(this, "app-service", () => new ApplicationServiceManager(this));
+    };
 }

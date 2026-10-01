@@ -16,6 +16,13 @@ limitations under the License.
 
 // ===== Server payloads =====
 
+export interface WhoamiResponse {
+    user_id: string;
+    name?: string;
+    is_admin?: boolean;
+    role?: string;
+}
+
 export interface AdminRegisterRequest {
     username: string;
     password: string;

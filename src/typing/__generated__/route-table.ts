@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Typing Indicators
- * Source:        docs/api-contract/generated/modules/typing.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       5 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `typing` module. */
+/** Routes served by the synapse-rust `typing` module (mirrored from the backend contract). */
 export const TYPING_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/typing" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/typing" },

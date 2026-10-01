@@ -37,6 +37,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import type { EphemeralPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import { logger } from "../logger";
 
 type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
@@ -183,7 +184,9 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
             const typingEvent = events.find((e) => e.type === "m.typing");
             const content = typingEvent?.content as { user_ids?: string[] } | undefined;
             return content?.user_ids || [];
-        } catch {
+            // @swallow-error { owner: "ephemeral", expires: "2026-12-31" }
+        } catch (e) {
+            logger.warn("EphemeralManager.getTypingEvents failed:", e);
             return [];
         }
     }

@@ -49,7 +49,7 @@ describe("VerificationManager", () => {
         );
     });
 
-    it("allows callers to select generated-compatible v3 and r0 contract paths explicitly", async () => {
+    it("allows callers to select generated-compatible v3 contract paths explicitly", async () => {
         mockClient.http.authedRequest
             .mockResolvedValueOnce({ transaction_id: "txn-v3" })
             .mockResolvedValueOnce({ transaction_id: "txn-r0" });
@@ -62,7 +62,7 @@ describe("VerificationManager", () => {
             },
             "v3",
         );
-        await manager.showQrCode("r0");
+        await manager.showQrCode("v3");
 
         expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -82,7 +82,7 @@ describe("VerificationManager", () => {
             "/keys/qr_code/show",
             undefined,
             undefined,
-            expect.objectContaining({ prefix: "/_matrix/client/r0" }),
+            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
         );
     });
 

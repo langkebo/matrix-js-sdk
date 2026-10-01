@@ -4,6 +4,7 @@ import {
     discoverSupportedModules,
     renderContractAssertions,
     renderDtoFile,
+    resolveFullPath,
 } from "../../scripts/sdk-contract-codegen.mjs";
 
 describe("sdk-contract-codegen", () => {
@@ -53,9 +54,8 @@ describe("sdk-contract-codegen", () => {
                 constName: "DM_ROUTES",
                 typePrefix: "Dm",
             },
-            {
-                entry_count: 2,
-            },
+            [],
+            2,
             `
 | 状态码 | 说明 |
 | ------ | ---- |
@@ -109,5 +109,43 @@ export interface FeatureFlagsResponse {
 
         expect(output).toContain("export interface FeatureFlagsRequestDto");
         expect(output).not.toContain("export interface FeatureFlagsResponse {\n// ... truncated");
+    });
+});
+
+describe("resolveFullPath", () => {
+    const emptyLookups = { backend: new Map<string, string>(), sdk: new Map<string, string>() };
+
+    it("honours the doc's own absolute prefix instead of re-prefixing from the sdk dir", () => {
+        // 回归守卫（F-A1-04）：media 目录承载的文档条目，若原文已声明 client 前缀，不得被改写成
+        // media 前缀。历史缺陷链路：normalizeResourcePath 先把 `/_matrix/client/v3` 剥掉，
+        // resolveFullPath 只检查归一化后的 `/upload/provider`，于是按 sdkDir === "media" 拼出了
+        // 后端并不服务的 `/_matrix/media/v3/upload/provider`（该路由实际由 assembly.rs 通过
+        // `.nest("/_matrix/client/v3", media::create_upload_provider_router())` 注册）。
+        expect(
+            resolveFullPath("GET", "/upload/provider", "media", emptyLookups, "/_matrix/client/v3/upload/provider"),
+        ).toBe("/_matrix/client/v3/upload/provider");
+        expect(resolveFullPath("POST", "/upload/token", "media", emptyLookups, "/_matrix/client/v3/upload/token")).toBe(
+            "/_matrix/client/v3/upload/token",
+        );
+    });
+
+    it("still prefixes relative doc paths that carry no absolute form", () => {
+        expect(resolveFullPath("POST", "/upload", "media", emptyLookups)).toBe("/_matrix/media/v3/upload");
+        expect(resolveFullPath("GET", "/capabilities", "room", emptyLookups)).toBe("/_matrix/client/v3/capabilities");
+    });
+
+    it("prefers canonical lookup hits over the doc's raw path", () => {
+        // 归一化查找是刻意的版本纠偏机制（文档写 v3、后端实际服务 v1 时以 ledger 为准），
+        // rawPath 只在查找落空时兜底，不得抢先覆盖。
+        const backend = new Map([["GET /upload/provider", "/_matrix/client/v1/upload/provider"]]);
+        expect(
+            resolveFullPath(
+                "GET",
+                "/upload/provider",
+                "media",
+                { backend, sdk: new Map() },
+                "/_matrix/client/v3/upload/provider",
+            ),
+        ).toBe("/_matrix/client/v1/upload/provider");
     });
 });

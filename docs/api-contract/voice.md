@@ -1,8 +1,8 @@
 ---
 module: voice
 generated_from: docs/api-contract/generated/modules/voice.json
-generated_hash: sha256-753c40eacb553b2408af4c837d70f209e8845b38bddd213c87c0fe8b9827f7b8
-ledger_schema: 1
+generated_hash: sha256-7a01021477ecbfdf7aad46fc5bb9bf9768f91346e0df848c60310a9c09557986
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 

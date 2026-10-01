@@ -31,7 +31,7 @@ describe("search contract helpers", () => {
             "/search_rooms",
             undefined,
             { search_term: "matrix", limit: 20 },
-            { prefix: "/_matrix/client/v3" },
+            { prefix: "/_matrix/vendor/v1" },
         );
     });
 
@@ -45,7 +45,7 @@ describe("search contract helpers", () => {
             "/search_recipients",
             undefined,
             { search_term: "alice", limit: 10 },
-            { prefix: "/_matrix/client/v3" },
+            { prefix: "/_matrix/vendor/v1" },
         );
     });
 });
@@ -92,7 +92,7 @@ describe("SearchManager", () => {
             "/search_recipients",
             undefined,
             { search_term: "alice", limit: 10 },
-            { prefix: "/_matrix/client/v3" },
+            { prefix: "/_matrix/vendor/v1" },
         );
     });
 

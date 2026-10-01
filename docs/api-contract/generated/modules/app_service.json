@@ -1,17 +1,88 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "app_service",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 25,
+  "entry_count": 39,
   "entries": [
     {
       "method": "POST",
       "path": "/_matrix/app/v1/ping",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "HEAD",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -19,7 +90,8 @@
       "registered_by": "app_service",
       "path_params": [
         "alias"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -28,7 +100,8 @@
       "path_params": [
         "as_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -36,7 +109,8 @@
       "registered_by": "app_service",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -44,7 +118,78 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "HEAD",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PATCH",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+      "registered_by": "app_service",
+      "path_params": [
+        "as_id",
+        "*path"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -52,49 +197,57 @@
       "registered_by": "app_service",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/appservice/alias",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/appservice/user",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/appservices",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/appservices",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/appservices/query/alias",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/appservices/query/user",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/appservices/statistics",
       "registered_by": "app_service",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -102,7 +255,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -110,7 +264,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -118,7 +273,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -126,7 +282,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -134,7 +291,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -142,7 +300,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -150,7 +309,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -158,7 +318,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -166,7 +327,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -175,7 +337,8 @@
       "path_params": [
         "as_id",
         "state_key"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -183,7 +346,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -191,7 +355,8 @@
       "registered_by": "app_service",
       "path_params": [
         "as_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

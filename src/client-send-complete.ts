@@ -52,7 +52,13 @@ export function bindPendingRelationTarget(localEvent: MatrixEvent, room: Room | 
     const targetId = localEvent.getAssociatedId();
     if (!targetId?.startsWith("~")) return;
 
-    const target = room?.getPendingEvents().find((e) => e.getId() === targetId);
+    let target: MatrixEvent | undefined;
+    try {
+        target = room?.getPendingEvents().find((e) => e.getId() === targetId);
+    } catch {
+        // pendingEventOrdering != 'detached' — 无 pendingEventList，无可绑定的本地回显目标
+        return;
+    }
     target?.once(MatrixEventEvent.LocalEventIdReplaced, () => {
         localEvent.updateAssociatedId(target.getId()!);
     });

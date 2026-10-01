@@ -1,53 +1,46 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "captcha",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 7,
+  "entry_count": 5,
   "entries": [
     {
-      "method": "POST",
-      "path": "/_matrix/client/r0/register/captcha/send",
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/register/captcha/clean",
       "registered_by": "captcha",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/register/captcha/status",
-      "registered_by": "captcha",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/register/captcha/verify",
-      "registered_by": "captcha",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/register/captcha/send",
       "registered_by": "captcha",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/register/captcha/status",
       "registered_by": "captcha",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/register/captcha/verify",
       "registered_by": "captcha",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/captcha/cleanup",
       "registered_by": "captcha",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     }
   ]
 }

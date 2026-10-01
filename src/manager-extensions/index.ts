@@ -91,8 +91,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body" },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml" },
     { option: "includeCas", module: "cas" },
@@ -118,6 +116,9 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeServerTime", module: "server-time" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
+    { option: "includeReactions", module: "reactions" },
+    { option: "includeBeacon", module: "beacon" },
+    { option: "includeAppService", module: "app-service" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -169,8 +170,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeVerification: true,
     includeE2EE: true,
     includeWorkerBody: true,
-    includeAiConnection: true,
-    includeOpenClaw: true,
     includeVoice: true,
     includeSamlAuth: true,
     includeCas: true,
@@ -196,6 +195,9 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeServerTime: true,
     includeBackgroundUpdate: true,
     includeUserDirectory: true,
+    includeReactions: true,
+    includeBeacon: true,
+    includeAppService: true,
 };
 
 let isInitialized = false;
@@ -358,10 +360,6 @@ export async function extendMatrixClientWithManagers(
                 promises.push(safeDynamicImport(import("../room-list/index.js").then((m) => m?.extendMatrixClient())));
             }
 
-            if (currentOptions.includeRoom || all) {
-                promises.push(safeDynamicImport(import("../room-alias/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
             if (currentOptions.includeSecurity || all) {
                 promises.push(safeDynamicImport(import("../security/index.js").then((m) => m?.extendMatrixClient())));
             }
@@ -504,16 +502,6 @@ export async function extendMatrixClientWithManagers(
                 promises.push(safeDynamicImport(import("../e2ee/index.js").then((m) => m?.extendMatrixClient())));
             }
 
-            if (currentOptions.includeAiConnection || all) {
-                promises.push(
-                    safeDynamicImport(import("../ai-connection/index.js").then((m) => m?.extendMatrixClient())),
-                );
-            }
-
-            if (currentOptions.includeOpenClaw || all) {
-                promises.push(safeDynamicImport(import("../open-claw/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
             if (currentOptions.includeVoice || all) {
                 promises.push(safeDynamicImport(import("../voice/index.js").then((m) => m?.extendMatrixClient())));
             }
@@ -631,6 +619,20 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeUserDirectory || all) {
                 promises.push(
                     safeDynamicImport(import("../user-directory/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeReactions || all) {
+                promises.push(safeDynamicImport(import("../reactions/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeBeacon || all) {
+                promises.push(safeDynamicImport(import("../beacon/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeAppService || all) {
+                promises.push(
+                    safeDynamicImport(import("../app-service/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 

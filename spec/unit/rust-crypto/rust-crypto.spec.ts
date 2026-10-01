@@ -179,6 +179,7 @@ describe("initRustCrypto", () => {
             storePrefix: null,
             storeKey: new Uint8Array(),
             storePassphrase: "storePassphrase",
+            allowInMemoryStore: true,
         });
 
         expect(StoreHandle.open).toHaveBeenCalledWith(null, null, logger);
@@ -2754,6 +2755,7 @@ async function makeTestRustCrypto(
         cryptoCallbacks,
         storePrefix: null,
         storePassphrase: undefined,
+        allowInMemoryStore: true,
     });
 }
 

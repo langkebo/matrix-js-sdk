@@ -15,3 +15,5 @@ limitations under the License.
 */
 
 export * from "./matrix";
+export * from "./error-codes";
+export * from "./hula-client";

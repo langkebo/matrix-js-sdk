@@ -14,7 +14,7 @@ import { PresenceManager } from "../../src/presence/index";
 import { RoomSummaryManager } from "../../src/room-summary/index";
 import { SpaceManager } from "../../src/space/index";
 import { ThreadingManager } from "../../src/threading/index";
-import { AdminPrefix, ClientPrefix, MediaPrefix, Method } from "../../src/http-api";
+import { AdminPrefix, ClientPrefix, MediaPrefix, Method, VendorPrefix } from "../../src/http-api";
 
 describe("API encapsulation audit", () => {
     const auditScriptPath = fileURLToPath(new URL("../../scripts/api-contract-audit.cjs", import.meta.url));
@@ -160,7 +160,7 @@ describe("API encapsulation audit", () => {
         );
     });
 
-    it("uses the v3 friends list contract and v1 friend request contract", async () => {
+    it("uses the vendor prefix for friends list and v1 friend request contract", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ friends: [], room_id: "!friends:test" });
         const manager = new FriendManager({
             http: { authedRequest },
@@ -171,8 +171,10 @@ describe("API encapsulation audit", () => {
         await manager.getFriends();
         await manager.sendFriendRequest("@bob:test", "hello");
 
+        // FriendManager 是 fork 私有扩展（非上游 matrix-js-sdk），by-design
+        // 走 /_matrix/vendor/v1 而不是 /_matrix/client/v3。
         expect(authedRequest).toHaveBeenNthCalledWith(1, Method.Get, "/friends", undefined, undefined, {
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
         expect(authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -180,7 +182,7 @@ describe("API encapsulation audit", () => {
             "/friends/request",
             undefined,
             { user_id: "@bob:test", message: "hello" },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
     });
 

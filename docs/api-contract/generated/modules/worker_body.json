@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "worker_body",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 11,
   "entries": [
@@ -13,7 +13,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "command_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -21,13 +22,15 @@
       "registered_by": "worker_body",
       "path_params": [
         "command_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/events",
       "registered_by": "worker_body",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -35,7 +38,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -44,7 +48,8 @@
       "path_params": [
         "worker_id",
         "stream_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -52,7 +57,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "task_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -60,7 +66,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "task_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -68,7 +75,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -76,7 +84,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -84,7 +93,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -92,7 +102,8 @@
       "registered_by": "worker_body",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

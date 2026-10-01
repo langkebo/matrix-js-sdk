@@ -54,13 +54,18 @@ export interface UpdateDehydratedDeviceResponse {
     device_id: string;
 }
 
+export interface DeviceStatusResponse {
+    exists: boolean;
+}
+
 export class DehydratedDeviceManager extends BaseManager {
     public constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
     }
 
     public async isSupported(): Promise<boolean> {
-        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.DehydratedDevice, true);
+        // 后端未实 DehydratedDevice：探测失败时绝不能误判支持（FT-S13）
+        return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.DehydratedDevice, false);
     }
 
     public async createDevice(data: CreateDehydratedDeviceRequest): Promise<CreateDehydratedDeviceResponse> {
@@ -70,7 +75,7 @@ export class DehydratedDeviceManager extends BaseManager {
 
         return await this.withRetry(async () => {
             return await this.request<CreateDehydratedDeviceResponse>({
-                method: Method.Post,
+                method: Method.Put,
                 path: "/dehydrated_device",
                 body: data,
                 prefix: MSC3814_PREFIX,
@@ -84,7 +89,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<DeviceInfo>({
                 method: Method.Get,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}`,
+                path: "/dehydrated_device",
                 prefix: MSC3814_PREFIX,
             });
         }, "getDevice");
@@ -100,6 +105,16 @@ export class DehydratedDeviceManager extends BaseManager {
         }, "getDevices");
     }
 
+    public async getDeviceStatus(): Promise<DeviceStatusResponse> {
+        return await this.withRetry(async () => {
+            return await this.request<DeviceStatusResponse>({
+                method: Method.Get,
+                path: "/dehydrated_device/status",
+                prefix: MSC3814_PREFIX,
+            });
+        }, "getDeviceStatus");
+    }
+
     public async claimDevice(
         deviceId: string,
         data: ClaimDehydratedDeviceRequest,
@@ -112,7 +127,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<ClaimDehydratedDeviceResponse>({
                 method: Method.Post,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/claim`,
+                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/events`,
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
@@ -131,7 +146,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<UpdateDehydratedDeviceResponse>({
                 method: Method.Put,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}`,
+                path: "/dehydrated_device",
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
@@ -144,7 +159,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<Record<string, never>>({
                 method: Method.Delete,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}`,
+                path: "/dehydrated_device",
                 prefix: MSC3814_PREFIX,
             });
         }, "deleteDevice");

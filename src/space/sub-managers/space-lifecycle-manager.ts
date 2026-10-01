@@ -30,17 +30,21 @@ import { SpaceEvent, type SpaceManagerEventMap } from "../events";
 import type { CreateSpaceOptions, UpdateSpaceOptions, Space } from "../types";
 import { normalizeSpace, sp, spacePath } from "../utils";
 import type { SpaceManager } from "../index";
+import { CacheManagerFactory } from "../../managers/cache-manager";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space response content
 
 export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> {
     private parent: SpaceManager | null = null;
+    private lifecycleCache = CacheManagerFactory.createSpaceCache();
 
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
     }
 
-    // 由 SpaceManager 在构造后设置回引，便于跨 sub-manager 访问
+    /**
+     * @internal
+     */
     _setParent(parent: SpaceManager): void {
         this.parent = parent;
     }
@@ -106,6 +110,8 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
                 return await this.doRequest<JsonObject>(Method.Post, sp("/spaces"), undefined, options);
             }, "createSpace");
             this.parent!.query.clearCache();
+            // 清除生命周期缓存
+            this.lifecycleCache.invalidate(["space:*"]);
             const space = normalizeSpace(response);
             this.emit(SpaceEvent.SpaceCreated, space);
             return space;
@@ -139,14 +145,20 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
      */
     async getSpace(spaceId: string): Promise<Space> {
         validateRoomId(spaceId);
-        const cached = this.parent!.query.getCachedSpace(spaceId);
-        if (cached) return cached;
-
+        
         try {
-            const response = await this.withRetry(async () => {
-                return await this.doRequest<JsonObject>(Method.Get, spacePath("/spaces/$spaceId", spaceId));
-            }, "getSpace");
-            const space = normalizeSpace(response, spaceId);
+            // 使用 getOrFetch 自动处理缓存
+            const space = await this.lifecycleCache.getOrFetch(
+                `space:${spaceId}`,
+                async () => {
+                    const response = await this.withRetry(async () => {
+                        return await this.doRequest<JsonObject>(Method.Get, spacePath("/spaces/$spaceId", spaceId));
+                    }, "getSpace");
+                    return normalizeSpace(response, spaceId);
+                }
+            );
+            
+            // 同时更新 query 缓存以保持一致性
             this.parent!.query.setCachedSpace(spaceId, space);
             return space;
         } catch (error) {
@@ -166,6 +178,8 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
                 );
             }, "updateSpace");
             this.parent!.query.clearCache();
+            // 清除生命周期缓存并重新获取
+            this.lifecycleCache.invalidate([`space:${spaceId}`, "space:*"]);
             let space: Space;
             if (Object.keys(response ?? {}).length === 0) {
                 space = await this.getSpace(spaceId);
@@ -186,6 +200,8 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
                 await this.doRequest(Method.Delete, spacePath("/spaces/$spaceId", spaceId));
             }, "deleteSpace");
             this.parent!.query.clearCache();
+            // 清除生命周期缓存
+            this.lifecycleCache.invalidate([`space:${spaceId}`, "space:*"]);
             this.emit(SpaceEvent.SpaceDeleted, spaceId);
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "deleteSpace"));

@@ -118,7 +118,33 @@ export function parseErrorResponse(response: XMLHttpRequest | Response, body?: s
         );
     }
     if (contentType?.type === "text/plain") {
+        // ISSUE-07: 裸 413（body limit 层/反向代理直接拒绝，无 JSON errcode）
+        // 兜底映射为 M_TOO_LARGE，应用层才能识别并引导用户。
+        if (response.status === 413) {
+            return new MatrixError(
+                {
+                    errcode: "M_TOO_LARGE",
+                    error: body?.trim()
+                        ? `Upload too large: ${body}`
+                        : "Uploaded content exceeds the maximum allowed size",
+                },
+                response.status,
+                isXhr(response) ? response.responseURL : response.url,
+                undefined,
+                httpHeaders,
+            );
+        }
         return new HTTPError(`Server returned ${response.status} error: ${body}`, response.status, httpHeaders);
+    }
+    if (response.status === 413) {
+        // ISSUE-07: 无 Content-Type/空 body 的 413 同样兜底
+        return new MatrixError(
+            { errcode: "M_TOO_LARGE", error: "Uploaded content exceeds the maximum allowed size" },
+            response.status,
+            isXhr(response) ? response.responseURL : response.url,
+            undefined,
+            httpHeaders,
+        );
     }
     return new HTTPError(`Server returned ${response.status} error`, response.status, httpHeaders);
 }

@@ -40,7 +40,7 @@ describe("DehydratedDeviceManager", () => {
             const result = await manager.createDevice(data);
 
             expect(result.device_id).toBe("dev123");
-            transport.expectCalledWith(Method.Post, "/dehydrated_device");
+            transport.expectCalledWith(Method.Put, "/dehydrated_device");
         });
 
         it("should throw if device_data is missing", async () => {
@@ -66,7 +66,7 @@ describe("DehydratedDeviceManager", () => {
             const result = await manager.getDevice("dev123");
 
             expect(result.device_id).toBe("dev123");
-            transport.expectCalledWith(Method.Get, "/dehydrated_device/dev123");
+            transport.expectCalledWith(Method.Get, "/dehydrated_device");
         });
 
         it("should throw if deviceId is empty", async () => {
@@ -94,7 +94,7 @@ describe("DehydratedDeviceManager", () => {
             const result = await manager.claimDevice("dev123", validData);
 
             expect(result).toEqual({ success: true });
-            transport.expectCalledWith(Method.Post, "/dehydrated_device/dev123/claim");
+            transport.expectCalledWith(Method.Post, "/dehydrated_device/dev123/events");
         });
 
         it("should throw if deviceId is empty", async () => {
@@ -122,7 +122,7 @@ describe("DehydratedDeviceManager", () => {
             const result = await manager.updateDeviceData("dev123", data);
 
             expect(result.device_id).toBe("dev123");
-            transport.expectCalledWith(Method.Put, "/dehydrated_device/dev123");
+            transport.expectCalledWith(Method.Put, "/dehydrated_device");
         });
 
         it("should throw if deviceId is empty", async () => {
@@ -138,7 +138,7 @@ describe("DehydratedDeviceManager", () => {
 
             await manager.deleteDevice("dev123");
 
-            transport.expectCalledWith(Method.Delete, "/dehydrated_device/dev123");
+            transport.expectCalledWith(Method.Delete, "/dehydrated_device");
         });
 
         it("should throw if deviceId is empty", async () => {

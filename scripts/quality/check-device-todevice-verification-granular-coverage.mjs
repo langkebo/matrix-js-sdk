@@ -39,12 +39,7 @@ const CHECKS = [
                 methods: ["sendToDevice", "sendBatchToDevice", "sendEncryptedToDevice"],
                 testFiles: ["spec/unit/to-device.spec.ts"],
             },
-            {
-                name: "MatrixClient to-device compatibility surface",
-                ownerFile: "src/client.ts",
-                methods: ["sendToDevice", "queueToDevice"],
-                testFiles: ["spec/unit/embedded.spec.ts", "spec/unit/queueToDevice.spec.ts"],
-            },
+            // sendToDevice/queueToDevice 已迁 ToDeviceManager（前端经 getToDeviceManager 调用），client 入口有意移除
         ],
     },
     {
@@ -68,22 +63,7 @@ const CHECKS = [
                 ],
                 testFiles: ["spec/unit/key-verification.spec.ts"],
             },
-            {
-                name: "MatrixClient verification HTTP surface",
-                ownerFile: "src/client.ts",
-                methods: [
-                    "startDeviceSigningVerification",
-                    "acceptDeviceSigningVerification",
-                    "sendDeviceSigningVerificationKeyAgreement",
-                    "confirmDeviceSigningVerificationMac",
-                    "completeDeviceSigningVerification",
-                    "cancelDeviceSigningVerification",
-                    "getVerificationRequests",
-                    "showQrCode",
-                    "scanQrCode",
-                ],
-                testFiles: ["spec/unit/matrix-client.spec.ts"],
-            },
+            // 验证 HTTP 面 9 方法已迁 KeyVerificationManager（前端经 getKeyVerificationManager 调用），client 入口有意移除
         ],
     },
 ];

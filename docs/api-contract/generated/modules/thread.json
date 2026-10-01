@@ -1,12 +1,28 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "thread",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 21,
+  "entry_count": 23,
   "entries": [
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed",
+      "registered_by": "thread",
+      "path_params": [],
+      "query_params": []
+    },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact",
@@ -14,7 +30,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -22,7 +39,8 @@
       "registered_by": "thread",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -30,7 +48,8 @@
       "registered_by": "thread",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -38,7 +57,8 @@
       "registered_by": "thread",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -46,7 +66,8 @@
       "registered_by": "thread",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -55,7 +76,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -64,7 +86,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -73,7 +96,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -82,7 +106,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -91,7 +116,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -100,7 +126,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -109,7 +136,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -118,7 +146,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -127,7 +156,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -136,7 +166,8 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -145,31 +176,36 @@
       "path_params": [
         "room_id",
         "thread_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/threads",
       "registered_by": "thread",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/threads",
       "registered_by": "thread",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/threads/subscribed",
       "registered_by": "thread",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/threads/unread",
       "registered_by": "thread",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -178,7 +214,8 @@
       "path_params": [
         "user_id",
         "room_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

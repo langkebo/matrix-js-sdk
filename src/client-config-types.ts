@@ -31,6 +31,7 @@ export interface ICreateClientOpts {
     tokenRefreshFunction?: TokenRefreshFunction;
     identityServer?: IIdentityServerProvider;
     localTimeoutMs?: number;
+    /** @deprecated Token is always sent via Authorization header (ISSUE-09). This option is ignored. */
     useAuthorizationHeader?: boolean;
     timelineSupport?: boolean;
     queryParams?: QueryDict;
@@ -73,6 +74,13 @@ export interface IStartClientOpts {
     clientWellKnownPollPeriod?: number;
     threadSupport?: boolean;
     slidingSync?: SlidingSync;
+    /**
+     * NOT_SENT pending events older than this threshold (in milliseconds) are
+     * automatically transitioned to CANCELLED via the existing cleanup path.
+     * Default: 86_400_000 (24h). Set to 0 to disable.
+     * ISSUE-11b.
+     */
+    pendingEventNotSentTimeoutMs?: number;
 }
 
 export interface IStoredClientOpts extends IStartClientOpts {}

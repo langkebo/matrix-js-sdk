@@ -120,6 +120,15 @@ export async function migrateFromLegacyCrypto(args: {
     }
     onProgress(0);
 
+    // ISSUE-08: "DEFAULT_KEY" 兜底已删除。走到这里说明确实需要迁移，
+    // 缺失 pickleKey 时必须显式失败——否则 TextEncoder.encode(undefined)
+    // 会静默退化成字符串 "undefined" 当密钥用。
+    if (args.legacyPickleKey === undefined) {
+        throw new Error(
+            "legacyPickleKey is required to migrate a legacy crypto store " +
+                '(the insecure "DEFAULT_KEY" fallback was removed, ISSUE-08).',
+        );
+    }
     const pickleKey = new TextEncoder().encode(args.legacyPickleKey).slice();
 
     if (migrationState === MigrationState.NOT_STARTED) {

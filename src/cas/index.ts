@@ -20,6 +20,21 @@ limitations under the License.
  * 提供 CAS SSO 认证功能，包括服务管理、用户属性管理、
  * CAS 协议验证（serviceValidate/proxyValidate/p3/serviceValidate）、代理票据获取、登录登出等
  * 对应后端: synapse-rust/src/web/routes/cas.rs
+ *
+ * ⚠️ 后端路由挂载差异（2026-09-29 发现，待后端修复）:
+ * 本 SDK 假设 CAS public 端点挂载在 /_synapse/cas 下，但后端 `cas_routes()`
+ * 实际以 root-level 方式注册（无 nest 前缀），导致以下端点后端实际路径与
+ * SDK 期望不一致：
+ * - SDK 期望: /_synapse/cas/login, /_synapse/cas/serviceValidate ...
+ * - 后端实际: /login, /serviceValidate ... （根级路径）
+ *
+ * 其中 `/_matrix/client/v3/login/sso/redirect/cas` 与
+ * `/_synapse/admin/v1/cas/*` 管理端点不受影响（两者均为完整路径注册）。
+ *
+ * 详见后端 issue 文档：
+ * synapse-rust/docs/audit/CAS_ROUTER_PREFIX_MISSING_2026-09-29.md
+ *
+ * 后端修复（加 nest("/_synapse/cas") 后）本文件无需改动，即可直接联调。
  */
 
 import { MatrixClient } from "../client";
@@ -111,24 +126,65 @@ export class CasManager extends BaseManager {
         return CAS_API_PREFIX[prefix];
     }
 
-    private resolveServicePath(prefix: CasApiPrefix, adminPath: string, casPath: string): string {
-        return prefix === "synapse_admin" ? adminPath : casPath;
+    /**
+     * 解析 API 路径
+     * 根据前缀类型返回正确的路径片段（不包含前缀本身）
+     * 
+     * 后端路由契约（ROUTE_CONTRACT.md）:
+     * - synapse_admin: /_synapse/admin/v1/cas/services
+     * - cas: /_synapse/cas/services
+     * 
+     * @param prefix 前缀类型
+     * @param basePath 基础路径（如 /services, /users/{id}/attributes）
+     */
+    private resolvePath(prefix: CasApiPrefix, basePath: string): string {
+        if (prefix === "synapse_admin") {
+            // /_synapse/admin/v1 + /cas/services → /cas/services
+            return `/cas${basePath}`;
+        } else {
+            // /_synapse/cas + /services → /services
+            return basePath;
+        }
     }
 
+    /**
+     * 获取 CAS 服务列表
+     * 对应 GET /_synapse/admin/v1/cas/services (admin 前缀) 或 GET /_synapse/cas/services (cas 前缀)
+     *
+     * @example
+     * ```typescript
+     * const services = await client.getCasManager().listServices("synapse_admin");
+     * console.log(services.services.length, 'services found');
+     * ```
+     */
     public async listServices(prefix: CasApiPrefix = "synapse_admin"): Promise<CasServiceListResponse> {
         const prefixValue = this.resolvePrefix(prefix);
-        const path = this.resolveServicePath(prefix, ap("/cas/services"), "/admin/services");
+        // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
+        const path = this.resolvePath(prefix, "/services");
         return await this.withRetry(async () => {
             return await this.request<CasServiceListResponse>({ method: Method.Get, path: path, prefix: prefixValue });
         }, "listServices");
     }
 
+/**
+     * 创建 CAS 服务
+     * 对应 POST /_synapse/admin/v1/cas/services (admin 前缀) 或 POST /_synapse/cas/services (cas 前缀)
+     *
+     * @example
+     * ```typescript
+     * const service = await client.getCasManager().createService({
+     *     name: "my-service", service_url: "https://example.com"
+     * });
+     * console.log(service.id);
+     * ```
+     */
     public async createService(
         data: CasServiceCreateRequest,
         prefix: CasApiPrefix = "synapse_admin",
     ): Promise<CasServiceCreateResponse> {
         const prefixValue = this.resolvePrefix(prefix);
-        const path = this.resolveServicePath(prefix, ap("/cas/services"), "/admin/services");
+        // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
+        const path = this.resolvePath(prefix, "/services");
         return await this.withRetry(async () => {
             return await this.request<CasServiceCreateResponse>({
                 method: Method.Post,
@@ -139,17 +195,18 @@ export class CasManager extends BaseManager {
         }, "createService");
     }
 
+/**
+     * 删除 CAS 服务
+     * 对应 DELETE /_synapse/admin/v1/cas/services/{id} (admin 前缀) 或 DELETE /_synapse/cas/services/{id} (cas 前缀)
+     */
     public async deleteService(
         serviceId: string,
         prefix: CasApiPrefix = "synapse_admin",
     ): Promise<CasServiceDeleteResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const prefixValue = this.resolvePrefix(prefix);
-        const path = this.resolveServicePath(
-            prefix,
-            ap(`/cas/services/${encodeURIComponent(serviceId)}`) as StripAdminV1<CasPathPattern>,
-            `/admin/services/${encodeURIComponent(serviceId)}`,
-        );
+        // synapse_admin → /_synapse/admin/v1/cas/services/{id}, cas → /_synapse/cas/services/{id}
+        const path = this.resolvePath(prefix, `/services/${encodeURIComponent(serviceId)}`);
         return await this.withRetry(async () => {
             return await this.request<CasServiceDeleteResponse>({
                 method: Method.Delete,
@@ -159,17 +216,18 @@ export class CasManager extends BaseManager {
         }, "deleteService");
     }
 
+/**
+     * 获取用户属性
+     * 对应 GET /_synapse/admin/v1/cas/users/{id}/attributes (admin 前缀) 或 GET /_synapse/cas/users/{id}/attributes (cas 前缀)
+     */
     public async getUserAttributes(
         userId: string,
         prefix: CasApiPrefix = "synapse_admin",
     ): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
         const prefixValue = this.resolvePrefix(prefix);
-        const path = this.resolveServicePath(
-            prefix,
-            ap(`/cas/users/${encodeURIComponent(userId)}/attributes`) as StripAdminV1<CasPathPattern>,
-            `/admin/users/${encodeURIComponent(userId)}/attributes`,
-        );
+        // synapse_admin → /_synapse/admin/v1/cas/users/{id}/attributes, cas → /_synapse/cas/users/{id}/attributes
+        const path = this.resolvePath(prefix, `/users/${encodeURIComponent(userId)}/attributes`);
         return await this.withRetry(async () => {
             return await this.request<CasUserAttributesResponse>({
                 method: Method.Get,
@@ -179,6 +237,10 @@ export class CasManager extends BaseManager {
         }, "getUserAttributes");
     }
 
+/**
+     * 设置用户属性
+     * 对应 POST /_synapse/admin/v1/cas/users/{id}/attributes (admin 前缀) 或 POST /_synapse/cas/users/{id}/attributes (cas 前缀)
+     */
     public async setUserAttributes(
         userId: string,
         data: CasUserAttributes,
@@ -186,11 +248,8 @@ export class CasManager extends BaseManager {
     ): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
         const prefixValue = this.resolvePrefix(prefix);
-        const path = this.resolveServicePath(
-            prefix,
-            ap(`/cas/users/${encodeURIComponent(userId)}/attributes`) as StripAdminV1<CasPathPattern>,
-            `/admin/users/${encodeURIComponent(userId)}/attributes`,
-        );
+        // synapse_admin → /_synapse/admin/v1/cas/users/{id}/attributes, cas → /_synapse/cas/users/{id}/attributes
+        const path = this.resolvePath(prefix, `/users/${encodeURIComponent(userId)}/attributes`);
         return await this.withRetry(async () => {
             return await this.request<CasUserAttributesResponse>({
                 method: Method.Post,

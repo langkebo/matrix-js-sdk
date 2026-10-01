@@ -303,11 +303,23 @@ export class CacheRegistry {
         }
     }
 
+    /**
+     * Start the periodic sweep that purges expired entries from every registered cache.
+     *
+     * Idempotent. Note that `LRUCache.get()` / `has()` already expire entries lazily, so
+     * this sweep only reclaims the slots held by entries that are never read again — it is
+     * a memory-hygiene measure, not a correctness requirement.
+     *
+     * The interval is `unref()`-ed where the runtime supports it (Node) so a client that
+     * never calls `stopClient()` does not keep the process alive; browsers/ webviews have
+     * no `unref` and are long-lived by nature, so the optional call is a no-op there.
+     */
     startPurgeTimer(): void {
         if (this.purgeTimer) return;
         this.purgeTimer = setInterval(() => {
             this.purgeAllExpired();
         }, this.purgeIntervalMs);
+        (this.purgeTimer as unknown as { unref?: () => void }).unref?.();
     }
 
     stopPurgeTimer(): void {

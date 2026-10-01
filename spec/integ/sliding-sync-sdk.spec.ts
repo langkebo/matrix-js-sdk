@@ -132,7 +132,7 @@ describe("SlidingSyncSdk", () => {
         mockSlidingSync = mockifySlidingSync(new SlidingSync("", new Map(), {}, client, 0));
         if (testOpts.withCrypto) {
             httpBackend!.when("GET", "/room_keys/version").respond(404, {});
-            await client!.initRustCrypto({ useIndexedDB: false });
+            await client!.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
             syncCryptoCallback = client!.getCrypto() as unknown as SyncCryptoCallbacks;
             syncOpts.cryptoCallbacks = syncCryptoCallback;
         }
@@ -1110,6 +1110,45 @@ describe("SlidingSyncSdk", () => {
             const eventId = "$something";
             ext.onResponse(generateReceiptResponse(alice, roomId, eventId, "m.read", 1234567));
             // we expect it not to crash
+        });
+    });
+
+    describe("presence", () => {
+        beforeAll(async () => {
+            await setupClient();
+        });
+        afterAll(teardownClient);
+
+        it("registers a presence extension", () => {
+            const ext = findExtension("presence");
+            expect(ext.name()).toEqual("presence");
+        });
+
+        it("emits User.presence on presence extension response", async () => {
+            const ext = findExtension("presence");
+
+            const presenceEvent = {
+                type: "m.presence",
+                sender: "@bob:localhost",
+                content: {
+                    user_id: "@bob:localhost",
+                    presence: "online",
+                    status_msg: null,
+                    last_active_ago: null,
+                },
+            };
+
+            const received: string[] = [];
+            const listener = (_event: unknown, user: { userId: string }) => {
+                received.push(user.userId);
+            };
+            client!.on("User.presence", listener as never);
+
+            await ext.onResponse({ events: [presenceEvent] });
+
+            expect(received).toContain("@bob:localhost");
+
+            client!.off("User.presence", listener as never);
         });
     });
 });

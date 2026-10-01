@@ -37,11 +37,9 @@ describe("ServerCapabilitiesManager", () => {
         const capabilities: Capabilities = {
             "io.hula.sliding_sync": { enabled: true },
             "io.hula.widget": { enabled: true },
-            "io.hula.burn_after_read": true,
+            "io.hula.burn_after_read": { enabled: true },
             "io.hula.friends": { enabled: false },
             "m.voice": { enabled: true },
-            openclaw: { enabled: true },
-            ai_connection: { enabled: true },
         };
 
         expect(
@@ -64,8 +62,6 @@ describe("ServerCapabilitiesManager", () => {
             burnAfterRead: true,
             friends: true,
             voice: true,
-            openClaw: true,
-            aiConnection: true,
         });
     });
 
@@ -141,8 +137,6 @@ describe("ServerCapabilitiesManager", () => {
                     [SynapseRustFeature.BurnAfterRead]: false,
                     [SynapseRustFeature.Friends]: false,
                     [SynapseRustFeature.Voice]: false,
-                    [SynapseRustFeature.OpenClaw]: false,
-                    [SynapseRustFeature.AIConnection]: false,
                 },
             }),
             http: {
@@ -150,8 +144,6 @@ describe("ServerCapabilitiesManager", () => {
                     capabilities: {
                         "io.hula.burn_after_read": { enabled: true },
                         "io.hula.voice_extended": { enabled: true },
-                        openclaw: { enabled: true },
-                        ai_connection: { enabled: true },
                     },
                 }),
             },
@@ -167,8 +159,6 @@ describe("ServerCapabilitiesManager", () => {
             burnAfterRead: true,
             friends: false,
             voice: true,
-            openClaw: true,
-            aiConnection: true,
         });
     });
 });

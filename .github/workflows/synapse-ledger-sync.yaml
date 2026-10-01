@@ -196,7 +196,13 @@ jobs:
                   import os
                   from pathlib import Path
 
-                  profiles = ["default", "worker", "openclaw", "all"]
+                  # Keep in lockstep with PROFILES in scripts/contract-sync.mjs and with
+                  # the `for profile in default worker all` loop in
+                  # synapse-rust/.github/workflows/ledger-export.yml. A retired profile
+                  # left in this list makes this step report a phantom change on every run,
+                  # because its route-manifest.<profile>.json never exists.
+                  # spec/unit/ledger-sync-workflow-contract.spec.ts guards this list.
+                  profiles = ["default", "worker", "all"]
                   current_root = Path(os.environ["GITHUB_WORKSPACE"]) / "docs" / "api-contract" / "generated"
                   incoming_root = Path(os.environ["LEDGER_SOURCE_DIR"])
 

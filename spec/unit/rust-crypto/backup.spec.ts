@@ -161,4 +161,12 @@ describe("Upload keys to backup", () => {
         vi.spyOn(rustBackupManager as any, "requestKeyBackupVersion").mockRejectedValueOnce(new Error("Boom"));
         await expect(rustBackupManager.handleBackupSecretReceived("secret", false)).resolves.toBe(false);
     });
+
+    it("getActiveBackupVersion logs a warning and returns null when isBackupEnabled throws", async () => {
+        const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+        mockOlmMachine.isBackupEnabled.mockRejectedValueOnce(new Error("boom"));
+
+        await expect(rustBackupManager.getActiveBackupVersion()).resolves.toBeNull();
+        expect(warnSpy).toHaveBeenCalledWith("RustBackupManager.getActiveBackupVersion failed:", expect.any(Error));
+    });
 });

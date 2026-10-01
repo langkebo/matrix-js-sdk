@@ -20,8 +20,6 @@ import { AccountDataManager } from "../../src/account-data";
 import { ACCOUNT_DATA_ROUTES } from "../../src/account-data/__generated__/route-table";
 import { AuthManager } from "../../src/auth";
 import { AUTH_ROUTES } from "../../src/auth/__generated__/route-table";
-import { AIConnectionManager } from "../../src/ai-connection";
-import { AI_CONNECTION_ROUTES } from "../../src/ai-connection/__generated__/route-table";
 import { BurnAfterReadManager } from "../../src/burn-after-read";
 import { BURN_AFTER_READ_ROUTES } from "../../src/burn-after-read/__generated__/route-table";
 import { CaptchaManager } from "../../src/captcha";
@@ -42,8 +40,6 @@ import { MEDIA_ROUTES } from "../../src/media/__generated__/route-table";
 import { NotificationsManager } from "../../src/notifications";
 import { OidcManager } from "../../src/oidc/manager";
 import { OIDC_ROUTES } from "../../src/oidc/__generated__/route-table";
-import { OpenClawManager } from "../../src/open-claw";
-import { OPENCLAW_ROUTES } from "../../src/open-claw/__generated__/route-table";
 import { PresenceManager } from "../../src/presence";
 import { PRESENCE_ROUTES } from "../../src/presence/__generated__/route-table";
 import { PushManager } from "../../src/push";
@@ -288,45 +284,6 @@ describe("runtime manager route-table contract", () => {
         expect(method).toBe(Method.Post);
         const runtimePath = fullRuntimePath(path, options);
         expect(hasRouteTableMatch(E2EE_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps OpenClawManager connection calls on the generated openclaw route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue([]);
-        const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof OpenClawManager>[0];
-        const manager = new OpenClawManager(client);
-
-        await manager.listConnections();
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(OPENCLAW_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
-    });
-
-    it("keeps AIConnectionManager discovery-selected calls on the generated ai-connection route-table", async () => {
-        const authedRequest = vi.fn().mockResolvedValue([]);
-        const client = {
-            doesServerAdvertiseSynapseRustFeature: vi.fn().mockResolvedValue(true),
-            http: { authedRequest },
-        } as unknown as ConstructorParameters<typeof AIConnectionManager>[0];
-        const manager = new AIConnectionManager(client);
-
-        await manager.listConnections();
-
-        const [method, path, , , options] = authedRequest.mock.calls[0] as [
-            string,
-            string,
-            unknown,
-            unknown,
-            RequestOptions,
-        ];
-        const runtimePath = fullRuntimePath(path, options);
-        expect(hasRouteTableMatch(AI_CONNECTION_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
     it("keeps MediaManager preview calls on the generated media route-table", async () => {
@@ -645,7 +602,7 @@ describe("runtime manager route-table contract", () => {
         expect(hasRouteTableMatch(ROOM_SUMMARY_ROUTES, method, runtimePath), `${method} ${runtimePath}`).toBe(true);
     });
 
-    it("keeps CaptchaManager explicit r0 calls on the generated captcha route-table", async () => {
+    it("keeps CaptchaManager explicit v3 calls on the generated captcha route-table", async () => {
         const request = vi.fn().mockResolvedValue({
             captcha_id: "captcha-1",
             expires_in: 300,
@@ -654,7 +611,7 @@ describe("runtime manager route-table contract", () => {
         const client = { http: { request } } as unknown as ConstructorParameters<typeof CaptchaManager>[0];
         const manager = new CaptchaManager(client);
 
-        await manager.sendCaptcha("email", "alice@example.org", undefined, "r0");
+        await manager.sendCaptcha("email", "alice@example.org", undefined, "v3");
 
         const [method, path, , , options] = request.mock.calls[0] as [string, string, unknown, unknown, RequestOptions];
         const runtimePath = fullRuntimePath(path, options);

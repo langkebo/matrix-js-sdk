@@ -1,9 +1,9 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "worker",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 15,
   "entries": [
@@ -11,7 +11,8 @@
       "method": "POST",
       "path": "/_synapse/worker/v1/register",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -19,31 +20,36 @@
       "registered_by": "worker",
       "path_params": [
         "task_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/statistics",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/statistics/types",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/tasks",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/worker/v1/tasks",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -51,7 +57,8 @@
       "registered_by": "worker",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -60,25 +67,29 @@
       "path_params": [
         "task_id",
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/topology",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/topology/validate",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/worker/v1/workers",
       "registered_by": "worker",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -86,7 +97,8 @@
       "registered_by": "worker",
       "path_params": [
         "worker_type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -94,7 +106,8 @@
       "registered_by": "worker",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -102,7 +115,8 @@
       "registered_by": "worker",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -110,7 +124,8 @@
       "registered_by": "worker",
       "path_params": [
         "worker_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

@@ -3,7 +3,8 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { ModerationManager, type ScannerInfo } from "../../src/moderation/index";
 import { Method } from "../../src/http-api/method";
-import { MatrixError } from "../../src/http-api/errors";
+import { MatrixError, HTTPError } from "../../src/http-api/errors";
+import { ValidationError } from "../../src/errors";
 
 describe("ModerationManager", () => {
     let transport: FakeTransport;
@@ -112,6 +113,69 @@ describe("ModerationManager", () => {
             createManager({ maxRetries: 0 });
             transport.rejectWith(new MatrixError({ errcode: "M_NOT_FOUND", error: "not found" }, 404, undefined));
             await expect(manager.getScannerInfo(roomId, eventId)).rejects.toThrow();
+        });
+    });
+
+    describe("FT-110: parameter non-empty validation", () => {
+        it("reportEvent throws ValidationError for empty roomId", async () => {
+            await expect(manager.reportEvent("", eventId, {})).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("reportEvent throws ValidationError for empty eventId", async () => {
+            await expect(manager.reportEvent(roomId, "", {})).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("reportRoom throws ValidationError for empty roomId", async () => {
+            await expect(manager.reportRoom("", {})).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("updateReportScore throws ValidationError for empty roomId", async () => {
+            await expect(manager.updateReportScore("", eventId, 0)).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("updateReportScore throws ValidationError for empty eventId", async () => {
+            await expect(manager.updateReportScore(roomId, "", 0)).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("reportUser throws ValidationError for empty userId", async () => {
+            await expect(manager.reportUser("", {})).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("getScannerInfo throws ValidationError for empty roomId", async () => {
+            await expect(manager.getScannerInfo("", eventId)).rejects.toBeInstanceOf(ValidationError);
+        });
+
+        it("getScannerInfo throws ValidationError for empty eventId", async () => {
+            await expect(manager.getScannerInfo(roomId, "")).rejects.toBeInstanceOf(ValidationError);
+        });
+    });
+
+    describe("FT-111: non-idempotent POST does not retry on 500", () => {
+        it("reportEvent does not retry on 500 (non-idempotent POST)", async () => {
+            createManager({ maxRetries: 3 });
+            transport.rejectWith(new HTTPError("Internal Server Error", 500));
+
+            await expect(manager.reportEvent(roomId, eventId, {})).rejects.toThrow();
+
+            expect(transport.request).toHaveBeenCalledTimes(1);
+        });
+
+        it("reportRoom does not retry on 500 (non-idempotent POST)", async () => {
+            createManager({ maxRetries: 3 });
+            transport.rejectWith(new HTTPError("Internal Server Error", 500));
+
+            await expect(manager.reportRoom(roomId, {})).rejects.toThrow();
+
+            expect(transport.request).toHaveBeenCalledTimes(1);
+        });
+
+        it("reportUser does not retry on 500 (non-idempotent POST)", async () => {
+            createManager({ maxRetries: 3 });
+            transport.rejectWith(new HTTPError("Internal Server Error", 500));
+
+            await expect(manager.reportUser("@bob:example.org", {})).rejects.toThrow();
+
+            expect(transport.request).toHaveBeenCalledTimes(1);
         });
     });
 });

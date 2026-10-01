@@ -1,0 +1,14 @@
+{
+    "note": "双轨覆盖率目标（P2-c，2026-10-01）。关键模块（critical-modules.json）走 quality:coverage:critical 门禁；全仓走 quality:coverage 门禁。由于全仓跑 16 分钟会触发限流，质量门禁优先读缓存 lcov（非首次 CI run 才拉 lcov），本地开发用 quality:coverage:quick 替代（只测 43% 静态路径的门禁）",
+    "repoFloors": {
+        "lines": 65,
+        "branches": 55,
+        "functions": 65
+    },
+    "criticalFloorDefault": 85,
+    "targets": {
+        "criticalModules": 85,
+        "fullRepo": 65,
+        "dynamicPathGate": 70
+    }
+}

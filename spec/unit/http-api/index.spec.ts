@@ -83,7 +83,7 @@ describe("MatrixHttpApi", () => {
         expect(getRequest()!.open).toHaveBeenCalled();
     });
 
-    it("should send access token in query params if header disabled", () => {
+    it("should always send access token in header even if useAuthorizationHeader=false (ISSUE-09)", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const api = new MatrixHttpApi(new TypedEventEmitter<any, any>(), {
             baseUrl,
@@ -93,12 +93,12 @@ describe("MatrixHttpApi", () => {
             onlyData: true,
         });
         upload = api.uploadContent({} as File);
+        // Token is always sent via Authorization header; query param fallback removed (ISSUE-09)
         expect(getRequest()!.open).toHaveBeenCalledWith(
             Method.Post,
-            baseUrl.toLowerCase() +
-                "/_matrix/media/v3/upload?content_type=application%2Foctet-stream&access_token=token",
+            baseUrl.toLowerCase() + "/_matrix/media/v3/upload?content_type=application%2Foctet-stream",
         );
-        expect(getRequest()!.setRequestHeader).not.toHaveBeenCalledWith("Authorization");
+        expect(getRequest()!.setRequestHeader).toHaveBeenCalledWith("Authorization", "Bearer token");
     });
 
     it("should send access token in header by default", () => {
@@ -262,7 +262,6 @@ describe("MatrixHttpApi", () => {
             baseUrl,
             prefix,
             accessToken: "token",
-            useAuthorizationHeader: false,
             onlyData: true,
         });
         expect(api.getContentUri()).toMatchSnapshot();

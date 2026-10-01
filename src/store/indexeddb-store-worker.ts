@@ -35,7 +35,7 @@ interface ICmd {
  * It should be instantiated by a web worker script provided by the application
  * in a script, for example:
  * ```
- * import {IndexedDBStoreWorker} from 'matrix-js-sdk/lib/indexeddb-worker.js';
+ * import {IndexedDBStoreWorker} from '@langkebo/matrix-js-sdk/lib/indexeddb-worker.js';
  * const remoteWorker = new IndexedDBStoreWorker(postMessage);
  * onmessage = remoteWorker.onMessage;
  * ```
@@ -107,7 +107,11 @@ export class IndexedDBStoreWorker {
                 prom = this.backend?.clearOutOfBandMembers(msg.args[0] as string);
                 break;
             case "setOutOfBandMembers":
-                prom = this.backend?.setOutOfBandMembers(msg.args[0] as string, msg.args[1] as IStateEventWithRoomId[]);
+                prom = this.backend?.setOutOfBandMembers(
+                    msg.args[0] as string,
+                    msg.args[1] as IStateEventWithRoomId[],
+                    msg.args[2] as number,
+                );
                 break;
             case "getClientOptions":
                 prom = this.backend?.getClientOptions();

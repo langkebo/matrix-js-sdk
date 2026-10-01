@@ -171,13 +171,13 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({
                 versions: ["v1.11"],
-                unstable_features: { openclaw: true },
+                unstable_features: { "org.matrix.msc3245.voice": true },
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
             transport.respondWith({ capabilities: {} });
 
-            const result = await manager.doesServerAdvertiseSynapseRustFeature("openclaw");
+            const result = await manager.doesServerAdvertiseSynapseRustFeature(SynapseRustFeature.Voice);
 
             expect(result).toBe(true);
         });
@@ -205,7 +205,7 @@ describe("ServerCapabilitiesManager", () => {
             const mockClient = createMockClient();
             mockClient.getVersions.mockResolvedValue({
                 versions: ["v1.11"],
-                unstable_features: { openclaw: true, "io.hula.friends": true },
+                unstable_features: { "io.hula.friends": true },
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             manager = new ServerCapabilitiesManager(mockClient as any, { transport });
@@ -213,7 +213,6 @@ describe("ServerCapabilitiesManager", () => {
 
             const support = await manager.getSynapseRustFeatureSupport();
 
-            expect(support.openClaw).toBe(true);
             expect(support.friends).toBe(true);
             expect(support.extendedProfile).toBe(false);
         });
@@ -409,6 +408,79 @@ describe("ServerCapabilitiesManager", () => {
 
             expect(result).toHaveLength(1);
             expect(result[0]).toHaveProperty("type", "stun");
+        });
+    });
+
+    // ============ FT-099: 扩展 capability key 解析 ============
+
+    describe("FT-099: extended capability keys resolution", () => {
+        it("should resolve burn_after_read from io.hula.burn_after_read capability", async () => {
+            const mockClient = createMockClient();
+            mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            manager = new ServerCapabilitiesManager(mockClient as any, { transport });
+            transport.respondWith({
+                capabilities: {
+                    "io.hula.burn_after_read": { enabled: true },
+                },
+            });
+
+            const support = await manager.getSynapseRustFeatureSupport();
+
+            expect(support.burnAfterRead).toBe(true);
+        });
+
+        it("should resolve friends from io.hula.friends capability", async () => {
+            const mockClient = createMockClient();
+            mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            manager = new ServerCapabilitiesManager(mockClient as any, { transport });
+            transport.respondWith({
+                capabilities: {
+                    "io.hula.friends": { enabled: true },
+                },
+            });
+
+            const support = await manager.getSynapseRustFeatureSupport();
+
+            expect(support.friends).toBe(true);
+        });
+
+        it("should resolve voice from io.hula.voice_extended capability", async () => {
+            const mockClient = createMockClient();
+            mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            manager = new ServerCapabilitiesManager(mockClient as any, { transport });
+            transport.respondWith({
+                capabilities: {
+                    "io.hula.voice_extended": { enabled: true },
+                },
+            });
+
+            const support = await manager.getSynapseRustFeatureSupport();
+
+            expect(support.voice).toBe(true);
+        });
+
+        it("should resolve all extended capabilities simultaneously", async () => {
+            const mockClient = createMockClient();
+            mockClient.getVersions.mockResolvedValue({ versions: ["v1.11"] });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            manager = new ServerCapabilitiesManager(mockClient as any, { transport });
+            transport.respondWith({
+                capabilities: {
+                    "io.hula.burn_after_read": { enabled: true },
+                    "io.hula.friends": { enabled: true },
+                    "io.hula.voice_extended": { enabled: true },
+                    "m.voice": { enabled: true },
+                },
+            });
+
+            const support = await manager.getSynapseRustFeatureSupport();
+
+            expect(support.burnAfterRead).toBe(true);
+            expect(support.friends).toBe(true);
+            expect(support.voice).toBe(true);
         });
     });
 });

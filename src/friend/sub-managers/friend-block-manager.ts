@@ -21,11 +21,12 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import { InvalidParamError } from "../../common/errors";
 import { BaseManager } from "../../managers/base-manager";
 import type { FriendStatus, FriendStatusInfo } from "../index";
 import type { FriendSharedState } from "./shared-state";
+import { friendPath } from "../paths";
 
 export enum FriendBlockManagerEvent {
     FriendUpdated = "FriendUpdated",
@@ -53,8 +54,8 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
 
         return this.request<FriendStatusInfo>({
             method: Method.Get,
-            path: `/friends/${encodeURIComponent(userId)}/status`,
-            prefix: ClientPrefix.V1,
+            path: friendPath(`/friends/${encodeURIComponent(userId)}/status`),
+            prefix: VendorPrefix,
         });
     }
 
@@ -99,9 +100,9 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
 
         await this.request({
             method: Method.Put,
-            path: `/friends/${encodeURIComponent(userId)}/status`,
+            path: friendPath(`/friends/${encodeURIComponent(userId)}/status`),
             body: { status },
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
 
         const friend = this.sharedState.friends.get(userId);

@@ -25,6 +25,7 @@ import { type IStartClientOpts } from "../client";
 import { type IStateEventWithRoomId } from "../@types/search";
 import { type IndexedToDeviceBatch, type ToDeviceBatchWithTxnId } from "../models/ToDeviceMessage";
 import { type EventEmitterEvents } from "../models/typed-event-emitter";
+import { type StoreStats } from "./stats";
 
 export interface ISavedSync {
     nextBatch: string;
@@ -269,4 +270,12 @@ export interface IStore {
      * Stop the store and perform any appropriate cleanup
      */
     destroy(): Promise<void>;
+
+    /**
+     * 返回 store 缓存统计快照（对齐后端 `CacheStats`）。
+     *
+     * 提供 hits/misses/evictions/total_entries/memory_usage_bytes/hit_rate，
+     * 供前端「存储管理」等场景做端到端缓存观测。
+     */
+    getStats(): StoreStats;
 }

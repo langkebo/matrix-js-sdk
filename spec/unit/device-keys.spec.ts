@@ -5,9 +5,25 @@ import { DeviceKeysManager, DeviceKeysEvent } from "../../src/device-keys";
 describe("DeviceKeysManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let trust: any;
     let manager: DeviceKeysManager;
 
     beforeEach(() => {
+        trust = {
+            requestVerification: vi.fn().mockResolvedValue({
+                request_token: "tok-1",
+                token: "tok-1",
+                status: "pending",
+                expires_at: 1700000000000,
+                methods_available: ["sas"],
+            }),
+            respondToVerification: vi.fn().mockResolvedValue({ success: true, trust_level: "verified" }),
+            getVerificationStatus: vi.fn().mockResolvedValue({ status: "not_found" }),
+            getDeviceTrustList: vi.fn().mockResolvedValue([]),
+            getDeviceTrust: vi.fn().mockResolvedValue(null),
+            getSecuritySummary: vi.fn(),
+        };
         mockClient = {
             http: {
                 authedRequest: vi.fn(),
@@ -23,6 +39,7 @@ describe("DeviceKeysManager", () => {
             getDevice: vi
                 .fn()
                 .mockReturnValue({ user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} }),
+            getDeviceTrustManager: () => trust,
         };
         manager = new DeviceKeysManager(mockClient);
     });
@@ -98,54 +115,26 @@ describe("DeviceKeysManager", () => {
         await expect(manager.getDevice("D1")).resolves.toHaveProperty("device_id", "D1");
     });
 
-    it("sends backend-compatible payloads for device verification helpers", async () => {
-        mockClient.http.authedRequest.mockResolvedValueOnce({ token: "tok-1" }).mockResolvedValueOnce({});
-
-        await expect(manager.requestDeviceVerification("@a:hs", "D1")).resolves.toEqual({ token: "tok-1" });
+    it("delegates device verification helpers to DeviceTrustManager", async () => {
+        await expect(manager.requestDeviceVerification("@a:hs", "D1")).resolves.toMatchObject({
+            request_token: "tok-1",
+        });
         await manager.respondDeviceVerification("tok-1", "accept");
 
-        expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
-            1,
-            "POST",
-            "/device_verification/request",
-            undefined,
-            {
-                target_user_id: "@a:hs",
-                target_device_id: "D1",
-                device_id: "D1",
-                new_device_id: "D1",
-            },
-            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
-        );
-        expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
-            2,
-            "POST",
-            "/device_verification/respond",
-            undefined,
-            {
-                token: "tok-1",
-                request_token: "tok-1",
-                approved: true,
-            },
-            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
-        );
+        // Single authority: the manager must not hand-roll the request body any more.
+        expect(trust.requestVerification).toHaveBeenCalledWith({ new_device_id: "D1", device_id: "D1" });
+        expect(trust.respondToVerification).toHaveBeenCalledWith("tok-1", true);
+        expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
     });
 
-    it("accepts boolean verification responses for direct backend parity", async () => {
-        mockClient.http.authedRequest.mockResolvedValueOnce({});
-
+    it("normalises the accept/reject/boolean argument into an `approved` boolean", async () => {
         await manager.respondDeviceVerification("tok-2", false);
+        expect(trust.respondToVerification).toHaveBeenLastCalledWith("tok-2", false);
 
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            "POST",
-            "/device_verification/respond",
-            undefined,
-            {
-                token: "tok-2",
-                request_token: "tok-2",
-                approved: false,
-            },
-            expect.objectContaining({ prefix: "/_matrix/client/v3" }),
-        );
+        await manager.respondDeviceVerification("tok-3", "accept");
+        expect(trust.respondToVerification).toHaveBeenLastCalledWith("tok-3", true);
+
+        await manager.respondDeviceVerification("tok-4", "reject");
+        expect(trust.respondToVerification).toHaveBeenLastCalledWith("tok-4", false);
     });
 });

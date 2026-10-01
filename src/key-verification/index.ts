@@ -56,14 +56,13 @@ import {
     showQrCodeHttpRequest,
     scanQrCodeHttpRequest,
 } from "../client-crypto-requests";
-import { getLegacyClientPrefix } from "../client-internals";
 import { ClientPrefix } from "../http-api/prefix";
 
-type VerificationApiVersion = "v1" | "r0" | "v3";
+type VerificationApiVersion = "v1" | "v3";
 
 function resolveVerificationPrefix(version: VerificationApiVersion): string {
     if (version === "v3") return ClientPrefix.V3;
-    return getLegacyClientPrefix(version);
+    return ClientPrefix.V1;
 }
 
 const DEFAULT_CANCEL_CODE = "m.user";
@@ -200,7 +199,7 @@ export class KeyVerificationManager extends BaseManager {
         _userIdOrVersion?: string,
         version: VerificationApiVersion = "v1",
     ): Promise<IVerificationRequestsResponse> {
-        if (_userIdOrVersion === "v1" || _userIdOrVersion === "r0" || _userIdOrVersion === "v3") {
+        if (_userIdOrVersion === "v1" || _userIdOrVersion === "v3") {
             return this.getVerificationRequestsHttp(_userIdOrVersion);
         }
 
@@ -210,7 +209,7 @@ export class KeyVerificationManager extends BaseManager {
     public async showQrCode(
         transactionId: string,
         version: VerificationApiVersion = "v1",
-    ): Promise<{ qr_code_data: string; transaction_id: string }> {
+    ): Promise<IShowQrCodeResponse> {
         return this.withRetry(
             async () =>
                 await this.request({
@@ -223,9 +222,17 @@ export class KeyVerificationManager extends BaseManager {
         );
     }
 
+    /**
+     * 扫描二维码便捷方法
+     *
+     * 发送后端 ScanQrBody 所需的全部必填字段，请求体与 scanQrCodeHttp 保持一致，
+     * 避免 422/校验失败。
+     *
+     * @param request 扫码请求体，需包含后端所需的 6 个必填字段
+     * @param version 验证 API 版本
+     */
     public async scanQrCode(
-        qrCodeData: string,
-        transactionId?: string,
+        request: IScanQrCodeRequest,
         version: VerificationApiVersion = "v1",
     ): Promise<{ transaction_id: string; verified: boolean }> {
         return this.withRetry(
@@ -233,7 +240,7 @@ export class KeyVerificationManager extends BaseManager {
                 await this.request({
                     method: Method.Post,
                     path: `/keys/qr_code/scan`,
-                    body: { qr_code_data: qrCodeData, transaction_id: transactionId },
+                    body: request,
                     prefix: resolveVerificationPrefix(version),
                 }),
             "scanQrCode",

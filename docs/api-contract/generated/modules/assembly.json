@@ -1,478 +1,104 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "assembly",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 155,
+  "entry_count": 101,
   "entries": [
     {
       "method": "GET",
       "path": "/",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/.well-known/matrix/client",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/.well-known/matrix/server",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/.well-known/matrix/support",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_health",
       "registered_by": "assembly::create_router",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/account/3pid",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid/add",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid/bind",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid/delete",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid/email/requestToken",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid/email/submitToken",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/3pid/unbind",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/deactivate",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/password",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/password/email/requestToken",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/account/password/email/submitToken",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/account/profile/{user_id}",
-      "registered_by": "assembly::account_r0_only",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/account/profile/{user_id}/avatar_url",
-      "registered_by": "assembly::account_r0_only",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/account/profile/{user_id}/displayname",
-      "registered_by": "assembly::account_r0_only",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/account/whoami",
-      "registered_by": "assembly::account_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/capabilities",
-      "registered_by": "assembly::capabilities",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/directory/list/room/{room_id}",
-      "registered_by": "assembly::directory_compat",
-      "path_params": [
-        "room_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/directory/list/room/{room_id}",
-      "registered_by": "assembly::directory_compat",
-      "path_params": [
-        "room_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/directory/room/{room_alias}",
-      "registered_by": "assembly::directory_compat",
-      "path_params": [
-        "room_alias"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/directory/room/{room_alias}",
-      "registered_by": "assembly::directory_compat",
-      "path_params": [
-        "room_alias"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/directory/room/{room_alias}",
-      "registered_by": "assembly::directory_compat",
-      "path_params": [
-        "room_alias"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/directory/room/{room_id}/alias",
-      "registered_by": "assembly::directory_r0_only",
-      "path_params": [
-        "room_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/directory/room/{room_id}/alias/{room_alias}",
-      "registered_by": "assembly::directory_r0_only",
-      "path_params": [
-        "room_id",
-        "room_alias"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/directory/room/{room_id}/alias/{room_alias}",
-      "registered_by": "assembly::directory_r0_only",
-      "path_params": [
-        "room_id",
-        "room_alias"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/login",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/login",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/logout",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/logout/all",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/media/config",
-      "registered_by": "assembly::media_config",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/profile/{user_id}",
-      "registered_by": "assembly::account_compat",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/profile/{user_id}/avatar_url",
-      "registered_by": "assembly::account_compat",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/profile/{user_id}/avatar_url",
-      "registered_by": "assembly::account_compat",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/profile/{user_id}/displayname",
-      "registered_by": "assembly::account_compat",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/profile/{user_id}/displayname",
-      "registered_by": "assembly::account_compat",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/publicRooms",
-      "registered_by": "assembly::directory_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/publicRooms",
-      "registered_by": "assembly::directory_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/refresh",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/register",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/register",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/register/available",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/register/email/requestToken",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/register/email/submitToken",
-      "registered_by": "assembly::auth_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/rooms/{room_id}/call/{call_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "call_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.answer/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.candidates/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.hangup/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/rooms/{room_id}/send/m.call.invite/{txn_id}",
-      "registered_by": "assembly::voip_tracking",
-      "path_params": [
-        "room_id",
-        "txn_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/user_directory/list",
-      "registered_by": "assembly::directory_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user_directory/profiles/{user_id}",
-      "registered_by": "assembly::directory_compat",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/user_directory/search",
-      "registered_by": "assembly::directory_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/version",
-      "registered_by": "assembly::create_router",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/voip/config",
-      "registered_by": "assembly::voip_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/voip/turnServer",
-      "registered_by": "assembly::voip_compat",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/voip/turnServer",
-      "registered_by": "assembly::voip_compat",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/voip/turnServer/guest",
-      "registered_by": "assembly::voip_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc2965/auth_issuer",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc2965/auth_metadata",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "DELETE",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "PUT",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
-      "method": "POST",
+      "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
       "registered_by": "assembly::create_router",
       "path_params": [
         "device_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc4143/rtc/transports",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -480,7 +106,8 @@
       "registered_by": "assembly::create_router",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -489,7 +116,8 @@
       "path_params": [
         "user_id",
         "key_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -498,7 +126,8 @@
       "path_params": [
         "user_id",
         "key_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -507,135 +136,127 @@
       "path_params": [
         "user_id",
         "key_name"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/account/3pid",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid/add",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid/bind",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid/delete",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid/email/requestToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid/email/submitToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/3pid/unbind",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/deactivate",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/password",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/password/email/requestToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v1/account/password/email/submitToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/account/whoami",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/auth_metadata",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/config/client",
       "registered_by": "assembly::create_router",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/login/get_qr_code",
-      "registered_by": "assembly::auth_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v1/login/qr/confirm",
+      "path": "/_matrix/client/v1/login/qr_token",
       "registered_by": "assembly::auth_router",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/login/qr/invalidate",
-      "registered_by": "assembly::auth_router",
-      "path_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/login/qr/start",
-      "registered_by": "assembly::auth_router",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/login/qr/{transaction_id}/status",
-      "registered_by": "assembly::auth_router",
-      "path_params": [
-        "transaction_id"
-      ]
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/media/config",
       "registered_by": "assembly::media_config",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -643,7 +264,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -651,7 +273,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -659,7 +282,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -667,7 +291,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -675,91 +300,115 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/account/3pid",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid/add",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid/bind",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid/delete",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid/email/requestToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid/email/submitToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/3pid/unbind",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/deactivate",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/password",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/password/email/requestToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/account/password/email/submitToken",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/account/whoami",
       "registered_by": "assembly::account_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/auth/{auth_type}/fallback/web",
+      "registered_by": "assembly::auth_compat",
+      "path_params": [
+        "auth_type"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/capabilities",
       "registered_by": "assembly::capabilities",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -767,7 +416,8 @@
       "registered_by": "assembly::directory_compat",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -775,7 +425,8 @@
       "registered_by": "assembly::directory_compat",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -783,7 +434,8 @@
       "registered_by": "assembly::directory_compat",
       "path_params": [
         "room_alias"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -791,7 +443,8 @@
       "registered_by": "assembly::directory_compat",
       "path_params": [
         "room_alias"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -799,37 +452,72 @@
       "registered_by": "assembly::directory_compat",
       "path_params": [
         "room_alias"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/directory/room/{room_id}/alias",
+      "registered_by": "assembly::directory_extra",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}",
+      "registered_by": "assembly::directory_extra",
+      "path_params": [
+        "room_id",
+        "room_alias"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}",
+      "registered_by": "assembly::directory_extra",
+      "path_params": [
+        "room_id",
+        "room_alias"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/login",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/login",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/logout",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/logout/all",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/media/config",
       "registered_by": "assembly::media_config",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -837,7 +525,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -845,7 +534,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -853,7 +543,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -861,7 +552,8 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -869,67 +561,78 @@
       "registered_by": "assembly::account_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/publicRooms",
       "registered_by": "assembly::directory_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/publicRooms",
       "registered_by": "assembly::directory_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/pushrules/",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/pushrules/global/",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/refresh",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/register",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/register",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/register/available",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/register/email/requestToken",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/register/email/submitToken",
       "registered_by": "assembly::auth_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -938,7 +641,8 @@
       "path_params": [
         "room_id",
         "call_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -947,7 +651,8 @@
       "path_params": [
         "room_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -956,7 +661,8 @@
       "path_params": [
         "room_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -965,7 +671,8 @@
       "path_params": [
         "room_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -974,13 +681,29 @@
       "path_params": [
         "room_id",
         "txn_id"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/v3/upload/provider",
+      "registered_by": "assembly::upload_provider",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/upload/token",
+      "registered_by": "assembly::upload_provider",
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/user_directory/list",
       "registered_by": "assembly::directory_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -988,67 +711,78 @@
       "registered_by": "assembly::directory_compat",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/user_directory/search",
       "registered_by": "assembly::directory_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/versions",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/voip/config",
       "registered_by": "assembly::voip_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/voip/turnServer",
       "registered_by": "assembly::voip_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/client/v3/voip/turnServer",
       "registered_by": "assembly::voip_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/voip/turnServer/guest",
       "registered_by": "assembly::voip_compat",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/versions",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/server_version",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/static/client/login/",
       "registered_by": "assembly::auth_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/health",
       "registered_by": "assembly::create_router",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     }
   ]
 }

@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "media",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 32,
+  "entry_count": 36,
   "entries": [
     {
       "method": "GET",
@@ -14,7 +14,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -24,13 +25,15 @@
         "server_name",
         "media_id",
         "filename"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v1/media/preview_url",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -39,19 +42,60 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/r0/config",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/media/r0/delete/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/media/r0/download/{server_name}/{media_id}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/media/r0/download/{server_name}/{media_id}/{filename}",
+      "registered_by": "media",
+      "path_params": [
+        "server_name",
+        "media_id",
+        "filename"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/media/r0/preview_url",
+      "registered_by": "media",
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/r0/upload",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -60,7 +104,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -70,13 +115,15 @@
         "server_name",
         "media_id",
         "filename"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v1/config",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -85,7 +132,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -94,7 +142,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -104,73 +153,85 @@
         "server_name",
         "media_id",
         "filename"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v1/preview_url",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v1/quota/alerts",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v1/quota/check",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v1/quota/stats",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/v1/upload",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/v1/upload/chunk",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/v1/upload/chunk/cancel",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/v1/upload/chunk/complete",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v1/upload/chunk/progress",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/v1/upload/chunk/start",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v3/config",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -179,7 +240,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -188,7 +250,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -198,7 +261,8 @@
         "server_name",
         "media_id",
         "filename"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -207,7 +271,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -217,13 +282,15 @@
         "server_name",
         "media_id",
         "filename"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/media/v3/preview_url",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -232,13 +299,15 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/media/v3/upload",
       "registered_by": "media",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -247,7 +316,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

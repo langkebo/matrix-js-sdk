@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import { Method } from "../../src/http-api/index.ts";
 import { GuestEvent, GuestManager } from "../../src/guest/index.ts";
+import { logger } from "../../src/logger";
 
 describe("GuestManager", () => {
     let request: ReturnType<typeof vi.fn>;
@@ -10,6 +11,7 @@ describe("GuestManager", () => {
     let getRooms: ReturnType<typeof vi.fn>;
     let joinRoom: ReturnType<typeof vi.fn>;
     let manager: GuestManager;
+    let warnSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         request = vi.fn();
@@ -29,6 +31,11 @@ describe("GuestManager", () => {
             "https://h",
         );
         manager.setRetryOptions({ maxRetries: 0 });
+        warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
     });
 
     describe("registerGuest", () => {
@@ -172,6 +179,15 @@ describe("GuestManager", () => {
         });
     });
 
+    describe("isGuest error handling", () => {
+        it("logs a warning and returns false when guest info lookup fails", async () => {
+            authedRequest.mockRejectedValueOnce(Object.assign(new Error("boom"), { httpStatus: 500 }));
+
+            await expect(manager.isGuest()).resolves.toBe(false);
+            expect(warnSpy).toHaveBeenCalledWith("GuestManager.isGuest failed:", expect.any(Error));
+        });
+    });
+
     describe("registerGuestOnServer", () => {
         it("POSTs /register/guest and emits GuestRegistered", async () => {
             request.mockResolvedValueOnce({ user_id: "@g:e", device_id: "D", access_token: "tok" });
@@ -240,6 +256,12 @@ describe("GuestManager", () => {
         it("returns false when alias lookup fails", async () => {
             authedRequest.mockRejectedValueOnce(Object.assign(new Error("nf"), { httpStatus: 404 }));
             await expect(manager.canJoinRoom("#a:e")).resolves.toBe(false);
+        });
+
+        it("logs a warning when alias lookup fails", async () => {
+            authedRequest.mockRejectedValueOnce(Object.assign(new Error("nf"), { httpStatus: 404 }));
+            await expect(manager.canJoinRoom("#a:e")).resolves.toBe(false);
+            expect(warnSpy).toHaveBeenCalledWith("GuestManager.canJoinRoom failed:", expect.any(Error));
         });
     });
 

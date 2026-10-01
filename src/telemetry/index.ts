@@ -319,12 +319,60 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         return { ...this.stats };
     }
 
-    public getSessionDuration(): number {
-        return Date.now() - this.sessionStart;
+    // ===== Performance Metrics (扩展 getMetrics 功能) =====
+
+    public trackCacheHitMiss(cacheName: string, hit: boolean, duration?: number): void {
+        if (!this.config.enabled) return;
+
+        const key = `cache_${cacheName}`;
+        const data: Record<string, unknown> = { hit };
+        if (duration !== undefined) {
+            data.duration_ms = duration;
+        }
+
+        this.track(key, data);
+    }
+
+    public trackRequestTiming(method: string, durationMs: number, status: "success" | "failure", endpoint?: string): void {
+        if (!this.config.enabled) return;
+
+        this.track("request_timing", {
+            method,
+            duration_ms: durationMs,
+            status,
+            ...(endpoint ? { endpoint } : {}),
+        });
+
+        // 监控慢请求 (> 200ms)
+        if (durationMs > 200) {
+            this.track("slow_request", {
+                method,
+                duration_ms: durationMs,
+                endpoint,
+            });
+        }
+    }
+
+    public trackPerformanceBaseline(metric: string, value: number, threshold?: number): void {
+        if (!this.config.enabled) return;
+
+        this.track("performance_baseline", {
+            metric,
+            value,
+            ...(threshold ? { threshold, passed: value <= threshold } : {}),
+        });
+    }
+
+    public async getServerHealth(): Promise<ServerTelemetryHealth> {
+        return this.adminRequest(Method.Get, tp("/telemetry/health"));
     }
 
     public getPendingEvents(): TelemetryEvent[] {
         return [...this.eventQueue];
+    }
+
+    public getSessionDuration(): number {
+        return Date.now() - this.sessionStart;
     }
 
     public async getServerStatus(): Promise<ServerTelemetryStatus> {
@@ -359,10 +407,6 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
             Method.Post,
             tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack` as StripAdminV1<TelemetryPathPattern>),
         );
-    }
-
-    public async getServerHealth(): Promise<ServerTelemetryHealth> {
-        return this.adminRequest(Method.Get, tp("/telemetry/health"));
     }
 
     public flush(): void {

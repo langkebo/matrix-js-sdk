@@ -1,17 +1,18 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "federation",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 52,
+  "entry_count": 54,
   "entries": [
     {
       "method": "GET",
       "path": "/_matrix/federation/v1",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -19,7 +20,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -27,7 +29,8 @@
       "registered_by": "federation",
       "path_params": [
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -35,7 +38,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -44,7 +48,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -52,7 +57,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -60,7 +66,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -69,7 +76,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -78,7 +86,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -87,7 +96,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -96,7 +106,8 @@
       "path_params": [
         "room_id",
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -105,7 +116,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -114,7 +126,8 @@
       "path_params": [
         "server_name",
         "media_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -122,7 +135,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -130,37 +144,43 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v1/openid/userinfo",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v1/publicRooms",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/federation/v1/publicRooms",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v1/query/destination",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v1/query/directory",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -168,13 +188,15 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v1/query/profile",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -182,7 +204,8 @@
       "registered_by": "federation",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -191,7 +214,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -199,7 +223,8 @@
       "registered_by": "federation",
       "path_params": [
         "txn_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -208,7 +233,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -217,7 +243,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -225,7 +252,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -233,13 +261,15 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/federation/v1/thirdparty/invite",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -247,7 +277,8 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -255,31 +286,36 @@
       "registered_by": "federation",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/federation/v1/user/keys/claim",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/federation/v1/user/keys/query",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/federation/v1/user/keys/upload",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v1/version",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -288,7 +324,17 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/federation/v2/query/{server_name}",
+      "registered_by": "federation",
+      "path_params": [
+        "server_name"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -297,7 +343,8 @@
       "path_params": [
         "server_name",
         "key_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -306,7 +353,8 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -315,19 +363,38 @@
       "path_params": [
         "room_id",
         "event_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/federation/v2/server",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/federation/v2/user/keys/query",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/key/v2/query",
+      "registered_by": "federation",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/key/v2/query/{server_name}",
+      "registered_by": "federation",
+      "path_params": [
+        "server_name"
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -336,19 +403,15 @@
       "path_params": [
         "server_name",
         "key_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/key/v2/server",
       "registered_by": "federation",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/federation/v1/event_auth",
-      "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -356,31 +419,36 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/federation/v1/keys/claim",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/federation/v1/keys/query",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/federation/v1/keys/upload",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_synapse/federation/v1/query/auth",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -388,13 +456,15 @@
       "registered_by": "federation",
       "path_params": [
         "room_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
       "path": "/_synapse/federation/v2/key/clone",
       "registered_by": "federation",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     }
   ]
 }

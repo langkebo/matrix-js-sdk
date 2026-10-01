@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `push_notification`.
+ * DTO snippets extracted from the contract doc for `notifications`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

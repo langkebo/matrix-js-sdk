@@ -1,0 +1,187 @@
+{
+    "note": "SDK 声明了但后端 ledger 里查不到的路径。每条必须写清「为什么后端没有」和「什么条件下可以删掉这条豁免」。expires 到期即门禁失败——这是为了让豁免不会变成永久性的静态白噪音（参见 check-manager-codegen-coverage.mjs 里 WAIVED_MODULES 的同款思路：豁免要有主人和期限）。",
+    "verifiedAgainst": "synapse-rust commit 7cb39946, ledger 1149 entries",
+    "verifiedAt": "2026-10-01",
+    "waivers": [
+        {
+            "sdkCall": "POST /_matrix/client/v1/login/get_token",
+            "file": "src/account/index.ts",
+            "reason": "第三方登录 token 交换。后端未实现 get_token 端点（synapse-rust 仅有 refresh_token_service 内部的同名私有方法，不是 HTTP 路由）。SDK 保留了封装以兼容其他 homeserver。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/register/captcha",
+            "file": "src/auth/index.ts",
+            "reason": "注册 captcha 校验。后端 auth 模块未实现该端点；若后端引入 captcha 强制校验则需要补齐。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_start",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "MSC3882 设备签名交互式验证。后端 device_signing 只实现了 upload（ledger 中仅 POST /keys/device_signing/upload），verify_* 全系列未实现。属于上游 MSC 尚未落地，不是 SDK 缺陷。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "PUT /_matrix/client/v3/keys/device_signing/verify_accept",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_key_agreement",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_mac",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_done",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/device_signing/verify_cancel",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882 verify_start：后端未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/keys/device_signing/requests",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "同 MSC3882：查询待处理的设备签名验证请求。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/keys/qr_code/show",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "MSC3882 二维码验证。后端未实现 qr_code 系列端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/keys/qr_code/scan",
+            "file": "src/client-crypto-requests.ts",
+            "reason": "MSC3882 二维码验证。后端未实现 qr_code 系列端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/device_verification/request",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信验证。后端 routes/ 下零命中（grep device_verification 无结果），端点未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/device_verification/respond",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信验证应答。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/device_trust",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信列表查询。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/security/summary",
+            "file": "src/device-trust/index.ts",
+            "reason": "安全摘要（E2EE 状态总览）。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/oidc/register",
+            "file": "src/oidc/manager.ts",
+            "reason": "OIDC registration 端点。后端 OIDC 模块未实现该路径。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/login/failures",
+            "file": "src/security/index.ts",
+            "reason": "登录失败统计。后端 auth 模块未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/rtc/transports",
+            "file": "src/server-capabilities/index.ts",
+            "reason": "RTC transports（MSC4143）。后端实际使用 unstable 前缀：GET /_matrix/client/unstable/org.matrix.msc4143/rtc/transports。SDK 前缀错误。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_synapse/admin/v1/appservices/{X}/statistics",
+            "file": "src/app-service/index.ts",
+            "reason": "查询应用服务统计。后端未实现 statistics 端点（ledger 零条目）。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_synapse/admin/v1/appservices/{X}/query/user/{X}",
+            "file": "src/app-service/index.ts",
+            "reason": "查询应用服务用户。后端未实现 query/user 端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_synapse/admin/v1/appservices/{X}/query/alias/{X}",
+            "file": "src/app-service/index.ts",
+            "reason": "查询应用服务别名。后端未实现 query/alias 端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/device_verification/status/{X}",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备验证状态查询。后端 device_trust 模块未实现该端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_synapse/admin/v1/federation/status/{X}",
+            "file": "src/federation/sub-managers/federation-server-manager.ts",
+            "reason": "Federation 连接状态查询。后端未实现 federation/status 端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_synapse/admin/v1/federation/disconnect/{X}",
+            "file": "src/federation/sub-managers/federation-server-manager.ts",
+            "reason": "断开 federation 连接。后端未实现 federation/disconnect 端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_synapse/admin/v1/federation/reconnect/{X}",
+            "file": "src/federation/sub-managers/federation-server-manager.ts",
+            "reason": "恢复 federation 连接。后端未实现 federation/reconnect 端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/device_trust/{X}",
+            "file": "src/device-trust/index.ts",
+            "reason": "设备互信列表查询。后端未实现。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/unstable/im.nheko.summary/summary/{X}",
+            "file": "src/room-summary/index.ts",
+            "reason": "不稳定的im.nheko.summary 摘要。后端未实现，该路径仅用于从失败的主摘要路径中回退。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/account_status/{X}",
+            "file": "src/security/index.ts",
+            "reason": "账户状态查询。后端未实现 account_status 端点。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "PUT /_synapse/admin/v1/appservices/{X}/state/{X}",
+            "file": "src/app-service/index.ts",
+            "reason": "设置应用服务状态。后端只实现了 GET 端点（/_synapse/admin/v1/appservices/{as_id}/state/{state_key}），PUT 未注册路由。SDK 超前封装。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "DELETE /_matrix/client/v3/voice/{X}",
+            "file": "src/voice/index.ts",
+            "reason": "删除语音消息。后端 voice 模块未实现 DELETE 端点（ledger 仅有 GET/POST 的 config/register/stats/upload）。SDK 超前封装。",
+            "expires": "2026-12-31"
+        }
+    ]
+}

@@ -54,6 +54,7 @@ import { EventType } from "./@types/event";
 import { type IPushRules } from "./@types/PushRules";
 import { RoomStateEvent } from "./models/room-state";
 import { RoomMemberEvent } from "./models/room-member";
+import { User } from "./models/user";
 import { KnownMembership } from "./@types/membership";
 
 // Number of consecutive failed syncs that will lead to a syncState of ERROR as opposed
@@ -311,6 +312,60 @@ class ExtensionReceipts implements Extension<ExtensionReceiptsRequest, Extension
     }
 }
 
+type ExtensionPresenceRequest = {
+    enabled: boolean;
+};
+
+type ExtensionPresenceResponse = {
+    events: IMinimalEvent[];
+};
+
+/**
+ * MSC4186 presence extension: consumes the `presence` extension from the
+ * sliding sync response and emits `User.presence` (via `User.setPresenceEvent`,
+ * re-emitted onto the client by the reEmitter). This restores real-time
+ * presence for sliding-sync clients, matching the traditional `/sync`
+ * `processPresenceEvents` path (审查 4.2.1).
+ */
+class ExtensionPresence implements Extension<ExtensionPresenceRequest, ExtensionPresenceResponse> {
+    public constructor(private readonly client: MatrixClient) {}
+
+    public name(): string {
+        return "presence";
+    }
+
+    public when(): ExtensionState {
+        return ExtensionState.PostProcess;
+    }
+
+    public async onRequest(_isInitial: boolean): Promise<ExtensionPresenceRequest> {
+        return {
+            enabled: true,
+        };
+    }
+
+    public async onResponse(data: ExtensionPresenceResponse): Promise<void> {
+        if (!data?.events || data.events.length === 0) {
+            return;
+        }
+
+        const presenceEvents = mapEvents(this.client, undefined, data.events);
+        for (const presenceEvent of presenceEvents) {
+            // 契约：presence 的 content 必须携带 user_id（后端已对齐），
+            // 与 SyncApi.processPresenceEvents 一致。
+            const userId = presenceEvent.getContent<{ user_id?: string }>().user_id;
+            if (!userId) continue;
+
+            let user = this.client.store.getUser(userId);
+            if (!user) {
+                user = User.createUser(userId, this.client);
+                this.client.store.storeUser(user);
+            }
+            user.setPresenceEvent(presenceEvent);
+        }
+    }
+}
+
 /**
  * A copy of SyncApi such that it can be used as a drop-in replacement for sync v2. For the actual
  * sliding sync API, see sliding-sync.ts or the class SlidingSync.
@@ -344,6 +399,7 @@ export class SlidingSyncSdk {
             new ExtensionAccountData(this.client),
             new ExtensionTyping(this.client),
             new ExtensionReceipts(this.client),
+            new ExtensionPresence(this.client),
         ];
         if (this.syncOpts.cryptoCallbacks) {
             extensions.push(new ExtensionE2EE(this.syncOpts.cryptoCallbacks));

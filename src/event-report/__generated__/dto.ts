@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `event_report`.
+ * DTO snippets extracted from the contract doc for `event-report`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

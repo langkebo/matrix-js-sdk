@@ -1,8 +1,8 @@
 ---
 module: ephemeral
 generated_from: docs/api-contract/generated/modules/ephemeral.json
-generated_hash: sha256-ecab0522be17d01c6cd7a6d27177fa29de2e0ab18b1e8dd61c0d3addecd89549
-ledger_schema: 1
+generated_hash: sha256-55db21da68ba7ae72fb237224db5bcbf47cda46026e6c482b9e2685755bc6911
+ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
@@ -42,7 +42,7 @@ interface EphemeralEventsResponse {
     chunk: Array<{
         type: string;
         sender: string;
-        content: Record<string, unknown>;
+        content: IContent;
         origin_server_ts: number;
         stream_id: number;
         event_id: string;

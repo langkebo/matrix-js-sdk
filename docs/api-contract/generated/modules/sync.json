@@ -1,53 +1,39 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "sync",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 7,
+  "entry_count": 4,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/events",
-      "registered_by": "sync",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/joined_rooms",
-      "registered_by": "sync",
-      "path_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/sync",
-      "registered_by": "sync",
-      "path_params": []
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/events",
       "registered_by": "sync",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/joined_rooms",
       "registered_by": "sync",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/my_rooms",
       "registered_by": "sync",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/sync",
       "registered_by": "sync",
-      "path_params": []
+      "path_params": [],
+      "query_params": []
     }
   ]
 }

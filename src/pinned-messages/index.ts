@@ -51,14 +51,9 @@ export interface IPinnedEventInfo {
     pinnedAt?: number;
 }
 
-export interface IServerPinnedEvent {
-    event_id: string;
-    pinned_by?: string;
-    pinned_at?: number;
-}
-
 export interface IServerPinnedEventsResponse {
-    events: IServerPinnedEvent[];
+    // FT-103: 后端 (pinned.rs) 返回 { pinned_events: Vec<String> }，是字符串数组
+    pinned_events: string[];
 }
 
 interface PinnedMessagesManagerEventMap {
@@ -136,11 +131,10 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
                     prefix: ClientPrefix.V3,
                 })) as IServerPinnedEventsResponse;
 
-                const events: IPinnedEventInfo[] = (response.events || []).map((e) => ({
-                    eventId: e.event_id,
+                // FT-103: 后端返回 { pinned_events: string[] }，映射为 IPinnedEventInfo[]
+                const events: IPinnedEventInfo[] = (response.pinned_events || []).map((eventId) => ({
+                    eventId,
                     roomId,
-                    pinnedBy: e.pinned_by,
-                    pinnedAt: e.pinned_at,
                 }));
                 this.pinnedEventsCache.set(roomId, events);
                 this.emit(PinnedEvent.PinnedUpdated, roomId, events);

@@ -40,7 +40,10 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 export interface RetentionPolicy {
     max_lifetime?: number;
     min_lifetime?: number;
+    /** m.room.retention state event field (Matrix spec) */
     expire_on_clients?: boolean;
+    /** Admin API field name (synapse-rust retention.rs) */
+    is_expire_on_clients?: boolean;
 }
 
 export interface RetentionState {
@@ -108,7 +111,7 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
             {
                 max_lifetime: policy.max_lifetime ?? null,
                 min_lifetime: policy.min_lifetime ?? null,
-                expire_on_clients: policy.expire_on_clients ?? false,
+                is_expire_on_clients: policy.is_expire_on_clients ?? false,
             },
             "setServerRetentionPolicy",
         );
@@ -145,7 +148,7 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
             {
                 max_lifetime: policy.max_lifetime ?? null,
                 min_lifetime: policy.min_lifetime ?? null,
-                expire_on_clients: policy.expire_on_clients ?? false,
+                is_expire_on_clients: policy.is_expire_on_clients ?? false,
             },
             "setRoomRetentionPolicy",
         );

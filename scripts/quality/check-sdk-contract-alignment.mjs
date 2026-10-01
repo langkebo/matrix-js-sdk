@@ -440,15 +440,20 @@ function normalizePathForMatch(input) {
     normalized = normalized.replace(/^\/_matrix\/media\/(?:r0|v1|v3)(?=\/|$)/, "/_matrix/media/{stable}");
     normalized = normalized.replace(/^\/_matrix\/identity\/\{[^}]+\}(?=\/|$)/, "/_matrix/identity/{stable}");
     normalized = normalized.replace(/^\/_matrix\/identity\/(?:v1|v2)(?=\/|$)/, "/_matrix/identity/{stable}");
+    // Normalize $variable syntax (SDK template vars) to {}
     normalized = normalized.replace(/\$\{[^}]+\}/g, "{}");
     normalized = normalized.replace(/\$[A-Za-z_][A-Za-z0-9_]*/g, "{}");
+    // Normalize {var} syntax (doc template vars) to {}
     normalized = normalized.replace(/\{[^}]+\}/g, "{}");
+    // ALSO normalize literal event types like "m.reaction", "m.room.message" etc. to {}
+    // This is needed because SDK uses /send/$eventType/... but docs may use /send/m.reaction/...
+    normalized = normalized.replace(/\/m\.[a-zA-Z_.-]+(?=\/|$)/g, "/{}");
     normalized = normalized.replace(/\/+/g, "/");
     return normalized;
 }
 
 function isWildcardSegment(segment) {
-    return segment === "{}" || segment === "{stable}";
+    return /^\{[^}]+\}/.test(segment);
 }
 
 function splitPathSegments(routePath) {
@@ -462,11 +467,24 @@ function pathsMatchWithWildcards(leftPath, rightPath) {
 
     const leftSegments = splitPathSegments(left);
     const rightSegments = splitPathSegments(right);
-    if (leftSegments.length !== rightSegments.length) return false;
+    if (leftSegments.length === rightSegments.length) {
+        return leftSegments.every((segment, index) => {
+            const other = rightSegments[index];
+            return segment === other || isWildcardSegment(segment) || isWildcardSegment(other);
+        });
+    }
 
-    return leftSegments.every((segment, index) => {
-        const other = rightSegments[index];
-        return segment === other || isWildcardSegment(segment) || isWildcardSegment(other);
+    const [shorter, longer] = leftSegments.length < rightSegments.length ? [leftSegments, rightSegments] : [rightSegments, leftSegments];
+    const diff = longer.length - shorter.length;
+    if (diff === 0) return true;
+
+    // Rust 路由以相对路径注册（如 /rooms/{room_id}/...），axum nest 在运行时
+    // 拼接前缀（如 /_matrix/client/v1）。文档路径包含完整前缀，归一化后段数不同。
+    // 当短侧完整匹配长侧的尾缀时，视为匹配成功（版本前缀差由 normalizePathForMatch 消除）。
+    const offset = diff;
+    return shorter.every((segment, index) => {
+        const target = longer[offset + index];
+        return segment === target || isWildcardSegment(segment) || isWildcardSegment(target);
     });
 }
 
@@ -1251,8 +1269,12 @@ function parseRustRouterReference(expression, bindings) {
         return parseRustRouterReference(cloneMatch[1], bindings);
     }
 
-    const callMatch = current.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
-    if (callMatch) return callMatch[1];
+    const callMatch = current.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\(\)$/);
+    if (callMatch) {
+        // Router factory function call like `create_moderation_v1_router()` —
+        // resolve the function body recursively (not just the name).
+        return callMatch[1];
+    }
 
     if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(current) && bindings.has(current)) {
         return parseRustRouterReference(bindings.get(current), bindings);
@@ -1277,6 +1299,31 @@ function extractRustRoutesFromFunction(functionName, functions, visited = new Se
     const bindings = extractRustLocalBindings(entry.body);
     const routes = [];
 
+    // Step 1: Detect "chain-base router factory" pattern: a bare function call
+    // at the start of the body, wrapped in a chain of .route/.nest/.with_state.
+    // Example: create_room_report_compat_router().route("/rooms/...", ...)
+    // This happens when a function delegates to another router factory and adds routes on top.
+    const bodyTrimmed = entry.body.trim();
+    // Match when the body starts with an identifier (not Router::new() or let/var)
+    // followed by optional .method() chains.
+    const bareFactoryStart = bodyTrimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*[\.\(]/);
+    if (bareFactoryStart) {
+        const candidateName = bareFactoryStart[1];
+        // Only treat it as a chain-base if:
+        // 1. The candidate name is NOT Router (not Router::new())
+        // 2. The candidate is not a keyword
+        // 3. It's actually a known router factory function
+        if (candidateName !== "Router" && !["let", "var", "const", "return", "if", "match"].includes(candidateName) && functions.has(candidateName)) {
+            // Check that this is truly a chain pattern (the body has .route/.nest/etc.)
+            const hasChainMethod = /\.(route|nest|merge|with_state)\s*\(/.test(bodyTrimmed);
+            if (hasChainMethod) {
+                const baseRoutes = extractRustRoutesFromFunction(candidateName, functions, new Set(visited));
+                routes.push(...baseRoutes);
+            }
+        }
+    }
+
+    // Step 2: Extract .route() calls from the body (direct chains)
     for (const call of findRustMethodCalls(entry.body, "route")) {
         const [pathArg, handlerArg] = splitTopLevelArgs(call);
         const routePath = parseRustStringLiteral(pathArg);
@@ -1290,6 +1337,7 @@ function extractRustRoutesFromFunction(functionName, functions, visited = new Se
         }
     }
 
+    // Step 3: Extract .nest() calls with their nested routes
     for (const call of findRustMethodCalls(entry.body, "nest")) {
         const [prefixArg, routerArg] = splitTopLevelArgs(call);
         const prefix = parseRustStringLiteral(prefixArg);

@@ -342,7 +342,9 @@ describe("DeviceTrustManager", () => {
             expect(result).toBe(true);
         });
 
-        it("should return true for cross-signed device", async () => {
+        it("should return false for cross-signed-looking level (not a wire value)", async () => {
+            // 后端只发 verified / unverified / blocked（models.rs:26-29）。
+            // 旧实现把 "cross_signed" 当作可信，属于凭空发明的取值。
             mockAuthedRequest.mockResolvedValue({
                 device_id: "DEVICE1",
                 trust_level: "cross_signed",
@@ -350,7 +352,7 @@ describe("DeviceTrustManager", () => {
 
             const result = await deviceTrustManager.isDeviceTrusted("DEVICE1");
 
-            expect(result).toBe(true);
+            expect(result).toBe(false);
         });
 
         it("should return false for unverified device", async () => {
@@ -374,10 +376,10 @@ describe("DeviceTrustManager", () => {
     });
 
     describe("isDeviceBlocked", () => {
-        it("should return true for blacklisted device", async () => {
+        it("should return true for a blocked device (backend level is 'blocked', not 'blacklisted')", async () => {
             mockAuthedRequest.mockResolvedValue({
                 device_id: "DEVICE1",
-                trust_level: "blacklisted",
+                trust_level: "blocked",
             });
 
             const result = await deviceTrustManager.isDeviceBlocked("DEVICE1");
@@ -385,7 +387,18 @@ describe("DeviceTrustManager", () => {
             expect(result).toBe(true);
         });
 
-        it("should return false for non-blacklisted device", async () => {
+        it("should return false for the non-existent 'blacklisted' spelling", async () => {
+            mockAuthedRequest.mockResolvedValue({
+                device_id: "DEVICE1",
+                trust_level: "blacklisted",
+            });
+
+            const result = await deviceTrustManager.isDeviceBlocked("DEVICE1");
+
+            expect(result).toBe(false);
+        });
+
+        it("should return false for non-blocked device", async () => {
             mockAuthedRequest.mockResolvedValue({
                 device_id: "DEVICE1",
                 trust_level: "verified",

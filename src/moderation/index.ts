@@ -40,18 +40,31 @@ export class ModerationManager extends BaseManager {
     /**
      * 举报事件
      * 对应 POST /_matrix/client/v3/rooms/{room_id}/report/{event_id}
+     *
+     * @example
+     * ```typescript
+     * await client.getModerationManager().reportEvent("!room:example.org", "$eventId", {
+     *     reason: "spam",
+     *     score: -50,
+     * });
+     * ```
      */
     async reportEvent(roomId: string, eventId: string, body: ReportEventBody): Promise<void> {
+        this.requireNonEmptyString(roomId, "roomId");
+        this.requireNonEmptyString(eventId, "eventId");
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}`;
         try {
-            await this.withRetry(async () => {
-                await this.request<void>({
-                    method: Method.Post,
-                    path: path,
-                    body: body,
-                    prefix: ClientPrefix.V3,
-                });
-            }, "reportEvent");
+            await this.withRetry(
+                async () => {
+                    await this.request<void>({
+                        method: Method.Post,
+                        path: path,
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    });
+                },
+                { idempotent: false, label: "reportEvent" },
+            );
         } catch (error) {
             throw this.normalizeError(error, "reportEvent");
         }
@@ -60,18 +73,29 @@ export class ModerationManager extends BaseManager {
     /**
      * 举报房间
      * 对应 POST /_matrix/client/v3/rooms/{room_id}/report
+     *
+     * @example
+     * ```typescript
+     * await client.getModerationManager().reportRoom("!room:example.org", {
+     *     reason: "spam",
+     * });
+     * ```
      */
     async reportRoom(roomId: string, body: ReportEventBody): Promise<void> {
+        this.requireNonEmptyString(roomId, "roomId");
         const path = `/rooms/${encodeURIComponent(roomId)}/report`;
         try {
-            await this.withRetry(async () => {
-                await this.request<void>({
-                    method: Method.Post,
-                    path: path,
-                    body: body,
-                    prefix: ClientPrefix.V3,
-                });
-            }, "reportRoom");
+            await this.withRetry(
+                async () => {
+                    await this.request<void>({
+                        method: Method.Post,
+                        path: path,
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    });
+                },
+                { idempotent: false, label: "reportRoom" },
+            );
         } catch (error) {
             throw this.normalizeError(error, "reportRoom");
         }
@@ -82,6 +106,8 @@ export class ModerationManager extends BaseManager {
      * 对应 PUT /_matrix/client/v3/rooms/{room_id}/report/{event_id}/score
      */
     async updateReportScore(roomId: string, eventId: string, score: number): Promise<void> {
+        this.requireNonEmptyString(roomId, "roomId");
+        this.requireNonEmptyString(eventId, "eventId");
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}/score`;
         try {
             await this.withRetry(async () => {
@@ -98,10 +124,44 @@ export class ModerationManager extends BaseManager {
     }
 
     /**
+     * 举报用户
+     * 对应 POST /_matrix/client/v3/users/{user_id}/report
+     */
+    async reportUser(userId: string, body: ReportEventBody): Promise<void> {
+        this.requireNonEmptyString(userId, "userId");
+        const path = `/users/${encodeURIComponent(userId)}/report`;
+        try {
+            await this.withRetry(
+                async () => {
+                    await this.request<void>({
+                        method: Method.Post,
+                        path: path,
+                        body: body,
+                        prefix: ClientPrefix.V3,
+                    });
+                },
+                { idempotent: false, label: "reportUser" },
+            );
+        } catch (error) {
+            throw this.normalizeError(error, "reportUser");
+        }
+    }
+
+    /**
      * 获取扫描器信息
      * 对应 GET /_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getModerationManager().getScannerInfo("!room:example.org", "$eventId");
+     * if (info.enabled) {
+     *     console.log(info.version, info.supported_algorithms);
+     * }
+     * ```
      */
     async getScannerInfo(roomId: string, eventId: string): Promise<ScannerInfo> {
+        this.requireNonEmptyString(roomId, "roomId");
+        this.requireNonEmptyString(eventId, "eventId");
         const path = `/rooms/${encodeURIComponent(roomId)}/report/${encodeURIComponent(eventId)}/scanner_info`;
         try {
             return await this.withRetry(async () => {

@@ -1,8 +1,8 @@
 ---
 module: room
 generated_from: docs/api-contract/generated/modules/room.json
-generated_hash: sha256-508bc3c8dd9cbf017daa7da3bb232541079a871236da36ee23d08349b0ea20df
-ledger_schema: 1
+generated_hash: sha256-628addee2bd572ef39d2a068314d2140abdd1e6501b99ddaf6788f9c07e31350
+ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
@@ -186,7 +186,7 @@ last_reviewed: 2026-05-11
 
 ```typescript
 export interface RoomEvent {
-    content: Record<string, unknown>;
+    content: IContent;
     type: string;
     event_id: string;
     sender: string;
@@ -196,7 +196,7 @@ export interface RoomEvent {
 }
 export interface RoomStateEvent extends RoomEvent {
     state_key: string;
-    prev_content?: Record<string, unknown>;
+    prev_content?: IContent;
 }
 export interface RoomVersionResponse {
     room_version: string;
@@ -220,12 +220,12 @@ export interface CreateRoomRequest {
     name?: string;
     topic?: string;
     room_version?: string;
-    power_level_content_override?: Record<string, unknown>;
+    power_level_content_override?: IContent;
     preset?: "private_chat" | "trusted_private_chat" | "public_chat";
-    initial_state?: Array<{ type: string; state_key?: string; content: Record<string, unknown> }>;
+    initial_state?: Array<{ type: string; state_key?: string; content: IContent }>;
     invite?: string[];
     invite_3pid?: Array<{ id_server: string; id_access_token: string; medium: string; address: string }>;
-    creation_content?: Record<string, unknown>;
+    creation_content?: IContent;
     is_direct?: boolean;
     predecessor?: { room_id: string; event_id: string };
     space?: string;

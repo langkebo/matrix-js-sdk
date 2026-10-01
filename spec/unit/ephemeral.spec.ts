@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Method } from "../../src/http-api/method.ts";
 import { EphemeralEvent, EphemeralManager } from "../../src/ephemeral";
 import { MatrixError } from "../../src/http-api/errors";
+import { logger } from "../../src/logger";
 
 describe("EphemeralManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,6 +23,7 @@ describe("EphemeralManager", () => {
 
         manager = new EphemeralManager(mockClient);
         manager.setRetryOptions({ maxRetries: 0, retryDelay: 0, idempotent: true });
+        vi.spyOn(logger, "warn").mockImplementation(() => undefined);
     });
 
     it("classifies rate limits as RetryableError with metadata", async () => {
@@ -144,6 +146,13 @@ describe("EphemeralManager", () => {
             "@alice:example.com",
             "@bob:example.com",
         ]);
+    });
+
+    it("getTypingEvents logs a warning and returns [] when the server fails", async () => {
+        vi.spyOn(manager, "getEphemeralEventsFromServer").mockRejectedValueOnce(new Error("boom"));
+
+        await expect(manager.getTypingEvents("!room:example.com")).resolves.toEqual([]);
+        expect(logger.warn).toHaveBeenCalledWith("EphemeralManager.getTypingEvents failed:", expect.any(Error));
     });
 
     it("getReceiptEvents extracts m.read receipt mappings", async () => {

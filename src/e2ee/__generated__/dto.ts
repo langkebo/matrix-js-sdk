@@ -94,34 +94,32 @@ export interface RoomKeyRequestRequest {
 }
 
 export interface DeviceVerificationRequest {
-    user_id?: string;
     new_device_id?: string;
     device_id?: string;
-    method?: string;
+    method?: "sas" | "qr" | "emoji";
 }
 
 export interface DeviceVerificationResponse {
-    transaction_id?: string;
-    state?: string;
-    device_id?: string;
-    verified?: boolean;
+    request_token: string;
+    token: string;
+    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
+    expires_at: number;
+    methods_available: ("sas" | "qr" | "emoji")[];
 }
 
 export interface DeviceVerificationStatusResponse {
-    token: string;
-    state: "pending" | "verified" | "cancelled" | "expired";
-    device_id?: string;
-    requested_ts?: number;
-    completed_ts?: number;
+    request_token?: string;
+    token?: string;
+    status: "pending" | "approved" | "rejected" | "expired" | "not_found";
+    expires_at?: number;
+    methods_available?: ("sas" | "qr" | "emoji")[];
 }
 
 export interface DeviceTrustEntry {
     device_id: string;
-    user_id?: string;
-    trust_level?: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
+    trust_level: "verified" | "unverified" | "blocked";
+    verified_at?: number;
+    verified_by?: string;
 }
 
 export interface DeviceTrustListResponse {
@@ -130,19 +128,18 @@ export interface DeviceTrustListResponse {
 
 export interface DeviceTrustResponse {
     device_id: string;
-    trust_level: "verified" | "cross_signed" | "unverified" | "unknown";
-    display_name?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
+    trust_level: "verified" | "unverified" | "blocked";
+    verified_at?: number;
+    verified_by?: string;
 }
 
 export interface SecuritySummaryResponse {
     verified_devices: number;
     unverified_devices: number;
-    key_backup_configured: boolean;
-    cross_signing_setup: boolean;
-    backed_up_sessions?: number;
-    total_sessions?: number;
+    blocked_devices: number;
+    has_cross_signing_master: boolean;
+    security_score: number;
+    recommendations: string[];
 }
 
 export interface SecurityBackupCreateRequest {

@@ -16,10 +16,12 @@ limitations under the License.
 
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
+import { ClientPrefix } from "../../http-api/prefix";
 import { NotFoundError, ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
+import { toPaginatedResult } from "../../common/pagination";
 import type {
     RoomInfo,
     RoomStateEvent,
@@ -38,6 +40,8 @@ import type {
     AdminTokenSync,
     AdminRoomSearchResult,
     AdminRoomListings,
+    AdminRoomRedactPayload,
+    AdminRoomRedactResult,
     AdminReport,
     AdminReportPage,
     AdminPurgeHistoryResult,
@@ -110,11 +114,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             total?: number;
         }>(Method.Get, "/rooms", buildQueryParams(queryParams));
 
-        return {
-            items: response.rooms || [],
-            nextToken: response.next_token,
-            total: response.total,
-        };
+        return toPaginatedResult<RoomInfo>(response as unknown as Record<string, unknown>, "rooms");
     }
 
     async searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchResult> {
@@ -386,6 +386,49 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             undefined,
             body,
         );
+    }
+
+    /**
+     * 批量撤回房间内的事件（管理端，按时间范围过滤）。
+     *
+     * 对应后端 `POST /_matrix/client/v3/admin/room/{room_id}/redact`（模块 `admin::room`），
+     * 语义与 Element Synapse 的同名管理端点一致：撤回 `origin_server_ts` 落在
+     * `(after_ts, before_ts)` 区间内的事件，单次上限 `limit` 条。
+     *
+     * 与 {@link deleteRoomMessage} 的分工：后者按单个 `event_id` 精确删除，
+     * 本方法按时间范围批量撤回。
+     *
+     * 注意：该端点的前缀是 **C-S v3** 命名空间下的 `admin/` 子路径，
+     * 不是 `/_synapse/admin/v1`，所以必须显式传 `prefix`，不能走 `this.adminRequest`
+     * （它把前缀写死为 `AdminPrefix.V1`）。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 时间范围 / 条数 / 原因过滤条件，全部可选
+     * @returns 实际被撤回的事件条数
+     * @example
+     * ```typescript
+     * const { redacted } = await client
+     *     .getAdminManager()
+     *     .rooms.redactRoomEvents("!room:example.org", { before_ts: Date.now(), limit: 500 });
+     * ```
+     */
+    async redactRoomEvents(roomId: string, payload: AdminRoomRedactPayload = {}): Promise<AdminRoomRedactResult> {
+        AdminValidators.validateRoomId(roomId);
+        // 后端同样校验 1..10000 并返回 400；在客户端先拦一道，错误信息更直白，
+        // 也避免把明显非法的批次打到服务端。
+        if (
+            payload.limit !== undefined &&
+            (!Number.isInteger(payload.limit) || payload.limit < 1 || payload.limit > 10_000)
+        ) {
+            throw new ValidationError("limit must be an integer between 1 and 10000");
+        }
+        return await this.request<AdminRoomRedactResult>({
+            method: Method.Post,
+            path: `/admin/room/${encodeURIComponent(roomId)}/redact`,
+            prefix: ClientPrefix.V3,
+            body: payload,
+            label: "redactRoomEvents",
+        });
     }
 
     async getRoomAliases(roomId: string): Promise<{ aliases: string[] }> {

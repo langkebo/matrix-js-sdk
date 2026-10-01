@@ -2,7 +2,7 @@
 umbrella: true
 umbrella_sources:
     - docs/api-contract/generated/index.json
-ledger_schema: 1
+ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
@@ -125,7 +125,6 @@ last_reviewed: 2026-05-03
 
 以下路由文件存在实现，但当前未在主装配入口挂载，不计入“可达 API 契约”：
 
-- `synapse-rust/src/web/routes/openclaw.rs`
 - `synapse-rust/src/web/routes/websocket.rs`
 
 ## 使用方式

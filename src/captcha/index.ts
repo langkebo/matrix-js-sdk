@@ -30,10 +30,9 @@ import type { CaptchaPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
 type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
-type CaptchaClientPath = StripClientV3<CaptchaPathPattern> | StripClientR0<CaptchaPathPattern>;
-export type CaptchaApiVersion = "r0" | "v3";
+type CaptchaClientPath = StripClientV3<CaptchaPathPattern>;
+export type CaptchaApiVersion = "v3";
 
 function cp<P extends CaptchaClientPath>(path: P): P {
     return path;
@@ -43,8 +42,8 @@ function ap<P extends StripAdminV1<CaptchaPathPattern>>(path: P): P {
     return path;
 }
 
-function captchaPrefix(version: CaptchaApiVersion = "v3"): ClientPrefix.R0 | ClientPrefix.V3 {
-    return version === "r0" ? ClientPrefix.R0 : ClientPrefix.V3;
+function captchaPrefix(_version: CaptchaApiVersion = "v3"): ClientPrefix.V3 {
+    return ClientPrefix.V3;
 }
 
 export interface CaptchaSendResponse {
@@ -180,6 +179,27 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
             }, "cleanupExpiredCaptchas");
         } catch (error) {
             throw this.normalizeError(error, "cleanupExpiredCaptchas");
+        }
+    }
+
+    /**
+     * Delete expired captchas via the client-side DELETE route.
+     * DELETE /_matrix/client/v3/register/captcha/clean
+     *
+     * Unlike `cleanupExpiredCaptchas()` which uses the admin POST route,
+     * this method uses the client-facing DELETE endpoint.
+     */
+    public async deleteExpiredCaptchas(): Promise<CaptchaCleanupResponse> {
+        try {
+            return await this.withRetry(async () => {
+                return await this.request<CaptchaCleanupResponse>({
+                    method: Method.Delete,
+                    path: "/register/captcha/clean",
+                    prefix: ClientPrefix.V3,
+                });
+            }, "deleteExpiredCaptchas");
+        } catch (error) {
+            throw this.normalizeError(error, "deleteExpiredCaptchas");
         }
     }
 }

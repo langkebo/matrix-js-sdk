@@ -3,13 +3,11 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Worker Admin 模块契约
- * Source:        docs/api-contract/generated/modules/worker.json
- * Ledger schema: 1
- * Source profile: all
- * synapse-rust:  52743253bdca3fa83ea774744e15c917ae07bbfd
+ * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Entries:       15 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
-/** Routes served by the synapse-rust `worker` module. */
+/** Routes served by the synapse-rust `worker-admin` module (mirrored from the backend contract). */
 export const WORKER_ADMIN_ROUTES = [
     { method: "POST", path: "/_synapse/worker/v1/register" },
     { method: "GET", path: "/_synapse/worker/v1/select/{task_type}" },

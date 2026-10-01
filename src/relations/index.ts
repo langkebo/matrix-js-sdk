@@ -121,6 +121,25 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
      * @param eventType - the type of event to fetch
      * @param opts - the options for the request
      * @returns the response, with chunk, prev_batch and, next_batch.
+     * @throws SdkError - if the homeserver rejects the request (for example a
+     * malformed room/event id or a transient rate limit).
+     * @example
+     * ```typescript
+     * const relations = client.getRelationsManager();
+     *
+     * const response = await relations.fetchRelations(
+     *     "!room:example.org",
+     *     "$event:example.org",
+     *     "m.annotation",
+     *     "m.room.message",
+     *     { dir: Direction.Backward, limit: 50 },
+     * );
+     *
+     * for (const event of response.chunk) {
+     *     console.log(event.event_id, event.content);
+     * }
+     * console.log(response.next_batch);
+     * ```
      */
     public async fetchRelations(
         roomId: string,
@@ -222,7 +241,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             return result.total || 0;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("RelationsManager.getRelationCount failed", e);
+            logger.warn("RelationsManager.getRelationCount failed", e);
             return 0;
         }
     }
@@ -236,7 +255,7 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
             return null;
             // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
-            logger.debug("RelationsManager.getLatestRelation failed", e);
+            logger.warn("RelationsManager.getLatestRelation failed", e);
             return null;
         }
     }
@@ -256,6 +275,36 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         return types;
     }
 
+    /**
+     * Get the server-side aggregation of all the relations of a given type for an
+     * event, as counts grouped by relation key.
+     *
+     * Hits `GET /rooms/$roomId/aggregations/$eventId/$relType`, which is the cheap
+     * alternative to paging through `fetchRelations` when only the counts are
+     * needed (for example to render reaction or edit counters).
+     *
+     * @param roomId - the room in which the event is
+     * @param eventId - the id of the event whose relations to aggregate
+     * @param relationType - the type of relation to aggregate, e.g. "m.annotation"
+     * @returns the aggregation response, with a `chunk` of `{ type, key, count }`
+     * entries plus optional `next_batch` / `prev_batch` pagination tokens.
+     * @throws SdkError - if the homeserver rejects the request (for example an
+     * unknown room, event or relation type).
+     * @example
+     * ```typescript
+     * const relations = client.getRelationsManager();
+     *
+     * const aggregations = await relations.getAggregations(
+     *     "!room:example.org",
+     *     "$event:example.org",
+     *     "m.annotation",
+     * );
+     *
+     * for (const { key, count } of aggregations.chunk) {
+     *     console.log(`${key} was used ${count} time(s)`);
+     * }
+     * ```
+     */
     public async getAggregations(
         roomId: string,
         eventId: string,
@@ -343,18 +392,51 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         };
     }
 
+    /**
+     * Send a relation from a parent event to a child event.
+     *
+     * Hits `PUT /rooms/$roomId/relations/$eventId/$relationType/$targetEventId`,
+     * which records the relation server-side without sending a new room event.
+     * On success a {@link RelationsEvent.Updated} event is emitted for the parent
+     * event; on failure a {@link RelationsEvent.Error} event is emitted before
+     * the error is rethrown.
+     *
+     * @param roomId - the room in which both events live
+     * @param parentEventId - the id of the event the relation originates from
+     * @param relationType - the type of relation to create, e.g. "m.annotation"
+     * @param childEventId - the id of the event the relation points at
+     * @param body - optional request body holding the relation content / key
+     * @returns the send response, containing the new `event_id` and the
+     * `relates_to` descriptor echoed back by the homeserver.
+     * @throws SdkError - if the homeserver rejects the request; the same error is
+     * also emitted via {@link RelationsEvent.Error}.
+     * @example
+     * ```typescript
+     * const relations = client.getRelationsManager();
+     *
+     * const response = await relations.sendRelation(
+     *     "!room:example.org",
+     *     "$parent:example.org",
+     *     "m.annotation",
+     *     "$child:example.org",
+     *     { key: "👍" },
+     * );
+     *
+     * console.log(response.event_id);
+     * ```
+     */
     public async sendRelation(
         roomId: string,
-        eventId: string,
+        parentEventId: string, // renamed from eventId for clarity
         relationType: RelationType,
-        targetEventId: string,
+        childEventId: string, // renamed from targetEventId for clarity
         body: SendRelationRequestBody = {},
     ): Promise<SendRelationResponse> {
         const path = utils.encodeUri(rr("/rooms/$roomId/relations/$eventId/$relationType/$targetEventId"), {
             $roomId: roomId,
-            $eventId: eventId,
+            $eventId: parentEventId,
             $relationType: relationType,
-            $targetEventId: targetEventId,
+            $targetEventId: childEventId,
         });
 
         try {
@@ -364,10 +446,59 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 body: body,
                 prefix: ClientPrefix.V1,
             });
-            this.emit(RelationsEvent.Updated, roomId, eventId);
+            this.emit(RelationsEvent.Updated, roomId, parentEventId);
             return response;
         } catch (e) {
             const error = this.normalizeError(e, "sendRelation");
+            this.emit(RelationsEvent.Error, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Send a relation via the /relations/ endpoint using a transaction ID as the
+     * last path segment (alternative to sendRelation which uses a target event ID).
+     * The body spreads content at top level and includes type and optional key.
+     *
+     * @param roomId - The room ID
+     * @param eventId - The parent event ID
+     * @param relType - The relation type (e.g. "m.annotation")
+     * @param txnId - Transaction ID
+     * @param eventType - The event type (e.g. "m.reaction")
+     * @param content - The event content (spread at top level)
+     * @param key - Optional key for annotation relations
+     */
+    public async sendRelationViaSendRelation(
+        roomId: string,
+        eventId: string,
+        relType: string,
+        txnId: string,
+        eventType: string,
+        content: Record<string, unknown>,
+        key?: string,
+    ): Promise<SendRelationResponse> {
+        const path = utils.encodeUri("/rooms/$roomId/relations/$eventId/$relType/$txnId", {
+            $roomId: roomId,
+            $eventId: eventId,
+            $relType: relType,
+            $txnId: txnId,
+        });
+
+        const body: Record<string, unknown> = { ...content, type: eventType };
+        if (key !== undefined) {
+            body.key = key;
+        }
+
+        try {
+            const response = await this.request<SendRelationResponse>({
+                method: Method.Put,
+                path: path,
+                body,
+                prefix: ClientPrefix.V3, // FT-097: 显式声明 V3，不依赖 defaultPrefix
+            });
+            return response;
+        } catch (e) {
+            const error = this.normalizeError(e, "sendRelationViaSendRelation");
             this.emit(RelationsEvent.Error, error);
             throw error;
         }

@@ -1,134 +1,20 @@
 {
   "schema_version": "1",
-  "ledger_schema": "1",
+  "ledger_schema": "4",
   "module": "account_data",
-  "synapse_rust_commit": "52743253bdca3fa83ea774744e15c917ae07bbfd",
-  "generated_at": "2026-07-24T09:12:01Z",
+  "synapse_rust_commit": "cd3ec6221ee7bfc81d80cf239a8be34982e6bab4",
+  "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 26,
+  "entry_count": 15,
   "entries": [
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/account_data/",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/user/{user_id}/account_data/{type}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "type"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/account_data/{type}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "type"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/user/{user_id}/account_data/{type}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "type"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/user/{user_id}/filter",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/user/{user_id}/filter",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/user/{user_id}/filter/{filter_id}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "filter_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/filter/{filter_id}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "filter_id"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/openid/request_token",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/r0/user/{user_id}/openid/request_token",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "type"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "type"
-      ]
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/r0/user/{user_id}/rooms/{room_id}/account_data/{type}",
-      "registered_by": "account_data",
-      "path_params": [
-        "user_id",
-        "room_id",
-        "type"
-      ]
-    },
     {
       "method": "GET",
       "path": "/_matrix/client/v3/user/{user_id}/account_data/",
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -137,7 +23,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -146,7 +33,18 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/user/{user_id}/account_data/{type}",
+      "registered_by": "account_data",
+      "path_params": [
+        "user_id",
+        "type"
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -155,7 +53,8 @@
       "path_params": [
         "user_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -163,7 +62,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -171,7 +71,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -180,7 +81,8 @@
       "path_params": [
         "user_id",
         "filter_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -189,7 +91,8 @@
       "path_params": [
         "user_id",
         "filter_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -197,7 +100,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "POST",
@@ -205,7 +109,8 @@
       "registered_by": "account_data",
       "path_params": [
         "user_id"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "DELETE",
@@ -215,7 +120,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     },
     {
       "method": "GET",
@@ -225,7 +131,19 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}",
+      "registered_by": "account_data",
+      "path_params": [
+        "user_id",
+        "room_id",
+        "type"
+      ],
+      "query_params": []
     },
     {
       "method": "PUT",
@@ -235,7 +153,8 @@
         "user_id",
         "room_id",
         "type"
-      ]
+      ],
+      "query_params": []
     }
   ]
 }

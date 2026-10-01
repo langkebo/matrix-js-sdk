@@ -976,6 +976,14 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.eventOps.getRoomTurnServer(roomId);
     }
 
+    async getAntiScreenshot(roomId: string): Promise<{ enabled: boolean }> {
+        return this.eventOps.getAntiScreenshot(roomId);
+    }
+
+    async setAntiScreenshot(roomId: string, enabled: boolean): Promise<void> {
+        return this.eventOps.setAntiScreenshot(roomId, enabled);
+    }
+
     async getStickyEvents(roomId: string): Promise<StickyEvent[]> {
         return this.eventOps.getStickyEvents(roomId);
     }
@@ -1000,6 +1008,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     stop(): void {
         this.clearCache();
+        // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
+        this.members.removeAllListeners();
+        this.stats.removeAllListeners();
     }
 
     // ===== 私有辅助方法 =====

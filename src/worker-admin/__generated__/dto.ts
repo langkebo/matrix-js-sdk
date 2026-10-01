@@ -5,7 +5,7 @@
  */
 
 /**
- * DTO snippets extracted from the contract doc for `worker`.
+ * DTO snippets extracted from the contract doc for `worker-admin`.
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 

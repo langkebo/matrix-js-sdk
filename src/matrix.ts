@@ -33,6 +33,9 @@ import { type CryptoStore } from "./crypto/store/base";
 import { extendMatrixClientWithManagers, isManagerExtensionsInitialized } from "./manager-extensions";
 import { extendMatrixClient as extendRoom } from "./room";
 import { extendMatrixClient as extendEvent } from "./event";
+import { assertSecureBaseUrl } from "./http-api/base-url-guard";
+import { logger } from "./logger";
+import { SDK_NAME, getSdkVersion, warnIfUserAgentDoesNotAdvertiseFork } from "./version";
 
 export {
     extendMatrixClientWithManagers,
@@ -74,10 +77,14 @@ export * from "./scheduler";
 export * from "./filter";
 export * from "./timeline-window";
 export * from "./interactive-auth";
+export * from "./version";
 export * from "./version-support";
 export * from "./service-types";
 export * from "./store/memory";
 export * from "./store/indexeddb";
+export * from "./store/ttl";
+export * from "./store/stats";
+export * from "./store/capacity";
 export * from "./crypto/store/memory-crypto-store";
 export * from "./crypto/store/localStorage-crypto-store";
 export * from "./crypto/store/indexeddb-crypto-store";
@@ -108,6 +115,7 @@ export * from "./models/related-relations";
 export * from "./runtime-schemas/index";
 export type { RoomSummary } from "./client";
 export * from "./matrix-managers";
+export { MSC4108SignInWithQR } from "./rendezvous/MSC4108SignInWithQR";
 
 export type { ICreateClientOpts } from "./client";
 export { PendingEventOrdering } from "./client";
@@ -257,9 +265,30 @@ export async function initializeManagerExtensions(): Promise<void> {
  * `opts`.
  */
 export function createClient(opts: ICreateClientOpts): MatrixClient {
+    // Security: enforce HTTPS base URLs, allowing http only for dev hosts (ISSUE-09).
+    assertSecureBaseUrl(opts.baseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
+    if (opts.idBaseUrl) {
+        assertSecureBaseUrl(opts.idBaseUrl, { allowInsecureDev: opts.allowInsecureHttp ?? false });
+    }
     installSynchronousCoreManagerExtensions();
-    void autoInitManagerExtensions(opts);
-    return new MatrixClient(amendClientOpts(opts));
+    // Identify this build in the log. Logged at `info` rather than `debug`: production
+    // hosts commonly raise the threshold above debug, which is exactly when knowing
+    // whether the caller ran upstream or this fork matters most.
+    logger.info(`${SDK_NAME} ${getSdkVersion()}`);
+    // S-9: the SDK cannot set User-Agent itself (forbidden header name), so surface
+    // a one-off warning when the host never spliced our token into the native UA.
+    warnIfUserAgentDoesNotAdvertiseFork();
+    const client = new MatrixClient(amendClientOpts(opts));
+    // 把 manager 异步初始化的 Promise 注入 client，暴露 whenManagerExtensionsReady()
+    // 门控。此前是 fire-and-forget，createClient 返回后立即调用私有 manager 会
+    // 因方法尚未挂载而抛 TypeError。
+    const managerReady = autoInitManagerExtensions(opts);
+    client.setManagerExtensionsReady(managerReady);
+    // 避免 fire-and-forget 的 unhandled rejection（ready() 仍能感知错误）
+    managerReady.catch((err) => {
+        logger.error("Failed to initialize manager extensions", err);
+    });
+    return client;
 }
 
 /**

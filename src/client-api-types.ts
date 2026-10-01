@@ -439,10 +439,15 @@ export interface IServerVersions {
     unstable_features: Record<string, boolean>;
 }
 
+export interface ITileServerWellKnown {
+    map_style_url?: string;
+}
+
 export interface IClientWellKnown {
     [key: string]: unknown;
     "m.homeserver"?: IWellKnownConfig;
     "m.identity_server"?: IWellKnownConfig;
+    "m.tile_server"?: ITileServerWellKnown;
 }
 
 export interface IWellKnownConfig<T = IClientWellKnown> {

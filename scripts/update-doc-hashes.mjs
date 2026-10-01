@@ -18,7 +18,6 @@ const modulesDir = path.join(docsDir, "generated", "modules");
 const DOC_TO_MODULE = {
     "account-data": "account_data",
     admin: "admin",
-    "ai-connection": "ai_connection",
     "app-service": "app_service",
     "background-update": "background_update",
     "burn-after-read": "burn_after_read",
@@ -41,7 +40,6 @@ const DOC_TO_MODULE = {
     module: "module",
     notifications: "push_notification",
     oidc: "oidc",
-    openclaw: "openclaw",
     presence: "presence",
     push: "push",
     reactions: "reactions",

@@ -30,6 +30,16 @@ export function clearManagerRegistry(client: MatrixClient): void {
     getRegistry(client).clear();
 }
 
+/**
+ * 返回当前 client 上所有已创建的 manager 实例。
+ * 用于 `stopClientLifecycleServices` 统一调用 `stop()`。
+ */
+export function getAllManagersForClient(client: MatrixClient): unknown[] {
+    const carrier = client as ManagerRegistryCarrier;
+    const registry = carrier[MANAGER_REGISTRY];
+    return registry ? Array.from(registry.values()) : [];
+}
+
 // ── Class / factory registry (for manager() accessor) ──────────
 
 type ManagerClass = new (client: MatrixClient) => unknown;
@@ -71,7 +81,6 @@ export type ManagerName =
     | "accountData"
     | "admin"
     | "aggregations"
-    | "aiConnection"
     | "auth"
     | "backgroundUpdate"
     | "beacon"
@@ -83,6 +92,7 @@ export type ManagerName =
     | "cryptoKeys"
     | "cryptoStore"
     | "dehydratedDevice"
+    | "delayedEvents"
     | "device"
     | "deviceKeys"
     | "deviceTrust"
@@ -113,7 +123,6 @@ export type ManagerName =
     | "module"
     | "notifications"
     | "oidc"
-    | "openclaw"
     | "passwordReset"
     | "pinnedMessages"
     | "presence"
@@ -180,7 +189,6 @@ export interface ManagerTypeMap {
     accountData: import("../account-data/index").AccountDataManager;
     admin: import("../admin/index").AdminManager;
     aggregations: import("../aggregations/index").AggregationsManager;
-    aiConnection: import("../ai-connection/index").AIConnectionManager;
     auth: import("../auth/index").AuthManager;
     backgroundUpdate: import("../background-update/index").BackgroundUpdateManager;
     beacon: import("../beacon/index").BeaconManager;
@@ -192,6 +200,7 @@ export interface ManagerTypeMap {
     cryptoKeys: import("../crypto-keys/index").CryptoKeysManager;
     cryptoStore: import("../crypto-store/index").CryptoStoreManager;
     dehydratedDevice: import("../dehydrated-device/index").DehydratedDeviceManager;
+    delayedEvents: import("../delayed-events/index").DelayedEventsManager;
     device: import("../device/index").DeviceManager;
     deviceKeys: import("../device-keys/index").DeviceKeysManager;
     deviceTrust: import("../device-trust/index").DeviceTrustManager;
@@ -222,7 +231,6 @@ export interface ManagerTypeMap {
     module: import("../module/index").ModuleManager;
     notifications: import("../notifications/index").NotificationsManager;
     oidc: import("../oidc/manager").OidcManager;
-    openclaw: import("../open-claw/index").OpenClawManager;
     passwordReset: import("../password-reset/index").PasswordResetManager;
     pinnedMessages: import("../pinned-messages/index").PinnedMessagesManager;
     presence: import("../presence/index").PresenceManager;

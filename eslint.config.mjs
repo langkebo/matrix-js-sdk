@@ -286,6 +286,7 @@ export default tseslint.config(
                     assertFunctionNames: [
                         "expect",
                         "expectDevices",
+                        "**.expectCalledWith",
                         "assert.isTrue",
                         "assert.isFalse",
                         "passwordTest",

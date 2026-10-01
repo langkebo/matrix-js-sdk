@@ -63,13 +63,13 @@ export interface ManagerExtensionsOptions {
     includeVerification?: boolean;
     includeE2EE?: boolean;
     includeWorkerBody?: boolean;
-    includeAiConnection?: boolean;
-    includeOpenClaw?: boolean;
     includeVoice?: boolean;
     includeSamlAuth?: boolean;
     includeCas?: boolean;
     includeExternalService?: boolean;
+    includeAppService?: boolean;
     includeDehydratedDevice?: boolean;
+    includeDelayedEvents?: boolean;
     includeThread?: boolean;
     includeWidget?: boolean;
 
@@ -90,6 +90,8 @@ export interface ManagerExtensionsOptions {
     includeServerTime?: boolean;
     includeBackgroundUpdate?: boolean;
     includeUserDirectory?: boolean;
+    includeReactions?: boolean;
+    includeBeacon?: boolean;
     includeManagerAccessor?: boolean;
     includeAll?: boolean;
 }

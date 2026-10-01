@@ -101,8 +101,6 @@ const MODULE_DEFS = [
     { option: "includeVerification", module: "verification" },
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body", standalone: false },
-    { option: "includeAiConnection", module: "ai-connection" },
-    { option: "includeOpenClaw", module: "openclaw", path: "open-claw/index.js" },
     { option: "includeVoice", module: "voice" },
     { option: "includeSamlAuth", module: "saml", standalone: false },
     { option: "includeCas", module: "cas" },
@@ -129,6 +127,9 @@ const MODULE_DEFS = [
     { option: "includeServerTime", module: "server-time" },
     { option: "includeBackgroundUpdate", module: "background-update" },
     { option: "includeUserDirectory", module: "user-directory" },
+    { option: "includeReactions", module: "reactions" },
+    { option: "includeBeacon", module: "beacon" },
+    { option: "includeAppService", module: "app-service" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────

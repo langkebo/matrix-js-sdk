@@ -32,6 +32,17 @@ export const IGNORE_INVITES_ACCOUNT_EVENT_KEY = new UnstableValue(
 /// The types of recommendations understood.
 export enum PolicyRecommendation {
     Ban = "m.ban",
+    /**
+     * Recommend that the server take down the reported content/user.
+     *
+     * **Draft — not implemented by synapse-rust.** The `MSC4204` label is
+     * historical: in this project that number denotes *password change revoking
+     * devices*, and the backend never consumes an `m.takedown` recommendation
+     * (zero hits across the Rust workspace). Creating a policy rule with this
+     * recommendation type-checks but has no server-side effect. See
+     * `docs/MSC_SEMANTICS.md`.
+     */
+    Takedown = "m.takedown",
 }
 
 /**

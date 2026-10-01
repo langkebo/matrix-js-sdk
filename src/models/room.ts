@@ -105,6 +105,13 @@ interface IOpts {
      * Default: 1000 events
      */
     maxTimelineEvents?: number;
+    /**
+     * NOT_SENT pending events older than this threshold (in milliseconds) are
+     * automatically transitioned to CANCELLED via the existing cleanup path.
+     * Default: 86_400_000 (24h). Set to 0 to disable.
+     * ISSUE-11b.
+     */
+    pendingEventNotSentTimeoutMs?: number;
 }
 
 export interface IRecommendedVersion {
@@ -128,6 +135,12 @@ export interface IRecommendedVersion {
 // an extremely uncommon case (possibly a DoS) is a small
 // price to pay to keep matrix-js-sdk responsive.
 const MAX_NUMBER_OF_VISIBILITY_EVENTS_TO_SCAN_THROUGH = 30;
+
+// 历史 timeline（back-pagination 产生的非 live timeline）数量上限。
+// 每个历史 timeline 的事件数已受 maxTimelineEvents 约束，此处限制 timeline 数量，
+// 防止 timelineSupport=true 时用户大量向前翻历史导致 timelines[] 无界累积。
+// 超过上限时淘汰最老的历史 timeline（保留 live timeline 与最近的历史）。
+const MAX_HISTORY_TIMELINES = 20;
 
 export type NotificationCount = Partial<Record<NotificationCountType, number>>;
 
@@ -464,6 +477,18 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     private readonly maxTimelineEvents: number;
 
     /**
+     * NOT_SENT pending events older than this threshold (ms) are auto-cancelled.
+     * 0 disables the sweep. Default 24h. ISSUE-11b.
+     */
+    private readonly notSentTimeoutMs: number;
+
+    /**
+     * Periodic timer that sweeps the pending event list for stale NOT_SENT events.
+     * Undefined when the sweep is disabled (timeout = 0) or after disposeNotSentSweepTimer().
+     */
+    private notSentSweepTimer?: ReturnType<typeof setInterval>;
+
+    /**
      * Construct a new Room.
      *
      * <p>For a room, we store an ordered sequence of timelines, which may or may not
@@ -501,6 +526,18 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
 
         opts.pendingEventOrdering = opts.pendingEventOrdering || PendingEventOrdering.Chronological;
         this.maxTimelineEvents = opts.maxTimelineEvents ?? 1000;
+
+        // ISSUE-11b: NOT_SENT timeout eviction. Default 24h; 0 disables the sweep.
+        this.notSentTimeoutMs = opts.pendingEventNotSentTimeoutMs ?? 86_400_000;
+        if (this.notSentTimeoutMs > 0) {
+            // Sweep every 60s; cheap scan of pendingEventList (only populated in Detached mode,
+            // but in Chronological mode pendingEventList is undefined and the sweep is a no-op).
+            this.notSentSweepTimer = setInterval(() => this.sweepNotSentEvents(), 60_000);
+            // Allow the process to exit even if the timer is still running.
+            if (typeof this.notSentSweepTimer.unref === "function") {
+                this.notSentSweepTimer.unref();
+            }
+        }
 
         this.name = roomId;
         this.normalizedName = roomId;
@@ -558,7 +595,9 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 this.threadsTimelineSets[0] = timelineSets[0];
                 this.threadsTimelineSets[1] = timelineSets[1];
                 return timelineSets;
-            } catch {
+                // @swallow-error { owner: "room", expires: "2026-12-31" }
+            } catch (e) {
+                logger.warn("Room.createThreadsTimelineSets failed:", e);
                 this.threadTimelineSetsPromise = null;
                 return null;
             }
@@ -3168,23 +3207,129 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     }
 
     /**
-     * Cleanup old events from timeline if cache exceeds maxTimelineEvents
-     * This prevents memory leaks in long-running sessions with active rooms
+     * Cleanup old events from timeline if cache exceeds maxTimelineEvents.
+     * This prevents memory leaks in long-running sessions with active rooms.
+     *
+     * ISSUE-11b: now also trims filtered timeline sets (index 1+) and thread
+     * timeline sets, which previously grew unbounded.
+     *
+     * 经 EventTimelineSet.removeEvent 走完整清理链（_eventIdToTimeline 映射删除 +
+     * baseIndex 递减），此前直接 splice getEvents() 返回的内部数组会导致映射悬空、
+     * baseIndex 不递减、compareEventOrdering/getTimelineForEvent 索引错乱。
      */
     private cleanupOldEvents(): void {
-        const liveTimeline = this.getLiveTimeline();
+        // Clean the live (unfiltered) timeline.
+        this.trimTimelineSet(this.getUnfilteredTimelineSet());
+
+        // Clean filtered timeline sets (index 1+ in this.timelineSets).
+        for (let i = 1; i < this.timelineSets.length; i++) {
+            this.trimTimelineSet(this.timelineSets[i]);
+        }
+
+        // Clean thread timeline sets (may be uninitialised — empty array).
+        for (const ts of this.threadsTimelineSets) {
+            this.trimTimelineSet(ts);
+        }
+
+        // 历史 timeline 数量淘汰（timelineSupport=true 时 back-pagination 持续 push
+        // 新 timeline，否则 timelines[] 无界累积）。
+        this.trimHistoryTimelines(this.getUnfilteredTimelineSet());
+        for (let i = 1; i < this.timelineSets.length; i++) {
+            this.trimHistoryTimelines(this.timelineSets[i]);
+        }
+        for (const ts of this.threadsTimelineSets) {
+            this.trimHistoryTimelines(ts);
+        }
+    }
+
+    /**
+     * 裁剪单个 timelineSet 的 live timeline 中超出 maxTimelineEvents 的最老事件。
+     * 通过 removeEvent 逐条删除，保证 _eventIdToTimeline 与 baseIndex 同步维护。
+     */
+    private trimTimelineSet(timelineSet: EventTimelineSet): void {
+        const liveTimeline = timelineSet.getLiveTimeline();
         const events = liveTimeline.getEvents();
+        if (events.length <= this.maxTimelineEvents) {
+            return;
+        }
+        const remove = events.length - this.maxTimelineEvents;
+        for (let i = 0; i < remove; i++) {
+            // 每次取最老（索引 0）事件的 id，经 removeEvent 删除
+            const oldest = timelineSet.getLiveTimeline().getEvents()[0];
+            const eventId = oldest?.getId();
+            if (!eventId) {
+                break;
+            }
+            timelineSet.removeEvent(eventId);
+        }
+    }
 
-        if (events.length > this.maxTimelineEvents) {
-            const eventsToRemove = events.length - this.maxTimelineEvents;
-            // Remove oldest events from the beginning of the timeline
-            events.splice(0, eventsToRemove);
+    /**
+     * 裁剪历史 timeline（非 live timeline）数量，超过 {@link MAX_HISTORY_TIMELINES}
+     * 时淘汰最老的。live timeline 永不删除。
+     */
+    private trimHistoryTimelines(timelineSet: EventTimelineSet): void {
+        const timelines = timelineSet.getTimelines();
+        const historyCount = timelines.length - 1; // 减掉 live timeline
+        if (historyCount <= MAX_HISTORY_TIMELINES) {
+            return;
+        }
+        const remove = historyCount - MAX_HISTORY_TIMELINES;
+        for (let i = 0; i < remove; i++) {
+            // 最老的历史 timeline 在 live 之后（索引 1）
+            const oldest = timelineSet.getTimelines()[1];
+            if (!oldest) {
+                break;
+            }
+            timelineSet.removeTimeline(oldest);
+        }
+    }
 
-            // Log cleanup for monitoring
-            logger.debug(
-                `[Room ${this.roomId}] Cleaned up ${eventsToRemove} old events, ` +
-                    `timeline now has ${events.length} events`,
+    /**
+     * Sweep the pending event list for NOT_SENT events older than {@link notSentTimeoutMs}
+     * and transition them to CANCELLED via the existing cleanup path
+     * (see {@link updatePendingEvent}). No-op when the pending list is empty or
+     * when the sweep is disabled (timeout = 0). ISSUE-11b.
+     */
+    private sweepNotSentEvents(): void {
+        if (!this.pendingEventList || this.pendingEventList.length === 0) return;
+        const now = Date.now();
+        const expired: MatrixEvent[] = [];
+        for (const event of this.pendingEventList) {
+            if (event.status === EventStatus.NOT_SENT) {
+                const age = now - event.localTimestamp;
+                if (age > this.notSentTimeoutMs) {
+                    expired.push(event);
+                }
+            }
+        }
+        for (const event of expired) {
+            const eventId = event.getId();
+            if (eventId) {
+                // Reuse the existing CANCELLED cleanup path (updatePendingEvent →
+                // removePendingEvent + removeEvent + savePendingEvents).
+                this.updatePendingEvent(event, EventStatus.CANCELLED);
+            }
+        }
+        if (expired.length > 0) {
+            logger.info(
+                `[Room ${this.roomId}] Auto-cancelled ${expired.length} stale NOT_SENT events ` +
+                    `(timeout=${this.notSentTimeoutMs}ms)`,
             );
+        }
+    }
+
+    /**
+     * Stop the NOT_SENT sweep timer. Safe to call multiple times.
+     *
+     * Intended to be invoked by the client when the room is no longer needed
+     * (see ISSUE-11a / task B3); exposed here so lifecycle management stays
+     * with the client. ISSUE-11b.
+     */
+    public disposeNotSentSweepTimer(): void {
+        if (this.notSentSweepTimer) {
+            clearInterval(this.notSentSweepTimer);
+            this.notSentSweepTimer = undefined;
         }
     }
 

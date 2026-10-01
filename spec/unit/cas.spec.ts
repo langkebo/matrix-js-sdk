@@ -124,16 +124,81 @@ describe("CasManager", () => {
     });
 
     describe("cas prefix", () => {
-        it("listServices with 'cas' prefix should use /_synapse/cas prefix", async () => {
+        it("listServices with 'cas' prefix should use /services route (no embedded cas)", async () => {
+            // Note: Backend does NOT have /_synapse/cas/services route
+            // The cas prefix is for CAS protocol endpoints (serviceValidate, proxyValidate, etc.)
+            // Service management uses synapse_admin prefix only
             transport.respondWith({ services: [] });
 
             await manager.listServices("cas");
 
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
-                "/admin/services",
+                "/services",
                 undefined,
                 undefined,
+                expect.objectContaining({ prefix: "/_synapse/cas" }),
+            );
+        });
+
+        it("createService with 'cas' prefix should use /services route", async () => {
+            const data = { name: "CAS Service", service_url: "https://cas.example.com" };
+            transport.respondWith({ id: "cas-svc-1", name: "CAS Service" });
+
+            const result = await manager.createService(data, "cas");
+
+            expect(result.id).toBe("cas-svc-1");
+            expect(transport.request).toHaveBeenCalledWith(
+                Method.Post,
+                "/services",
+                undefined,
+                data,
+                expect.objectContaining({ prefix: "/_synapse/cas" }),
+            );
+        });
+
+        it("deleteService with 'cas' prefix should use /services/{id} route", async () => {
+            transport.respondWith({ id: "cas-svc-1" });
+
+            const result = await manager.deleteService("cas-svc-1", "cas");
+
+            expect(result.id).toBe("cas-svc-1");
+            expect(transport.request).toHaveBeenCalledWith(
+                Method.Delete,
+                "/services/cas-svc-1",
+                undefined,
+                undefined,
+                expect.objectContaining({ prefix: "/_synapse/cas" }),
+            );
+        });
+
+        it("getUserAttributes with 'cas' prefix should use /users/{id}/attributes route", async () => {
+            transport.respondWith({ user_id: "@alice:example.com", attributes: { email: ["alice@test.com"] } });
+
+            const result = await manager.getUserAttributes("@alice:example.com", "cas");
+
+            expect(result.user_id).toBe("@alice:example.com");
+            expect(transport.request).toHaveBeenCalledWith(
+                Method.Get,
+                "/users/%40alice%3Aexample.com/attributes",
+                undefined,
+                undefined,
+                expect.objectContaining({ prefix: "/_synapse/cas" }),
+            );
+        });
+
+        it("setUserAttributes with 'cas' prefix should use /users/{id}/attributes route", async () => {
+            const data = { attributes: { email: ["charlie@test.com"] } };
+            transport.respondWith({ user_id: "@charlie:example.com", attributes: { email: ["charlie@test.com"] } });
+
+            const result = await manager.setUserAttributes("@charlie:example.com", data, "cas");
+
+            expect(result.user_id).toBe("@charlie:example.com");
+            expect(transport.request).toHaveBeenCalledWith(
+                Method.Post,
+                "/users/%40charlie%3Aexample.com/attributes",
+                undefined,
+                data,
                 expect.objectContaining({ prefix: "/_synapse/cas" }),
             );
         });

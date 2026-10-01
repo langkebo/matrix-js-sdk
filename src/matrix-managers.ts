@@ -1,6 +1,7 @@
 export { AdminManager, type UserInfo, type RoomInfo, type ServerStats } from "./admin";
 export { WorkerAdminManager } from "./worker-admin";
 export { AccountManager } from "./account";
+export type { MyRoomEntry, MyRoomsResponse, EventsResponse, EventsRequestOptions } from "./account";
 export { AccountDataManager } from "./account-data";
 export { AuthManager, type RegisterFlow, type RegisterFlowsResponse } from "./auth";
 export { CapabilitiesManager } from "./capabilities";
@@ -32,6 +33,20 @@ export {
     type AddChildOptions,
 } from "./space";
 export { FriendManager } from "./friend";
+export { FriendEvent, FriendRelationshipStatus, FriendRequestStatus } from "./friend";
+export type {
+    Friend,
+    FriendRequest,
+    FriendStatusInfo,
+    FriendshipCheckResponse,
+    FriendSearchResult,
+    FriendSearchQuery,
+    FriendSearchResponse,
+    FriendGroup,
+    FriendGroups,
+    FriendNotificationData,
+    FriendStatus,
+} from "./friend";
 export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
 export { KeyVerificationManager } from "./key-verification";
@@ -102,7 +117,12 @@ export type {
     IDeviceDeleteRequest,
     IAuthDict,
     IDeviceListUpdatesResponse,
+    IDeviceList,
+    IDeviceListUpdatesRequest,
+    IDeviceData,
+    IDeviceChange,
 } from "./device";
+export { DeviceEvent } from "./device";
 export { ProfileManager } from "./profile";
 export { SecurityManager } from "./security";
 export { TypingManager } from "./typing";
@@ -145,10 +165,10 @@ export { EphemeralManager } from "./ephemeral";
 export { EventManager } from "./event";
 export { FilterManager, FilterManager as CanonicalFilterManager } from "./filter/index";
 export { IdentityManager } from "./identity";
-export { InviteListManager } from "./invite-list";
 export { InvitesManager } from "./invites";
 export { KeyBackupManager } from "./key-backup";
 export { KeyRotationManager } from "./key-rotation";
+export { DelayedEventsManager } from "./delayed-events";
 export {
     DehydratedDeviceManager,
     type DehydratedDeviceData,
@@ -165,6 +185,7 @@ export {
 export { LifecycleManager } from "./lifecycle";
 export { MembershipManager } from "./membership";
 export { NotificationsManager } from "./notifications";
+export type { ILocalNotificationSettings, NotificationsManagerEvents } from "./notifications";
 export { PinnedMessagesManager } from "./pinned-messages";
 export { PushNotificationsManager } from "./push-notifications";
 export { PushRulesManager } from "./push-rules";
@@ -220,33 +241,3 @@ export type {
     IVoiceDeleteResponse,
 } from "./voice";
 export { WidgetsManager } from "./widgets";
-export { AIConnectionManager, AIConnectionEvent } from "./ai-connection";
-export type {
-    AIConnection,
-    CreateConnectionOptions,
-    McpToolCallRequest,
-    AiApiVersion,
-    McpTool,
-    McpToolListResponse,
-    McpToolCallResponse,
-    ConnectionListResponse,
-} from "./ai-connection";
-export { OpenClawManager, OpenClawEvent } from "./open-claw";
-export type {
-    OpenClawConnection,
-    OpenClawConversation,
-    OpenClawMessage,
-    OpenClawGeneration,
-    OpenClawChatRole,
-    CreateOpenClawConnectionRequest,
-    UpdateOpenClawConnectionRequest,
-    CreateOpenClawConversationRequest,
-    UpdateOpenClawConversationRequest,
-    SendMessageRequest,
-    CreateGenerationRequest,
-    CreateChatRoleRequest,
-    UpdateChatRoleRequest,
-    PaginatedResponse,
-    PaginationParams,
-    ConnectionTestResult,
-} from "./open-claw";

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { KeyVerificationManager } from "../../src/key-verification/index";
 import { Method, ClientPrefix } from "../../src/http-api";
 import { extendMatrixClientWithManagers, resetManagerExtensions } from "../../src/manager-extensions/index";
-import { MatrixClient } from "../../src/client";
+import { MatrixClient, type IScanQrCodeRequest, type IShowQrCodeResponse } from "../../src/client";
 
 describe("KeyVerificationManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,8 +44,8 @@ describe("KeyVerificationManager", () => {
 
     it("routes verification start helpers to the existing HTTP endpoint", async () => {
         await manager.requestVerification("@alice:test", ["m.sas.v1"]);
-        await manager.requestRoomKeyVerification("!room:test", "@bob:test", "r0");
-        await manager.beginKeyVerification("m.qr_code.show.v1", "@carol:test", "CAROL", "r0");
+        await manager.requestRoomKeyVerification("!room:test", "@bob:test", "v3");
+        await manager.beginKeyVerification("m.qr_code.show.v1", "@carol:test", "CAROL", "v3");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -69,7 +69,7 @@ describe("KeyVerificationManager", () => {
                 to_user: "@bob:test",
                 method: "sas",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             3,
@@ -82,7 +82,7 @@ describe("KeyVerificationManager", () => {
                 to_device: "CAROL",
                 method: "m.qr_code.show.v1",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
     });
 
@@ -103,8 +103,8 @@ describe("KeyVerificationManager", () => {
     });
 
     it("supports custom cancel metadata and request listing versions", async () => {
-        await manager.cancelKeyVerification("txn-2", "Timed out", "m.timeout", "r0");
-        await manager.getVerificationRequests("r0");
+        await manager.cancelKeyVerification("txn-2", "Timed out", "m.timeout", "v3");
+        await manager.getVerificationRequests("v3");
         await manager.getVerificationRequests("@ignored:test", "v1");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
@@ -117,7 +117,7 @@ describe("KeyVerificationManager", () => {
                 code: "m.timeout",
                 reason: "Timed out",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -125,7 +125,7 @@ describe("KeyVerificationManager", () => {
             "/keys/device_signing/requests",
             undefined,
             undefined,
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             3,
@@ -144,7 +144,7 @@ describe("KeyVerificationManager", () => {
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             },
-            "r0",
+            "v3",
         );
         await manager.sendKeyAgreement(
             {
@@ -158,7 +158,7 @@ describe("KeyVerificationManager", () => {
                 transaction_id: "txn-mac",
                 mac: "mac-value",
             },
-            "r0",
+            "v3",
         );
         await manager.completeKeyVerification("txn-done");
 
@@ -172,7 +172,7 @@ describe("KeyVerificationManager", () => {
                 key_agreement_protocol: "curve25519-hkdf-sha256",
                 hash: "sha256",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -194,7 +194,7 @@ describe("KeyVerificationManager", () => {
                 transaction_id: "txn-mac",
                 mac: "mac-value",
             },
-            { prefix: ClientPrefix.R0 },
+            { prefix: ClientPrefix.V3 },
         );
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             4,
@@ -208,7 +208,15 @@ describe("KeyVerificationManager", () => {
 
     it("routes QR helpers through the verification contract paths", async () => {
         await manager.showQrCode("txn-qr");
-        await manager.scanQrCode("encoded-qr", "txn-qr", "r0");
+        const scanRequest: IScanQrCodeRequest = {
+            transaction_id: "txn-qr",
+            server_name: "example.org",
+            user_id: "@alice:example.org",
+            device_id: "DEVICE",
+            device_ed25519_key: "ed25519:key",
+            device_curve25519_key: "curve25519:key",
+        };
+        await manager.scanQrCode(scanRequest, "v3");
 
         expect(client.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -223,9 +231,47 @@ describe("KeyVerificationManager", () => {
             "POST",
             "/keys/qr_code/scan",
             undefined,
-            { qr_code_data: "encoded-qr", transaction_id: "txn-qr" },
-            { prefix: "/_matrix/client/r0" },
+            scanRequest,
+            { prefix: "/_matrix/client/v3" },
         );
+    });
+
+    it("scanQrCode 便捷方法发送后端 ScanQrBody 所需的全部必填字段", async () => {
+        // 后端 synapse-rust 的 ScanQrBody 需要以下 6 个必填字段，缺一不可
+        const request: IScanQrCodeRequest = {
+            transaction_id: "txn-qr",
+            server_name: "example.org",
+            user_id: "@alice:example.org",
+            device_id: "DEVICE",
+            device_ed25519_key: "ed25519:key",
+            device_curve25519_key: "curve25519:key",
+        };
+        await manager.scanQrCode(request, "v3");
+
+        expect(client.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/keys/qr_code/scan", undefined, request, {
+            prefix: ClientPrefix.V3,
+        });
+    });
+
+    it("FT-109: showQrCode 返回完整 QR 数据结构（IShowQrCodeResponse），而非 { qr_code_data }", async () => {
+        const backendResponse: IShowQrCodeResponse = {
+            transaction_id: "txn-show",
+            server_name: "example.org",
+            user_id: "@alice:example.org",
+            device_id: "DEVICE",
+            device_ed25519_key: "ed25519:key",
+            device_curve25519_key: "curve25519:key",
+        };
+        client.http.authedRequest.mockResolvedValueOnce(backendResponse);
+
+        const result = await manager.showQrCode("txn-show");
+
+        // 后端返回 6 个字段，而非 qr_code_data 包装字段
+        expect(result).toEqual(backendResponse);
+        expect(result).not.toHaveProperty("qr_code_data");
+        expect(result.transaction_id).toBe("txn-show");
+        expect(result.server_name).toBe("example.org");
+        expect(result.device_ed25519_key).toBe("ed25519:key");
     });
 
     it("registers key verification and room key sharing managers through unified extensions", async () => {

@@ -4,6 +4,7 @@ import { FakeTransport } from "../test-utils/FakeTransport";
 import { EventManager, EventManagerEvent } from "../../src/event/EventManager";
 import { Method } from "../../src/http-api/method";
 import { InvalidParamError, ValidationError } from "../../src/errors";
+import { HTTPError } from "../../src/http-api/errors";
 import { MatrixEvent, EventStatus } from "../../src/models/event";
 import { Room } from "../../src/models/room";
 import { Direction } from "../../src/models/event-timeline";
@@ -142,6 +143,38 @@ describe("EventManager", () => {
             await manager.sendEvent(roomId, "m.room.message", {}, "my-txn-id");
             const path = transport.request.mock.calls[0][1];
             expect(path).toContain("my-txn-id");
+        });
+
+        it("5xx 时用同一个 txnId 重试（幂等键声明，P3-1）", async () => {
+            // 发送是天然幂等的写：txnId 在闭包外算好 + 声明 idempotencyKey，
+            // 因此 502 可以安全重试（服务端按事务去重），重放必须打到同一个路径上。
+            transport.request
+                .mockRejectedValueOnce(new HTTPError("bad gateway", 502))
+                .mockRejectedValueOnce(new HTTPError("bad gateway", 502))
+                .mockResolvedValueOnce({ event_id: "$retried" });
+
+            const result = await manager.sendEvent(roomId, "m.room.message", { body: "hello" }, "stable-txn");
+
+            expect(result).toEqual({ event_id: "$retried" });
+            const paths = transport.request.mock.calls.map((call) => call[1]);
+            expect(paths).toHaveLength(3);
+            expect(new Set(paths)).toEqual(
+                new Set([`/rooms/${encodeURIComponent(roomId)}/send/m.room.message/stable-txn`]),
+            );
+        });
+
+        it("未提供 txnId 时自动生成的事务 ID 在重试间保持不变", async () => {
+            transport.request
+                .mockRejectedValueOnce(new HTTPError("bad gateway", 502))
+                .mockResolvedValueOnce({ event_id: "$retried" });
+
+            await manager.sendEvent(roomId, "m.room.message", { body: "hello" });
+
+            const paths = transport.request.mock.calls.map((call) => call[1]);
+            expect(paths).toHaveLength(2);
+            // 若 txnId 在闭包内生成，两次会是不同路径 —— 那就会产生重复消息
+            expect(paths[0]).toBe(paths[1]);
+            expect(paths[0]).toMatch(/\/send\/m\.room\.message\/m\d+$/);
         });
     });
 

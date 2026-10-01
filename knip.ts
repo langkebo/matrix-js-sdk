@@ -101,10 +101,6 @@ export default {
         "src/verification/index.ts",
         "src/e2ee/index.ts",
         "src/worker-body/index.ts",
-        "src/ai-connection/index.ts",
-        // Module name in MANAGER_EXTENSION_MODULES is "openclaw" but the actual
-        // directory is `open-claw` (dynamic import: `../open-claw/index.js`)
-        "src/open-claw/index.ts",
         "src/voice/index.ts",
         "src/cas/index.ts",
         "src/external-service/index.ts",
@@ -131,7 +127,6 @@ export default {
         // Additional manager modules with extendMatrixClient but not yet wired
         // into manager-extensions/index.ts MANAGER_EXTENSION_MODULES list:
         "src/event/index.ts",
-        "src/invite-list/index.ts",
         "src/widgets/index.ts",
         // Public API modules consumed externally (by hula frontend) but not
         // dynamically imported; knip can't trace external usage:

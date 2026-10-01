@@ -66,6 +66,17 @@ describe("validateOIDCIssuerWellKnown", () => {
         expect(logger.error).toHaveBeenCalledWith("Invalid property: response_types_supported. code is required.");
     });
 
+    it("should log a warning when isSecureUrl fails to parse a URL", () => {
+        vi.spyOn(logger, "warn").mockImplementation(() => {});
+        expect(() => {
+            validateAuthMetadata({
+                ...validWk,
+                issuer: "not-a-url",
+            });
+        }).toThrow(OidcError.OpSupport);
+        expect(logger.warn).toHaveBeenCalledWith("isSecureUrl failed:", expect.any(Error));
+    });
+
     it("should return validated issuer config", () => {
         expect(validateAuthMetadata(validWk)).toEqual(
             expect.objectContaining({
