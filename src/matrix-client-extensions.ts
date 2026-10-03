@@ -256,6 +256,7 @@ export interface MatrixClientExtensionMethods {
     getSecureBackupManager(): import("./secure-backup/index").SecureBackupManager;
     getDehydratedDeviceManager(): import("./dehydrated-device/index").DehydratedDeviceManager;
     getDelayedEventsManager(): import("./delayed-events/index").DelayedEventsManager;
+    getAccountStatusManager(): import("./account-status/index").AccountStatusManager;
     getVerificationRequestsToDevice(userId: string): import("./crypto-api/verification").VerificationRequest[];
     requestAdd3pidEmailToken(
         email: string,

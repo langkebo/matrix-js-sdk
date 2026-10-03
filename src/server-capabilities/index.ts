@@ -55,6 +55,11 @@ export const SynapseRustFeature = {
      * 本 SDK 通过 SYNAPSE_RUST_CAPABILITY_ALIASES 兜底匹配。
      */
     Voice: "org.matrix.msc3245.voice",
+    /**
+     * MSC3720：账号状态批量查询。后端由 `experimental.msc3720_enabled`（默认 false）
+     * 与同名 capability 双重把关，关闭时端点 403。
+     */
+    AccountStatus: "org.matrix.msc3720.account_status",
 } as const;
 
 export type SynapseRustFeatureName = (typeof SynapseRustFeature)[keyof typeof SynapseRustFeature];
@@ -71,6 +76,7 @@ export interface SynapseRustFeatureSupport {
     burnAfterRead: boolean;
     friends: boolean;
     voice: boolean;
+    accountStatus: boolean;
 }
 
 const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, SynapseRustFeatureName> = {
@@ -81,6 +87,7 @@ const SYNAPSE_RUST_FEATURE_KEYS: Record<keyof SynapseRustFeatureSupport, Synapse
     burnAfterRead: SynapseRustFeature.BurnAfterRead,
     friends: SynapseRustFeature.Friends,
     voice: SynapseRustFeature.Voice,
+    accountStatus: SynapseRustFeature.AccountStatus,
 };
 
 const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, string[]>> = {
@@ -89,6 +96,10 @@ const SYNAPSE_RUST_CAPABILITY_ALIASES: Partial<Record<SynapseRustFeatureName, st
     [SynapseRustFeature.BurnAfterRead]: ["io.hula.burn_after_read"],
     [SynapseRustFeature.Friends]: ["io.hula.friends"],
     [SynapseRustFeature.Voice]: ["m.voice", "io.hula.voice_extended"],
+    // MSC3720 的 capability 名就是它自己的 key：后端在 `/capabilities` 里直接声明
+    // `org.matrix.msc3720.account_status`（不是 `/versions.unstable_features`）。
+    // 解析器默认只拿 `feature` 去查 unstable_features，所以这里显式登记同名别名。
+    [SynapseRustFeature.AccountStatus]: [SynapseRustFeature.AccountStatus],
 };
 
 function capabilityEnabled(value: unknown): boolean {

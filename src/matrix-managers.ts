@@ -166,6 +166,7 @@ export { InvitesManager } from "./invites";
 export { KeyBackupManager } from "./key-backup";
 export { KeyRotationManager } from "./key-rotation";
 export { DelayedEventsManager } from "./delayed-events";
+export { AccountStatusManager } from "./account-status";
 export {
     DehydratedDeviceManager,
     type DehydratedDeviceData,

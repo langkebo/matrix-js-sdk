@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-01T05:13:07.658Z",
+    "generatedAt": "2026-10-03T23:08:07.452Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -352,9 +352,9 @@
             }
         },
         {
-            "id": "src/relations/index.ts:257:59cb1b8f81594544d12a7e4247502bfde0a0b285",
+            "id": "src/relations/index.ts:268:36e9301051ee7a88dce822ed4f98423c06321a68",
             "file": "src/relations/index.ts",
-            "line": 257,
+            "line": 268,
             "snippet": "catch (e) { logger.warn(\"RelationsManager.getLatestRelation failed\", e); return null;",
             "whitelist": {
                 "owner": "refactor-bot",
@@ -522,9 +522,9 @@
             }
         },
         {
-            "id": "src/space/sub-managers/space-query-manager.ts:285:55406c7642eaa2fab4bac1bb8c38cfe9ecfd70fd",
+            "id": "src/space/sub-managers/space-query-manager.ts:286:58be991ca932fb3477018ffa6fc0728b6bf5cbb1",
             "file": "src/space/sub-managers/space-query-manager.ts",
-            "line": 285,
+            "line": 286,
             "snippet": "catch (error) { if (error instanceof NotFoundError) return false;",
             "whitelist": {
                 "owner": "space",

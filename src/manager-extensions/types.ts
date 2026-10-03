@@ -67,6 +67,7 @@ export interface ManagerExtensionsOptions {
     includeAppService?: boolean;
     includeDehydratedDevice?: boolean;
     includeDelayedEvents?: boolean;
+    includeAccountStatus?: boolean;
     includeThread?: boolean;
     includeWidget?: boolean;
 

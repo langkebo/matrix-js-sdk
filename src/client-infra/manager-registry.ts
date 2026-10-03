@@ -92,6 +92,7 @@ export type ManagerName =
     | "cryptoKeys"
     | "cryptoStore"
     | "dehydratedDevice"
+    | "accountStatus"
     | "delayedEvents"
     | "device"
     | "deviceKeys"
@@ -199,6 +200,7 @@ export interface ManagerTypeMap {
     cryptoStore: import("../crypto-store/index").CryptoStoreManager;
     dehydratedDevice: import("../dehydrated-device/index").DehydratedDeviceManager;
     delayedEvents: import("../delayed-events/index").DelayedEventsManager;
+    accountStatus: import("../account-status/index").AccountStatusManager;
     device: import("../device/index").DeviceManager;
     deviceKeys: import("../device-keys/index").DeviceKeysManager;
     directory: import("../directory/index").DirectoryManager;

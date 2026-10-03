@@ -100,6 +100,72 @@ describe("DelayedEventsManager", () => {
 
     // ==================== 服务端能力校验 ====================
 
+    // ==================== 单事件查询 (MSC4140 GET) ====================
+
+    describe("getScheduledDelayedEvent (单事件查询)", () => {
+        it("GET /delayed_events/{id} 并把后端字段原样返回", async () => {
+            const info = {
+                delay_id: 42,
+                room_id: "!room:example.com",
+                type: "m.room.message",
+                delay_ms: 5000,
+                delayed_since_ts: 1_700_000_000_000,
+                content: { body: "later" },
+            };
+            transport.respondWith(info);
+
+            await expect(manager.getScheduledDelayedEvent(42)).resolves.toEqual(info);
+
+            transport.expectCalledWithArgs(Method.Get, buildDelayedEventsPath(42), undefined, undefined, {
+                prefix: EXPECTED_PREFIX,
+            });
+        });
+
+        it("保留可选的 state_key（缺席即不是状态事件）", async () => {
+            const info = {
+                delay_id: 7,
+                room_id: "!room:example.com",
+                type: "m.room.topic",
+                state_key: "",
+                delay_ms: 1000,
+                delayed_since_ts: 1,
+                content: { topic: "t" },
+            };
+            transport.respondWith(info);
+
+            await expect(manager.getScheduledDelayedEvent(7)).resolves.toEqual(info);
+        });
+
+        // transport.expectCalledWithArgs 也是断言，但规则只认 expect(...)：与本文件既有用例一致地标注
+        // eslint-disable-next-line vitest/expect-expect
+        it("对 delay id 做 URL 编码", async () => {
+            transport.respondWith({});
+            const delayId = "delay/with space";
+
+            await manager.getScheduledDelayedEvent(delayId);
+
+            transport.expectCalledWithArgs(Method.Get, buildDelayedEventsPath(delayId), undefined, undefined, {
+                prefix: EXPECTED_PREFIX,
+            });
+        });
+
+        it("拒绝非正整数 number 与空字符串（后端 delay_id 是 i64 且从 1 开始）", async () => {
+            await expect(manager.getScheduledDelayedEvent(0)).rejects.toThrow(/positive integer/);
+            await expect(manager.getScheduledDelayedEvent(-1)).rejects.toThrow(/positive integer/);
+            await expect(manager.getScheduledDelayedEvent(1.5)).rejects.toThrow(/positive integer/);
+            await expect(manager.getScheduledDelayedEvent("")).rejects.toThrow();
+        });
+
+        it("服务端未声明 MSC4140 时抛 UnsupportedDelayedEventsEndpointError 且不发请求", async () => {
+            client.doesServerSupportUnstableFeature.mockResolvedValue(false);
+
+            await expect(manager.getScheduledDelayedEvent(42)).rejects.toBeInstanceOf(
+                UnsupportedDelayedEventsEndpointError,
+            );
+            expect(transport.request).not.toHaveBeenCalled();
+        });
+    });
+
     describe("server support check", () => {
         it("should throw UnsupportedDelayedEventsEndpointError when server lacks MSC4140", async () => {
             client.doesServerSupportUnstableFeature.mockResolvedValue(false);

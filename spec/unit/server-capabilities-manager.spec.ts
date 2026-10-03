@@ -40,6 +40,7 @@ describe("ServerCapabilitiesManager", () => {
             "io.hula.burn_after_read": { enabled: true },
             "io.hula.friends": { enabled: false },
             "m.voice": { enabled: true },
+            [SynapseRustFeature.AccountStatus]: { enabled: true },
         };
 
         expect(
@@ -62,6 +63,7 @@ describe("ServerCapabilitiesManager", () => {
             burnAfterRead: true,
             friends: true,
             voice: true,
+            accountStatus: true,
         });
     });
 
@@ -159,6 +161,7 @@ describe("ServerCapabilitiesManager", () => {
             burnAfterRead: true,
             friends: false,
             voice: true,
+            accountStatus: false,
         });
     });
 });

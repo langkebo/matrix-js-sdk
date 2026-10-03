@@ -76,11 +76,19 @@ export class UnsupportedDelayedEventsEndpointError extends Error {
             | "cancelScheduledDelayedEvent"
             | "restartScheduledDelayedEvent"
             | "sendScheduledDelayedEvent"
+            | "getScheduledDelayedEvent"
             | "sendDelayedStateEvent"
             | "getDelayedEvents",
     ) {
         super(message);
         this.name = "UnsupportedDelayedEventsEndpointError";
+    }
+}
+
+export class UnsupportedAccountStatusEndpointError extends Error {
+    public constructor(message: string) {
+        super(message);
+        this.name = "UnsupportedAccountStatusEndpointError";
     }
 }
 

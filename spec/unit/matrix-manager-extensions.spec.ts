@@ -46,6 +46,25 @@ describe("matrix manager extension defaults", () => {
         expect(isManagerExtensionsInitialized()).toBe(true);
     });
 
+    it("delayed-events 模块真的被挂载（getDelayedEventsManager 存在）", async () => {
+        const { MatrixClient } = await import("../../src/client");
+
+        await extendMatrixClientWithManagers();
+
+        // 回归：`includeDelayedEvents` 选项早就声明在 ManagerExtensionsOptions 里，但模块
+        // 一直没进 MANAGER_EXTENSION_MODULES ⇒ 原型方法从未安装，`client.getDelayedEventsManager()`
+        // （以及 client.ts 里 cancel/restart/send 三个委托）在运行期是 TypeError。
+        expect(typeof MatrixClient.prototype.getDelayedEventsManager).toBe("function");
+    });
+
+    it("account-status 模块真的被挂载（getAccountStatusManager 存在）", async () => {
+        const { MatrixClient } = await import("../../src/client");
+
+        await extendMatrixClientWithManagers();
+
+        expect(typeof MatrixClient.prototype.getAccountStatusManager).toBe("function");
+    });
+
     it("manager lifecycle should emit register/init/start and stop phases", async () => {
         const phaseHistory: string[] = [];
         const unsubscribe = onManagerExtensionsLifecycle((event: ManagerExtensionsLifecycleEvent) => {

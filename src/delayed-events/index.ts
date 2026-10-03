@@ -52,7 +52,24 @@ const DELAYED_EVENTS_PREFIX = buildUnstableFeaturePrefix(UNSTABLE_MSC4140_DELAYE
 type DelayedEventClientEndpoint =
     | "cancelScheduledDelayedEvent"
     | "restartScheduledDelayedEvent"
-    | "sendScheduledDelayedEvent";
+    | "sendScheduledDelayedEvent"
+    | "getScheduledDelayedEvent";
+
+/**
+ * `GET /delayed_events/{delay_id}` 的响应（MSC4140）。
+ *
+ * 与后端 handler 逐字段对齐：`delay_id` / `room_id` / `type` / 可选 `state_key` /
+ * `delay_ms` / `delayed_since_ts`（调度时刻）/ `content`。`state_key` 缺席表示不是状态事件。
+ */
+export interface DelayedEventInfo {
+    delay_id: number;
+    room_id: string;
+    type: string;
+    state_key?: string;
+    delay_ms: number;
+    delayed_since_ts: number;
+    content: Record<string, unknown>;
+}
 
 export class DelayedEventsManager extends BaseManager {
     constructor(client: MatrixClient, opts?: ManagerOpts) {
@@ -112,11 +129,8 @@ export class DelayedEventsManager extends BaseManager {
      * FT-084/FT-101: 后端 delay_id 为 i64 (JSON number)，参数类型须接受 number。
      * number 类型校验为正整数（数据库 id 从 1 开始），string 类型走 requireNonEmptyString。
      */
-    private async updateScheduledDelayedEvent(
-        delayId: string | number,
-        action: UpdateDelayedEventAction,
-        requestOpts?: IRequestOpts,
-    ): Promise<EmptyObject> {
+    /** FT-084/FT-101：后端 `delay_id` 是 i64，number 必须为正整数；string 走非空校验。 */
+    private normalizeDelayId(delayId: string | number): string {
         if (typeof delayId === "number") {
             if (!Number.isInteger(delayId) || delayId <= 0) {
                 throw new ValidationError("delayId must be a positive integer or non-empty string");
@@ -124,7 +138,50 @@ export class DelayedEventsManager extends BaseManager {
         } else {
             this.requireNonEmptyString(delayId, "delayId");
         }
-        const delayIdStr = String(delayId);
+        return String(delayId);
+    }
+
+    /**
+     * 查询单个**待发**的延迟事件（MSC4140）。
+     *
+     * `GET /_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}`。
+     * 只有调度它的用户能读到，且仅在该事件仍 pending 时可见：缺失 / 他人 / 已结算
+     * 一律 `M_NOT_FOUND`（后端刻意不泄漏他人延迟事件的存在性，SDK 不额外包装）。
+     *
+     * @param delayId 服务端在调度时返回的 `delay_id`（i64）
+     * @param requestOpts 可选请求选项（localTimeoutMs / abortSignal / headers）
+     * @returns 延迟事件的完整描述（含 `delayed_since_ts` 与 `content`）
+     * @throws UnsupportedDelayedEventsEndpointError 服务端未声明 MSC4140 支持时
+     * @example
+     * ```typescript
+     * const delayed = await client.getDelayedEventsManager().getScheduledDelayedEvent(42);
+     * console.log(delayed.room_id, delayed.type, delayed.delay_ms);
+     * ```
+     */
+    public async getScheduledDelayedEvent(
+        delayId: string | number,
+        requestOpts?: IRequestOpts,
+    ): Promise<DelayedEventInfo> {
+        const delayIdStr = this.normalizeDelayId(delayId);
+        await this.assertSupported("getScheduledDelayedEvent");
+
+        return await this.request<DelayedEventInfo>({
+            method: Method.Get,
+            path: buildDelayedEventsPath(delayIdStr),
+            prefix: DELAYED_EVENTS_PREFIX,
+            localTimeoutMs: requestOpts?.localTimeoutMs,
+            headers: requestOpts?.headers,
+            abortSignal: requestOpts?.abortSignal,
+            label: "getScheduledDelayedEvent",
+        });
+    }
+
+    private async updateScheduledDelayedEvent(
+        delayId: string | number,
+        action: UpdateDelayedEventAction,
+        requestOpts?: IRequestOpts,
+    ): Promise<EmptyObject> {
+        const delayIdStr = this.normalizeDelayId(delayId);
         const apiName = `${action}ScheduledDelayedEvent` as DelayedEventClientEndpoint;
         await this.assertSupported(apiName);
 

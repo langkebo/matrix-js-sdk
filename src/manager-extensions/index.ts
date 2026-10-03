@@ -116,6 +116,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeReactions", module: "reactions" },
     { option: "includeBeacon", module: "beacon" },
     { option: "includeAppService", module: "app-service" },
+    { option: "includeDelayedEvents", module: "delayed-events" },
+    { option: "includeAccountStatus", module: "account-status" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -192,6 +194,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeReactions: true,
     includeBeacon: true,
     includeAppService: true,
+    includeDelayedEvents: true,
+    includeAccountStatus: true,
 };
 
 let isInitialized = false;
@@ -609,6 +613,18 @@ export async function extendMatrixClientWithManagers(
             if (currentOptions.includeAppService || all) {
                 promises.push(
                     safeDynamicImport(import("../app-service/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeDelayedEvents || all) {
+                promises.push(
+                    safeDynamicImport(import("../delayed-events/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeAccountStatus || all) {
+                promises.push(
+                    safeDynamicImport(import("../account-status/index.js").then((m) => m?.extendMatrixClient())),
                 );
             }
 
