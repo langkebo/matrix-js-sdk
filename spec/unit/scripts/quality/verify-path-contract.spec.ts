@@ -1,10 +1,10 @@
 /**
  * Path Contract Verifier 核心逻辑单元测试
- * 
+ *
  * 覆盖门禁核心逻辑（独立实现，避免 import ESM 脚本导致加载慢）：
  * - resolvePrefix: 解析各种前缀形式（标识符、模板字面量、裸字符串）
  * - normalizePath: 路径归一化（动态参数替换）
- * 
+ *
  * 重点测试：模板字面量前缀解析（MSC4143 rtc/transports 修复点）
  */
 
@@ -51,7 +51,7 @@ describe("verify-path-contract core logic (路径契约门禁核心逻辑)", () 
         if (literal.startsWith("${")) {
             const interpMatch = /^\$\{(\w+)\.(\w+)\}(.*)$/.exec(literal);
             if (interpMatch) {
-                const [_, group, key, rest] = interpMatch;
+                const [, group, key, rest] = interpMatch;
                 const base = (PREFIX_CONSTANTS as any)[group]?.[key] || "";
                 return { prefix: base + rest, known: true };
             }
@@ -204,9 +204,7 @@ describe("verify-path-contract core logic (路径契约门禁核心逻辑)", () 
             expect(prefixResult.prefix).toBe("/_matrix/client/unstable");
 
             const fullSdkPath = prefixResult.prefix + sdkPathRaw;
-            expect(normalizePath(fullSdkPath)).toBe(
-                "/_matrix/client/unstable/org.matrix.msc3720/account_status",
-            );
+            expect(normalizePath(fullSdkPath)).toBe("/_matrix/client/unstable/org.matrix.msc3720/account_status");
         });
     });
 });

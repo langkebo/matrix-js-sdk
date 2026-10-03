@@ -1,6 +1,6 @@
 /**
  * RoomManager 扩展测试 - Batch 1: Core Room Operations
- * 
+ *
  * 验证新增的核心房间操作方法
  */
 
@@ -10,61 +10,21 @@ import {
     getPinnedEvents,
     deletePinnedEvent,
     updatePinnedEvents,
-    getRoomAliases,
-    getExternalIds,
-    getMessageQueue,
     getRecentMembers,
     getMembership,
-    getNotifications,
-    getPermissions,
-    getServiceTypes,
-    getReducedEvents,
-    getEventUrl,
-    getRoomFragments,
     getRoomKey,
-    getRoomKeys,
     getRoomKeysCount,
-    getRoomKeysVersion,
-    claimRoomKeys,
-    uploadRoomKeys,
-    signRoomEvent,
-    updateRoomVisibility,
     getRoomAccountData,
     setRoomAccountData,
-    getVaultData,
-    setVaultData,
-    getEventPerspective,
     getTimeline,
-    getThread,
-    getThreadList,
-    verifyEvent,
-    convertEvent,
-    translateEvent,
-    getAntiScreenshotSetting,
-    setAntiScreenshotSetting,
-    getRetentionPolicy,
-    resolveRoomAlias,
-    getReceipts,
-    sendReceipt,
-    getRenderedContent,
-    syncRoom,
-    getUnreadCount,
-    getTurnServer,
-    getMembershipEvents,
     searchRoom,
-    deleteStickyEvent,
-    setStickyEvent,
-    getRoomDevice,
-    getEncryptedEvents,
     getRoomEvent,
-    getRoomInvites,
 } from "../../../src/room/RoomManagerExtensions";
-import { validateRoomId, validateUserId } from "../../../src/common/validators";
+import { validateRoomId } from "../../../src/common/validators";
 import { Method } from "../../../src/http-api/method";
 
 describe("RoomManagerExtensions", () => {
     let mockClient: any;
-    let requestSpy: any;
 
     beforeEach(() => {
         mockClient = {
@@ -79,7 +39,7 @@ describe("RoomManagerExtensions", () => {
             withRetry: vi.fn((fn) => fn()),
         };
 
-        requestSpy = vi.spyOn(mockClient.http, "authenticatedRequest").mockResolvedValue({});
+        vi.spyOn(mockClient.http, "authenticatedRequest").mockResolvedValue({});
     });
 
     describe("getRoomDetails", () => {
@@ -180,9 +140,7 @@ describe("RoomManagerExtensions", () => {
         it("should get recent members", async () => {
             const roomId = "!test:example.com";
             mockClient.http.authenticatedRequest.mockResolvedValue({
-                members: [
-                    { event_id: "$event1", user_id: "@user1:example.com", membership: "join" },
-                ],
+                members: [{ event_id: "$event1", user_id: "@user1:example.com", membership: "join" }],
             });
 
             const result = await getRecentMembers(mockClient, roomId, 10);
@@ -258,9 +216,7 @@ describe("RoomManagerExtensions", () => {
             const roomId = "!test:example.com";
             const searchTerm = "hello";
             mockClient.http.authenticatedRequest.mockResolvedValue({
-                results: [
-                    { event_id: "$event1", content: { body: "Hello world" } },
-                ],
+                results: [{ event_id: "$event1", content: { body: "Hello world" } }],
             });
 
             const result = await searchRoom(mockClient, roomId, searchTerm);
@@ -276,9 +232,7 @@ describe("RoomManagerExtensions", () => {
         it("should get timeline", async () => {
             const roomId = "!test:example.com";
             mockClient.http.authenticatedRequest.mockResolvedValue({
-                events: [
-                    { event_id: "$event1", type: "m.room.message" },
-                ],
+                events: [{ event_id: "$event1", type: "m.room.message" }],
             });
 
             const result = await getTimeline(mockClient, roomId);
@@ -290,7 +244,6 @@ describe("RoomManagerExtensions", () => {
     describe("validation", () => {
         it("should validate room ID before making requests", async () => {
             // Mock validation to throw
-            const originalValidate = validateRoomId;
             vi.spyOn(await import("../../../src/common/validators"), "validateRoomId").mockImplementation((id) => {
                 if (id === "invalid") throw new Error("Invalid room ID");
             });

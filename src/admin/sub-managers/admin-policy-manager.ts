@@ -95,13 +95,7 @@ export class AdminPolicyManager extends AdminBaseManager {
             enabled: boolean;
             endpoint: string | null;
             fail_mode: string;
-        }>(
-            Method.Get,
-            "/policy/status",
-            undefined,
-            undefined,
-            "policy.getStatus",
-        );
+        }>(Method.Get, "/policy/status", undefined, undefined, "policy.getStatus");
         return {
             enabled: res.enabled,
             endpoint: res.endpoint,

@@ -493,7 +493,8 @@ function pathsMatchWithWildcards(leftPath, rightPath) {
         });
     }
 
-    const [shorter, longer] = leftSegments.length < rightSegments.length ? [leftSegments, rightSegments] : [rightSegments, leftSegments];
+    const [shorter, longer] =
+        leftSegments.length < rightSegments.length ? [leftSegments, rightSegments] : [rightSegments, leftSegments];
     const diff = longer.length - shorter.length;
     if (diff === 0) return true;
 
@@ -1332,7 +1333,11 @@ function extractRustRoutesFromFunction(functionName, functions, visited = new Se
         // 1. The candidate name is NOT Router (not Router::new())
         // 2. The candidate is not a keyword
         // 3. It's actually a known router factory function
-        if (candidateName !== "Router" && !["let", "var", "const", "return", "if", "match"].includes(candidateName) && functions.has(candidateName)) {
+        if (
+            candidateName !== "Router" &&
+            !["let", "var", "const", "return", "if", "match"].includes(candidateName) &&
+            functions.has(candidateName)
+        ) {
             // Check that this is truly a chain pattern (the body has .route/.nest/etc.)
             const hasChainMethod = /\.(route|nest|merge|with_state)\s*\(/.test(bodyTrimmed);
             if (hasChainMethod) {

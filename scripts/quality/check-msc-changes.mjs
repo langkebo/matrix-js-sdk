@@ -93,12 +93,11 @@ function formatDiff(current, baseline) {
         if (baseKeys.has(String(num))) {
             const currFiles = new Set(current.get(num));
             const baseFiles = new Set(baseline.entries[String(num)]);
-            if (![...currFiles].every(f => baseFiles.has(f)) ||
-                ![...baseFiles].every(f => currFiles.has(f))) {
+            if (![...currFiles].every((f) => baseFiles.has(f)) || ![...baseFiles].every((f) => currFiles.has(f))) {
                 moved.push({
                     num,
                     oldFiles: baseline.entries[String(num)],
-                    newFiles: [...currFiles].sort()
+                    newFiles: [...currFiles].sort(),
                 });
             }
         }
@@ -142,9 +141,10 @@ function main() {
             note: baseline.note,
             total: current.size,
             entries: Object.fromEntries(
-                [...current.entries()].sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                    .map(([num, files]) => [num, [...files].sort()])
-            )
+                [...current.entries()]
+                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                    .map(([num, files]) => [num, [...files].sort()]),
+            ),
         };
         writeFileSync(BASELINE_PATH, JSON.stringify(newBaseline, null, 4) + "\n");
         console.log(`\n✅ Baseline updated: ${BASELINE_PATH}`);
@@ -190,7 +190,9 @@ function main() {
     }
 
     if (hasError) {
-        console.error("\n💡 Run 'node scripts/quality/check-msc-changes.mjs --update-baseline' after documenting new MSCs in docs/MSC_SDK_MAPPING.md");
+        console.error(
+            "\n💡 Run 'node scripts/quality/check-msc-changes.mjs --update-baseline' after documenting new MSCs in docs/MSC_SDK_MAPPING.md",
+        );
         process.exit(1);
     }
 

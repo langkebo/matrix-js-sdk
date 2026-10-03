@@ -36,12 +36,7 @@ describe("client-room-peek", () => {
         it("creates a new peek sync and returns the peek promise", async () => {
             const createPeekSync = vi.fn().mockReturnValue(mockPeekSync);
 
-            const { nextPeekSync, peekPromise } = beginRoomPeek(
-                "!peek:example.com",
-                10,
-                null,
-                createPeekSync,
-            );
+            const { nextPeekSync, peekPromise } = beginRoomPeek("!peek:example.com", 10, null, createPeekSync);
 
             expect(createPeekSync).toHaveBeenCalledTimes(1);
             expect(nextPeekSync).toBe(mockPeekSync);
@@ -134,12 +129,7 @@ describe("client-room-peek", () => {
         it("full lifecycle: begin then end", async () => {
             const createPeekSync = vi.fn().mockReturnValue(mockPeekSync);
 
-            const { nextPeekSync, peekPromise } = beginRoomPeek(
-                "!peek:example.com",
-                20,
-                null,
-                createPeekSync,
-            );
+            const { nextPeekSync, peekPromise } = beginRoomPeek("!peek:example.com", 20, null, createPeekSync);
             await peekPromise;
 
             const ended = endRoomPeek(nextPeekSync);

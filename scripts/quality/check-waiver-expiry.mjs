@@ -62,8 +62,10 @@ function main() {
         }
     }
 
-    console.log(`[waiver-expiry] ${today.toISOString().slice(0, 10)}: ` +
-        `${entries.length} waivers [valid: ${valid.length}, expiring-soon(<=30d): ${expiringSoon.length}, expired: ${expired.length}]`);
+    console.log(
+        `[waiver-expiry] ${today.toISOString().slice(0, 10)}: ` +
+            `${entries.length} waivers [valid: ${valid.length}, expiring-soon(<=30d): ${expiringSoon.length}, expired: ${expired.length}]`,
+    );
 
     for (const w of expiringSoon) {
         console.log(`  [SOON] ${w.sdkCall} (${w.file}) — ${w.daysLeft} days left (expires ${w.expires})`);
@@ -76,8 +78,12 @@ function main() {
     if (expired.length > 0) {
         if (strict) {
             console.error(`[waiver-expiry] quality gate failed: ${expired.length} expired waiver(s).`);
-            console.error("  Fix: renew `expires` after confirming the backend gap still exists, or remove the waiver if the");
-            console.error("  SDK call was dropped / backend implemented. See scripts/quality/path-contract-waivers.json");
+            console.error(
+                "  Fix: renew `expires` after confirming the backend gap still exists, or remove the waiver if the",
+            );
+            console.error(
+                "  SDK call was dropped / backend implemented. See scripts/quality/path-contract-waivers.json",
+            );
             process.exit(1);
         } else {
             console.log("[waiver-expiry] Warning: expired waivers detected (non-strict mode, not blocking).");

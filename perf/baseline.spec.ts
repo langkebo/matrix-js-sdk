@@ -1,6 +1,6 @@
 /**
  * Performance Baseline Check
- * 
+ *
  * 在 CI 中运行，检测关键 API 的性能回归。
  * 使用方法：pnpm vitest run perf/baseline.spec.ts
  */

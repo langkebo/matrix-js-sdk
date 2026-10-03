@@ -176,9 +176,7 @@ function main(argv) {
             lines.push(`  age date: ${ageDate}`);
             lines.push(`  mirror age: ${formatRelativeAge(ageDate, args.now)}`);
             if (diffDays > args.thresholdDays) {
-                lines.push(
-                    `  STALE: mirror is ${diffDays} days old (threshold: ${args.thresholdDays} days)`,
-                );
+                lines.push(`  STALE: mirror is ${diffDays} days old (threshold: ${args.thresholdDays} days)`);
                 stale = true;
             }
         }
@@ -192,11 +190,10 @@ function main(argv) {
             driftDetected = true;
         } else {
             try {
-                execFileSync(
-                    process.execPath,
-                    [CONTRACT_SYNC, "--check", `--source=${args.sourceDir}`],
-                    { cwd: rootDir, stdio: ["pipe", "pipe", "pipe"] },
-                );
+                execFileSync(process.execPath, [CONTRACT_SYNC, "--check", `--source=${args.sourceDir}`], {
+                    cwd: rootDir,
+                    stdio: ["pipe", "pipe", "pipe"],
+                });
                 lines.push(`  semantic-check: mirror entries match the backend source`);
             } catch (err) {
                 const stderr = err.stderr || err.message || "";

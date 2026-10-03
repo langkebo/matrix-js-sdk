@@ -27,7 +27,7 @@ limitations under the License.
  * ```bash
  * # 单独运行集成测试
  * PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run spec/unit/integration/
- * 
+ *
  * # 与单元测试一起运行
  * PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run spec/unit/
  * ```
@@ -40,7 +40,6 @@ limitations under the License.
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { UnifiedCacheManager, CacheManagerFactory, CacheRegistry } from "../../../src/managers/cache-manager";
-import { LRUCache } from "../../../src/utils/lru-cache";
 
 // ============================================================================
 // 1. UnifiedCacheManager: 命名空间隔离与失效语义
@@ -146,10 +145,8 @@ describe("Integration: Cache hit/miss patterns", () => {
     it("连续的 getOrFetch 调用产生缓存命中", async () => {
         const cache = new UnifiedCacheManager({ namespace: "query", maxSize: 100, ttl: 60_000 });
         const queryKey = "getSpaceChildren:!s:example.com";
-        let callCount = 0;
-        
+
         const fetchFn = vi.fn().mockImplementation(async () => {
-            callCount++;
             return { children: [{ room_id: "!child:example.com" }] };
         });
 
@@ -171,16 +168,16 @@ describe("Integration: Cache hit/miss patterns", () => {
 
     it("不同的 query key 独立缓存", async () => {
         const cache = new UnifiedCacheManager({ namespace: "query", maxSize: 100, ttl: 60_000 });
-        
+
         const key1 = "getSpaceChildren:!s1:example.com";
         const key2 = "getSpaceChildren:!s2:example.com";
-        
+
         const fetch1 = vi.fn().mockResolvedValue({ children: ["child1"] });
         const fetch2 = vi.fn().mockResolvedValue({ children: ["child2"] });
 
         await cache.getOrFetch(key1, fetch1);
         await cache.getOrFetch(key2, fetch2);
-        
+
         expect(fetch1).toHaveBeenCalledTimes(1);
         expect(fetch2).toHaveBeenCalledTimes(1);
         expect(cache.get(key1)).not.toEqual(cache.get(key2));
@@ -190,7 +187,7 @@ describe("Integration: Cache hit/miss patterns", () => {
         const cache = new UnifiedCacheManager({ namespace: "query", maxSize: 100, ttl: 60_000 });
         const key = "getSpaceChildren:!s:example.com";
         let version = 1;
-        
+
         const fetchFn = vi.fn().mockImplementation(async () => ({
             children: [`child_v${version}`],
         }));
@@ -198,16 +195,16 @@ describe("Integration: Cache hit/miss patterns", () => {
         // 填充缓存
         const v1 = await cache.getOrFetch<{ children: string[] }>(key, fetchFn);
         expect(v1.children).toEqual(["child_v1"]);
-        
+
         // 无效化
         cache.invalidate([key]);
         expect(cache.get(key)).toBeUndefined();
-        
+
         // 重新请求
         version = 2;
         const v2 = await cache.getOrFetch<{ children: string[] }>(key, fetchFn);
         expect(v2.children).toEqual(["child_v2"]);
-        
+
         // fetchFn 被调用了 2 次
         expect(fetchFn).toHaveBeenCalledTimes(2);
     });
@@ -238,7 +235,7 @@ describe("Integration: Cache lifecycle (TTL + LRU)", () => {
         // 注意：LRUCache 只在 get() 时检查过期，所以我们需要主动触发检查
         // 由于 long_lived 没有被访问过，它的过期状态取决于内部清理机制
         // 这里我们验证的是"过期时间不同"的场景
-        
+
         // 实际上，两个都设置了相同的 TTL，都会在同一时间过期
         // 所以我们预期 short_ttl 已经被标记为过期（或者被清理）
         expect(cache.get("short_ttl")).toBeUndefined();
@@ -253,13 +250,13 @@ describe("Integration: Cache lifecycle (TTL + LRU)", () => {
 
         cache.set("a", 1);
         cache.set("b", 2);
-        
+
         // 访问 a，使其成为最近使用
         cache.get("a");
-        
+
         // 添加第三个，应淘汰 b
         cache.set("c", 3);
-        
+
         expect(cache.get("a")).toBe(1); // 最近使用，保留
         expect(cache.get("b")).toBeUndefined(); // 最久未使用，被淘汰
         expect(cache.get("c")).toBe(3); // 最新添加
@@ -274,16 +271,16 @@ describe("Integration: Cache lifecycle (TTL + LRU)", () => {
 
         cache.set("oldest", 1);
         cache.get("oldest"); // 模拟使用
-        
+
         cache.set("newest", 2);
-        
+
         // 此时缓存中有 oldest 和 newest
         expect(cache.get("oldest")).toBe(1);
         expect(cache.get("newest")).toBe(2);
-        
+
         // 再添加一个，应该淘汰 oldest（因为它是最久未被使用的）
         cache.set("another", 3);
-        
+
         expect(cache.get("oldest")).toBeUndefined();
         expect(cache.get("newest")).toBe(2);
         expect(cache.get("another")).toBe(3);
@@ -348,7 +345,7 @@ describe("Integration: Cache lifecycle (TTL + LRU)", () => {
         }
 
         const duration = Date.now() - start;
-        
+
         // 100 次操作应该在合理时间内完成
         expect(duration).toBeLessThan(1000);
         expect(cache.getSize()).toBe(50); // 正好等于 maxSize

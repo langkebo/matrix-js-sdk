@@ -1,6 +1,6 @@
 /**
  * RoomManager Extensions 类型定义
- * 
+ *
  * 用于补全 Room 模块的 API 接口覆盖
  */
 

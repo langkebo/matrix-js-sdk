@@ -21,6 +21,8 @@ limitations under the License.
  * 用于 CI 集成性能回归检测。
  */
 
+import { logger } from "../logger";
+
 export interface PerformanceMetrics {
     operation: string;
     durationMs: number;
@@ -53,24 +55,22 @@ const METRICS_HISTORY: PerformanceMetrics[] = [];
  * @param fn 要测量的函数
  * @returns 函数返回值
  */
-export async function measureOperation<T>(
-    operation: string,
-    fn: () => Promise<T>,
-    cacheHit = false,
-): Promise<T> {
+export async function measureOperation<T>(operation: string, fn: () => Promise<T>, cacheHit = false): Promise<T> {
     const start = performance.now();
     try {
         const result = await fn();
         const duration = performance.now() - start;
-        
+
         recordMetrics({ operation, durationMs: duration, timestamp: Date.now(), cacheHit });
-        
+
         // 触发性能基线检查
         const baseline = getBaseline(operation);
         if (baseline && duration > baseline.maxDurationMs) {
-            console.warn(`[Performance] ${operation} exceeded baseline: ${duration.toFixed(2)}ms > ${baseline.maxDurationMs}ms`);
+            logger.warn(
+                `[Performance] ${operation} exceeded baseline: ${duration.toFixed(2)}ms > ${baseline.maxDurationMs}ms`,
+            );
         }
-        
+
         return result;
     } catch (error) {
         const duration = performance.now() - start;
@@ -82,15 +82,11 @@ export async function measureOperation<T>(
 /**
  * 同步操作耗时测量
  */
-export function measureSyncOperation<T>(
-    operation: string,
-    fn: () => T,
-    cacheHit = false,
-): T {
+export function measureSyncOperation<T>(operation: string, fn: () => T, cacheHit = false): T {
     const start = performance.now();
     const result = fn();
     const duration = performance.now() - start;
-    
+
     recordMetrics({ operation, durationMs: duration, timestamp: Date.now(), cacheHit });
     return result;
 }
@@ -100,7 +96,7 @@ export function measureSyncOperation<T>(
  */
 function recordMetrics(metrics: PerformanceMetrics): void {
     METRICS_HISTORY.push(metrics);
-    
+
     // 保持历史记录在 1000 条以内
     if (METRICS_HISTORY.length > 1000) {
         METRICS_HISTORY.shift();
@@ -131,7 +127,7 @@ export function getBaseline(operation: string): { maxDurationMs: number; timesta
 export function validatePerformance(operation: string, durationMs: number): PerformanceBaseline {
     const maxDurationMs = PERFORMANCE_REGISTRY.get(operation) ?? durationMs;
     const passed = durationMs <= maxDurationMs;
-    
+
     return {
         operation,
         maxDurationMs,
@@ -146,7 +142,7 @@ export function validatePerformance(operation: string, durationMs: number): Perf
  */
 export function getPerformanceReport(): PerformanceReport {
     const metrics = Array.from(METRICS_HISTORY);
-    
+
     if (metrics.length === 0) {
         return {
             totalOperations: 0,
@@ -156,15 +152,17 @@ export function getPerformanceReport(): PerformanceReport {
             p99DurationMs: 0,
         };
     }
-    
-    const durations = Array.from(metrics).map(m => m.durationMs).sort((a, b) => a - b);
-    
+
+    const durations = Array.from(metrics)
+        .map((m) => m.durationMs)
+        .sort((a, b) => a - b);
+
     const failedBaselines: PerformanceBaseline[] = [];
     for (const [op, maxDuration] of PERFORMANCE_REGISTRY.entries()) {
-        const ops = metrics.filter(m => m.operation === op);
+        const ops = metrics.filter((m) => m.operation === op);
         if (ops.length === 0) continue;
-        
-        const maxActual = Math.max(...ops.map(o => o.durationMs));
+
+        const maxActual = Math.max(...ops.map((o) => o.durationMs));
         const baseline: PerformanceBaseline = {
             operation: op,
             maxDurationMs: maxDuration,
@@ -176,7 +174,7 @@ export function getPerformanceReport(): PerformanceReport {
             failedBaselines.push(baseline);
         }
     }
-    
+
     return {
         totalOperations: metrics.length,
         failedBaselines,
@@ -208,7 +206,7 @@ export function getMetricsSummary(): {
     operationCounts: Record<string, { count: number; avgDuration: number; totalDuration: number }>;
 } {
     const summary: Record<string, { count: number; totalDuration: number; durations: number[] }> = {};
-    
+
     for (const m of METRICS_HISTORY) {
         if (!summary[m.operation]) {
             summary[m.operation] = { count: 0, totalDuration: 0, durations: [] };
@@ -217,7 +215,7 @@ export function getMetricsSummary(): {
         summary[m.operation].totalDuration += m.durationMs;
         summary[m.operation].durations.push(m.durationMs);
     }
-    
+
     const result: Record<string, { count: number; avgDuration: number; totalDuration: number }> = {};
     for (const [op, data] of Object.entries(summary)) {
         result[op] = {
@@ -226,6 +224,6 @@ export function getMetricsSummary(): {
             totalDuration: data.totalDuration,
         };
     }
-    
+
     return { operationCounts: result };
 }

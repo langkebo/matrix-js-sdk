@@ -127,9 +127,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("网络失败且 throwOnError=false 时返回 null 并发射 Error 事件", async () => {
-            requestSpy().mockRejectedValue(
-                new Error("network down") as never,
-            );
+            requestSpy().mockRejectedValue(new Error("network down") as never);
             const onError = vi.fn();
             manager.on(RoomSummaryEvent.Error, onError);
 
@@ -138,9 +136,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("网络失败且 throwOnError=true 时抛错", async () => {
-            requestSpy().mockRejectedValue(
-                new Error("network down") as never,
-            );
+            requestSpy().mockRejectedValue(new Error("network down") as never);
 
             await expect(manager.getRoomSummary("!r:example.com", undefined, false, true)).rejects.toThrow();
         });
@@ -151,7 +147,10 @@ describe("RoomSummaryManager 门面层", () => {
 
             await manager.getRoomSummary("!r:example.com");
 
-            expect(onUpdated).toHaveBeenCalledWith("!r:example.com", expect.objectContaining({ room_id: "!r:example.com" }));
+            expect(onUpdated).toHaveBeenCalledWith(
+                "!r:example.com",
+                expect.objectContaining({ room_id: "!r:example.com" }),
+            );
         });
 
         it("clearCache(roomId) 只清该房间", async () => {
@@ -182,9 +181,7 @@ describe("RoomSummaryManager 门面层", () => {
 
     describe("convertClientSummary 默认值兜底", () => {
         it("join_rule 缺失时兜底为 invite", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ join_rule: undefined }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ join_rule: undefined }) as never);
 
             const summary = await manager.getRoomSummary("!r:example.com");
 
@@ -192,33 +189,25 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("join_rule 为空字符串时也兜底为 invite（|| 而非 ??）", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ join_rule: "" }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ join_rule: "" }) as never);
 
             expect((await manager.getRoomSummary("!r:example.com"))?.join_rule).toBe("invite");
         });
 
         it("history_visibility 缺失时兜底为 shared", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ history_visibility: undefined }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ history_visibility: undefined }) as never);
 
             expect((await manager.getRoomSummary("!r:example.com"))?.history_visibility).toBe("shared");
         });
 
         it("guest_access 缺失时兜底为 forbidden", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ guest_access: undefined }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ guest_access: undefined }) as never);
 
             expect((await manager.getRoomSummary("!r:example.com"))?.guest_access).toBe("forbidden");
         });
 
         it("num_joined_members 缺失时 member_count/joined_member_count 兜底为 0", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ num_joined_members: undefined }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ num_joined_members: undefined }) as never);
 
             const summary = await manager.getRoomSummary("!r:example.com");
 
@@ -249,9 +238,7 @@ describe("RoomSummaryManager 门面层", () => {
 
     describe("heroes 类型守卫", () => {
         it("字符串数组映射为 {user_id, display_name: undefined, avatar_url: undefined}", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ heroes: ["@a:example.com", "@b:example.com"] }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ heroes: ["@a:example.com", "@b:example.com"] }) as never);
 
             const summary = await manager.getRoomSummary("!r:example.com");
 
@@ -270,7 +257,9 @@ describe("RoomSummaryManager 门面层", () => {
 
             const summary = await manager.getRoomSummary("!r:example.com");
 
-            expect(summary?.heroes).toEqual([{ user_id: "@a:example.com", display_name: "Alice", avatar_url: "mxc://x" }]);
+            expect(summary?.heroes).toEqual([
+                { user_id: "@a:example.com", display_name: "Alice", avatar_url: "mxc://x" },
+            ]);
         });
 
         it("混合数组（字符串 + 对象）都能处理", async () => {
@@ -289,9 +278,7 @@ describe("RoomSummaryManager 门面层", () => {
         });
 
         it("heroes 缺失时返回空数组", async () => {
-            requestSpy().mockResolvedValue(
-                clientSummary({ heroes: undefined }) as never,
-            );
+            requestSpy().mockResolvedValue(clientSummary({ heroes: undefined }) as never);
 
             expect((await manager.getRoomSummary("!r:example.com"))?.heroes).toEqual([]);
         });

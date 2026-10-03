@@ -15,10 +15,11 @@ limitations under the License.
 */
 
 import { LRUCache, CacheConfig, CacheStats, CacheRegistry } from "../utils/lru-cache";
+import { logger } from "../logger";
 
 /**
  * 缓存策略配置
- * 
+ *
  * 定义了不同场景下的缓存策略，统一管理所有 Manager 的缓存行为
  */
 export interface CacheStrategy {
@@ -26,29 +27,29 @@ export interface CacheStrategy {
      * 缓存命名空间（用于隔离不同模块的缓存）
      */
     namespace: string;
-    
+
     /**
      * 最大缓存条目数
      */
     maxSize: number;
-    
+
     /**
      * TTL（毫秒），超过此时间的缓存将被视为过期
      */
     ttl: number;
-    
+
     /**
      * 是否启用 stale-while-revalidate 模式
      * true = 返回旧数据同时后台刷新
      */
     staleWhileRevalidate?: boolean;
-    
+
     /**
      * 是否允许缓存 null/undefined 值
      * true = 缓存空结果以避免重复请求
      */
     cacheEmpty?: boolean;
-    
+
     /**
      * 缓存失效事件监听器
      */
@@ -69,12 +70,12 @@ export interface CacheOperationResult<T> {
      * 是否命中缓存
      */
     hit: boolean;
-    
+
     /**
      * 数据值（如果命中）
      */
     value?: T;
-    
+
     /**
      * 是否需要重新验证
      */
@@ -83,13 +84,13 @@ export interface CacheOperationResult<T> {
 
 /**
  * 统一缓存管理器
- * 
+ *
  * 提供标准化的缓存操作 API，支持：
  * - 按命名空间隔离
  * - 统一的 TTL 策略
  * - 批量无效化
  * - 统计信息聚合
- * 
+ *
  * 使用示例：
  * ```typescript
  * const cacheManager = new UnifiedCacheManager({
@@ -97,13 +98,13 @@ export interface CacheOperationResult<T> {
  *     maxSize: 100,
  *     ttl: 5 * 60 * 1000 // 5 minutes
  * });
- * 
+ *
  * // 获取缓存
  * const spaceData = await cacheManager.getOrFetch(
  *     "space:hierarchy",
  *     () => fetchSpaceHierarchy()
  * );
- * 
+ *
  * // 无效化缓存
  * cacheManager.invalidate(["space:*"]);
  * ```
@@ -112,7 +113,7 @@ export class UnifiedCacheManager {
     private cache: LRUCache<unknown>;
     private readonly config: CacheStrategy;
     private readonly registry: CacheRegistry;
-    
+
     constructor(config: CacheStrategy);
     constructor(namespace: string, maxSize: number, ttl: number);
     constructor(configOrNamespace: CacheStrategy | string, maxSize?: number, ttl?: number) {
@@ -135,11 +136,11 @@ export class UnifiedCacheManager {
                 name: configOrNamespace,
             });
         }
-        
+
         this.registry = CacheRegistry.getInstance();
         this.registry.register(this.cache);
     }
-    
+
     /**
      * 获取缓存键的标准格式
      * 自动处理重复前缀
@@ -151,7 +152,7 @@ export class UnifiedCacheManager {
         }
         return `${prefix}${key}`;
     }
-    
+
     /**
      * 从缓存获取数据
      * @param key 缓存键
@@ -161,7 +162,7 @@ export class UnifiedCacheManager {
         const normalizedKey = this.normalizeKey(key);
         return this.cache.get(normalizedKey) as T | undefined;
     }
-    
+
     /**
      * 设置缓存
      * @param key 缓存键
@@ -174,7 +175,7 @@ export class UnifiedCacheManager {
         const normalizedKey = this.normalizeKey(key);
         this.cache.set(normalizedKey, value);
     }
-    
+
     /**
      * 检查缓存是否存在
      * @param key 缓存键
@@ -184,7 +185,7 @@ export class UnifiedCacheManager {
         const normalizedKey = this.normalizeKey(key);
         return this.cache.has(normalizedKey);
     }
-    
+
     /**
      * 删除缓存
      * @param key 缓存键
@@ -194,7 +195,7 @@ export class UnifiedCacheManager {
         const normalizedKey = this.normalizeKey(key);
         return this.cache.delete(normalizedKey);
     }
-    
+
     /**
      * 获取或计算缓存值
      * @param key 缓存键
@@ -203,21 +204,23 @@ export class UnifiedCacheManager {
      */
     async getOrFetch<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
         const cached = this.get<T>(key);
-        
+
         if (cached !== undefined) {
             if (this.config.staleWhileRevalidate) {
                 // 后台刷新
-                fetchFn().then(result => this.set(key, result)).catch(console.error);
+                fetchFn()
+                    .then((result) => this.set(key, result))
+                    .catch((error) => logger.error("stale-while-revalidate refresh failed", error));
                 return cached;
             }
             return cached;
         }
-        
+
         const value = await fetchFn();
         this.set(key, value);
         return value;
     }
-    
+
     /**
      * 批量无效化缓存（支持通配符）
      * @param patterns 缓存键模式，支持 "*" 通配符
@@ -225,51 +228,51 @@ export class UnifiedCacheManager {
     invalidate(patterns: string[]): void {
         const keysToDelete: string[] = [];
         const prefix = `${this.config.namespace}:`;
-        
+
         for (const pattern of patterns) {
             // Pattern 可能已包含或不包含前缀，统一加上前缀进行匹配
-            const fullPattern = pattern.startsWith(`${this.config.namespace}:`) 
-                ? pattern 
+            const fullPattern = pattern.startsWith(`${this.config.namespace}:`)
+                ? pattern
                 : `${this.config.namespace}:${pattern}`;
-            
+
             const regexPattern = fullPattern.replace(/\*/g, ".*");
             const regex = new RegExp(`^${regexPattern}$`);
-            
+
             for (const [key] of this.cache.entries()) {
                 if (regex.test(key)) {
                     keysToDelete.push(key);
                 }
             }
         }
-        
+
         for (const key of keysToDelete) {
             this.cache.delete(key);
         }
-        
+
         this.config.onInvalidate?.(keysToDelete);
     }
-    
+
     /**
      * 清空所有缓存
      */
     clear(): void {
         this.cache.clear();
     }
-    
+
     /**
      * 获取缓存统计信息
      */
     getStats(): CacheStats {
         return this.cache.getStats();
     }
-    
+
     /**
      * 获取缓存大小
      */
     getSize(): number {
         return this.cache.size();
     }
-    
+
     /**
      * 获取缓存快照
      */
@@ -294,7 +297,7 @@ export class CacheManagerFactory {
             staleWhileRevalidate: true,
         });
     }
-    
+
     /**
      * 创建房间相关的缓存管理器
      */
@@ -305,7 +308,7 @@ export class CacheManagerFactory {
             ttl: 2 * 60 * 1000, // 2 minutes
         });
     }
-    
+
     /**
      * 创建用户相关的缓存管理器
      */
@@ -316,7 +319,7 @@ export class CacheManagerFactory {
             ttl: 10 * 60 * 1000, // 10 minutes
         });
     }
-    
+
     /**
      * 创建设备相关的缓存管理器
      */
@@ -327,7 +330,7 @@ export class CacheManagerFactory {
             ttl: 30 * 60 * 1000, // 30 minutes
         });
     }
-    
+
     /**
      * 创建 CAS 相关的缓存管理器
      */
@@ -338,7 +341,7 @@ export class CacheManagerFactory {
             ttl: 15 * 60 * 1000, // 15 minutes
         });
     }
-    
+
     /**
      * 创建 Worker 相关的缓存管理器
      */
@@ -349,11 +352,15 @@ export class CacheManagerFactory {
             ttl: 5 * 60 * 1000, // 5 minutes
         });
     }
-    
+
     /**
      * 创建通用缓存管理器
      */
-    static createGenericCache(namespace: string, maxSize: number = 100, ttl: number = 5 * 60 * 1000): UnifiedCacheManager {
+    static createGenericCache(
+        namespace: string,
+        maxSize: number = 100,
+        ttl: number = 5 * 60 * 1000,
+    ): UnifiedCacheManager {
         return new UnifiedCacheManager({
             namespace,
             maxSize,
@@ -370,44 +377,44 @@ export class CacheMonitor {
     private static instance: CacheMonitor | null = null;
     private enabled: boolean = false;
     private statsLog: Array<{ timestamp: number; stats: any }> = [];
-    
+
     static getInstance(): CacheMonitor {
         if (!CacheMonitor.instance) {
             CacheMonitor.instance = new CacheMonitor();
         }
         return CacheMonitor.instance;
     }
-    
+
     enable(): void {
         this.enabled = true;
-        console.log("[CacheMonitor] Enabled");
+        logger.info("[CacheMonitor] Enabled");
     }
-    
+
     disable(): void {
         this.enabled = false;
-        console.log("[CacheMonitor] Disabled");
+        logger.info("[CacheMonitor] Disabled");
     }
-    
+
     /**
      * 记录缓存统计快照
      */
     snapshot(): void {
         if (!this.enabled) return;
-        
+
         const registry = CacheRegistry.getInstance();
         const aggregatedStats = registry.getAggregatedStats();
-        
+
         this.statsLog.push({
             timestamp: Date.now(),
             stats: aggregatedStats,
         });
-        
+
         // 只保留最近的日志
         if (this.statsLog.length > 100) {
             this.statsLog.shift();
         }
     }
-    
+
     /**
      * 获取所有缓存的聚合统计
      */
@@ -415,7 +422,7 @@ export class CacheMonitor {
         const registry = CacheRegistry.getInstance();
         return registry.getAggregatedStats();
     }
-    
+
     /**
      * 导出缓存统计报告
      */
@@ -438,7 +445,7 @@ export class CacheMonitor {
             "## Per-Cache Statistics",
             "",
         ];
-        
+
         for (const [name, stats] of Object.entries(aggregated.caches)) {
             lines.push(`### ${name}`);
             lines.push(`- Size: ${stats.size} / ${stats.maxSize}`);
@@ -448,7 +455,7 @@ export class CacheMonitor {
             lines.push(`- Evictions: ${stats.evictions}`);
             lines.push("");
         }
-        
+
         return lines.join("\n");
     }
 }

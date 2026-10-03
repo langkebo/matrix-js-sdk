@@ -145,19 +145,16 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
      */
     async getSpace(spaceId: string): Promise<Space> {
         validateRoomId(spaceId);
-        
+
         try {
             // 使用 getOrFetch 自动处理缓存
-            const space = await this.lifecycleCache.getOrFetch(
-                `space:${spaceId}`,
-                async () => {
-                    const response = await this.withRetry(async () => {
-                        return await this.doRequest<JsonObject>(Method.Get, spacePath("/spaces/$spaceId", spaceId));
-                    }, "getSpace");
-                    return normalizeSpace(response, spaceId);
-                }
-            );
-            
+            const space = await this.lifecycleCache.getOrFetch(`space:${spaceId}`, async () => {
+                const response = await this.withRetry(async () => {
+                    return await this.doRequest<JsonObject>(Method.Get, spacePath("/spaces/$spaceId", spaceId));
+                }, "getSpace");
+                return normalizeSpace(response, spaceId);
+            });
+
             // 同时更新 query 缓存以保持一致性
             this.parent!.query.setCachedSpace(spaceId, space);
             return space;

@@ -174,11 +174,9 @@ describe("RelationsManager", () => {
         );
         expect(result.event_id).toBe("$newRel");
         expect(emitSpy).toHaveBeenCalledWith("RelationsUpdated", "!room:example.com", "$event123");
-        transport.expectCalledWith(
-            Method.Put,
-            "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation/txn-1",
-            { key: "👍" },
-        );
+        transport.expectCalledWith(Method.Put, "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation/txn-1", {
+            key: "👍",
+        });
         // 写入端点只在 vendor 前缀上（ISSUE-13）；client 4 段路径只服务 GET
         expect(transport.request.mock.calls[0][4]?.prefix).toBe(VendorPrefix);
     });

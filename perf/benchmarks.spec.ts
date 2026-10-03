@@ -171,7 +171,7 @@ describe("Performance: Cache Operations", () => {
 
     it("invalidate with wildcard patterns", async () => {
         const cache = new UnifiedCacheManager({ namespace: "perf_test", maxSize: 100, ttl: 60_000 });
-        
+
         for (let i = 0; i < 20; i++) {
             cache.set(`group_${i % 4}_item_${i}`, { value: i });
         }
@@ -296,7 +296,9 @@ describe("Performance: String Operations", () => {
 
         const result = await benchmark("String normalization", async () => {
             testCases.forEach((str) => {
-                str.trim().replace(/\/$/, "").replace(/^matrix:client:\/\//, "");
+                str.trim()
+                    .replace(/\/$/, "")
+                    .replace(/^matrix:client:\/\//, "");
             });
         });
 
@@ -315,17 +317,21 @@ describe("Performance Summary", () => {
         const cache = new UnifiedCacheManager({ namespace: "summary_test", maxSize: 10, ttl: 60_000 });
 
         // Cache operations
-        results.push(await benchmark("Cache get/set", async () => {
-            cache.set("key", "value");
-            cache.get("key");
-        }));
+        results.push(
+            await benchmark("Cache get/set", async () => {
+                cache.set("key", "value");
+                cache.get("key");
+            }),
+        );
 
         // Batch operations
-        results.push(await benchmark("Batch set (50 items)", async () => {
-            for (let i = 0; i < 50; i++) {
-                cache.set(`item_${i}`, { index: i });
-            }
-        }));
+        results.push(
+            await benchmark("Batch set (50 items)", async () => {
+                for (let i = 0; i < 50; i++) {
+                    cache.set(`item_${i}`, { index: i });
+                }
+            }),
+        );
 
         // Generate report
         const report = `
@@ -334,12 +340,16 @@ describe("Performance Summary", () => {
 Generated: ${new Date().toISOString()}
 
 ## Average Times Across All Benchmarks
-${results.map((r) => `
+${results
+    .map(
+        (r) => `
 - ${r.name}:
   - Average: ${r.avgTime.toFixed(2)} ms
   - Median:  ${r.medianTime.toFixed(2)} ms
   - Range:   [${r.minTime.toFixed(2)}, ${r.maxTime.toFixed(2)}] ms
-`).join("\n")}
+`,
+    )
+    .join("\n")}
 
 ## Performance Targets
 - All benchmarks should pass < 100ms threshold

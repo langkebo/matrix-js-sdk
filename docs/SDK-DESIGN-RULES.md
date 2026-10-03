@@ -38,24 +38,24 @@
 
 ### 2.1 必须封装的范围（客户端面）
 
-| 类别 | 路由前缀 | 封装要求 | 示例 |
-|------|---------|---------|------|
-| **客户端 API** | `/_matrix/client/v{1,3}/*` | ✅ 100% 封装 | `/rooms/{id}/send`, `/sync`, `/login` |
-| **Vendor API** | `/_matrix/vendor/v1/*` | ✅ 100% 封装 | `/friends`, `/voice` |
-| **MSC 扩展** | `/_matrix/client/unstable/*` | ✅ 按 MSC 状态封装 | MSC4155/4156/4204 |
-| **媒体 API** | `/_matrix/media/{r0,v1,v3}/*` | ✅ 100% 封装 | `/upload`, `/download` |
-| **OIDC/SAML** | `/_matrix/client/v3/oidc/*` | ✅ 100% 封装 | `/authorize`, `/token`, `/callback` |
-| **Admin API（客户端可用）** | `/_synapse/admin/v1/*` | ⚠️ 按需封装 | `/rooms/{id}/redact`, `/event_report` |
+| 类别                        | 路由前缀                      | 封装要求           | 示例                                  |
+| --------------------------- | ----------------------------- | ------------------ | ------------------------------------- |
+| **客户端 API**              | `/_matrix/client/v{1,3}/*`    | ✅ 100% 封装       | `/rooms/{id}/send`, `/sync`, `/login` |
+| **Vendor API**              | `/_matrix/vendor/v1/*`        | ✅ 100% 封装       | `/friends`, `/voice`                  |
+| **MSC 扩展**                | `/_matrix/client/unstable/*`  | ✅ 按 MSC 状态封装 | MSC4155/4156/4204                     |
+| **媒体 API**                | `/_matrix/media/{r0,v1,v3}/*` | ✅ 100% 封装       | `/upload`, `/download`                |
+| **OIDC/SAML**               | `/_matrix/client/v3/oidc/*`   | ✅ 100% 封装       | `/authorize`, `/token`, `/callback`   |
+| **Admin API（客户端可用）** | `/_synapse/admin/v1/*`        | ⚠️ 按需封装        | `/rooms/{id}/redact`, `/event_report` |
 
 ### 2.2 可不封装的范围（服务端面）
 
-| 类别 | 路由前缀 | 处置方式 | 理由 |
-|------|---------|---------|------|
-| **Federation API** | `/_matrix/federation/v{1,2}/*` | ❌ 不封装 | 服务端间通信（S2S），客户端通过 Homeserver 间接完成 |
-| **App Service** | `/_matrix/app/v1/*` | ❌ 不封装 | 仅在部署 App Service 时有意义 |
-| **Key Exchange** | `/_matrix/key/v2/*` | ❌ 不封装 | 跨服务器密钥交换，服务端间通信 |
-| **Background Updates** | `/_synapse/admin/v1/background_updates/*` | ❌ 不封装 | 服务端后台维护任务 |
-| **Admin Audit/Telemetry** | `/_synapse/admin/v1/telemetry/*` | ❌ 不封装 | 运维/审计场景 |
+| 类别                      | 路由前缀                                  | 处置方式  | 理由                                                |
+| ------------------------- | ----------------------------------------- | --------- | --------------------------------------------------- |
+| **Federation API**        | `/_matrix/federation/v{1,2}/*`            | ❌ 不封装 | 服务端间通信（S2S），客户端通过 Homeserver 间接完成 |
+| **App Service**           | `/_matrix/app/v1/*`                       | ❌ 不封装 | 仅在部署 App Service 时有意义                       |
+| **Key Exchange**          | `/_matrix/key/v2/*`                       | ❌ 不封装 | 跨服务器密钥交换，服务端间通信                      |
+| **Background Updates**    | `/_synapse/admin/v1/background_updates/*` | ❌ 不封装 | 服务端后台维护任务                                  |
+| **Admin Audit/Telemetry** | `/_synapse/admin/v1/telemetry/*`          | ❌ 不封装 | 运维/审计场景                                       |
 
 ### 2.3 边界判定规则
 
@@ -77,24 +77,24 @@
 ```typescript
 // ✅ 正确示例
 interface SendMessageParams {
-  room_id: string;
-  event_type: string;
-  content: Record<string, unknown>;
-  txn_id?: string;
+    room_id: string;
+    event_type: string;
+    content: Record<string, unknown>;
+    txn_id?: string;
 }
 
 interface SendMessageResponse {
-  event_id: string;
-  content_uri?: string;
+    event_id: string;
+    content_uri?: string;
 }
 
 async function sendMessage(params: SendMessageParams): Promise<SendMessageResponse> {
-  // 实现
+    // 实现
 }
 
 // ❌ 禁止示例
 async function sendMessage(roomId: string, content: any): Promise<any> {
-  // 避免使用 any 或缺少类型定义
+    // 避免使用 any 或缺少类型定义
 }
 ```
 
@@ -104,22 +104,22 @@ async function sendMessage(roomId: string, content: any): Promise<any> {
 
 ```typescript
 // ✅ 正确示例
-import { MatrixError, ErrorCode } from '../errors';
+import { MatrixError, ErrorCode } from "../errors";
 
 try {
-  await sendMessage(params);
+    await sendMessage(params);
 } catch (error) {
-  if (error instanceof MatrixError) {
-    console.error(`Matrix error: ${error.code}`, error.message);
-    // 统一处理逻辑
-  }
+    if (error instanceof MatrixError) {
+        console.error(`Matrix error: ${error.code}`, error.message);
+        // 统一处理逻辑
+    }
 }
 
 // ❌ 禁止示例
 try {
-  await fetch('/_matrix/client/v3/rooms/...');
+    await fetch("/_matrix/client/v3/rooms/...");
 } catch (error) {
-  // 避免直接捕获原生 Error 或不处理
+    // 避免直接捕获原生 Error 或不处理
 }
 ```
 
@@ -130,12 +130,13 @@ try {
 ```typescript
 // ✅ 正确示例 - SDK 侧
 // src/room/__generated__/route-table.ts
-export const ROOM_SEND_PATH = '/rooms/{room_id}/send/{event_type}';
+export const ROOM_SEND_PATH = "/rooms/{room_id}/send/{event_type}";
 
 export function buildRoomSendPath(params: { room_id: string; event_type: string }): string {
-  return ROOM_SEND_PATH
-    .replace('{room_id}', encodeURIComponent(params.room_id))
-    .replace('{event_type}', encodeURIComponent(params.event_type));
+    return ROOM_SEND_PATH.replace("{room_id}", encodeURIComponent(params.room_id)).replace(
+        "{event_type}",
+        encodeURIComponent(params.event_type),
+    );
 }
 
 // ❌ 禁止示例 - 前端侧
@@ -161,18 +162,18 @@ await sendMsg(...); // 缩写不清晰
 
 **所有公开 API 必须提供完整的 JSDoc 文档**
 
-```typescript
+````typescript
 /**
  * 发送消息到指定房间
- * 
+ *
  * @param roomId - 目标房间 ID（格式：`!roomid:server.name`）
  * @param eventType - 事件类型（如 `m.room.message`）
  * @param content - 事件内容，必须符合 Matrix 事件格式规范
  * @param txnId - 可选的事务 ID，用于幂等性控制
  * @returns 包含 `event_id` 的响应对象
- * 
+ *
  * @throws {MatrixError} 当房间不存在、无权限或网络错误时抛出
- * 
+ *
  * @example
  * ```typescript
  * const result = await roomManager.sendMessage(
@@ -184,14 +185,14 @@ await sendMsg(...); // 缩写不清晰
  * ```
  */
 async function sendMessage(
-  roomId: string,
-  eventType: string,
-  content: Record<string, unknown>,
-  txnId?: string
+    roomId: string,
+    eventType: string,
+    content: Record<string, unknown>,
+    txnId?: string,
 ): Promise<{ event_id: string }> {
-  // ...
+    // ...
 }
-```
+````
 
 ---
 
@@ -203,13 +204,13 @@ async function sendMessage(
 
 ```typescript
 // ✅ 正确示例 - 使用 SDK
-import { RoomManager } from 'matrix-js-sdk/src/room';
+import { RoomManager } from "matrix-js-sdk/src/room";
 
 const roomManager = new RoomManager(client);
 await roomManager.sendMessage(roomId, eventType, content);
 
 // ❌ 禁止示例 - 绕过 SDK
-import { authedRequest } from './utils'; // 不允许！
+import { authedRequest } from "./utils"; // 不允许！
 await authedRequest(Method.Post, `/rooms/${roomId}/send`);
 ```
 
@@ -240,16 +241,16 @@ await authedRequest(Method.Post, `/rooms/${roomId}/send`);
 **仅在以下极端情况下允许临时绕过 SDK**：
 
 1. **紧急热修复**：SDK 封装存在严重 Bug，且无法快速修复
-   - 必须在 PR 描述中标注 `TODO: 改用 SDK 封装`
-   - 创建对应的 Issue 跟踪修复
+    - 必须在 PR 描述中标注 `TODO: 改用 SDK 封装`
+    - 创建对应的 Issue 跟踪修复
 
 2. **实验性功能**：尚未稳定的实验性特性（如新 MSC）
-   - 必须标注 `@experimental` 标记
-   - 在 SDK 中预留封装接口位置
+    - 必须标注 `@experimental` 标记
+    - 在 SDK 中预留封装接口位置
 
 3. **性能优化**：经过性能测试证明 SDK 封装存在瓶颈
-   - 必须提供性能对比数据
-   - 优先优化 SDK 而非绕过
+    - 必须提供性能对比数据
+    - 优先优化 SDK 而非绕过
 
 ### 4.4 代码审查检查点
 
@@ -317,13 +318,13 @@ PR 审查时必须检查以下内容：
 ```typescript
 // ✅ 正确示例 - 保持兼容
 interface OldParams {
-  room_id: string;
-  content: Record<string, unknown>;
+    room_id: string;
+    content: Record<string, unknown>;
 }
 
 // 新增可选参数，不影响现有调用
 interface NewParams extends OldParams {
-  txn_id?: string; // 新增可选参数
+    txn_id?: string; // 新增可选参数
 }
 
 // ✅ 正确示例 - 弃用标记
@@ -331,12 +332,12 @@ interface NewParams extends OldParams {
  * @deprecated 请使用 sendMessageV2()，支持更多特性
  */
 async function sendMessage(params: OldParams): Promise<Result> {
-  return sendMessageV2(params as NewParams);
+    return sendMessageV2(params as NewParams);
 }
 
 // ❌ 禁止示例 - 破坏性变更
 async function sendMessage(params: { roomId: string }): Promise<Result> {
-  // 改变了参数名称或类型
+    // 改变了参数名称或类型
 }
 ```
 
@@ -351,23 +352,23 @@ async function sendMessage(params: { roomId: string }): Promise<Result> {
 ```yaml
 # .github/workflows/quality-gate.yml
 jobs:
-  sdk-quality:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Contract Sync Check
-        run: pnpm contract:sync --check
-      
-      - name: TypeScript Type Check
-        run: pnpm type-check
-      
-      - name: Unit Tests
-        run: pnpm test:unit
-      
-      - name: Coverage Check
-        run: pnpm coverage:check --threshold=90
-      
-      - name: Codegen Gate
-        run: pnpm quality:manager-codegen
+    sdk-quality:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Contract Sync Check
+              run: pnpm contract:sync --check
+
+            - name: TypeScript Type Check
+              run: pnpm type-check
+
+            - name: Unit Tests
+              run: pnpm test:unit
+
+            - name: Coverage Check
+              run: pnpm coverage:check --threshold=90
+
+            - name: Codegen Gate
+              run: pnpm quality:manager-codegen
 ```
 
 ### 6.2 前端使用检查
@@ -463,8 +464,8 @@ pnpm coverage:check
 
 ### 8.3 变更记录
 
-| 日期 | 版本 | 变更内容 | 负责人 |
-|------|------|---------|--------|
+| 日期       | 版本 | 变更内容     | 负责人   |
+| ---------- | ---- | ------------ | -------- |
 | 2026-09-24 | v1.0 | 初始版本发布 | SDK 团队 |
 
 ---

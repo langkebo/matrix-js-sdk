@@ -32,7 +32,7 @@ describe("SpaceHierarchyManager", () => {
                 authedRequest: vi.fn(),
             },
         };
-        
+
         mockParent = {
             lifecycle: {
                 getSpace: vi.fn(),
@@ -97,7 +97,7 @@ describe("SpaceHierarchyManager", () => {
         it("emits SpaceError on failure", async () => {
             const error = { httpStatus: 500, errcode: "M_UNKNOWN" };
             mockClient.http.authedRequest.mockRejectedValue(error);
-            
+
             const emitSpy = vi.spyOn(manager, "emit");
 
             await expect(manager.getSpaceHierarchyPage("!space:test")).rejects.toThrow();
@@ -130,7 +130,7 @@ describe("SpaceHierarchyManager", () => {
         it("emits SpaceError on failure", async () => {
             const error = { httpStatus: 404, errcode: "M_NOT_FOUND" };
             mockClient.http.authedRequest.mockRejectedValue(error);
-            
+
             const emitSpy = vi.spyOn(manager, "emit");
 
             await expect(manager.getSpaceHierarchyV1("!space:test")).rejects.toThrow();
@@ -164,7 +164,7 @@ describe("SpaceHierarchyManager", () => {
         it("emits SpaceError on failure", async () => {
             const error = { httpStatus: 403, errcode: "M_FORBIDDEN" };
             mockClient.http.authedRequest.mockRejectedValue(error);
-            
+
             const emitSpy = vi.spyOn(manager, "emit");
 
             await expect(manager.getSpaceSummary("!space:test")).rejects.toThrow();
@@ -198,7 +198,7 @@ describe("SpaceHierarchyManager", () => {
         it("emits SpaceError on failure", async () => {
             const error = { httpStatus: 400, errcode: "M_BAD_PARAM" };
             mockClient.http.authedRequest.mockRejectedValue(error);
-            
+
             const emitSpy = vi.spyOn(manager, "emit");
 
             await expect(manager.getSpaceSummaryWithChildren("!space:test")).rejects.toThrow();
@@ -230,7 +230,7 @@ describe("SpaceHierarchyManager", () => {
         it("emits SpaceError on failure", async () => {
             const error = { httpStatus: 404, errcode: "M_NOT_FOUND" };
             mockClient.http.authedRequest.mockRejectedValue(error);
-            
+
             const emitSpy = vi.spyOn(manager, "emit");
 
             await expect(manager.getSpaceTreePath("!space:test")).rejects.toThrow();

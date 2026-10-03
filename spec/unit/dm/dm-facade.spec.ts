@@ -275,9 +275,7 @@ describe("DirectMessageManager 门面层", () => {
         });
 
         it("sendDmMessage 委托到 operation.sendDmMessage 并回传 event_id", async () => {
-            const spy = vi
-                .spyOn(dmManager.operation, "sendDmMessage")
-                .mockResolvedValue("$sent:example.com");
+            const spy = vi.spyOn(dmManager.operation, "sendDmMessage").mockResolvedValue("$sent:example.com");
 
             const result = await dmManager.sendDmMessage("!room:example.com", "hello");
 
@@ -292,9 +290,7 @@ describe("DirectMessageManager 门面层", () => {
 
     describe("updateDirectRoom overload 分发", () => {
         it("传数组时走 userIds 分支", async () => {
-            const spy = vi
-                .spyOn(dmManager.creation, "updateDirectRoom")
-                .mockResolvedValue({ updated: true } as never);
+            const spy = vi.spyOn(dmManager.creation, "updateDirectRoom").mockResolvedValue({ updated: true } as never);
 
             await dmManager.updateDirectRoom("!room:example.com", ["@alice:example.com"]);
 

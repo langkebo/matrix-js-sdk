@@ -100,9 +100,7 @@ describe("SpaceLifecycleManager", () => {
 
             const emitSpy = vi.spyOn(manager, "emit");
 
-            await expect(
-                manager.createSpace({ room_id: "!newspace:test", name: "New Space" }),
-            ).rejects.toThrow();
+            await expect(manager.createSpace({ room_id: "!newspace:test", name: "New Space" })).rejects.toThrow();
 
             expect(emitSpy).toHaveBeenCalledWith(SpaceEvent.SpaceError, expect.any(Error));
         });

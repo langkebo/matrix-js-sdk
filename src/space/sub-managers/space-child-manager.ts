@@ -51,21 +51,18 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
     async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
         try {
             // 使用 getOrFetch 自动处理缓存
-            const children = await this.childrenCache.getOrFetch(
-                `children:${spaceId}`,
-                async () => {
-                    const response = await this.withRetry(async () => {
-                        return await this.doRequest<JsonObject | SpaceChild[]>(
-                            Method.Get,
-                            spacePath("/spaces/$spaceId/children", spaceId),
-                            options,
-                        );
-                    }, "getSpaceChildren");
-                    
-                    return this.extractChildren(response, spaceId);
-                }
-            );
-            
+            const children = await this.childrenCache.getOrFetch(`children:${spaceId}`, async () => {
+                const response = await this.withRetry(async () => {
+                    return await this.doRequest<JsonObject | SpaceChild[]>(
+                        Method.Get,
+                        spacePath("/spaces/$spaceId/children", spaceId),
+                        options,
+                    );
+                }, "getSpaceChildren");
+
+                return this.extractChildren(response, spaceId);
+            });
+
             return children;
         } catch (error) {
             this.emit(SpaceEvent.SpaceError, this.normalizeError(error, "getSpaceChildren"));
@@ -117,7 +114,7 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                     suggested: options.suggested,
                 });
             }, "addChild");
-            
+
             // 使用统一的缓存无效化策略
             this.childrenCache.invalidate(["*", `children:${spaceId}`]);
             this.emit(SpaceEvent.ChildAdded, spaceId, options.room_id);
@@ -135,7 +132,7 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                     sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),
                 );
             }, "removeChild");
-            
+
             // 使用统一的缓存无效化策略
             this.childrenCache.invalidate(["*", `children:${spaceId}`]);
             this.emit(SpaceEvent.ChildRemoved, spaceId, roomId);

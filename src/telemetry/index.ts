@@ -333,7 +333,12 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         this.track(key, data);
     }
 
-    public trackRequestTiming(method: string, durationMs: number, status: "success" | "failure", endpoint?: string): void {
+    public trackRequestTiming(
+        method: string,
+        durationMs: number,
+        status: "success" | "failure",
+        endpoint?: string,
+    ): void {
         if (!this.config.enabled) return;
 
         this.track("request_timing", {

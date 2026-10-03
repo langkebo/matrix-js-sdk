@@ -45,13 +45,9 @@ describe("AdminPolicyManager", () => {
         expect(result.enabled).toBe(true);
         expect(result.endpoint).toBe("https://policy.example.com");
         expect(result.fail_mode).toBe("fail_closed");
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/policy/status",
-            undefined,
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/policy/status", undefined, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
     });
 
     it("getStatus() handles disabled policy server", async () => {

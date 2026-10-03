@@ -16,10 +16,12 @@ limitations under the License.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { RoomSummaryStatsManager, RoomSummaryStatsEvent } from "../../../../src/room-summary/sub-managers/room-stats-manager";
+import {
+    RoomSummaryStatsManager,
+    RoomSummaryStatsEvent,
+} from "../../../../src/room-summary/sub-managers/room-stats-manager";
 import { LRUCache } from "../../../../src/utils/lru-cache";
 import type { RoomSummaryErrorCallback } from "../../../../src/room-summary/room-summary-base-manager";
-import type { RoomStats } from "../../../../src/room-summary/types";
 
 describe("RoomSummaryStatsManager", () => {
     let manager: RoomSummaryStatsManager;
@@ -34,7 +36,7 @@ describe("RoomSummaryStatsManager", () => {
                 authedRequest: vi.fn(),
             },
         };
-        
+
         statsCache = new LRUCache(100, 3 * 60 * 1000); // maxSize=100, TTL=3min
         onError = vi.fn();
 
@@ -89,11 +91,7 @@ describe("RoomSummaryStatsManager", () => {
 
             await manager.getRoomSummaryStats("!room:test");
 
-            expect(emitSpy).toHaveBeenCalledWith(
-                RoomSummaryStatsEvent.StatsUpdated,
-                "!room:test",
-                mockStats,
-            );
+            expect(emitSpy).toHaveBeenCalledWith(RoomSummaryStatsEvent.StatsUpdated, "!room:test", mockStats);
         });
 
         it("forces refresh when forceRefresh is true", async () => {
@@ -157,11 +155,7 @@ describe("RoomSummaryStatsManager", () => {
                 { force: true },
                 { prefix: "/_matrix/client/v3" },
             );
-            expect(emitSpy).toHaveBeenCalledWith(
-                RoomSummaryStatsEvent.StatsUpdated,
-                "!room:test",
-                mockStats,
-            );
+            expect(emitSpy).toHaveBeenCalledWith(RoomSummaryStatsEvent.StatsUpdated, "!room:test", mockStats);
         });
 
         it("throws on error", async () => {
@@ -181,14 +175,9 @@ describe("RoomSummaryStatsManager", () => {
 
             mockClient.http.authedRequest.mockResolvedValue(mockResult);
             const onCacheInvalidation = vi.fn();
-            
+
             // Recreate manager with callback
-            manager = new RoomSummaryStatsManager(
-                mockClient,
-                statsCache,
-                onCacheInvalidation,
-                onError,
-            );
+            manager = new RoomSummaryStatsManager(mockClient, statsCache, onCacheInvalidation, onError);
 
             const result = await manager.recalculateSummaryHeroes("!room:test", { force: true });
 
@@ -220,14 +209,9 @@ describe("RoomSummaryStatsManager", () => {
 
             mockClient.http.authedRequest.mockResolvedValue(mockResult);
             const onCacheInvalidation = vi.fn();
-            
+
             // Recreate manager with callback
-            manager = new RoomSummaryStatsManager(
-                mockClient,
-                statsCache,
-                onCacheInvalidation,
-                onError,
-            );
+            manager = new RoomSummaryStatsManager(mockClient, statsCache, onCacheInvalidation, onError);
 
             const result = await manager.clearSummaryUnread("!room:test", { reason: "read" });
 

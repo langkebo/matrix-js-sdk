@@ -198,7 +198,10 @@ export class ServerCapabilitiesManager extends BaseManager<
             return this.cachedCapabilities;
         }
         return this.withRetry(async () => {
-            const resp = await this.request<{ capabilities: Capabilities; unstable_features?: Record<string, boolean> }>({
+            const resp = await this.request<{
+                capabilities: Capabilities;
+                unstable_features?: Record<string, boolean>;
+            }>({
                 method: Method.Get,
                 path: "/capabilities",
                 prefix: ClientPrefix.V3,

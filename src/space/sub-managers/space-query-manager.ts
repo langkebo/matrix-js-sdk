@@ -19,6 +19,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
+import { logger } from "../../logger";
 import { ClientPrefix } from "../../http-api/prefix";
 import type { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../http-api/utils";
@@ -35,26 +36,26 @@ type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space response 
 
 /**
  * 分级缓存配置
- * 
+ *
  * 高频数据：用户空间列表、公共空间列表（访问频率高，变化相对缓慢）
  * 低频数据：单个 Space 详情、搜索结果（访问频率低，实时性要求高）
  */
 const CACHE_CONFIGS = {
-    highFrequency: { 
-        maxSize: 100, 
+    highFrequency: {
+        maxSize: 100,
         ttl: 10 * 60 * 1000, // 10 分钟 TTL
-        name: "space-query-highfreq" 
+        name: "space-query-highfreq",
     },
-    lowFrequency: { 
-        maxSize: 50, 
+    lowFrequency: {
+        maxSize: 50,
         ttl: 3 * 60 * 1000, // 3 分钟 TTL
-        name: "space-query-lowfreq" 
+        name: "space-query-lowfreq",
     },
     singleSpace: {
         maxSize: 100,
         ttl: 5 * 60 * 1000, // 5 分钟 TTL
-        name: "space-query-single"
-    }
+        name: "space-query-single",
+    },
 } as const;
 
 /**
@@ -87,7 +88,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
     // 单个 Space 缓存
     private spaceCache: LRUCache<Space>;
     private parent: SpaceManager | null = null;
-    
+
     // 遥测指标
     private telemetry: CacheTelemetry = {
         totalRequests: 0,
@@ -151,11 +152,11 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         const highFreq = this.highFreqCache.getStats();
         const lowFreq = this.lowFreqCache.getStats();
         const space = this.spaceCache.getStats();
-        
+
         const totalHits = highFreq.hits + lowFreq.hits + space.hits;
         const totalMisses = highFreq.misses + lowFreq.misses + space.misses;
         const totalSize = highFreq.size + lowFreq.size + space.size;
-        
+
         return {
             highFreq,
             lowFreq,
@@ -172,7 +173,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
     async getPublicSpaces(options: SpaceQueryOptions = {}): Promise<SpaceListResponse> {
         const start = performance.now();
         this.telemetry.totalRequests++;
-        
+
         try {
             const cacheKey = "public_spaces";
             const cached = this.highFreqCache.get(cacheKey);
@@ -181,7 +182,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                 this.telemetry.latencies.push(performance.now() - start);
                 return { chunk: cached };
             }
-            
+
             const response = await this.withRetry(async () => {
                 return await this.doRequest<SpaceListResponse>(Method.Get, sp("/spaces/public"), options);
             }, "getPublicSpaces");
@@ -338,7 +339,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                     } catch (error) {
                         results.failed++;
                         // 静默失败，不中断整体预热流程
-                        console.warn(`Failed to preload space ${space.room_id}:`, error);
+                        logger.warn(`Failed to preload space ${space.room_id}`, error);
                     }
                 });
 
@@ -346,10 +347,10 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                 await Promise.all(promises);
             }
 
-            console.log(`Space cache preload complete: ${results.loaded}/${results.total} loaded`);
+            logger.info(`Space cache preload complete: ${results.loaded}/${results.total} loaded`);
             return results;
         } catch (error) {
-            console.error("Failed to preload spaces:", error);
+            logger.error("Failed to preload spaces", error);
             return { total: 0, loaded: 0, failed: 0 };
         }
     }
@@ -369,9 +370,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
     public getTelemetry(): SpaceQueryTelemetry {
         const stats = this.getAggregatedCacheStats();
         const totalRequests = stats.total.hits + stats.total.misses;
-        const cacheHitRate = totalRequests > 0
-            ? stats.total.hits / totalRequests
-            : 0;
+        const cacheHitRate = totalRequests > 0 ? stats.total.hits / totalRequests : 0;
 
         const latencies = this.telemetry.latencies.slice(-100);
         const sorted = [...latencies].sort((a, b) => a - b);
@@ -383,15 +382,9 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
                 cacheMisses: this.telemetry.cacheMisses,
                 hitRate: cacheHitRate,
                 latencies: latencies,
-                avgLatencyMs: latencies.length > 0
-                    ? latencies.reduce((a, b) => a + b, 0) / latencies.length
-                    : 0,
-                p95LatencyMs: sorted.length > 0
-                    ? sorted[Math.floor(sorted.length * 0.95)] ?? 0
-                    : 0,
-                p99LatencyMs: sorted.length > 0
-                    ? sorted[Math.floor(sorted.length * 0.99)] ?? 0
-                    : 0,
+                avgLatencyMs: latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0,
+                p95LatencyMs: sorted.length > 0 ? (sorted[Math.floor(sorted.length * 0.95)] ?? 0) : 0,
+                p99LatencyMs: sorted.length > 0 ? (sorted[Math.floor(sorted.length * 0.99)] ?? 0) : 0,
             },
             lastUpdated: Date.now(),
         };

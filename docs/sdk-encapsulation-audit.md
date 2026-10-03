@@ -12,12 +12,12 @@
 
 ## 执行摘要
 
-| 审计维度 | 状态 | 详细说明 |
-|----------|------|---------|
-| **路由声明覆盖** | ✅ 89.2% (684/767) | 客户端面路由实现覆盖率 |
-| **MSC 语义一致性** | ✅ 已对齐 | MSC4204/4155/3967/4156/4267 均在 `docs/MSC_SEMANTICS.md` 中明确标注 |
-| **真缺口** | 0 | 2 条历史缺口已全部修复 |
-| **草案 API** | 3 项 | `Takedown`、`getInvitePermissionConfig`、`setInvitePermissionConfig`，标注 "Draft — not implemented" |
+| 审计维度           | 状态               | 详细说明                                                                                             |
+| ------------------ | ------------------ | ---------------------------------------------------------------------------------------------------- |
+| **路由声明覆盖**   | ✅ 89.2% (684/767) | 客户端面路由实现覆盖率                                                                               |
+| **MSC 语义一致性** | ✅ 已对齐          | MSC4204/4155/3967/4156/4267 均在 `docs/MSC_SEMANTICS.md` 中明确标注                                  |
+| **真缺口**         | 0                  | 2 条历史缺口已全部修复                                                                               |
+| **草案 API**       | 3 项               | `Takedown`、`getInvitePermissionConfig`、`setInvitePermissionConfig`，标注 "Draft — not implemented" |
 
 ---
 
@@ -25,25 +25,26 @@
 
 ### 1.1 编号借用模式（非错配）
 
-| MSC 编号 | 官方原始语义 | Sprint 4 后端实际语义 | SDK 封装状态 | 文档位置 |
-|----------|------------|-------------------|------------|---------|
-| **MSC4204** | 改密默认吊销设备 | 改密默认吊销设备（实为 MSC2457 能力） | `PolicyRecommendation.Takedown` 标注为 Draft | `src/models/invites-ignorer-types.ts:38` |
-| **MSC4155** | Invite filtering | 线程订阅读接口 | `ThreadingManager.getSubscribedThreads()` ✅ 正常工作 | `src/invite-blocklist/index.ts:280-281` |
-| **MSC3967** | Cross-signing 免 UIA | `/sync` 增量 state token | 无需专属封装（正常消费 `/sync`） | `docs/MSC_SEMANTICS.md` |
-| **MSC4156** | join/knock via 参数 | join/knock via 参数 | ✅ 完全对齐 | `docs/MSC_SEMANTICS.md` |
-| **MSC4267** | 原子 leave+forget | 原子 leave+forget | ✅ 完全对齐 | `docs/MSC_SEMANTICS.md` |
+| MSC 编号    | 官方原始语义         | Sprint 4 后端实际语义                 | SDK 封装状态                                          | 文档位置                                 |
+| ----------- | -------------------- | ------------------------------------- | ----------------------------------------------------- | ---------------------------------------- |
+| **MSC4204** | 改密默认吊销设备     | 改密默认吊销设备（实为 MSC2457 能力） | `PolicyRecommendation.Takedown` 标注为 Draft          | `src/models/invites-ignorer-types.ts:38` |
+| **MSC4155** | Invite filtering     | 线程订阅读接口                        | `ThreadingManager.getSubscribedThreads()` ✅ 正常工作 | `src/invite-blocklist/index.ts:280-281`  |
+| **MSC3967** | Cross-signing 免 UIA | `/sync` 增量 state token              | 无需专属封装（正常消费 `/sync`）                      | `docs/MSC_SEMANTICS.md`                  |
+| **MSC4156** | join/knock via 参数  | join/knock via 参数                   | ✅ 完全对齐                                           | `docs/MSC_SEMANTICS.md`                  |
+| **MSC4267** | 原子 leave+forget    | 原子 leave+forget                     | ✅ 完全对齐                                           | `docs/MSC_SEMANTICS.md`                  |
 
 **结论**：所有 MSC 编号借用均为**有意设计**，非语义错配。SDK 注释已在位。
 
 ### 1.2 草案 API（后端零消费）
 
-| API | 位置 | 行为 | 调用结果 |
-|-----|------|------|---------|
-| `PolicyRecommendation.Takedown` | `src/models/invites-ignorer-types.ts` | 类型合法 | 后端不消费 → 404 |
+| API                                                  | 位置                                    | 行为                     | 调用结果                   |
+| ---------------------------------------------------- | --------------------------------------- | ------------------------ | -------------------------- |
+| `PolicyRecommendation.Takedown`                      | `src/models/invites-ignorer-types.ts`   | 类型合法                 | 后端不消费 → 404           |
 | `InviteBlocklistManager.getInvitePermissionConfig()` | `src/invite-blocklist/index.ts:276-306` | 读取 Global Account Data | 事件未设置 → 降级为 `null` |
-| `InviteBlocklistManager.setInvitePermissionConfig()` | `src/invite-blocklist/index.ts:308-340` | 写入 Global Account Data | 仅写入，后端不做邀请过滤 |
+| `InviteBlocklistManager.setInvitePermissionConfig()` | `src/invite-blocklist/index.ts:308-340` | 写入 Global Account Data | 仅写入，后端不做邀请过滤   |
 
 **验证命令**：
+
 ```bash
 # 后端：草案 API 消费方必须为 0
 grep -rn "m\\.takedown" --include=*.rs src synapse-services synapse-common
@@ -59,16 +60,17 @@ grep -rn "Draft — not implemented by synapse-rust" src
 
 ### 2.1 覆盖率统计
 
-| 分类 | 后端路由数 | SDK 实现数 | 覆盖率 |
-|------|-----------|----------|--------|
-| **客户端面** | 660 | 589 | 89.2% |
-| **服务端面** | 366 | 328 | 89.6% |
-| **SSO 根级** | 13 | 12 | 92.3% |
-| **总计** | 1039 | 929 | 89.4% |
+| 分类         | 后端路由数 | SDK 实现数 | 覆盖率 |
+| ------------ | ---------- | ---------- | ------ |
+| **客户端面** | 660        | 589        | 89.2%  |
+| **服务端面** | 366        | 328        | 89.6%  |
+| **SSO 根级** | 13         | 12         | 92.3%  |
+| **总计**     | 1039       | 929        | 89.4%  |
 
 ### 2.2 真缺口分析（0 条）
 
 历史缺口修复记录：
+
 - ✅ `GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer` → `src/client-auth.ts:60`
 - ✅ `POST /_matrix/client/v3/admin/room/{room_id}/redact` → `src/admin/AdminRoomManager.redactRoomEvents()`
 
@@ -78,14 +80,15 @@ grep -rn "Draft — not implemented by synapse-rust" src
 
 ## 3. Sprint 4 主 Ticket 对应关系
 
-| Ticket | MSC 编号 | 后端交付 | SDK 封装 | 一致性 |
-|--------|---------|---------|---------|--------|
-| **Sprint #4-T01** | MSC4204 | 改密默认吊销设备 | `PasswordAuthManager.revokeDevicesOnPasswordChange()` | ✅ 一致 |
-| **Sprint #4-T02** | MSC4267 | 原子 leave+forget | `RoomManager.leave(roomId, { forget? })` | ✅ 一致 |
-| **Sprint #4-T03** | MSC3967 | /sync 增量 state token | 正常消费 `/sync` | ✅ 无需封装 |
-| **Sprint #4-T04** | MSC4155/4156 | 线程订阅 | `ThreadingManager.getSubscribedThreads()` | ✅ 一致 |
+| Ticket            | MSC 编号     | 后端交付               | SDK 封装                                              | 一致性      |
+| ----------------- | ------------ | ---------------------- | ----------------------------------------------------- | ----------- |
+| **Sprint #4-T01** | MSC4204      | 改密默认吊销设备       | `PasswordAuthManager.revokeDevicesOnPasswordChange()` | ✅ 一致     |
+| **Sprint #4-T02** | MSC4267      | 原子 leave+forget      | `RoomManager.leave(roomId, { forget? })`              | ✅ 一致     |
+| **Sprint #4-T03** | MSC3967      | /sync 增量 state token | 正常消费 `/sync`                                      | ✅ 无需封装 |
+| **Sprint #4-T04** | MSC4155/4156 | 线程订阅               | `ThreadingManager.getSubscribedThreads()`             | ✅ 一致     |
 
 **证据**：
+
 - Commit `56d03326`（MSC4204）
 - Commit `fadf125e`（MSC4267）
 - Commit `237a7620`（MSC3967）
@@ -97,13 +100,14 @@ grep -rn "Draft — not implemented by synapse-rust" src
 
 ### 4.1 Thread 功能
 
-| API | 后端路由 | SDK 封装 | 状态 |
-|-----|----------|---------|------|
-| `getSubscribedThreads()` | `GET /_matrix/client/v1/threads/subscribed` | `ThreadingManager.getSubscribedThreads(params?)` | ✅ |
-| `createGlobalThread()` | `POST /_matrix/client/v1/threads` | `ThreadingManager.createGlobalThread(body)` | ✅ |
-| `muteThread()` | `POST /_matrix/client/v1/rooms/{rid}/threads/{tid}/mute` | `ThreadingManager.muteThread(roomId, threadId)` | ✅ |
+| API                      | 后端路由                                                 | SDK 封装                                         | 状态 |
+| ------------------------ | -------------------------------------------------------- | ------------------------------------------------ | ---- |
+| `getSubscribedThreads()` | `GET /_matrix/client/v1/threads/subscribed`              | `ThreadingManager.getSubscribedThreads(params?)` | ✅   |
+| `createGlobalThread()`   | `POST /_matrix/client/v1/threads`                        | `ThreadingManager.createGlobalThread(body)`      | ✅   |
+| `muteThread()`           | `POST /_matrix/client/v1/rooms/{rid}/threads/{tid}/mute` | `ThreadingManager.muteThread(roomId, threadId)`  | ✅   |
 
 **验证**：
+
 ```typescript
 // src/thread/index.ts:506-517
 async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<IThreadListResponse> {
@@ -119,22 +123,24 @@ async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<
 
 ### 4.2 AppService 功能
 
-| API | 后端路由 | SDK 封装 | 状态 |
-|-----|----------|---------|------|
-| `registerAppService()` | `POST /_synapse/admin/v1/appservices` | `ApplicationServiceManager.registerAppService()` | ✅ |
-| `getApplicationService()` | `GET /_synapse/admin/v1/appservices/{as_id}` | `ApplicationServiceManager.getApplicationService(as_id)` | ✅ |
-| `listAppServices()` | `GET /_synapse/admin/v1/appservices` | ❌ 缺失 | ⚠️ 建议补充 |
+| API                       | 后端路由                                     | SDK 封装                                                 | 状态        |
+| ------------------------- | -------------------------------------------- | -------------------------------------------------------- | ----------- |
+| `registerAppService()`    | `POST /_synapse/admin/v1/appservices`        | `ApplicationServiceManager.registerAppService()`         | ✅          |
+| `getApplicationService()` | `GET /_synapse/admin/v1/appservices/{as_id}` | `ApplicationServiceManager.getApplicationService(as_id)` | ✅          |
+| `listAppServices()`       | `GET /_synapse/admin/v1/appservices`         | ❌ 缺失                                                  | ⚠️ 建议补充 |
 
 ### 4.3 Push Gateway 澄清
 
 **用户问题**：后端无 `push_gateway` 相关路由，需澄清具体含义。
 
 **排查结果**：
+
 - Matrix 标准 `push_gateway` API：`/_matrix/push/v1/notify`（推送到 Push Gateway）
 - Matrix 标准 `pushers` API：`/_matrix/client/v3/pushers`（管理 Pusher）
 - 本后端 ledger：仅有 `pushers` 管理路由，无 `push/gateway`
 
 **可能解释**：
+
 1. 用户指的是 Matrix 标准的 push notification 投递（客户端 → Push Gateway → APNS/FCM），不属于 SDK 封装范畴
 2. 用户指的是 Pusher 管理功能（`/_matrix/client/v3/pushers`），SDK 已封装
 
@@ -144,18 +150,18 @@ async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<
 
 ### 5.1 后端路径指针更新
 
-| 文件 | 旧路径 | 新路径 | 状态 |
-|------|--------|--------|------|
-| `Tjg/src/services/matrix/rendezvous/MatrixRendezvousService.ts` | `synapse-rust/src/web/routes/rendezvous.rs` | `synapse-web/src/routes/rendezvous.rs` | ✅ |
-| `Tjg/src/services/matrix/paths/moderation.ts` | `synapse-rust/src/web/routes/moderation.rs` | `synapse-web/src/routes/moderation.rs` | ✅ |
-| `Tjg/src/services/matrix/media/__tests__/voice.contract.test.ts` | `synapse-rust/src/web/routes/voice.rs` | `synapse-web/src/routes/voice.rs` | ✅ |
+| 文件                                                             | 旧路径                                      | 新路径                                 | 状态 |
+| ---------------------------------------------------------------- | ------------------------------------------- | -------------------------------------- | ---- |
+| `Tjg/src/services/matrix/rendezvous/MatrixRendezvousService.ts`  | `synapse-rust/src/web/routes/rendezvous.rs` | `synapse-web/src/routes/rendezvous.rs` | ✅   |
+| `Tjg/src/services/matrix/paths/moderation.ts`                    | `synapse-rust/src/web/routes/moderation.rs` | `synapse-web/src/routes/moderation.rs` | ✅   |
+| `Tjg/src/services/matrix/media/__tests__/voice.contract.test.ts` | `synapse-rust/src/web/routes/voice.rs`      | `synapse-web/src/routes/voice.rs`      | ✅   |
 
 ### 5.2 审计文档同步
 
-| 文档 | 更新内容 | 状态 |
-|------|---------|------|
-| `Tjg/docs/sdk-encapsulation-audit.md` | 更新后端路径指针 | ✅ |
-| `artifacts/sdk-encapsulation-audit.md` | 更新后端路径指针 | ✅ |
+| 文档                                   | 更新内容         | 状态 |
+| -------------------------------------- | ---------------- | ---- |
+| `Tjg/docs/sdk-encapsulation-audit.md`  | 更新后端路径指针 | ✅   |
+| `artifacts/sdk-encapsulation-audit.md` | 更新后端路径指针 | ✅   |
 
 ---
 
@@ -164,7 +170,7 @@ async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<
 ### 6.1 旧指标（不再使用）
 
 - authedRequest 42 处（文本匹配，含类型声明/注释）
-- _synapse/ 24 处（均为路径常量，非越层）
+- \_synapse/ 24 处（均为路径常量，非越层）
 
 ### 6.2 新指标
 
@@ -177,12 +183,12 @@ async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<
 
 ## 7. 行动建议优先级
 
-| 优先级 | 行动 | 理由 | 工作量 |
-|--------|------|------|--------|
-| **P0** | 维持现有 MSC 语义标注 | `docs/MSC_SEMANTICS.md` 完整且在位 | 0 |
-| **P1** | 补充 `AppServiceManager.listAppServices()` | 后端已支持，SDK 封装不完整 | 2h |
-| **P2** | 澄清 `push GATEWAY` 具体需求 | 可能为非 SDK 职责或误解 | 待澄清 |
-| **P3** | 迁移 `UserService.getUserById()` 至 SDK | 消除唯一真越层调用 | 4h |
+| 优先级 | 行动                                       | 理由                               | 工作量 |
+| ------ | ------------------------------------------ | ---------------------------------- | ------ |
+| **P0** | 维持现有 MSC 语义标注                      | `docs/MSC_SEMANTICS.md` 完整且在位 | 0      |
+| **P1** | 补充 `AppServiceManager.listAppServices()` | 后端已支持，SDK 封装不完整         | 2h     |
+| **P2** | 澄清 `push GATEWAY` 具体需求               | 可能为非 SDK 职责或误解            | 待澄清 |
+| **P3** | 迁移 `UserService.getUserById()` 至 SDK    | 消除唯一真越层调用                 | 4h     |
 
 ---
 
@@ -238,10 +244,10 @@ SSO 根级：13
 
 ### 9.2 缺失 SDK 封装（建议补充）
 
-| 后端路由 | 方法 | 优先级 |
-|----------|------|--------|
-| `GET /_synapse/admin/v1/appservices` | listAppServices() | P1 |
-| `GET /_synapse/admin/v2/users/{user_id}` | getUserById() | P2 |
+| 后端路由                                 | 方法              | 优先级 |
+| ---------------------------------------- | ----------------- | ------ |
+| `GET /_synapse/admin/v1/appservices`     | listAppServices() | P1     |
+| `GET /_synapse/admin/v2/users/{user_id}` | getUserById()     | P2     |
 
 ---
 
@@ -252,6 +258,7 @@ SSO 根级：13
 **目标**：完整封装 Matrix Push Notification API，覆盖 23 个路由
 
 **覆盖范围**：
+
 - ✅ Push Rules API (7 routes): CRUD 操作、全局开关、批量更新
 - ✅ Pushers API (4 routes): 注册/注销推送器、列表查询
 - ✅ Push Context API (2 routes): 上下文获取
@@ -267,20 +274,21 @@ SSO 根级：13
 **目标**：完整封装 SAML SSO 认证 API，覆盖 16 个路由
 
 **覆盖范围**：
+
 - ✅ Client Login Routes (8 routes):
-  - POST/GET `/login/sso/redirect/saml` - 发起登录
-  - POST/GET `/login/saml/callback` - 处理回调
-  - GET `/logout/saml` - 登出重定向
-  - GET `/logout/saml/callback` - 登出回调
-  - GET `/saml/metadata` - IdP 元数据
-  - GET `/saml/sp_metadata` - SP 元数据
+    - POST/GET `/login/sso/redirect/saml` - 发起登录
+    - POST/GET `/login/saml/callback` - 处理回调
+    - GET `/logout/saml` - 登出重定向
+    - GET `/logout/saml/callback` - 登出回调
+    - GET `/saml/metadata` - IdP 元数据
+    - GET `/saml/sp_metadata` - SP 元数据
 
 - ✅ Admin Management Routes (8 routes):
-  - GET/PUT `/saml/config` - 配置管理
-  - POST `/saml/metadata/refresh` - 元数据刷新
-  - GET `/saml/mappings` - 用户映射列表
-  - GET/PUT/DELETE `/saml/mapping/{nameId}` - 单个映射管理
-  - POST `/saml/logout` - 管理员强制登出
+    - GET/PUT `/saml/config` - 配置管理
+    - POST `/saml/metadata/refresh` - 元数据刷新
+    - GET `/saml/mappings` - 用户映射列表
+    - GET/PUT/DELETE `/saml/mapping/{nameId}` - 单个映射管理
+    - POST `/saml/logout` - 管理员强制登出
 
 **测试文件**: `spec/unit/saml/saml-auth-manager.spec.ts`  
 **测试结果**: 22 tests ✅
@@ -320,6 +328,7 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 | **总计** | **48** | **48 tests** | ✅ |
 
 **测试文件**:
+
 - `spec/unit/admin/sub-managers/admin-cleanup-manager.spec.ts`
 - `spec/unit/admin/sub-managers/admin-external-service-manager.spec.ts`
 - `spec/unit/admin/sub-managers/admin-notification-manager.spec.ts`
@@ -334,16 +343,19 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 **问题描述**：CAS Manager 中路径构造与后端路由契约不一致
 
 **具体问题**:
+
 ```typescript
 // src/cas/index.ts:127
 const path = prefix === "synapse_admin" ? "/admin/services" : "/cas/services";
 ```
 
 **后端实际路由** (ROUTE_CONTRACT.md):
+
 - `/_synapse/admin/v1/cas/services` - 服务管理（admin 前缀）
 - `/_synapse/cas/services` - 服务管理（cas 前缀）
 
 **修复计划**:
+
 1. 更新 `resolvePath` 方法，正确处理两个前缀的路径
 2. 补充测试用例验证路径构造
 3. 运行全量 CAS 测试确保无回归
@@ -361,7 +373,7 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 # 累计测试结果:
 # - Space 相关：79 tests ✅
-# - Admin 相关：48 tests ✅  
+# - Admin 相关：48 tests ✅
 # - Room Summary: 14 tests ✅
 # - Event Report: 19 tests ✅
 # - CAS: 10 tests ✅
@@ -372,36 +384,39 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 ### 11.4 SDK 封装概览总结
 
-| 模块 | 路由数 | 测试数 | 覆盖率 | 状态 |
-|------|-------|--------|--------|------|
-| Space | ~70 | 79 | 100% | ✅ |
-| Admin | ~73 | 48 | 66% | ✅ (进行中) |
-| Room | ~45 | 14 | 31% | ✅ |
-| Room Summary | ~25 | 14 | 56% | ✅ |
-| Event Report | 18 | 19 | 106% | ✅ |
-| CAS | 17 | 10 | 59% | ⚠️ Bug 待修复 |
-| SAML | 16 | 22 | 138% | ✅ |
-| Push | ~20 | 23 | 115% | ✅ |
-| E2EE | ~25 | 15 | 60% | ✅ |
-| Media | ~10 | 8 | 80% | ✅ |
-| Device | ~15 | 12 | 80% | ✅ |
-| **总计** | **350+** | **240+** | **~85%** | ✅ |
+| 模块         | 路由数   | 测试数   | 覆盖率   | 状态          |
+| ------------ | -------- | -------- | -------- | ------------- |
+| Space        | ~70      | 79       | 100%     | ✅            |
+| Admin        | ~73      | 48       | 66%      | ✅ (进行中)   |
+| Room         | ~45      | 14       | 31%      | ✅            |
+| Room Summary | ~25      | 14       | 56%      | ✅            |
+| Event Report | 18       | 19       | 106%     | ✅            |
+| CAS          | 17       | 10       | 59%      | ⚠️ Bug 待修复 |
+| SAML         | 16       | 22       | 138%     | ✅            |
+| Push         | ~20      | 23       | 115%     | ✅            |
+| E2EE         | ~25      | 15       | 60%      | ✅            |
+| Media        | ~10      | 8        | 80%      | ✅            |
+| Device       | ~15      | 12       | 80%      | ✅            |
+| **总计**     | **350+** | **240+** | **~85%** | ✅            |
 
 ---
 
 ## 12. 待办事项 (2026-09-29)
 
 ### P1 - Bug 修复
+
 - [ ] CAS Manager 路径构造修复
 - [ ] 统一错误处理策略
 - [ ] Room v12 默认版本协商实现
 
-### P2 - 功能补全  
+### P2 - 功能补全
+
 - [ ] Worker Manager 封装 (11 routes)
 - [ ] OIDC Manager 封装 (8 routes)
 - [ ] Admin Manager 剩余路由覆盖
 
 ### P3 - 优化与门禁
+
 - [ ] 统一缓存策略实现
 - [ ] 测试覆盖率提升至 90%
 - [ ] 建立自动化覆盖率门禁
@@ -414,24 +429,24 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 ### 13.1 七大模块完成情况
 
-| 模块 | 后端路由 | SDK 方法 | 测试数 | 覆盖率 | 状态 | 备注 |
-|------|---------|---------|-------|--------|------|------|
-| **Room** | 98 | +35 (Batch1 新增) | 14 | ✅ 100% | 完成 | `RoomManagerExtensions.ts` (678 行) |
-| **Admin** | 166 | 238 | 48 | ✅ 100% | 完成 | 11 个子管理器 |
-| **Assembly** | 101 | 149 | 47 | ✅ 100% | 完成 | Auth/Discovery/Profile |
-| **AppService** | 39 | 20 | — | ✅ 90%+ | 完成 | 剩余为非核心 admin API |
-| **Media** | 36 | 19 | 45 | ✅ 100% | 完成 | 含 chunk upload + quota |
-| **Push** | 17 | ~18 | 56 | ✅ 100% | 完成 | PushRules + Pusher + Notifications |
-| **Federation** | 54 | ~36 | 41 | ⚠️ 88% | 部分 | S2S 协议路由不属 client SDK 范围 |
+| 模块           | 后端路由 | SDK 方法          | 测试数 | 覆盖率  | 状态 | 备注                                |
+| -------------- | -------- | ----------------- | ------ | ------- | ---- | ----------------------------------- |
+| **Room**       | 98       | +35 (Batch1 新增) | 14     | ✅ 100% | 完成 | `RoomManagerExtensions.ts` (678 行) |
+| **Admin**      | 166      | 238               | 48     | ✅ 100% | 完成 | 11 个子管理器                       |
+| **Assembly**   | 101      | 149               | 47     | ✅ 100% | 完成 | Auth/Discovery/Profile              |
+| **AppService** | 39       | 20                | —      | ✅ 90%+ | 完成 | 剩余为非核心 admin API              |
+| **Media**      | 36       | 19                | 45     | ✅ 100% | 完成 | 含 chunk upload + quota             |
+| **Push**       | 17       | ~18               | 56     | ✅ 100% | 完成 | PushRules + Pusher + Notifications  |
+| **Federation** | 54       | ~36               | 41     | ⚠️ 88%  | 部分 | S2S 协议路由不属 client SDK 范围    |
 
 ### 13.2 本轮新增功能 (Batch1-Batch4)
 
-| 批次 | 模块 | 交付物 | 代码量 | 提交 |
-|------|------|--------|-------|------|
-| **Batch 1** | Room | `RoomManagerExtensions.ts` + `.types.ts` + spec | 1,253 行 | `37ec9ffe0` |
-| **Batch 2** | Admin | 评估确认已完整（238 方法），无需实施 | 0 | — |
-| **Batch 3** | Assembly | 评估确认已完整（149 方法），无需实施 | 0 | — |
-| **Batch 4** | Media | 评估确认已完整（19 方法），无需实施 | 0 | — |
+| 批次        | 模块     | 交付物                                          | 代码量   | 提交        |
+| ----------- | -------- | ----------------------------------------------- | -------- | ----------- |
+| **Batch 1** | Room     | `RoomManagerExtensions.ts` + `.types.ts` + spec | 1,253 行 | `37ec9ffe0` |
+| **Batch 2** | Admin    | 评估确认已完整（238 方法），无需实施            | 0        | —           |
+| **Batch 3** | Assembly | 评估确认已完整（149 方法），无需实施            | 0        | —           |
+| **Batch 4** | Media    | 评估确认已完整（19 方法），无需实施             | 0        | —           |
 
 ### 13.3 综合集成测试结果
 
@@ -447,48 +462,48 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
   spec/unit/api-consistency/federation.spec.ts
 ```
 
-| 测试套件 | 测试数 | 状态 |
-|---------|-------|------|
-| `RoomManagerExtensions.spec.ts` | 14/14 | ✅ PASS |
-| `media-manager.spec.ts` | 23/23 | ✅ PASS |
-| `media.spec.ts` | 22/22 | ✅ PASS |
-| `push-manager.spec.ts` | 56/56 | ✅ PASS |
-| `federation.spec.ts` | 34/34 | ✅ PASS |
-| `api-consistency/federation.spec.ts` | 7/7 | ✅ PASS |
-| **总计** | **156/156** | ✅ **100%** |
+| 测试套件                             | 测试数      | 状态        |
+| ------------------------------------ | ----------- | ----------- |
+| `RoomManagerExtensions.spec.ts`      | 14/14       | ✅ PASS     |
+| `media-manager.spec.ts`              | 23/23       | ✅ PASS     |
+| `media.spec.ts`                      | 22/22       | ✅ PASS     |
+| `push-manager.spec.ts`               | 56/56       | ✅ PASS     |
+| `federation.spec.ts`                 | 34/34       | ✅ PASS     |
+| `api-consistency/federation.spec.ts` | 7/7         | ✅ PASS     |
+| **总计**                             | **156/156** | ✅ **100%** |
 
 **TypeScript 编译**: 0 errors ✅
 
 ### 13.4 已修复的历史 Bug
 
-| Bug | 模块 | 修复方式 | 提交 |
-|-----|------|---------|------|
-| Chunk upload 参数位置 | Media | query param 而非 body (`ISSUE-04`) | `a51f91a4c` |
-| 上传大小预检缺失 | Media | 消费 `m.upload.size` 客户端预检 (`ISSUE-07`) | `a51f91a4c` |
-| CAS 路径构造错误 | CAS | `resolvePath()` 统一前缀解析 | `244da3aed` |
-| 后端 CAS 路由缺 nest 前缀 | **后端** | `Router::new().nest("/_synapse/cas", ...)` | 后端已修 |
-| 空间缓存"声明未使用" | Space | 6 个子管理器真实接入 `UnifiedCacheManager` | `1c41a4bee` |
-| 6 个失败单测 | 多模块 | feature name / prefix / import path 修正 | `a51f91a4c` |
+| Bug                       | 模块     | 修复方式                                     | 提交        |
+| ------------------------- | -------- | -------------------------------------------- | ----------- |
+| Chunk upload 参数位置     | Media    | query param 而非 body (`ISSUE-04`)           | `a51f91a4c` |
+| 上传大小预检缺失          | Media    | 消费 `m.upload.size` 客户端预检 (`ISSUE-07`) | `a51f91a4c` |
+| CAS 路径构造错误          | CAS      | `resolvePath()` 统一前缀解析                 | `244da3aed` |
+| 后端 CAS 路由缺 nest 前缀 | **后端** | `Router::new().nest("/_synapse/cas", ...)`   | 后端已修    |
+| 空间缓存"声明未使用"      | Space    | 6 个子管理器真实接入 `UnifiedCacheManager`   | `1c41a4bee` |
+| 6 个失败单测              | 多模块   | feature name / prefix / import path 修正     | `a51f91a4c` |
 
 ### 13.5 门禁与工具链
 
-| 工具 | 路径 | 用途 |
-|------|------|------|
-| 覆盖率门禁 | `scripts/quality/check-minimum-coverage.mjs` | lcov 解析 + 阈值校验 |
-| API 覆盖率报告 | `scripts/generate-api-coverage-report.mjs` | 模块级覆盖率统计 |
-| 契约差集登记 | `scripts/quality/contract-drift-registry.json` | SDK-only 路由登记 |
+| 工具           | 路径                                           | 用途                 |
+| -------------- | ---------------------------------------------- | -------------------- |
+| 覆盖率门禁     | `scripts/quality/check-minimum-coverage.mjs`   | lcov 解析 + 阈值校验 |
+| API 覆盖率报告 | `scripts/generate-api-coverage-report.mjs`     | 模块级覆盖率统计     |
+| 契约差集登记   | `scripts/quality/contract-drift-registry.json` | SDK-only 路由登记    |
 
 ### 13.6 剩余待办
 
-| 优先级 | 任务 | 状态 | 备注/完成证据 |
-|--------|------|------|--------------|
-| **P1** | `ApplicationServiceManager` appservice 路径契约修复 | ✅ **已修复** | **2026-09-30 联调发现真实缺陷**：SDK 全部 14 处路径误用 `/application_services`（下划线），后端实际注册 `/_synapse/admin/v1/appservices`（无下划线）。已批量替换并回归 35/35 单测通过。详见 §13.6.1 |
-| **P2-a** | SDK ↔ 后端路径契约交叉校验门禁 | ✅ **已完成** | 新增 `scripts/quality/verify-path-contract.mjs` + `path-contract-waivers.json`，挂进 `quality:contracts`。**变异自证通过**。详见 §13.6.3 |
-| **P2-b** | 调整 critical-module floorPercent 为实测值 | ✅ **已完成** | 定向测量各模块（避免全仓跑触发限流）：admin 70.37% / dm 65.75% / space 77.21% / room-summary 73.23%。已更新 `critical-modules.json`（`measuredAt=2026-10-01`）。floor 是 ratchet，只能向上。 |
-| **P2** | `UserService.getUserById()` 越层调用迁移 | ✅ **已评估不需要** | `AdminUserManager.getUserById()` (`src/admin/sub-managers/admin-user-manager.ts:167`) 已收口至 SDK |
-| **P2-c** | 全仓覆盖率重定义为「关键模块 ≥85% + 全仓 ≥65%」 | ✅ 已实施 | 新增 `scripts/quality/coverage-targets.json` 记录双轨目标；`check-repo-coverage.mjs` 实现 lcov 加权汇总；`package.json` 增加 `quality:coverage`（全仓）`quality:coverage:critical`（关键模块）和 `quality:contracts`（路径门禁）三条 quality 编排，相互独立可单独重跑。 |
-| **P3** | Federation S2S 协议路由补齐 | ⏸️ 评估为不需要 | 已评估 |
-| **P3** | 性能基准测试 | ✅ **已完成** | 见第 13.7 节 |
+| 优先级   | 任务                                                | 状态                | 备注/完成证据                                                                                                                                                                                                                                                           |
+| -------- | --------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P1**   | `ApplicationServiceManager` appservice 路径契约修复 | ✅ **已修复**       | **2026-09-30 联调发现真实缺陷**：SDK 全部 14 处路径误用 `/application_services`（下划线），后端实际注册 `/_synapse/admin/v1/appservices`（无下划线）。已批量替换并回归 35/35 单测通过。详见 §13.6.1                                                                     |
+| **P2-a** | SDK ↔ 后端路径契约交叉校验门禁                      | ✅ **已完成**       | 新增 `scripts/quality/verify-path-contract.mjs` + `path-contract-waivers.json`，挂进 `quality:contracts`。**变异自证通过**。详见 §13.6.3                                                                                                                                |
+| **P2-b** | 调整 critical-module floorPercent 为实测值          | ✅ **已完成**       | 定向测量各模块（避免全仓跑触发限流）：admin 70.37% / dm 65.75% / space 77.21% / room-summary 73.23%。已更新 `critical-modules.json`（`measuredAt=2026-10-01`）。floor 是 ratchet，只能向上。                                                                            |
+| **P2**   | `UserService.getUserById()` 越层调用迁移            | ✅ **已评估不需要** | `AdminUserManager.getUserById()` (`src/admin/sub-managers/admin-user-manager.ts:167`) 已收口至 SDK                                                                                                                                                                      |
+| **P2-c** | 全仓覆盖率重定义为「关键模块 ≥85% + 全仓 ≥65%」     | ✅ 已实施           | 新增 `scripts/quality/coverage-targets.json` 记录双轨目标；`check-repo-coverage.mjs` 实现 lcov 加权汇总；`package.json` 增加 `quality:coverage`（全仓）`quality:coverage:critical`（关键模块）和 `quality:contracts`（路径门禁）三条 quality 编排，相互独立可单独重跑。 |
+| **P3**   | Federation S2S 协议路由补齐                         | ⏸️ 评估为不需要     | 已评估                                                                                                                                                                                                                                                                  |
+| **P3**   | 性能基准测试                                        | ✅ **已完成**       | 见第 13.7 节                                                                                                                                                                                                                                                            |
 
 ### 13.6.1 P1 缺陷：appservice 路径契约不符（联调发现，2026-09-30）
 
@@ -510,10 +525,10 @@ curl -H "Authorization: Bearer $ADMIN" \
 
 #### 根因
 
-| 侧 | 路径 | 来源 |
-|----|------|------|
-| SDK | `/_synapse/admin/v1/application_services` | `src/app-service/index.ts` 14 处硬编码 |
-| 后端 | `/_synapse/admin/v1/appservices` | `synapse-web/src/routes/app_service.rs:728-742`（16 条 admin 路由） |
+| 侧   | 路径                                      | 来源                                                                |
+| ---- | ----------------------------------------- | ------------------------------------------------------------------- |
+| SDK  | `/_synapse/admin/v1/application_services` | `src/app-service/index.ts` 14 处硬编码                              |
+| 后端 | `/_synapse/admin/v1/appservices`          | `synapse-web/src/routes/app_service.rs:728-742`（16 条 admin 路由） |
 
 SDK 侧从单测到集成测试全部自洽（mock 层不校验真实路径），因此该缺陷在纯 mock 测试下**完全不可见**——这正是"单测全绿 ≠ 联调通过"的典型案例。
 
@@ -561,6 +576,7 @@ spec/unit/appservice.spec.ts     6 tests ✅
 
 **背景**：原文档要求"全仓 90% 行覆盖"。实测全仓覆盖率约 46%（文档数据可能过期），
 若要达到 90% 需要数千新增用例。更重要的是：
+
 - 全仓 `vitest run --coverage` 在本环境跑 16 分钟，触发 `Retry-After: 2` 限流
 - 某些模块（如 EventManager）已达 99%，而其他模块（dm/index.ts）仅 65.75%
 
@@ -572,6 +588,7 @@ spec/unit/appservice.spec.ts     6 tests ✅
 | **路径契约** | SDK → 后端路径静态匹配率 | 100%（豁免登记） | 防止 URL 拼错这类 mock 层检测不到的缺陷 |
 
 **实施**：
+
 - `scripts/quality/coverage-targets.json`：双轨目标配置（含注释说明为何分开）
 - `scripts/quality/check-repo-coverage.mjs`：全仓门禁，按 LF/LH 加权聚合（避免小文件稀释）
 - `vitest.config.ts`：全局阈值从 80% 下调到 65%（与全仓 floor 对齐）
@@ -580,6 +597,7 @@ spec/unit/appservice.spec.ts     6 tests ✅
 **历史背景**: 原审计文档（2026-09-18）指出"唯一真越层调用"为 `Tjg 前端直接调用后端 Admin User API`，建议通过 SDK 收口。
 
 **现状核实** (2026-09-30):
+
 - `AdminUserManager.getUser(userId, throwOnError)` 已存在 (`src/admin/sub-managers/admin-user-manager.ts:110-159`)
 - `AdminUserManager.getUserById(userId, throwOnError)` 作为语义化别名也已实现 (`:167-169`)
 - 后端路由 `GET /_synapse/admin/v2/users/{userId}` 已完整支持
@@ -595,11 +613,11 @@ spec/unit/appservice.spec.ts     6 tests ✅
 
 #### 交付物
 
-| 文件 | 作用 |
-|------|------|
-| `scripts/quality/verify-path-contract.mjs` | 门禁主体 |
-| `scripts/quality/path-contract-waivers.json` | 20 条已登记豁免 |
-| `package.json` | `quality:path-contract`，挂进 `quality:contracts` |
+| 文件                                         | 作用                                              |
+| -------------------------------------------- | ------------------------------------------------- |
+| `scripts/quality/verify-path-contract.mjs`   | 门禁主体                                          |
+| `scripts/quality/path-contract-waivers.json` | 20 条已登记豁免                                   |
+| `package.json`                               | `quality:path-contract`，挂进 `quality:contracts` |
 
 #### 工作原理
 
@@ -610,13 +628,13 @@ spec/unit/appservice.spec.ts     6 tests ✅
 
 #### 实现中解决的提取难题
 
-| 难题 | 症状 | 解法 |
-|------|------|------|
-| 字段顺序不固定 | `path` 在 `body` 前、`prefix` 在 `body` 后，相隔 12 行 | 锚定 `method:` + 括号配平扫描对象范围 |
-| 默认前缀 | 位置参数调用无 `prefix:` 字段 | 补 `DEFAULT_PREFIX`（依据 `base-manager.ts:269`）|
-| 位置参数第 5 参 | `authedRequest(..., undefined, undefined, { prefix })` 读不到 prefix | 扩展扫描参数列表尾部 |
-| 注释里的示例 | JSDoc `@example` 含完整 request 示例 | `stripComments()` 状态机（保留列宽维持行号）|
-| 模板字面量前缀 | `` `${ClientPrefix.Unstable}/org.matrix.msc4143` `` | 加模板解析分支 |
+| 难题            | 症状                                                                 | 解法                                              |
+| --------------- | -------------------------------------------------------------------- | ------------------------------------------------- |
+| 字段顺序不固定  | `path` 在 `body` 前、`prefix` 在 `body` 后，相隔 12 行               | 锚定 `method:` + 括号配平扫描对象范围             |
+| 默认前缀        | 位置参数调用无 `prefix:` 字段                                        | 补 `DEFAULT_PREFIX`（依据 `base-manager.ts:269`） |
+| 位置参数第 5 参 | `authedRequest(..., undefined, undefined, { prefix })` 读不到 prefix | 扩展扫描参数列表尾部                              |
+| 注释里的示例    | JSDoc `@example` 含完整 request 示例                                 | `stripComments()` 状态机（保留列宽维持行号）      |
+| 模板字面量前缀  | `` `${ClientPrefix.Unstable}/org.matrix.msc4143` ``                  | 加模板解析分支                                    |
 
 匹配率演进：21/128 → 62/128 → 100/128 → 102/124 → **104/124 + 20 豁免，0 不匹配**
 
@@ -660,11 +678,11 @@ $ # 恢复代码后
 
 20 条豁免分类：
 
-| 类别 | 数量 | 说明 |
-|------|------|------|
-| MSC3882 设备签名验证 | 9 | 后端只实现了 `upload`，`verify_*` / `qr_code` 全系列未实现 |
-| device-trust / security | 4 | 后端路由文件零命中 |
-| 其他单点 | 7 | `oidc/register`、`login/get_token`、`register/captcha`、`login/failures`、`federation/blacklist` × 2 |
+| 类别                    | 数量 | 说明                                                                                                 |
+| ----------------------- | ---- | ---------------------------------------------------------------------------------------------------- |
+| MSC3882 设备签名验证    | 9    | 后端只实现了 `upload`，`verify_*` / `qr_code` 全系列未实现                                           |
+| device-trust / security | 4    | 后端路由文件零命中                                                                                   |
+| 其他单点                | 7    | `oidc/register`、`login/get_token`、`register/captcha`、`login/failures`、`federation/blacklist` × 2 |
 
 > `federation/blacklist` 值得注意：后端只在 `synapse-web/src/utils/admin_auth.rs:236`
 > 的**鉴权规则**里预留了路径（标记为敏感操作），但从未注册路由（ledger 零条目）。
@@ -674,15 +692,16 @@ $ # 恢复代码后
 
 门禁已增强以覆盖**模板字面量路径**，效果：
 
-| 指标 | P2-a (e0e8808c) | 增强后 |
-|------|-----------------|--------|
-| 提取调用 | 124 | 242 (+118) |
-| 匹配成功 | 104 | 218 | 218 ✅ |
-| 动态跳过 | 165 → 47 (-118) | 47 | 44 ✅ |
-| 不匹配 | 0 | 18 处真实缺口 | 0 (已豁免) ✅ |
-| 豁免数 | 20 | 30 | 6 (精简后) ✅ |
+| 指标     | P2-a (e0e8808c) | 增强后        |
+| -------- | --------------- | ------------- | ------------- |
+| 提取调用 | 124             | 242 (+118)    |
+| 匹配成功 | 104             | 218           | 218 ✅        |
+| 动态跳过 | 165 → 47 (-118) | 47            | 44 ✅         |
+| 不匹配   | 0               | 18 处真实缺口 | 0 (已豁免) ✅ |
+| 豁免数   | 20              | 30            | 6 (精简后) ✅ |
 
 归一化增强：
+
 - 正则：`\$\{?(\w+)\}?` → `\$\{[^}]*\}`（覆盖 `${encodeURIComponent(x)}`）
 - 双重前缀检测：自动识别完整路径（`/_matrix/client/v3/...`）并跳过 prefix 拼接
 
@@ -692,19 +711,19 @@ $ # 恢复代码后
 #### 最终验证结果（93a92c84e）
 
 - 真缺陷修复：
-  - invite-blocklist: client/v3 → vendor/v1 (4 处路径 + 注释)
-  - RoomManagerExtensions.translate: GET → POST (1 处)
+    - invite-blocklist: client/v3 → vendor/v1 (4 处路径 + 注释)
+    - RoomManagerExtensions.translate: GET → POST (1 处)
 - 豁免表精简：从 30 条降至 6 条真实缺口
 - 门禁状态：✅ 全部通过
 
 #### 6 条真实缺口明细（path-contract-waivers.json）
 
-1. **POST /_matrix/client/v1/login/get_token** — 第三方登录 token 交换（后端仅内部方法，非 HTTP 路由）
-2. **GET /_matrix/client/v3/register/captcha** — 注册 captcha 校验（后端未实现）
-3. **POST /_matrix/client/v3/oidc/register** — OIDC registration（后端未实现）
-4. **GET /_matrix/client/v3/rtc/transports** — MSC4143 RTC transports（SDK 前缀错误，应为 unstable）
-5. **GET /_matrix/client/unstable/im.nheko.summary/summary/{X}** — nheko summary（后端未实现，回退路径）
-6. **DELETE /_matrix/client/v3/voice/{X}** — 删除语音消息（后端未实现 DELETE）
+1. **POST /\_matrix/client/v1/login/get_token** — 第三方登录 token 交换（后端仅内部方法，非 HTTP 路由）
+2. **GET /\_matrix/client/v3/register/captcha** — 注册 captcha 校验（后端未实现）
+3. **POST /\_matrix/client/v3/oidc/register** — OIDC registration（后端未实现）
+4. **GET /\_matrix/client/v3/rtc/transports** — MSC4143 RTC transports（SDK 前缀错误，应为 unstable）
+5. **GET /\_matrix/client/unstable/im.nheko.summary/summary/{X}** — nheko summary（后端未实现，回退路径）
+6. **DELETE /\_matrix/client/v3/voice/{X}** — 删除语音消息（后端未实现 DELETE）
 
 #### MSC 编号错误修正（用户指出）
 
@@ -714,8 +733,9 @@ $ # 恢复代码后
 - ✅ 正确：MSC3720 = "Account status"（用户状态 API）
 
 **真实后端路由清单**（synapse-rust @ 7cb39946，1149 entries）：
-- appservices: GET/POST/PUT/DELETE /_synapse/admin/v1/appservices/{as_id}/*
-- voice: GET/POST /_matrix/client/v3/voice/* (无 DELETE)
+
+- appservices: GET/POST/PUT/DELETE /\_synapse/admin/v1/appservices/{as_id}/\*
+- voice: GET/POST /\_matrix/client/v3/voice/\* (无 DELETE)
 - federation: 完整 S2S 路由表（详见 ledger）
 
 #### 提交记录
@@ -727,10 +747,12 @@ $ # 恢复代码后
 ### 13.7 性能基准测试结果（2026-09-30）
 
 #### 测试文件
+
 - **`spec/unit/integration/cross-module.spec.ts`** — 跨模块集成测试（16 个测试）
 - **`perf/benchmarks.spec.ts`** — 性能基准测试（11 个测试）
 
 #### 运行命令
+
 ```bash
 cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk && \
 PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
@@ -739,37 +761,43 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 ```
 
 #### 测试结果汇总
-| 测试套件 | 测试数 | 状态 | 平均耗时 |
-|---------|-------|------|---------|
-| `cross-module.spec.ts` (集成) | 16/16 | ✅ PASS | - |
-| `benchmarks.spec.ts` (性能) | 11/11 | ✅ PASS | 详见下方 |
-| **总计** | **27/27** | ✅ **100%** | - |
+
+| 测试套件                      | 测试数    | 状态        | 平均耗时 |
+| ----------------------------- | --------- | ----------- | -------- |
+| `cross-module.spec.ts` (集成) | 16/16     | ✅ PASS     | -        |
+| `benchmarks.spec.ts` (性能)   | 11/11     | ✅ PASS     | 详见下方 |
+| **总计**                      | **27/27** | ✅ **100%** | -        |
 
 #### 详细性能数据
 
 **Cache Operations** (目标 < 1ms):
+
 - Cache set/get: **0.00 ms** ✅
 - Cache hit (getOrFetch): **0.00 ms** ✅
 - Wildcard invalidation: **< 2ms** ✅
 - LRU eviction: **< 2ms** ✅
 
 **LRUCache Internals** (目标 < 5-10ms):
+
 - Batch set (100 items): **< 5ms** ✅
 - Batch get (100 items): **< 5ms** ✅
 - Mixed read/write: **< 3ms** ✅
 - Eviction stress (200 items, 10 rounds): **< 10ms** ✅
 
 **String Operations** (目标 < 2-3ms):
+
 - encodeURIComponent: **< 3ms** ✅
 - String normalization: **< 2ms** ✅
 
 #### 关键发现
+
 1. **Space 子管理器实际不使用 UnifiedCacheManager**：只有 `hierarchyCache` 在 `SpaceHierarchyManager` 中使用，之前设计的"member/lifecycle 写操作后缓存失效"场景不成立，测试已调整为聚焦真实基础设施层。
 2. **CacheStats 接口无 name 字段**：实际结构为 `{size, maxSize, hits, misses, hitRate, evictions, expiredPurges}`。
 3. **LRUCache 延迟检查过期**：只有在 get() 时才会检查 TTL，set 后立即等待过期可能观察不到预期行为。
 4. **所有性能指标远超目标阈值**：cache ops < 0.01ms，远低于 < 1ms 的目标。
 
 #### 提交记录
+
 - Commit: `e1cbedc92`
 - Branch: `feat/sdk-contract-gap-implementation`
 - Files: `spec/unit/integration/cross-module.spec.ts`, `perf/benchmarks.spec.ts`

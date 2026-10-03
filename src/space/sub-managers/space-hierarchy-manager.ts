@@ -74,9 +74,16 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
             if (cached) {
                 cacheHit = true;
                 const duration = performance.now() - start;
-                const telemetry = (this.client as MatrixClient & { getTelemetryManager?: () => TelemetryManager }).getTelemetryManager?.();
+                const telemetry = (
+                    this.client as MatrixClient & { getTelemetryManager?: () => TelemetryManager }
+                ).getTelemetryManager?.();
                 telemetry?.trackCacheHitMiss("hierarchy", cacheHit, duration);
-                telemetry?.trackRequestTiming("GET", duration, "success", `/spaces/${encodeURIComponent(spaceId)}/hierarchy`);
+                telemetry?.trackRequestTiming(
+                    "GET",
+                    duration,
+                    "success",
+                    `/spaces/${encodeURIComponent(spaceId)}/hierarchy`,
+                );
                 telemetry?.trackPerformanceBaseline("getSpaceHierarchy", duration, 100);
                 return cached;
             }
@@ -89,17 +96,24 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
                 this.parent!.child.getSpaceChildren(spaceId),
                 this.parent!.member.getSpaceMembers(spaceId),
             ]);
-            
+
             const hierarchy: SpaceHierarchy = { space, children, members };
             const duration = performance.now() - start;
-            const telemetry = (this.client as MatrixClient & { getTelemetryManager?: () => TelemetryManager }).getTelemetryManager?.();
+            const telemetry = (
+                this.client as MatrixClient & { getTelemetryManager?: () => TelemetryManager }
+            ).getTelemetryManager?.();
             telemetry?.trackCacheHitMiss("hierarchy", cacheHit, duration);
-            telemetry?.trackRequestTiming("GET", duration, "success", `/spaces/${encodeURIComponent(spaceId)}/hierarchy`);
+            telemetry?.trackRequestTiming(
+                "GET",
+                duration,
+                "success",
+                `/spaces/${encodeURIComponent(spaceId)}/hierarchy`,
+            );
             telemetry?.trackPerformanceBaseline("getSpaceHierarchy", duration, 100);
-            
+
             return hierarchy;
         });
-        
+
         return hierarchy;
     }
 

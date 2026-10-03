@@ -510,9 +510,7 @@ describe("WorkerManager", () => {
                         valid: true,
                         errors: [],
                     },
-                    stream_writers: [
-                        { stream_name: "events", owners: ["worker-1"] },
-                    ],
+                    stream_writers: [{ stream_name: "events", owners: ["worker-1"] }],
                     route_owner_expectations: [
                         { probe: "sync", path: "/_matrix/client/v3/sync", expected_owner: "master" },
                     ],
@@ -578,7 +576,9 @@ describe("WorkerManager", () => {
         it("应该对 401 响应抛出 AuthError", async () => {
             transport.request = vi
                 .fn()
-                .mockRejectedValue(new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" }, 401, undefined));
+                .mockRejectedValue(
+                    new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "Invalid token" }, 401, undefined),
+                );
 
             await expect(workerManager.getWorker("worker-1")).rejects.toThrow(AuthError);
         });
@@ -586,7 +586,9 @@ describe("WorkerManager", () => {
         it("应该对 404 响应抛出 NotFoundError", async () => {
             transport.request = vi
                 .fn()
-                .mockRejectedValue(new MatrixError({ errcode: "M_NOT_FOUND", error: "Worker not found" }, 404, undefined));
+                .mockRejectedValue(
+                    new MatrixError({ errcode: "M_NOT_FOUND", error: "Worker not found" }, 404, undefined),
+                );
 
             await expect(workerManager.getWorker("nonexistent")).rejects.toThrow(NotFoundError);
         });
@@ -612,7 +614,9 @@ describe("WorkerManager", () => {
         it("错误消息应该包含类名", async () => {
             transport.request = vi
                 .fn()
-                .mockRejectedValue(new MatrixError({ errcode: "M_UNKNOWN", error: "Something went wrong" }, 500, undefined));
+                .mockRejectedValue(
+                    new MatrixError({ errcode: "M_UNKNOWN", error: "Something went wrong" }, 500, undefined),
+                );
 
             await expect(workerManager.getWorker("worker-1")).rejects.toThrow(/WorkerManager/);
         });

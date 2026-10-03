@@ -324,10 +324,7 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
         if (!workerId) {
             throw new ValidationError("workerId is required");
         }
-        await this.doRequest(
-            Method.Delete,
-            `/v1/workers/${encodeURIComponent(workerId)}` as `/v1/workers/${string}`,
-        );
+        await this.doRequest(Method.Delete, `/v1/workers/${encodeURIComponent(workerId)}` as `/v1/workers/${string}`);
     }
 
     // =========================================================================

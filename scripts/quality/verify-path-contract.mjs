@@ -50,8 +50,7 @@ const VERBOSE = process.argv.includes("--verbose");
 // 1. 加载后端 ledger
 // ---------------------------------------------------------------------------
 
-const LEDGER_PATH =
-    process.env.LEDGER_PATH ?? "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
+const LEDGER_PATH = process.env.LEDGER_PATH ?? "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
 const ledgerFile = resolve(PROJECT_ROOT, LEDGER_PATH);
 
 if (!existsSync(ledgerFile)) {
@@ -226,8 +225,7 @@ function extractObjectCalls(source) {
  */
 function extractPositionalCalls(source) {
     const calls = [];
-    const re =
-        /\bauthedRequest<[^>]*>\(\s*Method\.(\w+)\s*,\s*(`[^`]*`|"[^"]*"|'[^']*')/g;
+    const re = /\bauthedRequest<[^>]*>\(\s*Method\.(\w+)\s*,\s*(`[^`]*`|"[^"]*"|'[^']*')/g;
     for (const m of source.matchAll(re)) {
         // 从 path 之后取到该调用的闭合括号，扫描其中的 prefix:
         const afterPath = m.index + m[0].length;
@@ -419,7 +417,7 @@ for (const file of srcFiles) {
         // 模板字面量现在可通过归一化处理（${...} → {X}）
         // 不再跳过，而是直接归一化后校验
         let pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
-        
+
         // 如果包含插值，用 {X} 占位后再校验
         if (pathOnly.includes("${")) {
             // 允许带插值的模板字面量进入校验流程
@@ -437,13 +435,13 @@ for (const file of srcFiles) {
         // 如果 pathOnly 本身已是完整路径（以 /_matrix 开头且含 /client/ 或 /admin/），
         // 则忽略 prefix，直接用 pathOnly（避免双重前缀）
         const isFullUrl = /^\/_matrix\/(client|admin|vendor)/.test(pathOnly);
-        const combinedPath = isFullUrl ? pathOnly : ((prefix ?? "") + pathOnly);
+        const combinedPath = isFullUrl ? pathOnly : (prefix ?? "") + pathOnly;
         const fullPath = normalizePath(combinedPath);
         const key = `${call.method} ${fullPath}`;
-        
+
         // 精确匹配
         let matched = backendRoutes.has(key);
-        
+
         // 增强匹配：通配符 vs 字面量（如 send/m.room.message/{txnId} vs send/{event_type}/{txn_id}）
         if (!matched) {
             const sdkSegments = fullPath.split("/");
@@ -451,7 +449,7 @@ for (const file of srcFiles) {
                 // 首先比较 HTTP 方法
                 const [backendMethod] = backendKey.split(" ");
                 if (backendMethod !== call.method) continue;
-                
+
                 const backendSegments = normalizePath(originalBackendPath).split("/");
                 if (sdkSegments.length === backendSegments.length) {
                     const isCompatible = sdkSegments.every((seg, i) => {
@@ -543,7 +541,7 @@ if (existsSync(WAIVER_FILE)) {
  */
 function validateMSCReferences(findings, backendRoutes) {
     const mscIssues = [];
-    
+
     // 从所有调用中提取可能的 MSC 引用
     for (const finding of findings) {
         if (finding.sdkPath.includes("org.matrix.msc")) {
@@ -551,30 +549,29 @@ function validateMSCReferences(findings, backendRoutes) {
             if (mscMatch) {
                 const mscNum = mscMatch[1];
                 const mscPath = finding.sdkPath;
-                
+
                 // 检查该 MSC 路径是否在后端已注册
                 let mscMatched = false;
                 for (const [key, orig] of backendRoutes.entries()) {
-                    if (orig.includes(`org.matrix.msc${mscNum}`) || 
-                        orig.includes(`msc${mscNum}`)) {
+                    if (orig.includes(`org.matrix.msc${mscNum}`) || orig.includes(`msc${mscNum}`)) {
                         mscMatched = true;
                         break;
                     }
                 }
-                
+
                 if (!mscMatched) {
                     mscIssues.push({
                         msc: `MSC${mscNum}`,
                         path: mscPath,
                         file: finding.file,
                         line: finding.line,
-                        note: "SDK 声称实现该 MSC 端点，但后端 ledger 中无对应路由。请核实 MSC 编号是否正确。"
+                        note: "SDK 声称实现该 MSC 端点，但后端 ledger 中无对应路由。请核实 MSC 编号是否正确。",
                     });
                 }
             }
         }
     }
-    
+
     return mscIssues;
 }
 

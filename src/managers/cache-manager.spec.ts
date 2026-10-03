@@ -15,12 +15,7 @@ limitations under the License.
 */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-    UnifiedCacheManager,
-    CacheStrategy,
-    CacheManagerFactory,
-    CacheMonitor,
-} from "./cache-manager";
+import { UnifiedCacheManager, CacheStrategy, CacheManagerFactory, CacheMonitor } from "./cache-manager";
 import { CacheRegistry } from "../utils/lru-cache";
 
 describe("UnifiedCacheManager", () => {

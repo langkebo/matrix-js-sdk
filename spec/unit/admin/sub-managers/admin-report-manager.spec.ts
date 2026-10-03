@@ -56,13 +56,9 @@ describe("AdminReportManager", () => {
 
         expect(result.reports).toHaveLength(1);
         expect(result.reports[0].id).toBe(1);
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/reports",
-            { limit: "10" },
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/reports", { limit: "10" }, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
     });
 
     it("get() returns single report", async () => {
@@ -83,13 +79,9 @@ describe("AdminReportManager", () => {
         const result = await manager.get(1);
 
         expect(result.id).toBe(1);
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            Method.Get,
-            "/reports/1",
-            undefined,
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/reports/1", undefined, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
     });
 
     it("delete() calls DELETE /reports/{id}", async () => {
@@ -97,13 +89,9 @@ describe("AdminReportManager", () => {
 
         await manager.delete(1);
 
-        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-            Method.Delete,
-            "/reports/1",
-            undefined,
-            undefined,
-            { prefix: "/_synapse/admin/v1" },
-        );
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Delete, "/reports/1", undefined, undefined, {
+            prefix: "/_synapse/admin/v1",
+        });
     });
 
     it("getByRoom() returns room reports", async () => {

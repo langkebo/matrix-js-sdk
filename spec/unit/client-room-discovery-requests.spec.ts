@@ -74,7 +74,7 @@ describe("client-room-discovery-requests", () => {
                     limit: "20",
                 },
                 undefined,
-                { prefix: ClientPrefix.V1 }
+                { prefix: ClientPrefix.V1 },
             );
         });
 
@@ -84,9 +84,7 @@ describe("client-room-discovery-requests", () => {
                 errcode: "M_UNRECOGNIZED",
                 httpStatus: 404,
             };
-            mockAuthedRequest
-                .mockRejectedValueOnce(matrixErr)
-                .mockResolvedValueOnce({ chunk: [] });
+            mockAuthedRequest.mockRejectedValueOnce(matrixErr).mockResolvedValueOnce({ chunk: [] });
 
             await getRoomHierarchyRequest(roomId, undefined, undefined, false, undefined, mockAuthedRequest);
 
@@ -101,7 +99,7 @@ describe("client-room-discovery-requests", () => {
                     limit: undefined,
                 },
                 undefined,
-                { prefix: "/_matrix/client/unstable/org.matrix.msc2946" }
+                { prefix: "/_matrix/client/unstable/org.matrix.msc2946" },
             );
         });
 
@@ -114,7 +112,7 @@ describe("client-room-discovery-requests", () => {
             mockAuthedRequest.mockRejectedValue(matrixErr);
 
             await expect(
-                getRoomHierarchyRequest(roomId, undefined, undefined, false, undefined, mockAuthedRequest)
+                getRoomHierarchyRequest(roomId, undefined, undefined, false, undefined, mockAuthedRequest),
             ).rejects.toEqual(matrixErr);
         });
     });
@@ -135,7 +133,7 @@ describe("client-room-discovery-requests", () => {
                     dir: Direction.Forward,
                 },
                 undefined,
-                { prefix: ClientPrefix.V1 }
+                { prefix: ClientPrefix.V1 },
             );
         });
 
@@ -161,7 +159,7 @@ describe("client-room-discovery-requests", () => {
                     dir: Direction.Backward,
                 },
                 undefined,
-                { prefix: "/_matrix/client/unstable/org.matrix.msc3030" }
+                { prefix: "/_matrix/client/unstable/org.matrix.msc3030" },
             );
         });
 
@@ -175,7 +173,7 @@ describe("client-room-discovery-requests", () => {
             mockAuthedRequest.mockRejectedValue(matrixErr);
 
             await expect(
-                timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest)
+                timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest),
             ).rejects.toEqual(matrixErr);
         });
 
@@ -189,7 +187,7 @@ describe("client-room-discovery-requests", () => {
             mockAuthedRequest.mockRejectedValue(matrixErr);
 
             await expect(
-                timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest)
+                timestampToEventRequest(roomId, timestamp, Direction.Forward, mockAuthedRequest),
             ).rejects.toEqual(matrixErr);
         });
     });
@@ -214,7 +212,7 @@ describe("client-room-discovery-requests", () => {
                     dir: Direction.Forward,
                 },
                 undefined,
-                { prefix: ClientPrefix.V1 }
+                { prefix: ClientPrefix.V1 },
             );
         });
     });

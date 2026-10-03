@@ -211,13 +211,17 @@ describe("VoiceManager", () => {
     it("uploadVoiceMessageMultipart should throw ValidationError when file field missing", async () => {
         const formData = new FormData();
         formData.append("room_id", "!room:example.com");
-        await expect(manager.uploadVoiceMessageMultipart({ formData })).rejects.toThrow("Voice upload requires 'file' field in FormData");
+        await expect(manager.uploadVoiceMessageMultipart({ formData })).rejects.toThrow(
+            "Voice upload requires 'file' field in FormData",
+        );
     });
 
     it("uploadVoiceMessageMultipart does not retry on 500 (non-idempotent POST)", async () => {
         transport.rejectWith(new HTTPError("Internal Server Error", 500));
         const audioBlob = new Blob(["dummy"], { type: "audio/ogg" });
-        await expect(manager.uploadVoiceMessageMultipart({ formData: makeVoiceMultipart(audioBlob) })).rejects.toThrow();
+        await expect(
+            manager.uploadVoiceMessageMultipart({ formData: makeVoiceMultipart(audioBlob) }),
+        ).rejects.toThrow();
         expect(transport.request).toHaveBeenCalledTimes(1);
     });
 

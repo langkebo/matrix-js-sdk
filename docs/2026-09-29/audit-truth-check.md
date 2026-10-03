@@ -2,7 +2,7 @@
 
 > **审查日期**: 2026-09-29  
 > **审查对象**: `docs/sdk-backend-integration-audit-2026-09-29.md`  
-> **状态**: ⚠️ **发现多处不实声明**  
+> **状态**: ⚠️ **发现多处不实声明**
 
 ---
 
@@ -13,11 +13,13 @@
 #### 1. Space Member Manager "集成完成" 是假象
 
 **文档声称**：
+
 ```markdown
 - ✅ **Space Member Manager 集成** - 11/11 tests passed
 ```
 
 **实际情况**：
+
 ```typescript
 // src/space/sub-managers/space-member-manager.ts:37
 private memberCache = CacheManagerFactory.createSpaceCache();
@@ -33,6 +35,7 @@ async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise
 ```
 
 **问题**：
+
 - ❌ `memberCache` 只声明，从未使用
 - ❌ 所有 4 个方法（`getSpaceMembers`, `inviteToSpace`, `joinSpace`, `leaveSpace`）都是直接网络请求
 - ❌ 没有调用过 `getOrFetch` 或 `cache.invalidate`
@@ -45,20 +48,22 @@ async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise
 #### 2. Space Lifecycle Manager "集成完成" 也是假的
 
 **文档声称**：
+
 ```markdown
 - ✅ **Space Lifecycle Manager 集成** - 14/14 tests passed
 ```
 
 **实际情况**：
+
 ```typescript
 // src/space/sub-managers/space-lifecycle-manager.ts:36-48
 export class SpaceLifecycleManager extends BaseManager {
     private parent: SpaceManager | null = null;
-    
+
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
     }
-    
+
     // 根本没有 CacheManagerFactory 导入
     // 根本没有缓存字段声明
     // 所有方法都是直接请求
@@ -66,6 +71,7 @@ export class SpaceLifecycleManager extends BaseManager {
 ```
 
 **问题**：
+
 - ❌ 文件中完全没有 `CacheManagerFactory` 导入
 - ❌ 没有任何缓存相关代码
 - ❌ 文档声称的"14 个测试通过"与事实不符
@@ -79,14 +85,16 @@ export class SpaceLifecycleManager extends BaseManager {
 #### 3. "性能优化效果 60-70%" 是无根据的预测
 
 **文档声称**：
+
 ```markdown
-| 场景 | 优化前 | 优化后 | 提升率 |
-|------|-------|-------|--------|
-| Space Hierarchy | 每次都请求 | 缓存命中 | -70% |
-| Space Children | 每次都请求 | 缓存命中 | -60% |
+| 场景            | 优化前     | 优化后   | 提升率 |
+| --------------- | ---------- | -------- | ------ |
+| Space Hierarchy | 每次都请求 | 缓存命中 | -70%   |
+| Space Children  | 每次都请求 | 缓存命中 | -60%   |
 ```
 
 **实际情况**：
+
 - ✅ SpaceHierarchyManager 确实使用了缓存
 - ✅ SpaceChildManager 确实使用了缓存
 - ❌ **但没有实测数据支撑**这些百分比
@@ -99,14 +107,16 @@ export class SpaceLifecycleManager extends BaseManager {
 #### 4. "97 个测试全部通过" 的定义模糊
 
 **文档声称**：
+
 ```markdown
-| 测试文件 | 测试数量 | 通过率 |
-|---------|----------|--------|
-| space-member-manager.spec.ts | 11 | 100% |
-| space-lifecycle-manager.spec.ts | 14 | 100% |
+| 测试文件                        | 测试数量 | 通过率 |
+| ------------------------------- | -------- | ------ |
+| space-member-manager.spec.ts    | 11       | 100%   |
+| space-lifecycle-manager.spec.ts | 14       | 100%   |
 ```
 
 **实际情况**：
+
 - ✅ 这些测试确实通过了（代码语法正确）
 - ❌ 但测试只验证"接口调用正确"，没有验证"缓存逻辑正常工作"
 - ❌ 没有测试 `cache.getOrFetch` 是否真正从缓存返回
@@ -121,11 +131,13 @@ export class SpaceLifecycleManager extends BaseManager {
 #### 5. Room/User/Device Manager 状态不明确
 
 **文档声称**：
+
 ```markdown
 | Room Managers | ❌ TODO | - | - |
 ```
 
 **实际情况**：
+
 - 文档没有说明这些 Manager 是否已经存在
 - 没有说明是否存在缓存需求评估
 - 没有说明优先级排序
@@ -138,15 +150,15 @@ export class SpaceLifecycleManager extends BaseManager {
 
 ### ✅ 真实完成的工作
 
-| 项目 | 证据 | 状态 |
-|------|------|------|
-| UnifiedCacheManager 实现 | `src/managers/cache-manager.ts` (457 行) | ✅ 真实 |
-| CacheManagerFactory 实现 | `src/managers/cache-manager.ts` (工厂方法) | ✅ 真实 |
-| CacheMonitor 监控工具 | `src/managers/cache-manager.ts` (第 460-540 行) | ✅ 真实 |
-| Space Hierarchy Manager 集成 | `hierarchyCache.getOrFetch` 实际使用 | ✅ 真实 |
-| Space Child Manager 集成 | `childrenCache.getOrFetch` 实际使用 | ✅ 真实 |
-| Space Query Manager 集成 | 多个缓存实例实际使用 | ✅ 真实 |
-| Phase 3 完成报告 | `docs/phase3-cache-integration-report.md` | ✅ 真实 |
+| 项目                         | 证据                                            | 状态    |
+| ---------------------------- | ----------------------------------------------- | ------- |
+| UnifiedCacheManager 实现     | `src/managers/cache-manager.ts` (457 行)        | ✅ 真实 |
+| CacheManagerFactory 实现     | `src/managers/cache-manager.ts` (工厂方法)      | ✅ 真实 |
+| CacheMonitor 监控工具        | `src/managers/cache-manager.ts` (第 460-540 行) | ✅ 真实 |
+| Space Hierarchy Manager 集成 | `hierarchyCache.getOrFetch` 实际使用            | ✅ 真实 |
+| Space Child Manager 集成     | `childrenCache.getOrFetch` 实际使用             | ✅ 真实 |
+| Space Query Manager 集成     | 多个缓存实例实际使用                            | ✅ 真实 |
+| Phase 3 完成报告             | `docs/phase3-cache-integration-report.md`       | ✅ 真实 |
 
 ---
 
@@ -155,12 +167,14 @@ export class SpaceLifecycleManager extends BaseManager {
 ### 3.1 修改集成进度统计表
 
 **当前错误版本**（Line 300-310）：
+
 ```markdown
 | Space Member Manager | ✅ 完成 | 11 | 100% |
 | Space Lifecycle Manager | ✅ 完成 | 14 | 100% |
 ```
 
 **应该改为**：
+
 ```markdown
 | Space Member Manager | 🔧 部分 | 11 | 100% (仅单元测试) |
 | Space Lifecycle Manager | ❌ 未集成 | 14 | 100% (仅单元测试) |
@@ -171,12 +185,14 @@ export class SpaceLifecycleManager extends BaseManager {
 ### 3.2 修改 Phase 3 进展摘要
 
 **当前错误描述**：
+
 ```markdown
 - ✅ **Space Member Manager 集成** - 11/11 tests passed
 - ✅ **Space Lifecycle Manager 集成** - 14/14 tests passed
 ```
 
 **应该改为**：
+
 ```markdown
 - ✅ **Space Hierarchy Manager 集成** - 实际使用 `getOrFetch`
 - ✅ **Space Child Manager 集成** - 实际使用 `getOrFetch`
@@ -191,17 +207,17 @@ export class SpaceLifecycleManager extends BaseManager {
 
 ### 4.1 代码层面
 
-| Manager | 是否使用缓存 | 实际效果 |
-|---------|------------|---------|
-| Cache Manager | ✅ | 基础框架完成 |
-| Space Hierarchy Manager | ✅ | `getSpaceHierarchy` 有缓存 |
-| Space Child Manager | ✅ | `getSpaceChildren` 有缓存 |
-| Space Query Manager | ✅ | `getUserSpaces`, `getSpaceByRoom` 等都有缓存 |
-| Space Member Manager | ❌ | `memberCache` 从未使用 |
-| Space Lifecycle Manager | ❌ | 完全未集成 |
-| Room Managers | ❌ | 待评估 |
-| User Managers | ❌ | 待评估 |
-| Device Managers | ❌ | 待评估 |
+| Manager                 | 是否使用缓存 | 实际效果                                     |
+| ----------------------- | ------------ | -------------------------------------------- |
+| Cache Manager           | ✅           | 基础框架完成                                 |
+| Space Hierarchy Manager | ✅           | `getSpaceHierarchy` 有缓存                   |
+| Space Child Manager     | ✅           | `getSpaceChildren` 有缓存                    |
+| Space Query Manager     | ✅           | `getUserSpaces`, `getSpaceByRoom` 等都有缓存 |
+| Space Member Manager    | ❌           | `memberCache` 从未使用                       |
+| Space Lifecycle Manager | ❌           | 完全未集成                                   |
+| Room Managers           | ❌           | 待评估                                       |
+| User Managers           | ❌           | 待评估                                       |
+| Device Managers         | ❌           | 待评估                                       |
 
 ### 4.2 性能层面
 
@@ -217,28 +233,32 @@ export class SpaceLifecycleManager extends BaseManager {
 ### 5.1 立即修正（今天）
 
 1. **更新文档准确性**：
-   - 将"集成完成"改为"框架就绪/部分集成"
-   - 删除无实测数据的性能百分比
-   - 明确标注"单元测试通过≠缓存功能验证通过"
+    - 将"集成完成"改为"框架就绪/部分集成"
+    - 删除无实测数据的性能百分比
+    - 明确标注"单元测试通过≠缓存功能验证通过"
 
 2. **补充真实进度**：
-   ```markdown
-   ## Phase 3 实际完成状态
-   
-   ✅ 已完成（真实有效）：
-   - UnifiedCacheManager 核心框架
-   - Space Hierarchy/Child/Query 的实际缓存集成
-   - 97 个单元测试（验证代码结构正确）
-   
-   ⚠️ 部分完成（需要继续）：
-   - Space Member Manager（仅声明缓存，未使用）
-   - Space Lifecycle Manager（完全未集成）
-   
-   ❌ 未开始：
-   - 性能基准测试
-   - 覆盖率门禁
-   - Room/User/Device 缓存集成
-   ```
+
+    ```markdown
+    ## Phase 3 实际完成状态
+
+    ✅ 已完成（真实有效）：
+
+    - UnifiedCacheManager 核心框架
+    - Space Hierarchy/Child/Query 的实际缓存集成
+    - 97 个单元测试（验证代码结构正确）
+
+    ⚠️ 部分完成（需要继续）：
+
+    - Space Member Manager（仅声明缓存，未使用）
+    - Space Lifecycle Manager（完全未集成）
+
+    ❌ 未开始：
+
+    - 性能基准测试
+    - 覆盖率门禁
+    - Room/User/Device 缓存集成
+    ```
 
 ### 5.2 补充工作（本周）
 
@@ -254,6 +274,7 @@ export class SpaceLifecycleManager extends BaseManager {
 ### 6.1 真实成就
 
 ✅ **Phase 3 框架性工作已完成**
+
 - `UnifiedCacheManager` 设计合理
 - `CacheManagerFactory` 提供了便利的预配置
 - `CacheMonitor` 为性能监控提供了基础
@@ -262,6 +283,7 @@ export class SpaceLifecycleManager extends BaseManager {
 ### 6.2 需要澄清的事实
 
 ⚠️ **文档存在多处不实声明**
+
 - Space Member Manager 并未真正集成缓存
 - Space Lifecycle Manager 完全未集成缓存
 - "97 个测试通过" 只验证了代码结构，未验证缓存功能
@@ -277,5 +299,6 @@ export class SpaceLifecycleManager extends BaseManager {
 ---
 
 **修订历史**:
+
 - 2026-09-29: 真实性复核，发现多处不实声明
 - 2026-09-29: 更新为真实项目状态报告

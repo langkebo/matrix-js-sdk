@@ -78,9 +78,7 @@ describe("SpaceMemberManager", () => {
             const result = await manager.getSpaceMembers("!space:test");
 
             expect(result).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ user_id: "@user:test", space_id: "!space:test" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ user_id: "@user:test", space_id: "!space:test" })]),
             );
         });
 

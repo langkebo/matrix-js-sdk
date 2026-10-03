@@ -45,9 +45,7 @@ describe("SpaceQueryManager", () => {
             const result = await manager.getPublicSpaces({ limit: 10 });
 
             expect(result.chunk).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ room_id: "!pub1:test", name: "Public 1" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ room_id: "!pub1:test", name: "Public 1" })]),
             );
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "GET",
@@ -78,9 +76,7 @@ describe("SpaceQueryManager", () => {
             const result = await manager.searchSpaces("test", 5);
 
             expect(result).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ room_id: "!search1:test", name: "Search Result" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ room_id: "!search1:test", name: "Search Result" })]),
             );
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "GET",
@@ -140,17 +136,11 @@ describe("SpaceQueryManager", () => {
             const result = await manager.getUserSpaces();
 
             expect(result).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ room_id: "!user1:test", name: "User Space" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ room_id: "!user1:test", name: "User Space" })]),
             );
-            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
-                "GET",
-                "/spaces/user",
-                undefined,
-                undefined,
-                { prefix: "/_matrix/client/v3" },
-            );
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/spaces/user", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
         });
 
         it("returns cached result when not forceRefresh", async () => {
@@ -163,9 +153,7 @@ describe("SpaceQueryManager", () => {
             // Second call should return cached result without API call
             const result = await manager.getUserSpaces();
             expect(result).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ room_id: "!cached:test", name: "Cached" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ room_id: "!cached:test", name: "Cached" })]),
             );
             expect(mockClient.http.authedRequest).toHaveBeenCalledTimes(1);
         });
@@ -189,9 +177,7 @@ describe("SpaceQueryManager", () => {
 
             const result = await manager.getSpaceByRoom("!room:test");
 
-            expect(result).toEqual(
-                expect.objectContaining({ room_id: "!space:test", name: "Parent Space" }),
-            );
+            expect(result).toEqual(expect.objectContaining({ room_id: "!space:test", name: "Parent Space" }));
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "GET",
                 "/spaces/room/!room%3Atest",
@@ -221,9 +207,7 @@ describe("SpaceQueryManager", () => {
             const result = await manager.getRoomParentSpaces("!room:test");
 
             expect(result).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ room_id: "!space1:test", name: "Parent 1" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ room_id: "!space1:test", name: "Parent 1" })]),
             );
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                 "GET",

@@ -41,7 +41,7 @@ describe("SpaceChildManager", () => {
 
         manager = new SpaceChildManager(mockClient);
         manager._setParent(mockParent);
-        
+
         // Clear cache between tests to ensure isolation
         (manager as any).childrenCache.invalidate(["*"]);
     });
@@ -89,9 +89,7 @@ describe("SpaceChildManager", () => {
             const result = await manager.getSpaceChildren("!space:test");
 
             expect(result).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({ room_id: "!child1:test", space_id: "!space:test" }),
-                ]),
+                expect.arrayContaining([expect.objectContaining({ room_id: "!child1:test", space_id: "!space:test" })]),
             );
         });
 
@@ -137,9 +135,7 @@ describe("SpaceChildManager", () => {
 
             const emitSpy = vi.spyOn(manager, "emit");
 
-            await expect(
-                manager.addChild("!space:test", { room_id: "!room:test" }),
-            ).rejects.toThrow();
+            await expect(manager.addChild("!space:test", { room_id: "!room:test" })).rejects.toThrow();
 
             expect(emitSpy).toHaveBeenCalledWith(SpaceEvent.SpaceError, expect.any(Error));
         });
@@ -217,9 +213,7 @@ describe("SpaceChildManager", () => {
 
     describe("getSpaceState", () => {
         it("calls GET /spaces/{space_id}/state", async () => {
-            const mockResponse = [
-                { type: "m.space.child", state_key: "!child:test", content: { via: ["server1"] } },
-            ];
+            const mockResponse = [{ type: "m.space.child", state_key: "!child:test", content: { via: ["server1"] } }];
 
             mockClient.http.authedRequest.mockResolvedValue(mockResponse);
 

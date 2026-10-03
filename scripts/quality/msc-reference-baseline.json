@@ -3,164 +3,59 @@
     "note": "SDK source MSC reference snapshot. Update with --update-baseline after registering new MSCs in docs/MSC_SDK_MAPPING.md.",
     "total": 62,
     "entries": {
-        "1767": [
-            "src/@types/extensible_events.ts"
-        ],
-        "1772": [
-            "src/models/room.ts"
-        ],
-        "2153": [
-            "src/pushprocessor.ts"
-        ],
-        "2403": [
-            "src/client-api-types.ts"
-        ],
-        "2666": [
-            "src/client.ts",
-            "src/server-capabilities/index.ts"
-        ],
-        "2674": [
-            "src/@types/beacon.ts"
-        ],
-        "2676": [
-            "src/models/event.ts"
-        ],
-        "2716": [
-            "src/@types/event.ts",
-            "src/models/room-state.ts",
-            "src/models/room.ts",
-            "src/sync.ts"
-        ],
-        "2746": [
-            "src/web-rtc/call.ts"
-        ],
-        "2965": [
-            "src/client-auth.ts"
-        ],
-        "2966": [
-            "src/oidc/register.ts"
-        ],
-        "3088": [
-            "src/@types/event.ts"
-        ],
+        "1767": ["src/@types/extensible_events.ts"],
+        "1772": ["src/models/room.ts"],
+        "2153": ["src/pushprocessor.ts"],
+        "2403": ["src/client-api-types.ts"],
+        "2666": ["src/client.ts", "src/server-capabilities/index.ts"],
+        "2674": ["src/@types/beacon.ts"],
+        "2676": ["src/models/event.ts"],
+        "2716": ["src/@types/event.ts", "src/models/room-state.ts", "src/models/room.ts", "src/sync.ts"],
+        "2746": ["src/web-rtc/call.ts"],
+        "2965": ["src/client-auth.ts"],
+        "2966": ["src/oidc/register.ts"],
+        "3088": ["src/@types/event.ts"],
         "3089": [
             "src/@types/event.ts",
             "src/matrix-client-extensions.ts",
             "src/models/MSC3089Branch.ts",
             "src/models/MSC3089TreeSpace.ts"
         ],
-        "3230": [
-            "src/@types/event.ts"
-        ],
-        "3245": [
-            "src/voice/index.ts"
-        ],
-        "3266": [
-            "src/client-api-types.ts",
-            "src/room-summary/index.ts",
-            "src/room-summary/types.ts"
-        ],
-        "3267": [
-            "src/@types/beacon.ts"
-        ],
-        "3389": [
-            "src/models/event.ts",
-            "src/models/room.ts"
-        ],
-        "3391": [
-            "src/store/memory.ts"
-        ],
-        "3401": [
-            "src/@types/event.ts",
-            "src/pushprocessor.ts"
-        ],
-        "3417": [
-            "src/models/room.ts"
-        ],
-        "3488": [
-            "src/@types/beacon.ts",
-            "src/@types/event.ts",
-            "src/@types/location.ts"
-        ],
-        "3531": [
-            "src/models/event.ts",
-            "src/models/room.ts"
-        ],
-        "3575": [
-            "src/room/RoomManager.ts"
-        ],
-        "3672": [
-            "src/@types/beacon.ts",
-            "src/@types/event.ts",
-            "src/beacon/index.ts"
-        ],
-        "3720": [
-            "src/account/index.ts",
-            "src/security/index.ts"
-        ],
-        "3765": [
-            "src/@types/topic.ts"
-        ],
-        "3771": [
-            "src/models/thread.ts"
-        ],
-        "3786": [
-            "src/pushprocessor.ts"
-        ],
-        "3814": [
-            "src/crypto-api/index.ts"
-        ],
-        "3827": [
-            "src/client-api-types.ts"
-        ],
-        "3874": [
-            "src/client-receipts.ts"
-        ],
-        "3912": [
-            "src/client.ts"
-        ],
-        "3914": [
-            "src/pushprocessor.ts"
-        ],
-        "3916": [
-            "src/content-repo.ts"
-        ],
-        "3925": [
-            "src/event-mapper.ts"
-        ],
-        "3946": [
-            "src/client.ts",
-            "src/models/room-state.ts",
-            "src/models/room.ts"
-        ],
-        "3981": [
-            "src/@types/requests.ts",
-            "src/models/thread.ts"
-        ],
-        "4023": [
-            "src/client-receipts.ts"
-        ],
-        "4033": [
-            "src/models/compare-event-ordering.ts",
-            "src/models/event.ts",
-            "src/models/room.ts"
-        ],
+        "3230": ["src/@types/event.ts"],
+        "3245": ["src/voice/index.ts"],
+        "3266": ["src/client-api-types.ts", "src/room-summary/index.ts", "src/room-summary/types.ts"],
+        "3267": ["src/@types/beacon.ts"],
+        "3389": ["src/models/event.ts", "src/models/room.ts"],
+        "3391": ["src/store/memory.ts"],
+        "3401": ["src/@types/event.ts", "src/pushprocessor.ts"],
+        "3417": ["src/models/room.ts"],
+        "3488": ["src/@types/beacon.ts", "src/@types/event.ts", "src/@types/location.ts"],
+        "3531": ["src/models/event.ts", "src/models/room.ts"],
+        "3575": ["src/room/RoomManager.ts"],
+        "3672": ["src/@types/beacon.ts", "src/@types/event.ts", "src/beacon/index.ts"],
+        "3720": ["src/account/index.ts", "src/security/index.ts"],
+        "3765": ["src/@types/topic.ts"],
+        "3771": ["src/models/thread.ts"],
+        "3786": ["src/pushprocessor.ts"],
+        "3814": ["src/crypto-api/index.ts"],
+        "3827": ["src/client-api-types.ts"],
+        "3874": ["src/client-receipts.ts"],
+        "3912": ["src/client.ts"],
+        "3914": ["src/pushprocessor.ts"],
+        "3916": ["src/content-repo.ts"],
+        "3925": ["src/event-mapper.ts"],
+        "3946": ["src/client.ts", "src/models/room-state.ts", "src/models/room.ts"],
+        "3981": ["src/@types/requests.ts", "src/models/thread.ts"],
+        "4023": ["src/client-receipts.ts"],
+        "4033": ["src/models/compare-event-ordering.ts", "src/models/event.ts", "src/models/room.ts"],
         "4108": [
             "src/rendezvous/MSC4108SignInWithQR.ts",
             "src/rendezvous/channels/MSC4108SecureChannel.ts",
             "src/rendezvous/transports/MSC4108RendezvousSession.ts"
         ],
-        "4115": [
-            "src/models/event.ts"
-        ],
-        "4133": [
-            "src/profile/index.ts"
-        ],
-        "4140": [
-            "src/client.ts",
-            "src/delayed-events/index.ts",
-            "src/embedded.ts"
-        ],
+        "4115": ["src/models/event.ts"],
+        "4133": ["src/profile/index.ts"],
+        "4140": ["src/client.ts", "src/delayed-events/index.ts", "src/embedded.ts"],
         "4143": [
             "src/client.ts",
             "src/matrix-rtc/CallMembership.ts",
@@ -168,13 +63,8 @@
             "src/server-capabilities/index.ts",
             "src/voice/index.ts"
         ],
-        "4155": [
-            "src/@types/event.ts",
-            "src/invite-blocklist/index.ts"
-        ],
-        "4157": [
-            "src/embedded.ts"
-        ],
+        "4155": ["src/@types/event.ts", "src/invite-blocklist/index.ts"],
+        "4157": ["src/embedded.ts"],
         "4186": [
             "src/common-crypto/CryptoBackend.ts",
             "src/models/room-summary.ts",
@@ -183,15 +73,9 @@
             "src/sliding-sync.ts",
             "src/sliding-sync/__generated__/dto.ts"
         ],
-        "4191": [
-            "src/oidc/validate.ts"
-        ],
-        "4204": [
-            "src/models/invites-ignorer-types.ts"
-        ],
-        "4267": [
-            "src/room/RoomManager.ts"
-        ],
+        "4191": ["src/oidc/validate.ts"],
+        "4204": ["src/models/invites-ignorer-types.ts"],
+        "4267": ["src/room/RoomManager.ts"],
         "4268": [
             "src/@types/requests.ts",
             "src/common-crypto/CryptoBackend.ts",
@@ -199,43 +83,20 @@
             "src/models/event.ts",
             "src/rust-crypto/rust-crypto.ts"
         ],
-        "4284": [
-            "src/@types/event.ts",
-            "src/admin/index.ts",
-            "src/admin/sub-managers/admin-policy-manager.ts"
-        ],
-        "4310": [
-            "src/matrix-rtc/types.ts"
-        ],
-        "4312": [
-            "src/interactive-auth.ts"
-        ],
-        "4341": [
-            "src/oidc/register.ts",
-            "src/oidc/validate.ts"
-        ],
+        "4284": ["src/@types/event.ts", "src/admin/index.ts", "src/admin/sub-managers/admin-policy-manager.ts"],
+        "4310": ["src/matrix-rtc/types.ts"],
+        "4312": ["src/interactive-auth.ts"],
+        "4341": ["src/oidc/register.ts", "src/oidc/validate.ts"],
         "4354": [
             "src/client.ts",
             "src/embedded.ts",
             "src/matrix-rtc/MatrixRTCSession.ts",
             "src/sliding-sync/__generated__/dto.ts"
         ],
-        "4362": [
-            "src/client.ts",
-            "src/models/event.ts",
-            "src/rust-crypto/rust-crypto.ts"
-        ],
-        "4380": [
-            "src/invite-blocklist/index.ts"
-        ],
-        "4407": [
-            "src/embedded.ts"
-        ],
-        "4446": [
-            "src/client-receipt-requests.ts"
-        ],
-        "4497": [
-            "src/room-state/index.ts"
-        ]
+        "4362": ["src/client.ts", "src/models/event.ts", "src/rust-crypto/rust-crypto.ts"],
+        "4380": ["src/invite-blocklist/index.ts"],
+        "4407": ["src/embedded.ts"],
+        "4446": ["src/client-receipt-requests.ts"],
+        "4497": ["src/room-state/index.ts"]
     }
 }

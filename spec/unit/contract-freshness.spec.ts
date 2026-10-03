@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -11,11 +10,11 @@ const GENERATED = path.join(repoRoot, "docs", "api-contract", "generated");
 /** Run check-contract-freshness.mjs and return { exitCode, stdout, stderr } */
 function runFreshness(args: string[] = []): { exitCode: number; stdout: string; stderr: string } {
     try {
-        const stdout = execFileSync(
-            process.execPath,
-            [SCRIPT, ...args],
-            { cwd: repoRoot, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
-        );
+        const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+            cwd: repoRoot,
+            encoding: "utf8",
+            stdio: ["pipe", "pipe", "pipe"],
+        });
         return { exitCode: 0, stdout, stderr: "" };
     } catch (e: unknown) {
         const err = e as { status?: number; stdout?: string; stderr?: string; message?: string };

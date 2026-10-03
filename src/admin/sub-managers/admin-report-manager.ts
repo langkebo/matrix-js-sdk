@@ -145,13 +145,7 @@ export class AdminReportManager extends AdminBaseManager {
      * @throws NotFoundError 如果举报不存在
      */
     async delete(reportId: number): Promise<void> {
-        await this.adminRequest<void>(
-            Method.Delete,
-            `/reports/${reportId}`,
-            undefined,
-            undefined,
-            "reports.delete",
-        );
+        await this.adminRequest<void>(Method.Delete, `/reports/${reportId}`, undefined, undefined, "reports.delete");
     }
 
     /**

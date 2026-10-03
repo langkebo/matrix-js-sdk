@@ -18,7 +18,6 @@ import { describe, it, expect, vi } from "vitest";
 
 import { SamlAuthManager } from "../../../src/saml/index";
 import { Method } from "../../../src/http-api/method";
-import { ClientPrefix, AdminPrefix } from "../../../src/http-api/prefix";
 import type { MatrixClient } from "../../../src/client";
 
 // ---- Mock helpers ----
@@ -76,7 +75,9 @@ describe("SamlAuthManager", () => {
         it("generates correct SAML login redirect URL", () => {
             const { mgr } = makeManager();
             const url = mgr.getLoginRedirectUrl("https://app.example.org/login");
-            expect(url).toBe("https://example.org/_matrix/client/v3/login/sso/redirect/saml?redirectUrl=https%3A%2F%2Fapp.example.org%2Flogin");
+            expect(url).toBe(
+                "https://example.org/_matrix/client/v3/login/sso/redirect/saml?redirectUrl=https%3A%2F%2Fapp.example.org%2Flogin",
+            );
         });
 
         it("generates URL without params when redirectUrl is empty", () => {
@@ -102,7 +103,9 @@ describe("SamlAuthManager", () => {
         it("generates SAML logout URL", () => {
             const { mgr } = makeManager();
             const url = mgr.getLogoutRedirectUrl("https://app.example.org/goodbye");
-            expect(url).toBe("https://example.org/_matrix/client/v3/logout/saml?redirectUrl=https%3A%2F%2Fapp.example.org%2Fgoodbye");
+            expect(url).toBe(
+                "https://example.org/_matrix/client/v3/logout/saml?redirectUrl=https%3A%2F%2Fapp.example.org%2Fgoodbye",
+            );
         });
 
         it("generates logout URL without params", () => {

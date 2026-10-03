@@ -18,7 +18,7 @@ const specDir = path.join(projectRoot, "spec/unit");
 function walkDir(dir, exts = [".ts"]) {
     const results = [];
     if (!fs.existsSync(dir)) return results;
-    
+
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory() && !entry.name.startsWith("_")) {
@@ -41,25 +41,25 @@ function findTestForSource(sourcePath) {
     const relative = path.relative(srcDir, sourcePath);
     const dir = path.dirname(relative);
     const baseName = path.basename(sourcePath, ".ts");
-    
+
     // 模式 1: src/foo/bar.ts -> spec/unit/foo/bar.spec.ts
     const candidate1 = path.join(specDir, dir, `${baseName}.spec.ts`);
     if (fs.existsSync(candidate1)) return candidate1;
-    
+
     const candidate1b = path.join(specDir, dir, `${baseName}.spec.test.ts`);
     if (fs.existsSync(candidate1b)) return candidate1b;
-    
+
     // 模式 2: src/foo/index.ts -> spec/unit/foo.spec.ts (扁平化)
     if (baseName === "index") {
         const parentDir = path.basename(dir);
         const candidate2 = path.join(specDir, `${parentDir}.spec.ts`);
         if (fs.existsSync(candidate2)) return candidate2;
     }
-    
+
     // 模式 3: src/client.ts -> spec/unit/client.ts 同级
     const candidate3 = path.join(specDir, `${baseName}.spec.ts`);
     if (fs.existsSync(candidate3)) return candidate3;
-    
+
     return null;
 }
 
@@ -67,19 +67,19 @@ const analysisResults = [];
 
 for (const sourceFile of allSourceFiles) {
     if (sourceFile.endsWith(".d.ts")) continue;
-    
+
     const relativePath = path.relative(srcDir, sourceFile);
     const content = fs.readFileSync(sourceFile, "utf8");
     const lines = content.split("\n").length;
-    
+
     // 检查是否有 HTTP 请求
     const httpMatches = content.match(/withRetry|authedRequest|\.request\(Method/g);
     const httpCount = httpMatches ? httpMatches.length : 0;
-    
+
     // 检查是否有测试
     const testFile = findTestForSource(sourceFile);
     const hasTest = !!testFile;
-    
+
     // 风险评分
     let riskScore = 0;
     if (httpCount > 0 && !hasTest) {
@@ -96,7 +96,7 @@ for (const sourceFile of allSourceFiles) {
     } else if (!httpCount && lines > 200 && !hasTest) {
         riskScore = 20;
     }
-    
+
     if (riskScore > 0) {
         analysisResults.push({
             file: relativePath,
@@ -143,11 +143,11 @@ for (let i = 0; i < Math.min(5, analysisResults.length); i++) {
 }
 
 // JSON 输出
-const top5 = analysisResults.filter(r => r.riskScore >= 100).slice(0, 5);
+const top5 = analysisResults.filter((r) => r.riskScore >= 100).slice(0, 5);
 const jsonOutput = {
     generatedAt: new Date().toISOString(),
     totalAnalyzed: analysisResults.length,
-    criticalFiles: top5.map(r => ({
+    criticalFiles: top5.map((r) => ({
         file: r.file,
         lines: r.lines,
         httpCalls: r.httpCount,

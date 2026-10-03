@@ -1,9 +1,9 @@
 /**
  * RoomManager 扩展 - Batch 1: Core Room Operations (P0 Priority)
- * 
+ *
  * 基于 synapse-rust ROUTE_CONTRACT.md 定义
  * 补全 Room 模块缺失的核心接口 (当前覆盖率：17.6% → 目标提升 ~25%)
- * 
+ *
  * @see ../../../docs/API_COVERAGE_REPORT.md
  */
 
@@ -172,13 +172,13 @@ export interface ISearchResults {
 
 /**
  * Room 模块核心操作方法
- * 
+ *
  * 这些方法用于补全与 synapse-rust 后端对应的 API 接口
- * 
+ *
  * Usage example:
  * ```typescript
  * import { getRoomDetails } from './RoomManagerExtensions';
- * 
+ *
  * const details = await getRoomDetails(client, "!room:id");
  * console.log(details.name);
  * ```
@@ -189,12 +189,9 @@ export interface ISearchResults {
  * @param client MatrixClient instance
  * @param roomId 房间 ID
  */
-export async function getRoomDetails(
-    client: any,
-    roomId: string
-): Promise<IRoomDetails> {
+export async function getRoomDetails(client: any, roomId: string): Promise<IRoomDetails> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}`,
@@ -204,12 +201,9 @@ export async function getRoomDetails(
 /**
  * 获取已固定事件列表
  */
-export async function getPinnedEvents(
-    client: any,
-    roomId: string
-): Promise<IPinnedEvents> {
+export async function getPinnedEvents(client: any, roomId: string): Promise<IPinnedEvents> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/pinned_events`,
@@ -219,12 +213,9 @@ export async function getPinnedEvents(
 /**
  * 获取房间别名列表
  */
-export async function getRoomAliases(
-    client: any,
-    roomId: string
-): Promise<IRoomAliases> {
+export async function getRoomAliases(client: any, roomId: string): Promise<IRoomAliases> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/aliases`,
@@ -234,13 +225,9 @@ export async function getRoomAliases(
 /**
  * 删除固定事件
  */
-export async function deletePinnedEvent(
-    client: any,
-    roomId: string,
-    eventId: string
-): Promise<void> {
+export async function deletePinnedEvent(client: any, roomId: string, eventId: string): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Delete,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/pinned_events/${encodeURIComponent(eventId)}`,
@@ -253,10 +240,10 @@ export async function deletePinnedEvent(
 export async function updatePinnedEvents(
     client: any,
     roomId: string,
-    pinnedEventIds: string[]
+    pinnedEventIds: string[],
 ): Promise<{ event_id: string }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/pinned_events`,
@@ -267,12 +254,9 @@ export async function updatePinnedEvents(
 /**
  * 获取外部 ID 列表
  */
-export async function getExternalIds(
-    client: any,
-    roomId: string
-): Promise<IExternalIds> {
+export async function getExternalIds(client: any, roomId: string): Promise<IExternalIds> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/external_ids`,
@@ -282,12 +266,9 @@ export async function getExternalIds(
 /**
  * 获取消息队列
  */
-export async function getMessageQueue(
-    client: any,
-    roomId: string
-): Promise<IMessageQueue> {
+export async function getMessageQueue(client: any, roomId: string): Promise<IMessageQueue> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/message_queue`,
@@ -297,15 +278,11 @@ export async function getMessageQueue(
 /**
  * 获取最近成员列表
  */
-export async function getRecentMembers(
-    client: any,
-    roomId: string,
-    limit?: number
-): Promise<IRecentMembers> {
+export async function getRecentMembers(client: any, roomId: string, limit?: number): Promise<IRecentMembers> {
     validateRoomId(roomId);
-    
+
     const queryParams = limit ? { limit } : undefined;
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/members/recent`,
@@ -316,14 +293,10 @@ export async function getRecentMembers(
 /**
  * 获取成员详情
  */
-export async function getMembership(
-    client: any,
-    roomId: string,
-    userId: string
-): Promise<IMembership> {
+export async function getMembership(client: any, roomId: string, userId: string): Promise<IMembership> {
     validateRoomId(roomId);
     validateUserId(userId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`,
@@ -333,12 +306,9 @@ export async function getMembership(
 /**
  * 获取通知数量
  */
-export async function getNotifications(
-    client: any,
-    roomId: string
-): Promise<INotifications> {
+export async function getNotifications(client: any, roomId: string): Promise<INotifications> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/notifications`,
@@ -348,12 +318,9 @@ export async function getNotifications(
 /**
  * 获取权限设置
  */
-export async function getPermissions(
-    client: any,
-    roomId: string
-): Promise<IPermissions> {
+export async function getPermissions(client: any, roomId: string): Promise<IPermissions> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/permissions`,
@@ -363,12 +330,9 @@ export async function getPermissions(
 /**
  * 获取服务类型
  */
-export async function getServiceTypes(
-    client: any,
-    roomId: string
-): Promise<IServiceTypes> {
+export async function getServiceTypes(client: any, roomId: string): Promise<IServiceTypes> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/service_types`,
@@ -381,10 +345,10 @@ export async function getServiceTypes(
 export async function getReducedEvents(
     client: any,
     roomId: string,
-    params?: { limit?: number; types?: string[] }
+    params?: { limit?: number; types?: string[] },
 ): Promise<IReducedEvents> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/reduced_events`,
@@ -395,13 +359,9 @@ export async function getReducedEvents(
 /**
  * 获取事件 URL
  */
-export async function getEventUrl(
-    client: any,
-    roomId: string,
-    eventId: string
-): Promise<IEventUrl> {
+export async function getEventUrl(client: any, roomId: string, eventId: string): Promise<IEventUrl> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}/url`,
@@ -411,13 +371,9 @@ export async function getEventUrl(
 /**
  * 获取房间片段
  */
-export async function getRoomFragments(
-    client: any,
-    roomId: string,
-    userId: string
-): Promise<IFragments> {
+export async function getRoomFragments(client: any, roomId: string, userId: string): Promise<IFragments> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/fragments/${encodeURIComponent(userId)}`,
@@ -427,13 +383,9 @@ export async function getRoomFragments(
 /**
  * 获取房间密钥
  */
-export async function getRoomKey(
-    client: any,
-    roomId: string,
-    eventId: string
-): Promise<IRoomKey> {
+export async function getRoomKey(client: any, roomId: string, eventId: string): Promise<IRoomKey> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/keys/${encodeURIComponent(eventId)}`,
@@ -443,12 +395,9 @@ export async function getRoomKey(
 /**
  * 获取房间密钥列表
  */
-export async function getRoomKeys(
-    client: any,
-    roomId: string
-): Promise<IRoomKeys> {
+export async function getRoomKeys(client: any, roomId: string): Promise<IRoomKeys> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/keys`,
@@ -458,12 +407,9 @@ export async function getRoomKeys(
 /**
  * 获取密钥计数
  */
-export async function getRoomKeysCount(
-    client: any,
-    roomId: string
-): Promise<{ count: number }> {
+export async function getRoomKeysCount(client: any, roomId: string): Promise<{ count: number }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/keys/count`,
@@ -473,12 +419,9 @@ export async function getRoomKeysCount(
 /**
  * 获取密钥版本
  */
-export async function getRoomKeysVersion(
-    client: any,
-    roomId: string
-): Promise<{ version: string }> {
+export async function getRoomKeysVersion(client: any, roomId: string): Promise<{ version: string }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/keys/version`,
@@ -491,10 +434,10 @@ export async function getRoomKeysVersion(
 export async function claimRoomKeys(
     client: any,
     roomId: string,
-    keys: Record<string, Record<string, string[]>>
+    keys: Record<string, Record<string, string[]>>,
 ): Promise<{ one_keys: Record<string, unknown> }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/keys/claim`,
@@ -508,10 +451,10 @@ export async function claimRoomKeys(
 export async function uploadRoomKeys(
     client: any,
     roomId: string,
-    keysData: { sessions: Record<string, unknown> }
+    keysData: { sessions: Record<string, unknown> },
 ): Promise<{ count: number }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Put,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/room_keys/keys`,
@@ -526,10 +469,10 @@ export async function signRoomEvent(
     client: any,
     roomId: string,
     eventId: string,
-    signature: string
+    signature: string,
 ): Promise<{ signed: boolean }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Put,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/sign/${encodeURIComponent(eventId)}`,
@@ -543,10 +486,10 @@ export async function signRoomEvent(
 export async function updateRoomVisibility(
     client: any,
     roomId: string,
-    visibility: "public" | "private"
+    visibility: "public" | "private",
 ): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Put,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/visibility`,
@@ -557,13 +500,9 @@ export async function updateRoomVisibility(
 /**
  * 获取房间账户数据
  */
-export async function getRoomAccountData(
-    client: any,
-    roomId: string,
-    type: string
-): Promise<unknown> {
+export async function getRoomAccountData(client: any, roomId: string, type: string): Promise<unknown> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
@@ -573,14 +512,9 @@ export async function getRoomAccountData(
 /**
  * 设置房间账户数据
  */
-export async function setRoomAccountData(
-    client: any,
-    roomId: string,
-    type: string,
-    data: unknown
-): Promise<void> {
+export async function setRoomAccountData(client: any, roomId: string, type: string, data: unknown): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Put,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/account_data/${encodeURIComponent(type)}`,
@@ -591,12 +525,9 @@ export async function setRoomAccountData(
 /**
  * 获取存储库数据
  */
-export async function getVaultData(
-    client: any,
-    roomId: string
-): Promise<IVaultData> {
+export async function getVaultData(client: any, roomId: string): Promise<IVaultData> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/vault_data`,
@@ -610,10 +541,10 @@ export async function setVaultData(
     client: any,
     roomId: string,
     entryId: string,
-    data: unknown
+    data: unknown,
 ): Promise<{ updated: boolean }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Put,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/vault_data`,
@@ -627,10 +558,10 @@ export async function setVaultData(
 export async function getEventPerspective(
     client: any,
     roomId: string,
-    params?: { event_id?: string; last_known_index?: string }
+    params?: { event_id?: string; last_known_index?: string },
 ): Promise<IEventPerspective> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/event_perspective`,
@@ -644,10 +575,10 @@ export async function getEventPerspective(
 export async function getTimeline(
     client: any,
     roomId: string,
-    params?: { from?: string; to?: string; limit?: number }
+    params?: { from?: string; to?: string; limit?: number },
 ): Promise<ITimeline> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/timeline`,
@@ -658,13 +589,9 @@ export async function getTimeline(
 /**
  * 获取线程
  */
-export async function getThread(
-    client: any,
-    roomId: string,
-    eventId: string
-): Promise<IThread> {
+export async function getThread(client: any, roomId: string, eventId: string): Promise<IThread> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/thread/${encodeURIComponent(eventId)}`,
@@ -678,10 +605,10 @@ export async function getThreadList(
     client: any,
     roomId: string,
     threadId: string,
-    params?: { limit?: number }
+    params?: { limit?: number },
 ): Promise<ITimeline> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`,
@@ -696,10 +623,10 @@ export async function verifyEvent(
     client: any,
     roomId: string,
     eventId: string,
-    verificationMethod: string
+    verificationMethod: string,
 ): Promise<IVerifyResult> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/verify/${encodeURIComponent(eventId)}`,
@@ -714,10 +641,10 @@ export async function convertEvent(
     client: any,
     roomId: string,
     eventId: string,
-    targetType: string
+    targetType: string,
 ): Promise<IConvertResult> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/convert/${encodeURIComponent(eventId)}`,
@@ -732,10 +659,10 @@ export async function translateEvent(
     client: any,
     roomId: string,
     eventId: string,
-    targetLang: string
+    targetLang: string,
 ): Promise<ITranslatedText> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/translate/${encodeURIComponent(eventId)}`,
@@ -746,12 +673,9 @@ export async function translateEvent(
 /**
  * 获取防截屏设置
  */
-export async function getAntiScreenshotSetting(
-    client: any,
-    roomId: string
-): Promise<IAntiScreenshot> {
+export async function getAntiScreenshotSetting(client: any, roomId: string): Promise<IAntiScreenshot> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/anti_screenshot`,
@@ -761,13 +685,9 @@ export async function getAntiScreenshotSetting(
 /**
  * 设置防截屏设置
  */
-export async function setAntiScreenshotSetting(
-    client: any,
-    roomId: string,
-    enabled: boolean
-): Promise<void> {
+export async function setAntiScreenshotSetting(client: any, roomId: string, enabled: boolean): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Put,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/anti_screenshot`,
@@ -778,12 +698,9 @@ export async function setAntiScreenshotSetting(
 /**
  * 获取阅后即焚策略
  */
-export async function getRetentionPolicy(
-    client: any,
-    roomId: string
-): Promise<IRetentionPolicy> {
+export async function getRetentionPolicy(client: any, roomId: string): Promise<IRetentionPolicy> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/retention`,
@@ -793,12 +710,9 @@ export async function getRetentionPolicy(
 /**
  * 解决房间别名
  */
-export async function resolveRoomAlias(
-    client: any,
-    roomId: string
-): Promise<IResolvedAlias> {
+export async function resolveRoomAlias(client: any, roomId: string): Promise<IResolvedAlias> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/resolve`,
@@ -812,10 +726,10 @@ export async function getReceipts(
     client: any,
     roomId: string,
     receiptType: string,
-    eventId: string
+    eventId: string,
 ): Promise<{ receipts: Array<{ user_id: string; ts: number }> }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/receipts/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
@@ -825,14 +739,9 @@ export async function getReceipts(
 /**
  * 发送阅读回执
  */
-export async function sendReceipt(
-    client: any,
-    roomId: string,
-    receiptType: string,
-    eventId: string
-): Promise<void> {
+export async function sendReceipt(client: any, roomId: string, receiptType: string, eventId: string): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/receipt/${encodeURIComponent(receiptType)}/${encodeURIComponent(eventId)}`,
@@ -845,10 +754,10 @@ export async function sendReceipt(
 export async function getRenderedContent(
     client: any,
     roomId: string,
-    eventId: string
+    eventId: string,
 ): Promise<{ rendered_html: string }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/rendered/`,
@@ -859,13 +768,9 @@ export async function getRenderedContent(
 /**
  * 同步房间状态
  */
-export async function syncRoom(
-    client: any,
-    roomId: string,
-    since?: string
-): Promise<ITimeline> {
+export async function syncRoom(client: any, roomId: string, since?: string): Promise<ITimeline> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/sync`,
@@ -876,12 +781,9 @@ export async function syncRoom(
 /**
  * 获取未读数量
  */
-export async function getUnreadCount(
-    client: any,
-    roomId: string
-): Promise<IUnreadCount> {
+export async function getUnreadCount(client: any, roomId: string): Promise<IUnreadCount> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/unread_count`,
@@ -891,12 +793,9 @@ export async function getUnreadCount(
 /**
  * 获取 TURN 服务器信息
  */
-export async function getTurnServer(
-    client: any,
-    roomId: string
-): Promise<ITurnServer> {
+export async function getTurnServer(client: any, roomId: string): Promise<ITurnServer> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/turn_server`,
@@ -906,12 +805,9 @@ export async function getTurnServer(
 /**
  * 获取成员事件列表
  */
-export async function getMembershipEvents(
-    client: any,
-    roomId: string
-): Promise<IMembershipEvents> {
+export async function getMembershipEvents(client: any, roomId: string): Promise<IMembershipEvents> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/get_membership_events`,
@@ -925,10 +821,10 @@ export async function searchRoom(
     client: any,
     roomId: string,
     searchTerm: string,
-    params?: { limit?: number; order?: "asc" | "desc" }
+    params?: { limit?: number; order?: "asc" | "desc" },
 ): Promise<ISearchResults> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/search`,
@@ -942,13 +838,9 @@ export async function searchRoom(
 /**
  * 删除粘滞事件
  */
-export async function deleteStickyEvent(
-    client: any,
-    roomId: string,
-    eventType: string
-): Promise<void> {
+export async function deleteStickyEvent(client: any, roomId: string, eventType: string): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Delete,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/sticky_events/${encodeURIComponent(eventType)}`,
@@ -958,14 +850,9 @@ export async function deleteStickyEvent(
 /**
  * 设置粘滞事件
  */
-export async function setStickyEvent(
-    client: any,
-    roomId: string,
-    eventType: string,
-    content: unknown
-): Promise<void> {
+export async function setStickyEvent(client: any, roomId: string, eventType: string, content: unknown): Promise<void> {
     validateRoomId(roomId);
-    
+
     await client.http.authenticatedRequest({
         method: Method.Post,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/sticky_events`,
@@ -976,13 +863,9 @@ export async function setStickyEvent(
 /**
  * 获取设备信息
  */
-export async function getRoomDevice(
-    client: any,
-    roomId: string,
-    deviceId: string
-): Promise<{ device_info: unknown }> {
+export async function getRoomDevice(client: any, roomId: string, deviceId: string): Promise<{ device_info: unknown }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/device/${encodeURIComponent(deviceId)}`,
@@ -995,10 +878,10 @@ export async function getRoomDevice(
 export async function getEncryptedEvents(
     client: any,
     roomId: string,
-    params?: { limit?: number; from?: string }
+    params?: { limit?: number; from?: string },
 ): Promise<{ events: IRoomEvent[] }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/encrypted_events`,
@@ -1009,13 +892,9 @@ export async function getEncryptedEvents(
 /**
  * 获取单个事件详情
  */
-export async function getRoomEvent(
-    client: any,
-    roomId: string,
-    eventId: string
-): Promise<IRoomEvent> {
+export async function getRoomEvent(client: any, roomId: string, eventId: string): Promise<IRoomEvent> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/event/${encodeURIComponent(eventId)}`,
@@ -1027,10 +906,10 @@ export async function getRoomEvent(
  */
 export async function getRoomInvites(
     client: any,
-    roomId: string
+    roomId: string,
 ): Promise<{ invites: Array<{ inviter: string; invite_state: IRoomEvent[] }> }> {
     validateRoomId(roomId);
-    
+
     return await client.http.authenticatedRequest({
         method: Method.Get,
         path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invites`,
