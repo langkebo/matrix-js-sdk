@@ -1,54 +1,5 @@
 {
     "$comment": "契约差集登记表（阶段 3 · SDK-2）。比对单位是 SDK 目录（映射多对一，同目录的兄弟 ledger 模块取并集）：sdk-only = 表里有、任一映射到该目录的 ledger 模块都没声明；ledger-only = ledger 声明了但表里没有。每条必须写 reason + expires；修好后必须删条目，否则门禁报 stale。判定见 scripts/quality/check-contract-drift.mjs。",
     "generatedAt": "2026-09-19T07:50:20.000Z",
-    "entries": [
-        {
-            "key": "search:sdk-only:POST /_matrix/vendor/v1/search_recipients",
-            "dir": "search",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/vendor/v1/search_recipients",
-            "reason": "属 ledger 的 vendor 模块（无 SDK 目录）；search 表靠手抄保住且被 srp() 类型依赖 → 归属待后端 B-1",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "search:sdk-only:POST /_matrix/vendor/v1/search_rooms",
-            "dir": "search",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/vendor/v1/search_rooms",
-            "reason": "同上门户：属 ledger 的 vendor 模块，归属待后端 B-1",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
-            "dir": "room",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
-            "reason": "房间邀请白名单查询路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
-            "dir": "room",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/client/v3/rooms/{room_id}/invite_allowlist",
-            "reason": "房间邀请白名单管理路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "room:sdk-only:GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
-            "dir": "room",
-            "kind": "sdk-only",
-            "entry": "GET /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
-            "reason": "房间邀请黑名单查询路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
-            "expires": "2026-12-31"
-        },
-        {
-            "key": "room:sdk-only:POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
-            "dir": "room",
-            "kind": "sdk-only",
-            "entry": "POST /_matrix/client/v3/rooms/{room_id}/invite_blocklist",
-            "reason": "房间邀请黑名单管理路由，SDK 封装但未在后端 ledger 中发现，等待后端确认或移除",
-            "expires": "2026-12-31"
-        }
-    ]
+    "entries": []
 }

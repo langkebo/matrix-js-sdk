@@ -28,6 +28,7 @@ export const LEDGER_MODULE_ALIASES = {
     "feature-flags": "feature_flags",
     federation: "federation",
     friend: "friend_room",
+    "invite-blocklist": "invite_blocklist",
     guest: "guest",
     "key-backup": "key_backup",
     "key-rotation": "key_rotation",

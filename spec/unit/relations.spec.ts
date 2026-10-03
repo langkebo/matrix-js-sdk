@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { FakeTransport } from "../test-utils/FakeTransport";
 import { RelationsManager } from "../../src/relations/index";
 import { Method } from "../../src/http-api/method";
+import { VendorPrefix } from "../../src/http-api/prefix";
 
 describe("RelationsManager", () => {
     let transport: FakeTransport;
@@ -17,6 +18,7 @@ describe("RelationsManager", () => {
         const mockClient = {
             getEventMapper: () => mockMapper,
             canSupport: { get: () => false },
+            makeTxnId: () => "txn-auto",
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
         manager = new RelationsManager(mockClient, { transport });
@@ -158,81 +160,144 @@ describe("RelationsManager", () => {
         await expect(manager.getAggregations("!room:example.com", "$event123", "m.annotation")).rejects.toThrow();
     });
 
-    // ─── sendRelation ──────────────────────────────────────────────────
+    // ─── sendRelation（写入端点：vendor 前缀 + 显式 txn_id 幂等）─────────
 
-    it("sendRelation should PUT the relation and emit Updated event", async () => {
+    it("sendRelation PUTs the vendor relations path with an explicit txn_id and emits Updated", async () => {
         const emitSpy = vi.spyOn(manager, "emit");
         transport.respondWith({ event_id: "$newRel" });
-        const result = await manager.sendRelation("!room:example.com", "$event123", "m.annotation", "$target");
+        const result = await manager.sendRelation(
+            "!room:example.com",
+            "$event123",
+            "m.annotation",
+            { key: "👍" },
+            { txnId: "txn-1" },
+        );
         expect(result.event_id).toBe("$newRel");
         expect(emitSpy).toHaveBeenCalledWith("RelationsUpdated", "!room:example.com", "$event123");
         transport.expectCalledWith(
             Method.Put,
-            "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation/%24target",
+            "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation/txn-1",
+            { key: "👍" },
         );
+        // 写入端点只在 vendor 前缀上（ISSUE-13）；client 4 段路径只服务 GET
+        expect(transport.request.mock.calls[0][4]?.prefix).toBe(VendorPrefix);
+    });
+
+    it("sendRelation generates a txn_id when none is supplied (retry-idempotency key)", async () => {
+        transport.respondWith({ event_id: "$auto" });
+        await manager.sendRelation("!room:example.com", "$event123", "m.replace", { content: { body: "v2" } });
+        const [, path] = transport.request.mock.calls[0];
+        expect(path).toMatch(/^\/rooms\/!room%3Aexample\.com\/relations\/%24event123\/m\.replace\/.+$/);
     });
 
     it("sendRelation should emit Error event on failure", async () => {
         const emitSpy = vi.spyOn(manager, "emit");
         transport.rejectWith(new Error("Send failed"));
         await expect(
-            manager.sendRelation("!room:example.com", "$event123", "m.annotation", "$target"),
+            manager.sendRelation("!room:example.com", "$event123", "m.annotation", { key: "👍" }),
         ).rejects.toThrow();
         expect(emitSpy).toHaveBeenCalledWith("RelationsError", expect.any(Error));
     });
 
-    // ─── sendRelationViaSendRelation ─────────────────────────────────
+    // ─── getAnnotations ──────────────────────────────────────────────
 
-    it("sendRelationViaSendRelation uses /relations/ endpoint with correct body", async () => {
-        transport.respondWith({ event_id: "$evt123" });
-        const result = await manager.sendRelationViaSendRelation(
-            "!room:server",
-            "$parent:server",
-            "m.annotation",
-            "txn123",
-            "m.reaction",
-            { "m.relates_to": { key: "👍" } },
-            "👍",
-        );
-        expect(result.event_id).toBe("$evt123");
+    it("getAnnotations should map chunk events and return them", async () => {
+        transport.respondWith({ chunk: [{ event_id: "$a1" }, { event_id: "$a2" }] });
+        const result = await manager.getAnnotations("!room:example.com", "$event123");
+        expect(result.events).toHaveLength(2);
+        expect(result.events[0]).toHaveProperty("event_id", "$a1");
         transport.expectCalledWith(
-            Method.Put,
-            "/rooms/!room%3Aserver/relations/%24parent%3Aserver/m.annotation/txn123",
-            { "m.relates_to": { key: "👍" }, type: "m.reaction", key: "👍" },
+            Method.Get,
+            "/rooms/!room%3Aexample.com/relations/%24event123/m.annotation/m.room.message?dir=b",
         );
     });
 
-    it("sendRelationViaSendRelation should omit key when not provided", async () => {
-        transport.respondWith({ event_id: "$evt456" });
-        await manager.sendRelationViaSendRelation(
-            "!room:server",
-            "$parent:server",
-            "m.replace",
-            "txn456",
-            "m.room.message",
-            { "m.new_content": { body: "edited" } },
-        );
-        transport.expectCalledWith(Method.Put, "/rooms/!room%3Aserver/relations/%24parent%3Aserver/m.replace/txn456", {
-            "m.new_content": { body: "edited" },
-            type: "m.room.message",
-        });
+    it("getAnnotations should return empty events on error", async () => {
+        transport.rejectWith(new Error("Network error"));
+        const result = await manager.getAnnotations("!room:example.com", "$event123");
+        expect(result.events).toEqual([]);
     });
 
-    it("sendRelationViaSendRelation should emit Error event on failure", async () => {
-        const emitSpy = vi.spyOn(manager, "emit");
-        transport.rejectWith(new Error("Send failed"));
-        await expect(
-            manager.sendRelationViaSendRelation(
-                "!room:server",
-                "$parent:server",
-                "m.annotation",
-                "txn123",
-                "m.reaction",
-                { "m.relates_to": { key: "👍" } },
-                "👍",
-            ),
-        ).rejects.toThrow();
-        expect(emitSpy).toHaveBeenCalledWith("RelationsError", expect.any(Error));
+    // ─── hasReference / hasThread ─────────────────────────────────────
+
+    it("hasReference should return true when references exist", async () => {
+        transport.respondWith({ chunk: [{ event_id: "$ref1" }] });
+        const result = await manager.hasReference("!room:example.com", "$event123");
+        expect(result).toBe(true);
+    });
+
+    it("hasReference should return false when no references", async () => {
+        transport.respondWith({ chunk: [] });
+        const result = await manager.hasReference("!room:example.com", "$event123");
+        expect(result).toBe(false);
+    });
+
+    it("hasThread should return true when thread relations exist", async () => {
+        transport.respondWith({ chunk: [{ event_id: "$t1" }] });
+        const result = await manager.hasThread("!room:example.com", "$event123");
+        expect(result).toBe(true);
+    });
+
+    // ─── getRelationCount ────────────────────────────────────────────
+
+    it("getRelationCount should return total from response", async () => {
+        transport.respondWith({ chunk: [], total: 42 });
+        const count = await manager.getRelationCount("!room:example.com", "$event123", "m.annotation");
+        expect(count).toBe(42);
+    });
+
+    it("getRelationCount should return 0 on error", async () => {
+        transport.rejectWith(new Error("Network error"));
+        const count = await manager.getRelationCount("!room:example.com", "$event123", "m.annotation");
+        expect(count).toBe(0);
+    });
+
+    // ─── getLatestRelation ────────────────────────────────────────────
+
+    it("getLatestRelation should return the first event from chunk", async () => {
+        transport.respondWith({ chunk: [{ event_id: "$latest" }] });
+        const result = await manager.getLatestRelation("!room:example.com", "$event123", "m.annotation");
+        expect(result).not.toBeNull();
+    });
+
+    it("getLatestRelation should return null when chunk is empty", async () => {
+        transport.respondWith({ chunk: [] });
+        const result = await manager.getLatestRelation("!room:example.com", "$event123", "m.annotation");
+        expect(result).toBeNull();
+    });
+
+    it("getLatestRelation should return null on error", async () => {
+        transport.rejectWith(new Error("Network error"));
+        const result = await manager.getLatestRelation("!room:example.com", "$event123", "m.annotation");
+        expect(result).toBeNull();
+    });
+
+    // ─── getRelationTypes ────────────────────────────────────────────
+
+    it("getRelationTypes should return types with non-zero counts", async () => {
+        // Called for m.reference, m.annotation, m.replace, m.thread
+        transport.request
+            .mockResolvedValueOnce({ chunk: [], total: 1 }) // m.reference
+            .mockResolvedValueOnce({ chunk: [], total: 1 }) // m.annotation
+            .mockResolvedValueOnce({ chunk: [], total: 0 }) // m.replace
+            .mockResolvedValueOnce({ chunk: [], total: 0 }); // m.thread
+        const types = await manager.getRelationTypes("!room:example.com", "$event123");
+        expect(types).toEqual(["m.reference", "m.annotation"]);
+    });
+
+    // ─── getAggregations ────────────────────────────────────────────
+
+    it("getAggregations should return aggregation response", async () => {
+        transport.respondWith({ chunk: [{ type: "m.annotation", key: "👍", count: 5 }] });
+        const result = await manager.getAggregations("!room:example.com", "$event123", "m.annotation");
+        expect(result.chunk).toHaveLength(1);
+        expect(result.chunk[0].count).toBe(5);
+        transport.expectCalledWith(Method.Get, "/rooms/!room%3Aexample.com/aggregations/%24event123/m.annotation");
+    });
+
+    it("getAggregations should throw on error", async () => {
+        transport.rejectWith(new Error("API error"));
+        await expect(manager.getAggregations("!room:example.com", "$event123", "m.annotation")).rejects.toThrow();
     });
 
     // ─── relations (fallback, no deps) ──────────────────────────────

@@ -151,7 +151,11 @@ describe("契约差集门禁: 仓库现状", () => {
     it("每条登记都有 reason/expires，且 key 与 module/kind/entry 自洽", () => {
         const registry = readRegistry();
 
-        expect(registry.entries.length).toBeGreaterThan(0);
+        // 差集为 0 是**修复到位的终态**（2026-10 后端把 vendor 分组归到功能域后，
+        // SDK 表与 ledger 完全一致），所以这里不能要求"登记表非空"——那会把
+        // "没有差集"变成失败。跨表一致性由兄弟用例负责：
+        // `collectObservedDrift()` 与登记表一一对应（missing/stale 都必须为空）。
+        expect(Array.isArray(registry.entries)).toBe(true);
         for (const entry of registry.entries) {
             expect(entry.key).toBe(driftKey(entry.dir, entry.kind, entry.entry));
             expect(typeof entry.reason).toBe("string");

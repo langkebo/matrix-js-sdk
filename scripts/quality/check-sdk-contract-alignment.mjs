@@ -10,6 +10,11 @@ const srcRoot = path.join(projectRoot, "src");
 const synapseRoot = path.resolve(projectRoot, "..", "synapse-rust");
 const stepSummaryPath = process.env.GITHUB_STEP_SUMMARY;
 const PREFIX_MAP = {
+    // ISSUE-13：私有/非标准端点挂在 vendor 前缀下，本 fork 里是**一等公民**
+    // （`src/http-api/prefix.ts` 导出 `VendorPrefix`）。不登记它，追踪器会把
+    // `prefix: VendorPrefix` 当成"解析不出前缀"，回退到默认 V3，于是任何 vendor
+    // 端点的文档行都会被判成"SDK 未覆盖 / 与方法不符"（关系写入端点实测踩到）。
+    VendorPrefix: "/_matrix/vendor/v1",
     "ClientPrefix.V1": "/_matrix/client/v1",
     "ClientPrefix.V3": "/_matrix/client/v3",
     "ClientPrefix.Unstable": "/_matrix/client/unstable",
@@ -300,7 +305,15 @@ function resolveStringVariants(node, sourceFile, fromNode, seen = new Set(), bin
             return resolveStringVariants(bindings.get(node.text), sourceFile, fromNode, new Set(seen), bindings);
         }
         const initializer = findVariableInitializer(node.text, fromNode, sourceFile);
-        return initializer ? resolveStringVariants(initializer, sourceFile, initializer, seen, bindings) : undefined;
+        if (initializer) {
+            return resolveStringVariants(initializer, sourceFile, initializer, seen, bindings);
+        }
+        // 从模块 import 进来的常量（本 fork 的 `VendorPrefix` 就是这种：它没有任何
+        // 可变初始化式）。求值不了，就把标识符文本原样交给 `resolvePrefix` 的
+        // `PREFIX_MAP` —— 与 `PropertyAccessExpression` 分支对 `ClientPrefix.V3`
+        // 的处理同理（那里靠 `directText` 回退）。否则 vendor 前缀会被当成"解析不出"，
+        // 静默回退成默认 V3（关系写入端点实测踩到）。
+        return /^[A-Z]/.test(node.text) ? [node.text] : undefined;
     }
 
     if (ts.isPropertyAccessExpression(node)) {
@@ -369,7 +382,13 @@ function resolvePrefixVariants(node, sourceFile, fromNode) {
 
     if (ts.isIdentifier(node)) {
         const initializer = findVariableInitializer(node.text, fromNode, sourceFile);
-        return initializer ? resolvePrefixVariants(initializer, sourceFile, initializer) : undefined;
+        if (initializer) {
+            return resolvePrefixVariants(initializer, sourceFile, initializer);
+        }
+        // 从模块 import 进来的前缀常量（本 fork 的 `VendorPrefix`）没有可变初始化式：
+        // 把标识符文本交给 `resolvePrefix` 的 `PREFIX_MAP` 解析，否则会被当成
+        // "前缀解析不出"而静默回退成默认 V3（关系写入端点实测踩到）。
+        return /^[A-Z]/.test(node.text) ? [node.text] : undefined;
     }
 
     if (ts.isConditionalExpression(node)) {

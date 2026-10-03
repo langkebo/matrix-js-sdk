@@ -4,7 +4,7 @@
  *
  * Module:        Room 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       102 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       99 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
@@ -34,10 +34,6 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/initialSync" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/invite" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/invite_allowlist" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/invite_allowlist" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/invite_blocklist" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/invite_blocklist" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/invites" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/join" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/joined_members" },
@@ -111,6 +107,7 @@ export const ROOM_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/get_membership_events" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/my_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_ROUTES`. */

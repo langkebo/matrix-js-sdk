@@ -25,7 +25,7 @@ import { type IEvent, type IContent, type MatrixEvent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { Direction } from "../models/event-timeline";
 import { Thread, FeatureSupport } from "../models/thread";
 import { Feature, ServerSupport } from "../feature";
@@ -104,6 +104,17 @@ type StripClientPrefix<P extends string> = P extends `/_matrix/client/r0${infer 
         : never;
 
 function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
+    return path;
+}
+
+/**
+ * 关系写入端点在 `/_matrix/vendor/v1` 下（ISSUE-13：关系写入不是 spec 端点）。
+ * 与 `rr` 同理：`RelationsPathPattern` 的 `{param}` 已被 codegen 降级成 `${string}`，
+ * 所以这层约束校验的是**形状**（前缀 + 段数 + 静态段），不是参数名。
+ */
+type StripVendorPrefix<P extends string> = P extends `/_matrix/vendor/v1${infer Rest}` ? Rest : never;
+
+function rv<P extends StripVendorPrefix<RelationsPathPattern>>(path: P): P {
     return path;
 }
 
@@ -393,23 +404,28 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
     }
 
     /**
-     * Send a relation from a parent event to a child event.
+     * 发送一条关系事件（`m.annotation` / `m.reference` / `m.thread` / `m.replace`）。
      *
-     * Hits `PUT /rooms/$roomId/relations/$eventId/$relationType/$targetEventId`,
-     * which records the relation server-side without sending a new room event.
-     * On success a {@link RelationsEvent.Updated} event is emitted for the parent
-     * event; on failure a {@link RelationsEvent.Error} event is emitted before
-     * the error is rethrown.
+     * 打到 `PUT /_matrix/vendor/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}`：
+     * 关系写入不是 spec 端点（spec 客户端发带 `m.relates_to` 的普通事件），按 ISSUE-13 走
+     * vendor 前缀。末段是 `txn_id` 且**真的**是幂等键 —— 服务端用 `room_event_txn_dedup`
+     * 记录 `(user, room, txn)`，重放返回同一个 `event_id`，不会产生第二条关系事件。
      *
-     * @param roomId - the room in which both events live
-     * @param parentEventId - the id of the event the relation originates from
-     * @param relationType - the type of relation to create, e.g. "m.annotation"
-     * @param childEventId - the id of the event the relation points at
-     * @param body - optional request body holding the relation content / key
-     * @returns the send response, containing the new `event_id` and the
-     * `relates_to` descriptor echoed back by the homeserver.
-     * @throws SdkError - if the homeserver rejects the request; the same error is
-     * also emitted via {@link RelationsEvent.Error}.
+     * ⚠️ 与旧签名的区别（旧调用点只有单测，无生产调用）：旧的第 4 个参数被当作"目标子事件
+     * id"写进末段，但后端一直把该段当 txn_id 用 —— 那个 id 从未生效，而且"关系指向子事件"
+     * 在后端没有对应语义（关系恒指向路径里的 `parentEventId`，靶点由 body 的 `content` /
+     * `key` 表达）。现在末段是显式 txn id，body 直接是关系内容。
+     *
+     * 成功时对 `parentEventId` 发 {@link RelationsEvent.Updated}；失败时发
+     * {@link RelationsEvent.Error} 并原样抛出。
+     *
+     * @param roomId - 两个事件所在房间
+     * @param parentEventId - 关系指向的事件（路径里的 `event_id`）
+     * @param relationType - 关系类型，例如 `"m.annotation"`
+     * @param body - 关系内容：`m.annotation` 用 `{ key }`，`reference`/`thread`/`replace` 用 `{ content }`
+     * @param opts - 可选 `txnId`（不传则由 `client.makeTxnId()` 生成；传固定值即可实现重试幂等）
+     * @returns 服务端回执：新 `event_id` 与 `relates_to` 描述符
+     * @throws SdkError - 服务端拒绝时抛出；同一错误也会经 {@link RelationsEvent.Error} 发出
      * @example
      * ```typescript
      * const relations = client.getRelationsManager();
@@ -418,7 +434,6 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
      *     "!room:example.org",
      *     "$parent:example.org",
      *     "m.annotation",
-     *     "$child:example.org",
      *     { key: "👍" },
      * );
      *
@@ -427,16 +442,17 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
      */
     public async sendRelation(
         roomId: string,
-        parentEventId: string, // renamed from eventId for clarity
+        parentEventId: string,
         relationType: RelationType,
-        childEventId: string, // renamed from targetEventId for clarity
         body: SendRelationRequestBody = {},
+        opts: { txnId?: string } = {},
     ): Promise<SendRelationResponse> {
-        const path = utils.encodeUri(rr("/rooms/$roomId/relations/$eventId/$relationType/$targetEventId"), {
+        const txnId = opts.txnId ?? this.client.makeTxnId();
+        const path = utils.encodeUri(rv("/rooms/$roomId/relations/$eventId/$relType/$txnId"), {
             $roomId: roomId,
             $eventId: parentEventId,
-            $relationType: relationType,
-            $targetEventId: childEventId,
+            $relType: relationType,
+            $txnId: txnId,
         });
 
         try {
@@ -444,61 +460,12 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 method: Method.Put,
                 path: path,
                 body: body,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
             this.emit(RelationsEvent.Updated, roomId, parentEventId);
             return response;
         } catch (e) {
             const error = this.normalizeError(e, "sendRelation");
-            this.emit(RelationsEvent.Error, error);
-            throw error;
-        }
-    }
-
-    /**
-     * Send a relation via the /relations/ endpoint using a transaction ID as the
-     * last path segment (alternative to sendRelation which uses a target event ID).
-     * The body spreads content at top level and includes type and optional key.
-     *
-     * @param roomId - The room ID
-     * @param eventId - The parent event ID
-     * @param relType - The relation type (e.g. "m.annotation")
-     * @param txnId - Transaction ID
-     * @param eventType - The event type (e.g. "m.reaction")
-     * @param content - The event content (spread at top level)
-     * @param key - Optional key for annotation relations
-     */
-    public async sendRelationViaSendRelation(
-        roomId: string,
-        eventId: string,
-        relType: string,
-        txnId: string,
-        eventType: string,
-        content: Record<string, unknown>,
-        key?: string,
-    ): Promise<SendRelationResponse> {
-        const path = utils.encodeUri("/rooms/$roomId/relations/$eventId/$relType/$txnId", {
-            $roomId: roomId,
-            $eventId: eventId,
-            $relType: relType,
-            $txnId: txnId,
-        });
-
-        const body: Record<string, unknown> = { ...content, type: eventType };
-        if (key !== undefined) {
-            body.key = key;
-        }
-
-        try {
-            const response = await this.request<SendRelationResponse>({
-                method: Method.Put,
-                path: path,
-                body,
-                prefix: ClientPrefix.V3, // FT-097: 显式声明 V3，不依赖 defaultPrefix
-            });
-            return response;
-        } catch (e) {
-            const error = this.normalizeError(e, "sendRelationViaSendRelation");
             this.emit(RelationsEvent.Error, error);
             throw error;
         }

@@ -1,7 +1,7 @@
 ---
 module: search
 generated_from: docs/api-contract/generated/modules/search.json
-generated_hash: sha256-d8d88d8f30ee1d4ecd7d1155c430eb6bee5bd11fca6df2ffde0fbf7867c83a36
+generated_hash: sha256-e2bb5c0d6174a7b5c4fbdb9dda3078aeba8e9ec84781b8b700c2a5bf46e6d650
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

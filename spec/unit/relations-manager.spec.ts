@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Method } from "../../src/http-api/method.ts";
-import { ClientPrefix } from "../../src/http-api/prefix.ts";
+import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix.ts";
 import { RelationsManager } from "../../src/relations/index.ts";
 import { logger } from "../../src/logger";
 
@@ -81,10 +81,16 @@ describe("RelationsManager", () => {
         vi.spyOn(manager as any, "emit").mockImplementation(emit);
 
         await expect(
-            manager.sendRelation("!room:example.org", "$ctx", "m.replace", "$target", {
-                content: { body: "edited", msgtype: "m.text" },
-                "m.new_content": { body: "edited", msgtype: "m.text" },
-            }),
+            manager.sendRelation(
+                "!room:example.org",
+                "$ctx",
+                "m.replace",
+                {
+                    content: { body: "edited", msgtype: "m.text" },
+                    "m.new_content": { body: "edited", msgtype: "m.text" },
+                },
+                { txnId: "$txn" },
+            ),
         ).resolves.toEqual({
             event_id: "$new",
             room_id: "!room:example.org",
@@ -96,13 +102,13 @@ describe("RelationsManager", () => {
 
         expect(authedRequest).toHaveBeenCalledWith(
             Method.Put,
-            "/rooms/!room%3Aexample.org/relations/%24ctx/m.replace/%24target",
+            "/rooms/!room%3Aexample.org/relations/%24ctx/m.replace/%24txn",
             undefined,
             {
                 content: { body: "edited", msgtype: "m.text" },
                 "m.new_content": { body: "edited", msgtype: "m.text" },
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(emit).toHaveBeenCalledWith("RelationsUpdated", "!room:example.org", "$ctx");
     });
@@ -119,15 +125,16 @@ describe("RelationsManager", () => {
         vi.spyOn(manager as any, "emit").mockImplementation(emit);
 
         await expect(
-            manager.sendRelation("!room:example.org", "$ctx", "m.annotation", "$target", { key: "👍" }),
+            manager.sendRelation("!room:example.org", "$ctx", "m.annotation", { key: "👍" }, { txnId: "$txn2" }),
         ).rejects.toThrow();
         expect(emit).toHaveBeenCalledWith("RelationsError", expect.any(Error));
     });
 
-    // FT-097: sendRelationViaSendRelation 此前未显式传 prefix，依赖 defaultPrefix
-    it("sendRelationViaSendRelation should use V3 prefix explicitly, not defaultPrefix (FT-097)", async () => {
+    // FT-097 同类不变量：写入端点的前缀必须**显式**给出（不依赖 defaultPrefix）。
+    // 关系写入只在 vendor 前缀上提供服务（ISSUE-13：spec 没有关系写入端点）。
+    it("sendRelation uses the vendor prefix explicitly, not defaultPrefix", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ event_id: "$new" });
-        // 设置 defaultPrefix 为 V1，验证方法仍使用 V3（显式 prefix）
+        // defaultPrefix 故意设成 V1：若实现依赖 defaultPrefix，断言会失败
         const manager = new RelationsManager(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             { http: { authedRequest }, canSupport: new Map() } as any,
@@ -135,17 +142,20 @@ describe("RelationsManager", () => {
             { defaultPrefix: ClientPrefix.V1 } as any,
         );
 
-        await manager.sendRelationViaSendRelation("!room:example.org", "$ctx", "m.replace", "$txn1", "m.room.message", {
-            body: "edited",
-            msgtype: "m.text",
-        });
+        await manager.sendRelation(
+            "!room:example.org",
+            "$ctx",
+            "m.replace",
+            { content: { body: "edited", msgtype: "m.text" } },
+            { txnId: "$txn1" },
+        );
 
         expect(authedRequest).toHaveBeenCalledWith(
             Method.Put,
             "/rooms/!room%3Aexample.org/relations/%24ctx/m.replace/%24txn1",
             undefined,
-            expect.objectContaining({ body: "edited", msgtype: "m.text", type: "m.room.message" }),
-            { prefix: ClientPrefix.V3 },
+            expect.objectContaining({ content: { body: "edited", msgtype: "m.text" } }),
+            { prefix: VendorPrefix },
         );
     });
 

@@ -1,7 +1,7 @@
 ---
 module: room_summary
 generated_from: docs/api-contract/generated/modules/room_summary.json
-generated_hash: sha256-3efd5e4d5bc19cae1c74c1293c99a925d4518622fceb825c896342ed80064f3f
+generated_hash: sha256-104d958c2f7fc59f44edb6883fa8e47e84e2e714e8c8f5c93c991c22e82405c5
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

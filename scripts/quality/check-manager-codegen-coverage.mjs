@@ -38,16 +38,6 @@ const WAIVED_MODULES = {
         reason: "1 route; manager gates on an unstable feature and needs no table",
         expires: "2026-12-31",
     },
-    vendor: {
-        // 更正（2026-09-13 复核，见 docs/sdk-optimization/CONTRACT_ROUTE_TABLE_MAPPING_REVIEW_2026-09-13.md）：
-        // 这 3 条是 assembly.rs:296-308 里迁移遗留的分组注册器，具体是 my_rooms / search_rooms /
-        // search_recipients，分别由 room 与 search 侧调用；SDK 没有 src/vendor/ 目录，
-        // 所以它们没有类型归属（RoomManager.ts:1221 的 /my_rooms 就是手写未约束的）。
-        reason:
-            "后端 vendor_route_manifest() 是迁移遗留的跨模块分组（my_rooms / search_rooms / search_recipients），" +
-            "SDK 无对应目录；建议后端按功能模块改归属（复核报告 B-1）",
-        expires: "2026-12-31",
-    },
     // 下面两条是 C-1 排查（2026-09-13）的结论：它们不是"名字没对上"，而是**真的没人消费自己的表**，
     // 且原因可核验（命令见 reason）。不要用"再加一个别名"的方式把它们凑成 covered。
     push_notification: {
@@ -55,6 +45,14 @@ const WAIVED_MODULES = {
             "本表 10 条路由是 push 表（38 条）的**完全子集**（comm -23 无差集），" +
             "src/notifications 消费的是 push 表（PushPathPattern，见 notifications/index.ts:27），无人 import 本表；" +
             "要不要把 ledger 的 push_notification 也映射到 push 目录需要后端侧一起定",
+        expires: "2026-12-31",
+    },
+    invite_blocklist: {
+        reason:
+            "把 invite allow/blocklist 从 vendor 分组归到功能域后，ledger 侧是独立模块；但 SDK codegen 以" +
+            "后端 ROUTE_CONTRACT.md 的章节枚举模块，而该文档按源文件分组（这几条注册在 assembly.rs 里），" +
+            "没有 invite 章节 ⇒ 暂无可生成的表。src/invite-blocklist 继续用 VendorPrefix + 手写路径" +
+            "（受路径契约门禁约束，迁移计划见 docs/sdk-optimization）。",
         expires: "2026-12-31",
     },
 };

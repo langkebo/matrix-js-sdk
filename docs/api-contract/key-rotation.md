@@ -1,7 +1,7 @@
 ---
 module: key_rotation
 generated_from: docs/api-contract/generated/modules/key_rotation.json
-generated_hash: sha256-559d695c89c596f47b91adfbd3b19df90177ef47c5df743b008829069f11cf36
+generated_hash: sha256-1dc93432dfc41e5d5b7b1e8927cb8505f4399d21c1b3ecd141675599434e8306
 ledger_schema: 4
 last_reviewed: 2026-05-26
 ---
@@ -26,7 +26,7 @@ Key Rotation API 提供端到端加密密钥轮换功能，用于：
 
 ### 1.2 路由前缀
 
-- `/_matrix/client/v1/keys/rotation/*`
+- `/_matrix/vendor/v1/keys/rotation/*`
 
 ### 1.3 认证要求
 
@@ -37,7 +37,7 @@ Key Rotation API 提供端到端加密密钥轮换功能，用于：
 
 ### 2.1 查询密钥轮换状态
 
-**路径**: `GET /_matrix/client/v1/keys/rotation/status`
+**路径**: `GET /_matrix/vendor/v1/keys/rotation/status`
 **认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
@@ -56,7 +56,7 @@ interface KeyRotationStatus {
 
 ### 2.2 执行密钥轮换
 
-**路径**: `POST /_matrix/client/v1/keys/rotation/rotate`
+**路径**: `POST /_matrix/vendor/v1/keys/rotation/rotate`
 **认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
@@ -87,7 +87,7 @@ interface RotateKeyResponse {
 
 ### 2.3 查询密钥轮换历史
 
-**路径**: `GET /_matrix/client/v1/keys/rotation/history/{device_id}`
+**路径**: `GET /_matrix/vendor/v1/keys/rotation/history/{device_id}`
 **认证**: `AuthenticatedUser`
 **挂载版本**: `v1`
 
@@ -122,7 +122,7 @@ interface KeyRotationHistory {
 
 ### 2.4 撤销密钥
 
-**路径**: `POST /_matrix/client/v1/keys/rotation/revoke`
+**路径**: `POST /_matrix/vendor/v1/keys/rotation/revoke`
 **认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
@@ -155,7 +155,7 @@ interface RevokeKeyResponse {
 
 ### 2.5 配置轮换策略
 
-**路径**: `PUT /_matrix/client/v1/keys/rotation/config`
+**路径**: `PUT /_matrix/vendor/v1/keys/rotation/config`
 **认证**: `AuthenticatedUser`（需要 admin）
 **挂载版本**: `v1`
 
@@ -186,7 +186,7 @@ interface UpdateRotationConfigResponse {
 
 ### 2.6 检查是否需要轮换
 
-**路径**: `GET /_matrix/client/v1/keys/rotation/check`
+**路径**: `GET /_matrix/vendor/v1/keys/rotation/check`
 **认证**: `AuthenticatedUser`
 **挂载版本**: `v1`
 

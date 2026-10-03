@@ -1,14 +1,14 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "18a07b2c1df71a8a23a1203916e358cbcc8ecadc",
+  "synapse_rust_commit": "a6f8cf58b536b4f8e580ed5d5959bcca56871ea1",
   "state_profile": "all",
   "profile_flags": {
     "oidc_enabled": true,
     "worker_enabled": true,
     "saml_enabled": true
   },
-  "entry_count": 1149,
+  "entry_count": 1153,
   "entries": [
     {
       "method": "GET",
@@ -233,6 +233,13 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc3720/account_status",
+      "registered_by": "assembly::create_router",
+      "path_params": [],
+      "query_params": []
+    },
+    {
       "method": "DELETE",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
       "registered_by": "assembly::create_router",
@@ -302,6 +309,16 @@
         "session_id"
       ],
       "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
     },
     {
       "method": "POST",
@@ -1611,6 +1628,8 @@
         "dir",
         "from",
         "limit",
+        "org.matrix.msc3981.recurse",
+        "recurse",
         "to"
       ]
     },
@@ -1627,20 +1646,29 @@
         "dir",
         "from",
         "limit",
+        "org.matrix.msc3981.recurse",
+        "recurse",
         "to"
       ]
     },
     {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
+      "method": "GET",
+      "path": "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}",
       "registered_by": "relations",
       "path_params": [
         "room_id",
         "event_id",
         "rel_type",
-        "txn_id"
+        "event_type"
       ],
-      "query_params": []
+      "query_params": [
+        "dir",
+        "from",
+        "limit",
+        "org.matrix.msc3981.recurse",
+        "recurse",
+        "to"
+      ]
     },
     {
       "method": "POST",
@@ -4455,6 +4483,8 @@
         "dir",
         "from",
         "limit",
+        "org.matrix.msc3981.recurse",
+        "recurse",
         "to"
       ]
     },
@@ -4471,20 +4501,29 @@
         "dir",
         "from",
         "limit",
+        "org.matrix.msc3981.recurse",
+        "recurse",
         "to"
       ]
     },
     {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
+      "method": "GET",
+      "path": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}",
       "registered_by": "relations",
       "path_params": [
         "room_id",
         "event_id",
         "rel_type",
-        "txn_id"
+        "event_type"
       ],
-      "query_params": []
+      "query_params": [
+        "dir",
+        "from",
+        "limit",
+        "org.matrix.msc3981.recurse",
+        "recurse",
+        "to"
+      ]
     },
     {
       "method": "GET",
@@ -5955,6 +5994,13 @@
       "query_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/federation/unstable/org.matrix.msc3720/account_status",
+      "registered_by": "federation",
+      "path_params": [],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_matrix/federation/v1",
       "registered_by": "federation",
@@ -7013,7 +7059,7 @@
     {
       "method": "GET",
       "path": "/_matrix/vendor/v1/my_rooms",
-      "registered_by": "vendor",
+      "registered_by": "room",
       "path_params": [],
       "query_params": []
     },
@@ -7067,7 +7113,7 @@
     {
       "method": "GET",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist",
-      "registered_by": "vendor",
+      "registered_by": "invite_blocklist",
       "path_params": [
         "room_id"
       ],
@@ -7076,7 +7122,7 @@
     {
       "method": "POST",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist",
-      "registered_by": "vendor",
+      "registered_by": "invite_blocklist",
       "path_params": [
         "room_id"
       ],
@@ -7085,7 +7131,7 @@
     {
       "method": "GET",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist",
-      "registered_by": "vendor",
+      "registered_by": "invite_blocklist",
       "path_params": [
         "room_id"
       ],
@@ -7094,23 +7140,35 @@
     {
       "method": "POST",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist",
-      "registered_by": "vendor",
+      "registered_by": "invite_blocklist",
       "path_params": [
         "room_id"
       ],
       "query_params": []
     },
     {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
+      "registered_by": "relations",
+      "path_params": [
+        "room_id",
+        "event_id",
+        "rel_type",
+        "txn_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "POST",
       "path": "/_matrix/vendor/v1/search_recipients",
-      "registered_by": "vendor",
+      "registered_by": "search",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "POST",
       "path": "/_matrix/vendor/v1/search_rooms",
-      "registered_by": "vendor",
+      "registered_by": "search",
       "path_params": [],
       "query_params": []
     },
@@ -9731,6 +9789,48 @@
       "query_params": []
     },
     {
+      "method": "GET",
+      "path": "/_synapse/cas/login",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/cas/logout",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/cas/p3/serviceValidate",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/cas/proxy",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/cas/proxyValidate",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_synapse/cas/serviceValidate",
+      "registered_by": "cas",
+      "path_params": [],
+      "query_params": []
+    },
+    {
       "method": "POST",
       "path": "/_synapse/external/trendradar/{service_id}/webhook",
       "registered_by": "external_service",
@@ -10104,48 +10204,6 @@
       "method": "GET",
       "path": "/health",
       "registered_by": "assembly::create_router",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/cas/login",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/cas/logout",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/cas/p3/serviceValidate",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/cas/proxy",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/cas/proxyValidate",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_synapse/cas/serviceValidate",
-      "registered_by": "cas",
       "path_params": [],
       "query_params": []
     }
