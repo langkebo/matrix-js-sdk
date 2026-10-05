@@ -58,6 +58,28 @@ const OUT_MD = path.resolve(flagValue("--output", path.join(SDK_ROOT, "artifacts
 const OUT_JSON = flagValue("--json", null);
 
 const log = (...a) => !QUIET && console.log(...a);
+
+/**
+ * Format markdown using the project's own prettier, resolved from the SDK root
+ * so the repo's .prettierrc / .prettierignore / plugin set all apply.
+ *
+ * prettier v3 is pure ESM, so it must be pulled in with dynamic `import()`;
+ * its `resolveConfig` is async-only (`resolveConfig.sync` was removed in v3).
+ *
+ * Deliberately non-fatal. This report is advisory output, so a missing or
+ * misbehaving prettier must not fail the audit — we fall back to the
+ * unformatted (still correct) text and let `pnpm lint:js` be the backstop.
+ */
+async function formatWithPrettier(text, filePath) {
+    try {
+        const prettier = await import("prettier");
+        const config = (await prettier.resolveConfig(filePath)) ?? {};
+        return await prettier.format(text, { ...config, filepath: filePath });
+    } catch (err) {
+        process.stderr.write(`compare-routes: prettier skipped (${String(err.message).split("\n")[0]})\n`);
+        return text;
+    }
+}
 /** 本地时区时间戳（用户 +08:00，不要用 UTC 误导人） */
 function localStamp() {
     const d = new Date();
@@ -1309,7 +1331,16 @@ L.push("");
 
 const md = L.join("\n");
 fs.mkdirSync(path.dirname(OUT_MD), { recursive: true });
-fs.writeFileSync(OUT_MD, md);
+// P2 fix (2026-10-05): format the report at the generator's exit so a
+// regeneration never needs a follow-up manual `prettier --write`.
+//
+// The report is markdown with many wide CJK tables. Hand-built pipe tables come
+// out unpadded (`| --- | --- |`), which prettier rewrites into aligned form — so
+// a freshly generated report was *always* a lint:js failure until someone ran
+// prettier by hand. Formatting here keeps
+// `node scripts/audit/compare-routes.mjs && pnpm lint:js` green in one step.
+const formattedMd = await formatWithPrettier(md, OUT_MD);
+fs.writeFileSync(OUT_MD, formattedMd);
 if (OUT_JSON) {
     fs.writeFileSync(
         OUT_JSON,
@@ -1344,4 +1375,4 @@ if (OUT_JSON) {
     );
     log(`      附录 JSON: ${path.relative(process.cwd(), OUT_JSON)}`);
 }
-log(`      报告: ${path.relative(process.cwd(), OUT_MD)}  (${md.split("\n").length} 行)`);
+log(`      报告: ${path.relative(process.cwd(), OUT_MD)}  (${formattedMd.split("\n").length} 行)`);
