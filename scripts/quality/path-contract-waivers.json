@@ -1,7 +1,7 @@
 {
     "note": "SDK 声明了但后端 ledger 里查不到的路径。每条必须写清「为什么后端没有」和「什么条件下可以删掉这条豁免」。expires 到期即门禁失败——这是为了让豁免不会变成永久性的静态白噪音（参见 check-manager-codegen-coverage.mjs 里 WAIVED_MODULES 的同款思路：豁免要有主人和期限）。",
-    "verifiedAgainst": "synapse-rust commit 7cb39946, ledger 1149 entries",
-    "verifiedAt": "2026-10-01",
+    "verifiedAgainst": "synapse-rust commit 71ab0980, ledger 1159 entries",
+    "verifiedAt": "2026-10-05",
     "waivers": [
         {
             "sdkCall": "POST /_matrix/client/v1/login/get_token",

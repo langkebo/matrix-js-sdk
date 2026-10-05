@@ -4,7 +4,7 @@
 >
 > 后端 Ledger ──→ 机器可读契约 (`generated/modules/*.json`) ──→ LLM/SDK 生成 (`scripts/sdk-contract-codegen.mjs`) ──→ 人工 Review
 >
-> 后端仓库: `synapse-rust` | 后端提交: `6ba41b535c04a16bfcd77a3e9da6913a5e5b187f`
+> 后端仓库: `synapse-rust` | 后端提交: `71ab09801c34023fe877d0f78bc0b04185c40261`
 >
 > 说明: `generated/` 默认来自 `../synapse-rust/tests/unit/fixtures/ledger_export_sdk/`，这套 fixture 由 `synapse_ledger_export` 在 `--features all-extensions` 下导出，用于 SDK 完整扩展面同步。后端默认 golden fixture `tests/unit/fixtures/ledger_export/` 仍保留给 compile-aware 单测使用。
 
