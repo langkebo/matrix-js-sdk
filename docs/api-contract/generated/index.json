@@ -5,7 +5,7 @@
   "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
   "ledger_entry_count": 1140,
   "freshness": {
-    "source_timestamp": "2026-10-05T04:28:53.704Z",
+    "source_timestamp": "2026-10-05T04:41:03.119Z",
     "backend_commit_sha": "71ab09801c34023fe877d0f78bc0b04185c40261",
     "backend_commit_date": "2026-05-02T00:00:00Z",
     "mirror_profiles": [

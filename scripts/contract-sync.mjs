@@ -52,6 +52,8 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
+import { LEDGER_MODULE_ALIASES } from "./contract-module-map.mjs";
+
 const entryFilePath = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(entryFilePath);
 const repoRoot = path.resolve(__dirname, "..");
@@ -74,6 +76,108 @@ const DEFAULT_INGEST_SOURCE_DIR = path.resolve(
     "fixtures",
     "ledger_export_sdk",
 );
+
+// ---------------------------------------------------------------------------
+// P1 fix (2026-10-05): refresh module doc pins inline
+// ---------------------------------------------------------------------------
+/** Split a page into its YAML frontmatter block and the remaining body. */
+function splitFrontmatter(text) {
+    if (!text.startsWith("---\n")) return null;
+    const end = text.indexOf("\n---\n", 3);
+    if (end === -1) return null;
+    return { block: text.slice(4, end), body: text.slice(end + 5) };
+}
+
+const readField = (block, name) => {
+    const m = new RegExp(`^${name}:\\s*(.+)$`, "m").exec(block ?? "");
+    return m ? m[1].trim() : null;
+};
+
+const DOCS_DIR = path.join(repoRoot, "docs", "api-contract");
+const MODULES_DIR = path.join(DOCS_DIR, "generated", "modules");
+
+/**
+ * Refresh the `generated_hash` frontmatter on module `.md` pages.
+ * Idempotent: rewrites only mismatched hashes, leaves `last_reviewed` untouched.
+ * Returns counts { added, refreshed, already }.
+ */
+function refreshModuleDocPins() {
+    const docBases = fs
+        .readdirSync(DOCS_DIR)
+        .filter((f) => f.endsWith(".md"))
+        .map((f) => f.replace(/\.md$/, ""))
+        .sort();
+
+    let added = 0;
+    let refreshed = 0;
+    let already = 0;
+
+    for (const docBase of docBases) {
+        const docPath = path.join(DOCS_DIR, `${docBase}.md`);
+        const existing = fs.readFileSync(docPath, "utf8");
+        const split = splitFrontmatter(existing);
+
+        // Resolution order: page's own `generated_from` > ledger-module alias table
+        let modulePath = null;
+        const declared = split ? readField(split.block, "generated_from") : null;
+        if (declared) {
+            const candidate = path.join(repoRoot, declared);
+            if (fs.existsSync(candidate)) modulePath = candidate;
+        }
+
+        let moduleKey = split ? readField(split.block, "module") : null;
+        const aliasModule = LEDGER_MODULE_ALIASES[docBase];
+        if (!modulePath && aliasModule) {
+            moduleKey = aliasModule;
+            const candidate = path.join(MODULES_DIR, `${aliasModule}.json`);
+            if (fs.existsSync(candidate)) modulePath = candidate;
+        }
+
+        if (!modulePath) continue; // non-module or unmapped page
+
+        const jsonBytes = fs.readFileSync(modulePath);
+        const hash = `sha256-${crypto.createHash("sha256").update(jsonBytes).digest("hex")}`;
+
+        const ledgerSchema = (() => {
+            try {
+                const parsed = JSON.parse(jsonBytes.toString("utf8"));
+                return String(parsed.ledger_schema ?? "4");
+            } catch {
+                return "4";
+            }
+        })();
+
+        if (!split) {
+            // Page lacks frontmatter; add it
+            const frontmatter =
+                `---\n` +
+                `module: ${moduleKey}\n` +
+                `generated_from: ${path.relative(repoRoot, modulePath)}\n` +
+                `generated_hash: ${hash}\n` +
+                `ledger_schema: ${ledgerSchema}\n` +
+                `last_reviewed: ${new Date().toISOString().slice(0, 10)}\n` +
+                `---\n\n`;
+            fs.writeFileSync(docPath, frontmatter + existing);
+            added += 1;
+            continue;
+        }
+
+        if (readField(split.block, "generated_hash") === hash) {
+            already += 1;
+            continue;
+        }
+
+        // Refresh only the hash line, preserve other frontmatter
+        const nextBlock = /^generated_hash:.*$/m.test(split.block)
+            ? split.block.replace(/^generated_hash:.*$/m, `generated_hash: ${hash}`)
+            : `${split.block}\ngenerated_hash: ${hash}`;
+
+        fs.writeFileSync(docPath, `---\n${nextBlock}\n---\n${split.body}`);
+        refreshed += 1;
+    }
+
+    return { added, refreshed, already };
+}
 /**
  * In `--check` mode the generated/ tree is itself the source of truth: we
  * recompute the derived outputs (modules/*.json, index.json) from whichever
@@ -1196,13 +1300,33 @@ function run(argv) {
     if (args.renderDrafts) {
         draftSummary = renderDrafts(beforeProfiles, profiles);
     }
+    // P1 fix (2026-10-05): keep the module `.md` frontmatter in lockstep with the
+    // manifests we just rewrote.
+    //
+    // Why this lives here rather than in the caller: writing generated/ without
+    // refreshing `generated_hash` leaves the tree in a state that
+    // `contract-sync.mjs --check` (no --source) rejects with
+    // "generated_hash mismatch". The synapse-ledger-sync workflow used to hit
+    // exactly that: it ran `--check --source=…`, which returns early at the
+    // `args.explicitSource` branch ABOVE and therefore never reaches
+    // `validateFrontmatter` — so the automation PR was green, and develop went
+    // red only after merge, until a human ran `contract:pin-docs` by hand.
+    //
+    // Making the write path self-sufficient removes that whole failure mode:
+    // one `contract:sync` now leaves the tree green. The pin script is
+    // idempotent (it rewrites only a mismatched `generated_hash` line and
+    // leaves `last_reviewed` alone), so calling it unconditionally is safe.
+    const pinSummary = refreshModuleDocPins();
+
     process.stdout.write(
         `contract-sync: wrote ${Object.keys(outputs.moduleFiles).length} module files, ` +
             `${PROFILES.length} profile manifests, and index.json.\n` +
             PROFILES.map((name) => `  ${name.padEnd(8)} profile: ${profiles[name].parsed.entry_count} entries\n`).join(
                 "",
             ) +
-            `  synapse_rust_commit: ${profiles.default.parsed.synapse_rust_commit ?? "(none)"}\n`,
+            `  synapse_rust_commit: ${profiles.default.parsed.synapse_rust_commit ?? "(none)"}\n` +
+            `  module doc pins:  refreshed ${pinSummary.refreshed}, added ${pinSummary.added}, ` +
+            `unchanged ${pinSummary.already}\n`,
     );
     if (draftSummary) {
         process.stdout.write(
