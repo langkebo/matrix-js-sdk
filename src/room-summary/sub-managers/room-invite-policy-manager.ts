@@ -31,6 +31,13 @@ function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
  *
  * 处理邀请阻止列表和允许列表的查询与添加操作。
  * 无缓存、无事件。
+ *
+ * ⚠️ 已知缺陷（见 `docs/sdk-encapsulation-audit.md` §13.11）：
+ * 这些端点的**契约前缀是 `/_matrix/vendor/v1`**（ledger 模块 `invite_blocklist`），
+ * 而本文件用 `requestV3()`（`/_matrix/client/v3`）发出 —— 契约里**不存在** v3 版本。
+ * 同时 `src/invite-blocklist/index.ts` 已有一份**正确**（`VendorPrefix`）的实现，
+ * 本类与之重复。在收敛/修前缀之前，这里的路径构造走 `uncheckedRoomPath()`
+ * （显式逃生阀，不做契约断言），以便与该缺陷一起被检索到。
  */
 export class RoomSummaryInvitePolicyManager extends RoomSummaryBaseManager {
     private readonly onCacheInvalidation?: (roomId: string) => void;
@@ -55,7 +62,7 @@ export class RoomSummaryInvitePolicyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<InviteBlocklist>(
                 Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/invite_blocklist", roomId),
+                this.uncheckedRoomPath("/rooms/$roomId/invite_blocklist", roomId),
             );
         }, "getInviteBlocklist");
     }
@@ -72,7 +79,7 @@ export class RoomSummaryInvitePolicyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             await this.requestV3(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/invite_blocklist", roomId),
+                this.uncheckedRoomPath("/rooms/$roomId/invite_blocklist", roomId),
                 undefined,
                 { user_id: userId } as Body,
             );
@@ -91,7 +98,7 @@ export class RoomSummaryInvitePolicyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<InviteAllowlist>(
                 Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/invite_allowlist", roomId),
+                this.uncheckedRoomPath("/rooms/$roomId/invite_allowlist", roomId),
             );
         }, "getInviteAllowlist");
     }
@@ -108,7 +115,7 @@ export class RoomSummaryInvitePolicyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             await this.requestV3(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/invite_allowlist", roomId),
+                this.uncheckedRoomPath("/rooms/$roomId/invite_allowlist", roomId),
                 undefined,
                 { user_id: userId } as Body,
             );

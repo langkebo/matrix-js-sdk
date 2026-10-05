@@ -58,7 +58,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<RoomKeyClaimResult>(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/keys/claim", roomId),
+                this.roomPath("/rooms/$roomId/keys/claim", roomId),
                 undefined,
                 body as Body,
             );
@@ -76,7 +76,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<RoomKeyCountResult>(
                 Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/keys/count", roomId),
+                this.roomPath("/rooms/$roomId/keys/count", roomId),
             );
         }, "getRoomKeyCount");
     }
@@ -92,7 +92,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<RoomKeysVersionResult>(
                 Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/keys/version", roomId),
+                this.roomPath("/rooms/$roomId/keys/version", roomId),
             );
         }, "getRoomKeysVersion");
     }
@@ -109,7 +109,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<RoomForwardKeysResult>(
                 Method.Put,
-                this.roomSummaryPath("/rooms/$roomId/room_keys/keys", roomId),
+                this.roomPath("/rooms/$roomId/room_keys/keys", roomId),
                 undefined,
                 body as Body,
             );
@@ -134,7 +134,7 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
             if (options?.limit !== undefined) queryParams.limit = String(options.limit);
             return await this.requestV3<EncryptedEventsResult>(
                 Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/encrypted_events", roomId),
+                this.roomPath("/rooms/$roomId/encrypted_events", roomId),
                 queryParams,
             );
         }, "getEncryptedEvents");

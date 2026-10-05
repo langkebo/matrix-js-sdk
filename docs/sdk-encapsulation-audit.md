@@ -915,7 +915,154 @@ type ReplaceDollarVariables<S extends string> = S extends `${infer Head}/${infer
 
 ---
 
+### 13.11 room-summary 路径断言改造（2026-10-06）：30 处恢复编译期校验，暴露 4 处前缀缺陷
+
+> 本节是 §13.9 处置建议的**落地**。§13.9 判定「路径断言改造应与补测试**同批**进行」，补测试（`spec/unit/room-summary/sub-managers/room-event-operation-manager.spec.ts`，58 用例）已先行提交；本次完成断言改造本体。
+
+#### 改动
+
+`src/room-summary/room-summary-base-manager.ts` 原只有一个助手 `roomSummaryPath()`，断言的是 **`room_summary` 契约**（`StripV3<RoomSummaryPathPattern>`）。而 §13.9 已证实：本目录下大量端点在契约里其实归 **`room`** 模块 → 该断言对它们不成立，代码只能退化成裸 `string`。
+
+改造为两个助手 + 一个显式逃生阀：
+
+| 助手                              | 断言对象                                  | 用途                                                                  |
+| --------------------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| `roomSummaryPath()` / `_rsv()`    | `room_summary` 契约                       | 契约里确属 `room_summary` 的端点（`/rooms/$roomId/summary*` 等 3 处） |
+| `roomPath()`（**新增**）          | `room` 契约（`StripV3<RoomPathPattern>`） | 物理位置在 room-summary、契约归属 `room` 的端点                       |
+| `uncheckedRoomPath()`（**新增**） | 不断言                                    | 显式逃生阀，仅用于下方已知缺陷                                        |
+
+调用点迁移（共 **30** 处，全部从「裸 `string`、无断言」变为编译期校验）：
+
+| 文件                                           | 处数 |
+| ---------------------------------------------- | ---- |
+| `sub-managers/room-event-operation-manager.ts` | 23   |
+| `sub-managers/room-key-manager.ts`             | 5    |
+| `sub-managers/room-member-manager.ts`          | 1    |
+| `sub-managers/room-search-manager.ts`          | 1    |
+
+#### 暴露的缺陷（转入 `uncheckedRoomPath()` 的 4 处）
+
+`sub-managers/room-invite-policy-manager.ts` 的 `invite_blocklist` / `invite_allowlist`（GET + POST 各 2 处）：
+
+- **契约事实**：这两个端点**只存在于 `/_matrix/vendor/v1`**，归属模块 `invite_blocklist`（见 `docs/api-contract/generated/modules/invite_blocklist.json` 与 `route-manifest.default.json`）；契约中**没有** `/_matrix/client/v3` 版本。
+- **实现事实**：本文件用 `requestV3()`（即 `/_matrix/client/v3`，`ClientPrefix.V3`）发出。
+- **重复实现**：`src/invite-blocklist/index.ts` 已有一份**前缀正确**（`VendorPrefix`）的实现，本类与之功能重复。
+
+因此这 4 处无法断言 `room` 契约（路径在 `room` 契约里也不存在），只能走逃生阀并在此登记。
+
+#### 处置与遗留
+
+不在本轮直接改前缀：该改动会变更运行时请求路径，且应与 `invite-blocklist` 模块的**去重**一并决策，需后端确认路由归属与废弃计划。当前以 `uncheckedRoomPath()` + 本节登记显式留痕，缺陷关闭后必须改回 `roomPath()` 或 `invite-blocklist` 模块的强类型助手。
+
+#### 验证（可复跑）
+
+| 项         | 命令                                                            | 结果                                                        |
+| ---------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| 类型       | `npx tsc --noEmit`                                              | **exit=0**，但**不能**据此反证路径合法 —— 见 §13.12 勘误    |
+| 迁移计数   | `grep -ro "this\.roomPath(" src/room-summary \| wc -l`          | **30**                                                      |
+| 逃生阀计数 | `grep -ro "this\.uncheckedRoomPath(" src/room-summary \| wc -l` | **4**（与上文缺陷一一对应）                                 |
+| 回归       | `spec/unit/room-summary/**`                                     | 全绿（测试用 `authedRequest` 断言绝对路径，与断言助手解耦） |
+
+> ⚠️ **本节原结论已被 §13.12 证伪**：`StripV3<RoomPathPattern>` 对 `/rooms/**` 命名空间**没有鉴别力**，这 30 处断言「全部通过」不构成任何证据。原文此处写着「反证路径确在 `room` 契约内」，是**错误**的推断，已更正。
+
+> **可迁移的教训**：「物理目录 / 模块归属 / 请求前缀」三者可能同时不一致。修复顺序应是**先让类型系统说不出谎话**（把无法断言的调用点显式标注为逃生阀），再逐个关闭逃生阀 —— 而不是让几十处裸 `string` 静默失去保护。**但前提是断言本身必须真的有鉴别力**：一个恒过的守卫比没有守卫更危险，因为它会让人停止怀疑（本节就是反例）。
+
+---
+
+### 13.12 【勘误·高危】路径模式是「前缀模式」，使契约断言在 `/rooms/**` 等命名空间上退化为恒过（2026-10-06）
+
+> 本节**推翻 §13.11 的验证结论**，并给出一个影响 **30 个模块**的架构级缺陷。
+
+#### 事实（隔离探针，可复现）
+
+在 `src/` 下建临时文件编译（`npx tsc --noEmit --strict --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler <probe>.ts`）：
+
+```ts
+import type { StripV3 } from "./http-api/strip-prefix";
+import type { RoomPathPattern } from "./room/__generated__/route-table";
+import type { RoomSummaryPathPattern } from "./room-summary/__generated__/route-table";
+
+export const a1: StripV3<RoomPathPattern> = "/rooms/$roomId/capabilities"; // 合法
+export const a2: StripV3<RoomPathPattern> = "/rooms/$roomId/invite_blocklist"; // 契约中不存在
+export const a3: StripV3<RoomPathPattern> = "/rooms/$roomId/totally_made_up_xyz"; // 编造
+export const a4: StripV3<RoomPathPattern> = "/rooms/$roomId/a/b/c/d/e"; // 编造
+export const a5: StripV3<RoomPathPattern> = "/definitely/not/in/contract"; // 编造
+export const b1: StripV3<RoomSummaryPathPattern> = "/rooms/$roomId/invite_blocklist"; // 对照组
+```
+
+| 断言                                      | 预期     | **实测**    |
+| ----------------------------------------- | -------- | ----------- |
+| `a1` `/rooms/$roomId/capabilities`        | 通过     | 通过 ✅     |
+| `a2` `/rooms/$roomId/invite_blocklist`    | **报错** | **通过** ❌ |
+| `a3` `/rooms/$roomId/totally_made_up_xyz` | **报错** | **通过** ❌ |
+| `a4` `/rooms/$roomId/a/b/c/d/e`           | **报错** | **通过** ❌ |
+| `a5` `/definitely/not/in/contract`        | **报错** | 报错 ✅     |
+| `b1`（`room_summary` 契约，对照组）       | **报错** | 报错 ✅     |
+
+即：`StripV3<RoomPathPattern>` 对**任何** `/rooms/` 开头的字符串都放行 —— 它只能反证「不以 `/rooms/` 开头且不匹配任何路由」的路径，对 `/rooms/**` **零鉴别力**。
+
+#### 根因
+
+`route-table.ts` 的生成器把契约里的 `{name}` 替换为 `${string}`：
+
+```ts
+export type RoomReplaceBraces<P extends string> = P extends `${infer A}{${infer Param}}${infer B}`
+    ? `${A}${string}${RoomReplaceBraces<B>}`
+    : P;
+```
+
+TypeScript 的 `${string}` **可以包含 `/`**。于是契约中「以参数结尾」的路由会生成**前缀模式**：
+
+| 契约路由（真实存在）        | 生成模式                | 后果                              |
+| --------------------------- | ----------------------- | --------------------------------- |
+| `GET /rooms/{room_id}`      | `/rooms/${string}`      | **吞掉整个 `/rooms/**` 子树\*\*   |
+| `GET /rooms/{room_id}/keys` | `/rooms/${string}/keys` | 吞掉 `/rooms/*/keys/任意深层路径` |
+
+一般化结论：**生成模式只校验「到该路由最后一个参数为止」的前缀，最后一个参数之后的内容一律不校验。** 当某模块存在较浅的参数结尾路由（room 的 `GET /rooms/{room_id}` 就是），该命名空间下所有断言全部失效。
+
+#### 影响面（量化）
+
+「参数结尾」路由数 / 该模块路由总数（前者越接近后者、或层级越浅，鉴别力越差）：
+
+| 模块         | 参数结尾/总路由 | 模块               | 参数结尾/总路由 |
+| ------------ | --------------- | ------------------ | --------------- |
+| `key-backup` | **40/66**       | `e2ee`             | 10/38           |
+| `room`       | **30/99**       | `account-data`     | 10/15           |
+| `media`      | 18/36           | `relations`        | **9/9**         |
+| `auth`       | 17/96           | `module`           | 9/23            |
+| `friend`     | 15/65           | `external-service` | 9/20            |
+| `space`      | 10/48           | `room-summary`     | 4/21            |
+
+全仓共 **30 个模块**存在该类路由 —— 也就是说，§13.10/§13.11 所宣称的「拼错是编译错误」在**这些模块里只对路径前缀成立，对尾段不成立**。
+
+#### 对既有结论的影响（勘误）
+
+- **§13.11 作废**：30 处从 `roomSummaryPath`（`room_summary` 契约，**有**鉴别力 —— 见对照 `b1`）迁移到 `roomPath`（`room` 契约，**无**鉴别力）。这次迁移把「会被拦住的断言」换成了「永远通过的断言」。**它不是「恢复编译期校验」，而是「用看起来有守卫的写法替代了真正的守卫」**（改动前是无守卫的裸 `string`，所以不是回归，但宣称的收益是**假的**）。
+- **§13.11 的 `uncheckedRoomPath()` 逃生阀论证同样失效**：`invite_blocklist` 的 4 处在 `roomPath` 下**本就能通过**（`a2` 实测放行），并不需要逃生阀。逃生阀保留与否应等 §13.12 的根因修复后重判。
+- **§13.10 部分受限**：`encodeUri` 泛型化后，账户数据那处变异（`account_data` → `account_dataX`）仍报 `TS2345`，说明**中段**写错能被抓到；但**尾段**写错（`/user/$userId/account_data/$type/junk`）不会被抓。
+
+#### 处置建议（需决策，属独立改造）
+
+根因在**路径模式的归一化方式**，不在调用点。推荐改为**两侧同构归一 + 精确相等**，即不再依赖 `${string}`：
+
+1. 归一化：把调用点字面量的 `$var` 段与契约的 `{var}` 段**都**替换为单段占位符（如 `{}`），得到「形状」；
+2. 断言：要求 `Shape<调用点> extends Shape<契约路由>` 的**精确相等**（双向 `extends`），避免前缀吞噬。
+
+```ts
+// 示意：逐段归一，任何以 $ 或 { } 包裹的「整段」都归一为 "{}"
+type Seg<S extends string> = S extends `$${string}` ? "{}" : S extends `{${string}}` ? "{}" : S;
+type Shape<S extends string> = S extends `${infer A}/${infer B}` ? `${Seg<A>}/${Shape<B>}` : Seg<S>;
+```
+
+该方案可正确处理 `/rooms/{room_id}`（形状 `/rooms/{}`）与 `/rooms/$roomId/invite_blocklist`（形状 `/rooms/{}/invite_blocklist`）—— 后者**会被正确拒绝**。
+
+> 该改动落在 `scripts/sdk-contract-codegen.mjs`（生成 `ReplaceBraces` 处）并需重新生成全部 `__generated__/route-table.ts`，**属于独立改造**，须单独授权后实施。实施时预期会暴露出此前被掩盖的真实路径偏差（正是本缺陷的「价值」）。
+
+> **可迁移的教训**：用一个「更宽的类型」去表达「参数占位」时，必须验证它**不会比原模式更宽**。`${string}` 在模板字面量里是「任意字符串（含 `/`）」，不是「一个路径段」。**断言的价值等于它的鉴别力，而不是它的存在** —— 任何新增的编译期守卫都必须配一条「变异自证」（写一个必然非法的值，确认它真的报错），否则无法区分「守卫有效」与「守卫恒过」。
+
+---
+
 **审计文档最后更新**: 2026-10-06
 **最近提交**: `93a92c84e` (path-contract 门禁增强 + MSC 编号格式校验)
 **核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
-**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）与 §13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）与 **§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，影响 30 个模块）\*\*

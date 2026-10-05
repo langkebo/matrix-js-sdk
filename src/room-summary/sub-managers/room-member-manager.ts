@@ -194,7 +194,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
             if (options?.limit !== undefined) query.limit = String(options.limit);
             return await this.requestV3<RoomMembersRecentResult>(
                 Method.Get,
-                this.roomSummaryPath("/rooms/$roomId/members/recent", roomId),
+                this.roomPath("/rooms/$roomId/members/recent", roomId),
                 query,
             );
         }, "getRoomMembersRecent");

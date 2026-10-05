@@ -32,8 +32,8 @@ describe("RoomSummaryEventOperationManager", () => {
     let mockClient: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let summaryCache: LRUCache<any>;
-    let onCacheInvalidation: ReturnType<typeof vi.fn>;
-    let onSummaryUpdated: ReturnType<typeof vi.fn>;
+    let onCacheInvalidation: ReturnType<typeof vi.fn<(roomId: string) => void>>;
+    let onSummaryUpdated: ReturnType<typeof vi.fn<(roomId: string, summary: RoomSummary) => void>>;
     let onError: RoomSummaryErrorCallback | undefined;
 
     beforeEach(() => {
@@ -147,7 +147,11 @@ describe("RoomSummaryEventOperationManager", () => {
 
     describe("简单 GET 路径断言", () => {
         const cases: Array<[string, () => Promise<unknown>, string]> = [
-            ["getRoomCapabilities", () => manager.getRoomCapabilities(ROOM_ID), `/rooms/${ENCODED_ROOM_ID}/capabilities`],
+            [
+                "getRoomCapabilities",
+                () => manager.getRoomCapabilities(ROOM_ID),
+                `/rooms/${ENCODED_ROOM_ID}/capabilities`,
+            ],
             ["getRoomInvites", () => manager.getRoomInvites(ROOM_ID), `/rooms/${ENCODED_ROOM_ID}/invites`],
             ["getRoomRetention", () => manager.getRoomRetention(ROOM_ID), `/rooms/${ENCODED_ROOM_ID}/retention`],
             ["getRoomExternalIds", () => manager.getRoomExternalIds(ROOM_ID), `/rooms/${ENCODED_ROOM_ID}/external_ids`],
@@ -180,7 +184,13 @@ describe("RoomSummaryEventOperationManager", () => {
 
                 await invoke();
 
-                expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", path, undefined, undefined, V3_PREFIX);
+                expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                    "GET",
+                    path,
+                    undefined,
+                    undefined,
+                    V3_PREFIX,
+                );
             });
         }
     });

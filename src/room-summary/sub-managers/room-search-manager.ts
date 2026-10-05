@@ -237,7 +237,7 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             return await this.requestV3<RoomSearchResult>(
                 Method.Post,
-                this.roomSummaryPath("/rooms/$roomId/search", roomId),
+                this.roomPath("/rooms/$roomId/search", roomId),
                 undefined,
                 body as Body,
             );

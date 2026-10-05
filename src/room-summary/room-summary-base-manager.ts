@@ -20,7 +20,7 @@ limitations under the License.
  * 扩展 BaseManager，添加：
  * - requestV3：/_matrix/client/v3 前缀请求
  * - requestInternal：/_synapse/room_summary/v1 前缀请求
- * - roomSummaryPath：路径辅助函数
+ * - roomPath / uncheckedRoomPath：路径辅助函数（分别断言 room 契约 / 显式逃生阀）
  * - validateRoomId/validateUserId/validateEventType：参数校验
  * - 错误回调：统一错误事件通知
  */
@@ -33,7 +33,7 @@ import { type QueryDict, encodeUri } from "../http-api/utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
 import type { StripV3 } from "../http-api/strip-prefix";
-import type { RoomSummaryPathPattern } from "./__generated__/route-table";
+import type { RoomPathPattern } from "../room/__generated__/route-table";
 
 export type RoomSummaryErrorCallback = (error: Error) => void;
 
@@ -77,15 +77,35 @@ export abstract class RoomSummaryBaseManager<
     }
 
     /**
-     * 构建带 roomId 替换的路径。
-     *
-     * 入参 `pathTemplate` 被约束为**本模块契约**（`room_summary`）里的路径模板，
-     * 从而在调用点获得编译期校验：写错 / 写了一个其实归 `room` 模块的端点，
-     * 都会成为编译错误而不是运行时 404。归 `room` 模块的端点请改用
-     * `_rrv(encodeUri(...))`（见 room-event-operation-manager.ts）。
+     * 内部：路径模板 + `$roomId` 替换（不做契约断言）。
      */
-    protected roomSummaryPath<P extends StripV3<RoomSummaryPathPattern>>(pathTemplate: P, roomId: string): string {
+    private buildRoomScopedPath(pathTemplate: string, roomId: string): string {
         return encodeUri(pathTemplate, { $roomId: roomId });
+    }
+
+    /**
+     * 构建「归 `room` 模块」的相对路径（带 `$roomId` 替换）。
+     *
+     * 本目录（room-summary）历史上承载了一批其实归属 `room` 模块的端点（见
+     * `docs/sdk-encapsulation-audit.md` §13.9）。此处把入参约束到 **`room` 契约**的路径模板，
+     * 让这些调用点重新获得编译期校验：写错路径、或写了一个契约里不存在的端点，
+     * 都会变成编译错误，而不是运行时的 404。
+     */
+    protected roomPath<P extends StripV3<RoomPathPattern>>(pathTemplate: P, roomId: string): string {
+        return this.buildRoomScopedPath(pathTemplate, roomId);
+    }
+
+    /**
+     * **逃生阀**：构造路径但**不做任何契约断言**。
+     *
+     * 只允许用于「契约归属 / 前缀与实现不一致」的**已知缺陷**处 —— 目前仅
+     * `room-invite-policy-manager.ts` 的 `invite_blocklist` / `invite_allowlist`
+     * （契约前缀是 `/_matrix/vendor/v1`，实现却用 `/_matrix/client/v3`）。
+     * 详见 `docs/sdk-encapsulation-audit.md` §13.11。缺陷关闭后必须改回 `roomPath()` 或
+     * 对应模块的强类型助手。
+     */
+    protected uncheckedRoomPath(pathTemplate: string, roomId: string): string {
+        return this.buildRoomScopedPath(pathTemplate, roomId);
     }
 
     /**
