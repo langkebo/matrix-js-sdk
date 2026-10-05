@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-01T05:49:38.095Z",
+    "generatedAt": "2026-10-05T04:30:41.532Z",
     "note": "SDK source MSC reference snapshot. Update with --update-baseline after registering new MSCs in docs/MSC_SDK_MAPPING.md.",
     "total": 62,
     "entries": {
@@ -33,7 +33,12 @@
         "3531": ["src/models/event.ts", "src/models/room.ts"],
         "3575": ["src/room/RoomManager.ts"],
         "3672": ["src/@types/beacon.ts", "src/@types/event.ts", "src/beacon/index.ts"],
-        "3720": ["src/account/index.ts", "src/security/index.ts"],
+        "3720": [
+            "src/account-status/index.ts",
+            "src/account/index.ts",
+            "src/security/index.ts",
+            "src/server-capabilities/index.ts"
+        ],
         "3765": ["src/@types/topic.ts"],
         "3771": ["src/models/thread.ts"],
         "3786": ["src/pushprocessor.ts"],
