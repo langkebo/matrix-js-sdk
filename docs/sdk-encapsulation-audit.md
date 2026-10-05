@@ -429,32 +429,32 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 ### 13.1 七大模块完成情况
 
-| 模块           | 后端路由 | SDK 方法          | 测试数 | 覆盖率  | 状态 | 备注                                |
-| -------------- | -------- | ----------------- | ------ | ------- | ---- | ----------------------------------- |
-| **Room**       | 98       | +35 (Batch1 新增) | 14     | ✅ 100% | 完成 | `RoomManagerExtensions.ts` (678 行) |
-| **Admin**      | 166      | 238               | 48     | ✅ 100% | 完成 | 11 个子管理器                       |
-| **Assembly**   | 101      | 149               | 47     | ✅ 100% | 完成 | Auth/Discovery/Profile              |
-| **AppService** | 39       | 20                | —      | ✅ 90%+ | 完成 | 剩余为非核心 admin API              |
-| **Media**      | 36       | 19                | 45     | ✅ 100% | 完成 | 含 chunk upload + quota             |
-| **Push**       | 17       | ~18               | 56     | ✅ 100% | 完成 | PushRules + Pusher + Notifications  |
-| **Federation** | 54       | ~36               | 41     | ⚠️ 88%  | 部分 | S2S 协议路由不属 client SDK 范围    |
+| 模块           | 后端路由 | SDK 方法          | 测试数 | 覆盖率  | 状态 | 备注                                                                                     |
+| -------------- | -------- | ----------------- | ------ | ------- | ---- | ---------------------------------------------------------------------------------------- |
+| **Room**       | 98       | +35 (Batch1 新增) | 14     | ❌ 作废 | 勘误 | ~~`RoomManagerExtensions.ts`~~ 已于 2026-10-05 删除，原「✅ 100%」是**伪覆盖**，见 §13.8 |
+| **Admin**      | 166      | 238               | 48     | ✅ 100% | 完成 | 11 个子管理器                                                                            |
+| **Assembly**   | 101      | 149               | 47     | ✅ 100% | 完成 | Auth/Discovery/Profile                                                                   |
+| **AppService** | 39       | 20                | —      | ✅ 90%+ | 完成 | 剩余为非核心 admin API                                                                   |
+| **Media**      | 36       | 19                | 45     | ✅ 100% | 完成 | 含 chunk upload + quota                                                                  |
+| **Push**       | 17       | ~18               | 56     | ✅ 100% | 完成 | PushRules + Pusher + Notifications                                                       |
+| **Federation** | 54       | ~36               | 41     | ⚠️ 88%  | 部分 | S2S 协议路由不属 client SDK 范围                                                         |
 
 ### 13.2 本轮新增功能 (Batch1-Batch4)
 
-| 批次        | 模块     | 交付物                                          | 代码量   | 提交        |
-| ----------- | -------- | ----------------------------------------------- | -------- | ----------- |
-| **Batch 1** | Room     | `RoomManagerExtensions.ts` + `.types.ts` + spec | 1,253 行 | `37ec9ffe0` |
-| **Batch 2** | Admin    | 评估确认已完整（238 方法），无需实施            | 0        | —           |
-| **Batch 3** | Assembly | 评估确认已完整（149 方法），无需实施            | 0        | —           |
-| **Batch 4** | Media    | 评估确认已完整（19 方法），无需实施             | 0        | —           |
+| 批次        | 模块     | 交付物                                                                               | 代码量   | 提交        |
+| ----------- | -------- | ------------------------------------------------------------------------------------ | -------- | ----------- |
+| **Batch 1** | Room     | ~~`RoomManagerExtensions.ts` + `.types.ts` + spec~~（2026-10-05 全部删除，见 §13.8） | 1,253 行 | `37ec9ffe0` |
+| **Batch 2** | Admin    | 评估确认已完整（238 方法），无需实施                                                 | 0        | —           |
+| **Batch 3** | Assembly | 评估确认已完整（149 方法），无需实施                                                 | 0        | —           |
+| **Batch 4** | Media    | 评估确认已完整（19 方法），无需实施                                                  | 0        | —           |
 
 ### 13.3 综合集成测试结果
 
 ```bash
-# 综合测试执行
+# 综合测试执行（⚠️ 2026-10-05 勘误：`RoomManagerExtensions.spec.ts` 已随源文件删除，
+# 该行保留仅作历史记录；下方 14/14 不是任何可达代码的验证，见 §13.8）
 cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk && \
 PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
-  spec/unit/room/RoomManagerExtensions.spec.ts \
   spec/unit/media/media-manager.spec.ts \
   spec/unit/media.spec.ts \
   spec/unit/push/push-manager.spec.ts \
@@ -462,15 +462,15 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
   spec/unit/api-consistency/federation.spec.ts
 ```
 
-| 测试套件                             | 测试数      | 状态        |
-| ------------------------------------ | ----------- | ----------- |
-| `RoomManagerExtensions.spec.ts`      | 14/14       | ✅ PASS     |
-| `media-manager.spec.ts`              | 23/23       | ✅ PASS     |
-| `media.spec.ts`                      | 22/22       | ✅ PASS     |
-| `push-manager.spec.ts`               | 56/56       | ✅ PASS     |
-| `federation.spec.ts`                 | 34/34       | ✅ PASS     |
-| `api-consistency/federation.spec.ts` | 7/7         | ✅ PASS     |
-| **总计**                             | **156/156** | ✅ **100%** |
+| 测试套件                             | 测试数      | 状态               |
+| ------------------------------------ | ----------- | ------------------ |
+| ~~`RoomManagerExtensions.spec.ts`~~  | ~~14/14~~   | ❌ 已删除（§13.8） |
+| `media-manager.spec.ts`              | 23/23       | ✅ PASS            |
+| `media.spec.ts`                      | 22/22       | ✅ PASS            |
+| `push-manager.spec.ts`               | 56/56       | ✅ PASS            |
+| `federation.spec.ts`                 | 34/34       | ✅ PASS            |
+| `api-consistency/federation.spec.ts` | 7/7         | ✅ PASS            |
+| **总计**                             | **156/156** | ✅ **100%**        |
 
 **TypeScript 编译**: 0 errors ✅
 
@@ -487,11 +487,17 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 ### 13.5 门禁与工具链
 
-| 工具           | 路径                                           | 用途                 |
-| -------------- | ---------------------------------------------- | -------------------- |
-| 覆盖率门禁     | `scripts/quality/check-minimum-coverage.mjs`   | lcov 解析 + 阈值校验 |
-| API 覆盖率报告 | `scripts/generate-api-coverage-report.mjs`     | 模块级覆盖率统计     |
-| 契约差集登记   | `scripts/quality/contract-drift-registry.json` | SDK-only 路由登记    |
+| 工具           | 路径                                           | 用途                                                                              |
+| -------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| 覆盖率门禁     | `scripts/quality/check-repo-coverage.mjs`      | lcov 解析 + 阈值校验（P2-c 双轨制的「全仓」一轨；阈值读 `coverage-targets.json`） |
+| 门禁可达性门禁 | `scripts/quality/check-gate-reachability.mjs`  | 判定「自称门禁的脚本是否真会被执行」，防死门禁（2026-10-05 新增）                 |
+| API 覆盖率报告 | `scripts/generate-api-coverage-report.mjs`     | 模块级覆盖率统计                                                                  |
+| 契约差集登记   | `scripts/quality/contract-drift-registry.json` | SDK-only 路由登记                                                                 |
+
+> ⚠️ 已删除：`scripts/quality/check-minimum-coverage.mjs`（2026-10-05）。
+> 它被 `check-repo-coverage.mjs` 取代，且其解析依赖 lcov 的 `SUMMARY:` 块
+> （由 `lcov --summary` / genhtml 产出），而 vitest 的 lcov reporter 不写该块 ——
+> 即它在正常路径下也只会输出「无法从 lcov 报告中提取覆盖率数据」并 exit 1。
 
 ### 13.6 剩余待办
 
@@ -712,7 +718,7 @@ $ # 恢复代码后
 
 - 真缺陷修复：
     - invite-blocklist: client/v3 → vendor/v1 (4 处路径 + 注释)
-    - RoomManagerExtensions.translate: GET → POST (1 处)
+    - ~~RoomManagerExtensions.translate: GET → POST (1 处)~~ —— 该文件已于 2026-10-05 删除（§13.8）；此条随之失效
 - 豁免表精简：从 30 条降至 6 条真实缺口
 - 门禁状态：✅ 全部通过
 
@@ -802,8 +808,114 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 - Branch: `feat/sdk-contract-gap-implementation`
 - Files: `spec/unit/integration/cross-module.spec.ts`, `perf/benchmarks.spec.ts`
 
+### 13.8 勘误（2026-10-05）：`RoomManagerExtensions` 伪覆盖更正
+
+> 本节**推翻 §13.1 / §13.2 / §13.3 / §13.6.3 中关于 Room 模块「✅ 100%」的全部结论**。原结论是把一批**没有任何调用方**的函数算进了覆盖率，属于伪信号，不是能力。
+
+#### 现象与证据
+
+`src/room/RoomManagerExtensions.ts`（915 行 / 52 个 `export async function`）与其 spec 曾被记为「Room 100% 覆盖（14/14 PASS）」。逐项实测（2026-10-05）：
+
+| 判据                   | 实测结果                                                                                                                                                                                        | 取证方式                                                                                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **不可达**             | 0 生产消费者。`src/room/index.ts` 仅 `export * from "./RoomManager"`，不导出该文件；`package.json` 无对应子路径导出                                                                             | `git grep -n RoomManagerExtensions -- . ':!node_modules' ':!lib'` 仅命中自身 / 本文档 / 自身 spec                                             |
+| **重复实现**           | 52 个端点中 ≥14 个已有正规实现                                                                                                                                                                  | `pinned-messages`×3、`RoomManager`×5、`room-alias`、`room-event-operation-manager`×2、`room-member`、`read-receipts`、`client-batch-requests` |
+| **DTO 不可信**         | `getUnreadCount()` 声明 `{ unread_count: number }`，而同一端点 `GET /rooms/{room_id}/unread_count` 的正规实现 `RoomManager.getRoomUnreadCount()` 返回 `{ notification_count, highlight_count }` | 源码对读；39 个未测函数里同类「猜测型 DTO」无法排除                                                                                           |
+| **绕过契约**           | 参数一律 `client: any`，路径写死绝对字面量 `/_matrix/client/v3/rooms/...`，不经 `rp()` / `_rsv()`                                                                                               | 因此后端改路由时它**不会**编译失败 —— 契约驱动的编译期保护对它完全失效                                                                        |
+| **制造伪信号（外部）** | 它让 `artifacts/sdk-contract-gap.json` 把 `GET /rooms/{room_id}/visibility` 等记为「T2 已构造」，虚高实现面覆盖率                                                                               | `artifacts/sdk-contract-gap.json` → `t2Only[].evidence.file`                                                                                  |
+| **测试面**             | 52 个函数只测了 13 个，且这 13 个恰好包含上面那批**重复实现**；knip 报的 39 个死导出正是**未被测的剩余部分**                                                                                    | `./node_modules/.bin/knip` → `Unused files (1): src/room/RoomManagerExtensions.ts`                                                            |
+
+#### 处置
+
+- `git rm src/room/RoomManagerExtensions.ts`、`git rm spec/unit/room/RoomManagerExtensions.spec.ts`（连同此前的 `RoomManagerExtensions.types.ts`）。
+- **能力未丢失**：52/52 条路径全部存在于后端契约（`docs/api-contract/generated/modules/room.json`，99 条）并已被 codegen 渲染进 `src/room/__generated__/route-table.ts`。将来产品真需要其中某个端点时，正确做法是按契约在对应管理器上加**类型化方法**（`rp()` 会在编译期证明路径存在），而不是复活这个文件。
+- **未封装现状已有台账**：`artifacts/sdk-contract-gap-report.md`（三级证据法）持续记录「后端有 / SDK 未封装」的路由，删除该文件后需重跑 `scripts/audit/compare-routes.mjs` 让数字回到诚实值。
+
+#### 结论（可迁移的教训）
+
+> **「有函数 + 有测试」不等于「有能力」。** 判据必须是「从包入口可达 ∧ 有真实消费者」。
+> 一个不可达的文件只要有测试，就能同时骗过覆盖率门禁和文档门禁 —— 这正是本次把它从「Room 100%」降级为「作废」的原因。
+
+### 13.9 契约归属断裂（2026-10-05）：`room-summary` 的实现调用 `room` 模块的路由
+
+> 本节记录一类**结构性**缺陷：实现的**物理位置**与契约里的**模块归属**不一致，导致该文件无法使用编译期路径断言 —— AGENTS.md 承诺的「拼错是编译错误」在它身上不成立。
+
+#### 现象与证据
+
+`src/room-summary/sub-managers/room-event-operation-manager.ts`（939 行 / 42 次 HTTP 调用）是该模块最大的未覆盖文件。它的请求路径分三类：
+
+| 判据                                      | 实测结果 | 取证方式                                                                 |
+| ----------------------------------------- | -------- | ------------------------------------------------------------------------ |
+| 文件内可解析的路径（归一化后）            | **14**   | `probe-route-module-attribution.mjs` + 契约比对                          |
+| 归属 `room_summary` 契约（可用 `_rsv()`） | **3**    | `docs/api-contract/generated/modules/room_summary.json`（21 条）         |
+| 归属 `room` 契约（**无法**用 `_rsv()`）   | **11**   | `docs/api-contract/generated/modules/room.json`（99 条）                 |
+| 文件内实际使用断言函数的次数              | **3**    | `grep -c "_rsv\(\|_rsi\("` → 3，其余 40 处为裸 `string` 传给 `request()` |
+
+复验命令：
+
+```bash
+node scripts/audit/probe-route-module-attribution.mjs   # 逐条打印「路径 -> 归属模块」，均指向 room
+grep -c "_rsv(\|_rsi(" src/room-summary/sub-managers/room-event-operation-manager.ts   # 3
+```
+
+#### 影响
+
+- `anti_screenshot` / `sticky_events` / `notifications` / `timeline` / `metadata` / `turn_server` / `rendered/` / `fragments/{user_id}` / `translate` / `convert` / `sign` / `verify` / `device` / `event/{id}/url` / `receipts` / `account_data` 这些端点，在契约里**全部归 `room`**，而实现写在 `room-summary`。`room_summary` 的 route-table 里没有它们 → 代码改用裸字面量。
+- 后果：后端若改动这些路由，该文件**不会**编译失败，只会在运行时 404。这与 `RoomManagerExtensions.ts`（§13.8）是**同一类病**，只是没有到「不可达」那么严重 —— 它有真实调用方，只是失去了契约保护。
+
+#### 处置（建议，需与测试方案一并实施）
+
+不在本轮动手重构，理由：该文件已由 `scripts/quality/coverage-critical-ledger.json` 登记为 **P0（owner: langkebo, deadline: 2026-10-19）**，补测试方案见 `artifacts/room-event-operation-manager-test-plan.md`。路径断言改造应与补测试**同批**进行：
+
+1. 从 `src/room/__generated__/route-table.ts` 导入 `RoomPathPattern`，在文件内定义 `_rrv()` 断言（与 `e2ee/index.ts` 的 `ep()` 同构）；
+2. ~~把 `encodeUri("/rooms/$roomId/…")` 的调用点改写为模板字面量，使字面量类型可被断言识别（`encodeUri` 返回 `string`，会丢失字面量类型，这是当前无法断言的第二个原因）~~ —— **该障碍已解除**（2026-10-06，见 §13.10）：`encodeUri` 已泛型化，返回值保留字面量/模板类型，`encodeUri("/rooms/$roomId/…")` 的字面量可直接断言；
+3. 若后端愿意把 `room_summary` 的模块归属补全为「既有 summary 路由 + 其子路由」，则 codegen 会自动覆盖，是更彻底的解法（需后端侧配合）。
+
+> **可迁移的教训**：契约表的**存在**不等于契约保护的**生效**。判据要看「实现文件是否 import 本模块 route-table 并真的用断言」，而不是「目录下有没有 `__generated__/route-table.ts`」。
+
 ---
 
-**审计文档最后更新**: 2026-10-01  
+### 13.10 编译期路径校验回归（2026-10-06）：`encodeUri` 泛型化，消除 9 处「失效 `as`」
+
+> 本节记录一项**根因修复**。契约驱动架构承诺「拼错是编译错误」，但 `utils.encodeUri` 返回宽 `string`，调用点只能写 `encodeUri(...) as StripV3<X>` —— 而 `as` 在含模板字面量模式的 union 上**恒过**，等于把校验关掉。§13.9 已把这条列为「无法断言的第二个原因」。
+
+#### 根因
+
+`src/http-api/utils.ts` 原签名 `encodeUri(pathTemplate: string, ...): string`。宽 `string` 无法赋给 `StripV3<XPathPattern>`（模板字面量 union），故调用点被迫 `as`。实测：把 `/user/$userId/account_data/$type` 改成 `.../account_dataX/...`，`as` 版本**tsc 仍 exit=0**。
+
+#### 修复
+
+`src/http-api/utils.ts` 新增 `ReplaceDollarVariables<S>`：按 `/` 分段递归，把 `$var` 段替换为 `${string}`；`encodeUri` 泛型化为 `<P extends string>(pathTemplate: P, ...): ReplaceDollarVariables<P>`。
+
+```ts
+type ReplaceDollarVariables<S extends string> = S extends `${infer Head}/${infer Tail}`
+    ? `${ReplaceDollarVariables<Head>}/${ReplaceDollarVariables<Tail>}`
+    : S extends `${infer Prefix}$${string}`
+      ? `${Prefix}${string}`
+      : S;
+```
+
+要点：`ReplaceDollarVariables<string>` 退化为 `string`（宽 `string` 不匹配模板字面量模式），故 **122/123** 个既有调用点零影响；仅 1 处（`client-batch-requests.ts` 复用 `path + "/$stateKey"`）被泛型化**暴露**出既有的形状不匹配（`/rooms/${s}/state/${s}/${s}` 赋给 `/rooms/${s}/state/${s}`），已显式放宽为 `let path: string` 并注释理由。
+
+#### 效果
+
+- 删除 **9 处**失效 `as StripV3<...>`：`client-account-data-requests.ts`(5)、`room/RoomManager.ts`(3)、`client-batch-requests.ts`(1)。仅 `space/utils.ts:35` 保留（首参为 `.replace()` 表达式，非字面量，泛型化无法覆盖）。
+- §13.9 列出的「无法断言的第二个原因」**随之解除**：`encodeUri("/rooms/$roomId/…")` 现在保留字面量类型，可直接断言（room-summary 的整体改造仍待与补测试同批实施）。
+
+#### 验证（可复跑）
+
+| 项       | 命令                                                       | 结果                                                         |
+| -------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
+| 类型     | `npx tsc --noEmit -p tsconfig.json`                        | **exit=0**                                                   |
+| 变异自证 | 将 `account_data` 改为 `account_dataX`                     | **TS2345**，错误精确列出 6 个合法 union 成员（证明校验生效） |
+| 回归     | 5 个受影响 spec（utils/space/read-receipt/event-timeline） | **150 passed**                                               |
+| 格式     | `prettier --check` 4 个改动文件                            | 全绿                                                         |
+
+> **可迁移的教训**：`as T` 当 `T` 含模板字面量模式 union 时**恒过**，是「假断言」。要让契约真正生效，必须让**上游函数返回窄的字面量/模板类型**，而不是在下游贴 `as`。
+
+---
+
+**审计文档最后更新**: 2026-10-06
 **最近提交**: `93a92c84e` (path-contract 门禁增强 + MSC 编号格式校验)
-**核心结论**: 七大模块中 6 个达到 100% 客户端覆盖，Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口
+**核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）与 §13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）

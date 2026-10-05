@@ -160,6 +160,11 @@
     - 统计：`getStats`
     - 用户控制：`blockUser`, `unblockUser`, `checkRateLimit`
 
+    > ⚠️ **后续变更（2026-10-01，commit `e095f4428`）**：后端已拆除
+    > `GET /_synapse/admin/v1/event_reports/{id}/history` 全链，SDK 侧同步删除
+    > `getReportHistory` 方法与 `ReportHistoryResponse` 类型，方法数 19 → 18。
+    > 本报告为 2026-09-24 的历史快照，**不要再以本段作为该方法存在的证据**。
+
 2. **分页支持**：✅ 正确
 
     ```typescript

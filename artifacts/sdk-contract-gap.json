@@ -18,13 +18,13 @@
         "sdk": {
             "routeTables": 38,
             "t3Declared": 827,
-            "sourceFiles": 473,
-            "t1Callsites": 593,
-            "t2ConstructorHits": 785,
+            "sourceFiles": 464,
+            "t1Callsites": 547,
+            "t2ConstructorHits": 783,
             "prefixCandidates": 30
         },
         "idiomHistogram": {
-            "object-literal {path}": 191,
+            "object-literal {path}": 145,
             "builder: utils.encodeUri()": 53,
             "adminRequest()": 211,
             "v2Request()": 5,
@@ -41,10 +41,10 @@
             "builder: spacePath()": 13
         },
         "buckets": {
-            "T3_DECLARED_ONLY": 101,
-            "T2_CONSTRUCTOR": 597,
+            "T3_DECLARED_ONLY": 104,
+            "T2_CONSTRUCTOR": 640,
             "GAP": 70,
-            "T1_CALLSITE": 390,
+            "T1_CALLSITE": 344,
             "CONDITIONAL": 1
         },
         "gapScopeBreakdown": [
@@ -53,10 +53,10 @@
         ],
         "client": {
             "total": 758,
-            "implemented": 672,
-            "t1": 164,
-            "t2Only": 508,
-            "declaredOnly": 79,
+            "implemented": 669,
+            "t1": 118,
+            "t2Only": 551,
+            "declaredOnly": 82,
             "drift": 0,
             "gap": 7
         },
@@ -777,8 +777,8 @@
             "evidence": {
                 "literal": "/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 105,
-                "snippet": "path: friendPath(\"/friends\"),"
+                "line": 119,
+                "snippet": "* 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在"
             }
         },
         {
@@ -787,8 +787,8 @@
             "evidence": {
                 "literal": "/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 105,
-                "snippet": "path: friendPath(\"/friends\"),"
+                "line": 119,
+                "snippet": "* 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在"
             }
         },
         {
@@ -797,7 +797,7 @@
             "evidence": {
                 "literal": "/friends/check/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 216,
+                "line": 272,
                 "snippet": "path: friendPath(`/friends/check/${encodeURIComponent(userId)}`),"
             }
         },
@@ -807,7 +807,7 @@
             "evidence": {
                 "literal": "/friends/dm/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 519,
+                "line": 575,
                 "snippet": "path: friendPath(`/friends/dm/${encodeURIComponent(userId)}`),"
             }
         },
@@ -817,7 +817,7 @@
             "evidence": {
                 "literal": "/friends/dm/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 519,
+                "line": 575,
                 "snippet": "path: friendPath(`/friends/dm/${encodeURIComponent(userId)}`),"
             }
         },
@@ -827,7 +827,7 @@
             "evidence": {
                 "literal": "/friends/groups",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 277,
+                "line": 333,
                 "snippet": "path: friendPath(\"/friends/groups\"),"
             }
         },
@@ -837,7 +837,7 @@
             "evidence": {
                 "literal": "/friends/groups",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 277,
+                "line": 333,
                 "snippet": "path: friendPath(\"/friends/groups\"),"
             }
         },
@@ -847,7 +847,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 360,
+                "line": 416,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}`),"
             }
         },
@@ -857,7 +857,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/add/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 334,
+                "line": 390,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`),"
             }
         },
@@ -867,7 +867,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 391,
+                "line": 447,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/friends`),"
             }
         },
@@ -877,7 +877,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/name",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 377,
+                "line": 433,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/name`),"
             }
         },
@@ -887,7 +887,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/remove/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 347,
+                "line": 403,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`),"
             }
         },
@@ -957,7 +957,7 @@
             "evidence": {
                 "literal": "/friends/search",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 174,
+                "line": 230,
                 "snippet": "path: friendPath(\"/friends/search\"),"
             }
         },
@@ -967,7 +967,7 @@
             "evidence": {
                 "literal": "/friends/search",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 174,
+                "line": 230,
                 "snippet": "path: friendPath(\"/friends/search\"),"
             }
         },
@@ -977,7 +977,7 @@
             "evidence": {
                 "literal": "/friends/suggestions",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 149,
+                "line": 205,
                 "snippet": "path: friendPath(\"/friends/suggestions\"),"
             }
         },
@@ -987,7 +987,7 @@
             "evidence": {
                 "literal": "/friends/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 419,
+                "line": 475,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}`),"
             }
         },
@@ -997,7 +997,7 @@
             "evidence": {
                 "literal": "/friends/{}/displayname",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 435,
+                "line": 491,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/displayname`),"
             }
         },
@@ -1007,7 +1007,7 @@
             "evidence": {
                 "literal": "/friends/{}/groups",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 405,
+                "line": 461,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/groups`),"
             }
         },
@@ -1017,7 +1017,7 @@
             "evidence": {
                 "literal": "/friends/{}/info",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 491,
+                "line": 547,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/info`),"
             }
         },
@@ -1027,7 +1027,7 @@
             "evidence": {
                 "literal": "/friends/{}/note",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 451,
+                "line": 507,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/note`),"
             }
         },
@@ -2017,7 +2017,7 @@
             "evidence": {
                 "literal": "/spaces/public",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 187,
+                "line": 208,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/public\"), options);"
             }
         },
@@ -2027,7 +2027,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 256,
+                "line": 294,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));"
             }
         },
@@ -2037,7 +2037,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}/parents",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 270,
+                "line": 308,
                 "snippet": "sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),"
             }
         },
@@ -2047,7 +2047,7 @@
             "evidence": {
                 "literal": "/spaces/search",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 205,
+                "line": 243,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/search\"), {"
             }
         },
@@ -2057,7 +2057,7 @@
             "evidence": {
                 "literal": "/spaces/statistics",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 224,
+                "line": 262,
                 "snippet": "return await this.doRequest<SpaceStatistics>(Method.Get, sp(\"/spaces/statistics\"));"
             }
         },
@@ -2067,7 +2067,7 @@
             "evidence": {
                 "literal": "/spaces/user",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 241,
+                "line": 279,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/user\"));"
             }
         },
@@ -2107,7 +2107,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 58,
+                "line": 78,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -2117,7 +2117,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 58,
+                "line": 78,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -2127,7 +2127,7 @@
             "evidence": {
                 "literal": "/spaces/{}/children/{}",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 132,
+                "line": 167,
                 "snippet": "sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),"
             }
         },
@@ -2137,7 +2137,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 125,
+                "line": 145,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy\", spaceId),"
             }
         },
@@ -2147,7 +2147,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy/v1",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 140,
+                "line": 160,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy/v1\", spaceId),"
             }
         },
@@ -2197,7 +2197,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/rooms",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 150,
+                "line": 203,
                 "snippet": "spacePath(\"/spaces/$spaceId/rooms\", spaceId),"
             }
         },
@@ -2205,10 +2205,10 @@
             "method": "GET",
             "path": "/_matrix/client/v1/spaces/{space_id}/state",
             "evidence": {
-                "literal": "/spaces/$spaceId/state",
+                "literal": "/spaces/{spaceId}/state",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 166,
-                "snippet": "spacePath(\"/spaces/$spaceId/state\", spaceId),"
+                "line": 215,
+                "snippet": "* 获取 Space 的 state 事件列表（走 `/spaces/{spaceId}/state`）。"
             }
         },
         {
@@ -2217,7 +2217,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 155,
+                "line": 175,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary\", spaceId),"
             }
         },
@@ -2227,7 +2227,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary/with_children",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 170,
+                "line": 190,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary/with_children\", spaceId),"
             }
         },
@@ -2237,7 +2237,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/tree_path",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 185,
+                "line": 205,
                 "snippet": "spacePath(\"/spaces/$spaceId/tree_path\", spaceId),"
             }
         },
@@ -2677,8 +2677,8 @@
             "evidence": {
                 "literal": "/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 105,
-                "snippet": "path: friendPath(\"/friends\"),"
+                "line": 119,
+                "snippet": "* 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在"
             }
         },
         {
@@ -2687,8 +2687,8 @@
             "evidence": {
                 "literal": "/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 105,
-                "snippet": "path: friendPath(\"/friends\"),"
+                "line": 119,
+                "snippet": "* 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在"
             }
         },
         {
@@ -2697,7 +2697,7 @@
             "evidence": {
                 "literal": "/friends/check/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 216,
+                "line": 272,
                 "snippet": "path: friendPath(`/friends/check/${encodeURIComponent(userId)}`),"
             }
         },
@@ -2727,7 +2727,7 @@
             "evidence": {
                 "literal": "/friends/search",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 174,
+                "line": 230,
                 "snippet": "path: friendPath(\"/friends/search\"),"
             }
         },
@@ -2737,7 +2737,7 @@
             "evidence": {
                 "literal": "/friends/search",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 174,
+                "line": 230,
                 "snippet": "path: friendPath(\"/friends/search\"),"
             }
         },
@@ -2897,7 +2897,7 @@
             "evidence": {
                 "literal": "/login/sso/redirect",
                 "file": "src/oidc/manager.ts",
-                "line": 330,
+                "line": 319,
                 "snippet": "path: op(\"/login/sso/redirect\"),"
             }
         },
@@ -2977,7 +2977,7 @@
             "evidence": {
                 "literal": "/oidc/authorize",
                 "file": "src/oidc/manager.ts",
-                "line": 188,
+                "line": 177,
                 "snippet": "path: op(\"/oidc/authorize\"),"
             }
         },
@@ -2987,7 +2987,7 @@
             "evidence": {
                 "literal": "/oidc/callback",
                 "file": "src/oidc/manager.ts",
-                "line": 346,
+                "line": 335,
                 "snippet": "const path = op(\"/oidc/callback\");"
             }
         },
@@ -2997,7 +2997,7 @@
             "evidence": {
                 "literal": "/oidc/login",
                 "file": "src/oidc/manager.ts",
-                "line": 303,
+                "line": 292,
                 "snippet": "path: op(\"/oidc/login\"),"
             }
         },
@@ -3007,7 +3007,7 @@
             "evidence": {
                 "literal": "/oidc/logout",
                 "file": "src/oidc/manager.ts",
-                "line": 275,
+                "line": 264,
                 "snippet": "path: op(\"/oidc/logout\"),"
             }
         },
@@ -3017,7 +3017,7 @@
             "evidence": {
                 "literal": "/oidc/token",
                 "file": "src/oidc/manager.ts",
-                "line": 229,
+                "line": 218,
                 "snippet": "path: op(\"/oidc/token\"),"
             }
         },
@@ -3027,7 +3027,7 @@
             "evidence": {
                 "literal": "/oidc/userinfo",
                 "file": "src/oidc/manager.ts",
-                "line": 250,
+                "line": 239,
                 "snippet": "path: op(\"/oidc/userinfo\"),"
             }
         },
@@ -3563,6 +3563,36 @@
         },
         {
             "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}",
+            "evidence": {
+                "literal": "/rooms/{}",
+                "file": "src/admin/sub-managers/admin-room-manager.ts",
+                "line": 143,
+                "snippet": "return await this.adminRequest<RoomInfo>(Method.Get, `/rooms/${encodeURIComponent(roomId)}`);"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/account_data/{type}",
+            "evidence": {
+                "literal": "/rooms/$roomId/account_data/$type",
+                "file": "src/room/RoomManager.ts",
+                "line": 933,
+                "snippet": "path: utils.encodeUri(\"/rooms/$roomId/account_data/$type\", { $roomId: roomId, $type: eventType }),"
+            }
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v3/rooms/{room_id}/account_data/{type}",
+            "evidence": {
+                "literal": "/rooms/$roomId/account_data/$type",
+                "file": "src/room/RoomManager.ts",
+                "line": 933,
+                "snippet": "path: utils.encodeUri(\"/rooms/$roomId/account_data/$type\", { $roomId: roomId, $type: eventType }),"
+            }
+        },
+        {
+            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
             "evidence": {
                 "literal": "/rooms/$roomId/aggregations/$eventId/$relType",
@@ -3662,6 +3692,36 @@
             }
         },
         {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/convert/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/convert/$eventId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 630,
+                "snippet": "encodeUri(\"/rooms/$roomId/convert/$eventId\", {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/device/{device_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/device/$deviceId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 549,
+                "snippet": "encodeUri(\"/rooms/$roomId/device/$deviceId\", {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/encrypted_events",
+            "evidence": {
+                "literal": "/rooms/$roomId/encrypted_events",
+                "file": "src/room-summary/sub-managers/room-key-manager.ts",
+                "line": 137,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/encrypted_events\", roomId),"
+            }
+        },
+        {
             "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/ephemeral",
             "evidence": {
@@ -3672,6 +3732,46 @@
             }
         },
         {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/event/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/event/$eventId",
+                "file": "src/client-batch-requests.ts",
+                "line": 66,
+                "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/event/$eventId\", { $roomId: roomId, $eventId: eventId });"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/event/{event_id}/url",
+            "evidence": {
+                "literal": "/rooms/$roomId/event/$eventId/url",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 571,
+                "snippet": "encodeUri(\"/rooms/$roomId/event/$eventId/url\", {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/event_perspective",
+            "evidence": {
+                "literal": "/rooms/$roomId/event_perspective",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 425,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/event_perspective\", roomId), {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/external_ids",
+            "evidence": {
+                "literal": "/rooms/$roomId/external_ids",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 393,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/external_ids\", roomId));"
+            }
+        },
+        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/forget",
             "evidence": {
@@ -3679,6 +3779,26 @@
                 "file": "src/client-membership.ts",
                 "line": 54,
                 "snippet": "return utils.encodeUri(\"/rooms/$room_id/forget\", { $room_id: roomId });"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/fragments/$userId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 527,
+                "snippet": "encodeUri(\"/rooms/$roomId/fragments/$userId\", {"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/get_membership_events",
+            "evidence": {
+                "literal": "/rooms/$roomId/get_membership_events",
+                "file": "src/room-member/index.ts",
+                "line": 154,
+                "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/get_membership_events\", { $roomId: roomId });"
             }
         },
         {
@@ -3712,6 +3832,16 @@
             }
         },
         {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/invites",
+            "evidence": {
+                "literal": "/rooms/$roomId/invites",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 245,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/invites\", roomId));"
+            }
+        },
+        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/join",
             "evidence": {
@@ -3729,6 +3859,46 @@
                 "file": "src/client-batch-requests.ts",
                 "line": 89,
                 "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/joined_members\", { $roomId: roomId });"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/keys/claim",
+            "evidence": {
+                "literal": "/rooms/$roomId/keys/claim",
+                "file": "src/room-summary/sub-managers/room-key-manager.ts",
+                "line": 61,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/keys/claim\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/keys/count",
+            "evidence": {
+                "literal": "/rooms/$roomId/keys/count",
+                "file": "src/room-summary/sub-managers/room-key-manager.ts",
+                "line": 79,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/keys/count\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/keys/version",
+            "evidence": {
+                "literal": "/rooms/$roomId/keys/version",
+                "file": "src/room-summary/sub-managers/room-key-manager.ts",
+                "line": 95,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/keys/version\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/keys/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/keys/$eventId",
+                "file": "src/room-summary/sub-managers/room-thread-manager.ts",
+                "line": 56,
+                "snippet": "encodeUri(\"/rooms/$roomId/keys/$eventId\", { $roomId: roomId, $eventId: eventId }),"
             }
         },
         {
@@ -3763,6 +3933,36 @@
         },
         {
             "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/members/recent",
+            "evidence": {
+                "literal": "/rooms/$roomId/members/recent",
+                "file": "src/room-summary/sub-managers/room-member-manager.ts",
+                "line": 197,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/members/recent\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/membership/{user_id}",
+            "evidence": {
+                "literal": "/rooms/{}/membership/{}",
+                "file": "src/room/RoomManager.ts",
+                "line": 537,
+                "snippet": "path: rp(`/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/message_queue",
+            "evidence": {
+                "literal": "/rooms/$roomId/message_queue",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 473,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/message_queue\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/messages",
             "evidence": {
                 "literal": "/rooms/$roomId/messages",
@@ -3779,6 +3979,26 @@
                 "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
                 "line": 329,
                 "snippet": "this.roomSummaryPath(\"/rooms/$roomId/metadata\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/notifications",
+            "evidence": {
+                "literal": "/rooms/$roomId/notifications",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 148,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/notifications\", roomId),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/permissions",
+            "evidence": {
+                "literal": "/rooms/$roomId/permissions",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 440,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/permissions\", roomId));"
             }
         },
         {
@@ -3803,12 +4023,42 @@
         },
         {
             "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/receipt/{receipt_type}/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/receipt/$receiptType/$eventId",
+                "file": "src/client-receipt-requests.ts",
+                "line": 27,
+                "snippet": "return utils.encodeUri(\"/rooms/$roomId/receipt/$receiptType/$eventId\", {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/receipts/{receipt_type}/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/receipts/$receiptType/$eventId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 263,
+                "snippet": "encodeUri(\"/rooms/$roomId/receipts/$receiptType/$eventId\", {"
+            }
+        },
+        {
+            "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}",
             "evidence": {
                 "literal": "/rooms/$roomId/redact/$redactsEventId/$txnId",
                 "file": "src/client-send-paths.ts",
                 "line": 37,
                 "snippet": "return encodeUri(\"/rooms/$roomId/redact/$redactsEventId/$txnId\", {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/reduced_events",
+            "evidence": {
+                "literal": "/rooms/$roomId/reduced_events",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 499,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/reduced_events\", roomId));"
             }
         },
         {
@@ -3842,6 +4092,16 @@
             }
         },
         {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/rendered/",
+            "evidence": {
+                "literal": "/rooms/$roomId/rendered/",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 511,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/rendered/\", roomId));"
+            }
+        },
+        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/report",
             "evidence": {
@@ -3872,6 +4132,46 @@
             }
         },
         {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/resolve",
+            "evidence": {
+                "literal": "/rooms/$roomId/resolve",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 452,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/resolve\", roomId));"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/retention",
+            "evidence": {
+                "literal": "/rooms/$roomId/retention",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 381,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/retention\", roomId));"
+            }
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v3/rooms/{room_id}/room_keys/keys",
+            "evidence": {
+                "literal": "/rooms/$roomId/room_keys/keys",
+                "file": "src/room-summary/sub-managers/room-key-manager.ts",
+                "line": 112,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/room_keys/keys\", roomId),"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/search",
+            "evidence": {
+                "literal": "/rooms/$roomId/search",
+                "file": "src/room-summary/sub-managers/room-search-manager.ts",
+                "line": 240,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/search\", roomId),"
+            }
+        },
+        {
             "method": "PUT",
             "path": "/_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}",
             "evidence": {
@@ -3899,6 +4199,26 @@
                 "file": "src/client-send-paths.ts",
                 "line": 43,
                 "snippet": "return encodeUri(\"/rooms/$roomId/send/$eventType/$txnId\", pathParams);"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/service_types",
+            "evidence": {
+                "literal": "/rooms/$roomId/service_types",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 487,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/service_types\", roomId));"
+            }
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v3/rooms/{room_id}/sign/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/sign/$eventId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 655,
+                "snippet": "encodeUri(\"/rooms/$roomId/sign/$eventId\", {"
             }
         },
         {
@@ -4015,10 +4335,30 @@
             "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events",
             "evidence": {
-                "literal": "/_matrix/client/v3/rooms/{}/sticky_events",
-                "file": "src/room/RoomManagerExtensions.ts",
-                "line": 858,
-                "snippet": "path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/sticky_events`,"
+                "literal": "/rooms/$roomId/sticky_events",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 754,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/sticky_events\", roomId));"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events",
+            "evidence": {
+                "literal": "/rooms/$roomId/sticky_events",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 754,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/sticky_events\", roomId));"
+            }
+        },
+        {
+            "method": "DELETE",
+            "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}",
+            "evidence": {
+                "literal": "/rooms/$roomId/sticky_events/$eventType",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 792,
+                "snippet": "encodeUri(\"/rooms/$roomId/sticky_events/$eventType\", { $roomId: roomId, $eventType: eventType }),"
             }
         },
         {
@@ -4183,6 +4523,66 @@
         },
         {
             "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/sync",
+            "evidence": {
+                "literal": "/rooms/$roomId/sync",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 196,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/sync\", roomId), queryParams);"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/thread/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/thread/$eventId",
+                "file": "src/room-summary/sub-managers/room-thread-manager.ts",
+                "line": 83,
+                "snippet": "encodeUri(\"/rooms/$roomId/thread/$eventId\", { $roomId: roomId, $eventId: eventId }),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/threads/$threadId",
+                "file": "src/room-summary/sub-managers/room-thread-manager.ts",
+                "line": 110,
+                "snippet": "encodeUri(\"/rooms/$roomId/threads/$threadId\", { $roomId: roomId, $threadId: threadId }),"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/timeline",
+            "evidence": {
+                "literal": "/rooms/$roomId/timeline",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 292,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/timeline\", roomId),"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/translate/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/translate/$eventId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 601,
+                "snippet": "encodeUri(\"/rooms/$roomId/translate/$eventId\", {"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/turn_server",
+            "evidence": {
+                "literal": "/rooms/$roomId/turn_server",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 702,
+                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/turn_server\", roomId));"
+            }
+        },
+        {
+            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/typing",
             "evidence": {
                 "literal": "/rooms/{}/typing",
@@ -4232,6 +4632,16 @@
             }
         },
         {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/unread_count",
+            "evidence": {
+                "literal": "/rooms/$roomId/unread_count",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 308,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/unread_count\", roomId),"
+            }
+        },
+        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/upgrade",
             "evidence": {
@@ -4243,22 +4653,42 @@
         },
         {
             "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/vault_data",
+            "evidence": {
+                "literal": "/rooms/$roomId/vault_data",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 349,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/vault_data\", roomId),"
+            }
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v3/rooms/{room_id}/vault_data",
+            "evidence": {
+                "literal": "/rooms/$roomId/vault_data",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 349,
+                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/vault_data\", roomId),"
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v3/rooms/{room_id}/verify/{event_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/verify/$eventId",
+                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
+                "line": 684,
+                "snippet": "encodeUri(\"/rooms/$roomId/verify/$eventId\", {"
+            }
+        },
+        {
+            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/version",
             "evidence": {
                 "literal": "/rooms/{}/version",
                 "file": "src/admin/sub-managers/admin-room-manager.ts",
                 "line": 441,
                 "snippet": "return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/version`);"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
-            "evidence": {
-                "literal": "/_matrix/client/v3/rooms/{}/visibility",
-                "file": "src/room/RoomManagerExtensions.ts",
-                "line": 495,
-                "snippet": "path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/visibility`,"
             }
         },
         {
@@ -4367,7 +4797,7 @@
             "evidence": {
                 "literal": "/spaces/public",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 187,
+                "line": 208,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/public\"), options);"
             }
         },
@@ -4377,7 +4807,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 256,
+                "line": 294,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));"
             }
         },
@@ -4387,7 +4817,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}/parents",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 270,
+                "line": 308,
                 "snippet": "sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),"
             }
         },
@@ -4397,7 +4827,7 @@
             "evidence": {
                 "literal": "/spaces/search",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 205,
+                "line": 243,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/search\"), {"
             }
         },
@@ -4407,7 +4837,7 @@
             "evidence": {
                 "literal": "/spaces/statistics",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 224,
+                "line": 262,
                 "snippet": "return await this.doRequest<SpaceStatistics>(Method.Get, sp(\"/spaces/statistics\"));"
             }
         },
@@ -4417,7 +4847,7 @@
             "evidence": {
                 "literal": "/spaces/user",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 241,
+                "line": 279,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/user\"));"
             }
         },
@@ -4457,7 +4887,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 58,
+                "line": 78,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -4467,7 +4897,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 58,
+                "line": 78,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -4477,7 +4907,7 @@
             "evidence": {
                 "literal": "/spaces/{}/children/{}",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 132,
+                "line": 167,
                 "snippet": "sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),"
             }
         },
@@ -4487,7 +4917,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 125,
+                "line": 145,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy\", spaceId),"
             }
         },
@@ -4497,7 +4927,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy/v1",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 140,
+                "line": 160,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy/v1\", spaceId),"
             }
         },
@@ -4547,7 +4977,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/rooms",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 150,
+                "line": 203,
                 "snippet": "spacePath(\"/spaces/$spaceId/rooms\", spaceId),"
             }
         },
@@ -4555,10 +4985,10 @@
             "method": "GET",
             "path": "/_matrix/client/v3/spaces/{space_id}/state",
             "evidence": {
-                "literal": "/spaces/$spaceId/state",
+                "literal": "/spaces/{spaceId}/state",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 166,
-                "snippet": "spacePath(\"/spaces/$spaceId/state\", spaceId),"
+                "line": 215,
+                "snippet": "* 获取 Space 的 state 事件列表（走 `/spaces/{spaceId}/state`）。"
             }
         },
         {
@@ -4567,7 +4997,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 155,
+                "line": 175,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary\", spaceId),"
             }
         },
@@ -4577,7 +5007,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary/with_children",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 170,
+                "line": 190,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary/with_children\", spaceId),"
             }
         },
@@ -4587,7 +5017,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/tree_path",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 185,
+                "line": 205,
                 "snippet": "spacePath(\"/spaces/$spaceId/tree_path\", spaceId),"
             }
         },
@@ -4967,7 +5397,7 @@
             "evidence": {
                 "literal": "/voip/turnServer",
                 "file": "src/client.ts",
-                "line": 3130,
+                "line": 3281,
                 "snippet": "return this.http.authedRequest(Method.Get, \"/voip/turnServer\");"
             }
         },
@@ -5147,8 +5577,8 @@
             "evidence": {
                 "literal": "/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 105,
-                "snippet": "path: friendPath(\"/friends\"),"
+                "line": 119,
+                "snippet": "* 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在"
             }
         },
         {
@@ -5157,8 +5587,8 @@
             "evidence": {
                 "literal": "/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 105,
-                "snippet": "path: friendPath(\"/friends\"),"
+                "line": 119,
+                "snippet": "* 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在"
             }
         },
         {
@@ -5167,7 +5597,7 @@
             "evidence": {
                 "literal": "/friends/check/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 216,
+                "line": 272,
                 "snippet": "path: friendPath(`/friends/check/${encodeURIComponent(userId)}`),"
             }
         },
@@ -5177,7 +5607,7 @@
             "evidence": {
                 "literal": "/friends/dm/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 519,
+                "line": 575,
                 "snippet": "path: friendPath(`/friends/dm/${encodeURIComponent(userId)}`),"
             }
         },
@@ -5187,7 +5617,7 @@
             "evidence": {
                 "literal": "/friends/dm/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 519,
+                "line": 575,
                 "snippet": "path: friendPath(`/friends/dm/${encodeURIComponent(userId)}`),"
             }
         },
@@ -5197,7 +5627,7 @@
             "evidence": {
                 "literal": "/friends/groups",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 277,
+                "line": 333,
                 "snippet": "path: friendPath(\"/friends/groups\"),"
             }
         },
@@ -5207,7 +5637,7 @@
             "evidence": {
                 "literal": "/friends/groups",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 277,
+                "line": 333,
                 "snippet": "path: friendPath(\"/friends/groups\"),"
             }
         },
@@ -5217,7 +5647,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 360,
+                "line": 416,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}`),"
             }
         },
@@ -5227,7 +5657,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/add/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 334,
+                "line": 390,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/add/${encodeURIComponent(userId)}`),"
             }
         },
@@ -5237,7 +5667,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/friends",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 391,
+                "line": 447,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/friends`),"
             }
         },
@@ -5247,7 +5677,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/name",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 377,
+                "line": 433,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/name`),"
             }
         },
@@ -5257,7 +5687,7 @@
             "evidence": {
                 "literal": "/friends/groups/{}/remove/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 347,
+                "line": 403,
                 "snippet": "path: friendPath(`/friends/groups/${groupId}/remove/${encodeURIComponent(userId)}`),"
             }
         },
@@ -5327,7 +5757,7 @@
             "evidence": {
                 "literal": "/friends/search",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 174,
+                "line": 230,
                 "snippet": "path: friendPath(\"/friends/search\"),"
             }
         },
@@ -5337,7 +5767,7 @@
             "evidence": {
                 "literal": "/friends/search",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 174,
+                "line": 230,
                 "snippet": "path: friendPath(\"/friends/search\"),"
             }
         },
@@ -5347,7 +5777,7 @@
             "evidence": {
                 "literal": "/friends/suggestions",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 149,
+                "line": 205,
                 "snippet": "path: friendPath(\"/friends/suggestions\"),"
             }
         },
@@ -5357,7 +5787,7 @@
             "evidence": {
                 "literal": "/friends/{}",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 419,
+                "line": 475,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}`),"
             }
         },
@@ -5367,7 +5797,7 @@
             "evidence": {
                 "literal": "/friends/{}/displayname",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 435,
+                "line": 491,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/displayname`),"
             }
         },
@@ -5377,7 +5807,7 @@
             "evidence": {
                 "literal": "/friends/{}/groups",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 405,
+                "line": 461,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/groups`),"
             }
         },
@@ -5387,7 +5817,7 @@
             "evidence": {
                 "literal": "/friends/{}/info",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 491,
+                "line": 547,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/info`),"
             }
         },
@@ -5397,7 +5827,7 @@
             "evidence": {
                 "literal": "/friends/{}/note",
                 "file": "src/friend/sub-managers/friend-list-manager.ts",
-                "line": 451,
+                "line": 507,
                 "snippet": "path: friendPath(`/friends/${encodeURIComponent(userId)}/note`),"
             }
         },
@@ -5870,6 +6300,11 @@
             "scope": "CLIENT_FACING"
         },
         {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/keys",
+            "scope": "CLIENT_FACING"
+        },
+        {
             "method": "PUT",
             "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.answer/{txn_id}",
             "scope": "CLIENT_FACING"
@@ -5887,6 +6322,16 @@
         {
             "method": "PUT",
             "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.invite/{txn_id}",
+            "scope": "CLIENT_FACING"
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
+            "scope": "CLIENT_FACING"
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
             "scope": "CLIENT_FACING"
         },
         {

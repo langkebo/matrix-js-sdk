@@ -6,6 +6,19 @@
 
 ## 📖 文档导航
 
+### 🚀 开发者指南（接入 SDK 从这里开始）
+
+**第一次在本仓写代码 / 接入 SDK？先读这四篇：**
+
+- [guide/README.md](guide/README.md) - **Quickstart 总入口**（含三条可执行示例的预期输出）
+- [guide/01-messaging.md](guide/01-messaging.md) - 登录 → 收发消息 → sync 循环
+- [guide/02-e2ee.md](guide/02-e2ee.md) - 端到端加密初始化（`initRustCrypto` + secret storage + cross-signing）
+- [guide/03-spaces-friends-dm.md](guide/03-spaces-friends-dm.md) - 空间层级 + 好友 / 直聊
+- [guide/04-error-handling.md](guide/04-error-handling.md) - 错误分类与重试策略
+
+> 上述示例由 `pnpm quality:docs-examples` 从 markdown 抽取后**真跑 tsc**，
+> 因此它们与仓库当前 API 保持同步，不会静默失效。
+
 ### 🎯 快速开始
 
 **新接手项目？从这里开始：**

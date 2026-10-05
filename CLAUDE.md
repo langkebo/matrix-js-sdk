@@ -66,11 +66,11 @@ pnpm lint:workflows       # Validate GitHub Actions workflows
 ### Contract & Quality Checks (CI gates)
 
 ```bash
-pnpm contract:sync                    # Sync route manifests from docs/api-contract/generated/
-pnpm contract:check                   # Verify contract docs are in sync
+pnpm contract:sync                    # Ingest the backend ledger and (re)write docs/api-contract/generated/
+pnpm contract:check                   # Verify the mirror is byte-consistent with the committed manifests
 pnpm contract:codegen                 # Regenerate __generated__ route tables from contract manifests
 pnpm contract:codegen:check           # Verify generated route tables match manifests (CI gate)
-pnpm quality:contracts                # Run all 8 contract quality gates
+pnpm quality:contracts                # Run all contract quality gates (chain: package.json#scripts.quality:contracts)
 pnpm quality:report                   # Full quality report
 pnpm quality:type-coverage            # Check type coverage (no new `any` regressions)
 pnpm quality:swallow-fallbacks        # Detect empty catch blocks
@@ -99,7 +99,7 @@ The CI gate `contract:codegen:check` ensures generated files stay in sync with t
 
 ### Client Architecture
 
-**MatrixClient** (`src/client.ts`) is the main entry point. Its implementation has been decomposed into ~60+ focused modules under `src/client-*.ts`:
+**MatrixClient** (`src/client.ts`) is the main entry point. Its implementation has been decomposed into ~49 focused modules under `src/client-*.ts` (49 files as of 2026-10-05):
 
 | Pattern                                       | Purpose                | Examples                                                                |
 | --------------------------------------------- | ---------------------- | ----------------------------------------------------------------------- |
@@ -110,7 +110,7 @@ The CI gate `contract:codegen:check` ensures generated files stay in sync with t
 
 **Manager infrastructure** lives in `src/client-infra/`:
 
-- `manager-registry.ts` — centralized manager registration (104 managers)
+- `manager-registry.ts` — centralized manager registration (the `ManagerName` union is the authoritative key list; 101 keys as of 2026-10-05)
 - `request-context.ts` — shared request context types
 
 ### Manager Pattern
