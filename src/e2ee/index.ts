@@ -209,11 +209,7 @@ export class E2EEManager extends BaseManager {
      */
     public async uploadKeysToDevice(deviceId: string, body: UploadKeysOptions): Promise<UploadKeysResponse> {
         this.requireNonEmptyString(deviceId, "deviceId");
-        return this.post(
-            ep(`/keys/upload/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),
-            body,
-            "uploadKeysToDevice",
-        );
+        return this.post(ep(`/keys/upload/${encodeURIComponent(deviceId)}`), body, "uploadKeysToDevice");
     }
 
     public async queryKeys(body: QueryKeysRequest): Promise<QueryKeysResponse> {
@@ -328,7 +324,7 @@ export class E2EEManager extends BaseManager {
         return await this.withRetry(async () => {
             await this.request({
                 method: Method.Delete,
-                path: ep(`/room_keys/request/${encodeURIComponent(requestId)}` as StripV3<E2eePathPattern>),
+                path: ep(`/room_keys/request/${encodeURIComponent(requestId)}`),
                 prefix: ClientPrefix.V3,
             });
         }, "deleteRoomKeyRequest");
@@ -339,7 +335,7 @@ export class E2EEManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<RoomKeyDistributionResponse>({
                 method: Method.Get,
-                path: ep(`/rooms/${encodeURIComponent(roomId)}/keys/distribution` as StripV3<E2eePathPattern>),
+                path: ep(`/rooms/${encodeURIComponent(roomId)}/keys/distribution`),
                 prefix: ClientPrefix.V3,
             });
         }, "getRoomKeyDistribution");
@@ -404,7 +400,7 @@ export class E2EEManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<SecureBackupInfo>({
                 method: Method.Get,
-                path: ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
+                path: ep(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
                 prefix: ClientPrefix.V3,
             });
         }, "getSecureBackup");
@@ -415,7 +411,7 @@ export class E2EEManager extends BaseManager {
         return await this.withRetry(async () => {
             await this.request({
                 method: Method.Delete,
-                path: ep(`/keys/backup/secure/${encodeURIComponent(backupId)}` as StripV3<E2eePathPattern>),
+                path: ep(`/keys/backup/secure/${encodeURIComponent(backupId)}`),
                 prefix: ClientPrefix.V3,
             });
         }, "deleteSecureBackup");
@@ -426,11 +422,7 @@ export class E2EEManager extends BaseManager {
         body: StoreSecureBackupKeysBody,
     ): Promise<SecureBackupKeysResponse> {
         this.requireNonEmptyString(backupId, "backupId");
-        return this.post(
-            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys` as StripV3<E2eePathPattern>),
-            body,
-            "storeSecureBackupKeys",
-        );
+        return this.post(ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys`), body, "storeSecureBackupKeys");
     }
 
     public async restoreSecureBackup(
@@ -439,7 +431,7 @@ export class E2EEManager extends BaseManager {
     ): Promise<SecureBackupRestoreResponse> {
         this.requireNonEmptyString(backupId, "backupId");
         return this.post(
-            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore` as StripV3<E2eePathPattern>),
+            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/restore`),
             body,
             "restoreSecureBackup",
         );
@@ -451,7 +443,7 @@ export class E2EEManager extends BaseManager {
     ): Promise<SecureBackupVerifyResponse> {
         this.requireNonEmptyString(backupId, "backupId");
         return this.post(
-            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify` as StripV3<E2eePathPattern>),
+            ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/verify`),
             body,
             "verifySecureBackupPassphrase",
         );

@@ -122,17 +122,6 @@ export interface IOidcLogoutRequest {
     id_token_hint?: string;
 }
 
-export interface IOidcJwks {
-    keys: Array<{
-        kty: string;
-        kid: string;
-        use?: string;
-        alg?: string;
-        n?: string;
-        e?: string;
-    }>;
-}
-
 export interface IOidcRegisterRequest {
     client_name?: string;
     redirect_uris: string[];

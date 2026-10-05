@@ -173,29 +173,19 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     async listWorkersByType(workerType: string, limit?: number): Promise<{ workers: WorkerInfo[] }> {
         if (!workerType) throw new ValidationError("workerType is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.doRequest(
-            Method.Get,
-            wa(`/v1/workers/type/${encodeURIComponent(workerType)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
-            q,
-        );
+        return this.doRequest(Method.Get, wa(`/v1/workers/type/${encodeURIComponent(workerType)}`), q);
     }
 
     /** GET /_synapse/worker/v1/workers/{worker_id} */
     async getWorker(workerId: string): Promise<WorkerInfo> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.doRequest(
-            Method.Get,
-            wa(`/v1/workers/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
-        );
+        return this.doRequest(Method.Get, wa(`/v1/workers/${encodeURIComponent(workerId)}`));
     }
 
     /** DELETE /_synapse/worker/v1/workers/{worker_id} */
     async unregisterWorker(workerId: string): Promise<void> {
         if (!workerId) throw new ValidationError("workerId is required");
-        await this.doRequest(
-            Method.Delete,
-            wa(`/v1/workers/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
-        );
+        await this.doRequest(Method.Delete, wa(`/v1/workers/${encodeURIComponent(workerId)}`));
     }
 
     // ===== Commands =====
@@ -203,12 +193,7 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/workers/{worker_id}/commands */
     async sendCommand(workerId: string, req: SendCommandRequest): Promise<WorkerCommand> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.doRequest(
-            Method.Post,
-            wa(`/v1/workers/${encodeURIComponent(workerId)}/commands` as StripWorkerPrefix<WorkerAdminPathPattern>),
-            undefined,
-            req,
-        );
+        return this.doRequest(Method.Post, wa(`/v1/workers/${encodeURIComponent(workerId)}/commands`), undefined, req);
     }
 
     // ===== Tasks =====
@@ -227,10 +212,7 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** POST /_synapse/worker/v1/tasks/claim/{worker_id} */
     async claimTask(workerId: string): Promise<WorkerTask | null> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.doRequest(
-            Method.Post,
-            wa(`/v1/tasks/claim/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
-        );
+        return this.doRequest(Method.Post, wa(`/v1/tasks/claim/${encodeURIComponent(workerId)}`));
     }
 
     /** POST /_synapse/worker/v1/tasks/{task_id}/claim/{worker_id} */
@@ -238,9 +220,7 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
         if (!taskId || !workerId) throw new ValidationError("taskId/workerId are required");
         return this.doRequest(
             Method.Post,
-            wa(
-                `/v1/tasks/${encodeURIComponent(taskId)}/claim/${encodeURIComponent(workerId)}` as StripWorkerPrefix<WorkerAdminPathPattern>,
-            ),
+            wa(`/v1/tasks/${encodeURIComponent(taskId)}/claim/${encodeURIComponent(workerId)}`),
         );
     }
 
@@ -259,10 +239,7 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
     /** GET /_synapse/worker/v1/select/{task_type} */
     async selectWorker(taskType: string): Promise<SelectWorkerResponse> {
         if (!taskType) throw new ValidationError("taskType is required");
-        return this.doRequest(
-            Method.Get,
-            wa(`/v1/select/${encodeURIComponent(taskType)}` as StripWorkerPrefix<WorkerAdminPathPattern>),
-        );
+        return this.doRequest(Method.Get, wa(`/v1/select/${encodeURIComponent(taskType)}`));
     }
 
     // ===== Topology =====

@@ -18,7 +18,7 @@ export function buildUserAccountDataPath(userId: string | null, eventType: strin
         utils.encodeUri("/user/$userId/account_data/$type", {
             $userId: userId,
             $type: eventType,
-        }) as StripV3<AccountDataPathPattern>,
+        }),
     );
 }
 
@@ -26,7 +26,7 @@ export function buildUserAccountDataListPath(userId: string | null): string {
     return adp(
         utils.encodeUri("/user/$userId/account_data/", {
             $userId: userId,
-        }) as StripV3<AccountDataPathPattern>,
+        }),
     );
 }
 
@@ -36,7 +36,7 @@ export function buildRoomAccountDataPath(userId: string | null, roomId: string, 
             $userId: userId,
             $roomId: roomId,
             $type: eventType,
-        }) as StripV3<AccountDataPathPattern>,
+        }),
     );
 }
 
@@ -56,7 +56,7 @@ export function buildRoomTagPath(userId: string | null, roomId: string, tagName:
 }
 
 export function buildCreateFilterPath(userId: string | null): string {
-    return adp(utils.encodeUri("/user/$userId/filter", { $userId: userId }) as StripV3<AccountDataPathPattern>);
+    return adp(utils.encodeUri("/user/$userId/filter", { $userId: userId }));
 }
 
 export function buildFilterPath(userId: string | null, filterId: string): string {
@@ -64,7 +64,7 @@ export function buildFilterPath(userId: string | null, filterId: string): string
         utils.encodeUri("/user/$userId/filter/$filterId", {
             $userId: userId,
             $filterId: filterId,
-        }) as StripV3<AccountDataPathPattern>,
+        }),
     );
 }
 

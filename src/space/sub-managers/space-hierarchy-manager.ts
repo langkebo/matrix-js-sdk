@@ -65,6 +65,26 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         };
     }
 
+    /**
+     * 获取 Space 的完整层级：Space 本体 + 直接子房间 + 成员。
+     *
+     * 内部并发拉取三份数据（`lifecycle.getSpace` / `child.getSpaceChildren` /
+     * `member.getSpaceMembers`）并缓存结果。`child.addChild` / `removeChild` 会失效缓存，
+     * 但成员变化不会 —— 成员更新后如需即时反映，传 `forceRefresh = true`。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param forceRefresh - 为 `true` 时跳过缓存重新拉取。
+     * @returns `{ space, children, members }`。
+     *
+     * @example
+     * ```typescript
+     * const h = await client.getSpaceManager().hierarchy.getSpaceHierarchy(spaceId);
+     * console.log(`${h.space.name}: ${h.children.length} 个子房间, ${h.members.length} 位成员`);
+     * ```
+     *
+     * @throws {ValidationError} 如果 Space ID 格式无效。
+     * @throws {ApiError} 如果任一子请求失败（`Promise.all` 会整体拒绝）。
+     */
     async getSpaceHierarchy(spaceId: string, forceRefresh = false): Promise<SpaceHierarchy> {
         const start = performance.now();
         let cacheHit = false;

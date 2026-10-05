@@ -17,9 +17,9 @@
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
         "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
-        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key && pnpm quality:real-backend-types && pnpm quality:timer-pairing && pnpm quality:contract-drift",
-        "lint:js": "eslint src spec && node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --check .",
-        "lint:js-fix": "node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --log-level=warn --write . && eslint --fix src spec",
+        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key && pnpm quality:real-backend-types && pnpm quality:timer-pairing && pnpm quality:contract-drift && pnpm quality:coverage:critical-files && pnpm quality:gate-reachability && pnpm quality:manager-extensions",
+        "lint:js": "eslint src spec perf && node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --check .",
+        "lint:js-fix": "node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --log-level=warn --write . && eslint --fix src spec perf",
         "lint:types": "tsc --noEmit",
         "lint:types:real-backend": "tsc -p tsconfig.real-backend.json --noEmit",
         "test:types": "pnpm build:types && tsd",
@@ -68,9 +68,16 @@
         "quality:guest": "node scripts/quality/check-guest-granular-coverage.mjs",
         "quality:generated-dto-strictness": "node scripts/quality/check-generated-dto-strictness.mjs",
         "quality:public-jsdoc-examples": "node scripts/quality/check-public-jsdoc-examples.mjs",
+        "quality:public-api-docs": "node scripts/quality/check-public-api-docs.mjs",
+        "quality:docs-examples": "node scripts/quality/check-docs-examples.mjs",
+        "quality:contract-freshness": "node scripts/quality/check-contract-freshness.mjs",
+        "quality:contract-provenance": "node scripts/quality/check-contract-provenance.mjs",
         "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
         "quality:coverage:weak-files": "node scripts/quality/find-lowest-coverage-files.mjs",
+        "quality:coverage:critical-files": "node scripts/quality/check-coverage-critical-files.mjs",
         "quality:coverage:weak-modules": "node scripts/quality/find-lowest-coverage-modules.mjs",
+        "quality:granular-coverage": "node scripts/quality/run-granular-coverage-gates.mjs",
+        "quality:gate-reachability": "node scripts/quality/check-gate-reachability.mjs",
         "quality:path-contract": "node scripts/quality/verify-path-contract.mjs",
         "quality:msc": "node scripts/quality/check-msc-changes.mjs",
         "quality:msc:strict": "node scripts/quality/check-msc-changes.mjs --strict",
@@ -92,7 +99,8 @@
         "contract:codegen:check": "node scripts/sdk-contract-codegen.mjs --check",
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",
         "generate:manager-extensions": "node scripts/generate-manager-extensions.mjs",
-        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:path-contract && pnpm quality:msc && pnpm quality:waiver-expiry",
+        "quality:manager-extensions": "node scripts/generate-manager-extensions.mjs --check",
+        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:contract-freshness && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:public-api-docs && pnpm quality:docs-examples && pnpm quality:path-contract && pnpm quality:msc && pnpm quality:waiver-expiry",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
         "audit:high": "pnpm audit --audit-level=high",
@@ -147,9 +155,9 @@
             "import": "./lib/voice/index.js",
             "types": "./lib/voice/index.d.ts"
         },
-        "./notification": {
-            "import": "./lib/notification/index.js",
-            "types": "./lib/notification/index.d.ts"
+        "./notifications": {
+            "import": "./lib/notifications/index.js",
+            "types": "./lib/notifications/index.d.ts"
         },
         "./push": {
             "import": "./lib/push/index.js",

@@ -130,9 +130,29 @@ export class DmRoomOperationManager extends BaseManager<DMEvent, DirectMessageMa
     /**
      * 发送 DM 消息
      *
-     * @param roomId - 房间 ID
-     * @param content - 消息内容（字符串或对象）
-     * @returns 发送的事件 ID
+     * 传字符串时会自动包装成 `{ msgtype: "m.text", body }`；传对象则原样发送（可用于图片、
+     * 自定义事件类型等）。它等价于 `sendEvent(roomId, m.room.message, content)`，只是省掉了
+     * 内容包装。
+     *
+     * @param roomId - 房间 ID（必须是 DM 房间；本方法不做 DM 归属校验）。
+     * @param content - 字符串（文本）或完整的 `m.room.message` 内容对象。
+     * @returns 发送的事件 ID。
+     *
+     * @example
+     * ```typescript
+     * // 纯文本
+     * const eventId = await client.getDirectMessageManager().operation.sendDmMessage(roomId, "hi bob");
+     *
+     * // 自定义内容
+     * await client.getDirectMessageManager().operation.sendDmMessage(roomId, {
+     *     msgtype: "m.image",
+     *     body: "diagram.png",
+     *     url: contentUri,
+     * });
+     * ```
+     *
+     * @throws {InvalidParamError} 当 `roomId` 为空。
+     * @throws {SdkError} 发送失败时抛出（无权限、房间不存在等）。
      */
     async sendDmMessage(roomId: string, content: string | IContent): Promise<string> {
         if (!roomId) {

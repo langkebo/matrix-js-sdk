@@ -81,9 +81,7 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
                 async () =>
                     await this.request<{ tags?: IRoomTags }>({
                         method: Method.Get,
-                        path: tp(
-                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags` as StripV3<TagsPathPattern>,
-                        ),
+                        path: tp(`/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags`),
                         prefix: ClientPrefix.V3,
                     }),
                 "getRoomTags",
@@ -121,7 +119,7 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
                     await this.request({
                         method: Method.Put,
                         path: tp(
-                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
+                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
                         ),
                         body: body,
                         prefix: ClientPrefix.V3,
@@ -157,7 +155,7 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
                     await this.request({
                         method: Method.Delete,
                         path: tp(
-                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}` as StripV3<TagsPathPattern>,
+                            `/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
                         ),
                         prefix: ClientPrefix.V3,
                     }),

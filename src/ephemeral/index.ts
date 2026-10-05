@@ -158,7 +158,7 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
             async () => {
                 const response = await this.request<IServerEphemeralEventsResponse>({
                     method: Method.Get,
-                    path: ep(`/rooms/${encodeURIComponent(roomId)}/ephemeral` as StripV3<EphemeralPathPattern>),
+                    path: ep(`/rooms/${encodeURIComponent(roomId)}/ephemeral`),
                     queryParams: { limit: limit ?? this.defaultLimit },
                     prefix: ClientPrefix.V3,
                 });

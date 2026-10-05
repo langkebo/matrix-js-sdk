@@ -859,7 +859,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                     utils.encodeUri("/user/$userId/rooms/$roomId/tags", {
                         $userId: this.client.getUserId()!,
                         $roomId: roomId,
-                    }) as StripV3<TagsPathPattern>,
+                    }),
                 ),
                 prefix: ClientPrefix.V3,
             });
@@ -882,7 +882,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                         $userId: this.client.getUserId()!,
                         $roomId: roomId,
                         $tag: tagName,
-                    }) as StripV3<TagsPathPattern>,
+                    }),
                 ),
                 body: metadata,
                 prefix: ClientPrefix.V3,
@@ -906,7 +906,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                         $userId: this.client.getUserId()!,
                         $roomId: roomId,
                         $tag: tagName,
-                    }) as StripV3<TagsPathPattern>,
+                    }),
                 ),
                 prefix: ClientPrefix.V3,
             });

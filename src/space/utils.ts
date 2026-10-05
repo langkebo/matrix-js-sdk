@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import type { SpacePathPattern } from "./__generated__/route-table";
-import type { Space, SpaceListResponse } from "./types";
+import type { Space } from "./types";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
 
@@ -78,8 +78,4 @@ export function extractSpaces(response: unknown): Space[] {
     const rawList = payload.spaces ?? payload.chunk ?? payload.rooms ?? [];
     if (!Array.isArray(rawList)) return [];
     return rawList.map((item) => normalizeSpace(item as JsonObject));
-}
-
-export function normalizeSpaceListResponse(response: SpaceListResponse): SpaceListResponse {
-    return { ...response, chunk: extractSpaces(response) };
 }

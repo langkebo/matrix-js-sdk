@@ -118,6 +118,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeAppService", module: "app-service" },
     { option: "includeDelayedEvents", module: "delayed-events" },
     { option: "includeAccountStatus", module: "account-status" },
+    { option: "includeWorker", module: "worker" },
+    { option: "includeRoomAlias", module: "room-alias" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -196,6 +198,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeAppService: true,
     includeDelayedEvents: true,
     includeAccountStatus: true,
+    includeWorker: true,
+    includeRoomAlias: true,
 };
 
 let isInitialized = false;
@@ -626,6 +630,16 @@ export async function extendMatrixClientWithManagers(
                 promises.push(
                     safeDynamicImport(import("../account-status/index.js").then((m) => m?.extendMatrixClient())),
                 );
+            }
+
+            if (currentOptions.includeWorker || all) {
+                promises.push(
+                    safeDynamicImport(import("../client/worker/worker.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeRoomAlias || all) {
+                promises.push(safeDynamicImport(import("../room-alias/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             await Promise.all(promises);

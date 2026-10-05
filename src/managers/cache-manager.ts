@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { LRUCache, CacheConfig, CacheStats, CacheRegistry } from "../utils/lru-cache";
+import { LRUCache, CacheStats, CacheRegistry } from "../utils/lru-cache";
 import { logger } from "../logger";
 
 /**
@@ -54,32 +54,6 @@ export interface CacheStrategy {
      * 缓存失效事件监听器
      */
     onInvalidate?: (keys: string[]) => void;
-}
-
-/**
- * 缓存键构建器
- * 支持通配符和参数化键名
- */
-export type CacheKeyBuilder = (params: Record<string, unknown>) => string;
-
-/**
- * 缓存操作结果
- */
-export interface CacheOperationResult<T> {
-    /**
-     * 是否命中缓存
-     */
-    hit: boolean;
-
-    /**
-     * 数据值（如果命中）
-     */
-    value?: T;
-
-    /**
-     * 是否需要重新验证
-     */
-    stale?: boolean;
 }
 
 /**

@@ -947,6 +947,22 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * via {@link MatrixClient#on}. Alternatively, listen for specific
      * state change events.
      * @param opts - Options to apply when syncing.
+     *
+     * @example
+     * ```typescript
+     * client.on(ClientEvent.Sync, (state) => {
+     *     if (state === SyncState.Prepared) console.log(`已加入 ${client.getRooms().length} 个房间`);
+     * });
+     *
+     * await client.startClient({ initialSyncLimit: 20 });
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // 不需要异步扩展 manager 时，可省掉动态 import 的开销
+     * const client = createClient({ baseUrl, accessToken, userId, deviceId, disableDynamicExtensions: true });
+     * await client.startClient();
+     * ```
      */
     public async startClient(opts?: IStartClientOpts): Promise<void> {
         if (this.clientRunning) {
@@ -971,6 +987,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * High level helper method to stop the client from polling and allow a
      * clean shutdown.
+     *
+     * Idempotent: calling it when the client is already stopped is a no-op. Always call this
+     * before dropping the client — leaving the sync loop running leaks timers and in-flight
+     * requests in long-lived hosts.
+     *
+     * @example
+     * ```typescript
+     * const shutdown = (): void => {
+     *     client.stopClient();
+     *     process.exit(0);
+     * };
+     * process.on("SIGINT", shutdown);
+     * process.on("SIGTERM", shutdown);
+     * ```
      */
     public stopClient(): void {
         this.cryptoBackend?.stop(); // crypto might have been initialised even if the client wasn't fully started
@@ -1360,9 +1390,32 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param args.storagePassword - An alternative to `storageKey`. A password which will be used to derive a key to
      *    encrypt the store with. Deriving a key from a password is (deliberately) a slow operation, so prefer
      *    to pass a `storageKey` directly where possible.
+     * @param args.allowInMemoryStore - Explicit opt-out from the ISSUE-08b default-deny guard on unencrypted
+     *    in-memory crypto stores. **For tests / temporary sessions only** — it is rejected outright when
+     *    `NODE_ENV=production`. Production callers must pass a `storageKey` derived from a system keychain.
      *
      * @returns a Promise which will resolve when the crypto layer has been
      *    successfully initialised.
+     *
+     * @example
+     * ```typescript
+     * // 生产：密钥来自系统钥匙串的 32 字节 key
+     * await client.initRustCrypto({ useIndexedDB: true, storageKey: await readFromKeychain("tjg.crypto.store") });
+     *
+     * const crypto = client.getCrypto();
+     * await crypto?.bootstrapCrossSigning({});
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // 仅测试 / 临时会话：内存密钥库（生产构建会拒绝）
+     * await client.initRustCrypto({ useIndexedDB: false, allowInMemoryStore: true });
+     * ```
+     *
+     * @throws {Error} If `userId` or `deviceId` is unknown — call `createClient({ userId, deviceId })` first.
+     * @throws {Error} `Refusing to open unencrypted in-memory crypto store; ...` when neither a store key
+     *    nor `allowInMemoryStore` is supplied.
+     * @throws {Error} `allowInMemoryStore is not permitted in production builds` under `NODE_ENV=production`.
      */
     public async initRustCrypto(
         args: {
@@ -1476,6 +1529,19 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * If end-to-end encryption has been enabled for this client (via {@link initRustCrypto}),
      * returns an object giving access to the crypto API. Otherwise, returns `undefined`.
+     *
+     * @returns The {@link CryptoApi}, or `undefined` when crypto is not initialised.
+     *
+     * @example
+     * ```typescript
+     * await client.initRustCrypto({ useIndexedDB: true, storageKey });
+     *
+     * const crypto = client.getCrypto();
+     * if (!crypto) throw new Error("crypto 未初始化");
+     *
+     * console.log(await crypto.isCrossSigningReady());
+     * console.log((await crypto.getOwnDeviceKeys()).ed25519);
+     * ```
      */
     public getCrypto(): CryptoApi | undefined {
         return this.cryptoBackend;
@@ -2146,6 +2212,41 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getEventManager().redactEvent(roomId, normalized.eventId!, content, normalized.txnId);
     }
 
+    /**
+     * Send an `m.room.message` event to a room.
+     *
+     * Two call shapes are supported:
+     * - `sendMessage(roomId, content)` — send to the room's top level (object overload).
+     * - `sendMessage(roomId, threadId, content, txnId)` — send into a thread; pass `null` for `threadId`
+     *   to target the top level explicitly.
+     *
+     * The second parameter is **`threadId`, not the message body**. If you only want to send text,
+     * prefer {@link MatrixClient.sendTextMessage}, whose parameter meaning is unambiguous.
+     *
+     * @param roomId - The room to send to.
+     * @param threadId - Thread root event id, or the message content itself (object overload).
+     * @param content - The `m.room.message` content.
+     * @param txnId - Optional local transaction id, used for local echo de-duplication
+     *   and retry idempotency.
+     * @returns The send result, including the server-assigned `event_id`.
+     *
+     * @example
+     * ```typescript
+     * // Top-level text message (object overload).
+     * const res = await client.sendMessage(roomId, { msgtype: MsgType.Text, body: "hello" });
+     * console.log(res.event_id);
+     *
+     * // Explicitly target the top level.
+     * await client.sendMessage(roomId, null, { msgtype: MsgType.Text, body: "hello" });
+     *
+     * // Send into a thread.
+     * await client.sendMessage(roomId, threadRootEventId, { msgtype: MsgType.Text, body: "in thread" });
+     * ```
+     *
+     * @throws {SdkError} If the send fails — e.g. no permission in the room, unknown room,
+     *   or content rejected by server-side policy. Inspect `err.isRetryable` / `err.retryAfter`
+     *   to decide whether to retry.
+     */
     public sendMessage(
         roomId: string,
         threadId: string | null | RoomMessageEventContent,
@@ -2216,6 +2317,34 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.sendMessage(roomId, event.threadRootId ?? null, buildEditContent(roomId, event, content), txnId);
     }
 
+    /**
+     * Send a plain-text `m.room.message` to a room, or into a thread.
+     *
+     * This is the recommended entry point for sending chat text: unlike
+     * {@link MatrixClient.sendMessage} there is no overload ambiguity between
+     * "thread id" and "message content".
+     *
+     * Two call shapes:
+     * - `sendTextMessage(roomId, body, txnId?)` — send to the top level.
+     * - `sendTextMessage(roomId, threadId, body, txnId?)` — send into a thread.
+     *
+     * @param roomId - The room to send to.
+     * @param body - The plaintext body. With the 4-argument form this slot is `threadId`.
+     * @param txnId - Optional local transaction id.
+     * @returns The send result, including the server-assigned `event_id`.
+     *
+     * @example
+     * ```typescript
+     * // Top level
+     * const res = await client.sendTextMessage(roomId, "hello from quickstart");
+     * console.log(res.event_id);
+     *
+     * // Into a thread
+     * await client.sendTextMessage(roomId, threadRootEventId, "thread reply");
+     * ```
+     *
+     * @throws {SdkError} If the send fails; see {@link MatrixClient.sendMessage}.
+     */
     public sendTextMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public sendTextMessage(
         roomId: string,
@@ -2234,6 +2363,28 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Text, body }, actualTxnId);
     }
 
+    /**
+     * Send a notice (`msgtype: m.notice`) to a room, or into a thread.
+     *
+     * Notices are rendered by clients as system/bot output rather than a human
+     * message — use them for automated status text, not for chat.
+     *
+     * Two call shapes:
+     * - `sendNotice(roomId, body, txnId?)` — send to the top level.
+     * - `sendNotice(roomId, threadId, body, txnId?)` — send into a thread.
+     *
+     * @param roomId - The room to send to.
+     * @param body - The plaintext body. With the 4-argument form this slot is `threadId`.
+     * @param txnId - Optional local transaction id.
+     * @returns The send result, including the server-assigned `event_id`.
+     *
+     * @example
+     * ```typescript
+     * await client.sendNotice(roomId, "构建完成：3 项检查通过");
+     * ```
+     *
+     * @throws {SdkError} If the send fails; see {@link MatrixClient.sendMessage}.
+     */
     public sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public sendNotice(
         roomId: string,
@@ -3454,10 +3605,62 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountManager().getSsoLoginUrl(redirectUrl, loginType, idpId, action);
     }
 
+    /**
+     * Send a login request and return the server's response.
+     *
+     * ⚠️ This method does **not** update this client's credentials — it only performs the
+     * request. After a successful call you must either build a new client with the returned
+     * `access_token` / `user_id` / `device_id`, or use
+     * {@link AccountManager.login} (via `client.getAccountManager().login(...)`), which writes
+     * the credentials onto the existing client. Forgetting this is the most common cause of
+     * a subsequent `401 M_MISSING_TOKEN`.
+     *
+     * The response's `expires_in` is normalised to `expires_in_ms` (milliseconds) by this fork.
+     *
+     * @param data - The login request body; `type` is required.
+     * @returns The login response with `access_token`, `user_id` and `device_id`.
+     *
+     * @example
+     * ```typescript
+     * const bootstrap = createClient({ baseUrl: "https://matrix.test" });
+     * const res = await bootstrap.loginRequest({
+     *     type: "m.login.password",
+     *     identifier: { type: "m.id.user", user: "alice" },
+     *     password: "alice-secret",
+     * });
+     *
+     * // loginRequest 不会改写 bootstrap 的凭据 —— 必须用返回值新建 client。
+     * const client = createClient({
+     *     baseUrl: "https://matrix.test",
+     *     accessToken: res.access_token,
+     *     userId: res.user_id,
+     *     deviceId: res.device_id,
+     * });
+     * ```
+     *
+     * @throws {AuthError} When credentials are rejected (`M_FORBIDDEN`, HTTP 403).
+     * @throws {RetryableError} On rate limiting (`M_LIMIT_EXCEEDED`) or server errors.
+     */
     public loginRequest(data: LoginRequest): Promise<LoginResponse> {
         return this.getAccountManager().loginRequest(data);
     }
 
+    /**
+     * Invalidate the access token on the server and optionally stop syncing.
+     *
+     * @param stopClient - When `true`, also calls {@link MatrixClient.stopClient} and aborts
+     *   in-flight HTTP requests before logging out.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * // 退出并停止同步
+     * await client.logout(true);
+     * ```
+     *
+     * @throws {SdkError} If the logout request fails. Callers usually want to tear down local
+     *   state regardless — consider catching and logging rather than blocking the UI.
+     */
     public logout(stopClient = false): Promise<EmptyObject> {
         return this.getAccountManager().logout(stopClient);
     }
@@ -3477,6 +3680,40 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountManager().getFallbackAuthUrl(loginType, authSessionId);
     }
 
+    /**
+     * Create a new room.
+     *
+     * ⚠️ `visibility` is the **enum** {@link Visibility} (`Visibility.Private`), not the string
+     * literal `"private"`. Note this differs from the Space APIs
+     * (`spaceManager.lifecycle.createSpace`), which take `"public" | "private"` strings.
+     *
+     * To create a space, pass `creation_content: { type: RoomType.Space }` — a space is still a
+     * room underneath, and `SpaceManager.lifecycle.createSpace` only registers an existing room
+     * as a space.
+     *
+     * @param options - Room creation options; all fields are optional.
+     * @returns `{ room_id }` of the newly created room.
+     *
+     * @example
+     * ```typescript
+     * // 普通私有房间
+     * const { room_id } = await client.createRoom({
+     *     name: "backend",
+     *     visibility: Visibility.Private,
+     * });
+     *
+     * // 创建一个 Space 底层的房间
+     * const space = await client.createRoom({
+     *     name: "工程团队",
+     *     visibility: Visibility.Private,
+     *     creation_content: { type: RoomType.Space },
+     * });
+     * ```
+     *
+     * @throws {ValidationError} If the options are rejected client-side (e.g. malformed alias).
+     * @throws {SdkError} If the server rejects the request — commonly `M_UNKNOWN` when the
+     *   requested room alias is already taken.
+     */
     public async createRoom(options: ICreateRoomOpts): Promise<{ room_id: string }> {
         return this.getRoomManager().createRoom(options);
     }
@@ -3520,6 +3757,27 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getEventManager().getStateEvent(roomId, eventType, stateKey);
     }
 
+    /**
+     * Send a state event into a room.
+     *
+     * Unlike `m.room.message`, state events are keyed by `(eventType, stateKey)` — sending to the
+     * same pair replaces the previous value, so this is idempotent by nature (no de-duplication
+     * needed).
+     *
+     * @param roomId - The target room.
+     * @param eventType - A state event type from {@link StateEvents}.
+     * @param content - The new state content; fully replaces the previous content.
+     * @param stateKey - State key, defaults to `""`.
+     * @param opts - Request options.
+     * @returns The send result, including the server-assigned `event_id`.
+     *
+     * @example
+     * ```typescript
+     * await client.sendStateEvent(roomId, EventType.RoomName, { name: "工程团队" } as StateEvents[EventType.RoomName]);
+     * ```
+     *
+     * @throws {SdkError} If the caller lacks the required power level (`M_FORBIDDEN`).
+     */
     public async sendStateEvent<K extends keyof StateEvents>(
         roomId: string,
         eventType: K,
@@ -3558,6 +3816,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().roomInitialSync(roomId);
     }
 
+    /**
+     * Fetch the ids of every room this account has joined.
+     *
+     * This is a direct server query, useful before the first `/sync` completes. Once syncing,
+     * {@link MatrixClient.getRooms} is usually cheaper — it reads the local store and returns
+     * `Room` objects, not just ids.
+     *
+     * @returns `{ joined_rooms: string[] }`.
+     *
+     * @example
+     * ```typescript
+     * const { joined_rooms } = await client.getJoinedRooms();
+     * console.log(`已加入 ${joined_rooms.length} 个房间`);
+     * ```
+     *
+     * @throws {AuthError} When the access token is missing or expired.
+     */
     public getJoinedRooms(): Promise<IJoinedRoomsResponse> {
         return getJoinedRoomsRequest(this.authedRequestProxy);
     }
@@ -3607,6 +3882,32 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getSearchManager().searchUserDirectory({ term, limit });
     }
 
+    /**
+     * Upload a file to the media repository and get back an `mxc://` URI.
+     *
+     * The returned `content_uri` is what you put into message content (`url` for
+     * `m.image` / `m.file` / `m.audio` / `m.video`). Use {@link MatrixClient.mxcUrlToHttp} to turn
+     * it back into a fetchable HTTP URL for rendering.
+     *
+     * @param file - A `File` / `Blob` (browser) or any object with a `name` and byte content.
+     * @param opts - Upload options; `opts.name` sets the filename, `opts.type` the MIME type.
+     *   `opts.onlyContentUri` returns just the URI string.
+     * @returns The upload response containing `content_uri` (and `file` metadata when requested).
+     *
+     * @example
+     * ```typescript
+     * const { content_uri } = await client.uploadContent(pngBlob, { name: "diagram.png", type: "image/png" });
+     *
+     * await client.sendMessage(roomId, {
+     *     msgtype: MsgType.Image,
+     *     body: "diagram.png",
+     *     url: content_uri,
+     * });
+     * ```
+     *
+     * @throws {SdkError} If the upload fails — commonly `M_TOO_LARGE` when the file exceeds the
+     *   homeserver's `m.upload.size` limit.
+     */
     public uploadContent(file: FileType, opts?: UploadOpts): Promise<UploadResponse> {
         return this.http.uploadContent(file, opts);
     }

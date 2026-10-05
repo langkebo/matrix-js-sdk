@@ -27,6 +27,26 @@ import { MatrixClient } from "../client";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import { ValidationError } from "../errors";
+import type { VoicePathPattern } from "./__generated__/route-table";
+
+/**
+ * 路径前缀剥离：把契约表里的绝对路径（`/_matrix/client/v3/…`）化成管理器内部
+ * 使用的相对路径，供 `vp()` 做编译期断言。与 `e2ee/index.ts`、`notifications/index.ts`
+ * 的写法保持一致。
+ */
+type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+
+/**
+ * 契约路径断言。所有指向 synapse-rust `voice` 路由的调用都必须经过它，
+ * 使路径拼写错误成为**编译错误**而不是线上 404。
+ *
+ * 唯一例外：`deleteVoiceMessage` 的 `DELETE /voice/{media_id}`（后端未注册该
+ * 方法，见 `scripts/quality/path-contract-waivers.json`）与 MSC4143 的
+ * `/org.matrix.msc4143/rtc/transports`（不属 voice 契约），二者显式保留裸字符串。
+ */
+function vp<P extends StripV3<VoicePathPattern>>(path: P): P {
+    return path;
+}
 
 export interface IVoiceStats {
     total_messages: number;
@@ -275,7 +295,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceStats>({
                     method: Method.Get,
-                    path: "/voice/stats",
+                    path: vp("/voice/stats"),
                     prefix,
                 });
             }, "getVoiceStats");
@@ -290,7 +310,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceRoomStats>({
                     method: Method.Get,
-                    path: `/voice/room/${encodeURIComponent(roomId)}/stats`,
+                    path: vp(`/voice/room/${encodeURIComponent(roomId)}/stats`),
                     prefix,
                 });
             }, "getRoomVoiceStats");
@@ -305,7 +325,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceUserStats>({
                     method: Method.Get,
-                    path: `/voice/user/${encodeURIComponent(userId)}/stats`,
+                    path: vp(`/voice/user/${encodeURIComponent(userId)}/stats`),
                     prefix,
                 });
             }, "getUserVoiceStats");
@@ -330,7 +350,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             const config = await this.withRetry(async () => {
                 return await this.request<IVoiceConfig>({
                     method: Method.Get,
-                    path: "/voice/config",
+                    path: vp("/voice/config"),
                     prefix,
                 });
             }, "getVoiceConfig");
@@ -353,7 +373,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                 async () => {
                     return await this.request<IVoiceUploadResponse>({
                         method: Method.Post,
-                        path: "/voice/upload",
+                        path: vp("/voice/upload"),
                         body: request,
                         prefix,
                     });
@@ -392,7 +412,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                     }
                     return await this.request<IVoiceUploadResponse>({
                         method: Method.Post,
-                        path: "/voice/upload",
+                        path: vp("/voice/upload"),
                         body: formData,
                         prefix: request.prefix ?? VendorPrefix,
                         // Let the browser set Content-Type with boundary; override only if
@@ -414,7 +434,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceMessage>({
                     method: Method.Get,
-                    path: `/voice/${encodeURIComponent(messageId)}`,
+                    path: vp(`/voice/${encodeURIComponent(messageId)}`),
                     prefix,
                 });
             }, "getVoiceMessage");
@@ -429,7 +449,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             const response = await this.withRetry(async () => {
                 return await this.request<IVoiceDeleteResponse>({
                     method: Method.Delete,
-                    path: `/voice/${encodeURIComponent(messageId)}`,
+                    path: vp(`/voice/${encodeURIComponent(messageId)}`),
                     prefix,
                 });
             }, "deleteVoiceMessage");
@@ -484,7 +504,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                 }
                 return await this.request<IVoiceMessageList>({
                     method: Method.Get,
-                    path: `/voice/room/${encodeURIComponent(roomId)}`,
+                    path: vp(`/voice/room/${encodeURIComponent(roomId)}`),
                     queryParams,
                     prefix,
                 });
@@ -524,7 +544,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
                 }
                 return await this.request<IVoiceMessageList>({
                     method: Method.Get,
-                    path: `/voice/user/${encodeURIComponent(userId)}`,
+                    path: vp(`/voice/user/${encodeURIComponent(userId)}`),
                     queryParams,
                     prefix,
                 });
@@ -554,7 +574,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceConvertResponse>({
                     method: Method.Post,
-                    path: `/voice/${encodeURIComponent(mediaId)}/convert`,
+                    path: vp(`/voice/${encodeURIComponent(mediaId)}/convert`),
                     body: options ?? {},
                     prefix,
                 });
@@ -574,7 +594,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceOptimizeResponse>({
                     method: Method.Post,
-                    path: `/voice/${encodeURIComponent(mediaId)}/optimize`,
+                    path: vp(`/voice/${encodeURIComponent(mediaId)}/optimize`),
                     body: options ?? {},
                     prefix,
                 });
@@ -594,7 +614,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceTranscribeResponse>({
                     method: Method.Post,
-                    path: `/voice/${encodeURIComponent(mediaId)}/transcription`,
+                    path: vp(`/voice/${encodeURIComponent(mediaId)}/transcription`),
                     body: options ?? {},
                     prefix,
                 });
@@ -632,7 +652,7 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
             return await this.withRetry(async () => {
                 return await this.request<IVoiceRegisterResponse>({
                     method: Method.Post,
-                    path: "/voice/register",
+                    path: vp("/voice/register"),
                     body: {
                         room_id: roomId,
                         media_id: mediaId,

@@ -187,7 +187,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             () =>
                 this.request<IBurnSettings>({
                     method: Method.Put,
-                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn`),
                     body: { enabled: true, burn_after_ms: burnMs },
                     prefix,
                 }),
@@ -215,7 +215,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             () =>
                 this.request<IBurnSettings>({
                     method: Method.Put,
-                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn`),
                     body: { enabled: false },
                     prefix,
                 }),
@@ -243,7 +243,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             () =>
                 this.request<IBurnSettings>({
                     method: Method.Get,
-                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn` as StripV1<BurnAfterReadPathPattern>),
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn`),
                     prefix,
                 }),
             "getBurnSettings",
@@ -269,7 +269,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             () =>
                 this.request<{ events?: IBurnPendingEvent[] }>({
                     method: Method.Get,
-                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn/pending` as StripV1<BurnAfterReadPathPattern>),
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn/pending`),
                     prefix,
                 }),
             "getPendingBurns",
@@ -296,9 +296,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
                 () =>
                     this.request<IMarkBurnReadResponse>({
                         method: Method.Post,
-                        path: bp(
-                            `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
-                        ),
+                        path: bp(`/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`),
                         prefix,
                     }),
                 "markBurnRead",
@@ -345,9 +343,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
             () =>
                 this.request<ICancelBurnResponse>({
                     method: Method.Delete,
-                    path: bp(
-                        `/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}` as StripV1<BurnAfterReadPathPattern>,
-                    ),
+                    path: bp(`/rooms/${encodeURIComponent(roomId)}/burn/${encodeURIComponent(eventId)}`),
                     prefix,
                 }),
             "cancelBurn",

@@ -8,7 +8,6 @@
  * client.ts 现在只保留公开签名 + 转发，行为不变（既有 client 测试即回归网）。
  */
 
-import type { IContent } from "./models/event.ts";
 import type { MatrixEvent } from "./models/event.ts";
 import type { RoomMessageEventContent } from "./@types/events.ts";
 import { RelationType } from "./@types/event.ts";
@@ -93,9 +92,4 @@ export function buildEditContent(
             event_id: event.getId()!,
         },
     } as RoomMessageEventContent;
-}
-
-/** 便捷断言：把内容当作 `IContent` 使用时不会丢字段（类型层面的回归防线）。 */
-export function asContent(content: RoomMessageEventContent): IContent {
-    return content as IContent;
 }

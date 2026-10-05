@@ -222,7 +222,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
-        const path = ap(`/directory/room/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/directory/room/${encodeURIComponent(alias)}`);
         return this.withRetry(async () => {
             return await this.request<{ room_id: string; servers: string[] }>({
                 method: Method.Get,
@@ -266,7 +266,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getUserDirectoryProfile(userId: string): Promise<UserDirectoryProfile> {
-        const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}`);
         return this.withRetry(async () => {
             return await this.request<UserDirectoryProfile>({
                 method: Method.Get,
@@ -276,7 +276,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getRoomVisibility(roomId: string): Promise<RoomVisibilityResponse> {
-        const path = ap(`/directory/list/room/${encodeURIComponent(roomId)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/directory/list/room/${encodeURIComponent(roomId)}`);
         return this.withRetry(async () => {
             return await this.request<RoomVisibilityResponse>({
                 method: Method.Get,
@@ -286,7 +286,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async setRoomVisibility(roomId: string, visibility: "public" | "private"): Promise<void> {
-        const path = ap(`/directory/list/room/${encodeURIComponent(roomId)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/directory/list/room/${encodeURIComponent(roomId)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Put,
@@ -341,7 +341,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async setRoomAlias(roomId: string, alias: string): Promise<void> {
-        const path = ap(`/directory/room/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/directory/room/${encodeURIComponent(alias)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Put,
@@ -352,7 +352,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getAliasesForRoom(roomId: string): Promise<RoomAliasListResponse> {
-        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias`);
         return this.withRetry(async () => {
             return await this.request<RoomAliasListResponse>({
                 method: Method.Get,
@@ -362,9 +362,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async addRoomAliasForRoom(roomId: string, alias: string): Promise<void> {
-        const path = ap(
-            `/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>,
-        );
+        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Put,
@@ -374,9 +372,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async deleteRoomAliasForRoom(roomId: string, alias: string): Promise<void> {
-        const path = ap(
-            `/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>,
-        );
+        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Delete,
@@ -386,7 +382,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async deleteRoomAlias(alias: string): Promise<void> {
-        const path = ap(`/directory/room/${encodeURIComponent(alias)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/directory/room/${encodeURIComponent(alias)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Delete,

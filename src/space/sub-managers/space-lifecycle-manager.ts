@@ -164,6 +164,27 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * 更新 Space 元数据（名称、主题、头像、join rule 等）。
+     *
+     * 成功后会自动清空 query 缓存并失效本 Space 的生命周期缓存，并发出
+     * `SpaceEvent.SpaceUpdated`；服务端返回空体时会回读一次以拿到完整对象。
+     *
+     * @param spaceId - Space ID。
+     * @param options - 要更新的字段；未提供的字段保持不变。
+     * @returns 更新后的 Space。
+     *
+     * @example
+     * ```typescript
+     * const updated = await client.getSpaceManager().lifecycle.updateSpace(spaceId, {
+     *     name: "工程团队（2026）",
+     *     topic: "所有后端服务的归属空间",
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 如果字段超长（name > 255 / topic > 1000 / avatar_url > 2048）。
+     * @throws {ApiError} 如果 API 调用失败（如无权限）。
+     */
     async updateSpace(spaceId: string, options: UpdateSpaceOptions): Promise<Space> {
         try {
             const response = await this.withRetry(async () => {
@@ -191,6 +212,23 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * 删除 Space。
+     *
+     * 注意：这只删除 Space 实体与关系，**不会**删除底层房间，也不会踢出成员。
+     * 若目标是彻底清理，需要另行处理房间与成员。
+     *
+     * @param spaceId - Space ID。
+     *
+     * @example
+     * ```typescript
+     * await client.getSpaceManager().lifecycle.deleteSpace(spaceId);
+     * // 已订阅 SpaceEvent.SpaceDeleted 的监听器会收到 spaceId
+     * ```
+     *
+     * @throws {ValidationError} 如果 Space ID 格式无效。
+     * @throws {ApiError} 如果 API 调用失败（如无权限）。
+     */
     async deleteSpace(spaceId: string): Promise<void> {
         try {
             await this.withRetry(async () => {

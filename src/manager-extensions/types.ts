@@ -68,6 +68,8 @@ export interface ManagerExtensionsOptions {
     includeDehydratedDevice?: boolean;
     includeDelayedEvents?: boolean;
     includeAccountStatus?: boolean;
+    includeWorker?: boolean;
+    includeRoomAlias?: boolean;
     includeThread?: boolean;
     includeWidget?: boolean;
 

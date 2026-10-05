@@ -46,7 +46,10 @@ export function buildStateEventPath(roomId: string, eventType: string, stateKey?
         $eventType: eventType,
         $stateKey: stateKey,
     };
-    let path = utils.encodeUri("/rooms/$roomId/state/$eventType", pathParams);
+    // `path` is widened to `string` on purpose: it is re-assigned from two
+    // differently-shaped templates below, so pinning it to the first shape
+    // would make the second assignment type-unsound.
+    let path: string = utils.encodeUri("/rooms/$roomId/state/$eventType", pathParams);
     if (stateKey !== undefined) {
         path = utils.encodeUri(path + "/$stateKey", pathParams);
     }
@@ -201,7 +204,7 @@ export function getOpenIdTokenRequest(userId: string, authedRequest: AuthedReque
     const path = adp(
         utils.encodeUri("/user/$userId/openid/request_token", {
             $userId: userId,
-        }) as StripV3<AccountDataPathPattern>,
+        }),
     );
     return authedRequest<IOpenIDToken>(Method.Post, path, undefined, {});
 }

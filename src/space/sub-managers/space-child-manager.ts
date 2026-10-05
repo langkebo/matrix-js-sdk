@@ -48,6 +48,26 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         this.parent = parent;
     }
 
+    /**
+     * 获取 Space 的直接子房间列表。
+     *
+     * 结果带缓存（键为 `children:{spaceId}`）；`addChild` / `removeChild` 会自动失效该键。
+     *
+     * @param spaceId - Space ID（注意不是底层房间 ID）。
+     * @param options - 查询参数（如 `limit` / `from`）。
+     * @returns 子房间数组。
+     *
+     * @example
+     * ```typescript
+     * const children = await client.getSpaceManager().child.getSpaceChildren("!space:matrix.test");
+     * for (const c of children) {
+     *     console.log(c.room_id, c.order ?? "-", c.is_suggested ?? false);
+     * }
+     * ```
+     *
+     * @throws {ValidationError} 如果 Space ID 格式无效。
+     * @throws {ApiError} 如果 API 调用失败。
+     */
     async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
         try {
             // 使用 getOrFetch 自动处理缓存
@@ -124,6 +144,21 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 从 Space 中移除一个子房间。
+     *
+     * @param spaceId - Space ID。
+     * @param roomId - 要移除的子房间 ID。
+     *
+     * @example
+     * ```typescript
+     * await client.getSpaceManager().child.removeChild(spaceId, roomId);
+     * // 之后 child.getSpaceChildren(spaceId) 的缓存已自动失效
+     * ```
+     *
+     * @throws {ValidationError} 如果 Space ID 或房间 ID 格式无效。
+     * @throws {ApiError} 如果 API 调用失败（如无权限）。
+     */
     async removeChild(spaceId: string, roomId: string): Promise<void> {
         try {
             await this.withRetry(async () => {
@@ -142,6 +177,24 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 获取 Space 下所有房间的详情（不只是 child 关系，含房间元数据）。
+     *
+     * 与 `getSpaceChildren` 的区别：后者返回 `m.space.child` 关系记录（含 `order` / `via_servers`），
+     * 本方法返回房间实体列表（含 `name` / `topic` 等），更适合直接渲染列表。
+     *
+     * @param spaceId - Space ID。
+     * @param options - 查询参数。
+     * @returns 房间数组。
+     *
+     * @example
+     * ```typescript
+     * const rooms = await client.getSpaceManager().child.getSpaceRooms(spaceId);
+     * console.log(rooms.map((r) => r.name ?? r.room_id));
+     * ```
+     *
+     * @throws {ApiError} 如果 API 调用失败。
+     */
     async getSpaceRooms(spaceId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {
@@ -158,6 +211,22 @@ export class SpaceChildManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 获取 Space 的 state 事件列表（走 `/spaces/{spaceId}/state`）。
+     *
+     * 需要标准房间级 state 时用 `spaceManager.getRoomStateEventsRaw(roomId)`，那是另一个端点。
+     *
+     * @param spaceId - Space ID。
+     * @returns 原始 state 事件数组；响应为 `{ events: [...] }` 形态时自动取出 `events`。
+     *
+     * @example
+     * ```typescript
+     * const state = await client.getSpaceManager().child.getSpaceState(spaceId);
+     * console.log(`Space 有 ${state.length} 条 state 事件`);
+     * ```
+     *
+     * @throws {ApiError} 如果 API 调用失败。
+     */
     async getSpaceState(spaceId: string): Promise<unknown[]> {
         try {
             const response = await this.withRetry(async () => {

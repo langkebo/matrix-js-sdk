@@ -281,6 +281,21 @@ export function replaceParam(stable: string, unstable: string, dict: QueryDict):
 }
 
 /**
+ * Maps a `$variable` path template onto the equivalent `${string}` template
+ * literal type, so that runtime-interpolated paths still satisfy the contract
+ * route unions (e.g. `/user/$userId/account_data/$type` becomes
+ * `/user/${string}/account_data/${string}`).
+ *
+ * Recursion is performed per path segment; a segment normally holds at most
+ * one placeholder, so the greedy `Prefix` capture is safe in practice.
+ */
+type ReplaceDollarVariables<S extends string> = S extends `${infer Head}/${infer Tail}`
+    ? `${ReplaceDollarVariables<Head>}/${ReplaceDollarVariables<Tail>}`
+    : S extends `${infer Prefix}$${string}`
+      ? `${Prefix}${string}`
+      : S;
+
+/**
  * Encodes a URI according to a set of template variables. Variables will be
  * passed through encodeURIComponent.
  * @param pathTemplate - The path with template variables e.g. '/foo/$bar'.
@@ -288,7 +303,11 @@ export function replaceParam(stable: string, unstable: string, dict: QueryDict):
  * variables with. E.g. `{ "$bar": "baz" }`.
  * @returns The result of replacing all template variables e.g. '/foo/baz'.
  */
-export function encodeUri(pathTemplate: string, variables: Record<string, string | null | undefined>): string {
+export function encodeUri<P extends string>(
+    pathTemplate: P,
+    variables: Record<string, string | null | undefined>,
+): ReplaceDollarVariables<P> {
+    let result: string = pathTemplate;
     for (const key in variables) {
         if (!variables.hasOwnProperty(key)) {
             continue;
@@ -297,9 +316,9 @@ export function encodeUri(pathTemplate: string, variables: Record<string, string
         if (value === undefined || value === null) {
             continue;
         }
-        pathTemplate = pathTemplate.replace(key, encodeURIComponent(value));
+        result = result.replace(key, encodeURIComponent(value));
     }
-    return pathTemplate;
+    return result as ReplaceDollarVariables<P>;
 }
 
 export function ensureNoTrailingSlash(url: string): string;

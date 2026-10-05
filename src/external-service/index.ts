@@ -161,11 +161,11 @@ export class ExternalServiceManager extends BaseManager {
         const encoded = encodeURIComponent(serviceId);
         switch (prefix) {
             case "synapse_admin":
-                return sap(`/external_services/${encoded}`) as StripSynapseAdminV1<ExternalServicePathPattern>;
+                return sap(`/external_services/${encoded}`);
             case "matrix_admin":
-                return map(`/external_services/${encoded}`) as StripMatrixAdminV1<ExternalServicePathPattern>;
+                return map(`/external_services/${encoded}`);
             case "client":
-                return cp(`/external_services/${encoded}`) as StripClientV1<ExternalServicePathPattern>;
+                return cp(`/external_services/${encoded}`);
         }
     }
 
@@ -262,7 +262,7 @@ export class ExternalServiceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<ExternalServiceSingleHealthResponse>({
                 method: Method.Get,
-                path: sap(`/external_services/${encoded}/health`) as StripSynapseAdminV1<ExternalServicePathPattern>,
+                path: sap(`/external_services/${encoded}/health`),
                 prefix: AdminPrefix.V1,
             });
         }, "getServiceHealth");
@@ -274,9 +274,7 @@ export class ExternalServiceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<ExternalServiceHealthCheckResponse>({
                 method: Method.Post,
-                path: sap(
-                    `/external_services/${encoded}/health/check`,
-                ) as StripSynapseAdminV1<ExternalServicePathPattern>,
+                path: sap(`/external_services/${encoded}/health/check`),
                 prefix: AdminPrefix.V1,
             });
         }, "checkServiceHealth");

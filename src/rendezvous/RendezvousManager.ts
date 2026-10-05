@@ -177,7 +177,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
         try {
             return await this.rendezvousRequest<RendezvousSession>(
                 Method.Get,
-                rp(`/rendezvous/${encodeURIComponent(sessionId)}` as StripV1<RendezvousPathPattern>),
+                rp(`/rendezvous/${encodeURIComponent(sessionId)}`),
                 undefined,
                 undefined,
                 sessionKey,
@@ -202,7 +202,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     ): Promise<UpdateSessionResponse> {
         const response = await this.rendezvousRequest<UpdateSessionResponse>(
             Method.Put,
-            rp(`/rendezvous/${encodeURIComponent(sessionId)}` as StripV1<RendezvousPathPattern>),
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}`),
             undefined,
             { status },
             sessionKey,
@@ -224,7 +224,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     async deleteSession(sessionId: string, sessionKey?: string): Promise<void> {
         await this.rendezvousRequest<void>(
             Method.Delete,
-            rp(`/rendezvous/${encodeURIComponent(sessionId)}` as StripV1<RendezvousPathPattern>),
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}`),
             undefined,
             undefined,
             sessionKey,
@@ -245,7 +245,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     ): Promise<SendMessageResponse> {
         const response = await this.rendezvousRequest<SendMessageResponse>(
             Method.Post,
-            rp(`/rendezvous/${encodeURIComponent(sessionId)}/messages` as StripV1<RendezvousPathPattern>),
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}/messages`),
             undefined,
             message,
             sessionKey,
@@ -262,7 +262,7 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     async getMessages(sessionId: string, sessionKey?: string): Promise<GetMessagesResponse> {
         const response = await this.rendezvousRequest<GetMessagesResponse>(
             Method.Get,
-            rp(`/rendezvous/${encodeURIComponent(sessionId)}/messages` as StripV1<RendezvousPathPattern>),
+            rp(`/rendezvous/${encodeURIComponent(sessionId)}/messages`),
             undefined,
             undefined,
             sessionKey,

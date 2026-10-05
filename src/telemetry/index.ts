@@ -408,10 +408,7 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         if (!alertId) {
             throw new ValidationError("Alert ID is required");
         }
-        return this.adminRequest(
-            Method.Post,
-            tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack` as StripAdminV1<TelemetryPathPattern>),
-        );
+        return this.adminRequest(Method.Post, tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack`));
     }
 
     public flush(): void {

@@ -43,13 +43,6 @@ export interface IFederationStateIdsResponse {
 }
 
 /**
- * GET /_matrix/federation/v1/event/{eventId} 响应
- *
- * @see https://spec.matrix.org/v1.11/server-server-api/#get_matrixfederationv1eventeventid
- */
-export type IFederationEventResponse = IEvent;
-
-/**
  * GET /_matrix/federation/v1/backfill/{roomId} 响应
  *
  * @see https://spec.matrix.org/v1.11/server-server-api/#get_matrixfederationv1backfillroomid

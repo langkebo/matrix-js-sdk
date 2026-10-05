@@ -17,7 +17,7 @@ limitations under the License.
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { Mock } from "vitest";
 
-import { Method } from "../../src/http-api";
+import { Method, MatrixError } from "../../src/http-api";
 import * as cryptoRequests from "../../src/client-crypto-requests";
 import type { QueryDict } from "../../src/utils";
 
@@ -295,6 +295,114 @@ describe("client-crypto-requests", () => {
                 expect.objectContaining({
                     device_keys: {},
                 }),
+            );
+        });
+    });
+
+    describe("deleteRoomKeyRequestHttpRequest path encoding", () => {
+        it("should percent-encode spaces and slashes in requestId", async () => {
+            const requestId = "a b/c";
+
+            await cryptoRequests.deleteRoomKeyRequestHttpRequest(requestId, mockAuthedRequest);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/room_keys/request/a%20b%2Fc",
+                undefined,
+                undefined,
+                { prefix: expect.any(String) },
+            );
+        });
+
+        it("should not double-encode a requestId without reserved characters", async () => {
+            const requestId = "abc-123_XYZ";
+
+            await cryptoRequests.deleteRoomKeyRequestHttpRequest(requestId, mockAuthedRequest);
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Delete,
+                "/room_keys/request/abc-123_XYZ",
+                undefined,
+                undefined,
+                { prefix: expect.any(String) },
+            );
+        });
+    });
+
+    describe("Error propagation (HTTP status -> SDK error)", () => {
+        it("should propagate 400 M_BAD_JSON instead of swallowing it", async () => {
+            const err = new MatrixError({ errcode: "M_BAD_JSON", error: "Invalid JSON body" }, 400);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(cryptoRequests.uploadKeysHttpRequest({ invalid: true }, mockAuthedRequest)).rejects.toThrow(
+                err,
+            );
+        });
+
+        it("should propagate 401 M_UNKNOWN_TOKEN on key upload", async () => {
+            const err = new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "bad token" }, 401);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(
+                cryptoRequests.uploadKeySignaturesHttpRequest({ signatures: {} }, mockAuthedRequest),
+            ).rejects.toThrow(err);
+        });
+
+        it("should propagate 403 M_FORBIDDEN on key query", async () => {
+            const err = new MatrixError({ errcode: "M_FORBIDDEN", error: "forbidden" }, 403);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(
+                cryptoRequests.queryKeysForUsersRequest(["@alice:example.com"], undefined, mockAuthedRequest),
+            ).rejects.toThrow(err);
+        });
+
+        it("should surface 429 rate-limit as a retryable MatrixError", async () => {
+            const err = new MatrixError({ errcode: "M_LIMIT_EXCEEDED", error: "slow down" }, 429);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(
+                cryptoRequests.claimOneTimeKeysHttpRequest(
+                    [["@alice:example.com", "DEVICE1"]],
+                    undefined,
+                    undefined,
+                    mockAuthedRequest,
+                ),
+            ).rejects.toThrow(err);
+            expect(err.isRateLimitError()).toBe(true);
+        });
+
+        it("should propagate 404 as M_UNRECOGNIZED-capable error on signing key upload", async () => {
+            const err = new MatrixError({ errcode: "M_UNRECOGNIZED", error: "unknown endpoint" }, 404);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(
+                cryptoRequests.uploadDeviceSigningKeysHttpRequest(undefined, {}, mockAuthedRequest),
+            ).rejects.toThrow(err);
+            expect(err.isUnrecognizedError()).toBe(true);
+        });
+
+        it("should propagate 500 server error on room key request", async () => {
+            const err = new MatrixError({ errcode: "M_UNKNOWN", error: "internal error" }, 500);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(
+                cryptoRequests.requestRoomKeyHttpRequest({ room_id: "!r:example.com" }, mockAuthedRequest),
+            ).rejects.toThrow(err);
+        });
+
+        it("should propagate 502 upstream failure on key changes fetch", async () => {
+            const err = new MatrixError({ error: "bad gateway" }, 502);
+            mockAuthedRequest.mockRejectedValue(err);
+
+            await expect(cryptoRequests.getKeyChangesRequest("a", "b", mockAuthedRequest)).rejects.toThrow(err);
+        });
+
+        it("should not resolve when the transport rejects", async () => {
+            mockAuthedRequest.mockRejectedValue(new Error("network down"));
+
+            await expect(cryptoRequests.getRoomKeyRequestsHttpRequest({}, mockAuthedRequest)).rejects.toThrow(
+                "network down",
             );
         });
     });

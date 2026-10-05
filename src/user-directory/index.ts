@@ -124,7 +124,7 @@ export class UserDirectoryManager extends BaseManager {
     }
 
     public async getProfile(userId: string): Promise<IUserProfile> {
-        const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}`);
         return this.withRetry(async () => {
             return await this.request<IUserProfile>({
                 method: Method.Get,

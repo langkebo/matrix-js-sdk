@@ -131,7 +131,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
             () =>
                 this.request<EmptyObject>({
                     method: Method.Post,
-                    path: np(`/notifications/${encodeURIComponent(notificationId)}/ack` as StripV3<PushPathPattern>),
+                    path: np(`/notifications/${encodeURIComponent(notificationId)}/ack`),
                     prefix: ClientPrefix.V3,
                 }),
             "ackNotification",

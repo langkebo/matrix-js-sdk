@@ -21,9 +21,6 @@ limitations under the License.
  * 减少对 `as any` 的依赖，提升类型安全性。
  */
 
-import { MatrixError, HTTPError } from "../http-api/errors";
-import { SdkError } from "../errors";
-
 // ─── 基础对象 guards ──────────────────────────────────────────
 
 /**
@@ -31,13 +28,6 @@ import { SdkError } from "../errors";
  */
 export function isObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === "object";
-}
-
-/**
- * Narrow a value to `Array<unknown>` if it is an array.
- */
-export function isArray(value: unknown): value is Array<unknown> {
-    return Array.isArray(value);
 }
 
 /**
@@ -56,50 +46,6 @@ export function hasProperty<T extends Record<string, unknown>, K extends string>
     key: K,
 ): obj is T & Record<K, unknown> {
     return key in obj;
-}
-
-// ─── Error guards ─────────────────────────────────────────────
-
-/**
- * Check whether `error` is an SDK error (SdkError subclass).
- * Useful for catching SDK errors in generic `catch (error: unknown)` blocks.
- *
- * @example
- * ```ts
- * try {
- *   await room.sendEvent(content);
- * } catch (error: unknown) {
- *   if (isSdkError(error)) {
- *     console.error(error.errorCode, error.statusCode);
- *   }
- * }
- * ```
- */
-export function isSdkError(error: unknown): error is SdkError {
-    return error instanceof SdkError;
-}
-
-/**
- * Check whether `error` is a MatrixError.
- * MatrixError wraps Matrix protocol error responses (HTTP 200 with errcode body).
- *
- * @example
- * ```ts
- * if (isMatrixError(error) && error.errcode === "M_FORBIDDEN") {
- *   // handle forbidden
- * }
- * ```
- */
-export function isMatrixError(error: unknown): error is MatrixError {
-    return error instanceof MatrixError;
-}
-
-/**
- * Check whether `error` is an HTTPError.
- * HTTPError wraps raw HTTP failures (non-2xx status codes).
- */
-export function isHTTPError(error: unknown): error is HTTPError {
-    return error instanceof HTTPError;
 }
 
 // ─── Error cause guards ────────────────────────────────────────
@@ -172,56 +118,6 @@ export function extractHeader(cause: unknown, headerName: string): string | unde
         return (headers as { get: (name: string) => string | null }).get(headerName) ?? undefined;
     }
     return undefined;
-}
-
-// ─── SdkError subclass guards ──────────────────────────────────
-
-/**
- * Type predicate narrowing to `RetryableError` — used for retry policy checks.
- *
- * @example
- * ```ts
- * if (isRetryableError(error)) {
- *   console.log(`Retryable: ${error.retryAfter}ms`);
- * }
- * ```
- */
-// Lazy import to avoid circular dependency — import lazily inside the guard
-export function isRetryableError(error: unknown): error is import("../errors").RetryableError {
-    const cls = error?.constructor as { name?: string } | undefined;
-    return cls?.name === "RetryableError";
-}
-
-/**
- * Type predicate narrowing to `TimeoutError` — used for timeout-specific handling.
- */
-export function isTimeoutError(error: unknown): error is import("../errors").TimeoutError {
-    const cls = error?.constructor as { name?: string } | undefined;
-    return cls?.name === "TimeoutError";
-}
-
-/**
- * Type predicate narrowing to `ValidationError` — used for input validation handling.
- */
-export function isValidationError(error: unknown): error is import("../errors").ValidationError {
-    const cls = error?.constructor as { name?: string } | undefined;
-    return cls?.name === "ValidationError" || cls?.name === "InvalidParamError";
-}
-
-/**
- * Type predicate narrowing to `AuthError` — used for auth-specific handling.
- */
-export function isAuthError(error: unknown): error is import("../errors").AuthError {
-    const cls = error?.constructor as { name?: string } | undefined;
-    return cls?.name === "AuthError";
-}
-
-/**
- * Type predicate narrowing to `NotFoundError` — used for 404 handling.
- */
-export function isNotFoundError(error: unknown): error is import("../errors").NotFoundError {
-    const cls = error?.constructor as { name?: string } | undefined;
-    return cls?.name === "NotFoundError";
 }
 
 // ─── Network error code guards ─────────────────────────────────

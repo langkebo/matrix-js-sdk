@@ -29,7 +29,7 @@ import { LRUCache } from "../../utils/lru-cache";
 import type { MatrixClient } from "../../client";
 import { SpaceEvent, type SpaceManagerEventMap } from "../events";
 import type { Space, SpaceListResponse, SpaceQueryOptions, SpaceStatistics } from "../types";
-import { extractSpaces, normalizeSpace, normalizeSpaceListResponse, sp } from "../utils";
+import { extractSpaces, normalizeSpace, sp } from "../utils";
 import type { SpaceManager } from "../index";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space response content
@@ -170,6 +170,27 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         };
     }
 
+    /**
+     * 获取公共 Space 列表（服务发现场景）。
+     *
+     * 结果进高频缓存；需要绕过缓存时在 `options` 里传 `forceRefresh: true`。
+     *
+     * @param options - 查询参数，支持 `limit` / `from` 以及 `forceRefresh`。
+     * @returns 服务端**原始响应**（未归一化）。若命中缓存则是 `{ chunk }`；
+     *   否则是后端原样结构，列表可能落在 `chunk` / `spaces` / `rooms` 任一字段上，
+     *   读取时请自行兜底（本方法不改变返回形态，以免破坏既有调用方）。
+     *
+     * @example
+     * ```typescript
+     * const { chunk } = await client.getSpaceManager().query.getPublicSpaces({ limit: 20 });
+     * console.log(`发现 ${chunk?.length ?? 0} 个公共空间`);
+     *
+     * // 绕过缓存
+     * await client.getSpaceManager().query.getPublicSpaces({ limit: 20, forceRefresh: true });
+     * ```
+     *
+     * @throws {ApiError} 如果 API 调用失败。
+     */
     async getPublicSpaces(options: SpaceQueryOptions = {}): Promise<SpaceListResponse> {
         const start = performance.now();
         this.telemetry.totalRequests++;
@@ -199,6 +220,23 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 按关键词搜索 Space。
+     *
+     * 结果按 `search_{query}_{limit}` 进低频缓存（实时性要求高，缓存收益低时按需绕过）。
+     *
+     * @param query - 搜索词。
+     * @param limit - 返回上限，默认 10。
+     * @returns 匹配的 Space 数组（已归一化）。
+     *
+     * @example
+     * ```typescript
+     * const found = await client.getSpaceManager().query.searchSpaces("工程", 5);
+     * console.log(found.map((s) => s.name ?? s.space_id).join(", "));
+     * ```
+     *
+     * @throws {ApiError} 如果 API 调用失败。
+     */
     async searchSpaces(query: string, limit: number = 10): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {

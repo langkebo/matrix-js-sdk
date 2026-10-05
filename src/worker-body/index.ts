@@ -100,95 +100,64 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
     /** POST /_synapse/worker/v1/workers/{worker_id}/heartbeat */
     async heartbeat(workerId: string, req: HeartbeatRequest): Promise<HeartbeatResponse> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.doRequest(
-            Method.Post,
-            wb(`/v1/workers/${encodeURIComponent(workerId)}/heartbeat` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            undefined,
-            req,
-        );
+        return this.doRequest(Method.Post, wb(`/v1/workers/${encodeURIComponent(workerId)}/heartbeat`), undefined, req);
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/connect */
     async connectWorker(workerId: string, address: string): Promise<ConnectWorkerResponse> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.doRequest(
-            Method.Post,
-            wb(`/v1/workers/${encodeURIComponent(workerId)}/connect` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            undefined,
-            { address },
-        );
+        return this.doRequest(Method.Post, wb(`/v1/workers/${encodeURIComponent(workerId)}/connect`), undefined, {
+            address,
+        });
     }
 
     /** POST /_synapse/worker/v1/workers/{worker_id}/disconnect */
     async disconnectWorker(workerId: string): Promise<void> {
         if (!workerId) throw new ValidationError("workerId is required");
-        await this.doRequest(
-            Method.Post,
-            wb(`/v1/workers/${encodeURIComponent(workerId)}/disconnect` as StripWorkerPrefix<WorkerBodyPathPattern>),
-        );
+        await this.doRequest(Method.Post, wb(`/v1/workers/${encodeURIComponent(workerId)}/disconnect`));
     }
 
     /** GET /_synapse/worker/v1/workers/{worker_id}/commands */
     async listPendingCommands(workerId: string, limit?: number): Promise<{ commands: WorkerCommandResponse[] }> {
         if (!workerId) throw new ValidationError("workerId is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
-        return this.doRequest(
-            Method.Get,
-            wb(`/v1/workers/${encodeURIComponent(workerId)}/commands` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            q,
-        );
+        return this.doRequest(Method.Get, wb(`/v1/workers/${encodeURIComponent(workerId)}/commands`), q);
     }
 
     /** POST /_synapse/worker/v1/commands/{command_id}/complete */
     async completeCommand(commandId: string): Promise<void> {
         if (!commandId) throw new ValidationError("commandId is required");
-        await this.doRequest(
-            Method.Post,
-            wb(`/v1/commands/${encodeURIComponent(commandId)}/complete` as StripWorkerPrefix<WorkerBodyPathPattern>),
-        );
+        await this.doRequest(Method.Post, wb(`/v1/commands/${encodeURIComponent(commandId)}/complete`));
     }
 
     /** POST /_synapse/worker/v1/commands/{command_id}/fail */
     async failCommand(commandId: string, error: string): Promise<void> {
         if (!commandId) throw new ValidationError("commandId is required");
-        await this.doRequest(
-            Method.Post,
-            wb(`/v1/commands/${encodeURIComponent(commandId)}/fail` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            undefined,
-            { error },
-        );
+        await this.doRequest(Method.Post, wb(`/v1/commands/${encodeURIComponent(commandId)}/fail`), undefined, {
+            error,
+        });
     }
 
     /** POST /_synapse/worker/v1/tasks/{task_id}/complete */
     async completeTask(taskId: string, result?: unknown): Promise<void> {
         if (!taskId) throw new ValidationError("taskId is required");
-        await this.doRequest(
-            Method.Post,
-            wb(`/v1/tasks/${encodeURIComponent(taskId)}/complete` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            undefined,
-            { result },
-        );
+        await this.doRequest(Method.Post, wb(`/v1/tasks/${encodeURIComponent(taskId)}/complete`), undefined, {
+            result,
+        });
     }
 
     /** POST /_synapse/worker/v1/tasks/{task_id}/fail */
     async failTask(taskId: string, error: string): Promise<void> {
         if (!taskId) throw new ValidationError("taskId is required");
-        await this.doRequest(
-            Method.Post,
-            wb(`/v1/tasks/${encodeURIComponent(taskId)}/fail` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            undefined,
-            { error },
-        );
+        await this.doRequest(Method.Post, wb(`/v1/tasks/${encodeURIComponent(taskId)}/fail`), undefined, { error });
     }
 
     /** GET /_synapse/worker/v1/replication/{worker_id}/position */
     async getReplicationPosition(workerId: string, streamName: string): Promise<ReplicationPosition> {
         if (!workerId) throw new ValidationError("workerId is required");
-        return this.doRequest(
-            Method.Get,
-            wb(`/v1/replication/${encodeURIComponent(workerId)}/position` as StripWorkerPrefix<WorkerBodyPathPattern>),
-            { stream_name: streamName },
-        );
+        return this.doRequest(Method.Get, wb(`/v1/replication/${encodeURIComponent(workerId)}/position`), {
+            stream_name: streamName,
+        });
     }
 
     /** PUT /_synapse/worker/v1/replication/{worker_id}/{stream_name} */
@@ -202,9 +171,7 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         }
         return this.doRequest(
             Method.Put,
-            wb(
-                `/v1/replication/${encodeURIComponent(workerId)}/${encodeURIComponent(streamName)}` as StripWorkerPrefix<WorkerBodyPathPattern>,
-            ),
+            wb(`/v1/replication/${encodeURIComponent(workerId)}/${encodeURIComponent(streamName)}`),
             undefined,
             { stream_name: streamName, position },
         );

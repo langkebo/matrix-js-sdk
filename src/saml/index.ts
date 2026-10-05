@@ -250,24 +250,21 @@ export class SamlAuthManager extends BaseManager {
     async getUserMapping(nameId: string): Promise<SamlUserMapping> {
         return await this.samlAdminRequest<SamlUserMapping>(
             Method.Get,
-            ap(`/saml/mapping/${encodeURIComponent(nameId)}`) as StripAdmin<SamlPathPattern>,
+            ap(`/saml/mapping/${encodeURIComponent(nameId)}`),
         );
     }
 
     async updateUserMapping(nameId: string, mapping: Partial<SamlUserMapping>): Promise<SamlUserMapping> {
         return await this.samlAdminRequest<SamlUserMapping>(
             Method.Put,
-            ap(`/saml/mapping/${encodeURIComponent(nameId)}`) as StripAdmin<SamlPathPattern>,
+            ap(`/saml/mapping/${encodeURIComponent(nameId)}`),
             undefined,
             mapping,
         );
     }
 
     async removeUserMapping(nameId: string): Promise<void> {
-        await this.samlAdminRequest(
-            Method.Delete,
-            ap(`/saml/mapping/${encodeURIComponent(nameId)}`) as StripAdmin<SamlPathPattern>,
-        );
+        await this.samlAdminRequest(Method.Delete, ap(`/saml/mapping/${encodeURIComponent(nameId)}`));
     }
 
     async adminLogout(userId: string): Promise<void> {

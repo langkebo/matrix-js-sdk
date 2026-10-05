@@ -12,10 +12,17 @@
  *   2. If the import path is non-standard, specify `path`
  *   3. If the module is lifecycle-only (no separate import block), set `standalone: false`
  *   4. Run: node scripts/generate-manager-extensions.mjs
- *   5. Verify: pnpm lint:types && pnpm test
+ *      （脚本会自己调用 prettier 格式化输出，无需再手工 prettier）
+ *   5. Verify: node scripts/generate-manager-extensions.mjs --check && pnpm lint:types && pnpm test
+ *
+ * `--check` 只校验、不写盘，供 CI 门禁使用，防止两类漂移：
+ *   1. 改了 MODULE_DEFS 却忘记重跑生成脚本；
+ *   2. 有人手工往生成物里塞条目（2026-10-05 发现的 delayed-events /
+ *      account-status 正是这样进场的，导致重跑脚本会静默删掉它们）。
  */
 
-import { writeFileSync } from "node:fs";
+import { format, resolveConfig } from "prettier";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -127,6 +134,21 @@ const MODULE_DEFS = [
     { option: "includeReactions", module: "reactions" },
     { option: "includeBeacon", module: "beacon" },
     { option: "includeAppService", module: "app-service" },
+    { option: "includeDelayedEvents", module: "delayed-events" },
+    { option: "includeAccountStatus", module: "account-status" },
+    // ── Group 3: 曾遗漏的模块（2026-10-05 补）──────────────────────
+    //
+    // worker / room-alias 两个模块**早已**导出 `extendMatrixClient()`，且
+    // `matrix-client-extensions.ts` 里也声明了 `getWorkerManager()` /
+    // `getRoomAliasManager()` 的类型 —— 但它们从未被列入本表，
+    // 而 `extendMatrixClient()` 的唯一调用方就是本脚本生成的
+    // `manager-extensions/index.ts`。结果是：类型说方法存在，运行时却
+    // 永远是 `undefined`，调用即 TypeError。2026-10-05 用探针实测确认
+    // （`getWorkerManager=undefined` 即使在 `{ includeAll: true }` 之后）。
+    //
+    // `worker` 的入口不是 `<module>/index.js`，必须显式给 `path`。
+    { option: "includeWorker", module: "worker", path: "client/worker/worker.js" },
+    { option: "includeRoomAlias", module: "room-alias" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -393,6 +415,27 @@ function safeDynamicImport<T>(importPromise: Promise<T>): Promise<T | undefined>
 
 // ─── Main ───────────────────────────────────────────────────────────
 
-const output = generate();
-writeFileSync(OUTPUT, output, "utf-8");
-console.log(`Generated ${OUTPUT} (${MODULE_DEFS.length} module entries)`);
+const checkOnly = process.argv.includes("--check");
+// 必须显式 `resolveConfig`：只传 `filepath` 时 prettier 3 在 ESM 脚本中
+// 不会加载本仓的 `.prettierrc.cjs`（CJS 配置），于是退回默认缩进 2 空格，
+// 与产物（tabWidth: 4）产生 1500+ 行“伪差异”。显式解析后脚本产出与
+// `prettier --check .` 完全一致的文本，重跑不再有格式噪音（幂等），
+// `--check` 也能直接逐字节比较。
+const prettierConfig = (await resolveConfig(OUTPUT)) ?? {};
+const output = await format(generate(), { ...prettierConfig, filepath: OUTPUT });
+
+if (checkOnly) {
+    const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, "utf-8") : "";
+    if (current !== output) {
+        console.error(`[manager-extensions] ❌ 生成物已过期，与 MODULE_DEFS 不一致：${OUTPUT}`);
+        console.error(
+            "   修复：node scripts/generate-manager-extensions.mjs && pnpm exec prettier --write src/manager-extensions/index.ts",
+        );
+        process.exitCode = 1;
+    } else {
+        console.log(`[manager-extensions] ✅ 生成物最新（${MODULE_DEFS.length} module entries）`);
+    }
+} else {
+    writeFileSync(OUTPUT, output, "utf-8");
+    console.log(`Generated ${OUTPUT} (${MODULE_DEFS.length} module entries)`);
+}

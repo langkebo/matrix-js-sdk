@@ -46,6 +46,8 @@ interface BenchmarkResult {
     medianTime: number;
     stddev: number;
     iterations: number;
+    /** 本次测量使用的退化阈值（ms），由 `benchmark()` 从 config 带入。 */
+    baselineThreshold: number;
 }
 
 interface BenchmarkConfig {
@@ -112,6 +114,7 @@ async function benchmark(
         medianTime,
         stddev,
         iterations: times.length,
+        baselineThreshold: cfg.baselineThreshold,
     };
 }
 
@@ -120,9 +123,9 @@ async function benchmark(
  */
 function formatBenchmark(result: BenchmarkResult): string {
     const status =
-        result.avgTime <= result.baselineThreshold!
+        result.avgTime <= result.baselineThreshold
             ? "✅"
-            : result.avgTime <= result.baselineThreshold! * 1.25
+            : result.avgTime <= result.baselineThreshold * 1.25
               ? "🟡"
               : "🔴";
 

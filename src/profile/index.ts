@@ -146,9 +146,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         field: K,
         options: SetProfileFieldCacheOptions = {},
     ): Promise<IProfile[K]> {
-        const path = ap(
-            `/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}` as StripAuthPrefix<AuthPathPattern>,
-        );
+        const path = ap(`/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}`);
 
         const response = await this.withRetry(async () => {
             return await this.request<Pick<IProfile, K>>({
@@ -168,11 +166,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
     public setProfileInfo(info: "displayname", data: { displayname: string }): Promise<EmptyObject>;
     public async setProfileInfo<K extends ProfileField>(info: K, data: Pick<IProfile, K>): Promise<EmptyObject> {
-        const path = ap(
-            `/profile/${encodeURIComponent(this.client.credentials.userId!)}/${encodeURIComponent(
-                info,
-            )}` as StripAuthPrefix<AuthPathPattern>,
-        );
+        const path = ap(`/profile/${encodeURIComponent(this.client.credentials.userId!)}/${encodeURIComponent(info)}`);
 
         try {
             const result = await this.withRetry(async () => {
@@ -305,7 +299,7 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
             return cachedEntry.profile;
         }
 
-        const path = ap(`/profile/${encodeURIComponent(userId)}` as StripAuthPrefix<AuthPathPattern>);
+        const path = ap(`/profile/${encodeURIComponent(userId)}`);
 
         try {
             const response = await this.withRetry(async () => {

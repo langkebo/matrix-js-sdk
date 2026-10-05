@@ -88,12 +88,45 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 功能支持检查 =====
 
+    /**
+     * 探测后端是否实现了好友能力。
+     *
+     * 判据是服务端 capabilities 是否宣告 `SynapseRustFeature.Friends`（缺省乐观为 true）。
+     * 调用任何好友接口前都应先判一次：后端未实现时全部好友路由都会 404，而 404 很容易
+     * 被误读成"没有好友"。
+     *
+     * @returns `true` 表示好友能力可用。
+     *
+     * @example
+     * ```typescript
+     * const friends = client.getFriendManager().list;
+     * if (!(await friends.isSupported())) {
+     *     console.log("后端未启用好友能力，跳过");
+     *     return;
+     * }
+     * const list = await friends.getFriends();
+     * ```
+     */
     async isSupported(): Promise<boolean> {
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Friends, true);
     }
 
     // ===== 内部工具 =====
 
+    /**
+     * 取好友列表房间的 ID，必要时从服务端补齐。
+     *
+     * 好友关系存储在一个专门的房间（`/friends` 返回 `room_id`）里。本方法的结果会被记忆在
+     * 共享状态中，后续调用直接返回缓存值。
+     *
+     * @returns 好友列表房间 ID；服务端未返回时为**空字符串**（不是抛错）。
+     *
+     * @example
+     * ```typescript
+     * const roomId = await client.getFriendManager().list.ensureFriendListRoom();
+     * if (!roomId) console.log("该账号还没有好友列表房间");
+     * ```
+     */
     async ensureFriendListRoom(): Promise<string> {
         if (this.sharedState.friendListRoomId) {
             return this.sharedState.friendListRoomId;
@@ -118,6 +151,29 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 好友列表 =====
 
+    /**
+     * 获取好友列表。
+     *
+     * 每次调用都会向服务端请求并把结果写入共享缓存（`sharedState.friends`），
+     * 不读缓存。要读缓存用 `getCachedFriends()`，要判断某人是否在缓存里用 `hasCachedFriend(userId)`。
+     *
+     * 响应归一化时优先取 `friends`，为**空数组**时回退到 `items`（FT-085：空数组是 truthy，
+     * 用 `||` 会错误短路）。
+     *
+     * @returns 归一化后的好友数组。
+     *
+     * @example
+     * ```typescript
+     * const friends = await client.getFriendManager().list.getFriends();
+     * console.log(`共 ${friends.length} 位好友`);
+     * for (const f of friends) {
+     *     console.log(f.display_name ?? f.user_id, f.online ? "在线" : "离线");
+     * }
+     * ```
+     *
+     * @throws {SdkError} 请求失败时抛出；后端未实现好友能力时通常是 404，应先用
+     *   {@link FriendListManager.isSupported} 判空。
+     */
     async getFriends(): Promise<Friend[]> {
         try {
             const response = await this.request<IFriendsResponse>({
