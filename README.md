@@ -1,60 +1,55 @@
-[![npm](https://img.shields.io/npm/v/matrix-js-sdk)](https://www.npmjs.com/package/matrix-js-sdk)
-![Tests](https://github.com/matrix-org/matrix-js-sdk/actions/workflows/tests.yml/badge.svg)
-![Static Analysis](https://github.com/matrix-org/matrix-js-sdk/actions/workflows/static_analysis.yml/badge.svg)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=matrix-js-sdk&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=matrix-js-sdk)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=matrix-js-sdk&metric=coverage)](https://sonarcloud.io/summary/new_code?id=matrix-js-sdk)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=matrix-js-sdk&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=matrix-js-sdk)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=matrix-js-sdk&metric=bugs)](https://sonarcloud.io/summary/new_code?id=matrix-js-sdk)
+# `@langkebo/matrix-js-sdk`
 
-# Matrix JavaScript SDK
+> **这是 [`matrix-org/matrix-js-sdk`](https://github.com/matrix-org/matrix-js-sdk) 的 fork**，面向 **synapse-rust** 后端
+> （TJG / langkebo 项目）扩展了好友、私聊、空间、Admin、语音等私有能力。
+> 包名 `@langkebo/matrix-js-sdk`，仓库 `github.com/langkebo/matrix-js-sdk`。
+>
+> 上游与本 fork 的差异、契约状态与审计结论见 [`docs/sdk-encapsulation-audit.md`](./docs/sdk-encapsulation-audit.md)
+> 与 [`docs/MSC_SDK_MAPPING.md`](./docs/MSC_SDK_MAPPING.md)。
 
-This is the [Matrix](https://matrix.org) Client-Server SDK for JavaScript and TypeScript. This SDK can be run in a
-browser or in Node.js.
+本 SDK 实现了 Matrix Client-Server 协议，可在浏览器或 Node.js 中运行，端到端加密基于 Rust + WebAssembly。
 
----
-
-<picture>
-  <source srcset="contrib/element-logo-light.png" media="(prefers-color-scheme: dark)">
-  <source srcset="contrib/element-logo-dark.png" media="(prefers-color-scheme: light)">
-  <img src="contrib/element-logo-fallback.png" alt="Element logo">
-</picture>
-
-<br>
-
-Development and maintenance is proudly sponsored by [Element](https://element.io). Element uses the SDK in their flagship [web](https://github.com/element-hq/element-web) and [desktop](https://github.com/element-hq/element-desktop) clients.
-
-The SDK is also the basis for multiple Matrix projects and we welcome contributions from all.
+- **Node.js**：v22+
+- **TypeScript**：strict 模式，target ES2022
+- **后端**：synapse-rust（私有端点位于 `/_matrix/vendor/v1`）
 
 ---
 
-#### Minimum Matrix server version: v1.1
+## 相对上游新增的能力
 
-The Matrix specification is constantly evolving - while this SDK aims for maximum backwards compatibility, it only
-guarantees that a feature will be supported for at least 4 spec releases. For example, if a feature the js-sdk supports
-is removed in v1.4 then the feature is _eligible_ for removal from the SDK when v1.8 is released. This SDK has no
-guarantee on implementing all features of any particular spec release, currently. This can mean that the SDK will call
-endpoints from before Matrix 1.1, for example.
+| 能力          | 入口点                                 | 说明                                                            |
+| ------------- | -------------------------------------- | --------------------------------------------------------------- |
+| 好友关系      | `@langkebo/matrix-js-sdk/friend`       | `FriendManager`：好友列表、申请、删除等                         |
+| 私聊（DM）    | `@langkebo/matrix-js-sdk/dm`           | `DirectMessageManager`                                          |
+| 空间层级      | `@langkebo/matrix-js-sdk/space`        | `SpaceManager`：空间树、子空间                                  |
+| 服务器管理    | `@langkebo/matrix-js-sdk/admin`        | `AdminManager` 及 6 个子管理器（用户/房间/服务/联邦/媒体/配置） |
+| 语音 / WebRTC | `@langkebo/matrix-js-sdk/voice`        | `VoiceManager`、WebRTC 通话                                     |
+| 房间摘要      | `@langkebo/matrix-js-sdk/room-summary` | `RoomSummary*` 系列管理器                                       |
 
-## 🎉 Recent Updates (v40.2.0)
+## 契约驱动架构
 
-We've completed a comprehensive optimization of the SDK with significant improvements:
+本 fork 的核心约束是**契约驱动**：synapse-rust 后端导出的路由清单（ledger）是唯一事实来源。
 
-- ✅ **Enhanced Security**: 100% input validation coverage for core modules (Admin, Auth, Friend, DM, Device)
-- ✅ **Better Documentation**: 25+ methods now have detailed examples and usage guides
-- ✅ **Improved Code Quality**: Eliminated all empty catch blocks, removed `any` types, unified API formats
-- ✅ **Version Policy**: Established clear deprecation cycles and migration paths
-- ✅ **Developer Experience**: 600+ lines of Admin API guide, 400+ lines of version policy documentation
+1. 后端导出的每个 `(method, path, registered_by)` 由 `scripts/contract-sync.mjs` 落到
+   `docs/api-contract/generated/modules/<module>.json`；
+2. `scripts/sdk-contract-codegen.mjs` 据此生成 `src/<module>/__generated__/` 下的路由表与 DTO；
+3. 管理器引用生成的路由表，**路径写错是编译错误，而不是运行时 404**。
 
-**Key Features**:
+> `src/**/__generated__/` 为生成物，**禁止手改**。改动 API 后请执行
+> `pnpm contract:sync && pnpm contract:codegen` 并提交生成结果。
 
-- Input validation with `AdminValidators` to prevent injection attacks
-- Unified pagination format with `PaginatedResponse<T>`
-- Comprehensive error handling with typed errors (`ValidationError`, `AuthError`, etc.)
-- Deprecation warnings for smooth API transitions
+## 质量门禁
 
-See [Optimization Report](./docs/SDK_OPTIMIZATION_FINAL_COMPLETE_2026-04-16.md) for complete details.
+本 fork 在 CI 中串联了类型、契约、覆盖率台账、空 catch、技术债标记等多道门禁：
 
-# Quickstart
+```bash
+pnpm lint     # 类型 + 契约 + 质量门禁全链路
+pnpm test     # 单元 / 集成测试（不含 real-backend）
+```
+
+详见 [`CONTRIBUTING.md`](./CONTRIBUTING.md) 与 [`AGENTS.md`](./AGENTS.md)。
+
+## Quickstart
 
 > [!IMPORTANT]
 > Servers may require or use authenticated endpoints for media (images, files, avatars, etc). See the
@@ -63,18 +58,17 @@ See [Optimization Report](./docs/SDK_OPTIMIZATION_FINAL_COMPLETE_2026-04-16.md) 
 Using `pnpm` instead of `npm` is recommended. Please see the pnpm [install
 guide](https://pnpm.io/installation#using-corepack) if you do not have it already.
 
-`pnpm add matrix-js-sdk`
+`pnpm add @langkebo/matrix-js-sdk`
 
 ```javascript
-import * as sdk from "matrix-js-sdk";
-const client = sdk.createClient({ baseUrl: "https://matrix.org" });
+import * as sdk from "@langkebo/matrix-js-sdk";
+const client = sdk.createClient({ baseUrl: "https://matrix.test" });
 client.publicRooms(function (err, data) {
     console.log("Public Rooms: %s", JSON.stringify(data));
 });
 ```
 
-See [below](#end-to-end-encryption-support) for how to enable end-to-end-encryption, or check
-[the Node.js terminal app](https://github.com/matrix-org/matrix-js-sdk/tree/develop/examples/node) for a more complex example.
+See [below](#end-to-end-encryption-support) for how to enable end-to-end-encryption.
 
 To start the client:
 
@@ -118,7 +112,7 @@ client.on(RoomEvent.Timeline, function (event, room, toStartOfTimeline) {
 });
 ```
 
-By default, the `matrix-js-sdk` client uses the `MemoryStore` to store events as they are received. For example to iterate through the currently stored timeline for a room:
+By default, the `@langkebo/matrix-js-sdk` client uses the `MemoryStore` to store events as they are received. For example to iterate through the currently stored timeline for a room:
 
 ```javascript
 Object.keys(client.store.rooms).forEach((roomId) => {
@@ -224,16 +218,16 @@ For detailed documentation, see [Admin API Guide](./docs/ADMIN_GUIDE.md).
 - Handles room initial sync on accepting invites.
 - Handles WebRTC calling.
 
-# Usage
+## Usage
 
-## Supported platforms
+### Supported platforms
 
-`matrix-js-sdk` can be used in either Node.js applications (ensure you have the latest LTS version of Node.js installed),
+`@langkebo/matrix-js-sdk` can be used in either Node.js applications (ensure you have the latest LTS version of Node.js installed),
 or in browser applications, via a bundler such as Webpack or Vite.
 
-You can also use the sdk with [Deno](https://deno.land/) (`import npm:matrix-js-sdk`) but its not officially supported.
+You can also use the sdk with [Deno](https://deno.land/) (`import npm:@langkebo/matrix-js-sdk`) but its not officially supported.
 
-## Emitted events
+### Emitted events
 
 The SDK raises notifications to the application using
 [`EventEmitter`s](https://nodejs.org/api/events.html#class-eventemitter). The `MatrixClient` itself
@@ -258,21 +252,33 @@ client.on(RoomMemberEvent.Typing, function (event, member) {
 client.startClient();
 ```
 
-## Entry points
+### Entry points
 
-As well as the primary entry point (`matrix-js-sdk`), there are several other entry points which may be useful:
+除主入口 `@langkebo/matrix-js-sdk` 外，`package.json#exports` 还提供了若干子入口。
+按需引入子入口可减小打包体积，并避免依赖主入口的历史遗留 API：
 
-| Entry point                    | Description                                                                                         |
-| ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `matrix-js-sdk`                | Primary entry point. High-level functionality, and lots of historical clutter in need of a cleanup. |
-| `matrix-js-sdk/lib/crypto-api` | Cryptography functionality.                                                                         |
-| `matrix-js-sdk/lib/types`      | Low-level types, reflecting data structures defined in the Matrix spec.                             |
-| `matrix-js-sdk/lib/testing`    | Test utilities, which may be useful in test code but should not be used in production code.         |
-| `matrix-js-sdk/lib/utils/*.js` | A set of modules exporting standalone functions (and their types).                                  |
+| 入口点                                 | 说明                                                       |
+| -------------------------------------- | ---------------------------------------------------------- |
+| `@langkebo/matrix-js-sdk`              | 主入口：`MatrixClient`、模型、store、事件枚举等            |
+| `@langkebo/matrix-js-sdk/core`         | 精简核心，仅导出常用能力                                   |
+| `@langkebo/matrix-js-sdk/crypto`       | 端到端加密（Rust + WASM），`CryptoApi`                     |
+| `@langkebo/matrix-js-sdk/friend`       | 好友关系（`FriendManager`）                                |
+| `@langkebo/matrix-js-sdk/dm`           | 私聊（`DirectMessageManager`）                             |
+| `@langkebo/matrix-js-sdk/space`        | 空间层级（`SpaceManager`）                                 |
+| `@langkebo/matrix-js-sdk/voice`        | 语音 / WebRTC                                              |
+| `@langkebo/matrix-js-sdk/room`         | 房间                                                       |
+| `@langkebo/matrix-js-sdk/room-summary` | 房间摘要（`RoomSummary*` 系列管理器）                      |
+| `@langkebo/matrix-js-sdk/admin`        | 服务器管理（`AdminManager` 及子管理器）                    |
+| `@langkebo/matrix-js-sdk/http-api`     | HTTP 客户端工具（前缀、错误、请求封装）                    |
+| `@langkebo/matrix-js-sdk/store`        | 存储实现（Memory / IndexedDB / 加密 store）                |
+| `@langkebo/matrix-js-sdk/models/room`  | 房间相关数据模型                                           |
+| `@langkebo/matrix-js-sdk/errors`       | 类型化错误（`AuthError` / `NotFoundError` / `ApiError` …） |
 
-## Architecture
+完整入口点清单以 [`package.json`](package.json) 的 `exports` 字段为准。
 
-### Manager pattern
+### Architecture
+
+#### Manager pattern
 
 The SDK is organized around the **Manager pattern**: each functional domain (push, room, media,
 crypto, etc.) is encapsulated in a dedicated `Manager` class that extends [`BaseManager`](src/managers/base-manager.ts).
@@ -289,7 +295,7 @@ All 51 Managers share a unified foundation:
 - **Request statistics**: Each Manager tracks `requestStats` (total/successful/failed/retried) via
   `getRequestStats()` / `resetRequestStats()`, enabling observability without external instrumentation.
 
-### Manager registration
+#### Manager registration
 
 Managers are lazily instantiated and cached on the `MatrixClient` instance via `extendMatrixClient()`
 functions. The auto-generated registry at [`src/manager-extensions/index.ts`](src/manager-extensions/index.ts)
@@ -301,7 +307,7 @@ const pushManager = client.getPushManager();
 const widgetManager = client.getWidgetManager();
 ```
 
-### Type-safe internal access
+#### Type-safe internal access
 
 `MatrixClient` exposes a rich public interface, but Managers sometimes need to access internal
 fields (e.g., `syncApi`, `turnServers`, `serverClockDiff`) that are not part of the public API.
@@ -318,7 +324,7 @@ this.internalClient.toDeviceMessageQueue.queueBatch(batch); // fully typed
 This consolidates what was previously 45 scattered `as unknown as` type assertions into a single
 assertion point in `BaseManager.internalClient`, restoring compile-time type checking at all access sites.
 
-### Module organization
+#### Module organization
 
 The SDK's 51 Manager modules are organized by domain under `src/`:
 
@@ -336,7 +342,7 @@ The SDK's 51 Manager modules are organized by domain under `src/`:
 | Auth & SSO             | `auth`, `guest`, `captcha`, `saml`, `cas`, `oidc`, `password-reset`, `interactive-auth`, `rendezvous`                                                                                                     |
 | Custom extensions      | `friend`, `space`, `external-service`, `feature-flags`, `telemetry`, `module`                                                                                                                             |
 
-### Frontend integration
+#### Frontend integration
 
 The SDK is consumed by the `hula` frontend via a three-layer architecture:
 
@@ -348,13 +354,13 @@ The SDK is consumed by the `hula` frontend via a three-layer architecture:
 - **L3 (Frontend path constants)**: `hula/src/services/matrix/paths/` — URL constants for
   direct HTTP calls that bypass the SDK (e.g., v3 fallback paths).
 
-## Examples
+### Examples
 
 This section provides some useful code snippets which demonstrate the
 core functionality of the SDK. These examples assume the SDK is set up like this:
 
 ```javascript
-import * as sdk from "matrix-js-sdk";
+import * as sdk from "@langkebo/matrix-js-sdk";
 const myUserId = "@example:localhost";
 const myAccessToken = "QGV4YW1wbGU6bG9jYWxob3N0.qPEvLuYfNBjxikiCjP";
 const matrixClient = sdk.createClient({
@@ -364,7 +370,7 @@ const matrixClient = sdk.createClient({
 });
 ```
 
-### Automatically join rooms when invited
+#### Automatically join rooms when invited
 
 ```javascript
 matrixClient.on(RoomEvent.MyMembership, function (room, membership, prevMembership) {
@@ -378,7 +384,7 @@ matrixClient.on(RoomEvent.MyMembership, function (room, membership, prevMembersh
 matrixClient.startClient();
 ```
 
-### Print out messages for all rooms
+#### Print out messages for all rooms
 
 ```javascript
 matrixClient.on(RoomEvent.Timeline, function (event, room, toStartOfTimeline) {
@@ -410,7 +416,7 @@ Output:
   (My New Room) @megan:localhost :: done
 ```
 
-### Print out membership lists whenever they are changed
+#### Print out membership lists whenever they are changed
 
 ```javascript
 matrixClient.on(RoomStateEvent.Members, function (event, state, member) {
@@ -440,10 +446,7 @@ Output:
   (invite) @charlie:localhost
 ```
 
-# API Reference
-
-A hosted reference can be found at
-http://matrix-org.github.io/matrix-js-sdk/index.html
+## API Reference
 
 This SDK uses [Typedoc](https://typedoc.org/guides/doccomments) doc comments. You can manually build and
 host the API reference from the source files like this:
@@ -456,11 +459,11 @@ host the API reference from the source files like this:
 
 Then visit `http://localhost:8005` to see the API docs.
 
-# End-to-end encryption support
+## End-to-end encryption support
 
-`matrix-js-sdk`'s end-to-end encryption support is based on the [WebAssembly bindings](https://github.com/matrix-org/matrix-rust-sdk-crypto-wasm) of the Rust [matrix-sdk-crypto](https://github.com/matrix-org/matrix-rust-sdk/tree/main/crates/matrix-sdk-crypto) library.
+`@langkebo/matrix-js-sdk`'s end-to-end encryption support is based on the [WebAssembly bindings](https://github.com/matrix-org/matrix-rust-sdk-crypto-wasm) of the Rust [matrix-sdk-crypto](https://github.com/matrix-org/matrix-rust-sdk/tree/main/crates/matrix-sdk-crypto) library.
 
-## Initialization
+### Initialization
 
 To initialize the end-to-end encryption support in the matrix client:
 
@@ -482,7 +485,7 @@ After calling `initRustCrypto`, you can obtain a reference to the [`CryptoApi`](
 
 **WARNING**: the cryptography stack is not thread-safe. Having multiple `MatrixClient` instances connected to the same Indexed DB will cause data corruption and decryption failures. The application layer is responsible for ensuring that only one `MatrixClient` issue is instantiated at a time.
 
-## Secret storage
+### Secret storage
 
 You should normally set up [secret storage](https://spec.matrix.org/v1.12/client-server-api/#secret-storage) before using the end-to-end encryption. To do this, call [`CryptoApi.bootstrapSecretStorage`](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto_api.CryptoApi.html#bootstrapSecretStorage).
 `bootstrapSecretStorage` can be called unconditionally: it will only set up the secret storage if it is not already set up (unless you use the `setupNewSecretStorage` parameter).
@@ -512,7 +515,7 @@ The secret storage data will be encrypted using the secret storage key returned 
 
 We recommend that you prompt the user to re-enter this key when [`CryptoCallbacks.getSecretStorageKey`](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto_api.CryptoCallbacks.html#getSecretStorageKey) is called (when the secret storage access is needed).
 
-## Set up cross-signing
+### Set up cross-signing
 
 To set up cross-signing to verify devices and other users, call
 [`CryptoApi.bootstrapCrossSigning`](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto_api.CryptoApi.html#bootstrapCrossSigning):
@@ -528,7 +531,7 @@ matrixClient.getCrypto().bootstrapCrossSigning({
 The [`authUploadDeviceSigningKeys`](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto_api.BootstrapCrossSigningOpts.html#authUploadDeviceSigningKeys)
 callback is required in order to upload newly-generated public cross-signing keys to the server.
 
-## Key backup
+### Key backup
 
 If the user doesn't already have a [key backup](https://spec.matrix.org/v1.12/client-server-api/#server-side-key-backups) you should create one:
 
@@ -541,7 +544,7 @@ const hasKeyBackup = (await matrixClient.getCrypto().checkKeyBackupAndEnable()) 
 await matrixClient.getCrypto().resetKeyBackup();
 ```
 
-## Verify a new device
+### Verify a new device
 
 Once the cross-signing is set up on one of your devices, you can verify another device with two methods:
 
@@ -551,7 +554,7 @@ Once the cross-signing is set up on one of your devices, you can verify another 
 
 2. Request an interactive verification against existing devices, by calling [CryptoApi.requestOwnUserVerification](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto_api.CryptoApi.html#requestOwnUserVerification).
 
-## Migrating from the legacy crypto stack to Rust crypto
+### Migrating from the legacy crypto stack to Rust crypto
 
 If your application previously used the legacy crypto stack, (i.e, it called `MatrixClient.initLegacyCrypto()`), you will
 need to migrate existing devices to the Rust crypto stack.
@@ -584,7 +587,7 @@ matrixClient.on(CryptoEvent.LegacyCryptoStoreMigrationProgress, (progress, total
 
 The Rust crypto stack is not supported in a lot of deprecated methods of [`MatrixClient`](https://matrix-org.github.io/matrix-js-sdk/classes/matrix.MatrixClient.html). If you use them, you should migrate to the [`CryptoApi`](https://matrix-org.github.io/matrix-js-sdk/interfaces/crypto_api.CryptoApi.html). Also, the legacy `MatrixClient.crypto` object is not available any more: you should use `MatrixClient.getCrypto()` instead.
 
-# Contributing
+## Contributing
 
 _This section is for people who want to modify the SDK. If you just
 want to use this SDK, skip this section._
@@ -595,7 +598,7 @@ First, you need to pull in the right build tools:
  $ pnpm install
 ```
 
-## Building
+### Building
 
 To build a browser version from scratch when developing:
 
