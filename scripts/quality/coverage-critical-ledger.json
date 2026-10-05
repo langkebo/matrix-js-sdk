@@ -4,15 +4,6 @@
     "method": "含 HTTP 调用 且 无直接 spec 且 无任何 spec import 该模块（import 图信号，避免文件名假阴性）",
     "entries": [
         {
-            "file": "room-summary/sub-managers/room-event-operation-manager.ts",
-            "module": "room-summary",
-            "lines": 939,
-            "httpCalls": 42,
-            "owner": "langkebo",
-            "deadline": "2026-10-19",
-            "reason": "全仓 HTTP 调用密度最高的未覆盖文件（42 次）；房间事件操作是本仓核心写路径，回归风险最高，列为 P0"
-        },
-        {
             "file": "room-summary/sub-managers/room-key-manager.ts",
             "module": "room-summary",
             "lines": 143,

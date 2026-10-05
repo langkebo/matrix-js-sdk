@@ -49,16 +49,14 @@ R4 是关键：它强制「修好一个就删一条」，否则台账会重新�
 
 - 源文件 588 个（已排除 `src/**/*.spec.ts` 这类 in-src 测试与 `.d.ts`）
 - spec 文件 443 个（`spec/` 401 + in-src 42）
-- critical 文件 **20 个**，全部已登记且在期限内
+- critical 文件 **19 个**，全部已登记且在期限内
 
 > 与台账机器可读版本（`coverage-critical-ledger.json`）**必须完全一致**：
 > 数字对不上时以门禁输出为准，并按下方「维护约定」同步本文件。
 
-### P0（2 周内，deadline 2026-10-19）
-
-| 文件                                                            | 规模   | HTTP 调用 | owner    | 说明                                               |
-| --------------------------------------------------------------- | ------ | --------- | -------- | -------------------------------------------------- |
-| `src/room-summary/sub-managers/room-event-operation-manager.ts` | 939 行 | **42**    | langkebo | 全仓 HTTP 调用密度最高的未覆盖文件，房间事件写路径 |
+> 2026-10-06：`room-event-operation-manager.ts`（原 P0，42 HTTP 调用）已由
+> `spec/unit/room-summary/sub-managers/room-event-operation-manager.spec.ts`（58 个用例）覆盖，
+> 按 R4 从台账移除。
 
 ### P1（1 个月内，deadline 2026-11-02）
 
