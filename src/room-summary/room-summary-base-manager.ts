@@ -87,9 +87,14 @@ export abstract class RoomSummaryBaseManager<
      * 构建「归 `room` 模块」的相对路径（带 `$roomId` 替换）。
      *
      * 本目录（room-summary）历史上承载了一批其实归属 `room` 模块的端点（见
-     * `docs/sdk-encapsulation-audit.md` §13.9）。此处把入参约束到 **`room` 契约**的路径模板，
-     * 让这些调用点重新获得编译期校验：写错路径、或写了一个契约里不存在的端点，
-     * 都会变成编译错误，而不是运行时的 404。
+     * `docs/sdk-encapsulation-audit.md` §13.9），此处把入参约束到 **`room` 契约**的路径模板。
+     *
+     * ⚠️ **该断言的鉴别力有限，勿据此认为路径已受保护**：`RoomPathPattern` 由契约里的
+     * `{name}` 替换为 `${string}` 生成，而 TS 的 `${string}` **可跨 `/`**，因此契约中
+     * `GET /rooms/{room_id}` 这样的浅层「参数结尾」路由会产生 `/rooms/${string}` 前缀模式，
+     * **吞掉整个 `/rooms/**` 子树** —— 任何 `/rooms/…` 字面量都会通过。
+     * 实测见 `docs/sdk-encapsulation-audit.md` §13.12。根因修复（两侧归一 + 精确相等）
+     * 落地前，本断言只能拦住「不以 `/rooms/` 开头且不匹配任何路由」的路径。
      */
     protected roomPath<P extends StripV3<RoomPathPattern>>(pathTemplate: P, roomId: string): string {
         return this.buildRoomScopedPath(pathTemplate, roomId);
@@ -101,8 +106,10 @@ export abstract class RoomSummaryBaseManager<
      * 只允许用于「契约归属 / 前缀与实现不一致」的**已知缺陷**处 —— 目前仅
      * `room-invite-policy-manager.ts` 的 `invite_blocklist` / `invite_allowlist`
      * （契约前缀是 `/_matrix/vendor/v1`，实现却用 `/_matrix/client/v3`）。
-     * 详见 `docs/sdk-encapsulation-audit.md` §13.11。缺陷关闭后必须改回 `roomPath()` 或
-     * 对应模块的强类型助手。
+     * 详见 `docs/sdk-encapsulation-audit.md` §13.11。
+     *
+     * 注：这 4 处**并非**因为会被类型系统拒绝才走逃生阀（`roomPath` 对 `/rooms/**` 本就不设防，
+     * 见 §13.12）；这里是**显式标注 + 便于检索**的意图。缺陷关闭后必须改回带真实鉴别力的断言。
      */
     protected uncheckedRoomPath(pathTemplate: string, roomId: string): string {
         return this.buildRoomScopedPath(pathTemplate, roomId);
