@@ -1,0 +1,187 @@
+{
+    "$comment": "零覆盖 + 高危源文件台账（机器可读）。门禁: scripts/quality/check-coverage-critical-files.mjs。规则 R1-R4 见脚本头注释。修复后必须删除对应条目，否则 R4 会失败。owner 默认填仓主 handle，请按 module 重新指派。",
+    "generatedAt": "2026-10-05",
+    "method": "含 HTTP 调用 且 无直接 spec 且 无任何 spec import 该模块（import 图信号，避免文件名假阴性）",
+    "entries": [
+        {
+            "file": "room-summary/sub-managers/room-event-operation-manager.ts",
+            "module": "room-summary",
+            "lines": 939,
+            "httpCalls": 42,
+            "owner": "langkebo",
+            "deadline": "2026-10-19",
+            "reason": "全仓 HTTP 调用密度最高的未覆盖文件（42 次）；房间事件操作是本仓核心写路径，回归风险最高，列为 P0"
+        },
+        {
+            "file": "room-summary/sub-managers/room-key-manager.ts",
+            "module": "room-summary",
+            "lines": 143,
+            "httpCalls": 5,
+            "owner": "langkebo",
+            "deadline": "2026-11-02",
+            "reason": "房间密钥管理（写路径），无任何 spec 引用"
+        },
+        {
+            "file": "dm/sub-managers/dm-room-list-manager.ts",
+            "module": "dm",
+            "lines": 636,
+            "httpCalls": 4,
+            "owner": "langkebo",
+            "deadline": "2026-11-02",
+            "reason": "直聊房间列表读写，规模大（636 行）且无 spec 引用"
+        },
+        {
+            "file": "feature-flags/index.ts",
+            "module": "feature-flags",
+            "lines": 140,
+            "httpCalls": 4,
+            "owner": "langkebo",
+            "deadline": "2026-11-02",
+            "reason": "特性开关读写会影响全端行为分支"
+        },
+        {
+            "file": "rust-crypto/DehydratedDeviceManager.ts",
+            "module": "rust-crypto",
+            "lines": 396,
+            "httpCalls": 4,
+            "owner": "langkebo",
+            "deadline": "2026-11-02",
+            "reason": "脱水设备（密钥恢复前置）管理，属加密敏感路径"
+        },
+        {
+            "file": "dm/sub-managers/dm-room-creation-manager.ts",
+            "module": "dm",
+            "lines": 352,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-11-30",
+            "reason": "直聊房间创建"
+        },
+        {
+            "file": "dm/sub-managers/dm-room-operation-manager.ts",
+            "module": "dm",
+            "lines": 166,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-11-30",
+            "reason": "直聊房间操作"
+        },
+        {
+            "file": "friend/sub-managers/friend-list-manager.ts",
+            "module": "friend",
+            "lines": 613,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-11-30",
+            "reason": "好友列表读写，规模大且无 spec 引用"
+        },
+        {
+            "file": "room-creation/index.ts",
+            "module": "room-creation",
+            "lines": 99,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-11-30",
+            "reason": "房间创建入口"
+        },
+        {
+            "file": "room-summary/sub-managers/room-search-manager.ts",
+            "module": "room-summary",
+            "lines": 256,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-11-30",
+            "reason": "房间搜索"
+        },
+        {
+            "file": "room-summary/sub-managers/room-state-manager.ts",
+            "module": "room-summary",
+            "lines": 137,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-11-30",
+            "reason": "房间状态读写"
+        },
+        {
+            "file": "room-summary/sub-managers/room-invite-policy-manager.ts",
+            "module": "room-summary",
+            "lines": 119,
+            "httpCalls": 4,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "邀请策略（权限判定），无 spec 引用"
+        },
+        {
+            "file": "room-summary/sub-managers/room-thread-manager.ts",
+            "module": "room-summary",
+            "lines": 119,
+            "httpCalls": 3,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "线程管理"
+        },
+        {
+            "file": "sessions/index.ts",
+            "module": "sessions",
+            "lines": 86,
+            "httpCalls": 2,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "会话列表/注销（含 MSC4204 password logout）"
+        },
+        {
+            "file": "crypto-store/index.ts",
+            "module": "crypto-store",
+            "lines": 66,
+            "httpCalls": 1,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "加密存储入口"
+        },
+        {
+            "file": "federation/sub-managers/federation-query-manager.ts",
+            "module": "federation",
+            "lines": 183,
+            "httpCalls": 1,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "联邦查询"
+        },
+        {
+            "file": "federation/sub-managers/federation-room-manager.ts",
+            "module": "federation",
+            "lines": 453,
+            "httpCalls": 1,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "联邦房间管理，规模较大"
+        },
+        {
+            "file": "federation/sub-managers/federation-server-manager.ts",
+            "module": "federation",
+            "lines": 214,
+            "httpCalls": 1,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "联邦服务器管理"
+        },
+        {
+            "file": "friend/sub-managers/friend-request-manager.ts",
+            "module": "friend",
+            "lines": 307,
+            "httpCalls": 1,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "好友请求流转"
+        },
+        {
+            "file": "lifecycle/index.ts",
+            "module": "lifecycle",
+            "lines": 87,
+            "httpCalls": 1,
+            "owner": "langkebo",
+            "deadline": "2026-12-31",
+            "reason": "客户端生命周期入口"
+        }
+    ]
+}

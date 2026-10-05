@@ -23,3 +23,6 @@ out
 
 # WorkBuddy project data (not source)
 .workbuddy/
+
+# 文档示例抽取产物（check-docs-examples.mjs 生成）
+/.docs-examples/

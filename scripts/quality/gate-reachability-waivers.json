@@ -1,0 +1,12 @@
+{
+    "$comment": [
+        "check-gate-reachability.mjs 的豁免台账（ratchet 纪律：修一条删一条）。",
+        "受管辖门禁 = scripts/quality/ 下的脚本，或文件名以 check-/verify-/validate-/assert-/enforce- 开头。",
+        "仅当某个受管辖门禁确实不该进 lint/CI（例如只对 release 分支生效）时才登记，且必须写 reason。",
+        "腐烂条目（文件已删 / 已可达 / 缺 reason）会让门禁直接失败。",
+        "当前为空 —— 2026-10-05：45 个受管辖门禁全部可从 lint/CI 到达。",
+        "历史：check-repo-coverage.mjs 曾短暂登记为临时豁免（等实测定标），",
+        "  实测全仓 lines 81.49% ≥ floor 65% 后已接线，豁免随之删除。"
+    ],
+    "waivers": []
+}

@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-03T23:08:07.452Z",
+    "generatedAt": "2026-10-05T09:54:13.758Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -522,9 +522,9 @@
             }
         },
         {
-            "id": "src/space/sub-managers/space-query-manager.ts:286:58be991ca932fb3477018ffa6fc0728b6bf5cbb1",
+            "id": "src/space/sub-managers/space-query-manager.ts:324:868669b1d318d7e1e2aad64773d9ddbf188f5e0f",
             "file": "src/space/sub-managers/space-query-manager.ts",
-            "line": 286,
+            "line": 324,
             "snippet": "catch (error) { if (error instanceof NotFoundError) return false;",
             "whitelist": {
                 "owner": "space",

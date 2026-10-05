@@ -1,5 +1,14 @@
 {
-    "note": "双轨覆盖率目标（P2-c，2026-10-01）。关键模块（critical-modules.json）走 quality:coverage:critical 门禁；全仓走 quality:coverage 门禁。由于全仓跑 16 分钟会触发限流，质量门禁优先读缓存 lcov（非首次 CI run 才拉 lcov），本地开发用 quality:coverage:quick 替代（只测 43% 静态路径的门禁）",
+    "note": "双轨覆盖率目标（P2-c，2026-10-01）。关键模块（critical-modules.json）走 quality:coverage:critical 门禁；全仓走 quality:coverage:repo 门禁（两者分别独立挂在 CI 上）。全仓实测一次约 30-77 分钟且会触发限流，故门禁读缓存 lcov（同 job 内由 `pnpm test --coverage` 产出），不强制每次重跑。",
+    "noteFix20261005": "原文此处写作「本地开发用 quality:coverage:quick 替代」——该 npm script 从不存在（幽灵引用），已删除。全仓那一轨此前也从未被任何 lint/CI 引用（孤岛），2026-10-05 才接线。",
+    "measuredAt20261005": {
+        "command": "pnpm test --coverage --coverage.reportsDirectory=<tmp>（本机 77min，399 个测试文件全过；exit=1 仅因 6 个 worker 启动超时属环境问题）",
+        "lines": 81.49,
+        "branches": 73.24,
+        "functions": 79.84,
+        "sourceFiles": 591,
+        "caveat": "本机运行有 6 个测试文件因 worker 启动超时未真正执行，故上述数值是**下界**（真实值只会更高）。正因为是下界，按 65/55/65 接线不会产生伪绿。"
+    },
     "repoFloors": {
         "lines": 65,
         "branches": 55,

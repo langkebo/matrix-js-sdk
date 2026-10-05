@@ -1,0 +1,738 @@
+{
+    "schemaVersion": 3,
+    "capturedAt": "2026-10-05",
+    "previousCapturedAt": null,
+    "note": "公开 API 文档棘轮台账。本文件是「允许存在的缺口上限」，只能下降不能上升。用 node scripts/quality/check-public-api-docs.mjs --write-ledger 更新，该命令在检测到任何指标恶化时会拒绝写入。",
+    "ratchet": {
+        "AccountDataManager": {
+            "missingJsDoc": 0,
+            "missingExample": 12,
+            "throwsWithoutTag": 1
+        },
+        "AccountManager": {
+            "missingJsDoc": 0,
+            "missingExample": 19,
+            "throwsWithoutTag": 0
+        },
+        "AccountStatusManager": {
+            "missingJsDoc": 0,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "AdminCleanupManager": {
+            "missingJsDoc": 0,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "AdminConfigManager": {
+            "missingJsDoc": 50,
+            "missingExample": 4,
+            "throwsWithoutTag": 4
+        },
+        "AdminExternalServiceManager": {
+            "missingJsDoc": 0,
+            "missingExample": 7,
+            "throwsWithoutTag": 1
+        },
+        "AdminFederationManager": {
+            "missingJsDoc": 0,
+            "missingExample": 20,
+            "throwsWithoutTag": 9
+        },
+        "AdminManager": {
+            "missingJsDoc": 0,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "AdminMediaManager": {
+            "missingJsDoc": 0,
+            "missingExample": 7,
+            "throwsWithoutTag": 5
+        },
+        "AdminNotificationManager": {
+            "missingJsDoc": 0,
+            "missingExample": 4,
+            "throwsWithoutTag": 0
+        },
+        "AdminPolicyManager": {
+            "missingJsDoc": 0,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "AdminReportManager": {
+            "missingJsDoc": 0,
+            "missingExample": 5,
+            "throwsWithoutTag": 0
+        },
+        "AdminRoomManager": {
+            "missingJsDoc": 36,
+            "missingExample": 9,
+            "throwsWithoutTag": 3
+        },
+        "AdminServerManager": {
+            "missingJsDoc": 0,
+            "missingExample": 32,
+            "throwsWithoutTag": 12
+        },
+        "AdminUserManager": {
+            "missingJsDoc": 34,
+            "missingExample": 19,
+            "throwsWithoutTag": 8
+        },
+        "AggregationsManager": {
+            "missingJsDoc": 4,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "ApplicationServiceManager": {
+            "missingJsDoc": 24,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "AuthManager": {
+            "missingJsDoc": 0,
+            "missingExample": 24,
+            "throwsWithoutTag": 2
+        },
+        "BackgroundUpdateManager": {
+            "missingJsDoc": 19,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "BaseManager": {
+            "missingJsDoc": 3,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "BeaconManager": {
+            "missingJsDoc": 9,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "BurnAfterReadManager": {
+            "missingJsDoc": 31,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "CapabilitiesManager": {
+            "missingJsDoc": 3,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "CaptchaManager": {
+            "missingJsDoc": 4,
+            "missingExample": 1,
+            "throwsWithoutTag": 1
+        },
+        "CasManager": {
+            "missingJsDoc": 6,
+            "missingExample": 3,
+            "throwsWithoutTag": 0
+        },
+        "CrossSigningManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "CryptoKeysManager": {
+            "missingJsDoc": 10,
+            "missingExample": 1,
+            "throwsWithoutTag": 1
+        },
+        "CryptoStoreManager": {
+            "missingJsDoc": 4,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "DehydratedDeviceManager": {
+            "missingJsDoc": 9,
+            "missingExample": 9,
+            "throwsWithoutTag": 3
+        },
+        "DelayedEventsManager": {
+            "missingJsDoc": 0,
+            "missingExample": 3,
+            "throwsWithoutTag": 0
+        },
+        "DeviceKeysManager": {
+            "missingJsDoc": 5,
+            "missingExample": 12,
+            "throwsWithoutTag": 0
+        },
+        "DeviceManager": {
+            "missingJsDoc": 9,
+            "missingExample": 5,
+            "throwsWithoutTag": 3
+        },
+        "DirectMessageManager": {
+            "missingJsDoc": 0,
+            "missingExample": 5,
+            "throwsWithoutTag": 0
+        },
+        "DirectoryManager": {
+            "missingJsDoc": 6,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "DiscoveryManager": {
+            "missingJsDoc": 24,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "DmRoomCreationManager": {
+            "missingJsDoc": 1,
+            "missingExample": 4,
+            "throwsWithoutTag": 4
+        },
+        "DmRoomListManager": {
+            "missingJsDoc": 0,
+            "missingExample": 18,
+            "throwsWithoutTag": 11
+        },
+        "DmRoomOperationManager": {
+            "missingJsDoc": 0,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "E2EEManager": {
+            "missingJsDoc": 18,
+            "missingExample": 5,
+            "throwsWithoutTag": 0
+        },
+        "EncryptionManager": {
+            "missingJsDoc": 4,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "EphemeralManager": {
+            "missingJsDoc": 13,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "EventManager": {
+            "missingJsDoc": 10,
+            "missingExample": 4,
+            "throwsWithoutTag": 0
+        },
+        "EventReportManager": {
+            "missingJsDoc": 0,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "ExternalServiceManager": {
+            "missingJsDoc": 10,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "FeatureFlagManager": {
+            "missingJsDoc": 0,
+            "missingExample": 4,
+            "throwsWithoutTag": 4
+        },
+        "FederationBlacklistManager": {
+            "missingJsDoc": 5,
+            "missingExample": 1,
+            "throwsWithoutTag": 1
+        },
+        "FederationManager": {
+            "missingJsDoc": 3,
+            "missingExample": 2,
+            "throwsWithoutTag": 1
+        },
+        "FederationQueryManager": {
+            "missingJsDoc": 1,
+            "missingExample": 4,
+            "throwsWithoutTag": 3
+        },
+        "FederationRoomManager": {
+            "missingJsDoc": 0,
+            "missingExample": 4,
+            "throwsWithoutTag": 4
+        },
+        "FederationServerManager": {
+            "missingJsDoc": 3,
+            "missingExample": 4,
+            "throwsWithoutTag": 4
+        },
+        "FilterManager": {
+            "missingJsDoc": 3,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "FriendBlockManager": {
+            "missingJsDoc": 0,
+            "missingExample": 2,
+            "throwsWithoutTag": 1
+        },
+        "FriendListManager": {
+            "missingJsDoc": 31,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "FriendManager": {
+            "missingJsDoc": 44,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "FriendRequestManager": {
+            "missingJsDoc": 0,
+            "missingExample": 9,
+            "throwsWithoutTag": 3
+        },
+        "GuestManager": {
+            "missingJsDoc": 15,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "IdentityManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "IdentityServerManager": {
+            "missingJsDoc": 2,
+            "missingExample": 12,
+            "throwsWithoutTag": 1
+        },
+        "InviteBlocklistManager": {
+            "missingJsDoc": 0,
+            "missingExample": 15,
+            "throwsWithoutTag": 5
+        },
+        "InvitesManager": {
+            "missingJsDoc": 6,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "KeyBackupManager": {
+            "missingJsDoc": 26,
+            "missingExample": 3,
+            "throwsWithoutTag": 2
+        },
+        "KeyClaimManager": {
+            "missingJsDoc": 0,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "KeyRotationManager": {
+            "missingJsDoc": 2,
+            "missingExample": 2,
+            "throwsWithoutTag": 1
+        },
+        "LifecycleManager": {
+            "missingJsDoc": 7,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "MatrixClient": {
+            "missingJsDoc": 209,
+            "missingExample": 88,
+            "throwsWithoutTag": 1
+        },
+        "MatrixRTCSessionManager": {
+            "missingJsDoc": 2,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "MediaManager": {
+            "missingJsDoc": 8,
+            "missingExample": 11,
+            "throwsWithoutTag": 0
+        },
+        "MembershipManager": {
+            "missingJsDoc": 12,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "ModerationManager": {
+            "missingJsDoc": 0,
+            "missingExample": 2,
+            "throwsWithoutTag": 5
+        },
+        "ModuleManager": {
+            "missingJsDoc": 21,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "NotificationsManager": {
+            "missingJsDoc": 4,
+            "missingExample": 2,
+            "throwsWithoutTag": 1
+        },
+        "OidcManager": {
+            "missingJsDoc": 13,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "OutgoingRequestsManager": {
+            "missingJsDoc": 0,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "PasswordResetManager": {
+            "missingJsDoc": 3,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "PinnedMessagesManager": {
+            "missingJsDoc": 11,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "PresenceManager": {
+            "missingJsDoc": 14,
+            "missingExample": 3,
+            "throwsWithoutTag": 1
+        },
+        "ProfileManager": {
+            "missingJsDoc": 3,
+            "missingExample": 11,
+            "throwsWithoutTag": 1
+        },
+        "PushManager": {
+            "missingJsDoc": 12,
+            "missingExample": 19,
+            "throwsWithoutTag": 17
+        },
+        "PushNotificationsManager": {
+            "missingJsDoc": 4,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "PushRulesManager": {
+            "missingJsDoc": 6,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "ReactionsManager": {
+            "missingJsDoc": 9,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "ReadReceiptsManager": {
+            "missingJsDoc": 5,
+            "missingExample": 5,
+            "throwsWithoutTag": 1
+        },
+        "RelationsManager": {
+            "missingJsDoc": 7,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RendezvousManager": {
+            "missingJsDoc": 0,
+            "missingExample": 9,
+            "throwsWithoutTag": 2
+        },
+        "ReportingManager": {
+            "missingJsDoc": 3,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "RetentionManager": {
+            "missingJsDoc": 10,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomAliasManager": {
+            "missingJsDoc": 15,
+            "missingExample": 4,
+            "throwsWithoutTag": 2
+        },
+        "RoomCreationManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomEventsManager": {
+            "missingJsDoc": 9,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomKeysManager": {
+            "missingJsDoc": 2,
+            "missingExample": 3,
+            "throwsWithoutTag": 2
+        },
+        "RoomListManager": {
+            "missingJsDoc": 7,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomManager": {
+            "missingJsDoc": 49,
+            "missingExample": 12,
+            "throwsWithoutTag": 1
+        },
+        "RoomMemberManager": {
+            "missingJsDoc": 6,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "RoomSettingsManager": {
+            "missingJsDoc": 12,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomStateManager": {
+            "missingJsDoc": 7,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomSummaryEventOperationManager": {
+            "missingJsDoc": 1,
+            "missingExample": 41,
+            "throwsWithoutTag": 11
+        },
+        "RoomSummaryInvitePolicyManager": {
+            "missingJsDoc": 0,
+            "missingExample": 4,
+            "throwsWithoutTag": 0
+        },
+        "RoomSummaryKeyManager": {
+            "missingJsDoc": 0,
+            "missingExample": 5,
+            "throwsWithoutTag": 0
+        },
+        "RoomSummaryManager": {
+            "missingJsDoc": 84,
+            "missingExample": 4,
+            "throwsWithoutTag": 1
+        },
+        "RoomSummaryMemberManager": {
+            "missingJsDoc": 0,
+            "missingExample": 6,
+            "throwsWithoutTag": 2
+        },
+        "RoomSummarySearchManager": {
+            "missingJsDoc": 0,
+            "missingExample": 7,
+            "throwsWithoutTag": 2
+        },
+        "RoomSummaryStateManager": {
+            "missingJsDoc": 0,
+            "missingExample": 3,
+            "throwsWithoutTag": 0
+        },
+        "RoomSummaryStatsManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "RoomSummaryThreadManager": {
+            "missingJsDoc": 0,
+            "missingExample": 3,
+            "throwsWithoutTag": 3
+        },
+        "RTCEncryptionManager": {
+            "missingJsDoc": 3,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "RustBackupManager": {
+            "missingJsDoc": 1,
+            "missingExample": 17,
+            "throwsWithoutTag": 2
+        },
+        "SamlAuthManager": {
+            "missingJsDoc": 17,
+            "missingExample": 3,
+            "throwsWithoutTag": 0
+        },
+        "SearchManager": {
+            "missingJsDoc": 3,
+            "missingExample": 3,
+            "throwsWithoutTag": 0
+        },
+        "SecretStorageManager": {
+            "missingJsDoc": 0,
+            "missingExample": 6,
+            "throwsWithoutTag": 0
+        },
+        "SecureBackupManager": {
+            "missingJsDoc": 2,
+            "missingExample": 3,
+            "throwsWithoutTag": 3
+        },
+        "SecurityManager": {
+            "missingJsDoc": 0,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "SendingManager": {
+            "missingJsDoc": 8,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "ServerCapabilitiesManager": {
+            "missingJsDoc": 7,
+            "missingExample": 7,
+            "throwsWithoutTag": 1
+        },
+        "ServerTimeManager": {
+            "missingJsDoc": 4,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SessionManager": {
+            "missingJsDoc": 0,
+            "missingExample": 6,
+            "throwsWithoutTag": 0
+        },
+        "SessionsManager": {
+            "missingJsDoc": 6,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SpaceChildManager": {
+            "missingJsDoc": 0,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SpaceHierarchyManager": {
+            "missingJsDoc": 5,
+            "missingExample": 2,
+            "throwsWithoutTag": 0
+        },
+        "SpaceLifecycleManager": {
+            "missingJsDoc": 0,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SpaceManager": {
+            "missingJsDoc": 4,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "SpaceMemberManager": {
+            "missingJsDoc": 4,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SpaceQueryManager": {
+            "missingJsDoc": 8,
+            "missingExample": 5,
+            "throwsWithoutTag": 0
+        },
+        "StateSendManager": {
+            "missingJsDoc": 1,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SyncAccumulatorManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "SyncManager": {
+            "missingJsDoc": 9,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "TagManager": {
+            "missingJsDoc": 20,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "TagsManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "TelemetryManager": {
+            "missingJsDoc": 27,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "ThirdPartyManager": {
+            "missingJsDoc": 0,
+            "missingExample": 7,
+            "throwsWithoutTag": 1
+        },
+        "ThreadingManager": {
+            "missingJsDoc": 27,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "ThreadManager": {
+            "missingJsDoc": 2,
+            "missingExample": 21,
+            "throwsWithoutTag": 15
+        },
+        "ThreePidsManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "TimelineManager": {
+            "missingJsDoc": 6,
+            "missingExample": 7,
+            "throwsWithoutTag": 1
+        },
+        "ToDeviceManager": {
+            "missingJsDoc": 0,
+            "missingExample": 6,
+            "throwsWithoutTag": 1
+        },
+        "TurnServerManager": {
+            "missingJsDoc": 4,
+            "missingExample": 1,
+            "throwsWithoutTag": 0
+        },
+        "TypingManager": {
+            "missingJsDoc": 2,
+            "missingExample": 8,
+            "throwsWithoutTag": 1
+        },
+        "UnifiedCacheManager": {
+            "missingJsDoc": 0,
+            "missingExample": 10,
+            "throwsWithoutTag": 0
+        },
+        "UploadsManager": {
+            "missingJsDoc": 5,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "UserDirectoryManager": {
+            "missingJsDoc": 7,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "UserManager": {
+            "missingJsDoc": 9,
+            "missingExample": 0,
+            "throwsWithoutTag": 0
+        },
+        "VoiceManager": {
+            "missingJsDoc": 12,
+            "missingExample": 5,
+            "throwsWithoutTag": 5
+        },
+        "WidgetManager": {
+            "missingJsDoc": 2,
+            "missingExample": 18,
+            "throwsWithoutTag": 16
+        },
+        "WidgetsManager": {
+            "missingJsDoc": 6,
+            "missingExample": 19,
+            "throwsWithoutTag": 0
+        },
+        "WorkerAdminManager": {
+            "missingJsDoc": 0,
+            "missingExample": 15,
+            "throwsWithoutTag": 8
+        },
+        "WorkerBodyManager": {
+            "missingJsDoc": 0,
+            "missingExample": 11,
+            "throwsWithoutTag": 10
+        },
+        "WorkerManager": {
+            "missingJsDoc": 0,
+            "missingExample": 10,
+            "throwsWithoutTag": 6
+        }
+    }
+}

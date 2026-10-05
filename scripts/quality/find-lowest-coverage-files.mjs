@@ -1,116 +1,76 @@
 #!/usr/bin/env node
 /**
- * 文件级别的快速覆盖率分析
- * 精确定位最薄弱的 5 个源文件（有 HTTP 请求但没有测试）
+ * find-lowest-coverage-files.mjs —— 文件级覆盖风险报告（advisory，非阻断）
+ *
+ * 输出最薄弱的源文件（"有 HTTP 调用但没有任何 spec 触及"排在最前）。
+ *
+ * ⚠️ 历史坑（务必不要回退）:
+ *   本脚本最初用 `walkDir(specDir, [".spec.ts"])` 收集测试文件，但
+ *   `path.extname("foo.spec.ts")` 返回 `".ts"`，于是**一个 spec 都扫不到**
+ *   （输出 `Found 471 source files and 0 test files`），全部源文件被判"无测试"。
+ *   修掉那处之后仍是按 basename 猜测试文件，而本仓 spec 与源文件**不同名**
+ *   （`src/client.ts` ← `matrix-client.spec.ts`、`src/three-pids/` ← `threepids.spec.ts`），
+ *   于是 `client.ts` 等仍在报告里显示 MISSING —— 假阳性会直接误导优先级判断。
+ *
+ *   现在统一改用 `lib/spec-import-graph.mjs` 的两个可验证信号：
+ *     A. 直接 spec（镜像路径 / 扁平同名）
+ *     B. import 图（任意 spec import 了该文件）
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { createCoverageSignals, hasDirectSpec } from "./lib/spec-import-graph.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, "..", "..");
 
 const srcDir = path.join(projectRoot, "src");
-const specDir = path.join(projectRoot, "spec/unit");
+const specDir = path.join(projectRoot, "spec");
 
-function walkDir(dir, exts = [".ts"]) {
-    const results = [];
-    if (!fs.existsSync(dir)) return results;
+const HTTP_CALL_RE = /withRetry|authedRequest|authedRequestClient|makeRequest|\.request\(Method/g;
 
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory() && !entry.name.startsWith("_")) {
-            results.push(...walkDir(fullPath, exts));
-        } else if (entry.isFile() && exts.includes(path.extname(entry.name))) {
-            results.push(fullPath);
-        }
-    }
-    return results;
-}
+const signals = createCoverageSignals(srcDir, specDir);
+const sourceFiles = signals.sourceFiles;
+const specFiles = signals.specFiles;
+const isTouched = signals.isTouched;
 
-// 获取所有测试文件，建立"源文件 -> 测试文件"映射
-const allSpecFiles = walkDir(specDir, [".spec.ts", ".spec.test.ts", ".test.ts"]);
-const allSourceFiles = walkDir(srcDir, [".ts"]);
-
-console.log(`Found ${allSourceFiles.length} source files and ${allSpecFiles.length} test files\n`);
-
-// 对于每个源文件，查找对应的测试文件（支持多种模式）
-function findTestForSource(sourcePath) {
-    const relative = path.relative(srcDir, sourcePath);
-    const dir = path.dirname(relative);
-    const baseName = path.basename(sourcePath, ".ts");
-
-    // 模式 1: src/foo/bar.ts -> spec/unit/foo/bar.spec.ts
-    const candidate1 = path.join(specDir, dir, `${baseName}.spec.ts`);
-    if (fs.existsSync(candidate1)) return candidate1;
-
-    const candidate1b = path.join(specDir, dir, `${baseName}.spec.test.ts`);
-    if (fs.existsSync(candidate1b)) return candidate1b;
-
-    // 模式 2: src/foo/index.ts -> spec/unit/foo.spec.ts (扁平化)
-    if (baseName === "index") {
-        const parentDir = path.basename(dir);
-        const candidate2 = path.join(specDir, `${parentDir}.spec.ts`);
-        if (fs.existsSync(candidate2)) return candidate2;
-    }
-
-    // 模式 3: src/client.ts -> spec/unit/client.ts 同级
-    const candidate3 = path.join(specDir, `${baseName}.spec.ts`);
-    if (fs.existsSync(candidate3)) return candidate3;
-
-    return null;
-}
+console.log(`Found ${sourceFiles.length} source files and ${specFiles.length} test files\n`);
 
 const analysisResults = [];
 
-for (const sourceFile of allSourceFiles) {
-    if (sourceFile.endsWith(".d.ts")) continue;
-
+for (const sourceFile of sourceFiles) {
     const relativePath = path.relative(srcDir, sourceFile);
     const content = fs.readFileSync(sourceFile, "utf8");
     const lines = content.split("\n").length;
+    const httpCount = (content.match(HTTP_CALL_RE) || []).length;
 
-    // 检查是否有 HTTP 请求
-    const httpMatches = content.match(/withRetry|authedRequest|\.request\(Method/g);
-    const httpCount = httpMatches ? httpMatches.length : 0;
+    const touched = isTouched(sourceFile);
+    const directSpec = hasDirectSpec(sourceFile, srcDir, specDir);
 
-    // 检查是否有测试
-    const testFile = findTestForSource(sourceFile);
-    const hasTest = !!testFile;
-
-    // 风险评分
+    // 风险评分：只看"有没有被任何 spec 触及"，不再用 testLines/sourceLines 这种
+    // 与真实覆盖率无关的行数比值（它会把"测试文件短但覆盖全"的文件误判成高风险）。
     let riskScore = 0;
-    if (httpCount > 0 && !hasTest) {
-        riskScore = 100;
-    } else if (httpCount > 0 && hasTest) {
-        const testContent = fs.readFileSync(testFile, "utf8");
-        const testLines = testContent.split("\n").length;
-        const coverageRatio = testLines / lines;
-        if (coverageRatio < 0.3) riskScore = 80;
-        else if (coverageRatio < 0.6) riskScore = 50;
-        else if (coverageRatio < 0.9) riskScore = 20;
-    } else if (!httpCount && lines > 500 && !hasTest) {
-        riskScore = 40;
-    } else if (!httpCount && lines > 200 && !hasTest) {
-        riskScore = 20;
-    }
+    if (httpCount > 0 && !touched)
+        riskScore = 100; // 真盲区
+    else if (httpCount > 0 && !directSpec)
+        riskScore = 50; // 仅间接触及，无专属 spec
+    else if (lines > 500 && !directSpec) riskScore = 20;
 
     if (riskScore > 0) {
         analysisResults.push({
             file: relativePath,
             lines,
             httpCount,
-            hasTest,
-            testFile: testFile || null,
+            hasTest: touched,
+            directSpec,
             riskScore,
         });
     }
 }
 
-// 排序
-analysisResults.sort((a, b) => b.riskScore - a.riskScore);
+analysisResults.sort((a, b) => b.riskScore - a.riskScore || b.httpCount - a.httpCount);
 
 console.log("=".repeat(80));
 console.log("文件级覆盖率风险分析 - 前 20 个高风险文件");
@@ -118,32 +78,33 @@ console.log("=".repeat(80));
 
 for (let i = 0; i < Math.min(20, analysisResults.length); i++) {
     const r = analysisResults[i];
+    const testLabel = r.directSpec ? "✅ 直接 spec" : r.hasTest ? "🟡 仅被 spec import" : "❌ MISSING";
     console.log(`${i + 1}. ${r.file}`);
     console.log(`   Lines: ${r.lines} | HTTP Calls: ${r.httpCount}`);
-    console.log(`   Test: ${r.hasTest ? "✅ " + path.basename(r.testFile || "") : "❌ MISSING"}`);
+    console.log(`   Test: ${testLabel}`);
     console.log(`   Risk Score: ${r.riskScore}`);
     console.log("");
 }
 
 console.log("=".repeat(80));
-console.log("⚠️ 最薄弱的 5 个文件（需要优先补充测试）");
+console.log("⚠️ 完全无测试的文件（需要优先补充测试）");
 console.log("=".repeat(80));
 console.log("");
 
-for (let i = 0; i < Math.min(5, analysisResults.length); i++) {
-    const r = analysisResults[i];
-    if (r.riskScore >= 100) {
-        console.log(`${i + 1}. \`src/${r.file}\``);
-        console.log(`   规模：${r.lines} 行代码`);
-        console.log(`   HTTP 调用：${r.httpCount} 次`);
-        console.log(`   问题：完全无测试文件`);
-        console.log(`   建议：创建 \`spec/unit/${r.file.replace(".ts", ".spec.ts")}\``);
-        console.log("");
-    }
+const uncovered = analysisResults.filter((r) => r.riskScore === 100);
+for (let i = 0; i < Math.min(5, uncovered.length); i++) {
+    const r = uncovered[i];
+    console.log(`${i + 1}. \`src/${r.file}\``);
+    console.log(`   规模：${r.lines} 行代码`);
+    console.log(`   HTTP 调用：${r.httpCount} 次`);
+    console.log(`   问题：无任何 spec 引用该模块`);
+    console.log(`   建议：创建 \`spec/unit/${r.file.replace(/\.ts$/, ".spec.ts")}\``);
+    console.log("");
 }
+if (uncovered.length === 0) console.log("（无）");
 
 // JSON 输出
-const top5 = analysisResults.filter((r) => r.riskScore >= 100).slice(0, 5);
+const top5 = uncovered.slice(0, 5);
 const jsonOutput = {
     generatedAt: new Date().toISOString(),
     totalAnalyzed: analysisResults.length,
@@ -151,7 +112,7 @@ const jsonOutput = {
         file: r.file,
         lines: r.lines,
         httpCalls: r.httpCount,
-        recommendedTestPath: `spec/unit/${r.file.replace(".ts", ".spec.ts")}`,
+        recommendedTestPath: `spec/unit/${r.file.replace(/\.ts$/, ".spec.ts")}`,
     })),
 };
 

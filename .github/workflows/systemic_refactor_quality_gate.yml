@@ -39,6 +39,23 @@ jobs:
             - name: Entrypoint contract gates
               run: pnpm quality:contracts
 
+            # check-contract-provenance.mjs 是
+            # docs/api-contract/governance/LEDGER_REVIEW_CHECKLIST.md §6
+            # 「Changelog and provenance」的自动执行器，但此前全仓零引用 ——
+            # 已文档化的 PR 策略实际没有任何东西在执行它。
+            # 行为：仅当本 PR 相对 base 改动过 docs/api-contract/generated/ 时才校验
+            # PR body 是否带 provenance 块；push 事件无 PR body 时自动 skip（exit 0）。
+            - name: Contract mirror provenance guard (PR only, self-skipping)
+              env:
+                  GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+              run: pnpm quality:contract-provenance
+
+            # 18 个 check-*-granular-coverage 门禁此前从未被任何 workflow 调用
+            # （"看起来有门禁、实际从不执行"）。统一入口按 package.json 自动发现，
+            # 新增 granular 门禁无需再改 workflow。
+            - name: Granular module coverage gates
+              run: pnpm quality:granular-coverage
+
             - name: MSC change detection (non-strict)
               run: node scripts/quality/check-msc-changes.mjs
 
@@ -60,9 +77,19 @@ jobs:
             - name: Critical modules coverage (ratchet floors, target 90%)
               run: pnpm quality:coverage:critical
 
+            # P2-c 是「双轨」覆盖率：关键模块 ≥85% + 全仓 ≥65%（阈值见
+            # scripts/quality/coverage-targets.json）。此前只接了「关键模块」一轨，
+            # quality:coverage:repo 从未被任何 workflow 调用（孤岛）⇒ 全仓那一轨形同不存在。
+            # 2026-10-05 实测全仓 lines 81.49% / branches 73.24% / functions 79.84%，
+            # 均高于 floor，故接线后不会常红。lcov 由上面的 `pnpm test --coverage` 产出。
+            - name: "Repo-wide coverage (dual-track: full repo floors)"
+              run: pnpm quality:coverage:repo
+
             # Surfaces untested source files that carry HTTP calls. Advisory only:
-            # it reports the top-N risk files and writes a markdown snapshot, so a
-            # regression shows up in review without blocking unrelated PRs.
+            # it prints the top-N risk files (stdout only — no markdown artifact),
+            # so a regression shows up in the job log without blocking unrelated PRs.
+            # The blocking counterpart is `pnpm quality:coverage:critical-files` (in lint)
+            # plus the granular gates above.
             - name: Weak coverage report (advisory, non-blocking)
               run: pnpm quality:coverage:weak-files
 

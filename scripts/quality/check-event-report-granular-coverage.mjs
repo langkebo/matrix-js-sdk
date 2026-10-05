@@ -30,6 +30,10 @@ const CHECKS = [
             {
                 name: "EventReportManager CRUD and moderation APIs",
                 ownerFile: "src/event-report/index.ts",
+                // 注意：不要再把 getReportHistory 加回来。
+                // 后端在 2026-09-25 已删除 GET /_synapse/admin/v1/event_reports/{id}/history
+                // 全链（写入侧本就是静默丢弃），SDK 侧于 e095f4428 一并删除方法与 DTO。
+                // 该期望漏删导致本门禁自 2026-10-01 起常红——正是"期望表未与实现同步"的典型。
                 methods: [
                     "createReport",
                     "getReport",
@@ -38,7 +42,6 @@ const CHECKS = [
                     "dismissReport",
                     "escalateReport",
                     "deleteReport",
-                    "getReportHistory",
                 ],
                 testFiles: ["spec/unit/event-report.spec.ts"],
             },

@@ -125,6 +125,13 @@ export default {
         // into manager-extensions/index.ts MANAGER_EXTENSION_MODULES list:
         "src/event/index.ts",
         "src/widgets/index.ts",
+        // worker / room-alias 的 extendMatrixClient 已于 2026-10-05 补入
+        // MODULE_DEFS 并接线（此前 client.getWorkerManager() /
+        // getRoomAliasManager() 在运行时是 undefined，调用即 TypeError）。
+        // 但 knip 无法追踪 manager-extensions/index.ts 里以字符串参数形式
+        // 出现的动态 import，所以仍需在此登记，否则会被误报为 unused exports。
+        "src/client/worker/worker.ts",
+        "src/room-alias/index.ts",
         // Public API modules consumed externally (by hula frontend) but not
         // dynamically imported; knip can't trace external usage:
         "src/error/index.ts",
@@ -182,6 +189,12 @@ export default {
         "type-coverage",
         // Used in eslint.config.mjs (ESLint globals preset)
         "globals",
+        // `events` 与 Node 同名内置模块，但本 SDK 必须在浏览器里也提供
+        // EventEmitter，因此显式依赖 npm 包 `events` 作为 polyfill。
+        // knip 把 `from "events"` 当成内置模块，从而误报为「未使用依赖」；
+        // 实际消费者：src/ReEmitter.ts、src/models/typed-event-emitter.ts
+        // （均为运行时 import，不是类型专用）。
+        "events",
     ],
     ignoreBinaries: [
         // Used when available by reusable workflow `.github/workflows/release-make.yml`

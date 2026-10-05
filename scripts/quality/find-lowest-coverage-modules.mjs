@@ -8,12 +8,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createCoverageSignals, moduleIsTouched } from "./lib/spec-import-graph.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, "..", "..");
 
 const srcDir = path.join(projectRoot, "src");
-const specDir = path.join(projectRoot, "spec/unit");
+const specRoot = path.join(projectRoot, "spec");
+const specDir = path.join(specRoot, "unit");
+
+// 全量 spec 的 import 图（模块级"是否被触及"的判据，见下方 moduleIsTouched 用法）
+// 注意第二个参数必须是 spec **根**目录：lib 内部会去 <specRoot>/unit 找直接 spec。
+const signals = createCoverageSignals(srcDir, specRoot);
 
 function walkDir(dir, extensions = [".ts"]) {
     const results = [];
@@ -28,6 +35,20 @@ function walkDir(dir, extensions = [".ts"]) {
         }
     }
     return results;
+}
+
+const isSpecFile = (f) => f.endsWith(".spec.ts") || f.endsWith(".spec.test.ts") || f.endsWith(".test.ts");
+
+/**
+ * 递归收集 spec 文件。
+ *
+ * ⚠️ 不要写成 `walkDir(dir, [".spec.ts"])`：`path.extname("foo.spec.ts")` 返回的是
+ * `".ts"`，永远不等于 `".spec.ts"` ⇒ 结果恒为空数组，所有模块都会被判成"零测试"。
+ * 这个 bug 曾同时存在于本文件与 find-lowest-coverage-files.mjs，是
+ * COVERAGE_WEAK_FILES.md「471 源文件 / 0 测试文件」误报的根因。
+ */
+function walkSpecs(dir) {
+    return walkDir(dir, [".ts"]).filter(isSpecFile);
 }
 
 // 获取顶层模块列表
@@ -63,7 +84,7 @@ for (const moduleName of topLevelSrcDirs) {
     const hasSpecFile = fs.existsSync(path.join(specDir, `${moduleName}.spec.ts`));
 
     // 也要检查是否有相关的测试文件（名称不完全匹配的情况）
-    const allSpecFiles = walkDir(specDir, [".spec.ts", ".spec.test.ts"]);
+    const allSpecFiles = walkSpecs(specDir);
     const relatedSpecFiles = allSpecFiles.filter((f) => {
         const basename = path.basename(f, ".spec.ts").replace(".spec.test", "");
         return (
@@ -75,7 +96,7 @@ for (const moduleName of topLevelSrcDirs) {
     // 注意：spec/unit/<module>/ 可能是空目录（占位），此时必须回退到平铺的 <module>.spec.ts
     const candidateTestFiles = new Set();
     if (hasSpecDir) {
-        for (const f of walkDir(specModulePath, [".spec.ts", ".spec.test.ts"])) candidateTestFiles.add(f);
+        for (const f of walkSpecs(specModulePath)) candidateTestFiles.add(f);
     }
     if (hasSpecFile) candidateTestFiles.add(path.join(specDir, `${moduleName}.spec.ts`));
     for (const f of relatedSpecFiles) candidateTestFiles.add(f);
@@ -89,15 +110,21 @@ for (const moduleName of topLevelSrcDirs) {
     // 计算覆盖率估算值（基于行数比例）
     const coverageEstimate = totalLines > 0 ? (testLines / totalLines) * 100 : 100;
 
+    // import 图信号：模块下**任一**文件被 spec import，即视为"该模块已被触及"。
+    // 这是对"文件名相近"匹配的兜底——本仓有 src/three-pids/ ← spec/unit/threepids.spec.ts
+    // 这类不同名对应，只靠名字会误判为"零测试"。
+    const touchedByImport = moduleIsTouched(moduleName, srcDir, specDir, signals);
+    const reallyUntested = testFileCount === 0 && !touchedByImport;
+
     // 风险评分：HTTP 调用多但没有测试的文件风险最高
     let riskScore = 0;
-    if (httpCallCount > 0 && testFileCount === 0) {
+    if (httpCallCount > 0 && reallyUntested) {
         riskScore = 100; // 有 HTTP 请求但完全无测试
     } else if (httpCallCount > 0 && testFileCount > 0 && coverageEstimate < 50) {
         riskScore = 80; // 有 HTTP 请求且覆盖率低于 50%
     } else if (httpCallCount > 0 && testFileCount > 0 && coverageEstimate < 80) {
         riskScore = 60; // 有 HTTP 请求且覆盖率低于 80%
-    } else if (totalLines > 500 && testFileCount === 0) {
+    } else if (totalLines > 500 && reallyUntested) {
         riskScore = 40; // 大文件但没有测试
     } else if (totalLines > 300 && testFileCount < 2) {
         riskScore = 20; // 中等文件但测试不足
@@ -114,6 +141,7 @@ for (const moduleName of topLevelSrcDirs) {
         riskScore,
         hasSpecDir,
         hasSpecFile,
+        touchedByImport,
     });
 }
 

@@ -28,6 +28,6 @@
             "#types/*": ["./node_modules/vite/types/*"]
         }
     },
-    "include": ["./src/**/*.ts", "./src/**/*.d.ts", "./spec/**/*.ts"],
+    "include": ["./src/**/*.ts", "./src/**/*.d.ts", "./spec/**/*.ts", "./perf/**/*.ts"],
     "exclude": ["spec/integ/real-backend/**/*", "spec/integ/sliding-sync-sdk.spec.ts", "spec/unit/account.spec.ts"]
 }

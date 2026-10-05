@@ -249,7 +249,7 @@ export default tseslint.config(
 
     // spec/**/*.ts (test files)
     {
-        files: ["spec/**/*.ts", "spec/**/*.cjs", "spec/**/*.js"],
+        files: ["spec/**/*.ts", "spec/**/*.cjs", "spec/**/*.js", "perf/**/*.ts"],
         plugins: {
             vitest,
         },
