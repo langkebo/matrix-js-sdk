@@ -47,6 +47,11 @@ describe("Read receipt", () => {
         client.isGuest = () => false;
         client.supportsThreads = () => true;
 
+        // 消除 500ms 回执防抖：该防抖用于生产环境合并高频回执，测试中保留它会让
+        // 每个用例多等 500ms，并在全量并行负载下与 matrix-mock-request 的 flush
+        // 超时叠加造成偶发失败（"Timed out after flushing 0 requests"）。
+        (client.getReadReceiptsManager() as unknown as { RECEIPT_DEBOUNCE_MS: number }).RECEIPT_DEBOUNCE_MS = 0;
+
         threadRoot = utils.mkEvent({
             event: true,
             type: EventType.RoomMessage,

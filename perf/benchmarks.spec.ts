@@ -30,7 +30,9 @@
  * - **Outliers**: 剔除最高/最低 10% 的异常值
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+/* eslint-disable no-console -- 基准测试的核心产出就是打印结果，供 CI 归档与人工比对 */
+
+import { describe, it, expect, vi } from "vitest";
 import { UnifiedCacheManager } from "../src/managers/cache-manager";
 import { LRUCache } from "../src/utils/lru-cache";
 
