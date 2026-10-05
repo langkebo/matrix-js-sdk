@@ -31,12 +31,10 @@ import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { WidgetPathPattern } from "./__generated__/route-table";
+import type { StripV1, StripV3 } from "../http-api/strip-prefix";
 
 const WIDGET_PREFIX_V1 = "/_matrix/client/v1";
 const WIDGET_PREFIX_V3 = "/_matrix/client/v3";
-
-type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function wp(path: StripV1<WidgetPathPattern>): string {
     return path;

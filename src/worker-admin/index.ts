@@ -22,6 +22,7 @@ import { ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
 import type { WorkerAdminPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripWorkerPrefix } from "../http-api/strip-prefix";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
@@ -30,8 +31,6 @@ export interface TaskMetadata {
     priority?: number;
     [key: string]: unknown;
 }
-
-type StripWorkerPrefix<P extends string> = P extends `/_synapse/worker${infer Rest}` ? Rest : never;
 
 function wa<P extends StripWorkerPrefix<WorkerAdminPathPattern>>(path: P): P {
     return path;

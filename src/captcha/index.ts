@@ -28,10 +28,9 @@ import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { CaptchaPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripAdminV1, StripV3 } from "../http-api/strip-prefix";
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
-type CaptchaClientPath = StripClientV3<CaptchaPathPattern>;
+type CaptchaClientPath = StripV3<CaptchaPathPattern>;
 export type CaptchaApiVersion = "v3";
 
 function cp<P extends CaptchaClientPath>(path: P): P {

@@ -39,8 +39,7 @@ import { NotFoundError } from "../errors";
 import { buildPaginationParams } from "../common/pagination";
 import type { IContent } from "../models/event";
 import type { ModulePathPattern } from "./__generated__/route-table";
-
-type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+import type { StripAdminV1 } from "../http-api/strip-prefix";
 
 /**
  * 模块路径类型安全包装函数，确保只使用 Ledger 注册的有效路径

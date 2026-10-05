@@ -31,16 +31,7 @@ import { ValidationError } from "../errors";
 import type { MediaPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IMediaConfig } from "../client-internal-types";
-
-type StripMediaPrefix<P extends string> = P extends `/_matrix/media/v1${infer Rest}`
-    ? Rest
-    : P extends `/_matrix/media/v3${infer Rest}`
-      ? Rest
-      : P extends `/_matrix/media/r0${infer Rest}`
-        ? Rest
-        : P extends `/_matrix/media/r1${infer Rest}`
-          ? Rest
-          : never;
+import type { StripMediaPrefix } from "../http-api/strip-prefix";
 
 type MediaRelativePathPattern = StripMediaPrefix<MediaPathPattern>;
 

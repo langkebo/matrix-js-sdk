@@ -37,8 +37,7 @@ import { Method } from "../http-api/method";
 import type { TelemetryPathPattern } from "./__generated__/route-table";
 import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-
-type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+import type { StripAdminV1 } from "../http-api/strip-prefix";
 
 function tp<P extends StripAdminV1<TelemetryPathPattern>>(path: P): P {
     return path;

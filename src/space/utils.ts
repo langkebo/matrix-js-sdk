@@ -22,10 +22,9 @@ limitations under the License.
 
 import type { SpacePathPattern } from "./__generated__/route-table";
 import type { Space } from "./types";
+import type { StripV3 } from "../http-api/strip-prefix";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
-
-export type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 export function sp<P extends StripV3<SpacePathPattern>>(path: P): P {
     return path;

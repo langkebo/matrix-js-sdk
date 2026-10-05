@@ -36,6 +36,7 @@ import { logger } from "../logger";
 import type { RelationsPathPattern } from "./__generated__/route-table";
 import { processRelationEvents } from "../client-relations-core";
 import { EventType, RelationType as RelationTypeBase } from "../@types/event";
+import type { StripClientPrefix, StripVendor } from "../http-api/strip-prefix";
 
 export type RelationType = RelationTypeBase | string;
 export type RelationEventType = "m.room.message" | "m.room.encrypted" | string;
@@ -95,14 +96,6 @@ function replaceParam(oldKey: string, newKey: string, params: QueryDict): QueryD
     return params;
 }
 
-type StripClientPrefix<P extends string> = P extends `/_matrix/client/r0${infer Rest}`
-    ? Rest
-    : P extends `/_matrix/client/v1${infer Rest}`
-      ? Rest
-      : P extends `/_matrix/client/v3${infer Rest}`
-        ? Rest
-        : never;
-
 function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
     return path;
 }
@@ -112,9 +105,8 @@ function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
  * 与 `rr` 同理：`RelationsPathPattern` 的 `{param}` 已被 codegen 降级成 `${string}`，
  * 所以这层约束校验的是**形状**（前缀 + 段数 + 静态段），不是参数名。
  */
-type StripVendorPrefix<P extends string> = P extends `/_matrix/vendor/v1${infer Rest}` ? Rest : never;
 
-function rv<P extends StripVendorPrefix<RelationsPathPattern>>(path: P): P {
+function rv<P extends StripVendor<RelationsPathPattern>>(path: P): P {
     return path;
 }
 

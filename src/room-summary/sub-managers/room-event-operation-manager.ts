@@ -88,13 +88,12 @@ import type {
     ProcessUpdatesResult,
 } from "../types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { StripInternalSummary, StripV3 } from "../../http-api/strip-prefix";
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
-type StripInternalSummary<P extends string> = P extends `/_synapse/room_summary/v1${infer Rest}` ? Rest : never;
 function _rsi<P extends StripInternalSummary<RoomSummaryPathPattern> | "/summaries/batch">(path: P): P {
     return path;
 }
@@ -928,7 +927,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
 
     // ─── 路径辅助（从 index.ts 迁移） ─────────────────────────────────────
 
-    private summaryReadPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+    private summaryReadPath(roomId: string): StripV3<RoomSummaryPathPattern> {
         return _rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
     }
 

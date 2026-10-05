@@ -38,6 +38,7 @@ import { LRUCache } from "../utils/lru-cache";
 import type { DevicePathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IAuthData } from "../interactive-auth";
+import type { StripV3 } from "../http-api/strip-prefix";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -172,8 +173,6 @@ interface IDeviceResponse {
     last_seen_ts?: number;
     user_id?: string;
 }
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function dp<P extends StripV3<DevicePathPattern>>(path: P): P {
     return path;

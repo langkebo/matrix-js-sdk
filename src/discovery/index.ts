@@ -35,14 +35,7 @@ import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import type { IClientWellKnown, IServerVersions } from "../client-api-types";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
-
-type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}`
-    ? Rest
-    : P extends `/_matrix/client/r0${infer Rest}`
-      ? Rest
-      : P extends `/_matrix/client/v1${infer Rest}`
-        ? Rest
-        : P;
+import type { StripAuthPrefix } from "../http-api/strip-prefix";
 
 function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
     return path;

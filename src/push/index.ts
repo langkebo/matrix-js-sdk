@@ -28,11 +28,10 @@ import { validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { PushPathPattern } from "./__generated__/route-table";
 import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "../client-push-rules";
+import type { StripV3 } from "../http-api/strip-prefix";
 
 export type { IPushRules } from "../@types/PushRules";
 export { PUSHER_ENABLED } from "../@types/event";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function pp<P extends StripV3<PushPathPattern>>(path: P): P {
     return path;

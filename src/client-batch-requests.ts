@@ -17,6 +17,7 @@ import type { Visibility } from "./@types/partials";
 import { ReceiptType } from "./@types/read_receipts";
 import type { SyncPathPattern } from "./sync/__generated__/route-table";
 import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
+import type { StripV3 } from "./http-api/strip-prefix";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -25,8 +26,6 @@ type AuthedRequestFn = <T>(
     body?: Body,
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function sp<P extends StripV3<SyncPathPattern>>(path: P): P {
     return path;

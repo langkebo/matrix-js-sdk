@@ -21,10 +21,9 @@ import type { IRoomSummaryState, RoomSummaryStateContent } from "../types";
 import type { RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import { RoomSummaryBaseManager } from "../room-summary-base-manager";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { StripV3 } from "../../http-api/strip-prefix";
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-
-function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
@@ -43,15 +42,11 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
 
     // ─── Path helpers ──────────────────────────────────────────────────────
 
-    private summaryStateCollectionPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+    private summaryStateCollectionPath(roomId: string): StripV3<RoomSummaryPathPattern> {
         return _rsv(`/rooms/${encodeURIComponent(roomId)}/summary/state`);
     }
 
-    private summaryStatePath(
-        roomId: string,
-        eventType: string,
-        stateKey: string,
-    ): StripClientV3<RoomSummaryPathPattern> {
+    private summaryStatePath(roomId: string, eventType: string, stateKey: string): StripV3<RoomSummaryPathPattern> {
         return _rsv(
             `/rooms/${encodeURIComponent(roomId)}/summary/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`,
         );

@@ -39,10 +39,9 @@ import type { IContent } from "../models/event";
 import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import { normalizeExpiresInMs } from "../auth/normalize-expires";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripV3 } from "../http-api/strip-prefix";
 
-type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-
-function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+function ap<P extends StripV3<AuthPathPattern>>(path: P): P {
     return path;
 }
 

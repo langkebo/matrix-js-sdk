@@ -31,10 +31,9 @@ import { LRUCache } from "../utils/lru-cache";
 import { validateUserId } from "../common/validators";
 import { AuthError, ValidationError } from "../errors";
 import type { PresencePathPattern } from "./__generated__/route-table";
+import type { StripV3 } from "../http-api/strip-prefix";
 
 const PRESENCE_PREFIX = "/_matrix/client/v3";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function pp<P extends StripV3<PresencePathPattern>>(path: P): P {
     return path;

@@ -34,9 +34,9 @@ import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { Aes256AuthData } from "../crypto-api/keybackup";
 import type { AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
+import type { StripV3 } from "../http-api/strip-prefix";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 /** Slice of `E2eePathPattern` limited to the `/keys/backup/secure` surface. */
 type SecureBackupV3PathPattern = Extract<StripV3<E2eePathPattern>, `/keys/backup/secure${string}`>;

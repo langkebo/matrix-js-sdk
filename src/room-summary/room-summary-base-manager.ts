@@ -32,6 +32,8 @@ import { validateRoomId, validateUserId, validateEventType } from "../common/val
 import { type QueryDict, encodeUri } from "../http-api/utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
+import type { StripV3 } from "../http-api/strip-prefix";
+import type { RoomSummaryPathPattern } from "./__generated__/route-table";
 
 export type RoomSummaryErrorCallback = (error: Error) => void;
 
@@ -75,9 +77,14 @@ export abstract class RoomSummaryBaseManager<
     }
 
     /**
-     * 构建带 roomId 替换的路径
+     * 构建带 roomId 替换的路径。
+     *
+     * 入参 `pathTemplate` 被约束为**本模块契约**（`room_summary`）里的路径模板，
+     * 从而在调用点获得编译期校验：写错 / 写了一个其实归 `room` 模块的端点，
+     * 都会成为编译错误而不是运行时 404。归 `room` 模块的端点请改用
+     * `_rrv(encodeUri(...))`（见 room-event-operation-manager.ts）。
      */
-    protected roomSummaryPath(pathTemplate: string, roomId: string): string {
+    protected roomSummaryPath<P extends StripV3<RoomSummaryPathPattern>>(pathTemplate: P, roomId: string): string {
         return encodeUri(pathTemplate, { $roomId: roomId });
     }
 

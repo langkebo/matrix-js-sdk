@@ -12,8 +12,7 @@
  */
 
 import type { FriendPathPattern } from "./__generated__/route-table";
-
-type StripVendor<P extends string> = P extends `/_matrix/vendor/v1${infer Rest}` ? Rest : never;
+import type { StripVendor } from "../http-api/strip-prefix";
 
 /** 相对 `/_matrix/vendor/v1` 的 friends 路径（必须是 ledger 声明过的形态）。 */
 export type FriendRelativePath = StripVendor<FriendPathPattern>;

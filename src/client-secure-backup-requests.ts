@@ -5,6 +5,7 @@ import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
 import type { SyncPathPattern } from "./sync/__generated__/route-table";
 import type { SearchPathPattern } from "./search/__generated__/route-table";
+import type { StripClientV3OrVendorV1 } from "./http-api/strip-prefix";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -14,17 +15,11 @@ type AuthedRequestFn = <T>(
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
 
-type StripPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}`
-    ? Rest
-    : P extends `/_matrix/vendor/v1${infer Rest}`
-      ? Rest
-      : never;
-
-function sp<P extends StripPrefix<SyncPathPattern>>(path: P): P {
+function sp<P extends StripClientV3OrVendorV1<SyncPathPattern>>(path: P): P {
     return path;
 }
 
-function srp<P extends StripPrefix<SearchPathPattern>>(path: P): P {
+function srp<P extends StripClientV3OrVendorV1<SearchPathPattern>>(path: P): P {
     return path;
 }
 

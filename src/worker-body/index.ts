@@ -23,10 +23,9 @@ import { type IEvent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import type { WorkerBodyPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripWorkerPrefix } from "../http-api/strip-prefix";
 
 const WORKER_PREFIX = "/_synapse/worker";
-
-type StripWorkerPrefix<P extends string> = P extends `/_synapse/worker${infer Rest}` ? Rest : never;
 
 function wb<P extends StripWorkerPrefix<WorkerBodyPathPattern>>(path: P): P {
     return path;

@@ -34,8 +34,7 @@ import type { Room } from "../models/room";
 import type { GuestPathPattern } from "./__generated__/route-table";
 import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV3 } from "../http-api/strip-prefix";
 
 function gp<P extends StripV3<GuestPathPattern>>(path: P): P {
     return path;

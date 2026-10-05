@@ -29,12 +29,9 @@ import { Method } from "../http-api/method";
 import { AdminPrefix, VendorPrefix } from "../http-api/prefix";
 import type { ExternalServicePathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripAdminV1, StripMatrixAdminV1, StripV1 } from "../http-api/strip-prefix";
 
-type StripSynapseAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
-type StripMatrixAdminV1<P extends string> = P extends `/_matrix/admin/v1${infer Rest}` ? Rest : never;
-type StripClientV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
-
-function sap<P extends StripSynapseAdminV1<ExternalServicePathPattern>>(path: P): P {
+function sap<P extends StripAdminV1<ExternalServicePathPattern>>(path: P): P {
     return path;
 }
 
@@ -42,7 +39,7 @@ function map<P extends StripMatrixAdminV1<ExternalServicePathPattern>>(path: P):
     return path;
 }
 
-function cp<P extends StripClientV1<ExternalServicePathPattern>>(path: P): P {
+function cp<P extends StripV1<ExternalServicePathPattern>>(path: P): P {
     return path;
 }
 

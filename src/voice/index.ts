@@ -28,13 +28,13 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import { ValidationError } from "../errors";
 import type { VoicePathPattern } from "./__generated__/route-table";
+import type { StripV3 } from "../http-api/strip-prefix";
 
 /**
  * 路径前缀剥离：把契约表里的绝对路径（`/_matrix/client/v3/…`）化成管理器内部
  * 使用的相对路径，供 `vp()` 做编译期断言。与 `e2ee/index.ts`、`notifications/index.ts`
  * 的写法保持一致。
  */
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 /**
  * 契约路径断言。所有指向 synapse-rust `voice` 路由的调用都必须经过它，

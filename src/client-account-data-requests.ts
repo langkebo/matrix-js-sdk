@@ -6,8 +6,7 @@ import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
 import type { IContent } from "./models/event";
 import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV3 } from "./http-api/strip-prefix";
 
 function adp<P extends StripV3<AccountDataPathPattern>>(path: P): P {
     return path;

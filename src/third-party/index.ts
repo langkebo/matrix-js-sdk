@@ -8,6 +8,7 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 import { handleManagerError, type ErrorHandlingOptions } from "../error/index.js";
 import type { QueryDict } from "../http-api/utils";
 import * as utils from "../utils";
+import type { StripV3 } from "../http-api/strip-prefix";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -42,8 +43,6 @@ export interface ThirdPartyUser {
 export interface ThirdPartySearchParams {
     [key: string]: string;
 }
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function tp<P extends StripV3<ThirdpartyPathPattern>>(path: P): P {
     return path;

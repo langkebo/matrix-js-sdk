@@ -56,6 +56,7 @@ import type { AuthPathPattern } from "../auth/__generated__/route-table";
 import type { TagsPathPattern } from "../tags/__generated__/route-table";
 import type { SlidingSyncPathPattern } from "../sliding-sync/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
+import type { StripR0, StripSimplifiedSlidingSync, StripV1, StripV3 } from "../http-api/strip-prefix";
 
 export enum RoomEvent {
     RoomCreated = "RoomCreated",
@@ -168,11 +169,6 @@ type RoomInfoCacheEntry =
     | IRoomMetadataResponse
     | IJoinedMembersResponse;
 
-type StripR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
-type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-type StripSimplifiedSlidingSync<P extends string> =
-    P extends `/_matrix/client/unstable/org.matrix.simplified_msc3575${infer Rest}` ? Rest : never;
 type RoomManagerPathPattern =
     | StripR0<RoomPathPattern | TagsPathPattern>
     | StripV1<RoomPathPattern>

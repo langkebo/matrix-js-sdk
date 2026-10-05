@@ -38,8 +38,7 @@ import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import type { BackgroundUpdatePathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-
-type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+import type { StripAdminV1 } from "../http-api/strip-prefix";
 
 function bu<P extends StripAdminV1<BackgroundUpdatePathPattern>>(path: P): P {
     return path;

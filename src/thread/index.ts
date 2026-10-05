@@ -28,12 +28,10 @@ import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { ThreadPathPattern } from "./__generated__/route-table";
+import type { StripV1, StripV3 } from "../http-api/strip-prefix";
 
 const THREAD_PREFIX_V1 = "/_matrix/client/v1";
 const THREAD_PREFIX_V3 = "/_matrix/client/v3";
-
-type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function tp(path: StripV1<ThreadPathPattern>): string {
     return path;

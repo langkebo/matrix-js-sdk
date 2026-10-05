@@ -9,6 +9,7 @@ import type { TypingPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 import type { EmptyObject } from "../@types/common";
+import type { StripV3 } from "../http-api/strip-prefix";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -37,8 +38,6 @@ interface TypingResponseBody {
 interface BatchTypingResponseBody {
     rooms?: Record<string, TypingResponseBody>;
 }
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
 
 function tp<P extends StripV3<TypingPathPattern>>(path: P): P {
     return path;

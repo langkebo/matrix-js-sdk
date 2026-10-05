@@ -31,6 +31,7 @@ import {
     type SamlRefreshResult,
 } from "./__generated__/dto";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripAdminV1, StripV3 } from "../http-api/strip-prefix";
 
 /**
  * SAML Auth Manager - SAML 认证管理 API 封装
@@ -66,14 +67,11 @@ export type {
     SamlRefreshResult,
 };
 
-type StripClient<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-type StripAdmin<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
-
-function cp<P extends StripClient<SamlPathPattern>>(path: P): P {
+function cp<P extends StripV3<SamlPathPattern>>(path: P): P {
     return path;
 }
 
-function ap<P extends StripAdmin<SamlPathPattern>>(path: P): P {
+function ap<P extends StripAdminV1<SamlPathPattern>>(path: P): P {
     return path;
 }
 

@@ -27,12 +27,11 @@ import { Method } from "../http-api/method";
 import type { IContent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
+import type { StripAdminPath } from "../http-api/strip-prefix";
 
 export type { ManagerOpts };
 
 export type AdminErrorCallback = (error: Error) => void;
-
-type StripAdminPath<P extends string> = P extends `/_synapse/admin${infer Rest}` ? Rest : never;
 
 /**
  * 类型安全的 Admin 路径断言函数

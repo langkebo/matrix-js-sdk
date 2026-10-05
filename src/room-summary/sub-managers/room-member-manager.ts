@@ -22,9 +22,9 @@ import { LRUCache } from "../../utils/lru-cache";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type { RoomSummaryMember, RoomMembersRecentResult } from "../types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { StripV3 } from "../../http-api/strip-prefix";
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
@@ -49,11 +49,11 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
 
     // ─── Path helpers ──────────────────────────────────────────────────────
 
-    private summaryMembersPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+    private summaryMembersPath(roomId: string): StripV3<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/members`);
     }
 
-    private summaryMemberPath(roomId: string, userId: string): StripClientV3<RoomSummaryPathPattern> {
+    private summaryMemberPath(roomId: string, userId: string): StripV3<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/members/${encodeURIComponent(userId)}`);
     }
 

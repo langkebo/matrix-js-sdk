@@ -48,10 +48,9 @@ import { buildEmailTokenRequestParams, buildMsisdnTokenRequestParams, requestTok
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { IRefreshTokenResponse } from "../@types/auth";
 import { normalizeExpiresInMs } from "./normalize-expires";
+import type { StripV3 } from "../http-api/strip-prefix";
 
-type StripAuthPrefix<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-
-function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+function ap<P extends StripV3<AuthPathPattern>>(path: P): P {
     return path;
 }
 

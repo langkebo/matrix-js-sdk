@@ -34,9 +34,7 @@ import { ClientPrefix, Method } from "../http-api";
 import type { Body } from "../http-api/interface";
 import type { ThreadPathPattern } from "../thread/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-
-type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV1, StripV3 } from "../http-api/strip-prefix";
 
 function tv1<P extends StripV1<ThreadPathPattern>>(path: P): P {
     return path;

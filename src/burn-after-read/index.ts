@@ -50,8 +50,8 @@ import type { IContent } from "../models/event";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
 import type { BurnSettings, BurnStats, PendingBurnEvent } from "./__generated__/dto";
+import type { StripV1 } from "../http-api/strip-prefix";
 
-type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 type BurnAfterReadApiVersion = "v1" | "v3";
 
 function bp<P extends StripV1<BurnAfterReadPathPattern>>(path: P): P {

@@ -27,8 +27,7 @@ import { validateLimit } from "../common/validators";
 import type { PushPathPattern } from "../push/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV3 } from "../http-api/strip-prefix";
 
 function np<P extends StripV3<PushPathPattern>>(path: P): P {
     return path;

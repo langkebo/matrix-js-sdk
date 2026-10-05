@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-05T09:54:13.758Z",
+    "generatedAt": "2026-10-05T22:50:58.683Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -182,9 +182,9 @@
             }
         },
         {
-            "id": "src/auth/index.ts:688:27f73d4caec4f0b0e8347e283c160586c1a09ed5",
+            "id": "src/auth/index.ts:687:a509f052b653845c7135fe221314947efb30f625",
             "file": "src/auth/index.ts",
-            "line": 688,
+            "line": 687,
             "snippet": "catch (error) { const response = error as { errcode?: string }; if (response.errcode === \"M_USER_IN_USE\") { return false;",
             "whitelist": {
                 "owner": "refactor-bot",
@@ -212,9 +212,9 @@
             }
         },
         {
-            "id": "src/discovery/index.ts:239:671fe603afd4094bcad3b3285afbbdcbb0b3c8b0",
+            "id": "src/discovery/index.ts:232:dbc8ba47cc58e848fe7e8deb17cb46af97739750",
             "file": "src/discovery/index.ts",
-            "line": 239,
+            "line": 232,
             "snippet": "catch (e) { logger.warn(\"DiscoveryManager.getAliasRoomId failed:\", e); return null;",
             "whitelist": {
                 "owner": "discovery",
@@ -222,9 +222,9 @@
             }
         },
         {
-            "id": "src/ephemeral/index.ts:188:637ace3747cfc066e90fb22ca67ff25f0f931594",
+            "id": "src/ephemeral/index.ts:187:b285f27506b72ced973927267a2279d5f75d5cc4",
             "file": "src/ephemeral/index.ts",
-            "line": 188,
+            "line": 187,
             "snippet": "catch (e) { logger.warn(\"EphemeralManager.getTypingEvents failed:\", e); return [];",
             "whitelist": {
                 "owner": "ephemeral",
@@ -232,9 +232,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:253:a52ccac4d2ee3e9596df6cb29493331b4f2e31a4",
+            "id": "src/guest/index.ts:252:1d947a94ea09698ba5b3fa05c975f2f3da312864",
             "file": "src/guest/index.ts",
-            "line": 253,
+            "line": 252,
             "snippet": "catch (e) { logger.warn(\"GuestManager.isGuest failed:\", e); return false;",
             "whitelist": {
                 "owner": "guest",
@@ -242,9 +242,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:307:b68e53d4582ab04227152f56f68209575a9d49df",
+            "id": "src/guest/index.ts:306:f8fdd3c82b1d33e8cba18a82a334529509d05902",
             "file": "src/guest/index.ts",
-            "line": 307,
+            "line": 306,
             "snippet": "catch (error) { this.emit(GuestEvent.GuestError, error as Error); throw error; } } getGuestInfo(): IGuestInfo | null { if (!this.guestInfo) { return null;",
             "whitelist": {
                 "owner": "guest",
@@ -252,9 +252,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:335:7d12d9b2e1529b100335c297f31c09dd13cedf9e",
+            "id": "src/guest/index.ts:334:d44b190c39a3ba61444a2889221e630e6c8e29c5",
             "file": "src/guest/index.ts",
-            "line": 335,
+            "line": 334,
             "snippet": "catch (e) { logger.warn(\"GuestManager.getGuestRooms failed:\", e); return [];",
             "whitelist": {
                 "owner": "guest",
@@ -262,9 +262,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:351:9b92928322e6b97dc6ab83103e140cacec485df6",
+            "id": "src/guest/index.ts:350:9442f6b19ae5ed501369f11e623eb06704775bf7",
             "file": "src/guest/index.ts",
-            "line": 351,
+            "line": 350,
             "snippet": "catch (error) { this.emit(GuestEvent.GuestError, error as Error); throw error; } } async canJoinRoom(roomIdOrAlias: string): Promise<boolean> { try { if (!roomIdOrAlias) { return false;",
             "whitelist": {
                 "owner": "guest",
@@ -272,9 +272,9 @@
             }
         },
         {
-            "id": "src/guest/index.ts:377:6a71486d1e9ea135af614a728259065d26015506",
+            "id": "src/guest/index.ts:376:28aabc3814df6a02905c74df5a41406f1598de8f",
             "file": "src/guest/index.ts",
-            "line": 377,
+            "line": 376,
             "snippet": "catch (e) { logger.warn(\"GuestManager.canJoinRoom failed:\", e); return false;",
             "whitelist": {
                 "owner": "guest",
@@ -322,9 +322,9 @@
             }
         },
         {
-            "id": "src/push/index.ts:392:62793ce41d219d552cbf464569e5d823bbdd8017",
+            "id": "src/push/index.ts:391:168f1102d1b794a7c5a2e757492112073215f64a",
             "file": "src/push/index.ts",
-            "line": 392,
+            "line": 391,
             "snippet": "catch (error) { if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return null;",
             "whitelist": {
                 "owner": "push",
@@ -332,9 +332,9 @@
             }
         },
         {
-            "id": "src/push/index.ts:508:6572ae270e81f7317839a9b5d513e31af801aafb",
+            "id": "src/push/index.ts:507:5b1ecc6a36f514b041807a2bd9ff457cba8ca24f",
             "file": "src/push/index.ts",
-            "line": 508,
+            "line": 507,
             "snippet": "catch (error) { if (!throwOnError && (error as { httpStatus?: number }).httpStatus === 404) return false;",
             "whitelist": {
                 "owner": "push",
@@ -342,9 +342,9 @@
             }
         },
         {
-            "id": "src/push/index.ts:677:5548628b29c801cb3ebcf5a439425ae3be55a297",
+            "id": "src/push/index.ts:676:cf02fee4c31645de4766947f06ca2fee6e22dfa6",
             "file": "src/push/index.ts",
-            "line": 677,
+            "line": 676,
             "snippet": "catch (e) { logger.warn(\"PushManager.isRoomMuted failed:\", e); return false;",
             "whitelist": {
                 "owner": "push",
@@ -352,9 +352,9 @@
             }
         },
         {
-            "id": "src/relations/index.ts:268:36e9301051ee7a88dce822ed4f98423c06321a68",
+            "id": "src/relations/index.ts:260:ebf884f1c9b06b3fe078f64660d8ec9a520782f1",
             "file": "src/relations/index.ts",
-            "line": 268,
+            "line": 260,
             "snippet": "catch (e) { logger.warn(\"RelationsManager.getLatestRelation failed\", e); return null;",
             "whitelist": {
                 "owner": "refactor-bot",
@@ -362,9 +362,9 @@
             }
         },
         {
-            "id": "src/rendezvous/RendezvousManager.ts:186:8355a7af87e1612bbe2e7f216c8c06156dc39ddf",
+            "id": "src/rendezvous/RendezvousManager.ts:185:0fc16a7033d8dec5b92fc5d916fa73780455d84f",
             "file": "src/rendezvous/RendezvousManager.ts",
-            "line": 186,
+            "line": 185,
             "snippet": "catch (error) { if (error instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "rendezvous",
@@ -452,9 +452,9 @@
             }
         },
         {
-            "id": "src/room-summary/sub-managers/room-stats-manager.ts:82:7339094f854ea125551f9730a8e8dc6fa5177b03",
+            "id": "src/room-summary/sub-managers/room-stats-manager.ts:81:26930f49a42198048f0e722760c505f5e21541f5",
             "file": "src/room-summary/sub-managers/room-stats-manager.ts",
-            "line": 82,
+            "line": 81,
             "snippet": "catch (e) { if (throwOnError) { throw this.normalizeError(e, \"getRoomSummaryStats\"); } this.handleError(\"getRoomSummaryStats\", e); return null;",
             "whitelist": {
                 "owner": "room-summary",
@@ -552,9 +552,9 @@
             }
         },
         {
-            "id": "src/tags/index.ts:97:29406fc017b370303fe99002f3e3ca730ecba713",
+            "id": "src/tags/index.ts:94:a892e9a09f72a61640b4336ad138ba1e28fbb39b",
             "file": "src/tags/index.ts",
-            "line": 97,
+            "line": 94,
             "snippet": "catch (e) { logger.warn(\"TagManager.getRoomTags failed:\", e); return {};",
             "whitelist": {
                 "owner": "tags",
@@ -562,9 +562,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:213:7030cff7035c2978ac92a69d82a313da7a6e641c",
+            "id": "src/third-party/index.ts:212:defa5eaa14a04bde3ec89f4b040623141fe6f3e0",
             "file": "src/third-party/index.ts",
-            "line": 213,
+            "line": 212,
             "snippet": "catch (e) { if (throwOnError) { throw this.normalizeError(e, \"searchLocations\"); } logger.warn(\"ThirdPartyManager.searchLocations failed:\", e); return [];",
             "whitelist": {
                 "owner": "thirdparty",
@@ -572,9 +572,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:252:c3c86b77939f84e7ca56432d7f256b2f3092e890",
+            "id": "src/third-party/index.ts:251:d0da60290d2d025fdcf107ce2acc4fa90d3ca667",
             "file": "src/third-party/index.ts",
-            "line": 252,
+            "line": 251,
             "snippet": "catch (e) { if (throwOnError) { throw this.normalizeError(e, \"searchUsers\"); } logger.warn(\"ThirdPartyManager.searchUsers failed:\", e); return [];",
             "whitelist": {
                 "owner": "thirdparty",
@@ -582,9 +582,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:364:f2e0c18b7efb7f766474e9b0ef4e53bf23731b16",
+            "id": "src/third-party/index.ts:363:7fe42b21363e231e1ffb349415b2a0631d35f0bd",
             "file": "src/third-party/index.ts",
-            "line": 364,
+            "line": 363,
             "snippet": "catch (e) { logger.warn(\"ThirdPartyManager.getLocation failed:\", e); return null;",
             "whitelist": {
                 "owner": "thirdparty",
@@ -592,9 +592,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:387:c0aa3e5feed8f6395593818d6bf798eb738bed58",
+            "id": "src/third-party/index.ts:386:f6da48ff197e8764775d7e66b73a7c549dee4b7d",
             "file": "src/third-party/index.ts",
-            "line": 387,
+            "line": 386,
             "snippet": "catch (e) { logger.warn(\"ThirdPartyManager.getUser failed:\", e); return null;",
             "whitelist": {
                 "owner": "thirdparty",
@@ -602,9 +602,9 @@
             }
         },
         {
-            "id": "src/third-party/index.ts:418:e87fdca1b85ff31eb9b61c6db14837d71693e2c4",
+            "id": "src/third-party/index.ts:417:b435683240cfd02a7ea909b9736d54604065d6bf",
             "file": "src/third-party/index.ts",
-            "line": 418,
+            "line": 417,
             "snippet": "catch (e) { logger.warn(\"ThirdPartyManager.parseMatrixUri failed:\", e); return null;",
             "whitelist": {
                 "owner": "thirdparty",

@@ -22,10 +22,9 @@ import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-s
 import { LRUCache } from "../../utils/lru-cache";
 import { logger } from "../../logger";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { StripV3 } from "../../http-api/strip-prefix";
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-
-function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
@@ -52,7 +51,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         this.onCacheInvalidation = onCacheInvalidation;
     }
 
-    private summaryStatsPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+    private summaryStatsPath(roomId: string): StripV3<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/stats`);
     }
 

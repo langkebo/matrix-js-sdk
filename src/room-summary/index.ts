@@ -206,16 +206,13 @@ import {
     type SignEventBody,
     type VerifyEventBody,
 } from "./sub-managers/room-event-operation-manager";
+import type { StripInternalSummary, StripR0, StripV3 } from "../http-api/strip-prefix";
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-type StripClientR0<P extends string> = P extends `/_matrix/client/r0${infer Rest}` ? Rest : never;
-type StripInternalSummary<P extends string> = P extends `/_synapse/room_summary/v1${infer Rest}` ? Rest : never;
-
-function rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
-function _rsr0<P extends StripClientR0<RoomSummaryPathPattern>>(path: P): P {
+function _rsr0<P extends StripR0<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 
@@ -330,7 +327,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     // ===== 核心摘要方法（保留在主 Manager，涉及 summaryCache） =====
 
-    private summaryReadPath(roomId: string): StripClientV3<RoomSummaryPathPattern> {
+    private summaryReadPath(roomId: string): StripV3<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
     }
 

@@ -28,8 +28,7 @@ import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { ValidationError } from "../errors";
 import type { TagsPathPattern } from "./__generated__/route-table";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV3 } from "../http-api/strip-prefix";
 
 function tp<P extends StripV3<TagsPathPattern>>(path: P): P {
     return path;

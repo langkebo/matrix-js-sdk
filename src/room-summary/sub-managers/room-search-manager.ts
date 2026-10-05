@@ -23,6 +23,7 @@ import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-s
 import type { RoomSummaryOptions, RoomSummary, RoomSearchResult } from "../types";
 import type { IPublicRoomsResponse, IPublicRoomsChunkRoom } from "../../client-api-types";
 import type { RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { StripV3 } from "../../http-api/strip-prefix";
 
 /** 房间搜索请求体 */
 export interface RoomSearchBody {
@@ -35,8 +36,7 @@ export interface RoomSearchBody {
     [key: string]: unknown;
 }
 
-type StripClientV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
-function _rsv<P extends StripClientV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
     return path;
 }
 

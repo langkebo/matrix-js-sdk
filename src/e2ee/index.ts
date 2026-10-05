@@ -29,8 +29,7 @@ import type {
 } from "../device-keys/index";
 import type { UploadDeviceSigningRequest } from "./__generated__/dto";
 import type { IContent } from "../models/event";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV3 } from "../http-api/strip-prefix";
 
 function ep<P extends StripV3<E2eePathPattern>>(path: P): P {
     return path;

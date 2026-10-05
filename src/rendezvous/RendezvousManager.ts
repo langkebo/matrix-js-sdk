@@ -37,11 +37,10 @@ import { NotFoundError } from "../errors";
 import { logger } from "../logger";
 import type { RendezvousPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
+import type { StripV1 } from "../http-api/strip-prefix";
 
 const RENDEZVOUS_PREFIX = "/_matrix/client/v1";
 const RENDEZVOUS_KEY_HEADER = "X-Matrix-Rendezvous-Key";
-
-type StripV1<P extends string> = P extends `/_matrix/client/v1${infer Rest}` ? Rest : never;
 
 function rp<P extends StripV1<RendezvousPathPattern>>(path: P): P {
     return path;

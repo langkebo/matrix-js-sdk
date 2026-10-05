@@ -39,8 +39,7 @@ import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import type { CasPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-
-type StripAdminV1<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
+import type { StripAdminV1 } from "../http-api/strip-prefix";
 
 function ap<P extends StripAdminV1<CasPathPattern>>(path: P): P {
     return path;

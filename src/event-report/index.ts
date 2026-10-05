@@ -16,9 +16,9 @@ import { validateUserId, validateRoomId } from "../common/validators";
 import type { EventReportPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
+import type { StripAdminV1 } from "../http-api/strip-prefix";
 
-type StripAdminPrefix<P extends string> = P extends `/_synapse/admin/v1${infer Rest}` ? Rest : never;
-type EventReportAdminPathPattern = StripAdminPrefix<EventReportPathPattern>;
+type EventReportAdminPathPattern = StripAdminV1<EventReportPathPattern>;
 
 function er<P extends EventReportAdminPathPattern>(path: P): P {
     return path;

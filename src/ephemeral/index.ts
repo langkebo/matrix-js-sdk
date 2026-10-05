@@ -38,8 +38,7 @@ import { ValidationError } from "../errors";
 import type { EphemeralPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
-
-type StripV3<P extends string> = P extends `/_matrix/client/v3${infer Rest}` ? Rest : never;
+import type { StripV3 } from "../http-api/strip-prefix";
 
 function ep<P extends StripV3<EphemeralPathPattern>>(path: P): P {
     return path;
