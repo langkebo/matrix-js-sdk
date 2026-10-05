@@ -1,7 +1,7 @@
 ---
 module: ephemeral
 generated_from: docs/api-contract/generated/modules/ephemeral.json
-generated_hash: sha256-3ee7776a30328e0cd5582f59875ccc1cd5a395665250cca232ff1f43689a1eee
+generated_hash: sha256-1523dfb8cbc91081d68208c6966e3e1ed1d809e0f3e744dfb119aa100b3839e9
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

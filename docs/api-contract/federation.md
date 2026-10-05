@@ -1,7 +1,7 @@
 ---
 module: federation
 generated_from: docs/api-contract/generated/modules/federation.json
-generated_hash: sha256-eea912f723dbbf3b6d54a39ee9be6bf3af602f5345eb4e16aa38f250ddd07396
+generated_hash: sha256-742c2f7c33251485bf6ecbb832821abb263cf9c5cfddeee8e593e5ba6a43b090
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
