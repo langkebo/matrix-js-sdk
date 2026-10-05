@@ -1,6 +1,6 @@
 # SDK 契约缺口报告：后端路由 ↔ SDK 封装面
 
-> 生成时间：2026-10-05 12:50:48
+> 生成时间：2026-10-05 13:42:12
 > 后端事实来源：`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json`（RouteLedger schema v4，profile=`all`）
 > SDK 镜像底座：`docs/api-contract/generated/route-manifest.all.json` @ `71ab0980`
 > 生成器：`matrix-js-sdk/scripts/audit/compare-routes.mjs`（可重跑，无人工维护的映射表）
@@ -1278,6 +1278,6 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 cd ../synapse-rust && ./scripts/generate_sdk_ledger_fixtures.sh
 # 2) 刷新 SDK 镜像底座 + route-table codegen
 cd ../matrix-js-sdk && pnpm contract:sync && pnpm contract:codegen
-# 3) 重新生成缺口报告
-node scripts/audit/compare-routes.mjs --output artifacts/sdk-contract-gap-report.md
+# 3) 重新生成缺口报告 + 附录 JSON（两个产物必须一起刷，否则 gap.json 会停在旧底座）
+node scripts/audit/compare-routes.mjs --output artifacts/sdk-contract-gap-report.md --json artifacts/sdk-contract-gap.json
 ```

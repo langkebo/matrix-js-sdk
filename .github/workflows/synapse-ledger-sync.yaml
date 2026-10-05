@@ -298,6 +298,7 @@ jobs:
                   ## Summary
                   - sync \`docs/api-contract/generated/\` from the latest \`synapse-rust\` ledger export artifact
                   - refresh the committed route-manifest JSON files and per-module generated mirrors
+                  - re-pin the module \`.md\` \`generated_hash\` frontmatter that \`contract-sync.mjs\` refreshes alongside the mirror
 
                   ## Source
                   - source repository: \`${SOURCE_REPOSITORY}\`
@@ -323,7 +324,11 @@ jobs:
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git checkout -B "${branch}"
-                  git add docs/api-contract/generated
+                  # `contract-sync.mjs` refreshes the module `.md` `generated_hash`
+                  # frontmatter in the same pass that rewrites generated/, so stage
+                  # both or the doc pins stay stale on develop and `quality:contracts`
+                  # (contract:check → validateFrontmatter) goes red after merge.
+                  git add docs/api-contract/generated docs/api-contract/*.md
                   git commit -m "${title}"
 
                   pushed=""

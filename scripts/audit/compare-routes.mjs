@@ -1324,8 +1324,10 @@ L.push("# 1) 刷新后端 ledger 事实面（离线可跑，无需起服务）")
 L.push("cd ../synapse-rust && ./scripts/generate_sdk_ledger_fixtures.sh");
 L.push("# 2) 刷新 SDK 镜像底座 + route-table codegen");
 L.push("cd ../matrix-js-sdk && pnpm contract:sync && pnpm contract:codegen");
-L.push("# 3) 重新生成缺口报告");
-L.push("node scripts/audit/compare-routes.mjs --output artifacts/sdk-contract-gap-report.md");
+L.push("# 3) 重新生成缺口报告 + 附录 JSON（两个产物必须一起刷，否则 gap.json 会停在旧底座）");
+L.push(
+    "node scripts/audit/compare-routes.mjs --output artifacts/sdk-contract-gap-report.md --json artifacts/sdk-contract-gap.json",
+);
 L.push("```");
 L.push("");
 
@@ -1342,37 +1344,41 @@ fs.mkdirSync(path.dirname(OUT_MD), { recursive: true });
 const formattedMd = await formatWithPrettier(md, OUT_MD);
 fs.writeFileSync(OUT_MD, formattedMd);
 if (OUT_JSON) {
-    fs.writeFileSync(
-        OUT_JSON,
-        JSON.stringify(
-            {
-                summary,
-                mirrorMissing: mirrorInfo?.missing ?? [],
-                mirrorExtra: mirrorInfo?.extra ?? [],
-                gap: (b("GAP") ?? []).map((r) => ({
-                    method: r.method,
-                    path: r.path,
-                    scope: r.scope,
-                    registered_by: r.registered_by,
-                })),
-                t2Only: t2Only.map((r) => ({ method: r.method, path: r.path, evidence: r.t2 })),
-                drift: (b("DRIFT") ?? []).map((r) => ({
-                    method: r.method,
-                    path: r.path,
-                    sdkPath: r.drift.path,
-                    file: r.drift.file,
-                    line: r.drift.line,
-                })),
-                declaredOnly: (b("T3_DECLARED_ONLY") ?? []).map((r) => ({
-                    method: r.method,
-                    path: r.path,
-                    scope: r.scope,
-                })),
-            },
-            null,
-            2,
-        ),
+    const rawJson = JSON.stringify(
+        {
+            summary,
+            mirrorMissing: mirrorInfo?.missing ?? [],
+            mirrorExtra: mirrorInfo?.extra ?? [],
+            gap: (b("GAP") ?? []).map((r) => ({
+                method: r.method,
+                path: r.path,
+                scope: r.scope,
+                registered_by: r.registered_by,
+            })),
+            t2Only: t2Only.map((r) => ({ method: r.method, path: r.path, evidence: r.t2 })),
+            drift: (b("DRIFT") ?? []).map((r) => ({
+                method: r.method,
+                path: r.path,
+                sdkPath: r.drift.path,
+                file: r.drift.file,
+                line: r.drift.line,
+            })),
+            declaredOnly: (b("T3_DECLARED_ONLY") ?? []).map((r) => ({
+                method: r.method,
+                path: r.path,
+                scope: r.scope,
+            })),
+        },
+        null,
+        2,
     );
+    // P2 fix (2026-10-05): the .md exit below is already routed through prettier;
+    // the JSON exit was not, so a regenerated `gap.json` failed `lint:js`
+    // (`artifacts/` is outside `.prettierignore`) until someone ran
+    // `prettier --write` by hand. Format here too so both artefacts come out
+    // lint-clean from a single generator run.
+    const formattedJson = await formatWithPrettier(rawJson, OUT_JSON);
+    fs.writeFileSync(OUT_JSON, formattedJson);
     log(`      附录 JSON: ${path.relative(process.cwd(), OUT_JSON)}`);
 }
 log(`      报告: ${path.relative(process.cwd(), OUT_MD)}  (${formattedMd.split("\n").length} 行)`);

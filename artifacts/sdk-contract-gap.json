@@ -2,35 +2,35 @@
     "summary": {
         "backend": {
             "file": "synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json",
-            "count": 1147,
-            "distinct": 1142,
+            "count": 1159,
+            "distinct": 1154,
             "schema": "4",
             "profile": "all"
         },
         "mirror": {
             "file": "docs/api-contract/generated/route-manifest.all.json",
-            "count": 1147,
-            "commit": "7cb39946ea4a92ef81809796f55af668d6c4cfd4",
+            "count": 1159,
+            "commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
             "generated_at": "2026-05-02T00:00:00Z",
             "missing": 0,
             "extra": 0
         },
         "sdk": {
             "routeTables": 38,
-            "t3Declared": 834,
-            "sourceFiles": 465,
-            "t1Callsites": 560,
-            "t2ConstructorHits": 792,
+            "t3Declared": 827,
+            "sourceFiles": 473,
+            "t1Callsites": 593,
+            "t2ConstructorHits": 785,
             "prefixCandidates": 30
         },
         "idiomHistogram": {
-            "object-literal {path}": 152,
-            "builder: utils.encodeUri()": 54,
-            "adminRequest()": 207,
+            "object-literal {path}": 191,
+            "builder: utils.encodeUri()": 53,
+            "adminRequest()": 211,
             "v2Request()": 5,
             "request(Method, path)": 3,
             "builder: sp()": 10,
-            "authedRequest(Method, path)": 37,
+            "authedRequest(Method, path)": 28,
             "builder: srp()": 3,
             "builder: encodeUri()": 17,
             "builder: friendPath()": 23,
@@ -41,25 +41,29 @@
             "builder: spacePath()": 13
         },
         "buckets": {
-            "T3_DECLARED_ONLY": 106,
-            "T2_CONSTRUCTOR": 643,
-            "GAP": 56,
-            "T1_CALLSITE": 342
+            "T3_DECLARED_ONLY": 101,
+            "T2_CONSTRUCTOR": 597,
+            "GAP": 70,
+            "T1_CALLSITE": 390,
+            "CONDITIONAL": 1
         },
-        "gapScopeBreakdown": [["SERVER_ONLY", 56]],
+        "gapScopeBreakdown": [
+            ["SERVER_ONLY", 63],
+            ["CLIENT_FACING", 7]
+        ],
         "client": {
-            "total": 767,
-            "implemented": 684,
-            "t1": 133,
-            "t2Only": 551,
-            "declaredOnly": 83,
+            "total": 758,
+            "implemented": 672,
+            "t1": 164,
+            "t2Only": 508,
+            "declaredOnly": 79,
             "drift": 0,
-            "gap": 0
+            "gap": 7
         },
         "declaredCoverage": {
-            "covered": 830,
-            "total": 1142,
-            "pct": 72.7
+            "covered": 826,
+            "total": 1154,
+            "pct": 71.6
         }
     },
     "mirrorMissing": [],
@@ -68,6 +72,48 @@
         {
             "method": "POST",
             "path": "/_matrix/app/v1/ping",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "DELETE",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "HEAD",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "OPTIONS",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "PATCH",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/app/v1/proxy/{as_id}/{*path}",
             "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
@@ -93,6 +139,48 @@
             "method": "GET",
             "path": "/_matrix/app/v1/{as_id}",
             "scope": "SERVER_ONLY",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "DELETE",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "HEAD",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "OPTIONS",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "PATCH",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
+            "registered_by": "app_service"
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
+            "scope": "CLIENT_FACING",
             "registered_by": "app_service"
         },
         {
@@ -277,117 +365,81 @@
         },
         {
             "method": "GET",
-            "path": "/_synapse/admin/v1/appservices",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "POST",
-            "path": "/_synapse/admin/v1/appservices",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/query/alias",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/query/user",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/statistics",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "DELETE",
-            "path": "/_synapse/admin/v1/appservices/{as_id}",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/{as_id}",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "PUT",
-            "path": "/_synapse/admin/v1/appservices/{as_id}",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/events",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "POST",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/events",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/namespaces",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "POST",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/ping",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/state",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "POST",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/state",
-            "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
-        },
-        {
-            "method": "GET",
             "path": "/_synapse/admin/v1/appservices/{as_id}/state/{state_key}",
             "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/users",
+            "method": "POST",
+            "path": "/_synapse/admin/v1/media/delete",
             "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
+            "registered_by": "admin::media"
         },
         {
             "method": "POST",
-            "path": "/_synapse/admin/v1/appservices/{as_id}/users",
+            "path": "/_synapse/admin/v1/media/protect/{media_id}",
             "scope": "SERVER_ONLY",
-            "registered_by": "app_service"
+            "registered_by": "admin::media"
         },
         {
             "method": "POST",
-            "path": "/_synapse/admin/v1/policy/check",
+            "path": "/_synapse/admin/v1/media/protect/{server_name}/{media_id}",
             "scope": "SERVER_ONLY",
-            "registered_by": "admin::policy"
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/media/quarantine/{server_name}/{media_id}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
         },
         {
             "method": "GET",
-            "path": "/_synapse/admin/v1/policy/status",
+            "path": "/_synapse/admin/v1/media/quarantine_changes",
             "scope": "SERVER_ONLY",
-            "registered_by": "admin::policy"
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/media/unprotect/{media_id}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/media/unquarantine/{server_name}/{media_id}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "DELETE",
+            "path": "/_synapse/admin/v1/media/{server_name}/{media_id}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/admin/v1/media/{server_name}/{media_id}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/admin/v1/rate-limit-status",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::server"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/admin/v1/room/{room_id}/media",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/room/{room_id}/media/quarantine",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
         },
         {
             "method": "POST",
@@ -396,10 +448,46 @@
             "registered_by": "admin::room"
         },
         {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/rooms/{room_id}/cascade_redact",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::room"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/admin/v1/rooms/{room_id}/media",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/rooms/{room_id}/media/quarantine",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/rooms/{room_id}/media/unquarantine",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
+            "method": "DELETE",
+            "path": "/_synapse/admin/v1/rooms/{room_id}/media/{media_id}",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
+        },
+        {
             "method": "GET",
             "path": "/_synapse/admin/v1/server",
             "scope": "SERVER_ONLY",
             "registered_by": "admin::server"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/user/{user_id}/media/quarantine",
+            "scope": "SERVER_ONLY",
+            "registered_by": "admin::media"
         }
     ],
     "t2Only": [
@@ -438,9 +526,19 @@
             "path": "/_matrix/client/unstable/org.matrix.msc3575/sync",
             "evidence": {
                 "literal": "/sync",
-                "file": "src/client.ts",
-                "line": 1566,
-                "snippet": "* Set account data event for the current user, and wait for the result to be echoed over `/sync`."
+                "file": "src/client/worker/worker.spec.ts",
+                "line": 408,
+                "snippet": "task_data: { path: \"/sync\" },"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
+            "evidence": {
+                "literal": "/dehydrated_device/$device_id/events",
+                "file": "src/rust-crypto/DehydratedDeviceManager.ts",
+                "line": 269,
+                "snippet": "const path = encodeUri(\"/dehydrated_device/$device_id/events\", {"
             }
         },
         {
@@ -451,6 +549,16 @@
                 "file": "src/rendezvous/transports/MSC4108RendezvousSession.ts",
                 "line": 106,
                 "snippet": ".getUrl(\"/org.matrix.msc4108/rendezvous\", undefined, ClientPrefix.Unstable)"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}",
+            "evidence": {
+                "literal": "/delayed_events/{}",
+                "file": "src/client-delayed-events.ts",
+                "line": 16,
+                "snippet": "return `/delayed_events/${encodeURIComponent(String(delayId))}`;"
             }
         },
         {
@@ -468,9 +576,9 @@
             "path": "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync",
             "evidence": {
                 "literal": "/sync",
-                "file": "src/client.ts",
-                "line": 1566,
-                "snippet": "* Set account data event for the current user, and wait for the result to be echoed over `/sync`."
+                "file": "src/client/worker/worker.spec.ts",
+                "line": 408,
+                "snippet": "task_data: { path: \"/sync\" },"
             }
         },
         {
@@ -479,7 +587,7 @@
             "evidence": {
                 "literal": "/uk.half-shot.msc2666/user/mutual_rooms",
                 "file": "src/server-capabilities/index.ts",
-                "line": 400,
+                "line": 424,
                 "snippet": "path = \"/uk.half-shot.msc2666/user/mutual_rooms\";"
             }
         },
@@ -599,7 +707,7 @@
             "evidence": {
                 "literal": "/account/deactivate",
                 "file": "src/account/index.ts",
-                "line": 265,
+                "line": 287,
                 "snippet": "path: ap(\"/account/deactivate\"),"
             }
         },
@@ -974,16 +1082,6 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v1/keys/device_signing/requests",
-            "evidence": {
-                "literal": "/keys/device_signing/requests",
-                "file": "src/client-crypto-requests.ts",
-                "line": 180,
-                "snippet": "return authedRequest<T>(Method.Get, \"/keys/device_signing/requests\", undefined, undefined, { prefix });"
-            }
-        },
-        {
             "method": "POST",
             "path": "/_matrix/client/v1/keys/device_signing/upload",
             "evidence": {
@@ -991,86 +1089,6 @@
                 "file": "src/client-crypto-requests.ts",
                 "line": 105,
                 "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/upload\", undefined, data, {"
-            }
-        },
-        {
-            "method": "PUT",
-            "path": "/_matrix/client/v1/keys/device_signing/verify_accept",
-            "evidence": {
-                "literal": "/keys/device_signing/verify_accept",
-                "file": "src/client-crypto-requests.ts",
-                "line": 144,
-                "snippet": "return authedRequest<T>(Method.Put, \"/keys/device_signing/verify_accept\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/device_signing/verify_cancel",
-            "evidence": {
-                "literal": "/keys/device_signing/verify_cancel",
-                "file": "src/client-crypto-requests.ts",
-                "line": 176,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/verify_cancel\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/device_signing/verify_done",
-            "evidence": {
-                "literal": "/keys/device_signing/verify_done",
-                "file": "src/client-crypto-requests.ts",
-                "line": 168,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/verify_done\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/device_signing/verify_key_agreement",
-            "evidence": {
-                "literal": "/keys/device_signing/verify_key_agreement",
-                "file": "src/client-crypto-requests.ts",
-                "line": 152,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/verify_key_agreement\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/device_signing/verify_mac",
-            "evidence": {
-                "literal": "/keys/device_signing/verify_mac",
-                "file": "src/client-crypto-requests.ts",
-                "line": 160,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/verify_mac\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/device_signing/verify_start",
-            "evidence": {
-                "literal": "/keys/device_signing/verify_start",
-                "file": "src/client-crypto-requests.ts",
-                "line": 136,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/verify_start\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/qr_code/scan",
-            "evidence": {
-                "literal": "/keys/qr_code/scan",
-                "file": "src/client-crypto-requests.ts",
-                "line": 188,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/qr_code/scan\", undefined, request, { prefix });"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v1/keys/qr_code/show",
-            "evidence": {
-                "literal": "/keys/qr_code/show",
-                "file": "src/client-crypto-requests.ts",
-                "line": 184,
-                "snippet": "return authedRequest<T>(Method.Get, \"/keys/qr_code/show\", undefined, undefined, { prefix });"
             }
         },
         {
@@ -1089,7 +1107,7 @@
             "evidence": {
                 "literal": "/keys/rotation/check",
                 "file": "src/key-rotation/index.ts",
-                "line": 411,
+                "line": 481,
                 "snippet": "path: \"/keys/rotation/check\","
             }
         },
@@ -1099,7 +1117,7 @@
             "evidence": {
                 "literal": "/keys/rotation/check",
                 "file": "src/key-rotation/index.ts",
-                "line": 411,
+                "line": 481,
                 "snippet": "path: \"/keys/rotation/check\","
             }
         },
@@ -1109,7 +1127,7 @@
             "evidence": {
                 "literal": "/keys/rotation/config",
                 "file": "src/key-rotation/index.ts",
-                "line": 330,
+                "line": 388,
                 "snippet": "path: \"/keys/rotation/config\","
             }
         },
@@ -1119,7 +1137,7 @@
             "evidence": {
                 "literal": "/keys/rotation/config",
                 "file": "src/key-rotation/index.ts",
-                "line": 330,
+                "line": 388,
                 "snippet": "path: \"/keys/rotation/config\","
             }
         },
@@ -1129,7 +1147,7 @@
             "evidence": {
                 "literal": "/keys/rotation/history/{}",
                 "file": "src/key-rotation/index.ts",
-                "line": 251,
+                "line": 298,
                 "snippet": "path: `/keys/rotation/history/${encodeURIComponent(deviceId)}`,"
             }
         },
@@ -1139,7 +1157,7 @@
             "evidence": {
                 "literal": "/keys/rotation/revoke",
                 "file": "src/key-rotation/index.ts",
-                "line": 289,
+                "line": 336,
                 "snippet": "path: \"/keys/rotation/revoke\","
             }
         },
@@ -1149,7 +1167,7 @@
             "evidence": {
                 "literal": "/keys/rotation/rotate",
                 "file": "src/key-rotation/index.ts",
-                "line": 203,
+                "line": 250,
                 "snippet": "path: \"/keys/rotation/rotate\","
             }
         },
@@ -1159,7 +1177,7 @@
             "evidence": {
                 "literal": "/keys/rotation/status",
                 "file": "src/key-rotation/index.ts",
-                "line": 160,
+                "line": 207,
                 "snippet": "path: \"/keys/rotation/status\","
             }
         },
@@ -1169,7 +1187,7 @@
             "evidence": {
                 "literal": "/keys/rotation/status",
                 "file": "src/key-rotation/index.ts",
-                "line": 160,
+                "line": 207,
                 "snippet": "path: \"/keys/rotation/status\","
             }
         },
@@ -1179,7 +1197,7 @@
             "evidence": {
                 "literal": "/keys/signatures",
                 "file": "src/device-keys/index.ts",
-                "line": 364,
+                "line": 333,
                 "snippet": "path: \"/keys/signatures\","
             }
         },
@@ -1209,18 +1227,8 @@
             "evidence": {
                 "literal": "/keys/upload/{}",
                 "file": "src/e2ee/index.ts",
-                "line": 265,
+                "line": 213,
                 "snippet": "ep(`/keys/upload/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v1/keys/verification/{transaction_id}",
-            "evidence": {
-                "literal": "/keys/verification/{}",
-                "file": "src/key-verification/index.ts",
-                "line": 367,
-                "snippet": "path: `/keys/verification/${encodeURIComponent(transactionId)}`,"
             }
         },
         {
@@ -1609,7 +1617,7 @@
             "evidence": {
                 "literal": "/rooms/$roomId/aggregations/$eventId/$relType",
                 "file": "src/relations/index.ts",
-                "line": 313,
+                "line": 324,
                 "snippet": "const path = utils.encodeUri(rr(\"/rooms/$roomId/aggregations/$eventId/$relType\"), {"
             }
         },
@@ -1699,7 +1707,7 @@
             "evidence": {
                 "literal": "/rooms/$roomId/relations/$eventId",
                 "file": "src/relations/index.ts",
-                "line": 165,
+                "line": 176,
                 "snippet": ": rr(\"/rooms/$roomId/relations/$eventId\");"
             }
         },
@@ -1709,18 +1717,18 @@
             "evidence": {
                 "literal": "/rooms/$roomId/relations/$eventId/$relationType",
                 "file": "src/relations/index.ts",
-                "line": 164,
+                "line": 175,
                 "snippet": "? rr(\"/rooms/$roomId/relations/$eventId/$relationType\")"
             }
         },
         {
-            "method": "PUT",
-            "path": "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
+            "method": "GET",
+            "path": "/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}",
             "evidence": {
-                "literal": "/rooms/$roomId/relations/$eventId/$relationType/$targetEventId",
+                "literal": "/rooms/$roomId/relations/$eventId/$relationType/$eventType",
                 "file": "src/relations/index.ts",
-                "line": 435,
-                "snippet": "const path = utils.encodeUri(rr(\"/rooms/$roomId/relations/$eventId/$relationType/$targetEventId\"), {"
+                "line": 173,
+                "snippet": "? rr(\"/rooms/$roomId/relations/$eventId/$relationType/$eventType\")"
             }
         },
         {
@@ -2009,7 +2017,7 @@
             "evidence": {
                 "literal": "/spaces/public",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 78,
+                "line": 187,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/public\"), options);"
             }
         },
@@ -2019,7 +2027,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 136,
+                "line": 256,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));"
             }
         },
@@ -2029,7 +2037,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}/parents",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 150,
+                "line": 270,
                 "snippet": "sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),"
             }
         },
@@ -2039,7 +2047,7 @@
             "evidence": {
                 "literal": "/spaces/search",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 90,
+                "line": 205,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/search\"), {"
             }
         },
@@ -2049,7 +2057,7 @@
             "evidence": {
                 "literal": "/spaces/statistics",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 105,
+                "line": 224,
                 "snippet": "return await this.doRequest<SpaceStatistics>(Method.Get, sp(\"/spaces/statistics\"));"
             }
         },
@@ -2059,7 +2067,7 @@
             "evidence": {
                 "literal": "/spaces/user",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 122,
+                "line": 241,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/user\"));"
             }
         },
@@ -2069,7 +2077,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId",
                 "file": "src/space/sub-managers/space-lifecycle-manager.ts",
-                "line": 149,
+                "line": 153,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, spacePath(\"/spaces/$spaceId\", spaceId));"
             }
         },
@@ -2079,7 +2087,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId",
                 "file": "src/space/sub-managers/space-lifecycle-manager.ts",
-                "line": 149,
+                "line": 153,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, spacePath(\"/spaces/$spaceId\", spaceId));"
             }
         },
@@ -2089,7 +2097,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId",
                 "file": "src/space/sub-managers/space-lifecycle-manager.ts",
-                "line": 149,
+                "line": 153,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, spacePath(\"/spaces/$spaceId\", spaceId));"
             }
         },
@@ -2099,7 +2107,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 54,
+                "line": 58,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -2109,7 +2117,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 54,
+                "line": 58,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -2119,7 +2127,7 @@
             "evidence": {
                 "literal": "/spaces/{}/children/{}",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 122,
+                "line": 132,
                 "snippet": "sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),"
             }
         },
@@ -2129,7 +2137,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 62,
+                "line": 125,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy\", spaceId),"
             }
         },
@@ -2139,7 +2147,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy/v1",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 77,
+                "line": 140,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy/v1\", spaceId),"
             }
         },
@@ -2149,7 +2157,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/invite",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 67,
+                "line": 75,
                 "snippet": "await this.doRequest(Method.Post, spacePath(\"/spaces/$spaceId/invite\", spaceId), undefined, {"
             }
         },
@@ -2159,7 +2167,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/join",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 83,
+                "line": 93,
                 "snippet": "spacePath(\"/spaces/$spaceId/join\", spaceId),"
             }
         },
@@ -2169,7 +2177,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/leave",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 99,
+                "line": 111,
                 "snippet": "await this.doRequest(Method.Post, spacePath(\"/spaces/$spaceId/leave\", spaceId), undefined, body);"
             }
         },
@@ -2179,7 +2187,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/members",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 53,
+                "line": 59,
                 "snippet": "spacePath(\"/spaces/$spaceId/members\", spaceId),"
             }
         },
@@ -2189,7 +2197,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/rooms",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 138,
+                "line": 150,
                 "snippet": "spacePath(\"/spaces/$spaceId/rooms\", spaceId),"
             }
         },
@@ -2199,7 +2207,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/state",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 154,
+                "line": 166,
                 "snippet": "spacePath(\"/spaces/$spaceId/state\", spaceId),"
             }
         },
@@ -2209,7 +2217,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 92,
+                "line": 155,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary\", spaceId),"
             }
         },
@@ -2219,7 +2227,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary/with_children",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 107,
+                "line": 170,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary/with_children\", spaceId),"
             }
         },
@@ -2229,7 +2237,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/tree_path",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 122,
+                "line": 185,
                 "snippet": "spacePath(\"/spaces/$spaceId/tree_path\", spaceId),"
             }
         },
@@ -2238,9 +2246,9 @@
             "path": "/_matrix/client/v1/sync",
             "evidence": {
                 "literal": "/sync",
-                "file": "src/client.ts",
-                "line": 1566,
-                "snippet": "* Set account data event for the current user, and wait for the result to be echoed over `/sync`."
+                "file": "src/client/worker/worker.spec.ts",
+                "line": 408,
+                "snippet": "task_data: { path: \"/sync\" },"
             }
         },
         {
@@ -2309,8 +2317,18 @@
             "evidence": {
                 "literal": "/voice/config",
                 "file": "src/voice/index.ts",
-                "line": 222,
+                "line": 333,
                 "snippet": "path: \"/voice/config\","
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/client/v1/voice/register",
+            "evidence": {
+                "literal": "/voice/register",
+                "file": "src/voice/index.ts",
+                "line": 635,
+                "snippet": "path: \"/voice/register\","
             }
         },
         {
@@ -2319,7 +2337,7 @@
             "evidence": {
                 "literal": "/voice/room/{}/stats",
                 "file": "src/voice/index.ts",
-                "line": 182,
+                "line": 293,
                 "snippet": "path: `/voice/room/${encodeURIComponent(roomId)}/stats`,"
             }
         },
@@ -2329,7 +2347,7 @@
             "evidence": {
                 "literal": "/voice/stats",
                 "file": "src/voice/index.ts",
-                "line": 167,
+                "line": 278,
                 "snippet": "path: \"/voice/stats\","
             }
         },
@@ -2339,7 +2357,7 @@
             "evidence": {
                 "literal": "/voice/upload",
                 "file": "src/voice/index.ts",
-                "line": 245,
+                "line": 356,
                 "snippet": "path: \"/voice/upload\","
             }
         },
@@ -2349,7 +2367,7 @@
             "evidence": {
                 "literal": "/voice/user/{}/stats",
                 "file": "src/voice/index.ts",
-                "line": 197,
+                "line": 308,
                 "snippet": "path: `/voice/user/${encodeURIComponent(userId)}/stats`,"
             }
         },
@@ -2499,7 +2517,7 @@
             "evidence": {
                 "literal": "/account/deactivate",
                 "file": "src/account/index.ts",
-                "line": 265,
+                "line": 287,
                 "snippet": "path: ap(\"/account/deactivate\"),"
             }
         },
@@ -2539,7 +2557,7 @@
             "evidence": {
                 "literal": "/auth/$loginType/fallback/web",
                 "file": "src/account/index.ts",
-                "line": 290,
+                "line": 341,
                 "snippet": "const path = utils.encodeUri(\"/auth/$loginType/fallback/web\", {"
             }
         },
@@ -2819,7 +2837,7 @@
             "evidence": {
                 "literal": "/keys/history",
                 "file": "src/e2ee/index.ts",
-                "line": 536,
+                "line": 474,
                 "snippet": "path: ep(\"/keys/history\"),"
             }
         },
@@ -2829,7 +2847,7 @@
             "evidence": {
                 "literal": "/keys/upload/{}",
                 "file": "src/e2ee/index.ts",
-                "line": 265,
+                "line": 213,
                 "snippet": "ep(`/keys/upload/${encodeURIComponent(deviceId)}` as StripV3<E2eePathPattern>),"
             }
         },
@@ -2849,7 +2867,7 @@
             "evidence": {
                 "literal": "/login/",
                 "file": "src/account/index.ts",
-                "line": 143,
+                "line": 165,
                 "snippet": "let url = \"/login/\" + loginType + \"/redirect\";"
             }
         },
@@ -2859,7 +2877,7 @@
             "evidence": {
                 "literal": "/login/saml/callback",
                 "file": "src/saml/index.ts",
-                "line": 107,
+                "line": 145,
                 "snippet": "path: cp(\"/login/saml/callback\"),"
             }
         },
@@ -2869,7 +2887,7 @@
             "evidence": {
                 "literal": "/login/saml/callback",
                 "file": "src/saml/index.ts",
-                "line": 107,
+                "line": 145,
                 "snippet": "path: cp(\"/login/saml/callback\"),"
             }
         },
@@ -2899,7 +2917,7 @@
             "evidence": {
                 "literal": "/logout/all",
                 "file": "src/account/index.ts",
-                "line": 224,
+                "line": 246,
                 "snippet": "path: ap(\"/logout/all\"),"
             }
         },
@@ -2909,7 +2927,7 @@
             "evidence": {
                 "literal": "/logout/saml",
                 "file": "src/saml/index.ts",
-                "line": 155,
+                "line": 134,
                 "snippet": "path: cp(\"/logout/saml\"),"
             }
         },
@@ -2919,7 +2937,7 @@
             "evidence": {
                 "literal": "/logout/saml/callback",
                 "file": "src/saml/index.ts",
-                "line": 167,
+                "line": 205,
                 "snippet": "path: cp(\"/logout/saml/callback\"),"
             }
         },
@@ -2939,7 +2957,7 @@
             "evidence": {
                 "literal": "/my_rooms",
                 "file": "src/account/index.ts",
-                "line": 305,
+                "line": 356,
                 "snippet": "path: \"/my_rooms\","
             }
         },
@@ -3074,43 +3092,73 @@
             }
         },
         {
+            "method": "DELETE",
+            "path": "/_matrix/client/v3/profile/{user_id}/{key_name}",
+            "evidence": {
+                "literal": "/profile/$userId/$field",
+                "file": "src/client-profile-requests.ts",
+                "line": 29,
+                "snippet": "return utils.encodeUri(\"/profile/$userId/$field\", { $userId: userId, $field: field });"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/profile/{user_id}/{key_name}",
+            "evidence": {
+                "literal": "/profile/$userId/$field",
+                "file": "src/client-profile-requests.ts",
+                "line": 29,
+                "snippet": "return utils.encodeUri(\"/profile/$userId/$field\", { $userId: userId, $field: field });"
+            }
+        },
+        {
+            "method": "PUT",
+            "path": "/_matrix/client/v3/profile/{user_id}/{key_name}",
+            "evidence": {
+                "literal": "/profile/$userId/$field",
+                "file": "src/client-profile-requests.ts",
+                "line": 29,
+                "snippet": "return utils.encodeUri(\"/profile/$userId/$field\", { $userId: userId, $field: field });"
+            }
+        },
+        {
             "method": "GET",
             "path": "/_matrix/client/v3/pushers",
             "evidence": {
-                "literal": "/pushers",
+                "literal": "/pushers/",
                 "file": "src/push/index.ts",
-                "line": 150,
-                "snippet": "path: pp(\"/pushers\"),"
+                "line": 151,
+                "snippet": "path: pp(\"/pushers/\"),"
             }
         },
         {
             "method": "POST",
             "path": "/_matrix/client/v3/pushers",
             "evidence": {
-                "literal": "/pushers",
+                "literal": "/pushers/",
                 "file": "src/push/index.ts",
-                "line": 150,
-                "snippet": "path: pp(\"/pushers\"),"
+                "line": 151,
+                "snippet": "path: pp(\"/pushers/\"),"
             }
         },
         {
             "method": "GET",
             "path": "/_matrix/client/v3/pushers/",
             "evidence": {
-                "literal": "/pushers",
+                "literal": "/pushers/",
                 "file": "src/push/index.ts",
-                "line": 150,
-                "snippet": "path: pp(\"/pushers\"),"
+                "line": 151,
+                "snippet": "path: pp(\"/pushers/\"),"
             }
         },
         {
             "method": "POST",
             "path": "/_matrix/client/v3/pushers/",
             "evidence": {
-                "literal": "/pushers",
+                "literal": "/pushers/",
                 "file": "src/push/index.ts",
-                "line": 150,
-                "snippet": "path: pp(\"/pushers\"),"
+                "line": 151,
+                "snippet": "path: pp(\"/pushers/\"),"
             }
         },
         {
@@ -3119,7 +3167,7 @@
             "evidence": {
                 "literal": "/pushers/set",
                 "file": "src/push/index.ts",
-                "line": 191,
+                "line": 262,
                 "snippet": "path: pp(\"/pushers/set\"),"
             }
         },
@@ -3129,7 +3177,7 @@
             "evidence": {
                 "literal": "/pushrules/{}",
                 "file": "src/push/index.ts",
-                "line": 268,
+                "line": 339,
                 "snippet": "path: pp(`/pushrules/${encodeURIComponent(scope)}`),"
             }
         },
@@ -3139,7 +3187,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}",
                 "file": "src/push/index.ts",
-                "line": 288,
+                "line": 359,
                 "snippet": "path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`),"
             }
         },
@@ -3149,7 +3197,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}",
                 "file": "src/push/index.ts",
-                "line": 315,
+                "line": 386,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,"
             }
         },
@@ -3159,7 +3207,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}",
                 "file": "src/push/index.ts",
-                "line": 315,
+                "line": 386,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,"
             }
         },
@@ -3169,7 +3217,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}",
                 "file": "src/push/index.ts",
-                "line": 315,
+                "line": 386,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,"
             }
         },
@@ -3179,7 +3227,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}",
                 "file": "src/push/index.ts",
-                "line": 315,
+                "line": 386,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}`,"
             }
         },
@@ -3189,7 +3237,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}/actions",
                 "file": "src/push/index.ts",
-                "line": 487,
+                "line": 558,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,"
             }
         },
@@ -3199,7 +3247,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}/enabled",
                 "file": "src/push/index.ts",
-                "line": 429,
+                "line": 500,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,"
             }
         },
@@ -3209,7 +3257,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}/enabled",
                 "file": "src/push/index.ts",
-                "line": 429,
+                "line": 500,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,"
             }
         },
@@ -3269,7 +3317,7 @@
             "evidence": {
                 "literal": "/register/email/submitToken",
                 "file": "src/account/index.ts",
-                "line": 236,
+                "line": 258,
                 "snippet": "path: ap(\"/register/email/submitToken\"),"
             }
         },
@@ -3515,41 +3563,11 @@
         },
         {
             "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}",
-            "evidence": {
-                "literal": "/rooms/{}",
-                "file": "src/admin/sub-managers/admin-room-manager.ts",
-                "line": 143,
-                "snippet": "return await this.adminRequest<RoomInfo>(Method.Get, `/rooms/${encodeURIComponent(roomId)}`);"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/account_data/{type}",
-            "evidence": {
-                "literal": "/rooms/$roomId/account_data/$type",
-                "file": "src/room/RoomManager.ts",
-                "line": 933,
-                "snippet": "path: utils.encodeUri(\"/rooms/$roomId/account_data/$type\", { $roomId: roomId, $type: eventType }),"
-            }
-        },
-        {
-            "method": "PUT",
-            "path": "/_matrix/client/v3/rooms/{room_id}/account_data/{type}",
-            "evidence": {
-                "literal": "/rooms/$roomId/account_data/$type",
-                "file": "src/room/RoomManager.ts",
-                "line": 933,
-                "snippet": "path: utils.encodeUri(\"/rooms/$roomId/account_data/$type\", { $roomId: roomId, $type: eventType }),"
-            }
-        },
-        {
-            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
             "evidence": {
                 "literal": "/rooms/$roomId/aggregations/$eventId/$relType",
                 "file": "src/relations/index.ts",
-                "line": 313,
+                "line": 324,
                 "snippet": "const path = utils.encodeUri(rr(\"/rooms/$roomId/aggregations/$eventId/$relType\"), {"
             }
         },
@@ -3644,36 +3662,6 @@
             }
         },
         {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/convert/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/convert/$eventId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 630,
-                "snippet": "encodeUri(\"/rooms/$roomId/convert/$eventId\", {"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/device/{device_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/device/$deviceId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 549,
-                "snippet": "encodeUri(\"/rooms/$roomId/device/$deviceId\", {"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/encrypted_events",
-            "evidence": {
-                "literal": "/rooms/$roomId/encrypted_events",
-                "file": "src/room-summary/sub-managers/room-key-manager.ts",
-                "line": 137,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/encrypted_events\", roomId),"
-            }
-        },
-        {
             "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/ephemeral",
             "evidence": {
@@ -3684,46 +3672,6 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/event/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/event/$eventId",
-                "file": "src/client-batch-requests.ts",
-                "line": 66,
-                "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/event/$eventId\", { $roomId: roomId, $eventId: eventId });"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/event/{event_id}/url",
-            "evidence": {
-                "literal": "/rooms/$roomId/event/$eventId/url",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 571,
-                "snippet": "encodeUri(\"/rooms/$roomId/event/$eventId/url\", {"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/event_perspective",
-            "evidence": {
-                "literal": "/rooms/$roomId/event_perspective",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 425,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/event_perspective\", roomId), {"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/external_ids",
-            "evidence": {
-                "literal": "/rooms/$roomId/external_ids",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 393,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/external_ids\", roomId));"
-            }
-        },
-        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/forget",
             "evidence": {
@@ -3731,26 +3679,6 @@
                 "file": "src/client-membership.ts",
                 "line": 54,
                 "snippet": "return utils.encodeUri(\"/rooms/$room_id/forget\", { $room_id: roomId });"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/fragments/$userId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 527,
-                "snippet": "encodeUri(\"/rooms/$roomId/fragments/$userId\", {"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/get_membership_events",
-            "evidence": {
-                "literal": "/rooms/$roomId/get_membership_events",
-                "file": "src/room-member/index.ts",
-                "line": 154,
-                "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/get_membership_events\", { $roomId: roomId });"
             }
         },
         {
@@ -3784,16 +3712,6 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/invites",
-            "evidence": {
-                "literal": "/rooms/$roomId/invites",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 245,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/invites\", roomId));"
-            }
-        },
-        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/join",
             "evidence": {
@@ -3811,46 +3729,6 @@
                 "file": "src/client-batch-requests.ts",
                 "line": 89,
                 "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/joined_members\", { $roomId: roomId });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/keys/claim",
-            "evidence": {
-                "literal": "/rooms/$roomId/keys/claim",
-                "file": "src/room-summary/sub-managers/room-key-manager.ts",
-                "line": 61,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/keys/claim\", roomId),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/keys/count",
-            "evidence": {
-                "literal": "/rooms/$roomId/keys/count",
-                "file": "src/room-summary/sub-managers/room-key-manager.ts",
-                "line": 79,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/keys/count\", roomId),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/keys/version",
-            "evidence": {
-                "literal": "/rooms/$roomId/keys/version",
-                "file": "src/room-summary/sub-managers/room-key-manager.ts",
-                "line": 95,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/keys/version\", roomId),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/keys/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/keys/$eventId",
-                "file": "src/room-summary/sub-managers/room-thread-manager.ts",
-                "line": 56,
-                "snippet": "encodeUri(\"/rooms/$roomId/keys/$eventId\", { $roomId: roomId, $eventId: eventId }),"
             }
         },
         {
@@ -3885,36 +3763,6 @@
         },
         {
             "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/members/recent",
-            "evidence": {
-                "literal": "/rooms/$roomId/members/recent",
-                "file": "src/room-summary/sub-managers/room-member-manager.ts",
-                "line": 197,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/members/recent\", roomId),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/membership/{user_id}",
-            "evidence": {
-                "literal": "/rooms/{}/membership/{}",
-                "file": "src/room/RoomManager.ts",
-                "line": 537,
-                "snippet": "path: rp(`/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/message_queue",
-            "evidence": {
-                "literal": "/rooms/$roomId/message_queue",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 473,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/message_queue\", roomId),"
-            }
-        },
-        {
-            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/messages",
             "evidence": {
                 "literal": "/rooms/$roomId/messages",
@@ -3934,26 +3782,6 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/notifications",
-            "evidence": {
-                "literal": "/rooms/$roomId/notifications",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 148,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/notifications\", roomId),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/permissions",
-            "evidence": {
-                "literal": "/rooms/$roomId/permissions",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 440,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/permissions\", roomId));"
-            }
-        },
-        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/read_markers",
             "evidence": {
@@ -3971,26 +3799,6 @@
                 "file": "src/client-batch-requests.ts",
                 "line": 101,
                 "snippet": "const path = utils.encodeUri(\"/rooms/$roomId/read_markers\", { $roomId: roomId });"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/receipt/{receipt_type}/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/receipt/$receiptType/$eventId",
-                "file": "src/client-receipt-requests.ts",
-                "line": 27,
-                "snippet": "return utils.encodeUri(\"/rooms/$roomId/receipt/$receiptType/$eventId\", {"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/receipts/{receipt_type}/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/receipts/$receiptType/$eventId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 263,
-                "snippet": "encodeUri(\"/rooms/$roomId/receipts/$receiptType/$eventId\", {"
             }
         },
         {
@@ -4005,21 +3813,11 @@
         },
         {
             "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/reduced_events",
-            "evidence": {
-                "literal": "/rooms/$roomId/reduced_events",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 499,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/reduced_events\", roomId));"
-            }
-        },
-        {
-            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}",
             "evidence": {
                 "literal": "/rooms/$roomId/relations/$eventId",
                 "file": "src/relations/index.ts",
-                "line": 165,
+                "line": 176,
                 "snippet": ": rr(\"/rooms/$roomId/relations/$eventId\");"
             }
         },
@@ -4029,28 +3827,18 @@
             "evidence": {
                 "literal": "/rooms/$roomId/relations/$eventId/$relationType",
                 "file": "src/relations/index.ts",
-                "line": 164,
+                "line": 175,
                 "snippet": "? rr(\"/rooms/$roomId/relations/$eventId/$relationType\")"
             }
         },
         {
-            "method": "PUT",
-            "path": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/relations/$eventId/$relationType/$targetEventId",
-                "file": "src/relations/index.ts",
-                "line": 435,
-                "snippet": "const path = utils.encodeUri(rr(\"/rooms/$roomId/relations/$eventId/$relationType/$targetEventId\"), {"
-            }
-        },
-        {
             "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/rendered/",
+            "path": "/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}",
             "evidence": {
-                "literal": "/rooms/$roomId/rendered/",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 511,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/rendered/\", roomId));"
+                "literal": "/rooms/$roomId/relations/$eventId/$relationType/$eventType",
+                "file": "src/relations/index.ts",
+                "line": 173,
+                "snippet": "? rr(\"/rooms/$roomId/relations/$eventId/$relationType/$eventType\")"
             }
         },
         {
@@ -4084,46 +3872,6 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/resolve",
-            "evidence": {
-                "literal": "/rooms/$roomId/resolve",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 452,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/resolve\", roomId));"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/retention",
-            "evidence": {
-                "literal": "/rooms/$roomId/retention",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 381,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/retention\", roomId));"
-            }
-        },
-        {
-            "method": "PUT",
-            "path": "/_matrix/client/v3/rooms/{room_id}/room_keys/keys",
-            "evidence": {
-                "literal": "/rooms/$roomId/room_keys/keys",
-                "file": "src/room-summary/sub-managers/room-key-manager.ts",
-                "line": 112,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/room_keys/keys\", roomId),"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/search",
-            "evidence": {
-                "literal": "/rooms/$roomId/search",
-                "file": "src/room-summary/sub-managers/room-search-manager.ts",
-                "line": 240,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/search\", roomId),"
-            }
-        },
-        {
             "method": "PUT",
             "path": "/_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}",
             "evidence": {
@@ -4151,26 +3899,6 @@
                 "file": "src/client-send-paths.ts",
                 "line": 43,
                 "snippet": "return encodeUri(\"/rooms/$roomId/send/$eventType/$txnId\", pathParams);"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/service_types",
-            "evidence": {
-                "literal": "/rooms/$roomId/service_types",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 487,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/service_types\", roomId));"
-            }
-        },
-        {
-            "method": "PUT",
-            "path": "/_matrix/client/v3/rooms/{room_id}/sign/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/sign/$eventId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 655,
-                "snippet": "encodeUri(\"/rooms/$roomId/sign/$eventId\", {"
             }
         },
         {
@@ -4287,30 +4015,10 @@
             "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events",
             "evidence": {
-                "literal": "/rooms/$roomId/sticky_events",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 754,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/sticky_events\", roomId));"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events",
-            "evidence": {
-                "literal": "/rooms/$roomId/sticky_events",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 754,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/sticky_events\", roomId));"
-            }
-        },
-        {
-            "method": "DELETE",
-            "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}",
-            "evidence": {
-                "literal": "/rooms/$roomId/sticky_events/$eventType",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 792,
-                "snippet": "encodeUri(\"/rooms/$roomId/sticky_events/$eventType\", { $roomId: roomId, $eventType: eventType }),"
+                "literal": "/_matrix/client/v3/rooms/{}/sticky_events",
+                "file": "src/room/RoomManagerExtensions.ts",
+                "line": 858,
+                "snippet": "path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/sticky_events`,"
             }
         },
         {
@@ -4475,66 +4183,6 @@
         },
         {
             "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/sync",
-            "evidence": {
-                "literal": "/rooms/$roomId/sync",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 196,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/sync\", roomId), queryParams);"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/thread/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/thread/$eventId",
-                "file": "src/room-summary/sub-managers/room-thread-manager.ts",
-                "line": 83,
-                "snippet": "encodeUri(\"/rooms/$roomId/thread/$eventId\", { $roomId: roomId, $eventId: eventId }),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/threads/$threadId",
-                "file": "src/room-summary/sub-managers/room-thread-manager.ts",
-                "line": 110,
-                "snippet": "encodeUri(\"/rooms/$roomId/threads/$threadId\", { $roomId: roomId, $threadId: threadId }),"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/timeline",
-            "evidence": {
-                "literal": "/rooms/$roomId/timeline",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 292,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/timeline\", roomId),"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/translate/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/translate/$eventId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 601,
-                "snippet": "encodeUri(\"/rooms/$roomId/translate/$eventId\", {"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/turn_server",
-            "evidence": {
-                "literal": "/rooms/$roomId/turn_server",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 702,
-                "snippet": "return await this.requestV3(Method.Get, this.roomSummaryPath(\"/rooms/$roomId/turn_server\", roomId));"
-            }
-        },
-        {
-            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/typing",
             "evidence": {
                 "literal": "/rooms/{}/typing",
@@ -4584,16 +4232,6 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/unread_count",
-            "evidence": {
-                "literal": "/rooms/$roomId/unread_count",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 308,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/unread_count\", roomId),"
-            }
-        },
-        {
             "method": "POST",
             "path": "/_matrix/client/v3/rooms/{room_id}/upgrade",
             "evidence": {
@@ -4605,42 +4243,22 @@
         },
         {
             "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/vault_data",
-            "evidence": {
-                "literal": "/rooms/$roomId/vault_data",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 349,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/vault_data\", roomId),"
-            }
-        },
-        {
-            "method": "PUT",
-            "path": "/_matrix/client/v3/rooms/{room_id}/vault_data",
-            "evidence": {
-                "literal": "/rooms/$roomId/vault_data",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 349,
-                "snippet": "this.roomSummaryPath(\"/rooms/$roomId/vault_data\", roomId),"
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/rooms/{room_id}/verify/{event_id}",
-            "evidence": {
-                "literal": "/rooms/$roomId/verify/$eventId",
-                "file": "src/room-summary/sub-managers/room-event-operation-manager.ts",
-                "line": 684,
-                "snippet": "encodeUri(\"/rooms/$roomId/verify/$eventId\", {"
-            }
-        },
-        {
-            "method": "GET",
             "path": "/_matrix/client/v3/rooms/{room_id}/version",
             "evidence": {
                 "literal": "/rooms/{}/version",
                 "file": "src/admin/sub-managers/admin-room-manager.ts",
                 "line": 441,
                 "snippet": "return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/version`);"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
+            "evidence": {
+                "literal": "/_matrix/client/v3/rooms/{}/visibility",
+                "file": "src/room/RoomManagerExtensions.ts",
+                "line": 495,
+                "snippet": "path: `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/visibility`,"
             }
         },
         {
@@ -4679,7 +4297,7 @@
             "evidence": {
                 "literal": "/saml/metadata",
                 "file": "src/saml/index.ts",
-                "line": 177,
+                "line": 215,
                 "snippet": "path: cp(\"/saml/metadata\"),"
             }
         },
@@ -4689,7 +4307,7 @@
             "evidence": {
                 "literal": "/saml/sp_metadata",
                 "file": "src/saml/index.ts",
-                "line": 187,
+                "line": 225,
                 "snippet": "path: cp(\"/saml/sp_metadata\"),"
             }
         },
@@ -4749,7 +4367,7 @@
             "evidence": {
                 "literal": "/spaces/public",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 78,
+                "line": 187,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/public\"), options);"
             }
         },
@@ -4759,7 +4377,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 136,
+                "line": 256,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, sp(`/spaces/room/${encodeURIComponent(roomId)}`));"
             }
         },
@@ -4769,7 +4387,7 @@
             "evidence": {
                 "literal": "/spaces/room/{}/parents",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 150,
+                "line": 270,
                 "snippet": "sp(`/spaces/room/${encodeURIComponent(roomId)}/parents`),"
             }
         },
@@ -4779,7 +4397,7 @@
             "evidence": {
                 "literal": "/spaces/search",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 90,
+                "line": 205,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/search\"), {"
             }
         },
@@ -4789,7 +4407,7 @@
             "evidence": {
                 "literal": "/spaces/statistics",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 105,
+                "line": 224,
                 "snippet": "return await this.doRequest<SpaceStatistics>(Method.Get, sp(\"/spaces/statistics\"));"
             }
         },
@@ -4799,7 +4417,7 @@
             "evidence": {
                 "literal": "/spaces/user",
                 "file": "src/space/sub-managers/space-query-manager.ts",
-                "line": 122,
+                "line": 241,
                 "snippet": "return await this.doRequest<SpaceListResponse>(Method.Get, sp(\"/spaces/user\"));"
             }
         },
@@ -4809,7 +4427,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId",
                 "file": "src/space/sub-managers/space-lifecycle-manager.ts",
-                "line": 149,
+                "line": 153,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, spacePath(\"/spaces/$spaceId\", spaceId));"
             }
         },
@@ -4819,7 +4437,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId",
                 "file": "src/space/sub-managers/space-lifecycle-manager.ts",
-                "line": 149,
+                "line": 153,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, spacePath(\"/spaces/$spaceId\", spaceId));"
             }
         },
@@ -4829,7 +4447,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId",
                 "file": "src/space/sub-managers/space-lifecycle-manager.ts",
-                "line": 149,
+                "line": 153,
                 "snippet": "return await this.doRequest<JsonObject>(Method.Get, spacePath(\"/spaces/$spaceId\", spaceId));"
             }
         },
@@ -4839,7 +4457,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 54,
+                "line": 58,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -4849,7 +4467,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/children",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 54,
+                "line": 58,
                 "snippet": "spacePath(\"/spaces/$spaceId/children\", spaceId),"
             }
         },
@@ -4859,7 +4477,7 @@
             "evidence": {
                 "literal": "/spaces/{}/children/{}",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 122,
+                "line": 132,
                 "snippet": "sp(`/spaces/${encodeURIComponent(spaceId)}/children/${encodeURIComponent(roomId)}`),"
             }
         },
@@ -4869,7 +4487,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 62,
+                "line": 125,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy\", spaceId),"
             }
         },
@@ -4879,7 +4497,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/hierarchy/v1",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 77,
+                "line": 140,
                 "snippet": "spacePath(\"/spaces/$spaceId/hierarchy/v1\", spaceId),"
             }
         },
@@ -4889,7 +4507,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/invite",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 67,
+                "line": 75,
                 "snippet": "await this.doRequest(Method.Post, spacePath(\"/spaces/$spaceId/invite\", spaceId), undefined, {"
             }
         },
@@ -4899,7 +4517,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/join",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 83,
+                "line": 93,
                 "snippet": "spacePath(\"/spaces/$spaceId/join\", spaceId),"
             }
         },
@@ -4909,7 +4527,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/leave",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 99,
+                "line": 111,
                 "snippet": "await this.doRequest(Method.Post, spacePath(\"/spaces/$spaceId/leave\", spaceId), undefined, body);"
             }
         },
@@ -4919,7 +4537,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/members",
                 "file": "src/space/sub-managers/space-member-manager.ts",
-                "line": 53,
+                "line": 59,
                 "snippet": "spacePath(\"/spaces/$spaceId/members\", spaceId),"
             }
         },
@@ -4929,7 +4547,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/rooms",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 138,
+                "line": 150,
                 "snippet": "spacePath(\"/spaces/$spaceId/rooms\", spaceId),"
             }
         },
@@ -4939,7 +4557,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/state",
                 "file": "src/space/sub-managers/space-child-manager.ts",
-                "line": 154,
+                "line": 166,
                 "snippet": "spacePath(\"/spaces/$spaceId/state\", spaceId),"
             }
         },
@@ -4949,7 +4567,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 92,
+                "line": 155,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary\", spaceId),"
             }
         },
@@ -4959,7 +4577,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/summary/with_children",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 107,
+                "line": 170,
                 "snippet": "spacePath(\"/spaces/$spaceId/summary/with_children\", spaceId),"
             }
         },
@@ -4969,7 +4587,7 @@
             "evidence": {
                 "literal": "/spaces/$spaceId/tree_path",
                 "file": "src/space/sub-managers/space-hierarchy-manager.ts",
-                "line": 122,
+                "line": 185,
                 "snippet": "spacePath(\"/spaces/$spaceId/tree_path\", spaceId),"
             }
         },
@@ -5244,13 +4862,23 @@
             }
         },
         {
+            "method": "POST",
+            "path": "/_matrix/client/v3/voice/register",
+            "evidence": {
+                "literal": "/voice/register",
+                "file": "src/voice/index.ts",
+                "line": 635,
+                "snippet": "path: \"/voice/register\","
+            }
+        },
+        {
             "method": "GET",
             "path": "/_matrix/client/v3/voice/room/{room_id}",
             "evidence": {
-                "literal": "/voice/room/{}",
+                "literal": "/voice/room/{room_id}",
                 "file": "src/voice/index.ts",
-                "line": 297,
-                "snippet": "path: `/voice/room/${encodeURIComponent(roomId)}`,"
+                "line": 11,
+                "snippet": "* 带 `{media_id}`，而 `/voice/room/{room_id}` 与 `/voice/user/{user_id}` **不带任何后缀**"
             }
         },
         {
@@ -5259,7 +4887,7 @@
             "evidence": {
                 "literal": "/voice/room/{}/stats",
                 "file": "src/voice/index.ts",
-                "line": 182,
+                "line": 293,
                 "snippet": "path: `/voice/room/${encodeURIComponent(roomId)}/stats`,"
             }
         },
@@ -5269,28 +4897,18 @@
             "evidence": {
                 "literal": "/voice/stats",
                 "file": "src/voice/index.ts",
-                "line": 167,
+                "line": 278,
                 "snippet": "path: \"/voice/stats\","
-            }
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/voice/upload",
-            "evidence": {
-                "literal": "/voice/upload",
-                "file": "src/voice/index.ts",
-                "line": 245,
-                "snippet": "path: \"/voice/upload\","
             }
         },
         {
             "method": "GET",
             "path": "/_matrix/client/v3/voice/user/{user_id}",
             "evidence": {
-                "literal": "/voice/user/{}",
+                "literal": "/voice/user/{user_id}",
                 "file": "src/voice/index.ts",
-                "line": 312,
-                "snippet": "path: `/voice/user/${encodeURIComponent(userId)}`,"
+                "line": 11,
+                "snippet": "* 带 `{media_id}`，而 `/voice/room/{room_id}` 与 `/voice/user/{user_id}` **不带任何后缀**"
             }
         },
         {
@@ -5299,7 +4917,7 @@
             "evidence": {
                 "literal": "/voice/user/{}/stats",
                 "file": "src/voice/index.ts",
-                "line": 197,
+                "line": 308,
                 "snippet": "path: `/voice/user/${encodeURIComponent(userId)}/stats`,"
             }
         },
@@ -5309,7 +4927,7 @@
             "evidence": {
                 "literal": "/voice/{}",
                 "file": "src/voice/index.ts",
-                "line": 265,
+                "line": 417,
                 "snippet": "path: `/voice/${encodeURIComponent(messageId)}`,"
             }
         },
@@ -5319,7 +4937,7 @@
             "evidence": {
                 "literal": "/voice/{}/convert",
                 "file": "src/voice/index.ts",
-                "line": 331,
+                "line": 557,
                 "snippet": "path: `/voice/${encodeURIComponent(mediaId)}/convert`,"
             }
         },
@@ -5329,7 +4947,7 @@
             "evidence": {
                 "literal": "/voice/{}/optimize",
                 "file": "src/voice/index.ts",
-                "line": 351,
+                "line": 577,
                 "snippet": "path: `/voice/${encodeURIComponent(mediaId)}/optimize`,"
             }
         },
@@ -5339,7 +4957,7 @@
             "evidence": {
                 "literal": "/voice/{}/transcription",
                 "file": "src/voice/index.ts",
-                "line": 371,
+                "line": 597,
                 "snippet": "path: `/voice/${encodeURIComponent(mediaId)}/transcription`,"
             }
         },
@@ -5349,7 +4967,7 @@
             "evidence": {
                 "literal": "/voip/turnServer",
                 "file": "src/client.ts",
-                "line": 3084,
+                "line": 3130,
                 "snippet": "return this.http.authedRequest(Method.Get, \"/voip/turnServer\");"
             }
         },
@@ -5368,9 +4986,9 @@
             "path": "/_matrix/client/v4/sync",
             "evidence": {
                 "literal": "/sync",
-                "file": "src/client.ts",
-                "line": 1566,
-                "snippet": "* Set account data event for the current user, and wait for the result to be echoed over `/sync`."
+                "file": "src/client/worker/worker.spec.ts",
+                "line": 408,
+                "snippet": "task_data: { path: \"/sync\" },"
             }
         },
         {
@@ -5854,6 +5472,16 @@
             }
         },
         {
+            "method": "PUT",
+            "path": "/_matrix/vendor/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
+            "evidence": {
+                "literal": "/rooms/$roomId/relations/$eventId/$relationType/$eventType",
+                "file": "src/relations/index.ts",
+                "line": 173,
+                "snippet": "? rr(\"/rooms/$roomId/relations/$eventId/$relationType/$eventType\")"
+            }
+        },
+        {
             "method": "POST",
             "path": "/_matrix/vendor/v1/search_recipients",
             "evidence": {
@@ -5899,8 +5527,38 @@
             "evidence": {
                 "literal": "/voice/config",
                 "file": "src/voice/index.ts",
-                "line": 222,
+                "line": 333,
                 "snippet": "path: \"/voice/config\","
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/cas/login",
+            "evidence": {
+                "literal": "/_synapse/cas/login",
+                "file": "src/cas/index.ts",
+                "line": 28,
+                "snippet": "* - `/_synapse/cas/login`、`/_synapse/cas/logout`"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/cas/logout",
+            "evidence": {
+                "literal": "/_synapse/cas/logout",
+                "file": "src/cas/index.ts",
+                "line": 28,
+                "snippet": "* - `/_synapse/cas/login`、`/_synapse/cas/logout`"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/cas/serviceValidate",
+            "evidence": {
+                "literal": "/_synapse/cas/serviceValidate",
+                "file": "src/cas/index.ts",
+                "line": 29,
+                "snippet": "* - `/_synapse/cas/serviceValidate`、`proxyValidate`、`p3/serviceValidate`、`proxy`"
             }
         },
         {
@@ -5999,16 +5657,6 @@
         {
             "method": "GET",
             "path": "/_matrix/client/v1/friends/request/received",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/verification/request",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v1/keys/verification/{transaction_id}/cancel",
             "scope": "CLIENT_FACING"
         },
         {
@@ -6122,16 +5770,6 @@
             "scope": "CLIENT_FACING"
         },
         {
-            "method": "POST",
-            "path": "/_matrix/client/v3/keys/verification/request",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "POST",
-            "path": "/_matrix/client/v3/keys/verification/{transaction_id}/cancel",
-            "scope": "CLIENT_FACING"
-        },
-        {
             "method": "GET",
             "path": "/_matrix/client/v3/login/sso/redirect/cas",
             "scope": "CLIENT_FACING"
@@ -6232,11 +5870,6 @@
             "scope": "CLIENT_FACING"
         },
         {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/keys",
-            "scope": "CLIENT_FACING"
-        },
-        {
             "method": "PUT",
             "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.answer/{txn_id}",
             "scope": "CLIENT_FACING"
@@ -6254,16 +5887,6 @@
         {
             "method": "PUT",
             "path": "/_matrix/client/v3/rooms/{room_id}/send/m.call.invite/{txn_id}",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "PUT",
-            "path": "/_matrix/client/v3/rooms/{room_id}/visibility",
             "scope": "CLIENT_FACING"
         },
         {
@@ -6352,6 +5975,31 @@
             "scope": "CLIENT_FACING"
         },
         {
+            "method": "GET",
+            "path": "/_synapse/admin/v1/cas/services",
+            "scope": "SERVER_ONLY"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/cas/services",
+            "scope": "SERVER_ONLY"
+        },
+        {
+            "method": "DELETE",
+            "path": "/_synapse/admin/v1/cas/services/{service_id}",
+            "scope": "SERVER_ONLY"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/admin/v1/cas/users/{user_id}/attributes",
+            "scope": "SERVER_ONLY"
+        },
+        {
+            "method": "POST",
+            "path": "/_synapse/admin/v1/cas/users/{user_id}/attributes",
+            "scope": "SERVER_ONLY"
+        },
+        {
             "method": "POST",
             "path": "/_synapse/admin/v1/push/cleanup",
             "scope": "SERVER_ONLY"
@@ -6370,6 +6018,21 @@
             "method": "POST",
             "path": "/_synapse/admin/v1/push/process",
             "scope": "SERVER_ONLY"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/cas/p3/serviceValidate",
+            "scope": "CLIENT_FACING"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/cas/proxy",
+            "scope": "CLIENT_FACING"
+        },
+        {
+            "method": "GET",
+            "path": "/_synapse/cas/proxyValidate",
+            "scope": "CLIENT_FACING"
         },
         {
             "method": "GET",
@@ -6414,36 +6077,6 @@
         {
             "method": "GET",
             "path": "/health",
-            "scope": "ROOT_OR_SSO"
-        },
-        {
-            "method": "GET",
-            "path": "/login",
-            "scope": "ROOT_OR_SSO"
-        },
-        {
-            "method": "GET",
-            "path": "/logout",
-            "scope": "ROOT_OR_SSO"
-        },
-        {
-            "method": "GET",
-            "path": "/p3/serviceValidate",
-            "scope": "ROOT_OR_SSO"
-        },
-        {
-            "method": "GET",
-            "path": "/proxy",
-            "scope": "ROOT_OR_SSO"
-        },
-        {
-            "method": "GET",
-            "path": "/proxyValidate",
-            "scope": "ROOT_OR_SSO"
-        },
-        {
-            "method": "GET",
-            "path": "/serviceValidate",
             "scope": "ROOT_OR_SSO"
         }
     ]
