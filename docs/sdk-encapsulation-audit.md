@@ -1233,7 +1233,84 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 ---
 
+### 13.15 【落地】ROUTE_CONTRACT 对账结论的代码收口：10 条真缺口封装 + 3 处口径修正 + 移除 1 条纸面 waiver（2026-10-06）
+
+#### 0. 背景与输入
+
+承接 `artifacts/route-contract-encapsulation-report-2026-10-06.md`：以 `synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md` 的 **1159 条**路由为全集，逐条做三级证据（路由表类型引用 T1 → 字符串字面量 T2 → 调用点 T3）核查，识别 **165 条「未封装」**。
+
+但报告是基于**静态路径字面量匹配**的，对「别名 / 已废弃旧路径 / helper 中转 / 运行时插值 / 泛型」天然不敏感。因此本轮把这 165 条**逐条回源码取证**，判定口径与分类账见 `artifacts/sdk-encapsulation-completion-plan-2026-10-06.md`，落地计划为 B1–B4。
+
+**换算关系（两个口径，勿混）**：报告 165 = 服务端/内部面 42 + 根级遗留 8 + admin 35 + 客户端面 80；其中客户端面 80 = 真缺口 46 + 工具盲区假阳性 10 + 运行时版本族 15 + 尾斜杠孪生 1 + 浏览器流 8。本轮把「真缺口 46」逐条复核，**其中 36 条实为别名 / 已废弃旧路径 / 已实现的稳定版变体**，真正缺口收敛为 **10 条**。自洽分解：**10 应封装 + 155 不应封装 = 45（别名/旧路径/孪生/浏览器流）+ 25（工具盲区误报）+ 50（架构排除）+ 35（admin 单列）**。
+
+#### 1. 判定口径（四问，全「是」才判应封装）
+
+| 编号              | 问题                                                    | 取证方式                                                                     |
+| ----------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **G1 无别名**     | 同一能力后端是否只注册这一条路径（无 legacy 别名/孪生） | 在 ROUTE_CONTRACT 全量路径里搜「同能力不同路径」                             |
+| **G2 无替代**     | SDK 现有方法中是否已覆盖该能力                          | Grep 全 `src/`（用**专用检索工具**；裸 grep 的 `\|` 在 toybox 下静默返回空） |
+| **G3 客户端面**   | 路径是否在 `/_matrix/client/**` 且非 admin/S2S/AS       | 路径前缀 + `registered_by`                                                   |
+| **G4 有产品价值** | 是否有真实调用场景                                      | 后端 handler 语义 + 项目业务（多端交付）                                     |
+
+#### 2. 落地清单（10 条，B1–B4）
+
+| 批次 | 模块                                                | 方法                                                                                        | 端点                                                                                            | 契约断言                                                                                 |
+| ---- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------- |
+| B1   | `src/notifications/index.ts`                        | `getPushDevices` / `registerPushDevice` / `unregisterPushDevice` / `sendPushNotification`   | `GET                                                                                            | POST /\_matrix/client/v3/push/devices`、`DELETE …/push/devices/{id}`、`POST …/push/send` | `StripV3<PushPath \| NotificationsPath>` |
+| B2   | `src/turn-server/index.ts`                          | `getVoipConfig` / `getGuestTurnServerConfig`（并回填既有 `getTurnServerConfig` 的裸字面量） | `GET …/v3/voip/config`、`GET …/v3/voip/turnServer/guest`                                        | `StripV3<AuthPath>`                                                                      |
+| B3   | `src/room-summary/sub-managers/room-key-manager.ts` | `getRoomKeys`                                                                               | `GET …/v3/rooms/{room_id}/keys`                                                                 | 既有 `_rsv`（`StripV3<RoomSummaryPath>`）                                                |
+| B4   | `src/room/RoomManager.ts`                           | `getUserRooms` / `getMutualRooms` / `createPrivateRoom`                                     | `GET …/v3/user/{user_id}/rooms`、`GET …/v1/user/mutual_rooms`、`POST …/v3/rooms/create_private` | 既有 `rp()`（`RoomManagerPath`）                                                         |
+
+**结构要点（职责分明）**
+
+1. **B1 的 `np()` 助手由「只断言 `PushPath`」升级为「断言 `PushPath | NotificationsPath`」**——该 manager 同时承担 `push.rs`（`/notifications`）与 `push_notification.rs`（`/push/devices`、`/push/send`）**两个 ledger 模块**；union 与本仓 `RoomManager` 并集多表的既有写法一致。
+2. **B2 使 `turn-server` 模块首次进入契约约束**——此前 `path: "/voip/turnServer"` 是**裸字面量**，无任何断言；本轮引入 `vp()` 助手并**回填既有方法**。voip 路由在 ledger 归 `assembly` 模块，本仓已做 `assembly → auth` 映射（§13.14），故断言落在 `AuthPath`，属**跨模块归属**，与 `RoomManager` 引 `SearchPath`/`ModerationPath` 一致。
+3. **B3 就近归位**——房间密钥族端点由 `RoomSummaryKeyManager` 统一承担（既有 `keys/claim`、`keys/count`、`keys/version`），新增的裸 `keys` 同族方法**就近放入同一 manager**，未放进 `RoomManager`。
+4. **B4 的 `getMutualRooms` 走 v1 稳定租约**——与既有 `ServerCapabilities._unstable_getSharedRooms`（`/uk.half-shot.msc2666/…`）是两个不同租约，后端两者都注册。
+5. **B4 在 Room Directory 处补契约注记**——`GET|PUT /rooms/{room_id}/visibility` 是早期版本中被 `/directory/list/room/{roomId}` 取代的**旧路径**，故**有意不实现**，仅记录取舍理由。
+
+#### 3. 纠正对账报告的 3 处粗判
+
+| #   | 报告结论                                                          | 源码取证                                                                                                                                   | 修正                         |
+| --- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 1   | `/rooms/{room_id}/visibility`（GET/PUT）为客户端面真缺口（2 条）  | `RoomManager.ts:946/958` 的 `getRoomDirectoryVisibility`/`setRoomDirectoryVisibility` 打的是**规范路径** `/directory/list/room/$roomId`    | 旧路径，**已被取代**，不实现 |
+| 2   | 好友 `request/received` 为真缺口（client/v1 + vendor/v1，2 条）   | `friend-request-manager.ts:237-245` 有代码内注释：「后端两个路径都返回 200…现统一使用 route_ledger 规范路径 `/friends/requests/incoming`」 | **别名**，不实现             |
+| 3   | MSC4108 `rendezvous/{session_id}` GET/PUT/DELETE 为真缺口（3 条） | `RendezvousManager.getSession/updateSession/deleteSession` 已实现并配 `rp()` 断言                                                          | v1 稳定版**已实现**，是误报  |
+
+另有一类「**有表没人读**」的反向问题：`room_summary` 同族的 3 条与泛型 `send/{event_type}` 4 条属 helper 中转 / 泛型，静态不可归属（见 §3.2 类比）。本轮的通用教训：**报告标签不可直接采信，落地前必须回到源码逐条核验**。
+
+#### 4. 移除 1 条纸面 waiver（`push_notification`）
+
+`scripts/quality/check-manager-codegen-coverage.mjs` 的 `WAIVED_MODULES` 里原有一条 `push_notification` waiver，理由写的是「本表 10 条路由是 push 表（38 条）的**完全子集**（comm -23 无差集），`src/notifications` 消费的是 push 表，无人 import 本表」。
+
+**实测该理由不成立**：
+
+- `notifications` 契约表 **8 条**与 `push` 表 **17 条**，**交集为空**——`/push/devices`、`/push/send` **只存在于 notifications 表**；push 表只含 `notifications/pushers`/`pushrules` 族。
+- 也就是说这是一条把「有表没人读」用**错误理由**豁免掉的 **纸面 waiver**。
+
+**处置**：让 `src/notifications/index.ts` **真正消费** `./__generated__/route-table`（即 B1 的 4 个方法），随后**删除该 waiver 条目**，替换为说明性注释（记录「原 waiver 理由不成立」的事实与核验方式）。不采用「凑一个别名 import 洗白成 covered」的做法。
+
+#### 5. 验证结果（2026-10-06 实测）
+
+| 门禁 / 验证                                               | 结果                                                                                                                 |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `npx tsc --noEmit`（含 `spec/type-tests` 永久守卫）       | **EXIT=0，0 error**                                                                                                  |
+| `node scripts/quality/check-manager-codegen-coverage.mjs` | **EXIT=0**：`Covered: 38`（`push_notification` 由 waived 转 **covered**）、`Waived: 10`、`Missing: 0`、覆盖率 100.0% |
+| 受影响 spec 全量复跑（5 个文件）                          | **274 passed，EXIT=0**（notifications / turn-server / room-manager / room-summary / room-summary-facade）            |
+| prettier（改动手写文件 + 本审计文档 + 梳理文档）          | 通过（均已 `--write`）                                                                                               |
+| ESLint（改动文件）                                        | 见下「遗留观察项」——沙箱 broker 超时，属环境问题，非代码问题                                                         |
+
+> 注：新增用例覆盖「裸数组/包裹响应容错」「`encodeURIComponent` 编码 device_id」「必填字段校验」「v1 前缀 + 分页查询参数」等边界；`getRoomKeys` 除门面委托外，另有子方法级用例断言真实 HTTP 路径/方法。
+
+#### 遗留观察项
+
+- **ESLint 未能在沙箱内完成**：`npx eslint <改动文件>` 反复以 `Error: Broker request timed out`（`broker-ipc-client.cjs`）中止 —— 是 WorkBuddy CLI 的 file-broker 在大文件量下的 IPC 超时，**非 lint 报错**。同批 `tsc --noEmit`（0 错）与 prettier（通过）已覆盖类型与格式；ESLint 需在非沙箱或更小批次下复跑确认。
+- **`scripts/**`不在`lint:js`作用域内**：项目口径是`eslint src spec perf`（见 `package.json`的`lint:js`），`scripts/quality/\*.mjs`不在其列；直接对其跑 eslint 会得到`one-var`/`camelcase`/`no-console` 等**预存**风格报错，与本次改动无关，不要误判为回归。
+- **admin 运维面 35 条**保持现状（§4 列为「需产品决策」），本轮未动。
+
+---
+
 **审计文档最后更新**: 2026-10-06
-**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5）
+**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications push/devices+push/send + 移除纸面 waiver) → `42903a4ec` (B2 turn-server voip/config+guest) → `578a00c36` (B3 room-summary room-keys) → `3d6ffb94e` (B4 room user/mutual_rooms/create_private) → 本文档与梳理文档（§13.15）
 **核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
-**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert` 段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）\*\*
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert`段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）** 与 **§13.15（落地：把 ROUTE_CONTRACT 对账结论写回代码——10 条真缺口封装为 B1–B4 + 纠正报告 3 处粗判 + 移除 1 条纸面 waiver`push_notification`）\*\*
