@@ -1284,6 +1284,45 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 `getMedia`(`GET /media`)、`getMediaInfo`(`GET /media/{id}`)、`deleteMedia`(`DELETE /media/{id}`)、`getMediaQuota`(`GET /media/quota`)、`purgeMediaCache`(`POST /purge_media_cache`)、`getMediaQuarantineChanges`(`GET /quarantine_media/{media_id}/changes`)、`getUserMedia`/`deleteUserMedia`(`/users/{id}/media`) —— 路径**均与后端注册一致**。注意 `quarantine_media/{media_id}/changes` 与 `media/quarantine_changes` 是**两条不同的**隔离变更查询端点，前者已封装、后者属上述 16 条真缺口之一。
 
+#### 7. admin 面 25 条真缺口的处置建议，与一簇新发现的「路径对账」缺陷
+
+完整论证见 `artifacts/sdk-admin-gap-recommendation-2026-10-06.md`。要点：
+
+**7.1 25 条的处置（17 做 / 3 不做 / 2 延后 / 1 最低 / 2 不是缺口）**
+
+- **建议做 17 条**，分三批：**A** 媒体运维 9 条（房间媒体查看/隔离/取消隔离/删除、用户媒体隔离、全局隔离增量、保护三件套）→ `admin-media-manager.ts`；**B** 审核刚需 4 条（`cascade_redact`、`backfill`、`GET /server`、`GET /rate-limit-status`）→ `admin-room-manager.ts` / `admin-server-manager.ts`；**C** 推送运维 4 条 → **新建** `admin-push-manager.ts`（不与 `admin-notification-manager` 的 `/server_notices` 混职责）。
+- **不做 3 条**：`POST /media/delete` 与 2 条单数旧别名。前者两条判据都不成立——**G5 风险**：`delete_media_by_policy` 不可逆、`before_ts/max_size` 为 `0` 即「不限」，误用可清空全站本地媒体；**G6 语义重复**：后端 `purge_media_cache` 的 handler 注释明写「本实现只有本地媒体，故退化为按访问时间策略删本地媒体」，即既有 `purgeMediaCache` 已是同一能力。后者（`/room/` 单数形态）与 `/rooms/` **共用同一 handler**，属旧别名。
+- **延后 2 条**（联邦媒体 `GET`/`DELETE /media/{server_name}/{media_id}`）、**最低优先 1 条**（appservice 单 key state，已有无 key 变体，宜加可选参数而非新增平行方法）。
+- **不是缺口 2 条**：`media/quarantine|unquarantine/{server}/{id}` 已被 §13.15.6.3 的修复真实消费，仅因走模板字面量而未被静态检测识别。
+
+**7.2 关键结构决策**：`cascade_redact` 与既有 `redactRoomEvents` **不重复**——后者打 fork 私有路径 `POST /_matrix/client/v3/admin/room/{roomId}/redact`（按时间/条数批量撤回），前者按 **`event_id` 及其关系链**（`m.replace`/`m.relates_to`/`m.in_reply_to`）递归撤回。两者应互相交叉引用 JSDoc。
+
+**7.3 新发现的缺陷簇（性质是「路径错」，非「未封装」，建议单独立项）**
+
+对 `src/**` 中 `adminRequest(Method.X, "<字面量>")` 的调用点加 `AdminPrefix.V1` 前缀后与后端注册面求差（**字面量口径：92 处，为下界**，未含多行/嵌套泛型写法），得：
+
+| 类                     | 条数 | 内容                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A 必然 404**（真错） | 6    | `getAdminInfo()`/`getServerInfo()` 打 `/_synapse/admin/v1/info`（后端为**无 v1** 的 `/_synapse/admin/info`，或同前缀的 `/server`）；`cleanupDatabase()` 打 `/cleanup`（后端为 `/cleanup/all\|rooms\|tokens`）；`sendServerNotice()` 字符串分支打 `POST /server_notices`（正解 `POST /send_server_notice`，**同方法另一分支已在用**）；`addFederationBlacklistEntry()` 打 `POST /federation/blacklist`（后端只注册 `/{server_name}` 形态）；`deactivate()` 打 `DELETE /notifications/deactivate`（后端为 `PUT /notifications/{id}/deactivate`，方法与语义均不同） |
+| **B 死 fallback**      | 5    | `/server_stats`、`/server_health`、`/server_config`、`/federation/admissions`、`/federation/pending_servers`——主路径正确，fallback 永不命中                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **C 预置未实现**       | 3    | `/backups`、`/presence_routes`、`/rate_limit_callbacks`——后端无此能力，属「超前实现」                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+
+**7.4 为什么能长期存活（两层原因，缺一不可）**
+
+1. **测试把错误路径固化了**：`spec/unit/admin-new-endpoints.spec.ts:436/444` 断言 `.toBe("/info")`、`spec/unit/admin/sub-managers/admin-notification-manager.spec.ts:140/147` 断言 `DELETE /notifications/deactivate`、`spec/unit/federation.spec.ts:34` 断言 `GET /federation/blacklist`。这类「字面量 vs 字面量」断言只能证明「代码没变」，**证明不了「后端认这个路径」**。
+2. **既有门禁 `quality:path-contract` 对 `adminRequest` 简写形态存在抽取盲区**（更根本）。该门禁（`scripts/quality/verify-path-contract.mjs`）的**设计目的与本簇完全一致**——文件头注明它诞生于 2026-09-30 联调的 appservice 下划线缺陷，并写明「该缺陷在 35/35 单测全绿的情况下完全不可见」。但它的两个抽取器只认：**对象形态**（`extractObjectCalls`，正则 `\bmethod:\s*Method\.`，`:183`）与 **`authedRequest<T>(Method.X, "path")`**（`extractPositionalCalls`，正则字面量只含 `authedRequest`，`:226`）——**而 `src/admin/**`的主力写法`this.adminRequest(Method.X, "/path")`（281 处：`adminRequest(`163 +`adminRequest<` 118）两个都不认\*\*。
+
+    实测运行（2026-10-06）：`扫描源文件 460 / 提取请求调用 159 / 匹配成功 155 / 已豁免 4 / 不匹配 0`，并打印「✅ 全部静态请求路径均与后端 ledger 一致」。→ 那句「全部一致」是对 **159 个调用点**下的结论，**admin 面的字面量路径从未进入校验**。**不是「没有门禁」，而是「门禁有洞，且洞的形状恰好等于 admin 面的写法」。**
+
+**7.5 修法（建议顺序：先补门禁 → 再修路径）**
+
+1. `extractPositionalCalls` 的被调方由 `authedRequest` 扩展到 **`adminRequest`**；注意 `adminRequest<{ a: string }>(...)` 的泛型含 `{}`，现用 `[^>]*` 会提前截断，需改为配平扫描。
+2. **重跑门禁并确认 6 处 A 类缺陷变红**——这一步同时是门禁的**变异自证**，避免「补了抽取器但没生效」这种新的纸面门禁。
+3. 再修 A 类 6 处；B 类死 fallback 顺手清理。
+4. **顺手删一条失效豁免**：门禁当前 **`EXIT=1`**，原因不是路径不匹配，而是「未被引用的豁免」`DELETE /_matrix/client/v3/voice/{X}`（后端已补齐）。按豁免表自身规则（「后端补齐后忘记删豁免，会让门禁的失败面被旧条目遮住」）应删除；否则 `quality:contracts` 聚合门禁会保持红色。
+
+**7.6 `GET /server` 与缺陷 A 的汇合点**：`GET /server`（`get_admin_info_compat`）正好是 A 类前两条的正解，且**同前缀**（`/_synapse/admin/v1`），无需改动 prefix 机制——批 B 落地时顺手修复成本最低。唯一注意：该端点限 `super_admin`，普通 `admin` 会 403，需在 JSDoc 写明并保留降级路径。
+
 #### 遗留观察项
 
 - **ESLint 未能在沙箱内完成**：`npx eslint <改动文件>` 反复以 `Error: Broker request timed out`（`broker-ipc-client.cjs`）中止 —— 是 WorkBuddy CLI 的 file-broker 在大文件量下的 IPC 超时，**非 lint 报错**。同批 `tsc --noEmit`（0 错）与 prettier（通过）已覆盖类型与格式；ESLint 需在非沙箱或更小批次下复跑确认。
@@ -1293,6 +1332,6 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 ---
 
 **审计文档最后更新**: 2026-10-06  
-**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications：push/devices×3 + push/send + 移纸面 waiver) → `42903a4ec` (B2 turn-server：voip/config + turnServer/guest) → `578a00c36` (B3 room-summary：rooms/{id}/keys) → `3d6ffb94e` (B4 room：user/{id}/rooms + mutual_rooms(v1) + create_private) → `52a47a5a2` (fix admin：media quarantine 改 server_name 形态路径) → 本文档与梳理文档（§13.15 正文 + §13.15.6 admin 复核）  
+**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications：push/devices×3 + push/send + 移纸面 waiver) → `42903a4ec` (B2 turn-server：voip/config + turnServer/guest) → `578a00c36` (B3 room-summary：rooms/{id}/keys) → `3d6ffb94e` (B4 room：user/{id}/rooms + mutual_rooms(v1) + create_private) → `52a47a5a2` (fix admin：media quarantine 改 server_name 形态路径) → 本文档与梳理文档（§13.15 正文 + §13.15.6 admin 复核） → 建议文档与本文 §13.15.7（admin 25 条处置建议 + 新发现「路径对账」缺陷簇 + `quality:path-contract` 的 `adminRequest` 抽取盲区）  
 **核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准  
 **勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert`段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）** 与 **§13.15（落地：把 ROUTE_CONTRACT 对账结论写回代码——10 条真缺口封装为 B1–B4 + 纠正报告 3 处粗判 + 移除 1 条纸面 waiver `push_notification`；admin 面 35 条复核为 10 假阳性 + 25 真缺口，并修复 media quarantine 的 2 处「路径错」缺陷）\*\*

@@ -171,6 +171,20 @@ admin 路由），故不能按上游口径排除。对这 35 条逐条回源码�
 - 二者是 `admin/index.ts:517-518` 的**公开 API**，原实现调用必 404。
 - **破坏性变更**：签名由 `(mediaId)` 改为 `(serverName, mediaId)`，已同步公开接口与单测（新增精确路径断言 + 缺参校验）。
 
+### 4.4 后续（2026-10-06 追加）：25 条已给出处置建议；并新发现一簇同类缺陷
+
+详见 `artifacts/sdk-admin-gap-recommendation-2026-10-06.md` 与审计文档 `docs/sdk-encapsulation-audit.md` 的 §13.15.7。要点：
+
+- **25 条的处置建议**：17 做（分 A 媒体运维 9 / B 审核与可观测 4 / C 推送运维 4）/ 3 不做
+  （`media/delete` 高危且与既有 `purgeMediaCache` 语义重叠、2 条单数旧别名）/ 2 延后 /
+  1 最低优先 / 2 经查**已被 §4.3 的修复真实消费**（模板字面量，静态检测不可见）。
+- **新缺陷簇（同 §4.3 性质，建议单独立项）**：`adminRequest` 字面量路径与后端注册面求差，得
+  **6 处必 404**（`/info`、`/cleanup`、`POST /server_notices`、`POST /federation/blacklist`、
+  `DELETE /notifications/deactivate`）+ **5 处死 fallback** + **3 处预置未实现**。
+- **根因（比测试更根本）**：既有门禁 `quality:path-contract` 的两个抽取器**只认对象形态与
+  `authedRequest<T>(...)`，不认 `adminRequest`**（281 处调用点），实测只提取 159 个调用仍报
+  「不匹配 0 / 全部一致」。→ **先补门禁抽取器并做变异自证，再修路径**。
+
 ---
 
 ## 5. 实施计划（按批次，结构清晰、职责分明）
