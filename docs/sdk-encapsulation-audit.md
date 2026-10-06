@@ -1414,11 +1414,11 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
     - 用 `--update-baseline` 重记后 diff 复核为 **13 增 13 删、条目数 64→64 不变**，全部是 `id`/`line`/`generatedAt` 的价值变更，**snippet 与 whitelist 一字未动**——即「同一批站点换行号」，**没有借机放行任何新缺陷、也没有悄悄退役任何站点**。
 - `quality:debt-markers`：`EXIT=0`（0 新增）。`quality:contract-drift`：`EXIT=0`。`quality:gate-reachability`：`EXIT=0`（可达 44 / 死门禁 0）。`quality:waiver-expiry`：`EXIT=0`（19 valid / 0 expiring / 0 expired）。
 - prettier：改动文件全部通过（`verify-path-contract.mjs` 与 `admin-new-endpoints.spec.ts` 先 `--write` 后复检通过）。
-- ESLint：见下方「遗留观察项」（沙箱 IPC 限制）。
+- ESLint：**`EXIT=0`**（8 个改动文件）。⚠️ 沙箱内无法完成（见下方「遗留观察项」）；此处是**非沙箱**下的确定结果。
 
 #### 遗留观察项（§13.15.7 / §13.15.8）
 
-- **ESLint 未能在沙箱内完成**：`npx eslint <改动文件>` 反复以 `Error: Broker request timed out`（`broker-ipc-client.cjs`）中止 —— 是 WorkBuddy CLI 的 file-broker 在大文件量下的 IPC 超时，**非 lint 报错**。同批 `tsc --noEmit`（0 错）与 prettier（通过）已覆盖类型与格式；ESLint 需在非沙箱或更小批次下复跑确认。**§13.15.8 复现同一现象**：8 个改动文件一次性交给 eslint，后台运行 4 分钟以上无输出、随后被 SIGTERM，与前一轮结论一致（非 lint 报错）。
+- **ESLint 在沙箱内无法完成，但已取得非沙箱确定结果**：`npx eslint <8 个改动文件>` 在沙箱内反复以 `Error: Broker request timed out`（`broker-ipc-client.cjs`）中止（`EXIT=2`）—— 是 WorkBuddy CLI 的 file-broker IPC 超时，**非 lint 报错**。**逐文件**跑时第 1 个文件（`admin-server-manager.ts`）可通过（`EXIT=0`），第 2 个起即挂住（后台运行 12 分钟无输出）。**已在非沙箱下对全部 8 个文件一次性复跑，`EXIT=0`** —— 即本轮改动无 ESLint 违规。同批 `tsc --noEmit`（`EXIT=0`）与 prettier（通过）已覆盖类型与格式。
 - **`scripts/**`不在`lint:js`作用域内**：项目口径是`eslint src spec perf`（见 `package.json`的`lint:js`），`scripts/quality/\*.mjs`不在其列；直接对其跑 eslint 会得到`one-var`/`camelcase`/`no-console` 等**预存**风格报错，与本次改动无关，不要误判为回归。
 - **admin 运维面 35 条**保持现状（§4 列为「需产品决策」），本轮未动。
 - **§13.15.8 遗留：`path: helper(...)` 盲区**（约 250 处 / 22 个 helper）未覆盖，需过程间分析，本轮明确不扩张（见 §13.15.8.7）。
