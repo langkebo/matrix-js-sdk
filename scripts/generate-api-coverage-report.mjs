@@ -63,7 +63,7 @@ function main() {
     let totalBackend = 0;
     let totalSDK = 0;
     let effectiveBackend = 0; // Backend routes that can be implemented by client SDK
-    let table = [];
+    const table = [];
 
     for (const module of MODULES) {
         const backendRoutes = countRoutes(module.contract);

@@ -318,6 +318,28 @@ export default tseslint.config(
         },
     },
 
+    // scripts/** — 仓库自建的 CI / 质量门禁脚本（Node CLI 工具）
+    //
+    // 这些脚本原先完全不在 lint 覆盖内（`lint:js` 只跑 `src spec perf`）。纳入覆盖时，需要给
+    // 「CLI 工具」这一体裁开几项与 `src/**` 同款的口子——否则会一次性冒出 2358 条与代码正确性
+    // 无关的报告，把 lint 变成噪声，反而失去门禁意义：
+    //   one-var     脚本里连续声明多个 const 是常态（`src/**` 也已关掉同一条）
+    //   no-console  这些脚本的产物就是打到 stdout 上的报告
+    //   camelcase   契约 / 审计 JSON 的字段名是 snake_case（与 `src/**` 同一理由）
+    // 其余规则保持开启：`prefer-const` 等真实问题仍会报；`no-unused-vars` 降到 warn，与
+    // `src/**` 的口径一致。
+    {
+        files: ["scripts/**/*.{js,mjs,cjs,mts,cts}"],
+        rules: {
+            "one-var": "off",
+            "no-console": "off",
+            camelcase: "off",
+            "@typescript-eslint/no-require-imports": "off",
+            "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/no-unused-vars": ["warn", { args: "none", ignoreRestSiblings: true }],
+        },
+    },
+
     // Prettier config (must be last to override formatting rules)
     prettierConfig,
 );

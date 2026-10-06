@@ -354,7 +354,7 @@ function extractEndpointsFromTableLine(line, contract) {
 
 function expandContractPath(contractPath) {
     if (!contractPath.includes("{")) return [contractPath];
-    let paths = [contractPath];
+    const paths = [contractPath];
     const regex = /\{([^}]+)\}/;
     while (true) {
         const idx = paths.findIndex((p) => regex.test(p));
@@ -379,7 +379,7 @@ function expandContractPath(contractPath) {
 
 function expandOptionalSegments(contractPath) {
     if (!contractPath.includes("[")) return [contractPath];
-    let paths = [contractPath];
+    const paths = [contractPath];
     const regex = /\[([^\]]+)\]/;
     while (true) {
         const idx = paths.findIndex((p) => regex.test(p));

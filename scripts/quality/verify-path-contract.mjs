@@ -826,8 +826,8 @@ for (const file of srcFiles) {
  *   3. 没被用到的豁免也要报 —— 后端补齐后忘记删豁免，会让门禁的失败面被旧条目遮住。
  */
 const WAIVER_FILE = join(__dirname, "path-contract-waivers.json");
-let waivers = new Map(); // "<METHOD> <path>" -> {reason, expires, file}
-let expiredWaivers = [];
+const waivers = new Map(); // "<METHOD> <path>" -> {reason, expires, file}
+const expiredWaivers = [];
 let unusedWaivers = [];
 
 if (existsSync(WAIVER_FILE)) {
