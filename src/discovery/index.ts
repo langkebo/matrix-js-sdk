@@ -41,24 +41,6 @@ function ap<const P extends string>(path: P & PathAssert<P, StripAuthPrefix<Auth
     return path;
 }
 
-/**
- * **逃生阀**：构造路径但**不做任何契约断言**。
- *
- * 只允许用于「契约归属与实现不一致」的**已知缺口**处 —— 目前仅 `getAliasesForRoom` /
- * `addRoomAliasForRoom` / `deleteRoomAliasForRoom` 这 3 处房间别名路由：
- * `GET|PUT|DELETE /directory/room/{room_id}/alias[/{room_alias}]`。
- *
- * 这 3 条路由后端确实存在（ledger 模块 `assembly`，由 `assembly::directory_extra` 注册），
- * 但 codegen 的 `CONTRACT_MODULE_MAP` 把「装配」映射为 `null`，它们因此没有进入任何 SDK
- * 模块的契约表，`AuthPath` 里查不到，**无法**用 `ap` 断言（另两条 `/directory/room/{room_alias}`
- * 在 `AuthPath` 中，仍走 `ap`）。
- *
- * 走逃生阀是为了显式标注 + 便于检索（`grep -rn uncheckedAp src/`）。缺口关闭后必须改回 `ap`。
- */
-function uncheckedAp(path: string): string {
-    return path;
-}
-
 export interface UserDirectorySearchResponse {
     results: Array<{
         user_id: string;
@@ -363,7 +345,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async getAliasesForRoom(roomId: string): Promise<RoomAliasListResponse> {
-        const path = uncheckedAp(`/directory/room/${encodeURIComponent(roomId)}/alias`);
+        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias`);
         return this.withRetry(async () => {
             return await this.request<RoomAliasListResponse>({
                 method: Method.Get,
@@ -373,7 +355,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async addRoomAliasForRoom(roomId: string, alias: string): Promise<void> {
-        const path = uncheckedAp(`/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}`);
+        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Put,
@@ -383,7 +365,7 @@ export class DiscoveryManager extends BaseManager {
     }
 
     public async deleteRoomAliasForRoom(roomId: string, alias: string): Promise<void> {
-        const path = uncheckedAp(`/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}`);
+        const path = ap(`/directory/room/${encodeURIComponent(roomId)}/alias/${encodeURIComponent(alias)}`);
         await this.withRetry(async () => {
             await this.request({
                 method: Method.Delete,
