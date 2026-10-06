@@ -260,6 +260,7 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             // SECURITY: Returning false on error means a guest user may be treated as non-guest.
             // This is the safer default for most callers (e.g., sync, room access), but callers
             // that need definitive guest status should check separately.
+            // @swallow-error { owner: "guest", expires: "2026-12-31" }
             logger.error("GuestManager.isGuest failed - treating user as non-guest:", e);
             return false;
         }
@@ -302,7 +303,6 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             }, "upgradeGuestAccount");
 
             this.guestInfo = null;
-            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;
@@ -346,7 +346,6 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             const room = await this.client.joinRoom(roomIdOrAlias);
 
             return { roomId: room.roomId };
-            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (error) {
             this.emit(GuestEvent.GuestError, error as Error);
             throw error;

@@ -902,6 +902,7 @@ export class GroupCall extends TypedEventEmitter<
                         error as Error,
                     ),
                 );
+                // @swallow-error { owner: "web-rtc", expires: "2026-12-31" }
                 return false;
             }
         } else {

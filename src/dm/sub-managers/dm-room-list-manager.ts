@@ -556,6 +556,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
             const errcode = (error as { errcode?: string })?.errcode;
 
             if (httpStatus === 404 || errcode === "M_NOT_FOUND") {
+                // @swallow-error { owner: "dm", expires: "2026-12-31" }
                 return false;
             }
             throw this.normalizeError(error, "isDmRoomFromServer");

@@ -323,6 +323,7 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
                 throw err;
             }
             if (err instanceof NotFoundError) {
+                // @swallow-error { owner: "device", expires: "2026-12-31" }
                 logger.warn(`DeviceManager.getDevice failed for ${deviceId}:`, err);
                 return null;
             }

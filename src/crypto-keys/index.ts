@@ -302,6 +302,7 @@ export class CryptoKeysManager extends BaseManager {
                 throw err;
             }
             if (err instanceof NotFoundError) {
+                // @swallow-error { owner: "crypto-keys", expires: "2026-12-31" }
                 logger.warn(`CryptoKeysManager.getRoomKeyDistribution failed for ${roomId}:`, err);
                 return null;
             }

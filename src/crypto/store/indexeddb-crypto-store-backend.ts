@@ -258,7 +258,6 @@ export class Backend implements CryptoStore {
                             cursor.continue();
                         }
                     }
-                    // @swallow-error { owner: "crypto", expires: "2026-12-31" }
                 } catch (e) {
                     abortWithException(txn, <Error>e);
                 }
@@ -406,7 +405,6 @@ export class Backend implements CryptoStore {
                                 }
                             };
                         }
-                        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
                     } catch (e) {
                         abortWithException(txn, <Error>e);
                     }

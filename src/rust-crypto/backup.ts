@@ -206,7 +206,6 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
         // check that the secret is valid for the current version before storing it.
         // We force a check to ensure to have the latest version.
         let latestBackupInfo: KeyBackupInfo | null;
-        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         try {
             latestBackupInfo = await this.requestKeyBackupVersion();
         } catch (e) {
@@ -252,7 +251,6 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
                 this.emit(CryptoEvent.KeyBackupFailed, (saveErr as Error).message);
             }
             return true;
-            // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
@@ -346,7 +344,6 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
 
         this.logger.debug("Checking key backup status...");
         let backupInfo: KeyBackupInfo | null | undefined;
-        // @swallow-error { owner: "crypto", expires: "2026-12-31" }
         try {
             backupInfo = await this.requestKeyBackupVersion();
         } catch (e) {
