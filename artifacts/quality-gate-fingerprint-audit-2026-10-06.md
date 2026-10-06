@@ -434,14 +434,17 @@ STRICT_EXIT=0
 - **P8**：`lastGreenCommit` / pass 快照未做（本轮仍是人工 `git worktree add HEAD --detach` 复现归因）。
 - **P9**：沙箱内 `npx eslint <多文件>` 第二次调用即挂——环境问题，未做。
 - **P6 长尾**：27 个 quality 脚本里仍有 18 个无 spec；本轮只补了出事的两个。
-- **新发现（不在 §5 清单内）：`quality:manager-codegen` 在本环境跑不完。**
+- **新发现（不在 §5 清单内）：`quality:manager-codegen` 单项门禁要跑 ≈28 分钟（结论 EXIT=0）。**
   `findStrongConsumers()` 对**每一个模块**都重新遍历并读取 `src/` 下全部 **625 个 `.ts` 文件**，
-  实测 **≈28 s / 模块**；ledger 有几十个模块 ⇒ 单项门禁约需 **≈28 分钟**，超过本环境执行限制
-  （前台直接被 SIGKILL / exit 137，后台挂 15 分钟无进展）。
+  实测 **≈28 s / 模块**；ledger 有几十个模块 ⇒ 单项门禁约需 **≈28 分钟**。
+  本轮**最终跑完了**：`DONE manager-codegen EXIT=0`，耗时约 27 分钟（23:43:57 → 00:11:04）。
+  但前台直跑会被 SIGKILL / exit 137，后台挂到 15 分钟时看起来"没进展"——**很容易被误判成 hang 或回归**，
+  故在此记明：**它能通过，只是慢**。
   这是**预先存在**的性能缺陷——该脚本本轮**未改动**，且与本次改动无关：本轮的 `src/` 改动全是注释，
   既不影响 `findStrongConsumers`（它找的是 `__generated__/route-table` 的 **import 说明符**），
-  也不影响 `fileMakesHttpCalls`（正则匹配运行时调用）。修法是把 O(模块 × 文件) 降到 O(模块 + 文件)
-  （全量扫描一次、按模块归并），属独立一轮。**本轮未改**（不在本文 §5 清单内，避免顺手扩大范围）。
+  也不影响 `fileMakesHttpCalls`（正则匹配运行时调用）。
+  修法是把 O(模块 × 文件) 降到 O(模块 + 文件)（全量扫描一次、按模块归并）。**本轮未改**
+  （不在本文 §5 清单内，避免顺手扩大范围）。
 
 **已知检测边界**（已写入 `check-swallow-fallbacks.mjs` 文件头，避免后人误以为"门禁全绿 = 全仓无吞错"）：
 
@@ -489,9 +492,15 @@ STRICT_EXIT=0
 spec/unit/swallow-fallbacks-gate.spec.ts      32 passed
 spec/unit/generated-dto-quality.spec.ts        5 passed
 tsc --noEmit                                   EXIT=0（无输出）
+prettier --check .                             All matched files use Prettier code style!
 eslint src spec perf scripts                   0 errors / 66 warnings
 eslint scripts                                 0 errors / 27 warnings
 ```
+
+其余门禁复跑（提交后）全部 EXIT=0：
+`debt-markers` / `no-default-key` / `real-backend-types` / `timer-pairing` / `gate-reachability` /
+`path-contract` / `waiver-expiry` / `contract-freshness` / `contract-drift` / `manager-extensions` /
+`manager-codegen`（≈27 分钟，见 7.8）。`git status` 洁净。
 
 ---
 
