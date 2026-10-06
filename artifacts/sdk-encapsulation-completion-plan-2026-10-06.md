@@ -133,15 +133,43 @@
 
 ---
 
-## 4. 需产品决策（35 条，本轮不实现）
+## 4. admin 运维面 35 条：复核后 = **10 假阳性 + 25 真缺口**（另 2 处缺陷已修）
 
-**admin 运维面未封装 35 条**。本 fork 的 `AdminManager` **有意**封装 admin API
-（`adminRequest` 调用点 281 处，解析出 211 条 admin 路由），故不能按上游口径排除。
+本 fork 的 `AdminManager` **有意**封装 admin API（`adminRequest` 调用点 281 处，解析出 211 条
+admin 路由），故不能按上游口径排除。对这 35 条逐条回源码复核后，**其中 10 条是假阳性**。
 
-- 未封 35 条分布：`admin/media.rs` 16、`cas.rs` 5、`external_service.rs` 5、`push_notification.rs` 4、
-  `admin/room/mod.rs` 2、`admin/server.rs` 2、`app_service.rs` 1。
-- **建议**：按产品是否需要「媒体隔离/清理」「外部服务管理」「推送队列运维」再决定是否补齐。
-  本轮聚焦「客户端面真缺口」10 条，admin 面保持现状并单列。
+### 4.1 假阳性（10 条）—— 已实现，是「prefix 运行时变量」工具盲区
+
+| 类                    | 条数 | 取证                                                                                                                                                                                                                      |
+| --------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `external_service.rs` | 5    | `src/external-service/index.ts:149-176` 以 `sap`/`map`/`cp` **带契约断言**实现；`src/external-service/__generated__/route-table.ts:12-16` 本身即声明这些 `/_matrix/admin/v1/external_services*`                           |
+| `cas.rs`              | 5    | `src/cas/index.ts:129-137` 的 `resolvePath("synapse_admin", basePath)` **运行时二元分支**拼出 `/_synapse/admin/v1` + `/cas/services`、`/cas/users/{id}/attributes`；`src/cas/__generated__/route-table.ts:12-16` 亦已声明 |
+
+> 成因与 §3.3 的 CAS 盲区同源：**路径由运行时变量拼接**，静态匹配看不见。
+
+### 4.2 真缺口（25 条）—— 确需产品决策
+
+| 子域                   | 条数 | 端点                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin/media.rs`       | 16   | `POST /media/delete`、`POST /media/protect/{media_id}`、`POST /media/protect/{server_name}/{media_id}`、`POST /media/quarantine/{server_name}/{media_id}`、`GET /media/quarantine_changes`、`POST /media/unprotect/{media_id}`、`POST /media/unquarantine/{server_name}/{media_id}`、`GET\|DELETE /media/{server_name}/{media_id}`、`GET /room/{room_id}/media`、`POST /room/{room_id}/media/quarantine`、`GET /rooms/{room_id}/media`、`POST /rooms/{room_id}/media/{un,}quarantine`、`DELETE /rooms/{room_id}/media/{media_id}`、`POST /user/{user_id}/media/quarantine` |
+| `push_notification.rs` | 4    | `POST /push/cleanup`、`GET\|PUT /push/config`、`POST /push/process`（**route-table 已声明**，仅缺方法）                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `admin/server.rs`      | 2    | `GET /server`、`GET /rate-limit-status`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `admin/room/mod.rs`    | 2    | `POST /rooms/{room_id}/backfill`、`POST /rooms/{room_id}/cascade_redact`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `app_service.rs`       | 1    | `GET /appservices/{as_id}/state/{state_key}`（单 key 变体）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+
+**建议**：按产品是否需要「媒体隔离/清理与保护」「推送队列运维」「服务器限流视图」再决定。
+本轮聚焦「客户端面真缺口」10 条，admin 面除 §4.3 的缺陷外保持现状。
+
+### 4.3 顺带发现并修复的 2 处缺陷（性质＝「路径错」，非「未封装」）
+
+| 方法                                  | 原路径（后端**未注册**）               | 修正后                                               |
+| ------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| `AdminMediaManager.quarantineMedia`   | `POST …/media/{media_id}/quarantine`   | `POST …/media/quarantine/{server_name}/{media_id}`   |
+| `AdminMediaManager.unquarantineMedia` | `POST …/media/{media_id}/unquarantine` | `POST …/media/unquarantine/{server_name}/{media_id}` |
+
+- 取证：以 `docs/api-contract/generated/route-manifest.all.json`（1159 条、`mirrorMissing=0`/`mirrorExtra=0`）为 ground truth；后端 `admin/media.rs` **只注册带 `server_name` 段的形态**。
+- 二者是 `admin/index.ts:517-518` 的**公开 API**，原实现调用必 404。
+- **破坏性变更**：签名由 `(mediaId)` 改为 `(serverName, mediaId)`，已同步公开接口与单测（新增精确路径断言 + 缺参校验）。
 
 ---
 

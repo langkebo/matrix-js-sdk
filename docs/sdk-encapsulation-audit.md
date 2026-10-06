@@ -4,8 +4,8 @@
 > 审计范围：`@langkebo/matrix-js-sdk` fork vs Sprint 4 后端语义对齐  
 > 基准：后端 ledger (`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json` HEAD `7cb39946`)
 
-> ⚠️ **阅读提示**：本文档第 1-12 节为 2026-09-18 ~ 09-29 的**历史审计记录**，其中的覆盖率数据已被
-> 2026-09-30 的实施结果取代。**请以第 13 节「模块完成状态总表」为准**。
+> ⚠️ **阅读提示**：本文档第 1-12 节为 2026-09-18 ~ 09-29 的**历史审计记录**，其中的覆盖率数据已被  
+> 2026-09-30 的实施结果取代。**请以第 13 节「模块完成状态总表」为准**。  
 > 历史章节保留是为了追踪决策链路与 Bug 修复证据。
 
 ---
@@ -249,67 +249,6 @@ SSO 根级：13
 | `GET /_synapse/admin/v1/appservices`     | listAppServices() | P1     |
 | `GET /_synapse/admin/v2/users/{user_id}` | getUserById()     | P2     |
 
----
-
-## 10. 新增功能：Push Manager + SAML/Enterprise SSO (2026-09-24)
-
-### 10.1 Push Manager (`src/push/index.ts`)
-
-**目标**：完整封装 Matrix Push Notification API，覆盖 23 个路由
-
-**覆盖范围**：
-
-- ✅ Push Rules API (7 routes): CRUD 操作、全局开关、批量更新
-- ✅ Pushers API (4 routes): 注册/注销推送器、列表查询
-- ✅ Push Context API (2 routes): 上下文获取
-- ✅ Profile API (3 routes): 展示名/头像管理
-- ✅ Tags API (5 routes): 房间标签管理
-- ✅ Account Data API (2 routes): 账户数据存储
-
-**测试文件**: `spec/unit/push/push-manager.spec.ts`  
-**测试结果**: 23 tests ✅
-
-### 10.2 SAML Auth Manager (`src/saml/index.ts`)
-
-**目标**：完整封装 SAML SSO 认证 API，覆盖 16 个路由
-
-**覆盖范围**：
-
-- ✅ Client Login Routes (8 routes):
-    - POST/GET `/login/sso/redirect/saml` - 发起登录
-    - POST/GET `/login/saml/callback` - 处理回调
-    - GET `/logout/saml` - 登出重定向
-    - GET `/logout/saml/callback` - 登出回调
-    - GET `/saml/metadata` - IdP 元数据
-    - GET `/saml/sp_metadata` - SP 元数据
-
-- ✅ Admin Management Routes (8 routes):
-    - GET/PUT `/saml/config` - 配置管理
-    - POST `/saml/metadata/refresh` - 元数据刷新
-    - GET `/saml/mappings` - 用户映射列表
-    - GET/PUT/DELETE `/saml/mapping/{nameId}` - 单个映射管理
-    - POST `/saml/logout` - 管理员强制登出
-
-**测试文件**: `spec/unit/saml/saml-auth-manager.spec.ts`  
-**测试结果**: 22 tests ✅
-
-### 10.3 测试汇总
-
-```bash
-# 运行新增测试
-cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk && \
-PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
-  --exclude "**/.pnpm-store/**" \
-  --exclude "**/.worktrees/**" \
-  --exclude "**/Tjg/**" \
-  spec/unit/push/push-manager.spec.ts \
-  spec/unit/saml/saml-auth-manager.spec.ts
-
-# 结果：Test Files 2 passed (2), Tests 45 passed (45)
-```
-
----
-
 ## 11. 新增功能：Admin Manager 完整封装 + CAS Manager Bug 修复 (2026-09-29)
 
 ### 11.1 Admin Manager 子模块完整封装
@@ -317,15 +256,16 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 **目标**：完整封装 Synapse Admin API，覆盖 73 个路由
 
 **已完成的子模块**:
-| 子管理器 | 路由数 | 测试数 | 状态 |
-|---------|-------|--------|------|
-| `AdminCleanupManager` | 12 | ✅ 8 tests | 完成 |
-| `AdminExternalServiceManager` | 12 | ✅ 10 tests | 完成 |
-| `AdminNotificationManager` | 6 | ✅ 8 tests | 完成 |
-| `AdminPolicyManager` | 7 | ✅ 6 tests | 完成 |
-| `AdminReportManager` | 7 | ✅ 6 tests | 完成 |
-| `AdminRoomManager` | 4 | ✅ 10 tests | 完成 |
-| **总计** | **48** | **48 tests** | ✅ |
+
+| 子管理器                      | 路由数 | 测试数       | 状态 |
+| ----------------------------- | ------ | ------------ | ---- |
+| `AdminCleanupManager`         | 12     | ✅ 8 tests   | 完成 |
+| `AdminExternalServiceManager` | 12     | ✅ 10 tests  | 完成 |
+| `AdminNotificationManager`    | 6      | ✅ 8 tests   | 完成 |
+| `AdminPolicyManager`          | 7      | ✅ 6 tests   | 完成 |
+| `AdminReportManager`          | 7      | ✅ 6 tests   | 完成 |
+| `AdminRoomManager`            | 4      | ✅ 10 tests  | 完成 |
+| **总计**                      | **48** | **48 tests** | ✅   |
 
 **测试文件**:
 
@@ -494,9 +434,9 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 | API 覆盖率报告 | `scripts/generate-api-coverage-report.mjs`     | 模块级覆盖率统计                                                                  |
 | 契约差集登记   | `scripts/quality/contract-drift-registry.json` | SDK-only 路由登记                                                                 |
 
-> ⚠️ 已删除：`scripts/quality/check-minimum-coverage.mjs`（2026-10-05）。
-> 它被 `check-repo-coverage.mjs` 取代，且其解析依赖 lcov 的 `SUMMARY:` 块
-> （由 `lcov --summary` / genhtml 产出），而 vitest 的 lcov reporter 不写该块 ——
+> ⚠️ 已删除：`scripts/quality/check-minimum-coverage.mjs`（2026-10-05）。  
+> 它被 `check-repo-coverage.mjs` 取代，且其解析依赖 lcov 的 `SUMMARY:` 块  
+> （由 `lcov --summary` / genhtml 产出），而 vitest 的 lcov reporter 不写该块 ——  
 > 即它在正常路径下也只会输出「无法从 lcov 报告中提取覆盖率数据」并 exit 1。
 
 ### 13.6 剩余待办
@@ -540,11 +480,11 @@ SDK 侧从单测到集成测试全部自洽（mock 层不校验真实路径）�
 
 #### 影响面
 
-`ApplicationServiceManager` 的 **全部 14 个方法**均受影响，包括：
-`registerAppService` / `getApplicationService` / `updateApplicationService` /
-`unregisterApplicationService` / `listApplicationServices` / `pingApplicationService` /
-`getApplicationServiceState` / `setApplicationServiceState` / `listApplicationServiceUsers` /
-`getApplicationServiceNamespaces` / `listApplicationServiceEvents` /
+`ApplicationServiceManager` 的 **全部 14 个方法**均受影响，包括：  
+`registerAppService` / `getApplicationService` / `updateApplicationService` /  
+`unregisterApplicationService` / `listApplicationServices` / `pingApplicationService` /  
+`getApplicationServiceState` / `setApplicationServiceState` / `listApplicationServiceUsers` /  
+`getApplicationServiceNamespaces` / `listApplicationServiceEvents` /  
 `getApplicationServiceStatistics` / `queryApplicationServiceUser` / `queryApplicationServiceAlias`
 
 另 2 处 `checkUserId` / `checkAlias` 走 `/_matrix/client/v3/appservice/*`（**正确**，不受影响）。
@@ -566,7 +506,7 @@ spec/unit/appservice.spec.ts     6 tests ✅
 
 #### 审计方法论教训 → 已落地为 P2-a 门禁
 
-> **B2 维度（SDK 能力存在性）的反向缺口**：审计时只检查"SDK 有没有这个方法"，
+> **B2 维度（SDK 能力存在性）的反向缺口**：审计时只检查"SDK 有没有这个方法"，  
 > 没有检查"这个方法打的 URL 对不对"。
 
 该教训已转化为 CI 门禁，见 §13.6.3。
@@ -580,18 +520,19 @@ spec/unit/appservice.spec.ts     6 tests ✅
 
 #### P2-c 后续任务：覆盖率目标重定义（双轨制，2026-10-01）
 
-**背景**：原文档要求"全仓 90% 行覆盖"。实测全仓覆盖率约 46%（文档数据可能过期），
+**背景**：原文档要求"全仓 90% 行覆盖"。实测全仓覆盖率约 46%（文档数据可能过期），  
 若要达到 90% 需要数千新增用例。更重要的是：
 
 - 全仓 `vitest run --coverage` 在本环境跑 16 分钟，触发 `Retry-After: 2` 限流
 - 某些模块（如 EventManager）已达 99%，而其他模块（dm/index.ts）仅 65.75%
 
 **新目标**（双轨制）：
-| 轨道 | 指标 | 目标 | 用途 |
-|------|------|------|------|
-| **关键模块** | `src/{admin,dm,space,room-summary,...}/index.ts` | ≥85% | 保护核心业务逻辑的测试完整性 |
-| **全仓** | 所有 `src/**/*` | ≥65% | 防止代码库整体测试退化 |
-| **路径契约** | SDK → 后端路径静态匹配率 | 100%（豁免登记） | 防止 URL 拼错这类 mock 层检测不到的缺陷 |
+
+| 轨道         | 指标                                             | 目标             | 用途                                    |
+| ------------ | ------------------------------------------------ | ---------------- | --------------------------------------- |
+| **关键模块** | `src/{admin,dm,space,room-summary,...}/index.ts` | ≥85%             | 保护核心业务逻辑的测试完整性            |
+| **全仓**     | 所有 `src/**/*`                                  | ≥65%             | 防止代码库整体测试退化                  |
+| **路径契约** | SDK → 后端路径静态匹配率                         | 100%（豁免登记） | 防止 URL 拼错这类 mock 层检测不到的缺陷 |
 
 **实施**：
 
@@ -614,7 +555,7 @@ spec/unit/appservice.spec.ts     6 tests ✅
 
 #### 动机
 
-§13.6.1 的 P1 缺陷暴露了审计方法的盲区：**单测全绿 ≠ 路径正确**。mock 层不校验真实 URL，
+§13.6.1 的 P1 缺陷暴露了审计方法的盲区：**单测全绿 ≠ 路径正确**。mock 层不校验真实 URL，  
 所以拼错前缀这类缺陷在纯 mock 环境下完全不可见。P2-a 建门禁把这类缺陷左移到 CI。
 
 #### 交付物
@@ -690,8 +631,8 @@ $ # 恢复代码后
 | device-trust / security | 4    | 后端路由文件零命中                                                                                   |
 | 其他单点                | 7    | `oidc/register`、`login/get_token`、`register/captcha`、`login/failures`、`federation/blacklist` × 2 |
 
-> `federation/blacklist` 值得注意：后端只在 `synapse-web/src/utils/admin_auth.rs:236`
-> 的**鉴权规则**里预留了路径（标记为敏感操作），但从未注册路由（ledger 零条目）。
+> `federation/blacklist` 值得注意：后端只在 `synapse-web/src/utils/admin_auth.rs:236`  
+> 的**鉴权规则**里预留了路径（标记为敏感操作），但从未注册路由（ledger 零条目）。  
 > 说明后端预留了接口但没实现。
 
 #### 动态路径扩展（2026-10-01）
@@ -711,7 +652,7 @@ $ # 恢复代码后
 - 正则：`\$\{?(\w+)\}?` → `\$\{[^}]*\}`（覆盖 `${encodeURIComponent(x)}`）
 - 双重前缀检测：自动识别完整路径（`/_matrix/client/v3/...`）并跳过 prefix 拼接
 
-**18 处不匹配待甄别**（invite-blocklist 4 处 client/v3→vendor/v1，app-service 4 处 appservices/ 路由待确认等）。
+**18 处不匹配待甄别**（invite-blocklist 4 处 client/v3→vendor/v1，app-service 4 处 appservices/ 路由待确认等）。  
 详见 commit `745ccdb53`。
 
 #### 最终验证结果（93a92c84e）
@@ -833,7 +774,7 @@ PATH="/usr/bin:/bin:$PATH" ./node_modules/.bin/vitest run \
 
 #### 结论（可迁移的教训）
 
-> **「有函数 + 有测试」不等于「有能力」。** 判据必须是「从包入口可达 ∧ 有真实消费者」。
+> **「有函数 + 有测试」不等于「有能力」。** 判据必须是「从包入口可达 ∧ 有真实消费者」。  
 > 一个不可达的文件只要有测试，就能同时骗过覆盖率门禁和文档门禁 —— 这正是本次把它从「Room 100%」降级为「作废」的原因。
 
 ### 13.9 契约归属断裂（2026-10-05）：`room-summary` 的实现调用 `room` 模块的路由
@@ -1017,7 +958,7 @@ TypeScript 的 `${string}` **可以包含 `/`**。于是契约中「以参数结
 
 | 契约路由（真实存在）        | 生成模式                | 后果                              |
 | --------------------------- | ----------------------- | --------------------------------- |
-| `GET /rooms/{room_id}`      | `/rooms/${string}`      | **吞掉整个 `/rooms/**` 子树\*\*   |
+| `GET /rooms/{room_id}`      | `/rooms/${string}`      | \*\*吞掉整个 `/rooms/**` 子树\*\* |
 | `GET /rooms/{room_id}/keys` | `/rooms/${string}/keys` | 吞掉 `/rooms/*/keys/任意深层路径` |
 
 一般化结论：**生成模式只校验「到该路由最后一个参数为止」的前缀，最后一个参数之后的内容一律不校验。** 当某模块存在较浅的参数结尾路由（room 的 `GET /rooms/{room_id}` 就是），该命名空间下所有断言全部失效。
@@ -1035,7 +976,7 @@ TypeScript 的 `${string}` **可以包含 `/`**。于是契约中「以参数结
 | `friend`     | 15/65           | `external-service` | 9/20            |
 | `space`      | 10/48           | `room-summary`     | 4/21            |
 
-全仓 **38 个 route-table 模块中，31 个**存在该类路由；其中 **9 个**属高危（「参数结尾」路由占比 ≥ 50%）——
+全仓 **38 个 route-table 模块中，31 个**存在该类路由；其中 **9 个**属高危（「参数结尾」路由占比 ≥ 50%）——  
 也就是说，§13.10/§13.11 所宣称的「拼错是编译错误」在**这些模块里只对路径前缀成立，对尾段不成立**。
 
 #### 对既有结论的影响（勘误）
@@ -1233,7 +1174,7 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 ---
 
-### 13.15 【落地】ROUTE_CONTRACT 对账结论的代码收口：10 条真缺口封装 + 3 处口径修正 + 移除 1 条纸面 waiver（2026-10-06）
+### 13.15 【落地】ROUTE_CONTRACT 对账结论的代码收口：10 条真缺口封装 + 3 处口径修正 + 移除 1 条纸面 waiver + admin 面复核与 2 处缺陷修复（2026-10-06）
 
 #### 0. 背景与输入
 
@@ -1254,12 +1195,12 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 #### 2. 落地清单（10 条，B1–B4）
 
-| 批次 | 模块                                                | 方法                                                                                        | 端点                                                                                            | 契约断言                                                                                 |
-| ---- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------- |
-| B1   | `src/notifications/index.ts`                        | `getPushDevices` / `registerPushDevice` / `unregisterPushDevice` / `sendPushNotification`   | `GET                                                                                            | POST /\_matrix/client/v3/push/devices`、`DELETE …/push/devices/{id}`、`POST …/push/send` | `StripV3<PushPath \| NotificationsPath>` |
-| B2   | `src/turn-server/index.ts`                          | `getVoipConfig` / `getGuestTurnServerConfig`（并回填既有 `getTurnServerConfig` 的裸字面量） | `GET …/v3/voip/config`、`GET …/v3/voip/turnServer/guest`                                        | `StripV3<AuthPath>`                                                                      |
-| B3   | `src/room-summary/sub-managers/room-key-manager.ts` | `getRoomKeys`                                                                               | `GET …/v3/rooms/{room_id}/keys`                                                                 | 既有 `_rsv`（`StripV3<RoomSummaryPath>`）                                                |
-| B4   | `src/room/RoomManager.ts`                           | `getUserRooms` / `getMutualRooms` / `createPrivateRoom`                                     | `GET …/v3/user/{user_id}/rooms`、`GET …/v1/user/mutual_rooms`、`POST …/v3/rooms/create_private` | 既有 `rp()`（`RoomManagerPath`）                                                         |
+| 批次 | 模块                                                | 方法                                                                                        | 端点                                                                                            | 契约断言                                                                                  |                                          |
+| ---- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------- |
+| B1   | `src/notifications/index.ts`                        | `getPushDevices` / `registerPushDevice` / `unregisterPushDevice` / `sendPushNotification`   | \`GET                                                                                           | POST /\_matrix/client/v3/push/devices`、`DELETE …/push/devices/{id}`、`POST …/push/send\` | `StripV3<PushPath \| NotificationsPath>` |
+| B2   | `src/turn-server/index.ts`                          | `getVoipConfig` / `getGuestTurnServerConfig`（并回填既有 `getTurnServerConfig` 的裸字面量） | `GET …/v3/voip/config`、`GET …/v3/voip/turnServer/guest`                                        | `StripV3<AuthPath>`                                                                       |                                          |
+| B3   | `src/room-summary/sub-managers/room-key-manager.ts` | `getRoomKeys`                                                                               | `GET …/v3/rooms/{room_id}/keys`                                                                 | 既有 `_rsv`（`StripV3<RoomSummaryPath>`）                                                 |                                          |
+| B4   | `src/room/RoomManager.ts`                           | `getUserRooms` / `getMutualRooms` / `createPrivateRoom`                                     | `GET …/v3/user/{user_id}/rooms`、`GET …/v1/user/mutual_rooms`、`POST …/v3/rooms/create_private` | 既有 `rp()`（`RoomManagerPath`）                                                          |                                          |
 
 **结构要点（职责分明）**
 
@@ -1298,9 +1239,50 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 | `node scripts/quality/check-manager-codegen-coverage.mjs` | **EXIT=0**：`Covered: 38`（`push_notification` 由 waived 转 **covered**）、`Waived: 10`、`Missing: 0`、覆盖率 100.0% |
 | 受影响 spec 全量复跑（5 个文件）                          | **274 passed，EXIT=0**（notifications / turn-server / room-manager / room-summary / room-summary-facade）            |
 | prettier（改动手写文件 + 本审计文档 + 梳理文档）          | 通过（均已 `--write`）                                                                                               |
-| ESLint（改动文件）                                        | 见下「遗留观察项」——沙箱 broker 超时，属环境问题，非代码问题                                                         |
+| ESLint（改动文件）                                        | **EXIT=0**（沙箱内会撞 file-broker 超时，改非沙箱执行即可；见「遗留观察项」）                                        |
+| admin-media 缺陷修复（§6.3）                              | `npx tsc --noEmit` **EXIT=0**；`spec/unit/admin-extended.spec.ts` **49 passed**（含新增精确路径断言 + 缺参校验）     |
 
 > 注：新增用例覆盖「裸数组/包裹响应容错」「`encodeURIComponent` 编码 device_id」「必填字段校验」「v1 前缀 + 分页查询参数」等边界；`getRoomKeys` 除门面委托外，另有子方法级用例断言真实 HTTP 路径/方法。
+
+#### 6. admin 运维面 35 条的复核：**10 假阳性 + 25 真缺口**，并修复 2 处「路径错」缺陷
+
+对账报告 §4 把 admin 面 **35 条**列为「未封装·需产品决策」。逐条回源码复核后，**其中 10 条是假阳性**（实际已实现），并顺带发现 **2 处真缺陷**——后者性质是「**路径错**」而非「未封装」，是**公开 API 会 404** 的功能性缺陷。
+
+**6.1 假阳性（10 条）—— 又是「prefix 运行时变量」盲区**
+
+| 类                    | 条数 | 取证                                                                                                                                                                                            |
+| --------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `external_service.rs` | 5    | `src/external-service/index.ts:149-176` 以 `sap`/`map`/`cp` **带契约断言**实现；`src/external-service/__generated__/route-table.ts:12-16` 本身即声明这些 `/_matrix/admin/v1/external_services*` |
+| `cas.rs`              | 5    | `src/cas/index.ts:129-137` 的 `resolvePath("synapse_admin", basePath)` **运行时二元分支**拼出 `/_synapse/admin/v1` + `/cas/services`、`/cas/users/{id}/attributes`；route-table 亦已声明        |
+
+> 值得记一笔的反差：cas 的**契约表**因运行时拼接而「没人读」（§13.14.5 进 waiver），cas 的**路径**又因同一个运行时拼接而「看不见」（被判未封装）。**同一个 `resolvePath` 同时制造了假阴性（表没人读）与假阳性（路径未封装）**。
+
+**6.2 真缺口（25 条）—— 确需产品决策，本轮不实现**
+
+| 子域                   | 条数 | 端点摘要                                                                                                                                                                                                                           |
+| ---------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin/media.rs`       | 16   | `/media/delete`、`/media/protect{,\|/{server}}`、`/media/{un,}quarantine/{server}/{id}`、`/media/unprotect`、`/media/quarantine_changes`、`/media/{server}/{id}` GET/DELETE、`/room(s)/{id}/media*`、`/user/{id}/media/quarantine` |
+| `push_notification.rs` | 4    | `/push/cleanup`、`/push/config`(GET/PUT)、`/push/process`                                                                                                                                                                          |
+| `admin/server.rs`      | 2    | `GET /server`、`GET /rate-limit-status`                                                                                                                                                                                            |
+| `admin/room/mod.rs`    | 2    | `POST /rooms/{id}/backfill`、`POST /rooms/{id}/cascade_redact`                                                                                                                                                                     |
+| `app_service.rs`       | 1    | `GET /appservices/{as_id}/state/{state_key}`（单 key 变体；SDK 只有无 key 的 `/state`）                                                                                                                                            |
+
+> **门禁粒度上限（值得记录的观察）**：`push_notification` 的 4 条 admin 路由就在 `src/notifications/__generated__/route-table.ts` 内，B1 打通该表消费后，门禁按**模块**判定即显示 `covered` —— 但**这 4 条路由并没有任何方法调用**。`check-manager-codegen-coverage.mjs` 的判定粒度是「模块是否有强消费者」，**不是「每一条路由是否被消费」**，所以它能防「有表没人读」，防不了「表里有幽灵路由」。若要更严，需要新增按路由的消费门禁。
+
+**6.3 修复的 2 处缺陷（`admin-media-manager.ts`）**
+
+| 方法                                  | 原路径（后端**未注册**，调用必 404）   | 修正后                                               |
+| ------------------------------------- | -------------------------------------- | ---------------------------------------------------- |
+| `AdminMediaManager.quarantineMedia`   | `POST …/media/{media_id}/quarantine`   | `POST …/media/quarantine/{server_name}/{media_id}`   |
+| `AdminMediaManager.unquarantineMedia` | `POST …/media/{media_id}/unquarantine` | `POST …/media/unquarantine/{server_name}/{media_id}` |
+
+- **取证方式**：以 `docs/api-contract/generated/route-manifest.all.json`（= 后端 ledger 镜像，1159 条，`mirrorMissing=0`/`mirrorExtra=0` = 零漂移）为 ground truth，逐条比对。后端 `admin/media.rs` **只注册带 `server_name` 段**的 `POST /media/quarantine/{server_name}/{media_id}`；上游 Synapse 早期废弃的 `POST /media/{media_id}/quarantine` 在本后端**不存在**（该路径下只注册了 `GET`/`DELETE /media/{media_id}`，无 `POST`）。
+- 这两个方法是 `src/admin/index.ts:517-518` 的**公开 API**，原实现在本后端必然 404。
+- **破坏性变更**：签名由 `(mediaId)` 改为 `(serverName, mediaId)`。已同步公开接口声明与单测：新增**精确路径断言**（`toHaveBeenCalledWith("POST", "/media/quarantine/example.org/media123", …)`）+ 缺参校验（`Server name is required` / `Media ID is required`），作为永久回归守卫。
+
+**6.4 顺带核实：SDK 与后端一致的 media 方法（无缺陷）**
+
+`getMedia`(`GET /media`)、`getMediaInfo`(`GET /media/{id}`)、`deleteMedia`(`DELETE /media/{id}`)、`getMediaQuota`(`GET /media/quota`)、`purgeMediaCache`(`POST /purge_media_cache`)、`getMediaQuarantineChanges`(`GET /quarantine_media/{media_id}/changes`)、`getUserMedia`/`deleteUserMedia`(`/users/{id}/media`) —— 路径**均与后端注册一致**。注意 `quarantine_media/{media_id}/changes` 与 `media/quarantine_changes` 是**两条不同的**隔离变更查询端点，前者已封装、后者属上述 16 条真缺口之一。
 
 #### 遗留观察项
 
@@ -1310,7 +1292,7 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 ---
 
-**审计文档最后更新**: 2026-10-06
-**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications push/devices+push/send + 移除纸面 waiver) → `42903a4ec` (B2 turn-server voip/config+guest) → `578a00c36` (B3 room-summary room-keys) → `3d6ffb94e` (B4 room user/mutual_rooms/create_private) → 本文档与梳理文档（§13.15）
-**核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
-**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert`段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）** 与 **§13.15（落地：把 ROUTE_CONTRACT 对账结论写回代码——10 条真缺口封装为 B1–B4 + 纠正报告 3 处粗判 + 移除 1 条纸面 waiver`push_notification`）\*\*
+**审计文档最后更新**: 2026-10-06  
+**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications：push/devices×3 + push/send + 移纸面 waiver) → `42903a4ec` (B2 turn-server：voip/config + turnServer/guest) → `578a00c36` (B3 room-summary：rooms/{id}/keys) → `3d6ffb94e` (B4 room：user/{id}/rooms + mutual_rooms(v1) + create_private) → `52a47a5a2` (fix admin：media quarantine 改 server_name 形态路径) → 本文档与梳理文档（§13.15 正文 + §13.15.6 admin 复核）  
+**核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准  
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert`段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）** 与 **§13.15（落地：把 ROUTE_CONTRACT 对账结论写回代码——10 条真缺口封装为 B1–B4 + 纠正报告 3 处粗判 + 移除 1 条纸面 waiver `push_notification`；admin 面 35 条复核为 10 假阳性 + 25 真缺口，并修复 media quarantine 的 2 处「路径错」缺陷）\*\*
