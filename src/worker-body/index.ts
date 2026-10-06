@@ -21,13 +21,13 @@ import { MatrixClient } from "../client";
 import { ValidationError } from "../errors";
 import { type IEvent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import type { WorkerBodyPathPattern } from "./__generated__/route-table";
+import type { WorkerBodyPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripWorkerPrefix } from "../http-api/strip-prefix";
+import type { PathAssert, StripWorkerPrefix } from "../http-api/strip-prefix";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
-function wb<P extends StripWorkerPrefix<WorkerBodyPathPattern>>(path: P): P {
+function wb<const P extends string>(path: P & PathAssert<P, StripWorkerPrefix<WorkerBodyPath>>): P {
     return path;
 }
 

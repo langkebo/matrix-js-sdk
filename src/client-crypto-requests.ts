@@ -2,8 +2,8 @@ import * as utils from "./utils";
 import { Method, type Body, type IRequestOpts } from "./http-api/index";
 import { ClientPrefix } from "./http-api/prefix";
 import type { QueryDict } from "./utils";
-import type { SearchPathPattern } from "./search/__generated__/route-table";
-import type { StripV3 } from "./http-api/strip-prefix";
+import type { SearchPath } from "./search/__generated__/route-table";
+import type { PathAssert, StripV3 } from "./http-api/strip-prefix";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -13,7 +13,7 @@ type AuthedRequestFn = <T>(
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
 
-function srp<P extends StripV3<SearchPathPattern>>(path: P): P {
+function srp<const P extends string>(path: P & PathAssert<P, StripV3<SearchPath>>): P {
     return path;
 }
 

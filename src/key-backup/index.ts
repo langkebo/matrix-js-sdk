@@ -29,27 +29,27 @@ import { ClientPrefix } from "../http-api/prefix";
 import { NotFoundError, ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import type { KeyBackupPathPattern } from "./__generated__/route-table";
-import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
+import type { KeyBackupPath } from "./__generated__/route-table";
+import type { E2eePath } from "../e2ee/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { Aes256AuthData } from "../crypto-api/keybackup";
 import type { AESEncryptedSecretStoragePayload } from "../@types/AESEncryptedSecretStoragePayload";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
 
-/** Slice of `E2eePathPattern` limited to the `/keys/backup/secure` surface. */
-type SecureBackupV3PathPattern = Extract<StripV3<E2eePathPattern>, `/keys/backup/secure${string}`>;
+/** Slice of `E2eePath` limited to the `/keys/backup/secure` surface. */
+type SecureBackupV3Path = Extract<StripV3<E2eePath>, `/keys/backup/secure${string}`>;
 
-/** v3-scoped, prefix-stripped variant of `KeyBackupPathPattern`. */
-type KeyBackupV3PathPattern = StripV3<KeyBackupPathPattern> | SecureBackupV3PathPattern;
+/** v3-scoped, prefix-stripped variant of `KeyBackupPath`. */
+type KeyBackupV3Path = StripV3<KeyBackupPath> | SecureBackupV3Path;
 
 /**
  * Compile-time bind from a manager call site to the generated
  * `KEY_BACKUP_ROUTES` ledger. Identity at runtime; a typo or a path that
  * does not exist in the ledger fails type-checking with `TS2345`.
  */
-function kb<P extends KeyBackupV3PathPattern>(path: P): P {
+function kb<const P extends string>(path: P & PathAssert<P, KeyBackupV3Path>): P {
     return path;
 }
 

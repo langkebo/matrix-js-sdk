@@ -30,12 +30,12 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 import { LRUCache } from "../utils/lru-cache";
 import { validateUserId } from "../common/validators";
 import { AuthError, ValidationError } from "../errors";
-import type { PresencePathPattern } from "./__generated__/route-table";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PresencePath } from "./__generated__/route-table";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
 const PRESENCE_PREFIX = "/_matrix/client/v3";
 
-function pp<P extends StripV3<PresencePathPattern>>(path: P): P {
+function pp<const P extends string>(path: P & PathAssert<P, StripV3<PresencePath>>): P {
     return path;
 }
 

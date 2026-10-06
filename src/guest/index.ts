@@ -31,12 +31,12 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import type { Room } from "../models/room";
-import type { GuestPathPattern } from "./__generated__/route-table";
+import type { GuestPath } from "./__generated__/route-table";
 import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function gp<P extends StripV3<GuestPathPattern>>(path: P): P {
+function gp<const P extends string>(path: P & PathAssert<P, StripV3<GuestPath>>): P {
     return path;
 }
 

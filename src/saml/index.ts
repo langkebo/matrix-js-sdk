@@ -18,7 +18,7 @@ import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api";
 import { ClientPrefix, AdminPrefix } from "../http-api/prefix";
-import type { SamlPathPattern } from "./__generated__/route-table";
+import type { SamlPath } from "./__generated__/route-table";
 import {
     type SamlLoginResponse,
     type SamlAuthResult,
@@ -31,7 +31,7 @@ import {
     type SamlRefreshResult,
 } from "./__generated__/dto";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripAdminV1, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1, StripV3 } from "../http-api/strip-prefix";
 
 /**
  * SAML Auth Manager - SAML 认证管理 API 封装
@@ -67,11 +67,11 @@ export type {
     SamlRefreshResult,
 };
 
-function cp<P extends StripV3<SamlPathPattern>>(path: P): P {
+function cp<const P extends string>(path: P & PathAssert<P, StripV3<SamlPath>>): P {
     return path;
 }
 
-function ap<P extends StripAdminV1<SamlPathPattern>>(path: P): P {
+function ap<const P extends string>(path: P & PathAssert<P, StripAdminV1<SamlPath>>): P {
     return path;
 }
 

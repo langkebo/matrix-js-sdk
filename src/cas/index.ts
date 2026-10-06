@@ -37,13 +37,7 @@ import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
-import type { CasPathPattern } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripAdminV1 } from "../http-api/strip-prefix";
-
-function ap<P extends StripAdminV1<CasPathPattern>>(path: P): P {
-    return path;
-}
 
 export type CasApiPrefix = "synapse_admin" | "cas";
 

@@ -32,15 +32,15 @@ import { ServerSupport, Feature } from "../feature";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ClientPrefix, Method } from "../http-api";
 import type { Body } from "../http-api/interface";
-import type { ThreadPathPattern } from "../thread/__generated__/route-table";
+import type { ThreadPath, ThreadPathPattern } from "../thread/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripV1, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV1, StripV3 } from "../http-api/strip-prefix";
 
-function tv1<P extends StripV1<ThreadPathPattern>>(path: P): P {
+function tv1<const P extends string>(path: P & PathAssert<P, StripV1<ThreadPath>>): P {
     return path;
 }
 
-function tv3<P extends StripV3<ThreadPathPattern>>(path: P): P {
+function tv3<const P extends string>(path: P & PathAssert<P, StripV3<ThreadPath>>): P {
     return path;
 }
 

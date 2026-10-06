@@ -65,7 +65,6 @@ const SKIP_ROUTE_TABLE_MODULES = new Set([
     "feature-flags",
     "federation",
     "key-rotation",
-    "moderation",
     "reactions",
 ]);
 

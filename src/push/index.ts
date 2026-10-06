@@ -26,14 +26,14 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache, CacheRegistry } from "../utils/lru-cache";
 import { validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { PushPathPattern } from "./__generated__/route-table";
+import type { PushPath } from "./__generated__/route-table";
 import { getRoomPushRuleRequest, setRoomMutePushRuleRequest } from "../client-push-rules";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
 export type { IPushRules } from "../@types/PushRules";
 export { PUSHER_ENABLED } from "../@types/event";
 
-function pp<P extends StripV3<PushPathPattern>>(path: P): P {
+function pp<const P extends string>(path: P & PathAssert<P, StripV3<PushPath>>): P {
     return path;
 }
 

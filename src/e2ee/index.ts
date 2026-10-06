@@ -13,7 +13,7 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
 import { ValidationError } from "../errors";
-import type { E2eePathPattern } from "./__generated__/route-table";
+import type { E2eePath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type {
     UploadKeysOptions,
@@ -29,9 +29,9 @@ import type {
 } from "../device-keys/index";
 import type { UploadDeviceSigningRequest } from "./__generated__/dto";
 import type { IContent } from "../models/event";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function ep<P extends StripV3<E2eePathPattern>>(path: P): P {
+function ep<const P extends string>(path: P & PathAssert<P, StripV3<E2eePath>>): P {
     return path;
 }
 

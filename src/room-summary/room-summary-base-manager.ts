@@ -32,8 +32,8 @@ import { validateRoomId, validateUserId, validateEventType } from "../common/val
 import { type QueryDict, encodeUri } from "../http-api/utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
-import type { StripV3 } from "../http-api/strip-prefix";
-import type { RoomPathPattern } from "../room/__generated__/route-table";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+import type { RoomPath } from "../room/__generated__/route-table";
 
 export type RoomSummaryErrorCallback = (error: Error) => void;
 
@@ -87,16 +87,17 @@ export abstract class RoomSummaryBaseManager<
      * 构建「归 `room` 模块」的相对路径（带 `$roomId` 替换）。
      *
      * 本目录（room-summary）历史上承载了一批其实归属 `room` 模块的端点（见
-     * `docs/sdk-encapsulation-audit.md` §13.9），此处把入参约束到 **`room` 契约**的路径模板。
+     * `docs/sdk-encapsulation-audit.md` §13.9），此处把入参约束到 **`room` 契约**的路径模板，
+     * 并交给 `PathAssert` 做 **segment 级精确比较**：段数不同、静态段拼错都会在调用点报错。
      *
-     * ⚠️ **该断言的鉴别力有限，勿据此认为路径已受保护**：`RoomPathPattern` 由契约里的
-     * `{name}` 替换为 `${string}` 生成，而 TS 的 `${string}` **可跨 `/`**，因此契约中
-     * `GET /rooms/{room_id}` 这样的浅层「参数结尾」路由会产生 `/rooms/${string}` 前缀模式，
-     * **吞掉整个 `/rooms/**` 子树** —— 任何 `/rooms/…` 字面量都会通过。
-     * 实测见 `docs/sdk-encapsulation-audit.md` §13.12。根因修复（两侧归一 + 精确相等）
-     * 落地前，本断言只能拦住「不以 `/rooms/` 开头且不匹配任何路由」的路径。
+     * ⚠️ 残留边界（契约表达能力所限，非断言缺陷）：契约侧的占位段（`{room_id}` 等）
+     * 仍接受任意**单段**内容，因此 `/rooms/<任意单段>` 无法与真实 room id 区分。
+     * 原理与实测见 `docs/sdk-encapsulation-audit.md` §13.12、§13.13。
      */
-    protected roomPath<P extends StripV3<RoomPathPattern>>(pathTemplate: P, roomId: string): string {
+    protected roomPath<const P extends string>(
+        pathTemplate: P & PathAssert<P, StripV3<RoomPath>>,
+        roomId: string,
+    ): string {
         return this.buildRoomScopedPath(pathTemplate, roomId);
     }
 
@@ -108,8 +109,9 @@ export abstract class RoomSummaryBaseManager<
      * （契约前缀是 `/_matrix/vendor/v1`，实现却用 `/_matrix/client/v3`）。
      * 详见 `docs/sdk-encapsulation-audit.md` §13.11。
      *
-     * 注：这 4 处**并非**因为会被类型系统拒绝才走逃生阀（`roomPath` 对 `/rooms/**` 本就不设防，
-     * 见 §13.12）；这里是**显式标注 + 便于检索**的意图。缺陷关闭后必须改回带真实鉴别力的断言。
+     * 注：这 4 处路径的契约归属其实是 `invite_blocklist`（前缀 `/_matrix/vendor/v1`），
+     * 因此**无法**用 `room` 契约断言；走逃生阀是为了显式标注 + 便于检索
+     * （`grep -rn uncheckedRoomPath src/`）。缺陷关闭后必须改回对应模块的强类型助手。
      */
     protected uncheckedRoomPath(pathTemplate: string, roomId: string): string {
         return this.buildRoomScopedPath(pathTemplate, roomId);

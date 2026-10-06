@@ -26,18 +26,18 @@ import type { IContent } from "../models/event";
 import { Method } from "../http-api";
 import { AdminPrefix, ClientPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import type { CaptchaPathPattern } from "./__generated__/route-table";
+import type { CaptchaPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripAdminV1, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1, StripV3 } from "../http-api/strip-prefix";
 
-type CaptchaClientPath = StripV3<CaptchaPathPattern>;
+type CaptchaClientPath = StripV3<CaptchaPath>;
 export type CaptchaApiVersion = "v3";
 
-function cp<P extends CaptchaClientPath>(path: P): P {
+function cp<const P extends string>(path: P & PathAssert<P, CaptchaClientPath>): P {
     return path;
 }
 
-function ap<P extends StripAdminV1<CaptchaPathPattern>>(path: P): P {
+function ap<const P extends string>(path: P & PathAssert<P, StripAdminV1<CaptchaPath>>): P {
     return path;
 }
 

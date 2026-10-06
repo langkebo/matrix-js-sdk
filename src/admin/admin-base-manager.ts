@@ -20,26 +20,17 @@ limitations under the License.
  * 扩展 BaseManager，添加：
  * - v2Request：/_synapse/admin 前缀请求（无版本号）
  * - 错误回调：统一错误事件通知
- * - 路径辅助函数：ap/apu
+ * - 路径辅助函数：apu
  */
 
 import { Method } from "../http-api/method";
 import type { IContent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
-import type { StripAdminPath } from "../http-api/strip-prefix";
 
 export type { ManagerOpts };
 
 export type AdminErrorCallback = (error: Error) => void;
-
-/**
- * 类型安全的 Admin 路径断言函数
- * 用于已知符合 AdminPathPattern 的路径字面量
- */
-export function ap<P extends StripAdminPath<string>>(path: P): P {
-    return path;
-}
 
 /**
  * 无类型断言的 Admin 路径函数

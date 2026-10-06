@@ -27,10 +27,10 @@ import { ClientPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { ValidationError } from "../errors";
-import type { TagsPathPattern } from "./__generated__/route-table";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { TagsPath } from "./__generated__/route-table";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function tp<P extends StripV3<TagsPathPattern>>(path: P): P {
+function tp<const P extends string>(path: P & PathAssert<P, StripV3<TagsPath>>): P {
     return path;
 }
 

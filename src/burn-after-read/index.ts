@@ -48,13 +48,13 @@ import { NotFoundError, ValidationError, SdkError } from "../errors";
 import { logger } from "../logger";
 import type { IContent } from "../models/event";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
-import type { BurnAfterReadPathPattern } from "./__generated__/route-table";
+import type { BurnAfterReadPath } from "./__generated__/route-table";
 import type { BurnSettings, BurnStats, PendingBurnEvent } from "./__generated__/dto";
-import type { StripV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV1 } from "../http-api/strip-prefix";
 
 type BurnAfterReadApiVersion = "v1" | "v3";
 
-function bp<P extends StripV1<BurnAfterReadPathPattern>>(path: P): P {
+function bp<const P extends string>(path: P & PathAssert<P, StripV1<BurnAfterReadPath>>): P {
     return path;
 }
 

@@ -20,9 +20,9 @@ import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
 import { ValidationError } from "../errors";
 import { BaseManager } from "../managers/base-manager";
-import type { WorkerAdminPathPattern } from "./__generated__/route-table";
+import type { WorkerAdminPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripWorkerPrefix } from "../http-api/strip-prefix";
+import type { PathAssert, StripWorkerPrefix } from "../http-api/strip-prefix";
 
 const WORKER_PREFIX = "/_synapse/worker";
 
@@ -32,7 +32,7 @@ export interface TaskMetadata {
     [key: string]: unknown;
 }
 
-function wa<P extends StripWorkerPrefix<WorkerAdminPathPattern>>(path: P): P {
+function wa<const P extends string>(path: P & PathAssert<P, StripWorkerPrefix<WorkerAdminPath>>): P {
     return path;
 }
 

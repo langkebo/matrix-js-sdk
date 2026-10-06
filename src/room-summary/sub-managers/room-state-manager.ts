@@ -20,10 +20,10 @@ import { Body } from "../../http-api/interface";
 import type { IRoomSummaryState, RoomSummaryStateContent } from "../types";
 import type { RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import { RoomSummaryBaseManager } from "../room-summary-base-manager";
-import type { RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { StripV3 } from "../../http-api/strip-prefix";
+import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { PathAssert, StripV3 } from "../../http-api/strip-prefix";
 
-function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
     return path;
 }
 

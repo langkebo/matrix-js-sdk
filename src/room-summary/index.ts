@@ -128,7 +128,7 @@ import { LRUCache } from "../utils/lru-cache";
 import type { IPublicRoomsChunkRoom, IPublicRoomsResponse } from "../client-api-types";
 import type { IContent } from "../models/event";
 import type { ClaimKeysRequest } from "../device-keys/index";
-import type { RoomSummaryPathPattern } from "./__generated__/route-table";
+import type { RoomSummaryPath, RoomSummaryPathPattern } from "./__generated__/route-table";
 
 import type {
     RoomSummary,
@@ -206,17 +206,19 @@ import {
     type SignEventBody,
     type VerifyEventBody,
 } from "./sub-managers/room-event-operation-manager";
-import type { StripInternalSummary, StripR0, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripInternalSummary, StripR0, StripV3 } from "../http-api/strip-prefix";
 
-function rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
+function rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
     return path;
 }
 
-function _rsr0<P extends StripR0<RoomSummaryPathPattern>>(path: P): P {
+function _rsr0<const P extends string>(path: P & PathAssert<P, StripR0<RoomSummaryPath>>): P {
     return path;
 }
 
-function rsi<P extends StripInternalSummary<RoomSummaryPathPattern> | "/summaries/batch">(path: P): P {
+function rsi<const P extends string>(
+    path: P & PathAssert<P, StripInternalSummary<RoomSummaryPath> | "/summaries/batch">,
+): P {
     return path;
 }
 
@@ -331,7 +333,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
     }
 
-    private internalSummaryPath(path: "/summaries" | "/updates/process"): StripInternalSummary<RoomSummaryPathPattern> {
+    private internalSummaryPath(path: "/summaries" | "/updates/process"): StripInternalSummary<RoomSummaryPath> {
         return rsi(path);
     }
 

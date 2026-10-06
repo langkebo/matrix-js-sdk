@@ -31,7 +31,7 @@ import { Method } from "../http-api/index";
 import { type EmptyObject } from "../@types/common";
 import { getHttpUriForMxc } from "../content-repo";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import type { AuthPath } from "../auth/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { LRUCache } from "../utils/lru-cache";
 import { validateUserId } from "../common/validators";
@@ -47,9 +47,9 @@ import {
     selectExtendedProfileRequestPrefix,
 } from "../client-profile-requests";
 import { assertExtendedProfileSupported } from "../client-profile-core";
-import type { StripAuthPrefix } from "../http-api/strip-prefix";
+import type { PathAssert, StripAuthPrefix } from "../http-api/strip-prefix";
 
-function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+function ap<const P extends string>(path: P & PathAssert<P, StripAuthPrefix<AuthPath>>): P {
     return path;
 }
 
@@ -139,7 +139,13 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         field: K,
         options: SetProfileFieldCacheOptions = {},
     ): Promise<IProfile[K]> {
-        const path = ap(`/profile/${encodeURIComponent(userId)}/${encodeURIComponent(field)}`);
+        // 契约中 profile 字段段只有 `avatar_url` / `displayname` 两个字面量，这里按字面量分支
+        // 构造路径，好让 `ap` 拿到字面量模板类型；若对 `field` 取 encodeURIComponent，
+        // 插值会退化成 `${string}`，断言就无法再区分具体字段。
+        const path =
+            field === "avatar_url"
+                ? ap(`/profile/${encodeURIComponent(userId)}/avatar_url`)
+                : ap(`/profile/${encodeURIComponent(userId)}/displayname`);
 
         const response = await this.withRetry(async () => {
             return await this.request<Pick<IProfile, K>>({
@@ -159,7 +165,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
     public setProfileInfo(info: "displayname", data: { displayname: string }): Promise<EmptyObject>;
     public async setProfileInfo<K extends ProfileField>(info: K, data: Pick<IProfile, K>): Promise<EmptyObject> {
-        const path = ap(`/profile/${encodeURIComponent(this.client.credentials.userId!)}/${encodeURIComponent(info)}`);
+        // 同 `getProfileField`：按字面量分支以保留路径模板的字面量类型。
+        const path =
+            info === "avatar_url"
+                ? ap(`/profile/${encodeURIComponent(this.client.credentials.userId!)}/avatar_url`)
+                : ap(`/profile/${encodeURIComponent(this.client.credentials.userId!)}/displayname`);
 
         try {
             const result = await this.withRetry(async () => {

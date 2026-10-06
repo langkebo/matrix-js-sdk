@@ -34,12 +34,12 @@ import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
-import type { TelemetryPathPattern } from "./__generated__/route-table";
+import type { TelemetryPath } from "./__generated__/route-table";
 import { registerManagerFactory, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-import type { StripAdminV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1 } from "../http-api/strip-prefix";
 
-function tp<P extends StripAdminV1<TelemetryPathPattern>>(path: P): P {
+function tp<const P extends string>(path: P & PathAssert<P, StripAdminV1<TelemetryPath>>): P {
     return path;
 }
 

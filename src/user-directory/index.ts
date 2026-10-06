@@ -32,11 +32,11 @@ import { MatrixClient } from "../client";
 import { User } from "../models/user";
 import { Method } from "../http-api/method";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import type { AuthPath } from "../auth/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripAuthPrefix } from "../http-api/strip-prefix";
+import type { PathAssert, StripAuthPrefix } from "../http-api/strip-prefix";
 
-function ap<P extends StripAuthPrefix<AuthPathPattern>>(path: P): P {
+function ap<const P extends string>(path: P & PathAssert<P, StripAuthPrefix<AuthPath>>): P {
     return path;
 }
 

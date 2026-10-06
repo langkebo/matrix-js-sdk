@@ -21,10 +21,10 @@ import type { IContent } from "../../models/event";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import { LRUCache } from "../../utils/lru-cache";
 import { logger } from "../../logger";
-import type { RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { StripV3 } from "../../http-api/strip-prefix";
+import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { PathAssert, StripV3 } from "../../http-api/strip-prefix";
 
-function rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
+function rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
     return path;
 }
 

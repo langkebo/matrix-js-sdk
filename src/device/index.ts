@@ -35,10 +35,10 @@ import { MatrixError } from "../http-api/errors";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { NotFoundError, ValidationError } from "../errors";
 import { LRUCache } from "../utils/lru-cache";
-import type { DevicePathPattern } from "./__generated__/route-table";
+import type { DevicePath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IAuthData } from "../interactive-auth";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
 export enum DeviceEvent {
     DevicesUpdated = "DevicesUpdated",
@@ -174,7 +174,7 @@ interface IDeviceResponse {
     user_id?: string;
 }
 
-function dp<P extends StripV3<DevicePathPattern>>(path: P): P {
+function dp<const P extends string>(path: P & PathAssert<P, StripV3<DevicePath>>): P {
     return path;
 }
 

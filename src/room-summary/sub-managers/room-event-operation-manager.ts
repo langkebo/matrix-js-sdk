@@ -87,14 +87,16 @@ import type {
     SyncSummaryResult,
     ProcessUpdatesResult,
 } from "../types";
-import type { RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { StripInternalSummary, StripV3 } from "../../http-api/strip-prefix";
+import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
+import type { PathAssert, StripInternalSummary, StripV3 } from "../../http-api/strip-prefix";
 
-function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
     return path;
 }
 
-function _rsi<P extends StripInternalSummary<RoomSummaryPathPattern> | "/summaries/batch">(path: P): P {
+function _rsi<const P extends string>(
+    path: P & PathAssert<P, StripInternalSummary<RoomSummaryPath> | "/summaries/batch">,
+): P {
     return path;
 }
 
@@ -920,7 +922,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         return _rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
     }
 
-    private internalSummaryPath(path: "/summaries" | "/updates/process"): StripInternalSummary<RoomSummaryPathPattern> {
+    private internalSummaryPath(path: "/summaries" | "/updates/process"): StripInternalSummary<RoomSummaryPath> {
         return _rsi(path);
     }
 }

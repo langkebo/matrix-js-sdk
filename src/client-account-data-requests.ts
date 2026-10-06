@@ -5,10 +5,10 @@ import { ServerSupport } from "./feature";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
 import type { IContent } from "./models/event";
-import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
-import type { StripV3 } from "./http-api/strip-prefix";
+import type { AccountDataPath } from "./account-data/__generated__/route-table";
+import type { PathAssert, StripV3 } from "./http-api/strip-prefix";
 
-function adp<P extends StripV3<AccountDataPathPattern>>(path: P): P {
+function adp<const P extends string>(path: P & PathAssert<P, StripV3<AccountDataPath>>): P {
     return path;
 }
 

@@ -35,14 +35,14 @@ import { Method } from "../http-api/method";
 import { Body, type IRequestOpts } from "../http-api/interface";
 import { NotFoundError } from "../errors";
 import { logger } from "../logger";
-import type { RendezvousPathPattern } from "./__generated__/route-table";
+import type { RendezvousPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV1 } from "../http-api/strip-prefix";
 
 const RENDEZVOUS_PREFIX = "/_matrix/client/v1";
 const RENDEZVOUS_KEY_HEADER = "X-Matrix-Rendezvous-Key";
 
-function rp<P extends StripV1<RendezvousPathPattern>>(path: P): P {
+function rp<const P extends string>(path: P & PathAssert<P, StripV1<RendezvousPath>>): P {
     return path;
 }
 

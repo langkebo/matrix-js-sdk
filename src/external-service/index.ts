@@ -27,19 +27,19 @@ import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix, VendorPrefix } from "../http-api/prefix";
-import type { ExternalServicePathPattern } from "./__generated__/route-table";
+import type { ExternalServicePath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripAdminV1, StripMatrixAdminV1, StripV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1, StripMatrixAdminV1, StripV1 } from "../http-api/strip-prefix";
 
-function sap<P extends StripAdminV1<ExternalServicePathPattern>>(path: P): P {
+function sap<const P extends string>(path: P & PathAssert<P, StripAdminV1<ExternalServicePath>>): P {
     return path;
 }
 
-function map<P extends StripMatrixAdminV1<ExternalServicePathPattern>>(path: P): P {
+function map<const P extends string>(path: P & PathAssert<P, StripMatrixAdminV1<ExternalServicePath>>): P {
     return path;
 }
 
-function cp<P extends StripV1<ExternalServicePathPattern>>(path: P): P {
+function cp<const P extends string>(path: P & PathAssert<P, StripV1<ExternalServicePath>>): P {
     return path;
 }
 

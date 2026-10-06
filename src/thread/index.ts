@@ -27,17 +27,17 @@ import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { ThreadPathPattern } from "./__generated__/route-table";
-import type { StripV1, StripV3 } from "../http-api/strip-prefix";
+import type { ThreadPath } from "./__generated__/route-table";
+import type { StripV1, StripV3, PathAssert } from "../http-api/strip-prefix";
 
 const THREAD_PREFIX_V1 = "/_matrix/client/v1";
 const THREAD_PREFIX_V3 = "/_matrix/client/v3";
 
-function tp(path: StripV1<ThreadPathPattern>): string {
+function tp<const P extends string>(path: P & PathAssert<P, StripV1<ThreadPath>>): P {
     return path;
 }
 
-function tpV3(path: StripV3<ThreadPathPattern>): string {
+function tpV3<const P extends string>(path: P & PathAssert<P, StripV3<ThreadPath>>): P {
     return path;
 }
 

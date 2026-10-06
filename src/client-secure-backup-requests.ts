@@ -3,9 +3,9 @@ import { ClientPrefix, Method, VendorPrefix } from "./http-api/index";
 import type { Body, IRequestOpts } from "./http-api/index";
 import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
-import type { SyncPathPattern } from "./sync/__generated__/route-table";
-import type { SearchPathPattern } from "./search/__generated__/route-table";
-import type { StripClientV3OrVendorV1 } from "./http-api/strip-prefix";
+import type { SyncPath } from "./sync/__generated__/route-table";
+import type { SearchPath } from "./search/__generated__/route-table";
+import type { PathAssert, StripClientV3OrVendorV1 } from "./http-api/strip-prefix";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -15,11 +15,11 @@ type AuthedRequestFn = <T>(
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
 
-function sp<P extends StripClientV3OrVendorV1<SyncPathPattern>>(path: P): P {
+function sp<const P extends string>(path: P & PathAssert<P, StripClientV3OrVendorV1<SyncPath>>): P {
     return path;
 }
 
-function srp<P extends StripClientV3OrVendorV1<SearchPathPattern>>(path: P): P {
+function srp<const P extends string>(path: P & PathAssert<P, StripClientV3OrVendorV1<SearchPath>>): P {
     return path;
 }
 

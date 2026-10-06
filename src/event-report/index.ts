@@ -13,14 +13,14 @@ import { AdminPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
 import { validateUserId, validateRoomId } from "../common/validators";
-import type { EventReportPathPattern } from "./__generated__/route-table";
+import type { EventReportPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
-import type { StripAdminV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1 } from "../http-api/strip-prefix";
 
-type EventReportAdminPathPattern = StripAdminV1<EventReportPathPattern>;
+type EventReportAdminPath = StripAdminV1<EventReportPath>;
 
-function er<P extends EventReportAdminPathPattern>(path: P): P {
+function er<const P extends string>(path: P & PathAssert<P, EventReportAdminPath>): P {
     return path;
 }
 

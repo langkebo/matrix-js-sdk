@@ -33,10 +33,10 @@ import * as utils from "../utils";
 import { QueryDict } from "../http-api/utils";
 import { IRelationsRequestOpts, IRelationsResponse } from "../@types/requests";
 import { logger } from "../logger";
-import type { RelationsPathPattern } from "./__generated__/route-table";
+import type { RelationsPath, RelationsPathPattern } from "./__generated__/route-table";
 import { processRelationEvents } from "../client-relations-core";
 import { EventType, RelationType as RelationTypeBase } from "../@types/event";
-import type { StripClientPrefix, StripVendor } from "../http-api/strip-prefix";
+import type { PathAssert, StripClientPrefix, StripVendor } from "../http-api/strip-prefix";
 
 export type RelationType = RelationTypeBase | string;
 export type RelationEventType = "m.room.message" | "m.room.encrypted" | string;
@@ -96,17 +96,17 @@ function replaceParam(oldKey: string, newKey: string, params: QueryDict): QueryD
     return params;
 }
 
-function rr<P extends StripClientPrefix<RelationsPathPattern>>(path: P): P {
+function rr<const P extends string>(path: P & PathAssert<P, StripClientPrefix<RelationsPath>>): P {
     return path;
 }
 
 /**
  * 关系写入端点在 `/_matrix/vendor/v1` 下（ISSUE-13：关系写入不是 spec 端点）。
- * 与 `rr` 同理：`RelationsPathPattern` 的 `{param}` 已被 codegen 降级成 `${string}`，
+ * 与 `rr` 同理：`RelationsPath` 的 `{param}` 已被 codegen 降级成 `${string}`，
  * 所以这层约束校验的是**形状**（前缀 + 段数 + 静态段），不是参数名。
  */
 
-function rv<P extends StripVendor<RelationsPathPattern>>(path: P): P {
+function rv<const P extends string>(path: P & PathAssert<P, StripVendor<RelationsPath>>): P {
     return path;
 }
 

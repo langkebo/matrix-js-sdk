@@ -24,12 +24,12 @@ import { type EmptyObject } from "../@types/common";
 import { type IEvent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { validateLimit } from "../common/validators";
-import type { PushPathPattern } from "../push/__generated__/route-table";
+import type { PushPath } from "../push/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function np<P extends StripV3<PushPathPattern>>(path: P): P {
+function np<const P extends string>(path: P & PathAssert<P, StripV3<PushPath>>): P {
     return path;
 }
 

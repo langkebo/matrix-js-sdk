@@ -51,12 +51,18 @@ import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../se
 import * as ContentHelpers from "../content-helpers";
 import { beginRoomPeek, endRoomPeek } from "../client-room-peek";
 import type { InviteRequest } from "./__generated__/dto";
-import type { RoomPathPattern } from "./__generated__/route-table";
-import type { AuthPathPattern } from "../auth/__generated__/route-table";
-import type { TagsPathPattern } from "../tags/__generated__/route-table";
-import type { SlidingSyncPathPattern } from "../sliding-sync/__generated__/route-table";
+import type { RoomPath } from "./__generated__/route-table";
+import type { AuthPath } from "../auth/__generated__/route-table";
+import type { TagsPath } from "../tags/__generated__/route-table";
+import type { SlidingSyncPath } from "../sliding-sync/__generated__/route-table";
+// 跨模块归属：以下两条路由由别的后端模块注册，但调用点在 RoomManager。
+//   - `/rooms/{room_id}/context/{event_id}` → ledger `registered_by: "search"`
+//   - `/rooms/{room_id}/report`            → ledger `registered_by: "moderation"`
+// 断言必须落在**真正拥有该路由的契约**上，否则精确匹配会（正确地）拒绝它。
+import type { SearchPath } from "../search/__generated__/route-table";
+import type { ModerationPath } from "../moderation/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
-import type { StripR0, StripSimplifiedSlidingSync, StripV1, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripR0, StripSimplifiedSlidingSync, StripV1, StripV3 } from "../http-api/strip-prefix";
 
 export enum RoomEvent {
     RoomCreated = "RoomCreated",
@@ -169,13 +175,13 @@ type RoomInfoCacheEntry =
     | IRoomMetadataResponse
     | IJoinedMembersResponse;
 
-type RoomManagerPathPattern =
-    | StripR0<RoomPathPattern | TagsPathPattern>
-    | StripV1<RoomPathPattern>
-    | StripV3<RoomPathPattern | TagsPathPattern | AuthPathPattern>
-    | StripSimplifiedSlidingSync<SlidingSyncPathPattern>;
+type RoomManagerPath =
+    | StripR0<RoomPath | TagsPath>
+    | StripV1<RoomPath | SearchPath>
+    | StripV3<RoomPath | TagsPath | AuthPath | SearchPath | ModerationPath>
+    | StripSimplifiedSlidingSync<SlidingSyncPath>;
 
-function rp<P extends RoomManagerPathPattern>(path: P): P {
+function rp<const P extends string>(path: P & PathAssert<P, RoomManagerPath>): P {
     return path;
 }
 

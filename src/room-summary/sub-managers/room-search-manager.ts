@@ -22,8 +22,8 @@ import type { IContent } from "../../models/event";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type { RoomSummaryOptions, RoomSummary, RoomSearchResult } from "../types";
 import type { IPublicRoomsResponse, IPublicRoomsChunkRoom } from "../../client-api-types";
-import type { RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { StripV3 } from "../../http-api/strip-prefix";
+import type { RoomSummaryPath } from "../__generated__/route-table";
+import type { PathAssert, StripV3 } from "../../http-api/strip-prefix";
 
 /** 房间搜索请求体 */
 export interface RoomSearchBody {
@@ -36,7 +36,7 @@ export interface RoomSearchBody {
     [key: string]: unknown;
 }
 
-function _rsv<P extends StripV3<RoomSummaryPathPattern>>(path: P): P {
+function _rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
     return path;
 }
 

@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-05T22:50:58.683Z",
+    "generatedAt": "2026-10-06T03:32:26.555Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -212,9 +212,9 @@
             }
         },
         {
-            "id": "src/discovery/index.ts:232:dbc8ba47cc58e848fe7e8deb17cb46af97739750",
+            "id": "src/discovery/index.ts:250:a67316a06266c0f610373ee3d25415f2ec5127a4",
             "file": "src/discovery/index.ts",
-            "line": 232,
+            "line": 250,
             "snippet": "catch (e) { logger.warn(\"DiscoveryManager.getAliasRoomId failed:\", e); return null;",
             "whitelist": {
                 "owner": "discovery",

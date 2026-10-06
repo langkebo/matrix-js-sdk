@@ -15,9 +15,9 @@ import type { IStateEventWithRoomId, ISearchRequestBody, ISearchResponse } from 
 import type { EmptyObject } from "./@types/common";
 import type { Visibility } from "./@types/partials";
 import { ReceiptType } from "./@types/read_receipts";
-import type { SyncPathPattern } from "./sync/__generated__/route-table";
-import type { AccountDataPathPattern } from "./account-data/__generated__/route-table";
-import type { StripV3 } from "./http-api/strip-prefix";
+import type { SyncPath } from "./sync/__generated__/route-table";
+import type { AccountDataPath } from "./account-data/__generated__/route-table";
+import type { PathAssert, StripV3 } from "./http-api/strip-prefix";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -27,11 +27,11 @@ type AuthedRequestFn = <T>(
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
 
-function sp<P extends StripV3<SyncPathPattern>>(path: P): P {
+function sp<const P extends string>(path: P & PathAssert<P, StripV3<SyncPath>>): P {
     return path;
 }
 
-function adp<P extends StripV3<AccountDataPathPattern>>(path: P): P {
+function adp<const P extends string>(path: P & PathAssert<P, StripV3<AccountDataPath>>): P {
     return path;
 }
 

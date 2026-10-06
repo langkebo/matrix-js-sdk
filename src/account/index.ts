@@ -36,12 +36,12 @@ import { type IdServerUnbindResult } from "../@types/partials";
 import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import type { IContent } from "../models/event";
-import type { AuthPathPattern } from "../auth/__generated__/route-table";
+import type { AuthPath } from "../auth/__generated__/route-table";
 import { normalizeExpiresInMs } from "../auth/normalize-expires";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function ap<P extends StripV3<AuthPathPattern>>(path: P): P {
+function ap<const P extends string>(path: P & PathAssert<P, StripV3<AuthPath>>): P {
     return path;
 }
 

@@ -37,11 +37,11 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { InvalidParamError } from "../common/errors";
-import type { OidcPathPattern } from "./__generated__/route-table";
+import type { OidcPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function op<P extends StripV3<OidcPathPattern>>(path: P): P {
+function op<const P extends string>(path: P & PathAssert<P, StripV3<OidcPath>>): P {
     return path;
 }
 

@@ -20,18 +20,18 @@ limitations under the License.
  * 提取自原 index.ts，被多个 sub-managers 共同消费（避免跨 sub-manager 访问私有方法）。
  */
 
-import type { SpacePathPattern } from "./__generated__/route-table";
+import type { SpacePath } from "./__generated__/route-table";
 import type { Space } from "./types";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
 
-export function sp<P extends StripV3<SpacePathPattern>>(path: P): P {
+export function sp<const P extends string>(path: P & PathAssert<P, StripV3<SpacePath>>): P {
     return path;
 }
 
 export function spacePath(pathTemplate: string, spaceId: string): string {
-    return sp(pathTemplate.replace("$spaceId", encodeURIComponent(spaceId)) as StripV3<SpacePathPattern>);
+    return sp(pathTemplate.replace("$spaceId", encodeURIComponent(spaceId)) as StripV3<SpacePath>);
 }
 
 export function asString(value: unknown): string | undefined {

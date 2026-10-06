@@ -30,17 +30,17 @@ import { MatrixClient } from "../client";
 import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { WidgetPathPattern } from "./__generated__/route-table";
-import type { StripV1, StripV3 } from "../http-api/strip-prefix";
+import type { WidgetPath } from "./__generated__/route-table";
+import type { PathAssert, StripV1, StripV3 } from "../http-api/strip-prefix";
 
 const WIDGET_PREFIX_V1 = "/_matrix/client/v1";
 const WIDGET_PREFIX_V3 = "/_matrix/client/v3";
 
-function wp(path: StripV1<WidgetPathPattern>): string {
+function wp<const P extends string>(path: P & PathAssert<P, StripV1<WidgetPath>>): P {
     return path;
 }
 
-function wpV3(path: StripV3<WidgetPathPattern>): string {
+function wpV3<const P extends string>(path: P & PathAssert<P, StripV3<WidgetPath>>): P {
     return path;
 }
 

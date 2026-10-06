@@ -34,21 +34,21 @@ import { Method } from "../http-api/method";
 import { ClientPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
-import type { E2eePathPattern } from "../e2ee/__generated__/route-table";
+import type { E2eePath } from "../e2ee/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
 /** Strip the v3 Matrix client prefix so bare call-site paths match the ledger. */
 
-/** Slice of `E2eePathPattern` limited to the `/keys/backup/secure` surface. */
-type SecureBackupV3PathPattern = Extract<StripV3<E2eePathPattern>, `/keys/backup/secure${string}`>;
+/** Slice of `E2eePath` limited to the `/keys/backup/secure` surface. */
+type SecureBackupV3Path = Extract<StripV3<E2eePath>, `/keys/backup/secure${string}`>;
 
 /**
  * Compile-time bind from a secure-backup call site to the `/keys/backup/secure`
  * slice of the generated `E2EE_ROUTES` ledger. Identity at runtime; a typo
  * fails type-checking with `TS2345`.
  */
-function sb<P extends SecureBackupV3PathPattern>(path: P): P {
+function sb<const P extends string>(path: P & PathAssert<P, SecureBackupV3Path>): P {
     return path;
 }
 

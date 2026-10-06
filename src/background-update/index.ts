@@ -36,11 +36,11 @@ import type { Body } from "../http-api/interface";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
-import type { BackgroundUpdatePathPattern } from "./__generated__/route-table";
+import type { BackgroundUpdatePath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { StripAdminV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1 } from "../http-api/strip-prefix";
 
-function bu<P extends StripAdminV1<BackgroundUpdatePathPattern>>(path: P): P {
+function bu<const P extends string>(path: P & PathAssert<P, StripAdminV1<BackgroundUpdatePath>>): P {
     return path;
 }
 

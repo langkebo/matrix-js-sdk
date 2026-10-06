@@ -28,14 +28,14 @@ import type { UploadResponse } from "../http-api/interface";
 import type { UploadOpts } from "../http-api/interface";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
-import type { MediaPathPattern } from "./__generated__/route-table";
+import type { MediaPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IMediaConfig } from "../client-internal-types";
-import type { StripMediaPrefix } from "../http-api/strip-prefix";
+import type { PathAssert, StripMediaPrefix } from "../http-api/strip-prefix";
 
-type MediaRelativePathPattern = StripMediaPrefix<MediaPathPattern>;
+type MediaRelativePath = StripMediaPrefix<MediaPath>;
 
-function mp<P extends MediaRelativePathPattern>(path: P): P {
+function mp<const P extends string>(path: P & PathAssert<P, MediaRelativePath>): P {
     return path;
 }
 
@@ -341,7 +341,7 @@ export class MediaManager extends BaseManager {
     ): Promise<{ content_uri: string }> {
         const response = await this.request<{ content_uri: string }>({
             method: Method.Put,
-            path: mp(`/upload/${serverName}/${mediaId}` as MediaRelativePathPattern),
+            path: mp(`/upload/${serverName}/${mediaId}`),
             body: content,
             prefix: MediaPrefix.V3,
             headers: { "Content-Type": contentType },
@@ -381,7 +381,7 @@ export class MediaManager extends BaseManager {
     public async deleteMedia(serverName: string, mediaId: string): Promise<void> {
         await this.request({
             method: Method.Post,
-            path: mp(`/delete/${serverName}/${mediaId}` as MediaRelativePathPattern),
+            path: mp(`/delete/${serverName}/${mediaId}`),
             prefix: MediaPrefix.V1,
         });
     }

@@ -35,12 +35,12 @@ import { type IContent } from "../models/event";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { ValidationError } from "../errors";
-import type { EphemeralPathPattern } from "./__generated__/route-table";
+import type { EphemeralPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { logger } from "../logger";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function ep<P extends StripV3<EphemeralPathPattern>>(path: P): P {
+function ep<const P extends string>(path: P & PathAssert<P, StripV3<EphemeralPath>>): P {
     return path;
 }
 

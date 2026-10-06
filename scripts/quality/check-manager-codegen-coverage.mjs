@@ -31,7 +31,6 @@ const WAIVED_MODULES = {
     feature_flags: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     federation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     key_rotation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    moderation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     reactions: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     delayed_events: {
         reason: "1 route; manager gates on an unstable feature and needs no table",

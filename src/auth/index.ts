@@ -42,15 +42,15 @@ import { type RegisterRequest, type RegisterResponse } from "../@types/registrat
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { LRUCache } from "../utils/lru-cache";
 import { ValidationError } from "../errors";
-import type { AuthPathPattern } from "./__generated__/route-table";
+import type { AuthPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { buildEmailTokenRequestParams, buildMsisdnTokenRequestParams, requestTokenFromEndpoint } from "../client-auth";
 import type { IRequestTokenResponse, IRequestMsisdnTokenResponse } from "../client-api-types";
 import type { IRefreshTokenResponse } from "../@types/auth";
 import { normalizeExpiresInMs } from "./normalize-expires";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function ap<P extends StripV3<AuthPathPattern>>(path: P): P {
+function ap<const P extends string>(path: P & PathAssert<P, StripV3<AuthPath>>): P {
     return path;
 }
 

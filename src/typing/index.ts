@@ -5,11 +5,11 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { Method } from "../http-api";
 import { ClientPrefix } from "../http-api/prefix";
-import type { TypingPathPattern } from "./__generated__/route-table";
+import type { TypingPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 import type { EmptyObject } from "../@types/common";
-import type { StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 /*
 Copyright 2024 The Matrix.org Foundation C.I.C.
 */
@@ -39,7 +39,7 @@ interface BatchTypingResponseBody {
     rooms?: Record<string, TypingResponseBody>;
 }
 
-function tp<P extends StripV3<TypingPathPattern>>(path: P): P {
+function tp<const P extends string>(path: P & PathAssert<P, StripV3<TypingPath>>): P {
     return path;
 }
 

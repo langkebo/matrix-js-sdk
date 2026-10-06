@@ -38,13 +38,13 @@ import { getOrCreateManager, registerManagerClass } from "../client-infra/manage
 import { NotFoundError } from "../errors";
 import { buildPaginationParams } from "../common/pagination";
 import type { IContent } from "../models/event";
-import type { ModulePathPattern } from "./__generated__/route-table";
-import type { StripAdminV1 } from "../http-api/strip-prefix";
+import type { ModulePath } from "./__generated__/route-table";
+import type { PathAssert, StripAdminV1 } from "../http-api/strip-prefix";
 
 /**
  * 模块路径类型安全包装函数，确保只使用 Ledger 注册的有效路径
  */
-function mp<P extends StripAdminV1<ModulePathPattern>>(path: P): P {
+function mp<const P extends string>(path: P & PathAssert<P, StripAdminV1<ModulePath>>): P {
     return path;
 }
 

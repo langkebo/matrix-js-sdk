@@ -971,6 +971,8 @@ type ReplaceDollarVariables<S extends string> = S extends `${infer Head}/${infer
 
 ### 13.12 【勘误·高危】路径模式是「前缀模式」，使契约断言在 `/rooms/**` 等命名空间上退化为恒过（2026-10-06）
 
+> **状态：已修复（2026-10-06）** —— 见 §13.13 的根因修复记录（`PathAssert` 段级精确断言 + 变异自证）。本节保留为**问题陈述与实测证据**，其「处置建议」一节的最初方案（改 `ReplaceBraces` 并全量重生成）**未被采用**，实际手法见 §13.13。
+
 > 本节**推翻 §13.11 的验证结论**，并给出一个影响 **38 个模块中 31 个**的架构级缺陷。
 
 #### 事实（隔离探针，可复现）
@@ -1063,7 +1065,116 @@ type Shape<S extends string> = S extends `${infer A}/${infer B}` ? `${Seg<A>}/${
 
 ---
 
+### 13.13 【已修复】路径断言的段级精确化（`PathAssert`）与变异自证（2026-10-06）
+
+> 本节是 §13.12 的**根因修复记录**。修复方式**与 §13.12「处置建议」不同**：**未**改动 `scripts/sdk-contract-codegen.mjs` 的 `ReplaceBraces`、**未**重生成 `__generated__/**`，而是新增**旁路断言助手** `PathAssert`。理由见下。
+
+#### 实际手法
+
+在 `src/http-api/strip-prefix.ts` 新增段级比较三件套（`PathMatchesRoute` / `MatchesRoute` / `PathAssert`）：
+
+```ts
+/** 契约侧占位 segment（如 `{room_id}`）——接受调用点的任意单段。 */
+type IsPlaceholder<S extends string> = S extends `{${string}}` ? true : false;
+
+/** 双向 `extends` 的精确相等判断（`never` 一律视为不等）。 */
+type Exact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+
+export type PathMatchesRoute<
+    Call extends string,
+    Route extends string,
+> = Call extends `${infer CallHead}/${infer CallTail}`
+    ? Route extends `${infer RouteHead}/${infer RouteTail}`
+        ? IsPlaceholder<RouteHead> extends true
+            ? PathMatchesRoute<CallTail, RouteTail>
+            : Exact<CallHead, RouteHead> extends true
+              ? PathMatchesRoute<CallTail, RouteTail>
+              : false
+        : false
+    : Route extends `${string}/${string}`
+      ? false
+      : IsPlaceholder<Route> extends true
+        ? true
+        : Exact<Call, Route>;
+
+export type MatchesRoute<Call extends string, Routes extends string> = true extends (
+    Routes extends string ? PathMatchesRoute<Call, Routes> : false
+)
+    ? true
+    : false;
+
+export type PathAssert<Call extends string, Routes extends string> =
+    MatchesRoute<Call, Routes> extends true
+        ? unknown
+        : {
+              readonly __invalidPath: Call;
+              readonly __hint: "path does not match any route in this module's contract";
+          };
+```
+
+实现要点（均为实测踩坑结论）：
+
+1. **按 `/` 切段逐段比较**：契约侧占位段（`{...}`）接受任意**单段**；静态段要求双向 `extends` 的**精确相等**；**段数必须一致**。这是消除 `${string}` 前缀吞噬的关键。
+2. **失败态不能用 `never`**：`never extends true` 恒真，会让断言永远通过。必须返回 `true` / `false`，并用 `true extends Results` 判定是否任一契约路由命中。
+3. **失败态用「品牌对象」**（带 `__invalidPath` / `__hint`）：报错信息能直接指出非法路径，优于 `never`。
+4. **断言助手必须写 `<const P extends string>`**：否则字面量被拓宽为 `string`，断言失效。
+
+调用点以「每模块一个私有 `xp` 助手」的形式接入，形如：
+
+```ts
+function tp<const P extends string>(path: P & PathAssert<P, StripV3<TagsPath>>): P {
+    return path;
+}
+```
+
+覆盖 **52 个文件、66 处** `& PathAssert<...>`。（`src/cas/index.ts` 因路径经 `resolvePath` 运行时拼接、无法静态断言，其迁移期遗留的未用助手已移除。）
+
+#### 为什么不用 §13.12 的「归一化 `ReplaceBraces`」方案
+
+- 该方案要改生成器并**重新生成全部 38 个模块**的 `route-table.ts`，会改变公开导出类型（`*PathPattern`）的语义与形态，波及面远超本次改造范围；且 `__generated__/**` **禁止手改**，只能整体重生成。
+- 旁路方案以**零生成物改动**取得同等鉴别力（段数 + 静态段精确匹配），且可**逐模块增量接入、随时回退**，风险可控。
+- 两方案并不冲突：将来若统一到生成器侧，`PathAssert` 可作为过渡期守卫继续生效，或在生成物补齐后退役。
+
+#### 变异自证（关键）
+
+按 §13.12 教训要求，配「必然非法」的反例以排除「守卫恒过」。构造临时探针（验证后**已删除**）：
+
+| 断言                                                                          | 预期     | 实测（`PathAssert`） |
+| ----------------------------------------------------------------------------- | -------- | -------------------- |
+| `/rooms/$roomId`、`/rooms/$roomId/members`、`/rooms/$roomId/members/recent`   | 通过     | 通过 ✅              |
+| `/rooms/$roomId/account_data/m.room.name`、`/rooms/$roomId/state/m.room.name` | 通过     | 通过 ✅              |
+| `/rooms/$roomId/invite_blocklist`（尾段编造，即 §13.12 的 `a2`）              | **报错** | **报错** ✅          |
+| `/rooms/$roomId/totally_made_up_xyz`（凭空，`a3`）                            | **报错** | **报错** ✅          |
+| `/rooms/$roomId/a/b/c/d/e`（多段，`a4`）                                      | **报错** | **报错** ✅          |
+| `/rooms/$roomId/memberz`（**中段**拼错）                                      | **报错** | **报错** ✅          |
+| `/definitely/not/in/contract`（非本模块，`a5`）                               | **报错** | **报错** ✅          |
+
+**对照组**（旧模式，证明修复前确实静默放行）：以 `RoomReplaceBraces<StripV3<RoomPath>>` 作约束时，`a2`/`a3`/`a4` 三条非法路径**编译通过** —— 与 §13.12 实测表一致。
+
+门禁证据：`pnpm contract:codegen:check` → `46 supported module helper sets are in sync`；`pnpm lint` 全链路绿（含 `lint:types` / `quality:type-coverage` / `contract-drift` / `manager-extensions`）；`pnpm test` → **406 文件 / 6124 用例全部通过**。
+
+#### 修复后浮现的真实偏差（正是本缺陷的「价值」）
+
+消除前缀吞噬后，两类此前被掩盖的真实偏差立刻浮现：
+
+1. **discovery 3 条房间别名路由的契约归属缺口**：`GET|PUT|DELETE /directory/room/{room_id}/alias[/{room_alias}]` 后端确实存在（由 `assembly::directory_extra` 注册），但 `scripts/sdk-contract-codegen.mjs` 的 `CONTRACT_MODULE_MAP` 把「装配」映射为 `null`，这些路由因此**未进入任何 SDK 模块的契约表**，无法断言。处置：暂以 `uncheckedAp` 逃生阀显式标注（`grep -rn uncheckedAp src/`），并记录关闭条件 —— 把 `assembly` 映射到合适的 SDK 模块后改回 `ap`。注意这与 `scripts/quality/path-contract-waivers.json` 的 5 条**性质不同**：那 5 条是「SDK 声明了、后端 ledger 里查不到」，本 3 条是「后端有、SDK 契约里查不到」。
+2. **profile 字段段无法泛型化**：`/profile/{user_id}/{field}` 的 `field` 段在契约里是两个字面量 `avatar_url` / `displayname`。原实现用 `encodeURIComponent(field)`，插值退化为 `${string}`，断言无法区分具体字段。处置：按**字面量三元分支**构造路径以保留模板字面量类型；将来新增字段需同步分支。
+
+#### `uncheckedRoomPath` 逃生阀重判（承接 §13.12 末段）
+
+§13.12 要求「逃生阀保留与否应等根因修复后重判」。结论：**仍需保留，但性质改变**。
+
+- 修复后 `roomPath`（对 `StripV3<RoomPath>`）**已具备鉴别力**。
+- `invite_blocklist` 的 4 处调用点归属 `invite_blocklist` 契约（前缀 `/_matrix/vendor/v1`），**不在** `room` 契约内 —— 若改走 `roomPath` 会被**正确地**拒绝，这正是断言的正常工作。
+- 故逃生阀从「因断言恒过而**多余**的逃生阀」变为「表达**跨契约归属缺口**的**显式**逃生阀」。关闭条件：把该路由纳入相应 SDK 模块契约表后改回强类型助手。
+
+#### 残留边界（非缺陷，属表达上限）
+
+契约侧占位段（`{room_id}` 等）接受任意**单段**，因此 `/rooms/<任意单段>` 无法与真实 room id 区分。这是「段级结构匹配」的**固有表达上限**（调用点若也含参数段，两侧都是占位段则天然不可区分），而非前缀吞噬。要再进一步需引入参数值域约束，超出契约表当前表达能力。
+
+---
+
 **审计文档最后更新**: 2026-10-06
 **最近提交**: `93a92c84e` (path-contract 门禁增强 + MSC 编号格式校验)
 **核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
-**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）与 **§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）\*\*
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert` 段级精确断言 + 变异自证；浮现 discovery 契约归属缺口与 profile 字段段问题）\*\*
