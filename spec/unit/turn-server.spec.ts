@@ -81,4 +81,69 @@ describe("TurnServerManager", () => {
             expect(result).toEqual([]);
         });
     });
+
+    // ────────────────────────── voip 兼容端点（assembly::voip_compat） ──────────────────────────
+    // 覆盖 GET /voip/config 与 GET /voip/turnServer/guest。两条路由由后端 assembly.rs 的
+    // voip_compat 路由注册（ledger 归 assembly→auth），断言落在 AuthPath 上。
+
+    describe("getVoipConfig", () => {
+        it("should fetch the VoIP config", async () => {
+            const config = {
+                turn_servers: [{ username: "u", password: "p", uris: ["turn:turn.example.com:3478"], ttl: 86400 }],
+                stun_servers: ["stun:stun.example.com:3478"],
+            };
+            mockClient.http.authedRequest.mockResolvedValue(config);
+
+            const result = await manager.getVoipConfig();
+
+            expect(result).toEqual(config);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/voip/config", undefined, undefined, {
+                prefix: "/_matrix/client/v3",
+            });
+        });
+
+        it("should surface an empty turn_servers array when VoIP is disabled", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ turn_servers: [], stun_servers: null });
+
+            const result = await manager.getVoipConfig();
+
+            expect(result.turn_servers).toEqual([]);
+            expect(result.stun_servers).toBeNull();
+        });
+
+        it("should propagate errors", async () => {
+            mockClient.http.authedRequest.mockRejectedValue(new Error("voip disabled"));
+
+            await expect(manager.getVoipConfig()).rejects.toThrow("voip disabled");
+        });
+    });
+
+    describe("getGuestTurnServerConfig", () => {
+        it("should fetch guest TURN credentials", async () => {
+            const creds = {
+                username: "guest",
+                password: "p",
+                uris: ["turn:turn.example.com:3478"],
+                ttl: 3600,
+            };
+            mockClient.http.authedRequest.mockResolvedValue(creds);
+
+            const result = await manager.getGuestTurnServerConfig();
+
+            expect(result).toEqual(creds);
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/voip/turnServer/guest",
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("should propagate errors (404 when TURN is not configured)", async () => {
+            mockClient.http.authedRequest.mockRejectedValue(new Error("not configured"));
+
+            await expect(manager.getGuestTurnServerConfig()).rejects.toThrow("not configured");
+        });
+    });
 });
