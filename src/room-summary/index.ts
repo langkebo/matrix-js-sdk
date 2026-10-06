@@ -72,6 +72,7 @@ export type {
     RoomInvitesResult,
     RoomKeyClaimResult,
     RoomKeyCountResult,
+    RoomKeysResult,
     RoomKeysVersionResult,
     RoomMembersRecentResult,
     RoomReceiptsResult,
@@ -165,6 +166,7 @@ import type {
     RoomInvitesResult,
     RoomKeyClaimResult,
     RoomKeyCountResult,
+    RoomKeysResult,
     RoomKeysVersionResult,
     RoomMembersRecentResult,
     RoomReceiptsResult,
@@ -790,6 +792,16 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     async getRoomKeyCount(roomId: string): Promise<RoomKeyCountResult> {
         return this.keys.getRoomKeyCount(roomId);
+    }
+
+    /**
+     * 获取房间密钥列表（`GET /rooms/{room_id}/keys`）。
+     *
+     * @param roomId - 房间 ID
+     * @returns 该房间当前备份版本下的逐条会话密钥
+     */
+    async getRoomKeys(roomId: string): Promise<RoomKeysResult> {
+        return this.keys.getRoomKeys(roomId);
     }
 
     async getRoomKeysVersion(roomId: string): Promise<RoomKeysVersionResult> {

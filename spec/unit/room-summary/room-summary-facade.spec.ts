@@ -410,6 +410,14 @@ describe("RoomSummaryManager 门面层", () => {
 
             expect(spy).toHaveBeenCalledWith("!r:example.com", false, true);
         });
+
+        it("getRoomKeys 委托给 keys（房间密钥列表，GET /rooms/{room_id}/keys）", async () => {
+            const spy = vi.spyOn(manager.keys, "getRoomKeys").mockResolvedValue({ room_id: "!r:example.com" });
+
+            await manager.getRoomKeys("!r:example.com");
+
+            expect(spy).toHaveBeenCalledWith("!r:example.com");
+        });
     });
 
     // ========================================================================

@@ -832,6 +832,19 @@ describe("RoomSummaryManager", () => {
             expect(result.count).toBe(3);
         });
 
+        it("should get room keys list via v3 endpoint", async () => {
+            authedRequest.mockResolvedValueOnce({ room_id: "!room:example.com", version: "0", keys: [] });
+            const result = await summaryManager.getRoomKeys("!room:example.com");
+            expect(authedRequest).toHaveBeenCalledWith(
+                Method.Get,
+                `/rooms/${encodeURIComponent("!room:example.com")}/keys`,
+                undefined,
+                undefined,
+                { prefix: ClientPrefix.V3 },
+            );
+            expect(result.keys).toEqual([]);
+        });
+
         it("should get room keys version via v3 endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ version: "v1" });
             const result = await summaryManager.getRoomKeysVersion("!room:example.com");

@@ -23,6 +23,7 @@ import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-s
 import type {
     RoomKeyClaimResult,
     RoomKeyCountResult,
+    RoomKeysResult,
     RoomKeysVersionResult,
     RoomForwardKeysResult,
     EncryptedEventsResult,
@@ -79,6 +80,25 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
                 this.roomPath("/rooms/$roomId/keys/count", roomId),
             );
         }, "getRoomKeyCount");
+    }
+
+    /**
+     * 获取房间密钥列表（裸端点）
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{room_id}/keys`。
+     *
+     * 与同族的 `keys/count`（计数）、`keys/version`（版本）、`keys/claim`（申领）互补：
+     * 本方法返回该房间当前备份版本下的**逐条会话密钥**。房间不存在时后端返回 404；
+     * 该用户尚无备份时返回 `version: "0"` 且 `keys` 为空数组。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间密钥列表
+     */
+    public async getRoomKeys(roomId: string): Promise<RoomKeysResult> {
+        this.validateRoomId(roomId);
+        return await this.withRetry(async () => {
+            return await this.requestV3<RoomKeysResult>(Method.Get, this.roomPath("/rooms/$roomId/keys", roomId));
+        }, "getRoomKeys");
     }
 
     /**

@@ -526,6 +526,30 @@ export interface RoomKeyCountResult {
     unused_fallback_key_types?: string[];
 }
 
+/** 房间密钥列表中的单条记录（后端 `room_key_to_json`） */
+export interface RoomKeyEntry {
+    /** Session ID of the Megolm session */
+    session_id: string;
+    /** Index of the first message encrypted with this session */
+    first_message_index?: number;
+    /** How many times this session was forwarded */
+    forwarded_count?: number;
+    /** Whether the session was verified */
+    is_verified?: boolean;
+    /** Algorithm-specific opaque session data */
+    session_data?: Record<string, unknown>;
+}
+
+/** GET /_matrix/client/v3/rooms/{room_id}/keys */
+export interface RoomKeysResult {
+    /** The room ID these keys belong to */
+    room_id?: string;
+    /** Backup version the keys were read from（无备份时为 `"0"`） */
+    version?: string;
+    /** The room's backed-up Megolm sessions */
+    keys?: RoomKeyEntry[];
+}
+
 /** Key backup version auth data — structure varies by algorithm */
 export interface KeyBackupAuthData {
     /** The backup algorithm (e.g. "m.megolm_backup.v1.curve25519-aes-sha2") */
