@@ -4,7 +4,7 @@
  *
  * Module:        Auth / Account / Discovery 契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       96 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       110 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `auth` module (mirrored from the backend contract). */
@@ -105,6 +105,20 @@ export const AUTH_ROUTES = [
     { method: "GET", path: "/_matrix/server_version" },
     { method: "GET", path: "/_matrix/static/client/login/" },
     { method: "GET", path: "/health" },
+    { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3720/account_status" },
+    { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status" },
+    { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events" },
+    { method: "GET", path: "/_matrix/client/v1/auth_metadata" },
+    { method: "POST", path: "/_matrix/client/v1/login/qr_token" },
+    { method: "GET", path: "/_matrix/client/v3/auth/{auth_type}/fallback/web" },
+    { method: "GET", path: "/_matrix/client/v3/directory/room/{room_id}/alias" },
+    { method: "DELETE", path: "/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}" },
+    { method: "PUT", path: "/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}" },
+    { method: "DELETE", path: "/_matrix/client/v3/profile/{user_id}/{key_name}" },
+    { method: "GET", path: "/_matrix/client/v3/profile/{user_id}/{key_name}" },
+    { method: "PUT", path: "/_matrix/client/v3/profile/{user_id}/{key_name}" },
+    { method: "GET", path: "/_matrix/client/v3/upload/provider" },
+    { method: "POST", path: "/_matrix/client/v3/upload/token" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `AUTH_ROUTES`. */

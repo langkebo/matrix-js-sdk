@@ -71,6 +71,22 @@ export const LEDGER_MODULE_TO_SDK_DIR = {
     background_update: "background-update",
     msc4108_rendezvous: "rendezvous",
     thirdparty: "third-party",
+    // 后端 `assembly` 是**核心 router 桶**（`assembly::create_router` / `*_compat`，
+    // 104 条：login/logout/register/versions/capabilities/account/password/profile/
+    // directory/well-known/…），不是 compat 重复集（与其它模块 manifest 差集为 104/104）。
+    // 该文档在 `ROUTE_CONTRACT.md` 里按源文件分组，`装配` 无独立章节 ⇒ 走不了 doc 通道；
+    // 但 ledger 是权威路由源，`loadLedgerEntriesForSdkDir` 会按本映射取到它。
+    //
+    // 为什么落到 `auth`：SDK 侧 `src/auth/__generated__/route-table.ts` 现有 96 条中
+    // **90 条本身就是 assembly 路由**（历史冻结条目），即「SDK auth 表 = 后端 assembly 桶」
+    // 这一事实早已存在，只是没写进映射。显式化后：
+    //   - 缺失的 14 条（含 discovery 需要的 `/directory/room/{room_id}/alias[/{room_alias}]`
+    //     与 profile 需要的 `/profile/{user_id}/{key_name}`）自动由 ledger 补齐；
+    //   - 覆盖门禁把 `assembly` 计入 `auth` 目录，不再需要为它单独开 waiver。
+    // 代价（已知、可接受）：auth 的断言面会多接受约 9 条核心路由（voip/_health/upload 等，
+    // 均为后端真实路由，只是不属 auth 业务域）。若日后要收紧归属，应改为生成独立的
+    // `src/assembly/__generated__/` 契约表并按需 union。
+    assembly: "auth",
 };
 
 /** Ledger 模块名 → SDK 目录。 */
