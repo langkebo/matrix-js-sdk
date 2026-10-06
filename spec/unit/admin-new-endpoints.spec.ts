@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { AdminManager } from "../../src/admin/index";
-import { ValidationError } from "../../src/errors";
+import { NotFoundError, ValidationError } from "../../src/errors";
 import { MatrixError } from "../../src/http-api/errors";
 
 describe("AdminManager extended endpoints (retention/audit/feature-flags/federation)", () => {
@@ -203,7 +203,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(result).toEqual([{ server_name: "example.org" }]);
         });
 
-        it("getFederationAdmissionList falls back to /v1/federation/admissions on 404", async () => {
+        it("getFederationAdmissionList does NOT fall back on 404", async () => {
+            // `/federation/admissions` 回退已删除：后端从未注册该路径，留着只会把
+            // 一个 404 变成另一个 404（由 quality:path-contract 门禁发现）。
             req.mockRejectedValueOnce(
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
@@ -211,11 +213,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
-            req.mockResolvedValueOnce({ admissions: [{ server_name: "legacy.example" }] });
-            const result = await manager.getFederationAdmissionList();
+            await expect(manager.getFederationAdmissionList()).rejects.toThrow(NotFoundError);
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][1]).toBe("/federation/pending");
-            expect(req.mock.calls[1][1]).toBe("/federation/admissions");
-            expect(result).toEqual([{ server_name: "legacy.example" }]);
         });
 
         it("getPendingFederationServers uses /v1/federation/pending with pagination", async () => {
@@ -226,7 +226,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "20" });
         });
 
-        it("getPendingFederationServers falls back to /v1/federation/pending_servers on 404", async () => {
+        it("getPendingFederationServers does NOT fall back on 404", async () => {
+            // `/federation/pending_servers` 回退已删除：后端只注册 `/federation/pending`。
             req.mockRejectedValueOnce(
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
@@ -234,11 +235,10 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
-            req.mockResolvedValueOnce({ pending_servers: [], total: 0 });
-            await manager.getPendingFederationServers("1", 5);
+            await expect(manager.getPendingFederationServers("1", 5)).rejects.toThrow(NotFoundError);
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][1]).toBe("/federation/pending");
-            expect(req.mock.calls[1][1]).toBe("/federation/pending_servers");
-            expect(req.mock.calls[1][2]).toEqual({ from: "1", limit: "5" });
+            expect(req.mock.calls[0][2]).toEqual({ from: "1", limit: "5" });
         });
     });
 
@@ -294,8 +294,12 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][3]).toEqual({ is_enabled: true });
         });
 
-        it("getModuleLogs applies limit+from query", async () => {
+        it("getModuleLogs uses /modules/logs/{module_name} and applies limit+from query", async () => {
             await manager.getModuleLogs("mod1", { limit: 20, from: 3 });
+            // 后端只注册 `GET /_synapse/admin/v1/modules/logs/{module_name}`，
+            // 旧的 `/modules/{module_name}/logs` 段序错误，已修正。
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe("/modules/logs/mod1");
             expect(req.mock.calls[0][2]).toEqual({ limit: "20", from: "3" });
         });
 
@@ -408,7 +412,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[1][3]).toEqual({ reason: "maintenance-window" });
         });
 
-        it("getServerHealth prefers /v1/health and falls back on 404", async () => {
+        it("getServerHealth uses /v1/health and does NOT fall back on 404", async () => {
+            // `/server_health` 回退已删除：后端只注册 `GET /_synapse/admin/v1/health`。
             req.mockRejectedValueOnce(
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
@@ -416,32 +421,30 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
-            req.mockResolvedValueOnce({ healthy: true });
-            const result = await manager.getServerHealth();
+            await expect(manager.getServerHealth()).rejects.toThrow(NotFoundError);
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][1]).toBe("/health");
-            expect(req.mock.calls[1][1]).toBe("/server_health");
-            expect(result).toEqual({ healthy: true });
         });
 
-        it("getServerInfo prefers /v1/info and falls back on 404", async () => {
-            req.mockRejectedValueOnce(
-                new MatrixError({
-                    errcode: "M_NOT_FOUND",
-                    httpStatus: 404,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any),
-            );
+        it("getServerInfo uses the UNVERSIONED prefix (/_synapse/admin + /info)", async () => {
+            // 后端注册的是**无 v1 段**的 `GET /_synapse/admin/info`。
+            // 若走 adminRequest（前缀恒为 /_synapse/admin/v1），会拼成
+            // `/_synapse/admin/v1/info` → 必 404。故必须走 v2Request。
+            // `/server_info` 回退也已删除（后端从未注册）。
             req.mockResolvedValueOnce({ server_name: "example.org" });
             const result = await manager.getServerInfo();
+            expect(req.mock.calls).toHaveLength(1);
+            expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/info");
-            expect(req.mock.calls[1][1]).toBe("/server_info");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
             expect(result).toEqual({ server_name: "example.org" });
         });
 
-        it("getAdminInfo uses GET /info", async () => {
+        it("getAdminInfo uses the UNVERSIONED prefix (/_synapse/admin + /info)", async () => {
             await manager.getAdminInfo();
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/info");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin" });
         });
     });
 
@@ -650,7 +653,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     });
 
     describe("device and rate-limit compatibility", () => {
-        it("getUserDevices prefers /v1/users/{user_id}/devices and falls back to /v2 on 404", async () => {
+        it("getUserDevices uses /v1/users/{user_id}/devices and does NOT fall back on 404", async () => {
+            // `/v2/users/{id}/devices` 回退已删除：后端设备端点只注册在 v1 命名空间下。
             req.mockRejectedValueOnce(
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
@@ -658,13 +662,10 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
-            req.mockResolvedValueOnce({ devices: [{ device_id: "DEV1" }] });
-            const devices = await manager.getUserDevices("@u:x");
+            await expect(manager.getUserDevices("@u:x")).rejects.toThrow(NotFoundError);
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/devices");
-            expect(req.mock.calls[1][0]).toBe("GET");
-            expect(req.mock.calls[1][1]).toBe("/v2/users/%40u%3Ax/devices");
-            expect(devices).toEqual([{ device_id: "DEV1" }]);
         });
 
         it("deleteUserDevice falls back to POST /devices/{device_id}/delete on 404", async () => {
@@ -736,7 +737,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][1]).toBe("/media/quota");
         });
 
-        it("getServerStats prefers /v1/statistics and falls back to /v1/server_stats on 404", async () => {
+        it("getServerStats uses /v1/statistics and does NOT fall back on 404", async () => {
+            // `/server_stats` 回退已删除：后端只注册 `GET /_synapse/admin/v1/statistics`。
             req.mockRejectedValueOnce(
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
@@ -744,11 +746,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
-            req.mockResolvedValueOnce({ total_users: 1, total_rooms: 2 });
-            const stats = await manager.getServerStats();
+            await expect(manager.getServerStats()).rejects.toThrow(NotFoundError);
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][1]).toBe("/statistics");
-            expect(req.mock.calls[1][1]).toBe("/server_stats");
-            expect(stats.total_users).toBe(1);
         });
 
         it("getRoomStatsByRoom uses GET /v1/room_stats/{room_id}", async () => {
@@ -945,7 +945,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][1]).toBe("/registration_tokens/token-1");
         });
 
-        it("updateRegistrationToken prefers POST and falls back to PUT on 404", async () => {
+        it("updateRegistrationToken uses POST and does NOT fall back to PUT on 404", async () => {
+            // 后端只注册 `POST /_synapse/admin/v1/registration_tokens/{token}`，
+            // 旧实现的 `PUT` 回退是死分支，已删除 —— 404 必须直接抛出。
             req.mockRejectedValueOnce(
                 new MatrixError({
                     errcode: "M_NOT_FOUND",
@@ -953,12 +955,12 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any),
             );
-            req.mockResolvedValueOnce({});
-            await manager.updateRegistrationToken("token-1", { uses_allowed: 5 });
+            await expect(manager.updateRegistrationToken("token-1", { uses_allowed: 5 })).rejects.toThrow(
+                NotFoundError,
+            );
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/registration_tokens/token-1");
-            expect(req.mock.calls[1][0]).toBe("PUT");
-            expect(req.mock.calls[1][1]).toBe("/registration_tokens/token-1");
         });
     });
 

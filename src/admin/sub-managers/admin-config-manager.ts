@@ -15,8 +15,7 @@ limitations under the License.
 */
 
 import { Method } from "../../http-api/method";
-import { MatrixError } from "../../http-api/errors";
-import { NotFoundError, ValidationError } from "../../errors";
+import { ValidationError } from "../../errors";
 import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams } from "../utils";
@@ -214,7 +213,9 @@ export class AdminConfigManager extends AdminBaseManager {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);
-        return await this.adminRequest(Method.Get, `/modules/${encodeURIComponent(moduleId)}/logs`, query);
+        // 后端注册的是 `GET /modules/logs/{module_name}`（`logs` 在**前**、
+        // module 名在后），旧实现写成 `/modules/{id}/logs` 把两段顺序写反了。
+        return await this.adminRequest(Method.Get, `/modules/logs/${encodeURIComponent(moduleId)}`, query);
     }
 
     async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<ThirdPartyRuleCheckResult> {
@@ -307,16 +308,9 @@ export class AdminConfigManager extends AdminBaseManager {
         payload: { uses_allowed?: number; expiry_ts?: number },
     ): Promise<void> {
         if (!token) throw new ValidationError("Token is required");
-        try {
-            await this.adminRequest(Method.Post, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Put, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
-                return;
-            }
-            throw e;
-        }
+        // 后端只注册 `POST /registration_tokens/{token}`（以及 DELETE/GET）。
+        // 旧实现在 404 时回退到 `PUT` 同一路径，而后端从未注册 PUT —— 死分支，已移除。
+        await this.adminRequest(Method.Post, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
     }
 
     async getRegistrationToken(token: string): Promise<RegistrationToken> {

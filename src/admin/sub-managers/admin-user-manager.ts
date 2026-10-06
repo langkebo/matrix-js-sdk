@@ -269,23 +269,12 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getUserDevices(userId: string): Promise<DeviceInfo[]> {
         AdminValidators.validateUserId(userId);
-        let response: { devices: DeviceInfo[] };
-        try {
-            response = await this.adminRequest<{ devices: DeviceInfo[] }>(
-                Method.Get,
-                `/users/${encodeURIComponent(userId)}/devices`,
-            );
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                response = await this.v2Request<{ devices: DeviceInfo[] }>(
-                    Method.Get,
-                    `/v2/users/${encodeURIComponent(userId)}/devices`,
-                );
-            } else {
-                throw e;
-            }
-        }
+        // `v2Request GET /v2/users/{id}/devices` 回退分支已删除：后端设备端点只注册在
+        // `/_synapse/admin/v1/users/{user_id}/devices`，v2 命名空间下没有 devices。
+        const response = await this.adminRequest<{ devices: DeviceInfo[] }>(
+            Method.Get,
+            `/users/${encodeURIComponent(userId)}/devices`,
+        );
         return response.devices || [];
     }
 

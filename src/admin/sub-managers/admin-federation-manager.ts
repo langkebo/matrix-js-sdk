@@ -60,11 +60,18 @@ export class AdminFederationManager extends AdminBaseManager {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
-        const body: { server_name: string; reason?: string } = { server_name: serverName };
-        if (reason) {
-            body.reason = reason;
-        }
-        await this.adminRequest(Method.Post, "/federation/blacklist", undefined, body);
+        // 后端注册的是 `POST /_synapse/admin/v1/federation/blacklist/{server_name}`
+        // （synapse-web/src/routes/admin/federation.rs），server_name 走**路径参数**、
+        // 没有请求体（handler 只有 `Path(server_name)`，无 `Json` 提取器）。
+        // 旧实现打裸 `/federation/blacklist` 且把 server_name 放在 body 里 → 必 404。
+        // 后端 handler 只有 `Path(server_name)`、没有 body 提取器，故这里附带的 body 会被
+        // 忽略（`reason` 保留在签名中以兼容调用方与将来扩展）。
+        await this.adminRequest(
+            Method.Post,
+            `/federation/blacklist/${encodeURIComponent(serverName)}`,
+            undefined,
+            reason ? { reason } : undefined,
+        );
     }
 
     /**
@@ -239,23 +246,13 @@ export class AdminFederationManager extends AdminBaseManager {
      * @returns 联邦准入列表
      */
     async getFederationAdmissionList(): Promise<FederationAdmissionResult[]> {
-        try {
-            const response = await this.adminRequest<{
-                admissions?: FederationAdmissionResult[];
-                pending?: FederationAdmissionResult[];
-            }>(Method.Get, "/federation/pending");
-            return response.admissions || response.pending || [];
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                const fallback = await this.adminRequest<{ admissions?: FederationAdmissionResult[] }>(
-                    Method.Get,
-                    "/federation/admissions",
-                );
-                return fallback.admissions || [];
-            }
-            throw e;
-        }
+        // `/federation/admissions` 回退分支已删除：后端只注册
+        // `GET /_synapse/admin/v1/federation/pending`，从未注册 `/federation/admissions`。
+        const response = await this.adminRequest<{
+            admissions?: FederationAdmissionResult[];
+            pending?: FederationAdmissionResult[];
+        }>(Method.Get, "/federation/pending");
+        return response.admissions || response.pending || [];
     }
 
     /**
@@ -266,20 +263,9 @@ export class AdminFederationManager extends AdminBaseManager {
      * @returns 待处理联邦服务器列表
      */
     async getPendingFederationServers(from?: string, limit?: number): Promise<PendingFederationList> {
+        // `/federation/pending_servers` 回退分支已删除：后端只注册 `/federation/pending`。
         const queryParams = buildPaginationParams(limit, from);
-        try {
-            return await this.adminRequest<PendingFederationList>(Method.Get, "/federation/pending", queryParams);
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest<PendingFederationList>(
-                    Method.Get,
-                    "/federation/pending_servers",
-                    queryParams,
-                );
-            }
-            throw e;
-        }
+        return await this.adminRequest<PendingFederationList>(Method.Get, "/federation/pending", queryParams);
     }
 
     /**

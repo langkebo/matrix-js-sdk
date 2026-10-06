@@ -79,10 +79,12 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
         }
 
         try {
+            // 后端：`POST /_synapse/admin/v1/federation/blacklist/{server_name}`，server_name 走路径参数。
+            // 旧的 `/federation/blacklist/add` 是**不存在的路径**（由 quality:path-contract 门禁发现）。
             await this.request({
                 method: Method.Post,
-                path: "/federation/blacklist/add",
-                body: { server_name: serverName, reason },
+                path: `/federation/blacklist/${encodeURIComponent(serverName)}`,
+                body: { reason },
                 prefix: AdminPrefix.V1,
             });
 
@@ -108,10 +110,11 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
         }
 
         try {
+            // 后端：`DELETE /_synapse/admin/v1/federation/blacklist/{server_name}`。
+            // 旧的 `POST /federation/blacklist/remove` **方法错且路径错**。
             await this.request({
-                method: Method.Post,
-                path: "/federation/blacklist/remove",
-                body: { server_name: serverName },
+                method: Method.Delete,
+                path: `/federation/blacklist/${encodeURIComponent(serverName)}`,
                 prefix: AdminPrefix.V1,
             });
 

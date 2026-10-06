@@ -82,9 +82,14 @@ export abstract class AdminBaseManager<
     }
 
     /**
-     * Admin v2 请求（/_synapse/admin 前缀，无版本号）
+     * Admin 无版本段请求（前缀 `/_synapse/admin`，注意**不带** `/v1`）
      *
-     * 用于 v2 API 端点，如 GET /_synapse/admin/v2/users
+     * 用于两类端点：
+     * 1. v2 API，如 `GET /_synapse/admin/v2/users`（path 里自带 `/v2`）；
+     * 2. 后端注册在 `/_synapse/admin` 根下、**无版本段**的端点，
+     *    典型是 `GET /_synapse/admin/info`（见 `admin-server-manager.getServerInfo` /
+     *    `getAdminInfo`）。这类路径若用 `adminRequest`（前缀 `/_synapse/admin/v1`）
+     *    会拼成 `/_synapse/admin/v1/info` → 必 404。
      */
     protected async v2Request<T>(
         method: Method,

@@ -41,11 +41,13 @@ describe("FederationManager", () => {
     it("should add a server to the blacklist", async () => {
         await federationManager.blacklist.addToBlacklist("server2.com", "test reason");
 
+        // 后端注册的是 `POST /_synapse/admin/v1/federation/blacklist/{server_name}`
+        // （server_name 走路径参数）；旧的 `/federation/blacklist/add` 是不存在的路径。
         expect(mockAuthedRequest).toHaveBeenCalledWith(
             Method.Post,
-            "/federation/blacklist/add",
+            "/federation/blacklist/server2.com",
             undefined,
-            { server_name: "server2.com", reason: "test reason" },
+            { reason: "test reason" },
             { prefix: AdminPrefix.V1 },
         );
         expect(federationManager.blacklist.getCachedBlacklist()).toEqual([
@@ -64,11 +66,13 @@ describe("FederationManager", () => {
 
         await federationManager.blacklist.removeFromBlacklist("server3.com");
 
+        // 后端是 `DELETE .../federation/blacklist/{server_name}`；
+        // 旧的 `POST /federation/blacklist/remove` 方法错且路径错。
         expect(mockAuthedRequest).toHaveBeenCalledWith(
-            Method.Post,
-            "/federation/blacklist/remove",
+            Method.Delete,
+            "/federation/blacklist/server3.com",
             undefined,
-            { server_name: "server3.com" },
+            undefined,
             { prefix: AdminPrefix.V1 },
         );
         expect(federationManager.blacklist.getCachedBlacklist()).toEqual([]);

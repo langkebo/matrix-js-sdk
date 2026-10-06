@@ -78,17 +78,10 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 服务器统计信息
      */
     async getServerStats(): Promise<ServerStats> {
-        let stats: ServerStats;
-        try {
-            stats = await this.adminRequest<ServerStats>(Method.Get, "/statistics");
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                stats = await this.adminRequest<ServerStats>(Method.Get, "/server_stats");
-            } else {
-                throw e;
-            }
-        }
+        // 后端只注册 `GET /_synapse/admin/v1/statistics`。
+        // 早期版本在 404 时会回退到 `/server_stats`，而后端从未注册该路径 —— 那是条死分支
+        // （由 `quality:path-contract` 门禁发现），已移除。
+        const stats = await this.adminRequest<ServerStats>(Method.Get, "/statistics");
         this.serverStats = stats;
         this.emit(AdminServerEvent.ServerStatsUpdated, stats);
         return stats;
@@ -118,15 +111,8 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 服务器健康检查结果
      */
     async getServerHealth(): Promise<ServerHealth> {
-        try {
-            return await this.adminRequest<ServerHealth>(Method.Get, "/health");
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest<ServerHealth>(Method.Get, "/server_health");
-            }
-            throw e;
-        }
+        // `/server_health` 回退分支已删除：后端从未注册该路径（只注册 `/health`）。
+        return await this.adminRequest<ServerHealth>(Method.Get, "/health");
     }
 
     /**
@@ -135,15 +121,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 服务器信息
      */
     async getServerInfo(): Promise<ServerInfo> {
-        try {
-            return await this.adminRequest<ServerInfo>(Method.Get, "/info");
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest<ServerInfo>(Method.Get, "/server_info");
-            }
-            throw e;
-        }
+        // 后端注册的是**无 `/v1` 段**的 `GET /_synapse/admin/info`
+        // （synapse-web/src/routes/admin/mod.rs）。adminRequest 的前缀固定为
+        // `/_synapse/admin/v1`，打出去会变成 `/_synapse/admin/v1/info` → 必 404。
+        // 故此处必须走 v2Request（前缀 `/_synapse/admin`）。
+        // 旧实现在 404 时回退到 `/server_info`，该路径后端同样从未注册 —— 一并移除。
+        return await this.v2Request<ServerInfo>(Method.Get, "/info");
     }
 
     /**
@@ -164,8 +147,14 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         delete_old_events?: boolean;
         delete_old_rooms?: boolean;
         delete_old_users?: boolean;
+        /** 后端唯一消费的参数：只清理早于「现在 - min_age_ms」的数据。 */
+        min_age_ms?: number;
     }): Promise<AdminCleanupResponse> {
-        return await this.adminRequest<AdminCleanupResponse>(Method.Post, "/cleanup", undefined, options || {});
+        // 后端注册的是 `/cleanup/all`、`/cleanup/rooms`、`/cleanup/tokens`
+        // （synapse-web/src/routes/admin/cleanup.rs），**没有**裸 `/cleanup`。
+        // 本方法语义上做全量清理，故走 `/cleanup/all`。
+        // 注：后端当前只读 body 里的 `min_age_ms`，其余字段会被忽略（保留以备后端扩展）。
+        return await this.adminRequest<AdminCleanupResponse>(Method.Post, "/cleanup/all", undefined, options || {});
     }
 
     /**
@@ -221,7 +210,9 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         if (arg3) {
             body.target_users = arg3;
         }
-        return await this.adminRequest<{ event_id?: string }>(Method.Post, "/server_notices", {}, body);
+        // 后端发送服务器通知的端点是 `POST /_synapse/admin/v1/send_server_notice`
+        // —— 与上面对象分支走的是同一条（`/server_notices` 只注册了 GET/DELETE）。
+        return await this.adminRequest<{ event_id?: string }>(Method.Post, "/send_server_notice", {}, body);
     }
 
     /**
@@ -349,18 +340,11 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 服务器配置
      */
     async getServerConfig(throwOnError = true): Promise<AdminServerConfig> {
+        // `/server_config` 回退分支已删除：后端只注册 `GET /_synapse/admin/v1/config`，
+        // 从未注册 `/server_config`（死分支，由 quality:path-contract 门禁发现）。
         try {
             return await this.adminRequest(Method.Get, "/config");
         } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                try {
-                    return await this.adminRequest(Method.Get, "/server_config");
-                } catch (fallbackErr) {
-                    if (!throwOnError) return {} as AdminServerConfig;
-                    throw fallbackErr;
-                }
-            }
             if (!throwOnError) return {} as AdminServerConfig;
             throw e;
         }
@@ -372,7 +356,9 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 管理员信息
      */
     async getAdminInfo(): Promise<AdminInfoResponse> {
-        return await this.adminRequest(Method.Get, "/info");
+        // 与 getServerInfo 同理：后端是**无 `/v1` 段**的 `GET /_synapse/admin/info`，
+        // 必须走 v2Request（前缀 `/_synapse/admin`）。
+        return await this.v2Request(Method.Get, "/info");
     }
 
     /**
