@@ -474,12 +474,41 @@ describe("AdminManager - Extended Tests", () => {
             expect(mockClient.http.authedRequest).toHaveBeenCalled();
         });
 
-        it("should quarantine media successfully", async () => {
+        it("should quarantine media via the server_name-scoped path", async () => {
             mockClient.http.authedRequest.mockResolvedValue({});
 
-            await adminManager.quarantineMedia("media123");
+            await adminManager.quarantineMedia("example.org", "media123");
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            // 回归守卫：后端只注册 `POST /media/quarantine/{server_name}/{media_id}`；
+            // 上游废弃的 `POST /media/{media_id}/quarantine` 在本后端会 404。
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/media/quarantine/example.org/media123",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should unquarantine media via the server_name-scoped path", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({});
+
+            await adminManager.unquarantineMedia("example.org", "media123");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/media/unquarantine/example.org/media123",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should reject media quarantine calls with missing arguments", async () => {
+            await expect(adminManager.quarantineMedia("", "media123")).rejects.toThrow("Server name is required");
+            await expect(adminManager.quarantineMedia("example.org", "")).rejects.toThrow("Media ID is required");
+            await expect(adminManager.unquarantineMedia("", "media123")).rejects.toThrow("Server name is required");
+            await expect(adminManager.unquarantineMedia("example.org", "")).rejects.toThrow("Media ID is required");
         });
 
         it("should purge media cache successfully", async () => {

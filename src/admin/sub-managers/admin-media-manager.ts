@@ -96,25 +96,51 @@ export class AdminMediaManager extends AdminBaseManager {
     /**
      * 隔离媒体
      *
+     * 对应 `POST /_synapse/admin/v1/media/quarantine/{server_name}/{media_id}`。
+     *
+     * **路径形状（重要）**：本后端（synapse-rust `admin/media.rs`）只注册**带 `server_name` 段**的形态。
+     * 上游 Synapse 早期废弃的 `POST /media/{media_id}/quarantine` **本后端未注册**——已用
+     * `docs/api-contract/generated/route-manifest.all.json`（1159 条、漂移 0）逐条核验，
+     * `POST /media/{media_id}/quarantine` 会得到 404。故本方法必须同时给出 `serverName` 与 `mediaId`。
+     *
+     * @param serverName - 媒体所属服务器名（本地媒体用 `client.getDomain()`）
      * @param mediaId - 媒体 ID
      */
-    async quarantineMedia(mediaId: string): Promise<void> {
+    async quarantineMedia(serverName: string, mediaId: string): Promise<void> {
+        if (!serverName) {
+            throw new ValidationError("Server name is required");
+        }
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        await this.adminRequest(Method.Post, `/media/${encodeURIComponent(mediaId)}/quarantine`);
+        await this.adminRequest(
+            Method.Post,
+            `/media/quarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+        );
     }
 
     /**
      * 取消隔离媒体
      *
+     * 对应 `POST /_synapse/admin/v1/media/unquarantine/{server_name}/{media_id}`。
+     *
+     * 路径形状说明同 {@link quarantineMedia}：后端只注册带 `server_name` 段的形态，
+     * 上游废弃的 `POST /media/{media_id}/unquarantine` 在本后端**未注册**。
+     *
+     * @param serverName - 媒体所属服务器名（本地媒体用 `client.getDomain()`）
      * @param mediaId - 媒体 ID
      */
-    async unquarantineMedia(mediaId: string): Promise<void> {
+    async unquarantineMedia(serverName: string, mediaId: string): Promise<void> {
+        if (!serverName) {
+            throw new ValidationError("Server name is required");
+        }
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        await this.adminRequest(Method.Post, `/media/${encodeURIComponent(mediaId)}/unquarantine`);
+        await this.adminRequest(
+            Method.Post,
+            `/media/unquarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+        );
     }
 
     /**

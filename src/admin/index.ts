@@ -514,8 +514,9 @@ export interface AdminManager {
     getMediaInfo(mediaId: string): Promise<MediaInfo>;
     deleteMedia(mediaId: string): Promise<void>;
     getMediaQuota(): Promise<MediaQuotaResponse>;
-    quarantineMedia(mediaId: string): Promise<void>;
-    unquarantineMedia(mediaId: string): Promise<void>;
+    /** 隔离媒体（后端仅注册带 server_name 段的形态，签名见 AdminMediaManager.quarantineMedia） */
+    quarantineMedia(serverName: string, mediaId: string): Promise<void>;
+    unquarantineMedia(serverName: string, mediaId: string): Promise<void>;
     purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }>;
     /** 获取媒体隔离变更历史（详见 AdminMediaManager.getMediaQuarantineChanges） */
     getMediaQuarantineChanges(
