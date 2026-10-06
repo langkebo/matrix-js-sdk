@@ -72,4 +72,93 @@ describe("NotificationsManager", () => {
     it("should throw error if notificationId is missing in ackNotification", async () => {
         await expect(manager.ackNotification("")).rejects.toThrow("notificationId is required");
     });
+
+    // ────────────────────────── push_notification 模块 ──────────────────────────
+    // 覆盖 GET/POST /push/devices、DELETE /push/devices/{device_id}、POST /push/send。
+    // 这四条来自 ledger 模块 `push_notification`（契约表 ./__generated__/route-table），
+    // 与本 manager 原有的 push.rs 端点（/notifications）分属两张表，路径不得混淆。
+
+    const sampleDevice = {
+        device_id: "D1",
+        push_type: "apns",
+        platform: "android",
+        enabled: true,
+        created_ts: 1700000000000,
+    };
+
+    it("should list push devices from a bare array", async () => {
+        mockClient.http.authedRequest.mockResolvedValue([sampleDevice]);
+
+        const result = await manager.getPushDevices();
+
+        expect(result).toEqual([sampleDevice]);
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/push/devices", undefined, undefined, {
+            prefix: ClientPrefix.V3,
+        });
+    });
+
+    it("should tolerate a wrapped { devices } response", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({ devices: [sampleDevice] });
+
+        await expect(manager.getPushDevices()).resolves.toEqual([sampleDevice]);
+    });
+
+    it("should register a push device with the request body verbatim", async () => {
+        mockClient.http.authedRequest.mockResolvedValue(sampleDevice);
+
+        const body = { device_id: "D1", push_token: "tok", push_type: "apns", platform: "android" };
+        const result = await manager.registerPushDevice(body);
+
+        expect(result).toEqual(sampleDevice);
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/push/devices", undefined, body, {
+            prefix: ClientPrefix.V3,
+        });
+    });
+
+    it("should reject registerPushDevice when a required field is missing", async () => {
+        await expect(manager.registerPushDevice({ device_id: "", push_token: "t", push_type: "apns" })).rejects.toThrow(
+            "device_id is required",
+        );
+        await expect(manager.registerPushDevice({ device_id: "D", push_token: "", push_type: "apns" })).rejects.toThrow(
+            "push_token is required",
+        );
+        await expect(manager.registerPushDevice({ device_id: "D", push_token: "t", push_type: "" })).rejects.toThrow(
+            "push_type is required",
+        );
+    });
+
+    it("should unregister a push device with an encoded device id", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({ message: "Device unregistered" });
+
+        await manager.unregisterPushDevice("D/1");
+
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+            Method.Delete,
+            `/push/devices/${encodeURIComponent("D/1")}`,
+            undefined,
+            undefined,
+            { prefix: ClientPrefix.V3 },
+        );
+    });
+
+    it("should reject unregisterPushDevice without a device id", async () => {
+        await expect(manager.unregisterPushDevice("")).rejects.toThrow("deviceId is required");
+    });
+
+    it("should send a push notification", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({ message: "Notification queued" });
+
+        const body = { title: "Hi", body: "There" };
+        const result = await manager.sendPushNotification(body);
+
+        expect(result).toEqual({ message: "Notification queued" });
+        expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/push/send", undefined, body, {
+            prefix: ClientPrefix.V3,
+        });
+    });
+
+    it("should reject sendPushNotification without title or body", async () => {
+        await expect(manager.sendPushNotification({ title: "", body: "x" })).rejects.toThrow("title is required");
+        await expect(manager.sendPushNotification({ title: "x", body: "" })).rejects.toThrow("body is required");
+    });
 });

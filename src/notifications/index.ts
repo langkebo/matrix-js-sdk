@@ -25,11 +25,22 @@ import { type IEvent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { validateLimit } from "../common/validators";
 import type { PushPath } from "../push/__generated__/route-table";
+import type { NotificationsPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
 import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
 
-function np<const P extends string>(path: P & PathAssert<P, StripV3<PushPath>>): P {
+/**
+ * 校验并返回通知/推送路径。
+ *
+ * 本 manager 同时承担**两个 ledger 模块**的端点：
+ * - `push`（push.rs）→ `/notifications`、`/notifications/{id}/ack`（来自 `PushPath`）
+ * - `push_notification`（push_notification.rs）→ `/push/devices`、`/push/send`（来自 `NotificationsPath`）
+ *
+ * 因此约束取两张契约表的并集 —— 与本仓 `RoomManager` 并集多表（room|search|moderation…）
+ * 的写法一致。并把上游 `PushPath` 与本地 `NotificationsPath` 都纳入断言，杜绝路径拼错。
+ */
+function np<const P extends string>(path: P & PathAssert<P, StripV3<PushPath | NotificationsPath>>): P {
     return path;
 }
 
@@ -47,6 +58,58 @@ export interface INotificationsResponse {
         room_id: string;
         ts: number;
     }>;
+}
+
+/**
+ * 已注册的推送设备。
+ *
+ * 对应后端 `push_notification.rs::DeviceResponse`。
+ */
+export interface IPushDevice {
+    device_id: string;
+    push_type: string;
+    platform?: string | null;
+    enabled: boolean;
+    created_ts: number;
+    last_used_ts?: number | null;
+}
+
+/**
+ * 注册推送设备请求体。
+ *
+ * 对应后端 `RegisterDeviceBody`（标注 `deny_unknown_fields`，**不要传多余字段**）。
+ */
+export interface IRegisterPushDeviceRequest {
+    device_id: string;
+    push_token: string;
+    push_type: string;
+    app_id?: string;
+    platform?: string;
+    platform_version?: string;
+    app_version?: string;
+    locale?: string;
+    timezone?: string;
+}
+
+/**
+ * 触发服务端推送请求体。
+ *
+ * 对应后端 `SendNotificationBody`（标注 `deny_unknown_fields`）。
+ */
+export interface ISendPushNotificationRequest {
+    device_id?: string;
+    event_id?: string;
+    room_id?: string;
+    notification_type?: string;
+    title: string;
+    body: string;
+    data?: unknown;
+    priority?: number;
+}
+
+/** 推送设备注销 / 推送入队等操作的简单回执。 */
+export interface IPushAckResponse {
+    message: string;
 }
 
 export interface NotificationsManagerEvents {
@@ -134,6 +197,104 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
                     prefix: ClientPrefix.V3,
                 }),
             "ackNotification",
+        );
+    }
+
+    // ==================== 推送设备与推送触发（push_notification 模块） ====================
+    //
+    // 这 4 条端点是本 fork 的**移动端推送能力**：注册/注销推送令牌、按需触发服务端推送。
+    // 后端注册在 `synapse-web/src/routes/push_notification.rs`，契约表为
+    // `src/notifications/__generated__/route-table.ts`（在补齐本组方法前该表无任何消费者）。
+
+    /**
+     * 列出当前账号已注册的推送设备。
+     *
+     * 对应 `GET /_matrix/client/v3/push/devices`。
+     *
+     * @returns 推送设备列表（后端返回**裸数组**；为兼容包裹形态同时接受 `{ devices }`）
+     */
+    public async getPushDevices(): Promise<IPushDevice[]> {
+        const res = await this.withRetry(
+            () =>
+                this.request<IPushDevice[] | { devices?: IPushDevice[] }>({
+                    method: Method.Get,
+                    path: np("/push/devices"),
+                    prefix: ClientPrefix.V3,
+                }),
+            "getPushDevices",
+        );
+        if (Array.isArray(res)) return res;
+        return res?.devices ?? [];
+    }
+
+    /**
+     * 注册推送设备（推送令牌）。
+     *
+     * 对应 `POST /_matrix/client/v3/push/devices`。
+     *
+     * @param body - 注册请求体（`device_id`/`push_token`/`push_type` 必填）
+     * @returns 注册后的设备信息
+     */
+    public async registerPushDevice(body: IRegisterPushDeviceRequest): Promise<IPushDevice> {
+        if (!body?.device_id) throw new ValidationError("device_id is required");
+        if (!body?.push_token) throw new ValidationError("push_token is required");
+        if (!body?.push_type) throw new ValidationError("push_type is required");
+
+        return this.withRetry(
+            () =>
+                this.request<IPushDevice>({
+                    method: Method.Post,
+                    path: np("/push/devices"),
+                    body,
+                    prefix: ClientPrefix.V3,
+                }),
+            "registerPushDevice",
+        );
+    }
+
+    /**
+     * 注销推送设备。
+     *
+     * 对应 `DELETE /_matrix/client/v3/push/devices/{device_id}`。
+     *
+     * @param deviceId - 设备 ID
+     * @returns 后端回执 `{ message }`
+     */
+    public async unregisterPushDevice(deviceId: string): Promise<IPushAckResponse> {
+        if (!deviceId) throw new ValidationError("deviceId is required");
+
+        return this.withRetry(
+            () =>
+                this.request<IPushAckResponse>({
+                    method: Method.Delete,
+                    path: np(`/push/devices/${encodeURIComponent(deviceId)}`),
+                    prefix: ClientPrefix.V3,
+                }),
+            "unregisterPushDevice",
+        );
+    }
+
+    /**
+     * 触发服务端向指定设备投递一条推送。
+     *
+     * 对应 `POST /_matrix/client/v3/push/send`。
+     *
+     * @param body - 推送内容（`title`/`body` 必填）
+     * @returns 后端回执 `{ message }`（入队成功）
+     */
+    public async sendPushNotification(body: ISendPushNotificationRequest): Promise<IPushAckResponse> {
+        if (!body?.title) throw new ValidationError("title is required");
+        if (!body?.body) throw new ValidationError("body is required");
+
+        return this.withRetry(
+            () =>
+                this.request<IPushAckResponse>({
+                    method: Method.Post,
+                    path: np("/push/send"),
+                    body,
+                    prefix: ClientPrefix.V3,
+                }),
+            "sendPushNotification",
         );
     }
 }

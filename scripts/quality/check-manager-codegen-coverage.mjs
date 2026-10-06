@@ -36,15 +36,11 @@ const WAIVED_MODULES = {
         reason: "1 route; manager gates on an unstable feature and needs no table",
         expires: "2026-12-31",
     },
-    // 下面两条是 C-1 排查（2026-09-13）的结论：它们不是"名字没对上"，而是**真的没人消费自己的表**，
-    // 且原因可核验（命令见 reason）。不要用"再加一个别名"的方式把它们凑成 covered。
-    push_notification: {
-        reason:
-            "本表 10 条路由是 push 表（38 条）的**完全子集**（comm -23 无差集），" +
-            "src/notifications 消费的是 push 表（PushPathPattern，见 notifications/index.ts:27），无人 import 本表；" +
-            "要不要把 ledger 的 push_notification 也映射到 push 目录需要后端侧一起定",
-        expires: "2026-12-31",
-    },
+    // 注（2026-10-06）：此处原有 `push_notification` 的 waiver，理由是「本表 10 条是 push 表 38 条的
+    // **完全子集**」。实测该理由**不成立**：notifications 表 8 条与 push 表 17 条**交集为空**
+    // （`/push/devices`、`/push/send` 只存在于 notifications 表；push 表只含 notifications/pushers/pushrules）。
+    // 也就是说，这是把一条「有表没人读」用错误理由豁免掉了 —— 纸面 waiver。
+    // 现已让 `src/notifications/index.ts` 真正消费本表（push/devices ×3 + push/send），故移除 waiver。
     invite_blocklist: {
         reason:
             "把 invite allow/blocklist 从 vendor 分组归到功能域后，ledger 侧是独立模块；但 SDK codegen 以" +
