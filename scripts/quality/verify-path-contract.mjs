@@ -22,6 +22,18 @@
  *   - HTTP 方法校验：避免 PUT 误匹配到 GET 路由（假阳性）
  *   - MSC 编号格式校验：检测 SDK 中未注册的 MSC 编号引用
  *
+ * 增强（2026-10-06）—— 补抽取器盲区（详见 docs/sdk-encapsulation-audit.md §13.15.7）:
+ *   上一版只认两种写法：
+ *     A) 对象字面量 { method: Method.X, path: "...", prefix: ... }
+ *     B) `authedRequest<T>(Method.X, "...", ...)`
+ *   于是**所有位置参数形态的包装器**都没进入校验 —— 其中 `adminRequest` 就有 234 处调用点。
+ *   后果：admin 面 6 处「打后端未注册路径」的缺陷在门禁全绿的情况下长期存活
+ *   （例：`getAdminInfo()` 打 `/_synapse/admin/v1/info`，而后端注册的是无 v1 段的
+ *   `/_synapse/admin/info`）。
+ *   本版把位置参数包装器改为**表驱动**（POSITIONAL_WRAPPERS），并对**故意不覆盖**的
+ *   包装器显式登记（EXCLUDED_WRAPPERS）并打印在报告里 —— 覆盖率必须是可审计的，
+ *   不能靠"没写就是没覆盖"这种沉默。
+ *
  * 用法:
  *   node scripts/quality/verify-path-contract.mjs [--json] [--verbose]
  *
@@ -98,6 +110,79 @@ const PREFIX_CONSTANTS = {
  * 若上游改成别的默认值，这里也要跟着改——`spec/unit/base-manager-request.spec.ts` 会先红。
  */
 const DEFAULT_PREFIX = "/_matrix/client/v3";
+
+// ---------------------------------------------------------------------------
+// 2b. 位置参数请求包装器表（2026-10-06 新增）
+//
+// 每个条目描述一个形如 `helper(Method.X, "<relative-path>", ...)` 的包装器，
+// 以及它会把该 relative-path 拼到哪个前缀上。字段三选一：
+//   fixed: [...]      前缀是固定字面量列表；任一命中即算匹配
+//   byDir: [...]      **同名 helper 在不同模块注入不同前缀**时按目录区分（见下方 doRequest）：
+//                     `[["src/widgets/", ["/_matrix/client/v1"]], ...]` + fallback。
+//                     不按目录区分就会造出假阳性 —— widgets 的 `doRequest` 走 V1，
+//                     若统一按 V3 校验，14 个本来正确的调用点会被一起报成错误。
+//   opts:  n          前缀取自第 n 个参数（0-based）的 `prefix:` 字段；缺省 → DEFAULT_PREFIX
+//   arg:   n          前缀就是第 n 个参数（0-based）本身
+//
+// ⚠️ 新增请求包装器时必须同步登记此表 —— 否则其调用点不会被校验。
+//    回归守卫：spec/unit/path-contract-extractor.spec.ts
+// ---------------------------------------------------------------------------
+const POSITIONAL_WRAPPERS = {
+    // ── admin 面（本表存在的直接原因：这 234 处调用点此前完全未被校验）──
+    adminRequest: { fixed: ["/_synapse/admin/v1"] }, // base-manager.ts:adminRequest，前缀恒为 AdminPrefix.V1
+    v2Request: { fixed: ["/_synapse/admin"] }, // admin-base-manager.ts:v2Request，注意**无版本段**
+    // ── room-summary 内部面 ──
+    requestInternal: { fixed: ["/_synapse/room_summary/v1"] }, // room-summary-base-manager.ts
+    requestV3: { fixed: ["/_matrix/client/v3"] },
+    // ── 其他固定前缀包装器 ──
+    doRequestV3: { fixed: ["/_matrix/client/v3"] }, // widgets/index.ts（仅 capabilities / send / create）
+    doRequest: {
+        byDir: [
+            ["src/widgets/", ["/_matrix/client/v1"]], // widgets/index.ts:doRequest → ClientPrefix.V1
+            ["src/space/", ["/_matrix/client/v3"]], // space/sub-managers/*.ts → ClientPrefix.V3
+            ["src/client/worker/", ["/_synapse/worker"]], // client/worker/worker.ts → WORKER_PREFIX
+        ],
+        fallback: ["/_matrix/client/v3"],
+    },
+    // ── 完整字面量路径（prefix 为 ""，path 自带 /_matrix/... 前缀）──
+    requestWithRetry: { fixed: [""] }, // rust-crypto/OutgoingRequestProcessor.ts
+    makeRequestWithUIA: { fixed: [""] },
+    // ── 前缀由调用方给出 ──
+    idServerRequest: { arg: 3 }, // http-api/fetch.ts — 第 4 个参数就是 prefix
+    authedRequest: { opts: 4 }, // http-api/fetch.ts — opts.prefix，缺省 v3
+    request: { opts: 4 }, // http-api/fetch.ts — 同上（此前完全未被提取）
+};
+
+/**
+ * 故意**不**纳入校验的包装器 —— 显式登记而非默默略过。
+ * 报告里会打印这张表，使「覆盖面」本身可被审阅：想偷偷漏掉一类写法，
+ * 就必须在这里写下一行理由。
+ */
+const EXCLUDED_WRAPPERS = {
+    requestOtherUrl:
+        "第 2 个参数是**完整 URL**（含 host），用于联邦/身份服务器的跨 host 请求；" +
+        "不属于「SDK relative path ↔ 后端 ledger」的校验范畴。",
+    rawJsonRequest:
+        '同 requestOtherUrl（prefix 为 "" + 完整字面量），且其调用点全部经由 ' +
+        "requestWithRetry / makeRequestWithUIA 这两个已登记的入口。",
+    sendToDeviceRequest:
+        "rust-crypto 的 to-device 特化入口，内部把 path 拼成完整字面量后交给 requestWithRetry；" +
+        "其字面量由 msg 运行时决定，静态不可求值。",
+};
+
+/**
+ * 不属于「homeserver ledger」校验范畴的路径命名空间 —— 单独成桶，**不计入 mismatch**。
+ *
+ * ledger 是 homeserver 的路由表。identity server（身份服务器）是独立部署的服务，
+ * 它的路由永远不会出现在 ledger 里：这是**结构性的**，不是缺口。
+ * 显式登记并单独计数，避免两件坏事：
+ *   ① 把它们当成 mismatch（假阳性）；② 用一堆豁免把它们盖掉（豁免注水）。
+ */
+const OUT_OF_SCOPE_PREFIXES = {
+    "/_matrix/identity/":
+        "identity server（身份服务器）是独立部署的服务，本后端 ledger 只含 homeserver 路由；" +
+        "SDK 打的是配置里指定的身份服务器地址。",
+};
 
 function resolvePrefix(expr) {
     // 无 prefix 字段 → 用默认前缀（不是"无法判断"）
@@ -216,28 +301,211 @@ function extractObjectCalls(source) {
     return calls;
 }
 
-/**
- * 形态 B（位置参数）：authedRequest<T>(Method.Post, "/path", query, body, opts)
- *
- * `opts` 是第 5 个参数，里面的 `prefix:` 同样是有效声明 ——
- * `client-secure-backup-requests.ts:getClientConfigRequest` 就是这个写法。
- * 之前只读到第 2 个参数，导致这些调用被误判为"用默认前缀"。
- */
-function extractPositionalCalls(source) {
-    const calls = [];
-    const re = /\bauthedRequest<[^>]*>\(\s*Method\.(\w+)\s*,\s*(`[^`]*`|"[^"]*"|'[^']*')/g;
-    for (const m of source.matchAll(re)) {
-        // 从 path 之后取到该调用的闭合括号，扫描其中的 prefix:
-        const afterPath = m.index + m[0].length;
-        const openParen = source.indexOf("(", m.index);
-        const closeParen = matchParen(source, openParen);
-        const tail = closeParen > 0 ? source.slice(afterPath, closeParen) : "";
-        const prefixM = tail.match(/\bprefix:\s*([\w.]+|"[^"]*"|'[^']*')/);
+// ---------------------------------------------------------------------------
+// 前缀表达式求值（支持多候选）—— 位置参数包装器用
+// ---------------------------------------------------------------------------
 
+/** 在顶层（不在括号/字符串内）扫描，返回第一个满足 pred 的字符下标 */
+function findTopLevel(src, pred) {
+    let depth = 0;
+    let inStr = null;
+    for (let i = 0; i < src.length; i++) {
+        const c = src[i];
+        if (inStr) {
+            if (c === "\\") i++;
+            else if (c === inStr) inStr = null;
+            continue;
+        }
+        if (c === '"' || c === "'" || c === "`") {
+            inStr = c;
+            continue;
+        }
+        if (c === "(" || c === "[" || c === "{") depth++;
+        else if (c === ")" || c === "]" || c === "}") depth--;
+        else if (depth === 0 && pred(c, i)) return i;
+    }
+    return -1;
+}
+
+/**
+ * `cond ? A : B` → { whenTrue: "A", whenFalse: "B" }，否则 null。
+ * 两条腿都要合法，因为**fallback 的两条路径都真会被发出去**——
+ * 只校验其中一条等于没校验（`client-auth.ts` 的 MSC2965 稳定/unstable 回退就是这种）。
+ */
+function splitTopLevelTernary(expr) {
+    // 跳过 `?.`（可选链）与 `??`（空值合并）
+    const q = findTopLevel(expr, (c, i) => c === "?" && expr[i + 1] !== "." && expr[i + 1] !== "?");
+    if (q < 0) return null;
+    const colon = findTopLevel(expr.slice(q + 1), (c) => c === ":");
+    if (colon < 0) return null;
+    return {
+        whenTrue: expr.slice(q + 1, q + 1 + colon).trim(),
+        whenFalse: expr.slice(q + 1 + colon + 1).trim(),
+    };
+}
+
+/** 顶层 `+` 切分（不在字符串内的拼接） */
+function splitTopLevelPlus(expr) {
+    const parts = [];
+    let rest = expr;
+    let offset = 0;
+    for (;;) {
+        const p = findTopLevel(rest, (c, i) => c === "+" && rest[i - 1] !== "+" && rest[i + 1] !== "+");
+        if (p < 0) {
+            parts.push(rest.trim());
+            break;
+        }
+        parts.push(rest.slice(0, p).trim());
+        offset += p + 1;
+        rest = rest.slice(p + 1);
+    }
+    return parts.filter((p) => p !== "");
+}
+
+/**
+ * 求值一个前缀表达式，返回**候选前缀集合**。
+ * known=false 表示无法静态求值 —— 调用点会被计入「动态跳过」并显示在 --verbose 里，
+ * 而不是被悄悄当成"匹配成功"。
+ */
+function resolvePrefixExpression(expr) {
+    const e = (expr ?? "").trim();
+    if (!e) return { candidates: [DEFAULT_PREFIX], known: true };
+
+    const tern = splitTopLevelTernary(e);
+    if (tern) {
+        const a = resolvePrefixExpression(tern.whenTrue);
+        const b = resolvePrefixExpression(tern.whenFalse);
+        if (a.known && b.known) {
+            return { candidates: [...new Set([...a.candidates, ...b.candidates])], known: true };
+        }
+        return { candidates: [], known: false };
+    }
+
+    const plusParts = splitTopLevelPlus(e);
+    if (plusParts.length > 1) {
+        let acc = [""];
+        for (const part of plusParts) {
+            const r = resolvePrefixExpression(part);
+            if (!r.known) return { candidates: [], known: false };
+            const next = [];
+            for (const a of acc) for (const c of r.candidates) next.push(a + c);
+            acc = next;
+        }
+        return { candidates: [...new Set(acc)], known: true };
+    }
+
+    const { prefix, known } = resolvePrefix(e);
+    return known ? { candidates: [prefix], known: true } : { candidates: [], known: false };
+}
+
+/** 根据包装器声明 + 实参 + 所在文件，得出该调用的前缀候选 */
+function candidatesForWrapper(spec, args, relFile) {
+    if (spec.byDir) {
+        const hit = spec.byDir.find(([dirPrefix]) => relFile.startsWith(dirPrefix));
+        return { candidates: hit ? hit[1] : spec.fallback, known: true };
+    }
+
+    if (spec.fixed) return { candidates: spec.fixed, known: true };
+
+    if (spec.arg !== undefined) {
+        const expr = args[spec.arg];
+        if (expr === undefined) return { candidates: [], known: false };
+        return resolvePrefixExpression(expr);
+    }
+
+    if (spec.opts !== undefined) {
+        const optsArg = args[spec.opts];
+        // 没传 opts → 走默认前缀；传了但没有 prefix: 字段 → 同样走默认前缀
+        if (optsArg === undefined) return { candidates: [DEFAULT_PREFIX], known: true };
+        const pm = /\bprefix:\s*([^,}]*)/.exec(optsArg);
+        const expr = pm?.[1]?.trim();
+        // 空值（如 `prefix: undefined`）也按默认前缀处理
+        if (!expr || expr === "undefined") return { candidates: [DEFAULT_PREFIX], known: true };
+        return resolvePrefixExpression(expr);
+    }
+
+    return { candidates: [], known: false };
+}
+
+// ---------------------------------------------------------------------------
+// 形态 C（位置参数，表驱动）：helper(Method.X, "<relative-path>", ...)
+// 覆盖范围完全由 POSITIONAL_WRAPPERS 决定 —— 见文件头「增强（2026-10-06）」。
+// ---------------------------------------------------------------------------
+
+/** 跳过 `<...>` 泛型参数（支持嵌套），返回 `>` 之后的下标；不是泛型则原样返回 */
+function skipGenerics(src, i) {
+    if (src[i] !== "<") return i;
+    let depth = 0;
+    for (; i < src.length; i++) {
+        const c = src[i];
+        if (c === "<") depth++;
+        else if (c === ">") {
+            depth--;
+            if (depth === 0) return i + 1;
+        }
+    }
+    return -1;
+}
+
+/** 从 `(` 起按顶层逗号切分实参（自动忽略字符串/括号内部的逗号） */
+function splitTopLevelArgs(src, openIdx) {
+    const closeParen = matchParen(src, openIdx);
+    if (closeParen < 0) return null;
+    const inner = src.slice(openIdx + 1, closeParen);
+    const args = [];
+    let depth = 0;
+    let inStr = null;
+    let start = 0;
+    for (let i = 0; i < inner.length; i++) {
+        const c = inner[i];
+        if (inStr) {
+            if (c === "\\") i++;
+            else if (c === inStr) inStr = null;
+            continue;
+        }
+        if (c === '"' || c === "'" || c === "`") {
+            inStr = c;
+            continue;
+        }
+        if (c === "(" || c === "[" || c === "{") depth++;
+        else if (c === ")" || c === "]" || c === "}") depth--;
+        else if (c === "," && depth === 0) {
+            args.push(inner.slice(start, i));
+            start = i + 1;
+        }
+    }
+    args.push(inner.slice(start));
+    return args.map((a) => a.trim());
+}
+
+function extractWrapperCalls(source, relFile) {
+    const calls = [];
+    const names = Object.keys(POSITIONAL_WRAPPERS);
+    // 名字前的 `this.` / `api.` / `this.client.http.` 等链式前缀由 \b 天然丢弃。
+    // 方法**定义处**（`protected async adminRequest<T>(method: Method, ...)`）也会被本正则命中，
+    // 但会在下面「第 1 个实参必须是 Method.X」这一步被过滤掉。
+    const nameRe = new RegExp(`\\b(${names.join("|")})\\b`, "g");
+
+    for (const m of source.matchAll(nameRe)) {
+        let i = skipGenerics(source, m.index + m[1].length);
+        if (i < 0) continue;
+        while (i < source.length && /\s/.test(source[i])) i++;
+        if (source[i] !== "(") continue;
+
+        const args = splitTopLevelArgs(source, i);
+        if (!args || args.length < 2) continue;
+
+        const methodM = /^Method\.(\w+)$/.exec(args[0]);
+        if (!methodM) continue;
+        if (!/^(`[^`]*`|"[^"]*"|'[^']*')$/.test(args[1])) continue; // 路径必须是字面量
+
+        const { candidates, known } = candidatesForWrapper(POSITIONAL_WRAPPERS[m[1]], args, relFile);
         calls.push({
-            method: m[1].toUpperCase(),
-            pathRaw: m[2],
-            prefixExpr: prefixM?.[1] ?? null,
+            method: methodM[1].toUpperCase(),
+            pathRaw: args[1],
+            prefixCandidates: candidates,
+            prefixKnown: known,
+            wrapper: m[1],
             line: source.slice(0, m.index).split("\n").length,
         });
     }
@@ -376,6 +644,49 @@ function matchBrace(src, openIdx) {
 }
 
 // ---------------------------------------------------------------------------
+// 4b. 与后端注册面比对
+// ---------------------------------------------------------------------------
+
+/**
+ * 判断 (method, 完整路径) 是否在后端注册面内，并返回**匹配方式**：
+ *   "exact"    — 与 ledger 条目逐段完全一致
+ *   "wildcard" — 仅靠「SDK 字面量段 ↔ 后端占位符段」等价规则命中。**语义存疑**，
+ *                必须单独汇报让人复核：`DELETE /notifications/deactivate` 正是靠这条规则
+ *                被误当成 `DELETE /notifications/{notification_id}` 而长期隐形的
+ *                （真实情况是后端只有 `PUT /notifications/{id}/deactivate`）。
+ *   null       — 未命中
+ */
+function matchAgainstLedger(method, fullPath) {
+    if (backendRoutes.has(`${method} ${fullPath}`)) return "exact";
+
+    const sdkSegments = fullPath.split("/");
+    for (const [backendKey, originalBackendPath] of backendRoutes.entries()) {
+        const [backendMethod] = backendKey.split(" ");
+        if (backendMethod !== method) continue;
+
+        const backendSegments = normalizePath(originalBackendPath).split("/");
+        if (sdkSegments.length !== backendSegments.length) continue;
+
+        const compatible = sdkSegments.every((seg, i) => {
+            const bSeg = backendSegments[i];
+            if (seg === bSeg) return true;
+            // 只允许一种放宽：SDK 写了**具体值**而后端声明为占位符，且该具体值形如
+            // Matrix 的事件类型 / 域名（含 "."）。这是为
+            // `send/m.room.message/{txn}` vs `send/{event_type}/{txn_id}` 这类等价而留的。
+            //
+            // 早期版本还允许「SDK 的任意字面量段顶掉任意 {占位符} 段」，结果把
+            // `/notifications/deactivate` 当成 `/notifications/{notification_id}`、
+            // `/federation/blacklist/add` 当成 `/federation/blacklist/{server_name}` ——
+            // 两处真缺陷因此长期隐形。收紧后它们会被正常报出。
+            if (bSeg.startsWith("{") && seg !== "{X}" && seg.includes(".")) return true;
+            return false;
+        });
+        if (compatible) return "wildcard";
+    }
+    return null;
+}
+
+// ---------------------------------------------------------------------------
 // 5. 遍历源码
 // ---------------------------------------------------------------------------
 
@@ -398,6 +709,7 @@ const srcFiles = scanRoots.flatMap((r) => (existsSync(r) ? walkSrc(r) : []));
 
 const findings = [];
 const skipped = [];
+const outOfScopeCalls = [];
 
 for (const file of srcFiles) {
     const raw = readFileSync(file, "utf8");
@@ -405,64 +717,77 @@ for (const file of srcFiles) {
     const source = stripComments(raw);
     const relFile = file.slice(PROJECT_ROOT.length + 1);
 
-    // 同一调用可能被两种提取器各命中一次，按 method+path 去重
+    // 同一调用可能被两种提取器各命中一次，按 method+path+候选前缀 去重
     const seen = new Set();
-    const calls = [...extractObjectCalls(source), ...extractPositionalCalls(source)];
+    const calls = [...extractObjectCalls(source), ...extractWrapperCalls(source, relFile)];
 
     for (const call of calls) {
-        const dedupKey = `${call.method}|${call.pathRaw}|${call.prefixExpr ?? ""}`;
+        // 统一成「前缀候选集」：
+        //   对象形态 → 单候选；位置参数形态 → 可能多候选（如 doRequest 的两种前缀、
+        //   三元 fallback 的两条腿）。任一候选命中即视为匹配 —— 见 POSITIONAL_WRAPPERS 注释。
+        let candidates;
+        let known;
+        if (call.prefixCandidates) {
+            candidates = call.prefixCandidates;
+            known = call.prefixKnown;
+        } else {
+            const r = resolvePrefix(call.prefixExpr);
+            candidates = r.known ? [r.prefix] : [];
+            known = r.known;
+        }
+
+        // 去重键含行号：既避免「同一调用被两种提取器各命中一次」，又不会把
+        // 同一文件里两个**不同调用点**（如 getServerInfo / getAdminInfo 都打 /info）合并成一条。
+        const dedupKey = `${call.method}|${call.pathRaw}|${candidates.join("\u0001")}|${call.line}`;
         if (seen.has(dedupKey)) continue;
         seen.add(dedupKey);
 
-        // 模板字面量现在可通过归一化处理（${...} → {X}）
-        // 不再跳过，而是直接归一化后校验
-        let pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
-
-        // 如果包含插值，用 {X} 占位后再校验
-        if (pathOnly.includes("${")) {
-            // 允许带插值的模板字面量进入校验流程
-        } else if (!pathOnly.startsWith("/")) {
+        // 模板字面量可通过归一化处理（${...} → {X}），不跳过
+        const pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
+        if (!pathOnly.includes("${") && !pathOnly.startsWith("/")) {
             skipped.push({ file: relFile, line: call.line, reason: "非字面量路径" });
             continue;
         }
 
-        const { prefix, known } = resolvePrefix(call.prefixExpr);
         if (!known) {
-            skipped.push({ file: relFile, line: call.line, reason: `未知前缀 ${call.prefixExpr}` });
+            skipped.push({
+                file: relFile,
+                line: call.line,
+                reason: `无法静态求值的前缀（${call.prefixExpr ?? call.wrapper ?? "?"}）`,
+            });
             continue;
         }
 
-        // 如果 pathOnly 本身已是完整路径（以 /_matrix 开头且含 /client/ 或 /admin/），
-        // 则忽略 prefix，直接用 pathOnly（避免双重前缀）
-        const isFullUrl = /^\/_matrix\/(client|admin|vendor)/.test(pathOnly);
-        const combinedPath = isFullUrl ? pathOnly : (prefix ?? "") + pathOnly;
-        const fullPath = normalizePath(combinedPath);
-        const key = `${call.method} ${fullPath}`;
+        // pathOnly 本身已是完整路径时忽略 prefix，避免双重前缀
+        const isFullUrl = /^\/_matrix\/(client|admin|vendor|identity|media|federation|server)/.test(pathOnly);
 
-        // 精确匹配
-        let matched = backendRoutes.has(key);
+        // 域外命名空间：结构性不属于本 ledger，单独计数后跳过
+        const probePath = isFullUrl ? pathOnly : (candidates[0] ?? "") + pathOnly;
+        const outOfScopePrefix = Object.keys(OUT_OF_SCOPE_PREFIXES).find((p) => probePath.startsWith(p));
+        if (outOfScopePrefix) {
+            outOfScopeCalls.push({
+                file: relFile,
+                line: call.line,
+                method: call.method,
+                fullPath: normalizePath(probePath),
+                prefix: outOfScopePrefix,
+            });
+            continue;
+        }
 
-        // 增强匹配：通配符 vs 字面量（如 send/m.room.message/{txnId} vs send/{event_type}/{txn_id}）
-        if (!matched) {
-            const sdkSegments = fullPath.split("/");
-            for (const [backendKey, originalBackendPath] of backendRoutes.entries()) {
-                // 首先比较 HTTP 方法
-                const [backendMethod] = backendKey.split(" ");
-                if (backendMethod !== call.method) continue;
-
-                const backendSegments = normalizePath(originalBackendPath).split("/");
-                if (sdkSegments.length === backendSegments.length) {
-                    const isCompatible = sdkSegments.every((seg, i) => {
-                        const bSeg = backendSegments[i];
-                        return seg === bSeg || seg === "{X}" || bSeg.startsWith("{");
-                    });
-                    if (isCompatible) {
-                        matched = true;
-                        break;
-                    }
-                }
+        let matchKind = null;
+        let fullPath = null; // 报告用：第一个候选算出的路径作为「主路径」
+        for (const prefix of candidates) {
+            const fp = normalizePath(isFullUrl ? pathOnly : (prefix ?? "") + pathOnly);
+            if (fullPath === null) fullPath = fp;
+            const kind = matchAgainstLedger(call.method, fp);
+            if (kind) {
+                matchKind = kind;
+                fullPath = fp;
+                break;
             }
         }
+        const matched = matchKind !== null;
 
         const finding = {
             file: relFile,
@@ -471,17 +796,18 @@ for (const file of srcFiles) {
             sdkPath: pathOnly,
             fullPath,
             matched,
+            matchKind,
         };
 
         if (!matched) {
             const bare = normalizePath(pathOnly);
-            const candidates = [...backendRoutes.entries()]
+            const candidatesList = [...backendRoutes.entries()]
                 .filter(([, original]) => {
                     const n = normalizePath(original);
                     return n.endsWith(bare) || bare.endsWith(n);
                 })
                 .map(([k]) => k);
-            if (candidates.length > 0) finding.suggestion = candidates.slice(0, 3).join(" | ");
+            if (candidatesList.length > 0) finding.suggestion = candidatesList.slice(0, 3).join(" | ");
         }
 
         findings.push(finding);
@@ -577,6 +903,9 @@ function validateMSCReferences(findings, backendRoutes) {
 
 const rawMismatches = findings.filter((f) => !f.matched);
 
+// 仅靠通配符规则命中的调用点 —— 单独汇报，避免「形似而已」被当成匹配成功。
+const wildcardMatches = findings.filter((f) => f.matchKind === "wildcard");
+
 const mismatches = rawMismatches.filter((f) => {
     const key = `${f.method} ${f.fullPath}`;
     if (waivers.has(key)) {
@@ -595,17 +924,33 @@ const payload = {
     scannedFiles: srcFiles.length,
     totalCalls: findings.length,
     matched: findings.length - rawMismatches.length,
+    wildcardMatched: wildcardMatches.length,
     waived: rawMismatches.length - mismatches.length,
     mismatched: mismatches.length,
     expiredWaivers: expiredWaivers.length,
     unusedWaivers: unusedWaivers.length,
     skippedDynamic: skipped.length,
+    outOfScope: outOfScopeCalls.length,
+    outOfScopeCalls: outOfScopeCalls.map((c) => ({
+        file: c.file,
+        line: c.line,
+        method: c.method,
+        fullPath: c.fullPath,
+    })),
+    coveredWrappers: Object.keys(POSITIONAL_WRAPPERS),
+    excludedWrappers: Object.keys(EXCLUDED_WRAPPERS),
     mismatches: mismatches.map((m) => ({
         file: m.file,
         line: m.line,
         method: m.method,
         fullPath: m.fullPath,
         suggestion: m.suggestion ?? null,
+    })),
+    wildcardMatches: wildcardMatches.map((m) => ({
+        file: m.file,
+        line: m.line,
+        method: m.method,
+        fullPath: m.fullPath,
     })),
 };
 
@@ -620,12 +965,15 @@ if (EMIT_JSON) {
     console.log(`  ledger       : ${LEDGER_PATH}`);
     console.log(`  扫描源文件   : ${srcFiles.length}`);
     console.log(`  提取请求调用 : ${findings.length}`);
-    console.log(`  匹配成功     : ${payload.matched}`);
+    console.log(`  匹配成功     : ${payload.matched}（其中 ${payload.wildcardMatched} 处为通配符匹配，见下）`);
     console.log(`  已豁免       : ${payload.waived}（后端未实现，见 path-contract-waivers.json）`);
     console.log(`  不匹配       : ${payload.mismatched}`);
     console.log(`  豁免已过期   : ${payload.expiredWaivers}`);
     console.log(`  豁免未被引用 : ${payload.unusedWaivers}（后端已补齐？应删除条目）`);
     console.log(`  动态跳过     : ${skipped.length}`);
+    console.log(`  域外命名空间 : ${payload.outOfScope}（不属于本 ledger 的服务，如 identity server）`);
+    console.log(`  覆盖的包装器 : ${payload.coveredWrappers.length}（${payload.coveredWrappers.join(", ")}）`);
+    console.log(`  未覆盖的包装器: ${payload.excludedWrappers.length}（${payload.excludedWrappers.join(", ")}）`);
     console.log("");
 
     if (expiredWaivers.length > 0) {
@@ -689,6 +1037,37 @@ if (EMIT_JSON) {
         console.log("");
     }
 
+    if (VERBOSE && outOfScopeCalls.length > 0) {
+        console.log("");
+        console.log("─".repeat(84));
+        console.log("🌐 域外命名空间调用点（不计入 mismatch —— 不属于本 homeserver ledger）：");
+        console.log("─".repeat(84));
+        for (const [prefix, reason] of Object.entries(OUT_OF_SCOPE_PREFIXES)) {
+            const hits = outOfScopeCalls.filter((c) => c.prefix === prefix);
+            if (hits.length === 0) continue;
+            console.log(`  ${prefix}  —— ${hits.length} 处`);
+            console.log(`    ${reason}`);
+            for (const h of hits) console.log(`      ${h.method} ${h.fullPath}  @ ${h.file}:${h.line}`);
+        }
+        console.log("");
+    }
+
+    if (VERBOSE && wildcardMatches.length > 0) {
+        console.log("");
+        console.log("─".repeat(84));
+        console.log("🔍 仅靠「字面量段 ↔ 占位符段」规则命中的调用点（语义存疑，请人工复核）：");
+        console.log("─".repeat(84));
+        console.log("   规则：SDK 的字面量段可以顶掉后端的任意 {占位符} 段。这条规则是为");
+        console.log("   `send/m.room.message/{txn}` vs `send/{event_type}/{txn_id}` 这类等价而加的，");
+        console.log("   但它同样会把 `/notifications/deactivate` 误认成 `/notifications/{id}`。");
+        console.log("");
+        for (const w of wildcardMatches) {
+            console.log(`  ${w.method} ${w.fullPath}`);
+            console.log(`    at ${w.file}:${w.line}`);
+        }
+        console.log("");
+    }
+
     if (VERBOSE && skipped.length > 0) {
         console.log("");
         console.log("跳过的动态调用（无法静态求值，未参与校验）：");
@@ -698,6 +1077,15 @@ if (EMIT_JSON) {
         }
         for (const [reason, count] of byReason) {
             console.log(`  ${reason}: ${count} 处`);
+        }
+    }
+
+    if (VERBOSE) {
+        console.log("");
+        console.log("故意不覆盖的请求包装器（覆盖率声明 —— 想漏掉一类写法必须在此写理由）：");
+        for (const [name, reason] of Object.entries(EXCLUDED_WRAPPERS)) {
+            console.log(`  ${name}`);
+            console.log(`    ${reason}`);
         }
     }
     console.log("");

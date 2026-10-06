@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-06T03:32:26.555Z",
+    "generatedAt": "2026-10-06T10:47:08.088Z",
     "findings": [
         {
             "id": "src/account-data/index.ts:188:98af228583e9d060714df482aaaceef04746e568",
@@ -22,9 +22,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-federation-manager.ts:112:7cfde912f5683504f8e80d6feb7867d80dfbf43e",
+            "id": "src/admin/sub-managers/admin-federation-manager.ts:119:caaf5feb6e644740c66e4765fe52ffe3a9c42334",
             "file": "src/admin/sub-managers/admin-federation-manager.ts",
-            "line": 112,
+            "line": 119,
             "snippet": "catch (e) { const err = e as MatrixError; if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))) return null;",
             "whitelist": {
                 "owner": "admin",
@@ -52,9 +52,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:416:97233f7ae264abf698358a4e37023fca259aac9b",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:405:a375e2df715cb627f2d9f2e6c63b78a5efdf60b4",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 416,
+            "line": 405,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -62,9 +62,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:438:51ef7710b7f2c10945608a9aba4b8e51b096d212",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:427:8fe9407dc7ed35d26beda4f0f954da218d15d94b",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 438,
+            "line": 427,
             "snippet": "catch (e) { if (throwOnError) { throw e; } logger.warn(`AdminUserManager.isAdmin failed for ${userId}:`, e); return false;",
             "whitelist": {
                 "owner": "admin",
@@ -72,9 +72,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:465:301c4eb3ac3cd77b36dc077d3f93e8e56147a532",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:454:020b57456d055f5388117a1e70148723f6586cc1",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 465,
+            "line": 454,
             "snippet": "catch (e) { if (throwOnError) { throw e; } if (e instanceof NotFoundError) { return null;",
             "whitelist": {
                 "owner": "admin",
@@ -82,9 +82,9 @@
             }
         },
         {
-            "id": "src/admin/sub-managers/admin-user-manager.ts:502:7d7ddc7f89d05634272d2abe8432dad118b78aff",
+            "id": "src/admin/sub-managers/admin-user-manager.ts:491:3fa576c2e9106742d226b722264a4454daca8a0c",
             "file": "src/admin/sub-managers/admin-user-manager.ts",
-            "line": 502,
+            "line": 491,
             "snippet": "catch (e) { const err = e as MatrixError; if (!throwOnError && (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404))) return null;",
             "whitelist": {
                 "owner": "admin",
@@ -212,9 +212,9 @@
             }
         },
         {
-            "id": "src/discovery/index.ts:250:a67316a06266c0f610373ee3d25415f2ec5127a4",
+            "id": "src/discovery/index.ts:232:dbc8ba47cc58e848fe7e8deb17cb46af97739750",
             "file": "src/discovery/index.ts",
-            "line": 250,
+            "line": 232,
             "snippet": "catch (e) { logger.warn(\"DiscoveryManager.getAliasRoomId failed:\", e); return null;",
             "whitelist": {
                 "owner": "discovery",
