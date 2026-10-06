@@ -1209,23 +1209,31 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 把 §13.13 的临时探针**固化为永久守卫**：9 条正例 + 7 条 `@ts-expect-error` 反例。受 `pnpm lint:types`（`tsc --noEmit`）强制，置于 `spec/`（`tsconfig.json` 的 `include` 覆盖，但 `tsconfig-build.json` 的 `exclude` 排除，不污染发布产物 `lib/`；文件名不匹配 vitest 的 `*.test.ts`/`*.spec.ts`，不被当作测试采集）。未来任何让 `PathAssert` 失去鉴别力的改动会立刻触发 TS2578。
 
-#### 5. 验证结果（2026-10-06 实测）
+#### 5. `cas` 模块 NO_CONSUMER 收口（`scripts/quality/check-manager-codegen-coverage.mjs`）
 
-| 门禁 / 验证                                              | 结果                                                    |
-| -------------------------------------------------------- | ------------------------------------------------------- |
-| `npx tsc --noEmit -p tsconfig.json`（含永久守卫）        | **EXIT=0，0 error**                                     |
-| `pnpm contract:codegen:check`（生成物与 ledger 同步）    | 需复跑确认（见下「开放项」）                            |
-| `quality:manager-codegen`                                | moderated 提升至 covered；**仍因 `cas` 红**（见开放项） |
-| `quality:path-contract`（SDK 字面量路径 vs 后端 ledger） | 本批仅改类型层，运行时路径字符串未变，不受影响          |
+`quality:manager-codegen` 此前长期因 `cas` 红（生成表 17 条、无人 import）。实地核查后的结论：**表不是多余的，消费方式是运行时拼接**——cas 表 17 条中 11 条正是 `CasManager` 实际调用的路由（`/_synapse/admin/v1/cas/*` 服务管理 5 条 + `/_synapse/cas/*` 协议面 6 条），另含规范 SSO 端点 `/_matrix/client/v3/login/sso/redirect/cas` 1 条与 `ROUTE_CONTRACT.md` 遗留 `/admin/*` 5 条；但 `CasManager` 经 `resolvePath` 做**运行时二元前缀拼接**（`synapse_admin` → `"/cas"+basePath` 挂 `/_synapse/admin/v1`；`cas` → `basePath` 挂 `/_synapse/cas`），从不 import route-table 类型 ⇒ 弱证据 NO_CONSUMER。这与 §13.13 记录的「`src/cas/index.ts` 因 `resolvePath` 运行时拼接、无法静态断言」是同一事实。
 
-#### 开放项（既存、非本批引入）
+处置：进 `WAIVED_MODULES`，reason 写明真实原因与核验命令；**不做**「凑一个别名导入洗白成 covered」的处理。迁移条件（ waiver 到期前的独立改造）：把 11 处路径构造点（5 处 `resolvePath` + 5 处字面量 `path:` + 1 处 `getLoginUrl`）改为按分支构造完整字面量路径后，`cp`/`PathAssert` 断言即可生效。定向验证（`classifyModuleCoverage` 探针）：`cas` 无强消费者 → `waived`；反事实（若有强消费者）→ `covered`——waiver 不会掩盖真实覆盖（covered 判定在前）。
 
-- **`quality:manager-codegen` 仍 EXIT=1**：根因是 `cas` 模块——`src/cas/__generated__/route-table.ts`（17 条）**生成了却无人 import**（NO_CONSUMER）。此状态在本批改动前已存在（未触碰 `cas`），属独立遗留问题，需另行决策（要么让 `cas` 消费其表，要么进 `WAIVED_MODULES` 写明原因）。本批把 `moderation` 从 waiver 提升为 covered，覆盖率反而改善。
-- `contract:codegen:check` 的「46 supported module helper sets are in sync」口径需在对账时确认——本批改动均经 codegen 产出，不应引入漂移。
+#### 6. 验证结果（2026-10-06 实测）
+
+| 门禁 / 验证                                              | 结果                                                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `npx tsc --noEmit -p tsconfig.json`（含永久守卫）        | **EXIT=0，0 error**                                                                        |
+| `pnpm contract:codegen:check`（生成物与 ledger 同步）    | **EXIT=0**，`46 supported module helper sets are in sync`                                  |
+| `quality:manager-codegen`                                | **EXIT=0**：37 covered；`cas` 进 waiver（原因可核验），`moderation` 由 waiver 提升 covered |
+| ESLint（改动手写文件）                                   | **EXIT=0**，无告警                                                                         |
+| prettier（改动文件含本审计文档）                         | 通过（审计文档已 `--write` 修正）                                                          |
+| `quality:path-contract`（SDK 字面量路径 vs 后端 ledger） | 本批仅改类型层与 waiver 清单，运行时路径字符串未变，不受影响                               |
+
+#### 遗留观察项（非红、有明确到期）
+
+- `cas` waiver（expires 2026-12-31）：到期前需完成 11 处路径构造点的 PathAssert 迁移，或经复核延长豁免并说明原因。
+- `contract:codegen:check` 的「46 sets」口径：本批改动均经 codegen 产出并复跑 `--check` 确认同步，无漂移。
 
 ---
 
 **审计文档最后更新**: 2026-10-06
-**最近提交**: `116631352` (fix(contract): 路径断言改为段级精确匹配，消除 `${string}` 前缀吞噬)
+**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5）
 **核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
 **勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert` 段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）\*\*
