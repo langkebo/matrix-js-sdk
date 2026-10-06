@@ -1067,7 +1067,9 @@ type Shape<S extends string> = S extends `${infer A}/${infer B}` ? `${Seg<A>}/${
 
 ### 13.13 【已修复】路径断言的段级精确化（`PathAssert`）与变异自证（2026-10-06）
 
-> 本节是 §13.12 的**根因修复记录**。修复方式**与 §13.12「处置建议」不同**：**未**改动 `scripts/sdk-contract-codegen.mjs` 的 `ReplaceBraces`、**未**重生成 `__generated__/**`，而是新增**旁路断言助手** `PathAssert`。理由见下。
+> 本节是 §13.12 的**根因修复记录**。核心修复**未**改动 `scripts/sdk-contract-codegen.mjs` 的 `ReplaceBraces`、未引入 `${string}` 通配，而是新增**旁路断言助手** `PathAssert`（段级精确匹配）。理由见下。
+>
+> **后续补正（2026-10-06，见 §13.14）**：为关闭本缺陷暴露出的真实契约归属缺口，又做了两处 codegen 侧补正——① 在 `scripts/contract-module-map.mjs` 加 `assembly → auth` 映射（`auth` 表的 96 条中本就有 90 条是 assembly 路由，属把既有事实显式化）；② 把 `moderation` 从 codegen 的 `SKIP_ROUTE_TABLE_MODULES` 移除，生成其缺失的 `route-table.ts`。两者**仅按 ledger 补齐既有事实、不改变断言机制**，未破坏「零手改生成物」原则（都由生成器产出）。
 
 #### 实际手法
 
@@ -1127,7 +1129,7 @@ function tp<const P extends string>(path: P & PathAssert<P, StripV3<TagsPath>>):
 }
 ```
 
-覆盖 **52 个文件、66 处** `& PathAssert<...>`。（`src/cas/index.ts` 因路径经 `resolvePath` 运行时拼接、无法静态断言，其迁移期遗留的未用助手已移除。）
+覆盖 **51 个文件、64 处**断言助手（不含 `src/http-api/strip-prefix.ts` 的类型定义与 `__generated__/**`；含 `room-summary-base-manager.ts` 的 `roomPath` 与 `friend/paths.ts` 的 `friendPath`）。计数口径：`grep -rn 'PathAssert<' src/ | grep -v __generated__` 去掉定义文件即得。（`src/cas/index.ts` 因路径经 `resolvePath` 运行时拼接、无法静态断言，其迁移期遗留的未用助手已移除。）
 
 #### 为什么不用 §13.12 的「归一化 `ReplaceBraces`」方案
 
@@ -1137,7 +1139,7 @@ function tp<const P extends string>(path: P & PathAssert<P, StripV3<TagsPath>>):
 
 #### 变异自证（关键）
 
-按 §13.12 教训要求，配「必然非法」的反例以排除「守卫恒过」。构造临时探针（验证后**已删除**）：
+按 §13.12 教训要求，配「必然非法」的反例以排除「守卫恒过」。该探针已**固化为永久类型级回归守卫** `spec/type-tests/path-assert.type-test.ts`：用 `@ts-expect-error` 标注 7 条反例（如 `/rooms/$roomId/invite_blocklist`、多段、`aliasez` 拼错、跨模块冒充 `context`/`report`），受 `pnpm lint:types`（`tsc --noEmit`）强制——一旦断言层失去鉴别力（回退到 `${string}` 或判定方向写反），这些 `@ts-expect-error` 会变成 unused directive（TS2578），CI 即红。正例 9 条全部通过。
 
 | 断言                                                                          | 预期     | 实测（`PathAssert`） |
 | ----------------------------------------------------------------------------- | -------- | -------------------- |
@@ -1153,12 +1155,14 @@ function tp<const P extends string>(path: P & PathAssert<P, StripV3<TagsPath>>):
 
 门禁证据：`pnpm contract:codegen:check` → `46 supported module helper sets are in sync`；`pnpm lint` 全链路绿（含 `lint:types` / `quality:type-coverage` / `contract-drift` / `manager-extensions`）；`pnpm test` → **406 文件 / 6124 用例全部通过**。
 
-#### 修复后浮现的真实偏差（正是本缺陷的「价值」）
+#### 修复后浮现的真实偏差（正是本缺陷的「价值」）—— 已全部收口（2026-10-06）
 
-消除前缀吞噬后，两类此前被掩盖的真实偏差立刻浮现：
+消除前缀吞噬后，两类此前被掩盖的真实偏差立刻浮现，现已全部闭环：
 
-1. **discovery 3 条房间别名路由的契约归属缺口**：`GET|PUT|DELETE /directory/room/{room_id}/alias[/{room_alias}]` 后端确实存在（由 `assembly::directory_extra` 注册），但 `scripts/sdk-contract-codegen.mjs` 的 `CONTRACT_MODULE_MAP` 把「装配」映射为 `null`，这些路由因此**未进入任何 SDK 模块的契约表**，无法断言。处置：暂以 `uncheckedAp` 逃生阀显式标注（`grep -rn uncheckedAp src/`），并记录关闭条件 —— 把 `assembly` 映射到合适的 SDK 模块后改回 `ap`。注意这与 `scripts/quality/path-contract-waivers.json` 的 5 条**性质不同**：那 5 条是「SDK 声明了、后端 ledger 里查不到」，本 3 条是「后端有、SDK 契约里查不到」。
-2. **profile 字段段无法泛型化**：`/profile/{user_id}/{field}` 的 `field` 段在契约里是两个字面量 `avatar_url` / `displayname`。原实现用 `encodeURIComponent(field)`，插值退化为 `${string}`，断言无法区分具体字段。处置：按**字面量三元分支**构造路径以保留模板字面量类型；将来新增字段需同步分支。
+1. **discovery 3 条房间别名路由的契约归属缺口**（`GET|PUT|DELETE /directory/room/{room_id}/alias[/{room_alias}]`）：后端确实存在（由 `assembly::directory_extra` 注册），但 `assembly` 桶此前未映射到任何 SDK 模块，路由未进任何契约表。
+    - **处置（已关闭）**：在 `scripts/contract-module-map.mjs` 加 `assembly → "auth"` 映射（`auth` 表 96 条中本就有 90 条是 assembly 路由，属显式化既有事实），codegen 重生成 `auth` 表至 **110 条**（含这 3 条别名路由 + `/profile/{user_id}/{key_name}` 双段字段路由）。`src/discovery/index.ts` 的 3 处 `uncheckedAp` 逃生阀**已全部改回 `ap`**，`grep -rn uncheckedAp src/` 归零。
+    - 性质区分：`path-contract-waivers.json` 的 5 条是「SDK 声明了、后端 ledger 查不到」；本 3 条是「后端有、SDK 契约查不到」——二者方向相反，不能混用豁免。
+2. **profile 字段段无法泛型化**（非缺陷，属表达上限）：`/profile/{user_id}/{field}` 的 `field` 段在契约里是 `avatar_url` / `displayname` 两个字面量，`keyof IProfile` 恰好穷尽这二者，三元分支编译期安全。按字面量三元分支构造路径以保留模板字面量类型；将来新增字段需同步分支。已确认非缺陷（见 §13.12「残留边界」）。
 
 #### `uncheckedRoomPath` 逃生阀重判（承接 §13.12 末段）
 
@@ -1174,7 +1178,54 @@ function tp<const P extends string>(path: P & PathAssert<P, StripV3<TagsPath>>):
 
 ---
 
+### 13.14 【收口】assembly 契约归属映射 + moderation 表生成 + 逃生阀关闭 + 永久类型级守卫（2026-10-06）
+
+§13.13 暴露的两类真实偏差，连同「moderation 表缺失」一并闭环。
+
+#### 1. `assembly → auth` 契约归属映射（`scripts/contract-module-map.mjs`）
+
+后端 `assembly` 桶（104 条）是核心 router（login/register/versions/capabilities/account/password/**profile**/user_directory…），SDK 的 `auth` 表 96 条中**本就有 90 条是 assembly 路由**——映射关系事实上早已存在，只是未写出。在既有扩展点 `LEDGER_MODULE_TO_SDK_DIR`（ledger 模块名 ≠ SDK 目录名的机制）加一行：
+
+```js
+export const LEDGER_MODULE_TO_SDK_DIR = {
+    background_update: "background-update",
+    msc4108_rendezvous: "rendezvous",
+    thirdparty: "third-party",
+    assembly: "auth", // 新增：auth 表 90/96 条本就来自 assembly
+};
+```
+
+codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**（+14，含 `/directory/room/{room_id}/alias[/{room_alias}]` 与 `/profile/{user_id}/{key_name}`），`contract-assertions.ts` 的条目计数同步自动更新（96→110）。
+
+#### 2. `moderation` 缺失表生成（`scripts/sdk-contract-codegen.mjs`）
+
+`moderation.json` 有 7 条路由（含 `POST /rooms/{room_id}/report`），但 `SKIP_ROUTE_TABLE_MODULES` 把它跳过，导致 `src/moderation/__generated__/` 只有 `dto.ts`、`RoomManager` 的 report 调用点无法断言。将其从 skip 移除后 codegen 生成 `route-table.ts`（7 条），`RoomManager` 的 `/rooms/$roomId/report` 改走 `ModerationPath` 断言（`src/room/RoomManager.ts:1082`）；同时把它从 `check-manager-codegen-coverage.mjs` 的 `WAIVED_MODULES` 删除（不再需要 waiver）。`quality:manager-codegen` 覆盖率由 36→**37 covered**。
+
+#### 3. discovery 逃生阀关闭（`src/discovery/index.ts`）
+
+§13.13 暂用的 `uncheckedAp` 逃生阀（3 处房间别名路由）在 assembly→auth 映射后就绪，已全部改回 `ap`，`grep -rn uncheckedAp src/` 归零——discovery 回到 100% 编译期契约断言。
+
+#### 4. 永久类型级回归守卫（`spec/type-tests/path-assert.type-test.ts`）
+
+把 §13.13 的临时探针**固化为永久守卫**：9 条正例 + 7 条 `@ts-expect-error` 反例。受 `pnpm lint:types`（`tsc --noEmit`）强制，置于 `spec/`（`tsconfig.json` 的 `include` 覆盖，但 `tsconfig-build.json` 的 `exclude` 排除，不污染发布产物 `lib/`；文件名不匹配 vitest 的 `*.test.ts`/`*.spec.ts`，不被当作测试采集）。未来任何让 `PathAssert` 失去鉴别力的改动会立刻触发 TS2578。
+
+#### 5. 验证结果（2026-10-06 实测）
+
+| 门禁 / 验证                                              | 结果                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------- |
+| `npx tsc --noEmit -p tsconfig.json`（含永久守卫）        | **EXIT=0，0 error**                                     |
+| `pnpm contract:codegen:check`（生成物与 ledger 同步）    | 需复跑确认（见下「开放项」）                            |
+| `quality:manager-codegen`                                | moderated 提升至 covered；**仍因 `cas` 红**（见开放项） |
+| `quality:path-contract`（SDK 字面量路径 vs 后端 ledger） | 本批仅改类型层，运行时路径字符串未变，不受影响          |
+
+#### 开放项（既存、非本批引入）
+
+- **`quality:manager-codegen` 仍 EXIT=1**：根因是 `cas` 模块——`src/cas/__generated__/route-table.ts`（17 条）**生成了却无人 import**（NO_CONSUMER）。此状态在本批改动前已存在（未触碰 `cas`），属独立遗留问题，需另行决策（要么让 `cas` 消费其表，要么进 `WAIVED_MODULES` 写明原因）。本批把 `moderation` 从 waiver 提升为 covered，覆盖率反而改善。
+- `contract:codegen:check` 的「46 supported module helper sets are in sync」口径需在对账时确认——本批改动均经 codegen 产出，不应引入漂移。
+
+---
+
 **审计文档最后更新**: 2026-10-06
-**最近提交**: `93a92c84e` (path-contract 门禁增强 + MSC 编号格式校验)
+**最近提交**: `116631352` (fix(contract): 路径断言改为段级精确匹配，消除 `${string}` 前缀吞噬)
 **核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准
-**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert` 段级精确断言 + 变异自证；浮现 discovery 契约归属缺口与 profile 字段段问题）\*\*
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert` 段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）\*\*
