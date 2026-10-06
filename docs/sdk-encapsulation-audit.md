@@ -1323,15 +1323,110 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 **7.6 `GET /server` 与缺陷 A 的汇合点**：`GET /server`（`get_admin_info_compat`）正好是 A 类前两条的正解，且**同前缀**（`/_synapse/admin/v1`），无需改动 prefix 机制——批 B 落地时顺手修复成本最低。唯一注意：该端点限 `super_admin`，普通 `admin` 会 403，需在 JSDoc 写明并保留降级路径。
 
-#### 遗留观察项
+#### 8. 【落地】按 7.5 的顺序执行：先补门禁盲区（含变异自证），再清理 A 类与死 fallback（2026-10-06）
 
-- **ESLint 未能在沙箱内完成**：`npx eslint <改动文件>` 反复以 `Error: Broker request timed out`（`broker-ipc-client.cjs`）中止 —— 是 WorkBuddy CLI 的 file-broker 在大文件量下的 IPC 超时，**非 lint 报错**。同批 `tsc --noEmit`（0 错）与 prettier（通过）已覆盖类型与格式；ESLint 需在非沙箱或更小批次下复跑确认。
+§7.5 给出的顺序是「**先补门禁 → 再修路径**」，理由是：先修路径的话，修完门禁依然瞎，无法证明「修干净了」。本轮即按此顺序执行。
+
+##### 8.1 门禁改造：`verify-path-contract.mjs` 由「硬编码单包装器」改为「表驱动多包装器」
+
+问题根因（§7.4 第 2 条）是抽取器只认两种写法。修法不是把 `authedRequest` 再复制一份改成 `adminRequest`，而是**把「谁包裹路径」这件事变成一张显式登记表**，否则下一个包装器还会重蹈覆辙。
+
+新增/改造的四个结构性机制：
+
+| 机制                    | 内容                                                                                                 | 解决的问题                                                                                                                                                                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSITIONAL_WRAPPERS`   | 11 个包装器的固定前缀 / 按目录分流 / 「前缀在第 N 个参数」/ 「前缀在 opts 对象里」四种字段           | 替代原来只认 `authedRequest` 的正则；`adminRequest`/`v2Request`/`requestInternal`/`requestV3`/`doRequestV3`/`doRequest`/`requestWithRetry`/`makeRequestWithUIA`/`idServerRequest`/`authedRequest`/`request` 全部纳入                                                         |
+| `EXCLUDED_WRAPPERS`     | 3 个显式登记为「不覆盖」：`requestOtherUrl`、`rawJsonRequest`、`sendToDeviceRequest`（各带理由）     | 让**故意不覆盖**与**忘记覆盖**在报告里可区分，避免又留下一个静默黑洞                                                                                                                                                                                                         |
+| `OUT_OF_SCOPE_PREFIXES` | `/_matrix/identity/` —— 不属于本 ledger 服务                                                         | 让 `idServerRequest` 的调用不再污染「不匹配」计数                                                                                                                                                                                                                            |
+| 配平扫描                | `findTopLevel` / `splitTopLevelArgs` / `skipGenerics` / `splitTopLevelTernary` / `splitTopLevelPlus` | 解决 `adminRequest<{ a: string }>(...)` 泛型含 `{}` 时正则 `[^>]*` 提前截断；以及 `cond ? "/a" : "/b"`、`"/a" + id` 这类**多候选前缀**（任一命中即算匹配），和 `doRequest` 按目录分流（widgets=`/_matrix/client/v1`、space=`/_matrix/client/v3`、worker=`/_synapse/worker`） |
+
+**同时收紧了一条过宽的规则**：原先通配符匹配允许任意「SDK 段 vs 后端 `{占位符}` 段」互相顶替，导致 `/notifications/deactivate`、`/federation/blacklist/add` 被**静默**当作占位符匹配（假阴性）。现收紧为**仅当 SDK 侧具体值含 `.`（域名/事件类型这类明显是数据而非路径段）时可以顶替占位符**，且通配符命中在报告里**单独计数**（本轮 1 处），不再混在「匹配成功」里。
+
+**抽取量的变化**：`159 → 433`（+174%）。旧门禁「扫描 460 文件、提取 159 个调用、报不匹配 0」的正确解读是「**460 个文件里有大量调用从未进入校验**」。
+
+##### 8.2 变异自证（mutation self-proof）：证明新门禁真的会红，而不是又一块纸面门禁
+
+补抽取器最常见的失败模式是「补了但没生效」——报告仍然全绿，因为抽取器实际没抓到东西。故做了一次注入-确认-回退：
+
+1. 在 `src/admin/sub-managers/admin-server-manager.ts` 把已修好的 `"/statistics"` 改回 `"/statisticz"`（仅此一处，其余不动）；
+2. **新门禁**（工作区版本）→ **变红，并精确报出 `src/admin/sub-managers/admin-server-manager.ts:83`**；
+3. **旧门禁**（`git show HEAD:scripts/quality/verify-path-contract.mjs`，同一份源码）→ 报「不匹配 **0**」，即对同一处缺陷**完全无感**；
+4. 回退注入，门禁复绿。
+
+这一步同时证明了两件事：新抽取器**生效**，且旧抽取器的盲区**真实存在**（不是「碰巧没缺陷」，而是「看不见缺陷」）。
+
+##### 8.3 A 类路径修复（8 处，必然 404 → 正解）
+
+| #   | 方法                                                 | 旧（必 404）                                          | 新（后端注册形态）                                 | 依据                                                                                                            |
+| --- | ---------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 1   | `AdminServerManager.getAdminInfo`                    | `GET /_synapse/admin/v1/info`                         | `GET /_synapse/admin/info`（改走 `v2Request`）     | 后端注册在 `/_synapse/admin` 根下，**无 `v1` 段**                                                               |
+| 2   | `AdminServerManager.getServerInfo`                   | 同上（另有 `/server_info` 死 fallback）               | 同上                                               | 同上                                                                                                            |
+| 3   | `AdminServerManager.cleanupDatabase`                 | `POST /cleanup`                                       | `POST /cleanup/all`                                | 后端只有 `/cleanup/all\|rooms\|tokens`；本方法语义为全量，故取 `all`；顺带补 `min_age_ms`（后端唯一消费的字段） |
+| 4   | `AdminServerManager.sendServerNotice`（字符串分支）  | `POST /server_notices`                                | `POST /send_server_notice`                         | 同方法的**对象分支**早已在用正解，两分支应汇合                                                                  |
+| 5   | `AdminFederationManager.addFederationBlacklistEntry` | `POST /federation/blacklist`（`server_name` 放 body） | `POST /federation/blacklist/{server_name}`         | 后端只注册带 `{server_name}` 段的形态                                                                           |
+| 6   | `FederationBlacklistManager.addToBlacklist`          | `POST /federation/blacklist/add`                      | `POST /federation/blacklist/{server_name}`         | 同上（**新发现**，不在 §7.3 的 6 条内）                                                                         |
+| 7   | `FederationBlacklistManager.removeFromBlacklist`     | `POST /federation/blacklist/remove`                   | **`DELETE`** `/federation/blacklist/{server_name}` | 同上前提下**方法也错**（**新发现**）                                                                            |
+| 8   | `AdminConfigManager.getModuleLogs`                   | `GET /modules/{id}/logs`                              | `GET /modules/logs/{id}`                           | 后端是 `logs` 段在**前**，旧实现两段写反（**新发现**，属「路径段序错」而非「未封装」）                          |
+
+第 6/7/8 条是**补门禁后才暴露**的：它们分别位于 `federation-blacklist-manager.ts` 与 `admin-config-manager.ts`，旧抽取器同样够不着。第 7 条尤其说明「字面量 vs 字面量」的测试有多弱——原测试断言的是 `POST /federation/blacklist/remove`，**方法错、路径错，测试却一直是绿的**。
+
+##### 8.4 B 类死 fallback 清理（8 处）
+
+「主路径正确、404 回退到一条后端从未注册的路径」的分支全部删除。这类分支不会造成线上故障（因为永不命中），但会让代码看起来「有兼容性」、并在真 404 时多一次无意义请求：
+
+`/server_stats`、`/server_health`、`/server_info`、`/server_config`、`/federation/admissions`、`/federation/pending_servers`、`v2Request /v2/users/{id}/devices`（后端设备端点只在 v1 命名空间）、`PUT /registration_tokens/{token}`。
+
+其中后 3 条是**补门禁后新暴露**的（§7.3 的 B 类只列了 5 条）。删除时保留了 `throwOnError` 等**对外语义**（如 `getServerConfig(false)` 仍返回 `{}` 而不抛），只删掉「回退到不存在的路径」这一层。
+
+##### 8.5 测试固化问题：改写 9 条把错误路径钉死的断言
+
+§7.4 第 1 条指出「测试把错误路径固化了」。本轮相应改写：
+
+- `spec/unit/admin-new-endpoints.spec.ts`：7 条由「断言回退会发第二次请求」改为「**断言只发一次 + 404 直接抛**」，并断言新路径；另 1 条 `getModuleLogs` 由只查 query 参数**补强为同时断言 `/modules/logs/mod1`**（原断言对段序错完全无感）。
+- `spec/unit/federation.spec.ts`：2 条黑名单用例改为断言 `/federation/blacklist/{server}` 与 `Method.Delete`。
+- 断言错误类型由 `MatrixError` 改为 `NotFoundError`——`adminRequest` 会经 `normalizeError` 把 `M_NOT_FOUND` 归一化为 `NotFoundError`，**断言基类会放过归一化本身出错的情况**。
+
+##### 8.6 豁免表重写为 4 类 19 条，并删掉 1 条失效豁免
+
+`path-contract-waivers.json` 原来只有「路径 + 理由」两栏，无法区分「后端没有」与「后端有但语义不同」，导致后者会被误判为「等后端补齐就行」。现分为 4 类（每类都写明**删掉条件**）：
+
+| 类别                | 条数 | 含义                                                                                                                                                               | 删掉条件                                     |
+| ------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `backend-missing`   | 10   | 后端确实没有该端点                                                                                                                                                 | 后端补上该路由                               |
+| `semantic-mismatch` | 6    | 后端有邻近端点但**语义不同**（如 `invite/blocklist` 的**整表替换** vs SDK 的**逐条增删**、`notifications/deactivate` 的 `DELETE` vs 后端 `PUT …/{id}/deactivate`） | 产品决策：对齐后端 / 改造 SDK API / 移除方法 |
+| `by-design`         | 1    | 后端**有意不实现**（`/backups`，后端有测试 `backups_route_not_in_manifest` 固定该决策）                                                                            | 产品改变该决策                               |
+| `other-homeserver`  | 2    | 兼容其他 homeserver / 协议变体                                                                                                                                     | 本后端纳入范畴时                             |
+
+**顺手删除 1 条失效豁免** `DELETE /_matrix/client/v3/voice/{X}`——后端已补齐（`/voice/{media_id}` **只有 GET**，故 SDK 的 DELETE 语义无对应端点，原豁免的存在理由是「后端将补」）。按豁免表自身规则，未引用的豁免会让门禁的失败面被旧条目遮住（该条正是门禁从 `EXIT=1` 变红的原因），必须删。
+
+##### 8.7 已知盲区上限（本轮不再扩张，明确记录）
+
+门禁仍有**一层**未覆盖：`path: helper(...)` 形态——即路径由 helper 函数拼装（`rp` / `friendPath` / `pp` / `ap` / `kb` / `vp` 等 **22 个 helper**，约 **250 处**）。这类需要**过程间分析**（追进 helper 实现），已超出「静态路径字面量对账」的边界。记录在此，避免后人误以为「门禁全绿 = 全仓无路径缺陷」。
+
+##### 8.8 验证结果（2026-10-06 实测）
+
+- `quality:path-contract`：**`EXIT=0`** —— `扫描 460 / 提取 433 / 匹配 414（含通配符 1）/ 豁免 19 / 不匹配 0 / 豁免过期 0 / 豁免未引用 0 / 动态跳过 49 / 域外 7`；「覆盖的包装器 11 / 未覆盖 3」。
+- `tsc --noEmit`：`EXIT=0`。
+- 受影响的 11 个 spec 文件 **342 个用例全绿**（`spec/unit/admin-new-endpoints.spec.ts`、`spec/unit/federation.spec.ts`、`spec/unit/module-manager.spec.ts`、`spec/unit/admin.spec.ts`、`spec/unit/admin/**`）。
+- `quality:swallow-fallbacks`：**`EXIT=0`**（`current 64 / baseline 64 / matched 64 / stale 0 / new 0`）。
+    - ⚠️ **该门禁在本次改动前即为红色（既有问题，与 A 类修复无关）**：`src/discovery/index.ts:250` 的 baseline 条目漂移，而该文件本轮**未被改动**。已用 `git worktree add /tmp/wt-head-swallow HEAD` 在 HEAD 上复现确认（HEAD 上仅此 1 条 STALE）。
+    - 本次改动另使 5 条 admin 侧条目因**删除代码导致行号漂移**（`admin-federation-manager.ts` 112→119；`admin-user-manager.ts` 416→405 / 438→427 / 465→454 / 502→491）。因 `id = file:line:hash` 含行号，须重记。
+    - 用 `--update-baseline` 重记后 diff 复核为 **13 增 13 删、条目数 64→64 不变**，全部是 `id`/`line`/`generatedAt` 的价值变更，**snippet 与 whitelist 一字未动**——即「同一批站点换行号」，**没有借机放行任何新缺陷、也没有悄悄退役任何站点**。
+- `quality:debt-markers`：`EXIT=0`（0 新增）。`quality:contract-drift`：`EXIT=0`。`quality:gate-reachability`：`EXIT=0`（可达 44 / 死门禁 0）。`quality:waiver-expiry`：`EXIT=0`（19 valid / 0 expiring / 0 expired）。
+- prettier：改动文件全部通过（`verify-path-contract.mjs` 与 `admin-new-endpoints.spec.ts` 先 `--write` 后复检通过）。
+- ESLint：见下方「遗留观察项」（沙箱 IPC 限制）。
+
+#### 遗留观察项（§13.15.7 / §13.15.8）
+
+- **ESLint 未能在沙箱内完成**：`npx eslint <改动文件>` 反复以 `Error: Broker request timed out`（`broker-ipc-client.cjs`）中止 —— 是 WorkBuddy CLI 的 file-broker 在大文件量下的 IPC 超时，**非 lint 报错**。同批 `tsc --noEmit`（0 错）与 prettier（通过）已覆盖类型与格式；ESLint 需在非沙箱或更小批次下复跑确认。**§13.15.8 复现同一现象**：8 个改动文件一次性交给 eslint，后台运行 4 分钟以上无输出、随后被 SIGTERM，与前一轮结论一致（非 lint 报错）。
 - **`scripts/**`不在`lint:js`作用域内**：项目口径是`eslint src spec perf`（见 `package.json`的`lint:js`），`scripts/quality/\*.mjs`不在其列；直接对其跑 eslint 会得到`one-var`/`camelcase`/`no-console` 等**预存**风格报错，与本次改动无关，不要误判为回归。
 - **admin 运维面 35 条**保持现状（§4 列为「需产品决策」），本轮未动。
+- **§13.15.8 遗留：`path: helper(...)` 盲区**（约 250 处 / 22 个 helper）未覆盖，需过程间分析，本轮明确不扩张（见 §13.15.8.7）。
+- **§13.15.8 遗留：「语义分裂」类豁免需产品决策**（6 条 `semantic-mismatch`，见 §13.15.8.6）。这类**不能靠改路径解决**——典型是 `invite/blocklist`：后端是**整表替换**语义，SDK 暴露的是**逐条增删**。继续按「等后端补」处理会永久挂着。
 
 ---
 
 **审计文档最后更新**: 2026-10-06  
-**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications：push/devices×3 + push/send + 移纸面 waiver) → `42903a4ec` (B2 turn-server：voip/config + turnServer/guest) → `578a00c36` (B3 room-summary：rooms/{id}/keys) → `3d6ffb94e` (B4 room：user/{id}/rooms + mutual_rooms(v1) + create_private) → `52a47a5a2` (fix admin：media quarantine 改 server_name 形态路径) → 本文档与梳理文档（§13.15 正文 + §13.15.6 admin 复核） → 建议文档与本文 §13.15.7（admin 25 条处置建议 + 新发现「路径对账」缺陷簇 + `quality:path-contract` 的 `adminRequest` 抽取盲区）  
-**核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准  
-**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert`段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）** 与 **§13.15（落地：把 ROUTE_CONTRACT 对账结论写回代码——10 条真缺口封装为 B1–B4 + 纠正报告 3 处粗判 + 移除 1 条纸面 waiver `push_notification`；admin 面 35 条复核为 10 假阳性 + 25 真缺口，并修复 media quarantine 的 2 处「路径错」缺陷）\*\*
+**最近提交**: `859a44771` (assembly→auth 映射) → `81c4da6e6` (discovery 逃生阀关闭) → `9e2d7314f` (永久类型级守卫) → `5176b3f09` (§13.13/§13.14) → cas 收口（见 §13.14.5） → `c1e304dc4` (B1 notifications：push/devices×3 + push/send + 移纸面 waiver) → `42903a4ec` (B2 turn-server：voip/config + turnServer/guest) → `578a00c36` (B3 room-summary：rooms/{id}/keys) → `3d6ffb94e` (B4 room：user/{id}/rooms + mutual_rooms(v1) + create_private) → `52a47a5a2` (fix admin：media quarantine 改 server_name 形态路径) → 本文档与梳理文档（§13.15 正文 + §13.15.6 admin 复核） → 建议文档与本文 §13.15.7（admin 25 条处置建议 + 新发现「路径对账」缺陷簇 + `quality:path-contract` 的 `adminRequest` 抽取盲区） → 本文 §13.15.8 与其对应实现（门禁补抽取盲区含变异自证 + A 类 8 处路径修复 + B 类 8 处死 fallback 清理 + 豁免表 4 分类 19 条 + 9 条测试改写 + swallow 基线重记）  
+**核心结论**: Federation 管理 API 完整（剩余 12% 为 S2S 协议）；联调发现并修复 appservice 路径契约缺陷（14 处）；豁免表精简至 6 条真实缺口。**Room 模块的「100%」已作废**（见 §13.8），当前实现面覆盖以 `artifacts/sdk-contract-gap-report.md` 为准。**`quality:path-contract` 的抽取面已由 159 扩到 433**（§13.15.8），「全绿」的含义随之变强；但仍不含 `path: helper(...)` 的约 250 处（§13.15.8.7）  
+**勘误**: 见 §13.8（Room 伪覆盖）、§13.9（room-summary 契约归属断裂）、§13.10（`encodeUri` 泛型化，解除前者的第二个阻塞原因）、§13.11（room-summary 断言改造落地 + 暴露 `invite_blocklist` 前缀缺陷）、**§13.12（高危：路径模式是前缀模式，致 §13.11 的断言在 `/rooms/**` 上恒过，38 个模块中 31 个受影响）** 与 **§13.13（已修复：`PathAssert`段级精确断言 + 永久类型级守卫）** 与 **§13.14（收口：assembly→auth 映射 + moderation 表生成 + discovery 逃生阀关闭；discovery 契约归属缺口与 profile 字段段问题均已闭环）** 与 **§13.15（落地：把 ROUTE_CONTRACT 对账结论写回代码——10 条真缺口封装为 B1–B4 + 纠正报告 3 处粗判 + 移除 1 条纸面 waiver `push_notification`；admin 面 35 条复核为 10 假阳性 + 25 真缺口，并修复 media quarantine 的 2 处「路径错」缺陷）** 与 **§13.15.8（已落地：`quality:path-contract` 抽取盲区补齐——旧门禁只认 2 种写法（`extractPositionalCalls`硬编码`authedRequest`），`adminRequest`等 11 个包装器（仅`this.adminRequest(`160 处 +`this.adminRequest<`107 处 = **267 处调用点**）从未进入校验；改为表驱动`POSITIONAL_WRAPPERS` 后抽取量 159→433，并以变异自证证明新旧门禁对同一注入缺陷「一红一绿」；据此修掉 A 类 8 处必然 404 与 B 类 8 处死 fallback，豁免表按 4 类重写为 19 条）\*\*
