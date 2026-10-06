@@ -981,4 +981,80 @@ describe("RoomManager", () => {
             expect(mockClient.store.removeRoom).toHaveBeenCalledWith("!room:example.com");
         });
     });
+
+    // ────────────────────── 本轮补齐的三条契约端点 ──────────────────────
+    // user/{user_id}/rooms · user/mutual_rooms(v1) · rooms/create_private
+
+    describe("getUserRooms", () => {
+        it("fetches joined room ids for the given user", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ joined_rooms: ["!a:example.com"] });
+
+            const res = await roomManager.getUserRooms("@test:example.com");
+
+            expect(res).toEqual({ joined_rooms: ["!a:example.com"] });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                `/user/${encodeURIComponent("@test:example.com")}/rooms`,
+                undefined,
+                undefined,
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+
+        it("rejects when userId is missing", async () => {
+            await expect(roomManager.getUserRooms("")).rejects.toThrow("userId is required");
+        });
+    });
+
+    describe("getMutualRooms", () => {
+        it("queries the v1 stable endpoint with user_id / limit / batch_token", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ joined: ["!a:example.com"], next_batch_token: "t2" });
+
+            const res = await roomManager.getMutualRooms("@other:example.com", { limit: 5, batchToken: "t1" });
+
+            expect(res).toEqual({ joined: ["!a:example.com"], next_batch_token: "t2" });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/user/mutual_rooms",
+                { user_id: "@other:example.com", limit: "5", batch_token: "t1" },
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+        });
+
+        it("omits optional query params when not supplied", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ joined: [] });
+
+            await roomManager.getMutualRooms("@other:example.com");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "GET",
+                "/user/mutual_rooms",
+                { user_id: "@other:example.com" },
+                undefined,
+                { prefix: "/_matrix/client/v1" },
+            );
+        });
+
+        it("rejects when userId is missing", async () => {
+            await expect(roomManager.getMutualRooms("")).rejects.toThrow("userId is required");
+        });
+    });
+
+    describe("createPrivateRoom", () => {
+        it("posts to /rooms/create_private and returns the room id", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ room_id: "!private:example.com" });
+
+            const res = await roomManager.createPrivateRoom({ name: "私聊" });
+
+            expect(res).toEqual({ room_id: "!private:example.com" });
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/rooms/create_private",
+                undefined,
+                { name: "私聊" },
+                { prefix: "/_matrix/client/v3" },
+            );
+        });
+    });
 });

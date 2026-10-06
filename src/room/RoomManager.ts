@@ -159,6 +159,28 @@ export interface IMyRoomsResponse {
     total: number;
 }
 
+/**
+ * `GET /user/{user_id}/rooms` 的响应。
+ *
+ * 注意：后端只允许查询**自己**（`user_id` 与认证用户不一致时返回 403 `Access denied`）。
+ */
+export interface IUserRoomsResponse {
+    /** Room IDs the user has joined. */
+    joined_rooms: string[];
+}
+
+/**
+ * `GET /user/mutual_rooms` 的响应（MSC2666 **v1 稳定版**）。
+ *
+ * 与 `ServerCapabilities._unstable_getSharedRooms` 返回的结构一致，便于上层统一处理分页。
+ */
+export interface IMutualRoomsResponse {
+    /** Room IDs joined by both the caller and the target user. */
+    joined: string[];
+    /** Opaque token for the next page; absent when there are no more rooms. */
+    next_batch_token?: string;
+}
+
 interface RoomManagerEventMap {
     [RoomEvent.RoomCreated]: (roomId: string) => void;
     [RoomEvent.RoomJoined]: (roomId: string) => void;
@@ -312,6 +334,34 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                 prefix: ClientPrefix.V3,
             });
         });
+
+        this.emit(RoomEvent.RoomCreated, response.room_id);
+        return response;
+    }
+
+    /**
+     * 创建**私聊房间**（fork 私有快捷入口）。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/create_private`。
+     *
+     * 后端会强制 `preset = "private_chat"`、`visibility = "private"` 后委托给与
+     * `createRoom()` 相同的实现，因此这里**不接受** `preset`/`visibility` 覆盖——传了也会被后端改写。
+     * 返回结构与 `createRoom()` 一致，并同样触发 {@link RoomEvent.RoomCreated}。
+     *
+     * @param options - 其余建房选项（`invite`、`name`、`topic`、`initial_state` 等）
+     * @returns 新房间的 `room_id`
+     */
+    public async createPrivateRoom(
+        options: Omit<ICreateRoomOpts, "preset" | "visibility"> = {},
+    ): Promise<{ room_id: string }> {
+        const response = await this.withRetry(async () => {
+            return await this.request<{ room_id: string }>({
+                method: Method.Post,
+                path: rp("/rooms/create_private"),
+                body: options,
+                prefix: ClientPrefix.V3,
+            });
+        }, "createPrivateRoom");
 
         this.emit(RoomEvent.RoomCreated, response.room_id);
         return response;
@@ -942,6 +992,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     // ==================== Room Directory ====================
+    //
+    // 契约注记（供对账用）：后端同时注册了历史路径 `GET|PUT /rooms/{room_id}/visibility`，
+    // 那是 Matrix 早期版本中被本方法取代的**旧路径**，二者是同一能力，故 SDK 只实现规范路径
+    // `/directory/list/room/{roomId}`，**不**为旧路径另开方法（见
+    // `artifacts/sdk-encapsulation-completion-plan-2026-10-06.md` §3.1）。
 
     public async getRoomDirectoryVisibility(roomId: string): Promise<{ visibility: Visibility }> {
         validateRoomId(roomId);
@@ -966,6 +1021,67 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             });
         });
         return response;
+    }
+
+    // ==================== 用户维度的房间查询 ====================
+
+    /**
+     * 列出指定用户已加入的房间 ID。
+     *
+     * 对应 `GET /_matrix/client/v3/user/{user_id}/rooms`。
+     *
+     * 后端只允许查询**自己**：`user_id` 与 token 所属用户不一致时返回 403 `Access denied`。
+     *
+     * @param userId - 目标用户 MXID（必须是当前登录用户）
+     * @returns 已加入的房间 ID 列表（`joined_rooms`）
+     */
+    public async getUserRooms(userId: string): Promise<IUserRoomsResponse> {
+        if (!userId) throw new InvalidParamError("userId is required");
+
+        return this.withRetry(async () => {
+            return await this.request<IUserRoomsResponse>({
+                method: Method.Get,
+                path: rp(`/user/${encodeURIComponent(userId)}/rooms`),
+                prefix: ClientPrefix.V3,
+            });
+        }, "getUserRooms");
+    }
+
+    /**
+     * 查询与目标用户的**共同房间**（MSC2666 **v1 稳定版**）。
+     *
+     * 对应 `GET /_matrix/client/v1/user/mutual_rooms?user_id=...`。
+     *
+     * 与 `client.getCapabilities()...ServerCapabilities._unstable_getSharedRooms` 的关系：
+     * 后者走 unstable 前缀（`/uk.half-shot.msc2666/...`）并做特性探测；本方法是**稳定版入口**，
+     * 直接在 v1 租约上分页，适合后端已确定支持该能力的场景。二者返回结构一致。
+     *
+     * 注意：查询自己会得到 403。
+     *
+     * @param userId - 目标用户 MXID
+     * @param opts - 分页选项
+     * @param opts.limit - 单页上限
+     * @param opts.batchToken - 上一页返回的 `next_batch_token`
+     * @returns 共同房间列表与下一页 token
+     */
+    public async getMutualRooms(
+        userId: string,
+        opts?: { limit?: number; batchToken?: string },
+    ): Promise<IMutualRoomsResponse> {
+        if (!userId) throw new InvalidParamError("userId is required");
+
+        const queryParams: QueryDict = { user_id: userId };
+        if (opts?.limit !== undefined) queryParams.limit = String(opts.limit);
+        if (opts?.batchToken) queryParams.batch_token = opts.batchToken;
+
+        return this.withRetry(async () => {
+            return await this.request<IMutualRoomsResponse>({
+                method: Method.Get,
+                path: rp("/user/mutual_rooms"),
+                queryParams,
+                prefix: ClientPrefix.V1,
+            });
+        }, "getMutualRooms");
     }
 
     public async getRoomHierarchy(
