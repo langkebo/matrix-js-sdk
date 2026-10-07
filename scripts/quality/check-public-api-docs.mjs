@@ -86,12 +86,12 @@ const LEDGER_SCHEMA_VERSION = 3;
  * 注意这只是**排除统计**，不代表这类方法应当保持 public —— 更彻底的修法是
  * 加 `@internal` 或改 `protected` + 工厂注入，属于单独的清理项。
  */
-function isConventionInternal(methodName) {
+export function isConventionInternal(methodName) {
     return methodName.startsWith("_");
 }
 
 /** 纳入统计的类：以 Manager 结尾，或核心客户端类。 */
-function isTrackedClassName(name) {
+export function isTrackedClassName(name) {
     return /Manager$/.test(name) || name === "MatrixClient";
 }
 
