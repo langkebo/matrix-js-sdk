@@ -1331,6 +1331,48 @@ Note: 此方法与 getPushers() 功能相同，仅为了完整覆盖后端路由
 于是真实的回归（push 89.01 → 74.28）被解释成口径差异而放过。已订正注释，
 **floorPercent 一条未动**。
 
+#### 7.15-13 事后审查：新写的 spec 也必须变异自证（2026-10-07）
+
+以代码审查视角回头复核 §7.15-12 那 30 例，第一个发现是**我自己跳过了自己反复强调的
+变异自证** —— 门禁 spec 每个都做，轮到"补覆盖率"的 spec 就省了。补做 9 个变异
+（A1/S1/S2/S3/P1..P6）：
+
+```
+8 个转红，1 个没抓到：P5「removeKeywordHighlight 丢掉参数校验」→ 断言仍绿。
+```
+
+##### 这是**第四类**失效：不是变异的问题，是**断言强度不足**
+
+前几轮记过三类（变异无效 / 变异被遮蔽 / 变异构造错），都出在变异侧。这一条出在断言侧：
+
+```ts
+await expect(pushManager.removeKeywordHighlight("")).rejects.toThrow(InvalidParamError);
+```
+
+四个快捷方法（`addKeywordHighlight` / `removeKeywordHighlight` / `ignoreSender` /
+`unignoreSender`）内部转发给 `createPushRule` / `deletePushRule`，而**后者自己也校验**
+`!scope || !kind || !ruleId`。于是删掉本层校验后，下游照旧抛 `InvalidParamError` ——
+断言无法区分「本层拦下」与「被下游兜住」。**等价于没测**。
+
+**判据**：`rejects.toThrow(Type)` 在同一个异常类型能从**多个层次**产生时就失效，
+必须断言**具体错误消息**：
+
+```ts
+await expect(pushManager.removeKeywordHighlight("")).rejects.toThrow("keyword is required");
+```
+
+改完这 9 个变异**全部转红**（9 failed / 21 passed），还原后 30 passed。
+
+**推广**：凡断言"应该抛某个异常"，先问一句 **「如果把这一层的检查删掉，还有谁能抛出
+同一种异常？」** 有别人能兜住，就必须断言消息或断言副作用（如"没有发出请求"），
+否则这条断言测的是下游而不是它自称测的那一层。
+
+##### 顺带：命名要经得起误读
+
+`push-coverage-gaps.spec.ts` 这个文件名诞生于覆盖率治理，但里面每一条都是**行为断言**。
+已在文件头写明"覆盖率只是副产品，一条测试该不该留看的是把实现改坏它会不会红" ——
+免得后人把它当"为凑数而写"的文件整包删掉。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1440,5 +1482,8 @@ CLI 行为逐字节一致；并定位修掉 `quality:report` 240s 超时
 再补 30 例覆盖真实缺测（8 处 catch 分支、缓存命中、房间规则、生命周期、20+ 便捷访问器），
 三模块定向覆盖率均达 **100%**，混合 lcov 端到端验证门禁 exit 0；记录验证方法自身的坑
 （定向 lcov 冒充全仓 lcov 会假红，判据是先对齐 LF）；并订正 `critical-modules.json`
-`measuredBy` 的错误描述（floor 来自全仓 lcov，"定向可能低于全仓"的说法正是误放假说的由来））
+`measuredBy` 的错误描述（floor 来自全仓 lcov，"定向可能低于全仓"的说法正是误放假说的由来）；
+**§7.15-13 事后审查**：以代码审查视角复核那 30 例，发现自己跳过了变异自证；补做 9 个变异
+有 1 个没转红 —— 记下**第四类失效**：断言强度不足（`rejects.toThrow(Type)` 在异常有多个
+来源时失效，必须断言消息），并给出判据「把这一层删掉，还有谁能抛同一种异常？」）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
