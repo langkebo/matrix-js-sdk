@@ -1064,13 +1064,43 @@ pre-commit 只处理 `ts/tsx/py/md/yaml`，于是 `scripts/quality/**` 的门禁
 可达闭包的传递性与收敛性、`.js`→`.ts` 与目录→`index.ts` 的解析。
 变异自证：① `isTrackedClassName` 去掉 `$` 锚定 → 转红；② `resolveSpecifier` 去掉 `.js` 映射 → 转红。
 
-#### 7.15-7 仍未做
+#### 7.15-7 P6 后续批次：已完成 9 个，剩余 4 个
 
-- **P6 剩余 12 个判定类门禁无 spec**（见 7.15-6 清单，已剔除本轮新守的 `check-public-api-docs`）。
-  按风险排序，`check-sdk-contract-alignment`（1749 行）与 `check-exports-docs`（374 行）最高。
+按"改造风险"而非纯规模排序推进，每个都走「capture → 抽纯函数 → verify 对拍 → spec → 变异自证」。
+
+| 门禁                            | 行数 | 例数 | 钉住的关键口径                                                                   |
+| ------------------------------- | ---- | ---- | -------------------------------------------------------------------------------- |
+| `check-public-api-docs`         | 666  | 16   | R0 导入面不许撒谎、可达闭包传递性、`.js`→`.ts` 解析                              |
+| `check-repo-coverage`           | 119  | 8    | LF/LH **加权**聚合（不是各文件比率的平均，后者被小文件稀释）；LF=0 记 100 而非 0 |
+| `check-msc-changes`             | 203  | 8    | `moved` 是**集合**比较（换文件算迁移，仅重排不算）；两侧编号按字符串对齐         |
+| `check-coverage-critical-files` | 206  | 13   | R3「到期当天」（daysLeft===0）不算过期；R2 缺字段后 continue 不叠加              |
+| `check-vendor-prefix-migration` | 89   | 8    | 豁免窗口 ±4 行（太小误判标准 API，太大豁免掉私有端点）                           |
+| `check-contract-provenance`     | 103  | 8    | 五条正则**整行锚定**（改子串匹配后散文也能过，门禁形同虚设）                     |
+| `check-large-file-changes`      | 59   | 9    | 阈值是 `>` 非 `>=`；已删除文件必须跳过                                           |
+| `scan-technical-debt`           | 261  | 20   | 指纹含片段（改措辞即新债）+ 路径归一；CSV 逗号转义；FIXME 必须 P0                |
+| `check-type-coverage`           | 139  | 6    | `recursive=false` 只收一层（模块档关掉会虚高到 100%）；排除 `.test-d.ts`         |
+
+**顺带修掉 5 处"无条件 `main()` / 顶层裸跑"**：`check-coverage-critical-files`、
+`check-msc-changes`、`check-vendor-prefix-migration`、`check-contract-provenance`、
+`scan-technical-debt`、`check-type-coverage` —— 它们 import 时会跑全仓扫描或
+`git diff`，且有违规时 `process.exit(1)` 会让 spec 以"莫名其妙的红"失败。
+CLI 行为均经 gate-golden 对拍**逐字节一致**。
+
+⚠️ 侦察入口形态时**不能** grep `import.meta.url`（`fileURLToPath(import.meta.url)`
+会误命中），只能看文件末尾是不是 `main();` 裸调用。
+
+**剩余 4 个**：`check-sdk-contract-alignment`（1749，顶层有副作用，改造最难）、
+`check-exports-docs`（374，顶层 `readFileSync`）、`check-docs-examples`（250）、
+`check-entrypoint-layering`（230）。
+
+#### 7.15-8 仍未做（其它）
+
 - **`quality:report` 240s 超时**：仍未定位（需活后端 / 全量测试）。
 - **P9**：`npx eslint <多文件>` 在本机沙箱 SIGTERM(137)，只能后台跑；属环境问题。
 - **`check-cross-repo-pin`**、4 条豁免、2 条 keep-manual 孤岛：**按设计如此**，记录不修。
+- 两处已知小缺陷**故意未修**（已在对应 spec 里钉住现状，改它们属判定类改动）：
+  `summarizeLcov` 末尾段缺 `end_of_record` 时 `fileCount` 漏计 1（只影响日志）；
+  `collectTypeScriptFiles` 传入不存在目录抛 ENOENT（调用方已先 filter）。
 
 ---
 
