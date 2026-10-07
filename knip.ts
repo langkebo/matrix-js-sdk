@@ -173,8 +173,6 @@ export default {
         "@action-validator/*",
         // Used for git pre-commit hooks
         "husky",
-        // Used in script which only runs in environment with `@octokit/rest` installed
-        "@octokit/rest",
         // Used by `vitest` (referenced as string in vitest.config.ts reporters array)
         "vitest-sonar-reporter",
         // ESLint plugins referenced in eslint.config.mjs (knip doesn't parse ESLint config):

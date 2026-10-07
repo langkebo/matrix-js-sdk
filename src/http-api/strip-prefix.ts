@@ -49,9 +49,6 @@ export type StripR0<P extends string> = StripPrefix<P, "/_matrix/client/r0">;
 /** 剥离 `/_synapse/admin/v1`。 */
 export type StripAdminV1<P extends string> = StripPrefix<P, "/_synapse/admin/v1">;
 
-/** 剥离 `/_synapse/admin`（无版本号）。 */
-export type StripAdminPath<P extends string> = StripPrefix<P, "/_synapse/admin">;
-
 /** 剥离 `/_matrix/vendor/v1`。 */
 export type StripVendor<P extends string> = StripPrefix<P, "/_matrix/vendor/v1">;
 
