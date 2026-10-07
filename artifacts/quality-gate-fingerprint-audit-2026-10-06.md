@@ -1485,6 +1485,66 @@ if (isInitialized) return; // ← 后续任何 options 都被静默忽略
 **推广**：凡是"看起来做了"的检查动作，都要问一句 **「有可观测的证据证明它真的做了吗？」**
 —— 而不是"我写了这行代码，所以它做了"。
 
+#### 7.15-16 判据漏了一半，以及「接线治不了空壳」（2026-10-07）
+
+##### 漏掉的那一半：`MatrixClientInternalMethods`
+
+§7.15-14 只查了 `interface MatrixClientExtensionMethods`（21 个运行时不存在）。这轮把
+**`MatrixClientInternalMethods` 也纳入** —— 它注释自称"MatrixClient 类中已实现但未在主接口中
+声明的属性和方法"，实际**另有 74 个并没有实现**。合计 **95 个方法「类型检查通过、运行时 TypeError」**。
+
+拿这 95 个去扫调用点，得到 **43 处 `this.client.X(...)` 转发，集中在 10 个模块**。
+
+##### 新一类：空壳模块（`emptyShellModules`）
+
+这 10 个模块自己的方法只是 `return this.client.<不存在的方法>(...)`：
+
+```ts
+public async abortAllUploads(): void {
+    return this.client.abortAllUploads();   // ← MatrixClient 上根本没有这个方法
+}
+```
+
+⇒ `client.getUploadsManager().abortAllUploads()` **一调用就 TypeError**。
+
+**关键：接线治不了它。** 接线只让 prototype 上多一个函数，函数体第一行转发就炸。
+这与 `notOnMatrixClient` 是**两个层次**的问题：
+
+| 组                  | 问的是                 | 数量 |
+| ------------------- | ---------------------- | ---- |
+| `pendingWiring`     | 模块能不能被**加载**   | 2    |
+| `notOnMatrixClient` | 类型表**声明**得多不多 | 21   |
+| `emptyShellModules` | 加载后方法能不能**用** | 10   |
+
+##### 对自己上一轮动作的修正
+
+§7.15-15 接线的 21 个模块里，**13 个干净、8 个其实是空壳**（invites / lifecycle /
+push-notifications / room-creation / room-events / sessions / sync-accumulator / uploads）。
+
+**决定保留接线**：加载本身是对的、类型表也确实声明了这些访问器；空壳是**独立的一层病**，
+应该单独登记治理 —— 而不是靠回退接线把它重新藏回"undefined"里（那只是让症状更早出现，
+并没有让问题更少）。
+
+##### 守卫扩展
+
+- 台账新增 `groups.emptyShellModules`（10 个模块，**只能减少**）。
+- spec 5 → 7 例：新增「空壳集合 == 台账」，外加一条**判据自检**
+  （若 `collectMissingClientMethods()` 因正则/边界失效返回空数组，那条断言会在空集上空转、
+  永远通过 —— 自检专门拦它）。
+- 变异自证 2/2 分开跑均转红：往干净模块插一行 bad call ⇒ 10 vs 9；台账塞假模块 ⇒ 红。
+
+##### 四连同构
+
+| 轮次         | 形似                     | 神不至                         |
+| ------------ | ------------------------ | ------------------------------ |
+| §7.15-9      | spec 文件存在            | 没 import 被测对象             |
+| §7.15-14     | `prototype.X = ...` 存在 | 那行代码从没被执行             |
+| §7.15-15     | 调用语句存在             | 被幂等短路，静默不执行         |
+| **§7.15-16** | **模块存在、也能被加载** | **内部转发到一个不存在的东西** |
+
+**共同点**：**每一层都"看起来完整"，断链都在下一层。** 所以判据要一层层往下验证到
+**可观测的行为**为止，而不是停在"我看到了这段代码/这个文件/这次调用"。
+
 ---
 
 ## 附录 A：核验命令（可复现）
