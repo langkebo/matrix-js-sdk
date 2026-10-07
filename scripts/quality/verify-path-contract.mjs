@@ -65,23 +65,35 @@ const VERBOSE = process.argv.includes("--verbose");
 const LEDGER_PATH = process.env.LEDGER_PATH ?? "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
 const ledgerFile = resolve(PROJECT_ROOT, LEDGER_PATH);
 
-if (!existsSync(ledgerFile)) {
-    console.error(`❌ ledger 不存在: ${ledgerFile}`);
-    console.error(`   请先拉取/更新 synapse-rust，或设置 LEDGER_PATH 环境变量。`);
-    process.exit(2);
+/**
+ * 读后端 ledger 并建成「`METHOD /归一化路径` → 原始路径」索引。
+ *
+ * 这一段原先写在顶层：`ledger` 不存在时直接 `process.exit(2)`，于是**只要 import
+ * 这个模块就会去读兄弟仓的文件、读不到就退出进程**——spec 连加载都做不到，只能
+ * 退而求其次抄一份常量自己测自己（见 `spec/unit/scripts/quality/` 下那份老 spec）。
+ * 现在改成函数，由 `main()` 调用；`--json` 之外的入口行为一字未变。
+ */
+export function loadBackendRoutes(file = ledgerFile) {
+    if (!existsSync(file)) {
+        console.error(`❌ ledger 不存在: ${file}`);
+        console.error(`   请先拉取/更新 synapse-rust，或设置 LEDGER_PATH 环境变量。`);
+        process.exit(2);
+    }
+
+    const routes = new Map();
+    try {
+        const ledger = JSON.parse(readFileSync(file, "utf8"));
+        for (const entry of ledger.entries) {
+            routes.set(`${entry.method.toUpperCase()} ${normalizePath(entry.path)}`, entry.path);
+        }
+    } catch (e) {
+        console.error(`❌ ledger 解析失败: ${e.message}`);
+        process.exit(2);
+    }
+    return routes;
 }
 
 let backendRoutes;
-try {
-    const ledger = JSON.parse(readFileSync(ledgerFile, "utf8"));
-    backendRoutes = new Map();
-    for (const entry of ledger.entries) {
-        backendRoutes.set(`${entry.method.toUpperCase()} ${normalizePath(entry.path)}`, entry.path);
-    }
-} catch (e) {
-    console.error(`❌ ledger 解析失败: ${e.message}`);
-    process.exit(2);
-}
 
 // ---------------------------------------------------------------------------
 // 2. 前缀常量表 —— 手工镜像 src/http-api/prefix.ts
@@ -89,7 +101,7 @@ try {
 //      改动 prefix.ts 时必须同步改这里 —— 单元测试会校验两者一致。）
 // ---------------------------------------------------------------------------
 
-const PREFIX_CONSTANTS = {
+export const PREFIX_CONSTANTS = {
     AdminPrefix: { V1: "/_synapse/admin/v1" },
     ClientPrefix: {
         R0: "/_matrix/client/r0",
@@ -109,7 +121,7 @@ const PREFIX_CONSTANTS = {
  * 依据 `src/managers/base-manager.ts` 的 request 实现（client 默认走 ClientPrefix.V3）。
  * 若上游改成别的默认值，这里也要跟着改——`spec/unit/base-manager-request.spec.ts` 会先红。
  */
-const DEFAULT_PREFIX = "/_matrix/client/v3";
+export const DEFAULT_PREFIX = "/_matrix/client/v3";
 
 // ---------------------------------------------------------------------------
 // 2b. 位置参数请求包装器表（2026-10-06 新增）
@@ -184,7 +196,7 @@ const OUT_OF_SCOPE_PREFIXES = {
         "SDK 打的是配置里指定的身份服务器地址。",
 };
 
-function resolvePrefix(expr) {
+export function resolvePrefix(expr) {
     // 无 prefix 字段 → 用默认前缀（不是"无法判断"）
     if (!expr) return { prefix: DEFAULT_PREFIX, known: true };
 
@@ -222,7 +234,7 @@ function resolvePrefix(expr) {
  * 解析模板字面量字符串（已剥去反引号），返回最终拼接的完整前缀字符串。
  * 支持简单的插值表达式：`${ClientPrefix.Unstable}...`
  */
-function resolveTemplateLiteral(literal) {
+export function resolveTemplateLiteral(literal) {
     // 简单实现：只支持当前出现的插值表达式的类型
     // 例如 `${ClientPrefix.Unstable}/org.matrix.msc4143`
     // 支持组合：先解析插值，再拼接后缀
@@ -245,7 +257,7 @@ function resolveTemplateLiteral(literal) {
 // 3. 路径归一化
 // ---------------------------------------------------------------------------
 
-function normalizePath(p) {
+export function normalizePath(p) {
     return (
         p
             // ${encodeURIComponent(x)} / ${this.encode(x)} / ${x || y} 等任意插值表达式 → {X}
@@ -265,7 +277,7 @@ function normalizePath(p) {
  * 难点：prefix 与 path 之间可能夹着整个 body 对象。所以不能靠正则的固定顺序，
  * 而是：先锚定 `method:`，再在该调用对象的括号配平范围内分别找 `path:` 和 `prefix:`。
  */
-function extractObjectCalls(source) {
+export function extractObjectCalls(source) {
     const calls = [];
     const methodRe = /\bmethod:\s*Method\.(\w+)/g;
 
@@ -306,7 +318,7 @@ function extractObjectCalls(source) {
 // ---------------------------------------------------------------------------
 
 /** 在顶层（不在括号/字符串内）扫描，返回第一个满足 pred 的字符下标 */
-function findTopLevel(src, pred) {
+export function findTopLevel(src, pred) {
     let depth = 0;
     let inStr = null;
     for (let i = 0; i < src.length; i++) {
@@ -332,7 +344,7 @@ function findTopLevel(src, pred) {
  * 两条腿都要合法，因为**fallback 的两条路径都真会被发出去**——
  * 只校验其中一条等于没校验（`client-auth.ts` 的 MSC2965 稳定/unstable 回退就是这种）。
  */
-function splitTopLevelTernary(expr) {
+export function splitTopLevelTernary(expr) {
     // 跳过 `?.`（可选链）与 `??`（空值合并）
     const q = findTopLevel(expr, (c, i) => c === "?" && expr[i + 1] !== "." && expr[i + 1] !== "?");
     if (q < 0) return null;
@@ -345,7 +357,7 @@ function splitTopLevelTernary(expr) {
 }
 
 /** 顶层 `+` 切分（不在字符串内的拼接） */
-function splitTopLevelPlus(expr) {
+export function splitTopLevelPlus(expr) {
     const parts = [];
     let rest = expr;
     let offset = 0;
@@ -367,7 +379,7 @@ function splitTopLevelPlus(expr) {
  * known=false 表示无法静态求值 —— 调用点会被计入「动态跳过」并显示在 --verbose 里，
  * 而不是被悄悄当成"匹配成功"。
  */
-function resolvePrefixExpression(expr) {
+export function resolvePrefixExpression(expr) {
     const e = (expr ?? "").trim();
     if (!e) return { candidates: [DEFAULT_PREFIX], known: true };
 
@@ -620,7 +632,7 @@ function stripComments(source) {
 }
 
 /** 从 openIdx 处的 `{` 开始做括号配平，返回闭合 `}` 的下标 */
-function matchBrace(src, openIdx) {
+export function matchBrace(src, openIdx) {
     let depth = 0;
     let inStr = null;
     for (let i = openIdx; i < src.length; i++) {
@@ -656,11 +668,11 @@ function matchBrace(src, openIdx) {
  *                （真实情况是后端只有 `PUT /notifications/{id}/deactivate`）。
  *   null       — 未命中
  */
-function matchAgainstLedger(method, fullPath) {
-    if (backendRoutes.has(`${method} ${fullPath}`)) return "exact";
+export function matchAgainstLedger(method, fullPath, routes = backendRoutes) {
+    if (routes.has(`${method} ${fullPath}`)) return "exact";
 
     const sdkSegments = fullPath.split("/");
-    for (const [backendKey, originalBackendPath] of backendRoutes.entries()) {
+    for (const [backendKey, originalBackendPath] of routes.entries()) {
         const [backendMethod] = backendKey.split(" ");
         if (backendMethod !== method) continue;
 
@@ -704,393 +716,403 @@ function walkSrc(dir) {
     return out;
 }
 
-const scanRoots = (process.env.SCAN_ROOTS ?? "src").split(",").map((r) => resolve(PROJECT_ROOT, r.trim()));
-const srcFiles = scanRoots.flatMap((r) => (existsSync(r) ? walkSrc(r) : []));
+function main() {
+    backendRoutes = loadBackendRoutes();
 
-const findings = [];
-const skipped = [];
-const outOfScopeCalls = [];
+    const scanRoots = (process.env.SCAN_ROOTS ?? "src").split(",").map((r) => resolve(PROJECT_ROOT, r.trim()));
+    const srcFiles = scanRoots.flatMap((r) => (existsSync(r) ? walkSrc(r) : []));
 
-for (const file of srcFiles) {
-    const raw = readFileSync(file, "utf8");
-    // 注释里的示例代码不是真实调用，先剥掉再提取
-    const source = stripComments(raw);
-    const relFile = file.slice(PROJECT_ROOT.length + 1);
+    const findings = [];
+    const skipped = [];
+    const outOfScopeCalls = [];
 
-    // 同一调用可能被两种提取器各命中一次，按 method+path+候选前缀 去重
-    const seen = new Set();
-    const calls = [...extractObjectCalls(source), ...extractWrapperCalls(source, relFile)];
+    for (const file of srcFiles) {
+        const raw = readFileSync(file, "utf8");
+        // 注释里的示例代码不是真实调用，先剥掉再提取
+        const source = stripComments(raw);
+        const relFile = file.slice(PROJECT_ROOT.length + 1);
 
-    for (const call of calls) {
-        // 统一成「前缀候选集」：
-        //   对象形态 → 单候选；位置参数形态 → 可能多候选（如 doRequest 的两种前缀、
-        //   三元 fallback 的两条腿）。任一候选命中即视为匹配 —— 见 POSITIONAL_WRAPPERS 注释。
-        let candidates;
-        let known;
-        if (call.prefixCandidates) {
-            candidates = call.prefixCandidates;
-            known = call.prefixKnown;
-        } else {
-            const r = resolvePrefix(call.prefixExpr);
-            candidates = r.known ? [r.prefix] : [];
-            known = r.known;
-        }
+        // 同一调用可能被两种提取器各命中一次，按 method+path+候选前缀 去重
+        const seen = new Set();
+        const calls = [...extractObjectCalls(source), ...extractWrapperCalls(source, relFile)];
 
-        // 去重键含行号：既避免「同一调用被两种提取器各命中一次」，又不会把
-        // 同一文件里两个**不同调用点**（如 getServerInfo / getAdminInfo 都打 /info）合并成一条。
-        const dedupKey = `${call.method}|${call.pathRaw}|${candidates.join("\u0001")}|${call.line}`;
-        if (seen.has(dedupKey)) continue;
-        seen.add(dedupKey);
+        for (const call of calls) {
+            // 统一成「前缀候选集」：
+            //   对象形态 → 单候选；位置参数形态 → 可能多候选（如 doRequest 的两种前缀、
+            //   三元 fallback 的两条腿）。任一候选命中即视为匹配 —— 见 POSITIONAL_WRAPPERS 注释。
+            let candidates;
+            let known;
+            if (call.prefixCandidates) {
+                candidates = call.prefixCandidates;
+                known = call.prefixKnown;
+            } else {
+                const r = resolvePrefix(call.prefixExpr);
+                candidates = r.known ? [r.prefix] : [];
+                known = r.known;
+            }
 
-        // 模板字面量可通过归一化处理（${...} → {X}），不跳过
-        const pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
-        if (!pathOnly.includes("${") && !pathOnly.startsWith("/")) {
-            skipped.push({ file: relFile, line: call.line, reason: "非字面量路径" });
-            continue;
-        }
+            // 去重键含行号：既避免「同一调用被两种提取器各命中一次」，又不会把
+            // 同一文件里两个**不同调用点**（如 getServerInfo / getAdminInfo 都打 /info）合并成一条。
+            const dedupKey = `${call.method}|${call.pathRaw}|${candidates.join("\u0001")}|${call.line}`;
+            if (seen.has(dedupKey)) continue;
+            seen.add(dedupKey);
 
-        if (!known) {
-            skipped.push({
-                file: relFile,
-                line: call.line,
-                reason: `无法静态求值的前缀（${call.prefixExpr ?? call.wrapper ?? "?"}）`,
-            });
-            continue;
-        }
+            // 模板字面量可通过归一化处理（${...} → {X}），不跳过
+            const pathOnly = call.pathRaw.replace(/^["'`]|["'`]$/g, "");
+            if (!pathOnly.includes("${") && !pathOnly.startsWith("/")) {
+                skipped.push({ file: relFile, line: call.line, reason: "非字面量路径" });
+                continue;
+            }
 
-        // pathOnly 本身已是完整路径时忽略 prefix，避免双重前缀
-        const isFullUrl = /^\/_matrix\/(client|admin|vendor|identity|media|federation|server)/.test(pathOnly);
+            if (!known) {
+                skipped.push({
+                    file: relFile,
+                    line: call.line,
+                    reason: `无法静态求值的前缀（${call.prefixExpr ?? call.wrapper ?? "?"}）`,
+                });
+                continue;
+            }
 
-        // 域外命名空间：结构性不属于本 ledger，单独计数后跳过
-        const probePath = isFullUrl ? pathOnly : (candidates[0] ?? "") + pathOnly;
-        const outOfScopePrefix = Object.keys(OUT_OF_SCOPE_PREFIXES).find((p) => probePath.startsWith(p));
-        if (outOfScopePrefix) {
-            outOfScopeCalls.push({
+            // pathOnly 本身已是完整路径时忽略 prefix，避免双重前缀
+            const isFullUrl = /^\/_matrix\/(client|admin|vendor|identity|media|federation|server)/.test(pathOnly);
+
+            // 域外命名空间：结构性不属于本 ledger，单独计数后跳过
+            const probePath = isFullUrl ? pathOnly : (candidates[0] ?? "") + pathOnly;
+            const outOfScopePrefix = Object.keys(OUT_OF_SCOPE_PREFIXES).find((p) => probePath.startsWith(p));
+            if (outOfScopePrefix) {
+                outOfScopeCalls.push({
+                    file: relFile,
+                    line: call.line,
+                    method: call.method,
+                    fullPath: normalizePath(probePath),
+                    prefix: outOfScopePrefix,
+                });
+                continue;
+            }
+
+            let matchKind = null;
+            let fullPath = null; // 报告用：第一个候选算出的路径作为「主路径」
+            for (const prefix of candidates) {
+                const fp = normalizePath(isFullUrl ? pathOnly : (prefix ?? "") + pathOnly);
+                if (fullPath === null) fullPath = fp;
+                const kind = matchAgainstLedger(call.method, fp);
+                if (kind) {
+                    matchKind = kind;
+                    fullPath = fp;
+                    break;
+                }
+            }
+            const matched = matchKind !== null;
+
+            const finding = {
                 file: relFile,
                 line: call.line,
                 method: call.method,
-                fullPath: normalizePath(probePath),
-                prefix: outOfScopePrefix,
-            });
-            continue;
-        }
+                sdkPath: pathOnly,
+                fullPath,
+                matched,
+                matchKind,
+            };
 
-        let matchKind = null;
-        let fullPath = null; // 报告用：第一个候选算出的路径作为「主路径」
-        for (const prefix of candidates) {
-            const fp = normalizePath(isFullUrl ? pathOnly : (prefix ?? "") + pathOnly);
-            if (fullPath === null) fullPath = fp;
-            const kind = matchAgainstLedger(call.method, fp);
-            if (kind) {
-                matchKind = kind;
-                fullPath = fp;
-                break;
+            if (!matched) {
+                const bare = normalizePath(pathOnly);
+                const candidatesList = [...backendRoutes.entries()]
+                    .filter(([, original]) => {
+                        const n = normalizePath(original);
+                        return n.endsWith(bare) || bare.endsWith(n);
+                    })
+                    .map(([k]) => k);
+                if (candidatesList.length > 0) finding.suggestion = candidatesList.slice(0, 3).join(" | ");
             }
+
+            findings.push(finding);
         }
-        const matched = matchKind !== null;
-
-        const finding = {
-            file: relFile,
-            line: call.line,
-            method: call.method,
-            sdkPath: pathOnly,
-            fullPath,
-            matched,
-            matchKind,
-        };
-
-        if (!matched) {
-            const bare = normalizePath(pathOnly);
-            const candidatesList = [...backendRoutes.entries()]
-                .filter(([, original]) => {
-                    const n = normalizePath(original);
-                    return n.endsWith(bare) || bare.endsWith(n);
-                })
-                .map(([k]) => k);
-            if (candidatesList.length > 0) finding.suggestion = candidatesList.slice(0, 3).join(" | ");
-        }
-
-        findings.push(finding);
     }
-}
 
-// ---------------------------------------------------------------------------
-// 6. Waiver 处理
-// ---------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------
+    // 6. Waiver 处理
+    // ---------------------------------------------------------------------------
 
-/**
- * 豁免表的作用是「让已知缺口可见但不作红」，而不是「让门禁闭嘴」。
- * 三条约束：
- *   1. 每条豁免必须有 reason 和 expires —— 没有主人的豁免等于删除门禁；
- *   2. 过期即失败 —— 强制定期复核；
- *   3. 没被用到的豁免也要报 —— 后端补齐后忘记删豁免，会让门禁的失败面被旧条目遮住。
- */
-const WAIVER_FILE = join(__dirname, "path-contract-waivers.json");
-const waivers = new Map(); // "<METHOD> <path>" -> {reason, expires, file}
-const expiredWaivers = [];
-let unusedWaivers = [];
+    /**
+     * 豁免表的作用是「让已知缺口可见但不作红」，而不是「让门禁闭嘴」。
+     * 三条约束：
+     *   1. 每条豁免必须有 reason 和 expires —— 没有主人的豁免等于删除门禁；
+     *   2. 过期即失败 —— 强制定期复核；
+     *   3. 没被用到的豁免也要报 —— 后端补齐后忘记删豁免，会让门禁的失败面被旧条目遮住。
+     */
+    const WAIVER_FILE = join(__dirname, "path-contract-waivers.json");
+    const waivers = new Map(); // "<METHOD> <path>" -> {reason, expires, file}
+    const expiredWaivers = [];
+    let unusedWaivers = [];
 
-if (existsSync(WAIVER_FILE)) {
-    let waiverDoc;
-    try {
-        waiverDoc = JSON.parse(readFileSync(WAIVER_FILE, "utf8"));
-    } catch (e) {
-        console.error(`❌ 豁免表解析失败: ${WAIVER_FILE}\n   ${e.message}`);
+    if (existsSync(WAIVER_FILE)) {
+        let waiverDoc;
+        try {
+            waiverDoc = JSON.parse(readFileSync(WAIVER_FILE, "utf8"));
+        } catch (e) {
+            console.error(`❌ 豁免表解析失败: ${WAIVER_FILE}\n   ${e.message}`);
+            process.exit(2);
+        }
+
+        const today = new Date();
+        for (const w of waiverDoc.waivers ?? []) {
+            const key = `${w.sdkCall}`;
+            if (!w.reason || !w.expires) {
+                console.error(`❌ 豁免条目缺少 reason 或 expires: ${key}`);
+                process.exit(2);
+            }
+            if (new Date(w.expires) < today) {
+                expiredWaivers.push({ key, ...w });
+                continue;
+            }
+            waivers.set(key, w);
+        }
+    } else {
+        console.error(`❌ 豁免表不存在: ${WAIVER_FILE}`);
         process.exit(2);
     }
 
-    const today = new Date();
-    for (const w of waiverDoc.waivers ?? []) {
-        const key = `${w.sdkCall}`;
-        if (!w.reason || !w.expires) {
-            console.error(`❌ 豁免条目缺少 reason 或 expires: ${key}`);
-            process.exit(2);
-        }
-        if (new Date(w.expires) < today) {
-            expiredWaivers.push({ key, ...w });
-            continue;
-        }
-        waivers.set(key, w);
-    }
-} else {
-    console.error(`❌ 豁免表不存在: ${WAIVER_FILE}`);
-    process.exit(2);
-}
+    // ---------------------------------------------------------------------------
+    // 7. 报告
+    // ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// 7. 报告
-// ---------------------------------------------------------------------------
+    /**
+     * MSC 编号格式校验：检测 SDK 中引用的 MSC 编号是否与后端实现一致
+     * 常见错误：MSC3882（Allow an existing session to sign in a new session）vs MSC3720（Account status）张冠李戴
+     */
+    function validateMSCReferences(findings, backendRoutes) {
+        const mscIssues = [];
 
-/**
- * MSC 编号格式校验：检测 SDK 中引用的 MSC 编号是否与后端实现一致
- * 常见错误：MSC3882（Allow an existing session to sign in a new session）vs MSC3720（Account status）张冠李戴
- */
-function validateMSCReferences(findings, backendRoutes) {
-    const mscIssues = [];
+        // 从所有调用中提取可能的 MSC 引用
+        for (const finding of findings) {
+            if (finding.sdkPath.includes("org.matrix.msc")) {
+                const mscMatch = finding.sdkPath.match(/org\.matrix\.msc(\d+)/i);
+                if (mscMatch) {
+                    const mscNum = mscMatch[1];
+                    const mscPath = finding.sdkPath;
 
-    // 从所有调用中提取可能的 MSC 引用
-    for (const finding of findings) {
-        if (finding.sdkPath.includes("org.matrix.msc")) {
-            const mscMatch = finding.sdkPath.match(/org\.matrix\.msc(\d+)/i);
-            if (mscMatch) {
-                const mscNum = mscMatch[1];
-                const mscPath = finding.sdkPath;
+                    // 检查该 MSC 路径是否在后端已注册
+                    let mscMatched = false;
+                    for (const [key, orig] of backendRoutes.entries()) {
+                        if (orig.includes(`org.matrix.msc${mscNum}`) || orig.includes(`msc${mscNum}`)) {
+                            mscMatched = true;
+                            break;
+                        }
+                    }
 
-                // 检查该 MSC 路径是否在后端已注册
-                let mscMatched = false;
-                for (const [key, orig] of backendRoutes.entries()) {
-                    if (orig.includes(`org.matrix.msc${mscNum}`) || orig.includes(`msc${mscNum}`)) {
-                        mscMatched = true;
-                        break;
+                    if (!mscMatched) {
+                        mscIssues.push({
+                            msc: `MSC${mscNum}`,
+                            path: mscPath,
+                            file: finding.file,
+                            line: finding.line,
+                            note: "SDK 声称实现该 MSC 端点，但后端 ledger 中无对应路由。请核实 MSC 编号是否正确。",
+                        });
                     }
                 }
+            }
+        }
 
-                if (!mscMatched) {
-                    mscIssues.push({
-                        msc: `MSC${mscNum}`,
-                        path: mscPath,
-                        file: finding.file,
-                        line: finding.line,
-                        note: "SDK 声称实现该 MSC 端点，但后端 ledger 中无对应路由。请核实 MSC 编号是否正确。",
-                    });
+        return mscIssues;
+    }
+
+    const rawMismatches = findings.filter((f) => !f.matched);
+
+    // 仅靠通配符规则命中的调用点 —— 单独汇报，避免「形似而已」被当成匹配成功。
+    const wildcardMatches = findings.filter((f) => f.matchKind === "wildcard");
+
+    const mismatches = rawMismatches.filter((f) => {
+        const key = `${f.method} ${f.fullPath}`;
+        if (waivers.has(key)) {
+            waivers.delete(key); // 标记为「已使用」
+            return false;
+        }
+        return true;
+    });
+
+    // 没被任何不匹配命中到的豁免 = 后端已补齐但豁免没删
+    unusedWaivers = [...waivers.entries()].map(([key, w]) => ({ key, ...w }));
+
+    const payload = {
+        generatedAt: new Date().toISOString(),
+        ledger: LEDGER_PATH,
+        scannedFiles: srcFiles.length,
+        totalCalls: findings.length,
+        matched: findings.length - rawMismatches.length,
+        wildcardMatched: wildcardMatches.length,
+        waived: rawMismatches.length - mismatches.length,
+        mismatched: mismatches.length,
+        expiredWaivers: expiredWaivers.length,
+        unusedWaivers: unusedWaivers.length,
+        skippedDynamic: skipped.length,
+        outOfScope: outOfScopeCalls.length,
+        outOfScopeCalls: outOfScopeCalls.map((c) => ({
+            file: c.file,
+            line: c.line,
+            method: c.method,
+            fullPath: c.fullPath,
+        })),
+        coveredWrappers: Object.keys(POSITIONAL_WRAPPERS),
+        excludedWrappers: Object.keys(EXCLUDED_WRAPPERS),
+        mismatches: mismatches.map((m) => ({
+            file: m.file,
+            line: m.line,
+            method: m.method,
+            fullPath: m.fullPath,
+            suggestion: m.suggestion ?? null,
+        })),
+        wildcardMatches: wildcardMatches.map((m) => ({
+            file: m.file,
+            line: m.line,
+            method: m.method,
+            fullPath: m.fullPath,
+        })),
+    };
+
+    if (EMIT_JSON) {
+        console.log(JSON.stringify(payload, null, 2));
+    } else {
+        console.log("");
+        console.log("╔══════════════════════════════════════════════════════════════════╗");
+        console.log("║        SDK ↔ 后端路径契约交叉校验（P2-a 门禁）                   ║");
+        console.log("╚══════════════════════════════════════════════════════════════════╝");
+        console.log("");
+        console.log(`  ledger       : ${LEDGER_PATH}`);
+        console.log(`  扫描源文件   : ${srcFiles.length}`);
+        console.log(`  提取请求调用 : ${findings.length}`);
+        console.log(`  匹配成功     : ${payload.matched}（其中 ${payload.wildcardMatched} 处为通配符匹配，见下）`);
+        console.log(`  已豁免       : ${payload.waived}（后端未实现，见 path-contract-waivers.json）`);
+        console.log(`  不匹配       : ${payload.mismatched}`);
+        console.log(`  豁免已过期   : ${payload.expiredWaivers}`);
+        console.log(`  豁免未被引用 : ${payload.unusedWaivers}（后端已补齐？应删除条目）`);
+        console.log(`  动态跳过     : ${skipped.length}`);
+        console.log(`  域外命名空间 : ${payload.outOfScope}（不属于本 ledger 的服务，如 identity server）`);
+        console.log(`  覆盖的包装器 : ${payload.coveredWrappers.length}（${payload.coveredWrappers.join(", ")}）`);
+        console.log(`  未覆盖的包装器: ${payload.excludedWrappers.length}（${payload.excludedWrappers.join(", ")}）`);
+        console.log("");
+
+        if (expiredWaivers.length > 0) {
+            console.log("─".repeat(84));
+            console.log("⏰ 已过期的豁免（必须复核并处理）：");
+            console.log("─".repeat(84));
+            for (const w of expiredWaivers) {
+                console.log(`  ${w.key}  (expires ${w.expires})`);
+                console.log(`    ${w.file} — ${w.reason}`);
+            }
+            console.log("");
+        }
+
+        if (unusedWaivers.length > 0) {
+            console.log("─".repeat(84));
+            console.log("🧹 未被引用的豁免（对应的缺口已不存在，请删除条目）：");
+            console.log("─".repeat(84));
+            for (const w of unusedWaivers) {
+                console.log(`  ${w.key}  (expires ${w.expires})`);
+            }
+            console.log("");
+        }
+
+        if (mismatches.length > 0) {
+            console.log("─".repeat(84));
+            console.log("不匹配的路径（在真实后端上会 404）：");
+            console.log("─".repeat(84));
+            for (const m of mismatches) {
+                console.log("");
+                console.log(`  ${m.method} ${m.fullPath}`);
+                console.log(`    at ${m.file}:${m.line}`);
+                if (m.suggestion) {
+                    console.log(`    ledger 相近条目: ${m.suggestion}`);
+                } else {
+                    console.log(`    ledger 中无相近条目`);
+                    console.log(`    → 若后端确实未实现，请加进 path-contract-waivers.json 并写明原因与期限；`);
+                    console.log(`      若后端已实现，说明 SDK 拼错了路径，请修正 SDK。`);
                 }
             }
-        }
-    }
-
-    return mscIssues;
-}
-
-const rawMismatches = findings.filter((f) => !f.matched);
-
-// 仅靠通配符规则命中的调用点 —— 单独汇报，避免「形似而已」被当成匹配成功。
-const wildcardMatches = findings.filter((f) => f.matchKind === "wildcard");
-
-const mismatches = rawMismatches.filter((f) => {
-    const key = `${f.method} ${f.fullPath}`;
-    if (waivers.has(key)) {
-        waivers.delete(key); // 标记为「已使用」
-        return false;
-    }
-    return true;
-});
-
-// 没被任何不匹配命中到的豁免 = 后端已补齐但豁免没删
-unusedWaivers = [...waivers.entries()].map(([key, w]) => ({ key, ...w }));
-
-const payload = {
-    generatedAt: new Date().toISOString(),
-    ledger: LEDGER_PATH,
-    scannedFiles: srcFiles.length,
-    totalCalls: findings.length,
-    matched: findings.length - rawMismatches.length,
-    wildcardMatched: wildcardMatches.length,
-    waived: rawMismatches.length - mismatches.length,
-    mismatched: mismatches.length,
-    expiredWaivers: expiredWaivers.length,
-    unusedWaivers: unusedWaivers.length,
-    skippedDynamic: skipped.length,
-    outOfScope: outOfScopeCalls.length,
-    outOfScopeCalls: outOfScopeCalls.map((c) => ({
-        file: c.file,
-        line: c.line,
-        method: c.method,
-        fullPath: c.fullPath,
-    })),
-    coveredWrappers: Object.keys(POSITIONAL_WRAPPERS),
-    excludedWrappers: Object.keys(EXCLUDED_WRAPPERS),
-    mismatches: mismatches.map((m) => ({
-        file: m.file,
-        line: m.line,
-        method: m.method,
-        fullPath: m.fullPath,
-        suggestion: m.suggestion ?? null,
-    })),
-    wildcardMatches: wildcardMatches.map((m) => ({
-        file: m.file,
-        line: m.line,
-        method: m.method,
-        fullPath: m.fullPath,
-    })),
-};
-
-if (EMIT_JSON) {
-    console.log(JSON.stringify(payload, null, 2));
-} else {
-    console.log("");
-    console.log("╔══════════════════════════════════════════════════════════════════╗");
-    console.log("║        SDK ↔ 后端路径契约交叉校验（P2-a 门禁）                   ║");
-    console.log("╚══════════════════════════════════════════════════════════════════╝");
-    console.log("");
-    console.log(`  ledger       : ${LEDGER_PATH}`);
-    console.log(`  扫描源文件   : ${srcFiles.length}`);
-    console.log(`  提取请求调用 : ${findings.length}`);
-    console.log(`  匹配成功     : ${payload.matched}（其中 ${payload.wildcardMatched} 处为通配符匹配，见下）`);
-    console.log(`  已豁免       : ${payload.waived}（后端未实现，见 path-contract-waivers.json）`);
-    console.log(`  不匹配       : ${payload.mismatched}`);
-    console.log(`  豁免已过期   : ${payload.expiredWaivers}`);
-    console.log(`  豁免未被引用 : ${payload.unusedWaivers}（后端已补齐？应删除条目）`);
-    console.log(`  动态跳过     : ${skipped.length}`);
-    console.log(`  域外命名空间 : ${payload.outOfScope}（不属于本 ledger 的服务，如 identity server）`);
-    console.log(`  覆盖的包装器 : ${payload.coveredWrappers.length}（${payload.coveredWrappers.join(", ")}）`);
-    console.log(`  未覆盖的包装器: ${payload.excludedWrappers.length}（${payload.excludedWrappers.join(", ")}）`);
-    console.log("");
-
-    if (expiredWaivers.length > 0) {
-        console.log("─".repeat(84));
-        console.log("⏰ 已过期的豁免（必须复核并处理）：");
-        console.log("─".repeat(84));
-        for (const w of expiredWaivers) {
-            console.log(`  ${w.key}  (expires ${w.expires})`);
-            console.log(`    ${w.file} — ${w.reason}`);
-        }
-        console.log("");
-    }
-
-    if (unusedWaivers.length > 0) {
-        console.log("─".repeat(84));
-        console.log("🧹 未被引用的豁免（对应的缺口已不存在，请删除条目）：");
-        console.log("─".repeat(84));
-        for (const w of unusedWaivers) {
-            console.log(`  ${w.key}  (expires ${w.expires})`);
-        }
-        console.log("");
-    }
-
-    if (mismatches.length > 0) {
-        console.log("─".repeat(84));
-        console.log("不匹配的路径（在真实后端上会 404）：");
-        console.log("─".repeat(84));
-        for (const m of mismatches) {
             console.log("");
-            console.log(`  ${m.method} ${m.fullPath}`);
-            console.log(`    at ${m.file}:${m.line}`);
-            if (m.suggestion) {
-                console.log(`    ledger 相近条目: ${m.suggestion}`);
-            } else {
-                console.log(`    ledger 中无相近条目`);
-                console.log(`    → 若后端确实未实现，请加进 path-contract-waivers.json 并写明原因与期限；`);
-                console.log(`      若后端已实现，说明 SDK 拼错了路径，请修正 SDK。`);
+            console.log("─".repeat(84));
+            console.log(`❌ ${mismatches.length} 处路径契约不符 —— 门禁失败。`);
+        } else {
+            console.log(`✅ 全部静态请求路径均与后端 ledger 一致（豁免 ${payload.waived} 处已登记）。`);
+        }
+
+        // MSC 编号格式校验报告
+        const mscIssues = validateMSCReferences(findings, backendRoutes);
+        if (mscIssues.length > 0) {
+            console.log("");
+            console.log("─".repeat(84));
+            console.log("⚠️  MSC 编号引用疑似张冠李戴（SDK 声称的 MSC 端点后耑未注册）：");
+            console.log("─".repeat(84));
+            for (const issue of mscIssues) {
+                console.log("");
+                console.log(`  ${issue.msc}: ${issue.path}`);
+                console.log(`    at ${issue.file}:${issue.line}`);
+                console.log(`    ${issue.note}`);
+                console.log(`    → 建议核对 matrix.org 官方 MSC 列表确认该 MSC 的实际编号。`);
+            }
+            console.log("");
+        }
+
+        if (VERBOSE && outOfScopeCalls.length > 0) {
+            console.log("");
+            console.log("─".repeat(84));
+            console.log("🌐 域外命名空间调用点（不计入 mismatch —— 不属于本 homeserver ledger）：");
+            console.log("─".repeat(84));
+            for (const [prefix, reason] of Object.entries(OUT_OF_SCOPE_PREFIXES)) {
+                const hits = outOfScopeCalls.filter((c) => c.prefix === prefix);
+                if (hits.length === 0) continue;
+                console.log(`  ${prefix}  —— ${hits.length} 处`);
+                console.log(`    ${reason}`);
+                for (const h of hits) console.log(`      ${h.method} ${h.fullPath}  @ ${h.file}:${h.line}`);
+            }
+            console.log("");
+        }
+
+        if (VERBOSE && wildcardMatches.length > 0) {
+            console.log("");
+            console.log("─".repeat(84));
+            console.log("🔍 仅靠「字面量段 ↔ 占位符段」规则命中的调用点（语义存疑，请人工复核）：");
+            console.log("─".repeat(84));
+            console.log("   规则：SDK 的字面量段可以顶掉后端的任意 {占位符} 段。这条规则是为");
+            console.log("   `send/m.room.message/{txn}` vs `send/{event_type}/{txn_id}` 这类等价而加的，");
+            console.log("   但它同样会把 `/notifications/deactivate` 误认成 `/notifications/{id}`。");
+            console.log("");
+            for (const w of wildcardMatches) {
+                console.log(`  ${w.method} ${w.fullPath}`);
+                console.log(`    at ${w.file}:${w.line}`);
+            }
+            console.log("");
+        }
+
+        if (VERBOSE && skipped.length > 0) {
+            console.log("");
+            console.log("跳过的动态调用（无法静态求值，未参与校验）：");
+            const byReason = new Map();
+            for (const s of skipped) {
+                byReason.set(s.reason, (byReason.get(s.reason) ?? 0) + 1);
+            }
+            for (const [reason, count] of byReason) {
+                console.log(`  ${reason}: ${count} 处`);
+            }
+        }
+
+        if (VERBOSE) {
+            console.log("");
+            console.log("故意不覆盖的请求包装器（覆盖率声明 —— 想漏掉一类写法必须在此写理由）：");
+            for (const [name, reason] of Object.entries(EXCLUDED_WRAPPERS)) {
+                console.log(`  ${name}`);
+                console.log(`    ${reason}`);
             }
         }
         console.log("");
-        console.log("─".repeat(84));
-        console.log(`❌ ${mismatches.length} 处路径契约不符 —— 门禁失败。`);
-    } else {
-        console.log(`✅ 全部静态请求路径均与后端 ledger 一致（豁免 ${payload.waived} 处已登记）。`);
     }
 
-    // MSC 编号格式校验报告
-    const mscIssues = validateMSCReferences(findings, backendRoutes);
-    if (mscIssues.length > 0) {
-        console.log("");
-        console.log("─".repeat(84));
-        console.log("⚠️  MSC 编号引用疑似张冠李戴（SDK 声称的 MSC 端点后耑未注册）：");
-        console.log("─".repeat(84));
-        for (const issue of mscIssues) {
-            console.log("");
-            console.log(`  ${issue.msc}: ${issue.path}`);
-            console.log(`    at ${issue.file}:${issue.line}`);
-            console.log(`    ${issue.note}`);
-            console.log(`    → 建议核对 matrix.org 官方 MSC 列表确认该 MSC 的实际编号。`);
-        }
-        console.log("");
-    }
-
-    if (VERBOSE && outOfScopeCalls.length > 0) {
-        console.log("");
-        console.log("─".repeat(84));
-        console.log("🌐 域外命名空间调用点（不计入 mismatch —— 不属于本 homeserver ledger）：");
-        console.log("─".repeat(84));
-        for (const [prefix, reason] of Object.entries(OUT_OF_SCOPE_PREFIXES)) {
-            const hits = outOfScopeCalls.filter((c) => c.prefix === prefix);
-            if (hits.length === 0) continue;
-            console.log(`  ${prefix}  —— ${hits.length} 处`);
-            console.log(`    ${reason}`);
-            for (const h of hits) console.log(`      ${h.method} ${h.fullPath}  @ ${h.file}:${h.line}`);
-        }
-        console.log("");
-    }
-
-    if (VERBOSE && wildcardMatches.length > 0) {
-        console.log("");
-        console.log("─".repeat(84));
-        console.log("🔍 仅靠「字面量段 ↔ 占位符段」规则命中的调用点（语义存疑，请人工复核）：");
-        console.log("─".repeat(84));
-        console.log("   规则：SDK 的字面量段可以顶掉后端的任意 {占位符} 段。这条规则是为");
-        console.log("   `send/m.room.message/{txn}` vs `send/{event_type}/{txn_id}` 这类等价而加的，");
-        console.log("   但它同样会把 `/notifications/deactivate` 误认成 `/notifications/{id}`。");
-        console.log("");
-        for (const w of wildcardMatches) {
-            console.log(`  ${w.method} ${w.fullPath}`);
-            console.log(`    at ${w.file}:${w.line}`);
-        }
-        console.log("");
-    }
-
-    if (VERBOSE && skipped.length > 0) {
-        console.log("");
-        console.log("跳过的动态调用（无法静态求值，未参与校验）：");
-        const byReason = new Map();
-        for (const s of skipped) {
-            byReason.set(s.reason, (byReason.get(s.reason) ?? 0) + 1);
-        }
-        for (const [reason, count] of byReason) {
-            console.log(`  ${reason}: ${count} 处`);
-        }
-    }
-
-    if (VERBOSE) {
-        console.log("");
-        console.log("故意不覆盖的请求包装器（覆盖率声明 —— 想漏掉一类写法必须在此写理由）：");
-        for (const [name, reason] of Object.entries(EXCLUDED_WRAPPERS)) {
-            console.log(`  ${name}`);
-            console.log(`    ${reason}`);
-        }
-    }
-    console.log("");
+    // 门禁失败条件：有不匹配、有过期豁免、有未被引用的豁免
+    const failed = mismatches.length > 0 || expiredWaivers.length > 0 || unusedWaivers.length > 0;
+    process.exit(failed ? 1 : 0);
 }
 
-// 门禁失败条件：有不匹配、有过期豁免、有未被引用的豁免
-const failed = mismatches.length > 0 || expiredWaivers.length > 0 || unusedWaivers.length > 0;
-process.exit(failed ? 1 : 0);
+// 顶层裸跑会让 `import` 这个模块直接扫全仓 + 读兄弟仓 ledger + process.exit，
+// 所以只在被当作脚本直接执行时才跑（与 scripts/quality/ 下其它门禁同一形态）。
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}
