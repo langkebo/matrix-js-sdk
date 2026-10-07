@@ -467,7 +467,10 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     }
 
     public async getDevice(deviceId: string): Promise<IDevice | null> {
-        return this.client.getDevice(deviceId);
+        // ⚠️ 不要写成 `this.client.getDevice(...)`：本 fork 已把设备读取移进 DeviceManager，
+        // 类型表里那条 `MatrixClient.getDevice` 是**上游残留声明**（运行时 undefined）。
+        // 走已接线的 manager，才不会「类型检查通过、运行时 TypeError」。
+        return this.client.getDeviceManager().getDevice(deviceId);
     }
 }
 

@@ -5,7 +5,7 @@
     "measuredBy": "真实执行 `extendMatrixClientWithManagers({ includeAll: true })` 后，逐个 `typeof MatrixClient.prototype[name] === 'function'`。**不是静态扫描** —— 静态能看到挂载代码，但看不到那些代码有没有被动态 import 执行到。",
     "groups": {
         "pendingWiring": {
-            "reason": "这 2 个模块**已在 MODULE_DEFS 里**（会随 includeAll 加载），但它们的内部实现调用了「运行时不存在于 MatrixClient 的方法」，**接线也没用 —— 一调用就 TypeError**：\n  · src/device-keys/index.ts:470  this.client.getDevice(deviceId)\n  · src/push-rules/index.ts:65/73/77  this.client.getPushRules() / setPushRule() / deletePushRule()\n修法：把它们改走已接线的 Manager（PushManager / DeviceManager），或与 notOnMatrixClient 组一起收口（删除那些上游残留的类型声明）。在此之前**不要**把它们加进「已接线」——接线只让 prototype 上多一个函数，函数体的第一个 await 就会炸。",
+            "reason": "这 2 个模块**没有**登记进 MODULE_DEFS（不像其它 21 个已在 2026-10-07 补登记），所以它们的 get*Manager 在运行时是 undefined。**但它们即使接线也不可用** —— 真正的病在 emptyShellModules 组（内部转发给不存在的 client 方法），故先留在这里。",
             "methods": [
                 "getDeviceKeysManager",
                 "getPushRulesManager"
@@ -38,6 +38,22 @@
                 "setPusher",
                 "setUserPowerLevel"
             ]
+        },
+        "emptyShellModules": {
+            "reason": "**空壳模块**：模块自己的方法只是 `return this.client.<本应存在但不存在的方法>(...)`，而那个方法在本 fork 里已被移进别的 Manager（或从未移植），⇒ `client.getXxxManager().someMethod()` 一调用就 `TypeError`。\n注意：这与 notOnMatrixClient 是**两个层次**的问题 —— 前者是「模块能不能被加载」，后者是「加载后方法能不能用」。**接线不能治它**：接线只让 prototype 上多一个函数，函数体的第一行转发就炸。\n修法：把转发改成走已接线的 Manager（如 `this.client.getPushManager().getPushRules()`），或在模块内自行实现（若该能力本就属于它）。",
+            "modules": [
+                "src/device-keys/index.ts",
+                "src/invites/index.ts",
+                "src/lifecycle/index.ts",
+                "src/push-notifications/index.ts",
+                "src/push-rules/index.ts",
+                "src/room-creation/index.ts",
+                "src/room-events/index.ts",
+                "src/sessions/index.ts",
+                "src/sync-accumulator/index.ts",
+                "src/uploads/index.ts"
+            ],
+            "independentOfWiring": "这 10 个里，invites / lifecycle / push-notifications / room-creation / room-events / sessions / sync-accumulator / uploads **已于 2026-10-07 接线**（它们的 get*Manager 运行时可用了），但内部转发仍然坏；device-keys / push-rules 则连接线都没做。"
         }
     },
     "correctedAt": "2026-10-07",

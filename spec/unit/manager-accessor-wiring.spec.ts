@@ -37,11 +37,11 @@ function stripComments(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 }
 
-/** 提取 `interface MatrixClientExtensionMethods` 里声明的方法（按括号配平找边界）。 */
-export function collectDeclaredExtensionMethods(): string[] {
-    const src = stripComments(fs.readFileSync(EXT_FILE, "utf8"));
-    const anchor = src.indexOf("export interface MatrixClientExtensionMethods");
-    expect(anchor, "类型表里找不到 interface MatrixClientExtensionMethods").toBeGreaterThan(0);
+/** 提取某个 `export interface X { ... }` 里声明的方法名（按括号配平找边界）。 */
+export function collectInterfaceMethods(rawSource: string, ifaceName: string): string[] {
+    const src = stripComments(rawSource);
+    const anchor = src.indexOf(`export interface ${ifaceName}`);
+    expect(anchor, `类型表里找不到 interface ${ifaceName}`).toBeGreaterThan(0);
 
     const braceStart = src.indexOf("{", anchor);
     let depth = 1;
@@ -61,12 +61,91 @@ export function collectDeclaredExtensionMethods(): string[] {
     return [...names].sort();
 }
 
-function readBaseline(): { pendingWiring: string[]; notOnMatrixClient: string[] } {
+/** 提取 `interface MatrixClientExtensionMethods` 里声明的方法。 */
+export function collectDeclaredExtensionMethods(): string[] {
+    return collectInterfaceMethods(fs.readFileSync(EXT_FILE, "utf8"), "MatrixClientExtensionMethods");
+}
+
+function readBaseline(): {
+    pendingWiring: string[];
+    notOnMatrixClient: string[];
+    emptyShellModules: string[];
+} {
     const payload = JSON.parse(fs.readFileSync(BASELINE_FILE, "utf8"));
     return {
         pendingWiring: [...payload.groups.pendingWiring.methods].sort(),
         notOnMatrixClient: [...payload.groups.notOnMatrixClient.methods].sort(),
+        emptyShellModules: [...payload.groups.emptyShellModules.modules].sort(),
     };
+}
+
+/** 递归收集 src 下的 .ts（排除 __generated__ 与 .d.ts）。 */
+function walkSrc(dir: string, acc: string[] = []): string[] {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) {
+            if (e.name !== "__generated__") walkSrc(full, acc);
+        } else if (e.name.endsWith(".ts") && !e.name.endsWith(".d.ts")) {
+            acc.push(full);
+        }
+    }
+    return acc;
+}
+
+/**
+ * 类型表**声明过、但运行时并不存在**的方法名。
+ *
+ * 两个接口都要查：`MatrixClientExtensionMethods`（extendMatrixClient 挂的）与
+ * `MatrixClientInternalMethods`（注释自称"类中已实现"，实际也有一批没实现）。
+ * 只看前者会漏掉 74 个 —— 这正是本 spec 第二版犯过的错。
+ */
+export function collectMissingClientMethods(): string[] {
+    const raw = fs.readFileSync(EXT_FILE, "utf8");
+    const declared = new Set<string>([
+        ...collectInterfaceMethods(raw, "MatrixClientExtensionMethods"),
+        ...collectInterfaceMethods(raw, "MatrixClientInternalMethods"),
+    ]);
+
+    // 运行时可用：MatrixClient 类成员 + 全仓 MatrixClient.prototype.X = 挂载
+    const available = new Set<string>();
+    for (const f of [path.join(REPO_ROOT, "src", "client.ts"), path.join(REPO_ROOT, "src", "matrix.ts")]) {
+        const src = stripComments(fs.readFileSync(f, "utf8"));
+        const start = src.indexOf("export class MatrixClient");
+        if (start < 0) continue;
+        for (const m of src
+            .slice(start)
+            .matchAll(/\n\s{4}(?:(?:public|private|protected|async|static|readonly)\s+)*([A-Za-z_]\w*)\s*[(<]/g)) {
+            available.add(m[1]);
+        }
+        for (const m of src.matchAll(/\n\s{4}(?:get|set)\s+([A-Za-z_]\w*)\s*\(/g)) {
+            available.add(m[1]);
+        }
+    }
+    for (const f of walkSrc(path.join(REPO_ROOT, "src"))) {
+        const src = stripComments(fs.readFileSync(f, "utf8"));
+        for (const m of src.matchAll(/MatrixClient\.prototype\.(\w+)\s*=/g)) {
+            available.add(m[1]);
+        }
+    }
+
+    return [...declared].filter((n) => !available.has(n)).sort();
+}
+
+/**
+ * 空壳模块：模块的 `index.ts` 里存在 `client.X(...)` 形式的转发，而 X 属于
+ * 「类型表声明过、运行时不存在」的方法。
+ */
+export function findEmptyShellModules(missing: string[]): string[] {
+    const pattern = new RegExp(
+        `\\bclient\\s*\\.\\s*(${missing.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\s*\\(`,
+    );
+    const out: string[] = [];
+    for (const f of walkSrc(path.join(REPO_ROOT, "src"))) {
+        if (f.endsWith("matrix-client-extensions.ts")) continue;
+        const src = stripComments(fs.readFileSync(f, "utf8"));
+        if (pattern.test(src)) out.push(path.relative(REPO_ROOT, f));
+    }
+    return out.sort();
 }
 
 /** 真实初始化后，记录 prototype 上真正是函数的方法名。 */
@@ -140,5 +219,26 @@ describe("类型表声明 vs 运行时挂载", () => {
             const src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
             expect(src, `${rel} 里应仍有 this.client.${method}(...) 调用`).toContain(`client.${method}(`);
         }
+    });
+
+    it("判据自检：确实存在一批「声明过但运行时没有」的方法（防判据失效导致下一条恒真）", () => {
+        // 如果 collectMissingClientMethods 因为正则/边界失效而返回空数组，
+        // 下一条断言会在空集合上空转、永远通过 —— 这条专门拦那种情况。
+        expect(collectMissingClientMethods().length).toBeGreaterThan(50);
+    });
+
+    it("空壳模块集合必须与台账一致（内部转发给不存在方法的模块，只能减少）", () => {
+        // 层次与上面几组不同：那些查「模块能不能被加载」，这条查「加载后方法能不能用」。
+        // 接线治不了空壳 —— prototype 上多一个函数，函数体第一行转发就 TypeError。
+        const baseline = readBaseline();
+        const actual = findEmptyShellModules(collectMissingClientMethods());
+
+        expect(
+            actual,
+            "空壳模块集合与台账不一致。\n" +
+                "· 多了 ⇒ 新模块在转发一个「类型表声明过、运行时不存在」的 client 方法；\n" +
+                "  接线治不了它，请改走已接线的 Manager（如 this.client.getPushManager().getPushRules()）。\n" +
+                "· 少了 ⇒ 已修好，请下调台账 groups.emptyShellModules.modules。",
+        ).toEqual(baseline.emptyShellModules);
     });
 });
