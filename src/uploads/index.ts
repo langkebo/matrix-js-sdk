@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import type { UploadOpts } from "../http-api/interface";
+import type { UploadOpts, UploadResponse } from "../http-api/interface";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -57,20 +57,34 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
         return this.withRetry(() => this.client.uploadContent(file, opts as UploadOpts), "uploadContent");
     }
 
+    /**
+     * 上传文件。
+     *
+     * 本 fork 没有 `client.uploadFile` —— 它本就是 `uploadContent` 的别名
+     * （`uploadContent` 的第一个参数已经是 `File | Blob | string`）。此前这里转发给
+     * 不存在的方法 ⇒ 调用即 TypeError。
+     */
     public async uploadFile(file: File | Blob, opts?: IUploadOptions): Promise<IUploadResponse> {
-        return this.withRetry(() => this.client.uploadFile(file, opts), "uploadFile");
+        return this.withRetry(() => this.client.uploadContent(file, opts as UploadOpts), "uploadFile");
     }
 
     public cancelUpload(upload: Promise<unknown>): boolean {
-        return this.client.cancelUpload(upload as Promise<import("../http-api/interface").UploadResponse>);
+        return this.client.cancelUpload(upload as Promise<UploadResponse>);
     }
 
-    public getUploadProgress(uploadId: string): IUploadProgress | null {
-        return this.client.getUploadProgress(uploadId);
-    }
-
+    /**
+     * 中止所有进行中的上传。
+     *
+     * ⚠️ 本轮删掉了 `getUploadProgress(uploadId)`：本 fork 的上传**没有 uploadId 概念**
+     * （`Upload` 只有 `loaded / total / promise / abortController`，见
+     * `src/http-api/interface.ts:246`），进度应通过 `IUploadOptions.progress` 回调或
+     * `getCurrentUploads()` 的 `{loaded, total}` 获取。原实现转发给不存在的
+     * `client.getUploadProgress()`，调用即 TypeError。
+     */
     public abortAllUploads(): void {
-        this.client.abortAllUploads();
+        for (const upload of this.client.getCurrentUploads()) {
+            this.client.cancelUpload(upload.promise);
+        }
     }
 }
 
