@@ -988,6 +988,90 @@ waiver 台账此前为空（"45 个门禁全部可达"），本轮首批登记 4
 - **P9**：`npx eslint <多文件>` 在本机沙箱仍会 SIGTERM（exit 137），只能后台跑；属环境问题。
 - **`quality:report` 超时**：全量扫描里 `quality:report` 240s 超时（需活后端/全量测试），未定位。
 
+### 7.15 全仓复检一轮（2026-10-07 第二轮）
+
+§7.14 收尾时"44 绿 / 2 红"是从门禁自述状态推的。本轮改为**逐条实跑**：把
+`scripts/quality/*.mjs` 与 `scripts/` 下所有 `check-|verify-|validate-|assert-|enforce-*`
+共 60 余个脚本挨个执行（单个 300s 超时），再整条跑 `pnpm lint`。结论与自述口径有出入。
+
+#### 7.15-1 全量实跑：3 红 1 慢，其中 2 红是"缺 lcov"而非缺陷
+
+| 脚本                      | 现象                                          | 判定                                                                                            |
+| ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `check-critical-coverage` | `coverage file not found: coverage/lcov.info` | 非缺陷：CI 里它排在 `pnpm test --coverage` **之后**（workflow step 78），本地没跑过测试才有这条 |
+| `check-repo-coverage`     | 同上（exit 2）                                | 同上（step 86），且注释已写明 lcov 由上面的 `pnpm test --coverage` 产出                         |
+| `check-cross-repo-pin`    | pin 与兄弟仓不一致                            | **按设计红**：develop 上 pin 故意滞后，仅 `release/**` 触发                                     |
+| `check-type-coverage`     | 耗时 252s                                     | 真问题，见 7.15-4                                                                               |
+
+顺带澄清一个"看起来该红却没红"的点：`quality:coverage:critical-files` 也在 `pnpm lint` 里、
+且 lint 排在 `pnpm test --coverage` **之前**（step 37 vs 72），本以为它会因缺 lcov 常红。
+实测它绿 —— 它走的是**静态**判据（HTTP 调用 + spec import 图），根本不读 lcov。两条轨各管一半。
+
+#### 7.15-2 `pnpm lint` 真红：prettier 3 个 md（含本轮刚提交的审计文档）
+
+`pnpm lint` exit 1。eslint 部分 0 errors / 62 warnings（不阻断），失败点是
+`prettier --check .` 报 3 个 md：审计文档（§7.13/§7.14 手工编辑未过 prettier）、
+`debt-weekly-report-2026-W41.md`、`SDK_COVERAGE_REPORT.md`。已 `--write` 修复，
+全仓 `prettier --check .` 复检 EXIT=0。
+
+#### 7.15-3 门禁扫描本身有副作用：跑一遍就污染工作区
+
+实跑全部脚本后，工作区冒出 2 个未跟踪文件：
+
+- `docs/SDK_COVERAGE_REPORT.md`（`generate-coverage-report.mjs` 生成）—— 该文件早在
+  38cb40301「SDK Phase D — redundancy cleanup」就被**有意删过**，生成器仍会把它写回来；
+- `docs/governance/debt-weekly-report-2026-W41.md`（`debt-weekly-report.mjs` 生成）。
+
+于是"我只是跑了一下门禁"就变成脏工作区，进而污染 `git status`、prettier 检查与提交。
+已按既有 `/.docs-examples/` 的先例加入 `.gitignore`，并删除本次生成的两个文件。
+
+#### 7.15-4 `check-type-coverage`：9 次串行调用 → 并发（85.8s → ~40s）
+
+全 lint 链最慢的一环。根因：它对 `src` 整体 + 8 个模块目录**各跑一次**
+`pnpm exec type-coverage`，每次都是一次完整 TS 类型检查，串行累加。
+
+改为固定并发度（默认 3，可用 `TYPE_COVERAGE_CONCURRENCY` 覆盖）的任务池，
+**判定逻辑一字未动**（同样 9 次调用 / 参数 / 阈值 / 输出顺序）。
+等价性用 gate-golden 证明：capture（改前 85.81s）→ 改造 → verify，
+退出码一致、**stdout 逐字节一致**（`be2c7cee8438`）、stderr 一致。
+
+并发度不定更高的原因：每个 tsc 进程约 1GB，9 路并发在内存受限的 CI runner 上有 OOM 风险。
+
+#### 7.15-5 `.lintstagedrc` 未覆盖 `.mjs`：管代码的门禁脚本自己不受管
+
+pre-commit 只处理 `ts/tsx/py/md/yaml`，于是 `scripts/quality/**` 的门禁脚本提交时
+既不过 eslint 也不过 prettier，只能靠不在 pre-commit 里的 `lint:js` 兜底。
+已补 `*.(mjs|cjs|js)`，但**只加 prettier、不加 eslint**：eslint 对多个 `.mjs` 会跑到分钟级，
+在部分环境（含本机沙箱）会直接 SIGTERM(137) 打断提交；而规则问题已由 CI 的 `lint:js`
+一次跑完整个 `scripts/` 覆盖，代价只付一次。
+
+#### 7.15-6 P6 口径精算：52 个脚本中 17 个非 granular 无 spec
+
+上轮"37 → 18"是粗口径。精算（去 `check-`/`find-` 前缀配对 spec 文件名）：
+
+- 18 个 granular 由 `granular-coverage-gate.spec.ts` 统一覆盖；
+- 其余 34 个里 17 个有 spec、**17 个无 spec**，其中 **13 个是判定类门禁**
+  （`check-sdk-contract-alignment` 1749 行 / `check-public-api-docs` 666 行 /
+  `check-exports-docs` 374 / `scan-technical-debt` 261 / `check-docs-examples` 250 /
+  `check-entrypoint-layering` 230 / `check-coverage-critical-files` 206 /
+  `check-msc-changes` 203 / `check-repo-coverage` 119 / `check-contract-provenance` 103 /
+  `check-type-coverage` 102 / `check-vendor-prefix-migration` 89 / `check-large-file-changes` 59），
+  另 4 个是 advisory 报告器 / 生成器 / runner（`find-lowest-coverage-*` ×2、
+  `generate-coverage-report`、`run-granular-coverage-gates`）。
+
+本轮新守 `check-public-api-docs`（16 例）：它已有双模式入口与部分导出，故只补 spec 不动主流程。
+钉的是三条**口径**——R0 导出面不许撒谎（broken 必为空，即 `./notification` 事故的回归守卫）、
+可达闭包的传递性与收敛性、`.js`→`.ts` 与目录→`index.ts` 的解析。
+变异自证：① `isTrackedClassName` 去掉 `$` 锚定 → 转红；② `resolveSpecifier` 去掉 `.js` 映射 → 转红。
+
+#### 7.15-7 仍未做
+
+- **P6 剩余 12 个判定类门禁无 spec**（见 7.15-6 清单，已剔除本轮新守的 `check-public-api-docs`）。
+  按风险排序，`check-sdk-contract-alignment`（1749 行）与 `check-exports-docs`（374 行）最高。
+- **`quality:report` 240s 超时**：仍未定位（需活后端 / 全量测试）。
+- **P9**：`npx eslint <多文件>` 在本机沙箱 SIGTERM(137)，只能后台跑；属环境问题。
+- **`check-cross-repo-pin`**、4 条豁免、2 条 keep-manual 孤岛：**按设计如此**，记录不修。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1067,5 +1151,11 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 §7.14 **处置一轮**：清掉 2 条既有 CI 红灯（exports / public-api-docs），补上第 4 条假绿通道
 （受管辖改为按路径，否则抽库会让 44 → 26），新显形 5 个死门禁（1 接线 / 4 豁免），
 **granular 抽库 18→1 且 18/18 金标准逐字节对拍通过**，P6 未覆盖 37 → 18，孤岛 7 → 2，
-修 waiver-expiry 报告头 UTC 打印。收尾全量扫描 **46 个门禁 44 绿 / 2 红**（`cross-repo-pin` 按设计红、`quality:report` 超时））
+修 waiver-expiry 报告头 UTC 打印。收尾全量扫描 **46 个门禁 44 绿 / 2 红**（`cross-repo-pin` 按设计红、`quality:report` 超时）；
+§7.15 **全仓复检二轮（逐条实跑 60+ 脚本，而非只看门禁自述）**：澄清 2 条"缺 lcov"红属本地环境问题
+（CI 里它们排在 `pnpm test --coverage` 之后），修 `pnpm lint` 真红（prettier 3 个 md，含本轮引入的审计文档），
+修"跑一遍门禁就污染工作区"（报告生成器产物入 `.gitignore`），
+`check-type-coverage` 并发化 **85.8s → ~40s**（gate-golden 对拍 stdout 逐字节一致），
+补 `.lintstagedrc` 覆盖 `.mjs`，P6 口径精算为"52 个脚本中 17 个非 granular 无 spec（13 个判定类）"
+并新守 `check-public-api-docs`（16 例 + 两次变异自证））
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
