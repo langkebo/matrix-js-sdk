@@ -71,17 +71,25 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
         super(client, opts);
     }
 
-    // 房间创建选项模板（模块内自持状态，不随 client 走）。 */
-    // private createRoomOptionsTemplate: ICreateRoomOptionsConfig = {};
-    // public async createRoom(options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
-    // return this.withRetry(
-    // () => this.client.createRoom({ ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts),
-    // "createRoom",
-    // );
-    // }
-    // /**
-    // 创建私聊房间。
-    // 本 fork 没有 `client.createDirectRoom` —— 它只是 `createRoom` 外加
+    // 房间创建选项模板（模块内自持状态，不随 client 走）。
+    private createRoomOptionsTemplate: ICreateRoomOptionsConfig = {};
+
+    /**
+     * 创建房间。
+     *
+     * `options` 会与 `setCreateRoomOptions()` 设置的模板合并，`options` 优先。
+     *
+     * @example
+     * const { room_id } = await client.getRoomCreationManager().createRoom({ name: "新房间" });
+     */
+    public async createRoom(options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
+        return this.withRetry(
+            () => this.client.createRoom({ ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts),
+            "createRoom",
+        );
+    }
+
+    // 创建私聊房间：本 fork 没有 `client.createDirectRoom` —— 它只是 `createRoom` 外加
     // `invite: [userId]` 与 `is_direct: true`（Matrix 规范里"私聊"就是这个形状）。
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
         const opts = { ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts;
