@@ -393,17 +393,20 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
                 } as any),
             );
             req.mockResolvedValueOnce({});
-            await manager.cleanupRooms({ limit: 100 });
+            // 后端 `cleanup_rooms` 只读 `min_age_ms`（`limit` 会被静默忽略），
+            // 夹具原先写的 `{limit: 100}` 是在断言一个后端不存在的参数。
+            await manager.cleanupRooms({ min_age_ms: 86_400_000 });
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/rooms/cleanup");
-            expect(req.mock.calls[0][3]).toEqual({ limit: 100 });
+            expect(req.mock.calls[0][3]).toEqual({ min_age_ms: 86_400_000 });
             expect(req.mock.calls[1][1]).toBe("/cleanup/rooms");
-            expect(req.mock.calls[1][3]).toEqual({ limit: 100 });
+            expect(req.mock.calls[1][3]).toEqual({ min_age_ms: 86_400_000 });
         });
 
         it("purgeRoom/shutdownRoom post to room maintenance routes", async () => {
             await manager.purgeRoom({ room_id: "!room:example.com" });
-            await manager.shutdownRoom({ room_id: "!room:example.com", new_room_user_id: "@admin:example.com" });
+            // 后端 shutdown_room 只读 `room_id`（`new_room_user_id` 等一律忽略）。
+            await manager.shutdownRoom({ room_id: "!room:example.com" });
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/purge_room");
             expect(req.mock.calls[0][3]).toEqual({ room_id: "!room:example.com" });
@@ -412,14 +415,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         });
 
         it("purgeHistory/restartServer post to server maintenance routes", async () => {
-            await manager.purgeHistory({ purge_up_to_ts: 123 });
-            await manager.restartServer({ reason: "maintenance-window" });
+            await manager.purgeHistory({ room_id: "!room:example.com", purge_up_to_ts: 123 });
+            await manager.restartServer({ timeout_ms: 500 });
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/purge_history");
-            expect(req.mock.calls[0][3]).toEqual({ purge_up_to_ts: 123 });
+            expect(req.mock.calls[0][3]).toEqual({ room_id: "!room:example.com", purge_up_to_ts: 123 });
             expect(req.mock.calls[1][0]).toBe("POST");
             expect(req.mock.calls[1][1]).toBe("/restart");
-            expect(req.mock.calls[1][3]).toEqual({ reason: "maintenance-window" });
+            expect(req.mock.calls[1][3]).toEqual({ timeout_ms: 500 });
         });
 
         it("getServerHealth uses /v1/health and does NOT fall back on 404", async () => {
@@ -787,7 +790,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     describe("register and reports", () => {
         it("getRegisterNonce/registerAdmin hit register routes", async () => {
             await manager.getRegisterNonce();
-            await manager.registerAdmin({ username: "admin", password: "pw", admin: true });
+            // 后端 `RegisterRequest` 里 nonce / mac / admin 都是**必填**（见 AdminRegisterRequest 的 JSDoc）
+            await manager.registerAdmin({
+                nonce: "n0nce",
+                username: "admin",
+                password: "pw",
+                admin: true,
+                mac: "00112233445566778899aabbccddeeff",
+            });
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/register/nonce");
             expect(req.mock.calls[1][0]).toBe("POST");
@@ -851,7 +861,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         });
 
         it("room search and listing routes are correct", async () => {
-            const payload = { term: "hello" };
+            // ⚠️ 后端字段名是 `search_term`（必填），不是 `term` —— 旧夹具写的 `term`
+            // 会被 `deny_unknown_fields` 直接 400。
+            const payload = { search_term: "hello" };
             await manager.searchRoomEvents("!room:example.com", payload);
             await manager.getRoomListings("!room:example.com");
             await manager.setRoomPublicListing("!room:example.com");
@@ -920,14 +932,16 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
 
         it("room delete/purge_history admin routes are correct", async () => {
             await manager.deleteRoomAdmin("!room:example.com", { purge: true, reason: "cleanup" });
-            await manager.purgeRoomHistory("!room:example.com", { delete_local_events: true });
+            // 后端 `purge_history` 只读 `purge_up_to_ts` / `dry_run`；
+            // `delete_local_events` 会被静默忽略（旧夹具在断言一个无效参数）。
+            await manager.purgeRoomHistory("!room:example.com", { dry_run: true });
             await manager.unblockRoom("!room:example.com", { reason: "manual-review" });
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/delete`);
             expect(req.mock.calls[0][3]).toEqual({ purge: true, reason: "cleanup" });
             expect(req.mock.calls[1][0]).toBe("POST");
             expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/purge_history`);
-            expect(req.mock.calls[1][3]).toEqual({ delete_local_events: true });
+            expect(req.mock.calls[1][3]).toEqual({ dry_run: true });
             expect(req.mock.calls[2][0]).toBe("POST");
             expect(req.mock.calls[2][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/unblock`);
             expect(req.mock.calls[2][3]).toEqual({ reason: "manual-review" });
@@ -937,7 +951,7 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await expect(manager.getRoomEventContext("!room:example.com", "")).rejects.toThrow(ValidationError);
             await expect(manager.getRoomForwardExtremities("bad-room")).rejects.toThrow(ValidationError);
             await expect(manager.getRoomTokenSync("bad-room")).rejects.toThrow(ValidationError);
-            await expect(manager.searchRoomEvents("bad-room", {})).rejects.toThrow(ValidationError);
+            await expect(manager.searchRoomEvents("bad-room", { search_term: "x" })).rejects.toThrow(ValidationError);
             await expect(manager.getRoomListings("bad-room")).rejects.toThrow(ValidationError);
             await expect(manager.setRoomPublicListing("bad-room")).rejects.toThrow(ValidationError);
             await expect(manager.deleteRoomPublicListing("bad-room")).rejects.toThrow(ValidationError);
@@ -951,9 +965,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await expect(manager.kickRoomMember("!room:example.com", "bad-user")).rejects.toThrow(ValidationError);
             await expect(manager.unbanRoomMember("bad-room", "@u:x")).rejects.toThrow(ValidationError);
             await expect(manager.unbanRoomMember("!room:example.com", "bad-user")).rejects.toThrow(ValidationError);
-            await expect(manager.banRoom("bad-room", {})).rejects.toThrow(ValidationError);
-            await expect(manager.kickRoom("bad-room", {})).rejects.toThrow(ValidationError);
-            await expect(manager.makeRoomAdmin("bad-room", {})).rejects.toThrow(ValidationError);
+            await expect(manager.banRoom("bad-room", { user_id: "@u:x" })).rejects.toThrow(ValidationError);
+            await expect(manager.kickRoom("bad-room", { user_id: "@u:x" })).rejects.toThrow(ValidationError);
+            await expect(manager.makeRoomAdmin("bad-room", { user_id: "@u:x" })).rejects.toThrow(ValidationError);
             await expect(manager.deleteRoomAdmin("bad-room")).rejects.toThrow(ValidationError);
             await expect(manager.purgeRoomHistory("bad-room")).rejects.toThrow(ValidationError);
             await expect(manager.unblockRoom("bad-room")).rejects.toThrow(ValidationError);
@@ -1089,10 +1103,13 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         });
 
         it("updateAccountDetails POSTs /v1/account/{user_id}", async () => {
-            await manager.updateAccountDetails("@u:x", { suspended: true });
+            // ⚠️ 这里原来断言的是 `{ suspended: true }` —— 后端 `UpdateAccountRequest`
+            // 只接受 `{displayname, avatar_url, admin}` 且 `deny_unknown_fields`，
+            // 带上 `suspended` 必然 400。测试把"后端会拒绝的请求体"当成正确行为钉住了。
+            await manager.updateAccountDetails("@u:x", { displayname: "New Name" });
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/account/%40u%3Ax");
-            expect(req.mock.calls[0][3]).toEqual({ suspended: true });
+            expect(req.mock.calls[0][3]).toEqual({ displayname: "New Name" });
         });
 
         it("validates user id for account detail routes", async () => {

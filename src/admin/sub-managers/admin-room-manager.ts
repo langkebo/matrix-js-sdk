@@ -159,12 +159,27 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     /**
-     * 删除房间
+     * 删除房间（`DELETE /_synapse/admin/v1/rooms/{room_id}`）。
+     *
+     * ⚠️ 2026-10-08 对照后端 `admin/room/mod.rs::delete_room`：该处理器**只收 `Path(room_id)`，
+     * 连 `Json` 提取器都没有** ⇒ 这里传的整个 body（`block` / `purge` / `force_purge` / `reason`）
+     * 会被**静默丢弃**，`purge: true` **不会**清除历史。要真 purge 请另外调
+     * {@link purgeRoomHistory}（`POST /rooms/{room_id}/purge_history`）。
+     *
+     * 注：`POST /_synapse/admin/v1/rooms/{room_id}/delete` 与 `DELETE` 是同**一个**处理器，
+     * 所以 {@link deleteRoomAdmin} 的 body 同样无效。参数保留是为了不破坏公开 API
+     * （删参数属产品决策，已登记在 `admin-response-contract-ledger.json` 的 deviations）。
      *
      * @param roomId - 房间 ID
-     * @param blockOrOptions.block - 是否阻止未来的加入
-     * @param purge - 是否从数据库中清除房间
-     * @param reason - 删除原因
+     * @param blockOrOptions.block - 后端忽略
+     * @param purge - 后端忽略（不会 purge）
+     * @param reason - 后端忽略
+     * @example
+     * ```typescript
+     * await adminManager.deleteRoom("!spam:example.com");
+     * // 需要真正清除历史时：
+     * await adminManager.purgeRoomHistory("!spam:example.com", { purge_up_to_ts: Date.now() });
+     * ```
      */
     async deleteRoom(
         roomId: string,
@@ -186,6 +201,15 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         this.emit(AdminRoomEvent.RoomDeleted, roomId);
     }
 
+    /**
+     * 删除房间（v1 兼容端点 `POST /rooms/{room_id}/delete`）。
+     *
+     * ⚠️ 与 {@link deleteRoom} 是**同一个后端处理器**（`delete_room`，无 `Json` 提取器）
+     * ⇒ `payload` 里的 `purge` / `force_purge` / `block` / `reason` 一律被忽略。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 后端忽略
+     */
     async deleteRoomAdmin(roomId: string, payload?: RoomDeletePayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/delete`, {}, payload ?? {});

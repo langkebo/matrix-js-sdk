@@ -32,8 +32,24 @@ export interface RustRouteContract {
         pathType: string | null;
         jsonType: string | null;
     };
-    /** `Json<T>` 的 T 若是带 Deserialize 的 struct，记为它的字段集 */
-    bodyStruct: { name: string; fields: string[]; denyUnknownFields: boolean } | null;
+    /**
+     * 请求体形状：`Json<T>` 的 T 是带 `Deserialize` 的 struct 时记它的字段集；
+     * 处理器是 `Json<Value>` + 手工 `body.get("k")` 时记**实际读到的键集**
+     * （`manualRead: true`）；两者都判不出来时为 `null`（未知桶）。
+     */
+    bodyStruct: {
+        name: string;
+        fields: string[];
+        /** 缺席也不会让反序列化失败的键（`Option<T>` / `#[serde(default)]`） */
+        optional: string[];
+        /** `#[serde(skip*)]` 的键（不是线上键） */
+        ignored: string[];
+        denyUnknownFields: boolean;
+        /** 键集来自"处理器读了哪些键"，不是 struct 定义 */
+        manualRead?: boolean;
+        /** 键集不闭合（`flatten` / 改不出键的 `rename_all`） */
+        opaque: boolean;
+    } | null;
     /** 同一路由被多个处理器注册时的其余条目 */
     merged?: RustRouteContract[];
 }
@@ -68,6 +84,14 @@ export interface SdkCallSite {
     argCount: number;
     hasQueryArg: boolean;
     hasBodyArg: boolean;
+    /** 方法参数表原文（解析 `payload: X` 的类型用） */
+    params?: string;
+    /** 方法体原文（解析局部 `const body = {…}` 用） */
+    methodBody?: string;
+    /** 第 4 实参原文（内联字面量 / `payload ?? {}` / 三元） */
+    bodyArg?: string | null;
+    /** 本文件自己的类型形状表（跨文件重名时优先） */
+    ownShapes?: Map<string, TsTypeShape>;
 }
 
 /** SDK 契约汇总。 */
@@ -75,9 +99,42 @@ export interface SdkAdminContract {
     callSites: SdkCallSite[];
     fields: Map<string, string[]>;
     fieldFiles: Map<string, string>;
+    /** 全局类型形状表（跨文件同名不同形时标 `open`，交给调用方按未知处理） */
+    typeShapes: Map<string, TsTypeShape>;
+    typeShapeFiles: Map<string, string>;
+    /** 按文件的形状表（TS 解析是按模块的，重名时本文件优先） */
+    typeShapesByFile: Map<string, Map<string, TsTypeShape>>;
     files: string[];
     stats: { fileCount: number; methodsScanned: number; callSiteCount: number; interfaceCount: number };
 }
+
+/** TS 侧一个类型的一层形状。 */
+export interface TsTypeShape {
+    fields: string[];
+    /** 带 `?` 的字段（请求体必填/可选判定要用） */
+    optionalFields: string[];
+    /** 键集不闭合（索引签名 / 映射类型 / 联合 / 展开 …） */
+    open: boolean;
+}
+
+/** 解析一段**表达式**（请求体实参）得到字段集；判不出来返回 `null`。 */
+export function resolveSdkRequestShape(input: {
+    params?: string;
+    bodyArg?: string | null;
+    methodBody?: string;
+    shapes?: Map<string, TsTypeShape>;
+    ownShapes?: Map<string, TsTypeShape>;
+}): { fields: string[]; optionalFields: string[] } | null;
+
+/** 索引 TS 类型形状（`interface` / `type X = {…}` / `type X = Y` / 工具类型别名）。 */
+export function extractTsTypeShapes(src: string): Map<string, TsTypeShape>;
+
+/** 解析 `Json<Value>` 型请求体读了哪些键（fail-closed：变量有别的用法就返回 `null`）。 */
+export function extractJsonValueBodyKeys(fn: {
+    sig: string;
+    body: string;
+    io: { hasJson: boolean; jsonType: string | null };
+}): { keys: string[]; required: string[] } | null;
 
 /** 去掉 Rust 的 `//` 与块注释，保留字符串字面量内容。 */
 export function stripRustComments(src: string): string;
@@ -104,19 +161,42 @@ export function findRustFunctions(src: string): Array<{ name: string; sig: strin
 /** 抽取「返回位置」的 `json!` 顶层键（每个分支一个变体）；`null` = 不可知。 */
 export function extractResponseVariants(fnBody: string): string[][] | null;
 
-/** 抽取带 `Deserialize` 的 struct 字段与 `deny_unknown_fields`。 */
-export function parseDeserializeStructs(src: string): Map<string, { fields: string[]; denyUnknownFields: boolean }>;
-
-/** 索引带 `Serialize` / `Deserialize` 的 struct：JSON 键、Rust 名、派生列表与 `opaque`。 */
-export function parseSerdeStructs(
-    src: string,
-): Map<
+/** 抽取带 `Deserialize` 的 struct 字段、可选性、`skip` 键与 `deny_unknown_fields`。 */
+export function parseDeserializeStructs(src: string): Map<
     string,
-    { fields: string[]; rustFields?: string[]; denyUnknownFields: boolean; derives: string[]; opaque: boolean }
+    {
+        fields: string[];
+        optionalFields: string[];
+        ignoredFields: string[];
+        denyUnknownFields: boolean;
+        flatten: boolean;
+    }
 >;
 
-/** 扫描 struct 体，取每个字段的 JSON 键（应用字段级 `#[serde(rename)]`）与 Rust 名。 */
-export function scanStructFields(bodyText: string): { rust: string[]; json: string[]; unparsedRename: boolean };
+/** 索引带 `Serialize` / `Deserialize` 的 struct：JSON 键、Rust 名、可选性、派生列表与 `opaque`。 */
+export function parseSerdeStructs(src: string): Map<
+    string,
+    {
+        fields: string[];
+        rustFields: string[];
+        optionalFields: string[];
+        ignoredFields: string[];
+        denyUnknownFields: boolean;
+        flatten: boolean;
+        derives: string[];
+        opaque: boolean;
+    }
+>;
+
+/** 扫描 struct 体，取每个字段的 JSON 键（应用字段级 `#[serde(rename)]`）、Rust 名、可选性与 `skip` 键。 */
+export function scanStructFields(bodyText: string): {
+    rust: string[];
+    json: string[];
+    optionalJson: string[];
+    ignoredJson: string[];
+    flatten: boolean;
+    unparsedRename: boolean;
+};
 
 /** 取 struct 字面量 `Type { a, b: v }` 的一层字段名；`..spread` 时 `keys` 为 `null`。 */
 export function structLiteralShape(text: string): { type: string; keys: string[] | null; spread: boolean } | null;
@@ -226,7 +306,7 @@ export function normalizeRoute(route: string): string;
 /** 去 TS 注释（保留字符串/模板/正则字面量）。 */
 export function stripTsComments(src: string): string;
 
-/** 取 `interface` 与 `type X = Y` 别名的第一层字段名。 */
+/** 取 `interface` / `type X = {…}` / 别名的第一层字段名（只收键集闭合的形状）。 */
 export function extractInterfaceFields(src: string): Map<string, string[]>;
 
 /** 收集 SDK 契约。 */
@@ -241,6 +321,21 @@ export function normalizeReturnType(declared: string | null): {
     isArray: boolean;
     primitive: boolean;
 };
+
+/**
+ * 比较 SDK 请求体形状与后端请求键集；返回 `null` 表示一致。
+ *
+ * 四档：`request-unknown-field-rejected`（后端 deny ⇒ 400）/ `request-unknown-field-ignored`
+ * （静默忽略）/ `request-missing-required-field` / `request-optional-vs-required`。
+ */
+export function diffRequestShape(input: {
+    sdkFields: string[];
+    sdkOptional: string[];
+    backendFields: string[];
+    backendOptional: string[];
+    denyUnknownFields: boolean;
+    backendType: string;
+}): { kind: string; detail: string } | null;
 
 /** 比较 SDK 字段集合与后端响应键集合。 */
 export function diffFields(input: { sdkFields: string[]; backendKeys: string[] }): {

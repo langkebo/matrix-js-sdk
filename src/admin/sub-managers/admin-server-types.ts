@@ -25,13 +25,34 @@ export interface WhoamiResponse {
     role?: string;
 }
 
+/**
+ * `POST /_synapse/admin/v1/register` 的请求体 —— 后端 `register.rs::RegisterRequest`
+ * （无 `deny_unknown_fields`，多传的键被静默忽略）。
+ *
+ * ⚠️ 2026-10-08 对照后端修正：
+ * - 后端**必填**（serde 无 `default` 且非 `Option`）：`nonce` / `username` / `password` /
+ *   `admin` / `mac`。原类型把 `nonce` / `admin` 标成可选、且**完全没有 `mac`**
+ *   ⇒ 照类型调用必然 422（`missing field mac`）；
+ * - 缺 4 个可选字段：`user_type` / `captcha_id` / `captcha_code` / `approval_token`；
+ * - 去掉 `[key: string]: unknown`（它让"少传必填字段"在类型上也无提示）。
+ *
+ * `mac` 是**请求签名**（`Hmac<Sha256>`，小写十六进制），布局由
+ * `synapse-services/src/admin_registration_service.rs::update_admin_registration_mac` 固定：
+ * `nonce \0 username \0 password \0` +（`admin` ? `admin\0\0\0` : `notadmin`）+（`user_type` 存在时 `\0 user_type`），
+ * 密钥是注册共享密钥。注意这**不是**上游 Synapse 的 SHA-1 / 大写十六进制布局。
+ */
 export interface AdminRegisterRequest {
+    nonce: string;
     username: string;
     password: string;
-    nonce?: string;
-    admin?: boolean;
+    admin: boolean;
+    /** 共享密钥 HMAC（大写十六进制）。 */
+    mac: string;
     displayname?: string;
-    [key: string]: unknown;
+    user_type?: string;
+    captcha_id?: string;
+    captcha_code?: string;
+    approval_token?: string;
 }
 
 /**
@@ -51,29 +72,38 @@ export interface AdminRegisterResult {
     home_server?: string;
 }
 
+/**
+ * `POST /_synapse/admin/v1/purge_history` 的请求体。
+ *
+ * 2026-10-08 对照后端 `admin/room/management.rs::purge_history`：该处理器是
+ * `Json<Value>` + 手工 `body.get("…")`，**只读三个键**（`room_id` / `purge_up_to_ts` /
+ * `dry_run`）。原先声明的 `purge_up_to_event_id` 与 `delete_local_events` 后端从不读，
+ * 属于**静默忽略**（调用方以为按事件 ID 截断，实际只按时间戳）。
+ */
 export interface PurgeHistoryRequest {
-    room_id?: string;
-    purge_up_to_event_id?: string;
+    room_id: string;
     purge_up_to_ts?: number;
-    delete_local_events?: boolean;
-    [key: string]: unknown;
+    /** 只统计不删除（后端 `purge_history_before(.., dry_run)`）。 */
+    dry_run?: boolean;
 }
 
+/**
+ * `POST /_synapse/admin/v1/shutdown_room` 的请求体。
+ *
+ * ⚠️ 2026-10-08 对照后端 `admin/room/mod.rs::shutdown_room`：处理器只读 `room_id`，
+ * 随后 `shutdown_room_and_remove_members(room_id)` —— **没有任何 purge / block /
+ * message / 改名逻辑**。原先声明的 `purge` / `force_purge` / `block` / `message` /
+ * `new_room_name` / `new_room_topic` 全部被静默忽略（"purge 并关房"实际不会 purge）。
+ * 需要真 purge 请单独调 `purgeRoomHistory` / `deleteRoom`。
+ */
 export interface ShutdownRoomRequest {
     room_id: string;
-    new_room_name?: string;
-    new_room_topic?: string;
-    message?: string;
-    block?: boolean;
-    purge?: boolean;
-    force_purge?: boolean;
-    [key: string]: unknown;
 }
 
-export interface CleanupRoomsRequest {
-    room_id?: string;
-    [key: string]: unknown;
-}
+// `CleanupRoomsRequest` 的**唯一**声明在 `./admin-cleanup-manager`（`{min_age_ms?}`，
+// 与后端 `cleanup_rooms` 实际读取的键一致）。此处曾有一份同名的 `{room_id?, [key]: unknown}`
+// 陈旧副本：它与清理管理器里的那份**同名不同形**，让"哪个形状生效"取决于文件遍历顺序
+// （见 `scripts/quality/lib/admin-contract.mjs` 的 `typeShapesByFile` 注释）。
 
 // ===== Server info/stats/status types =====
 
@@ -140,7 +170,6 @@ export interface AdminServerConfig {
     public_baseurl?: string;
     registration_enabled?: boolean;
     max_upload_size?: number;
-    [key: string]: unknown;
 }
 
 /** `GET /_synapse/admin/info` 的响应（与 {@link ServerInfo} 同端点、同形状）。 */
@@ -148,7 +177,6 @@ export interface AdminInfoResponse {
     server_name: string;
     server_version: string;
     implementation?: string;
-    [key: string]: unknown;
 }
 
 // `AdminCleanupResponse`（`{cleaned?, cleaned_count?, message?}`）已于 2026-10-07 删除：
@@ -263,9 +291,15 @@ export interface AdminExperimentalFeatures {
 
 // ===== Restart / purge server types =====
 
-/** Payload for POST /restart — restart server options */
+/**
+ * `POST /_synapse/admin/v1/restart` 的请求体。
+ *
+ * 2026-10-08 对照后端 `admin/server.rs::restart_server`：唯一被读的键是 `timeout_ms`
+ * （毫秒，默认 100，后端上限 10 000），其余键一律忽略。原先只有一个索引签名
+ * （`[key: string]: unknown`）—— 等于"任何键都合法"，而真实键集就这一个。
+ */
 export interface RestartServerPayload {
-    [key: string]: unknown;
+    timeout_ms?: number;
 }
 
 /** Response for POST /restart — restart server result */

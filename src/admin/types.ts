@@ -29,3 +29,16 @@ export * from "./sub-managers/admin-room-types";
 export * from "./sub-managers/admin-server-types";
 export * from "./sub-managers/admin-federation-types";
 export * from "./sub-managers/admin-config-types";
+// 清理域的请求/响应类型（`CleanupAllRequest` / `CleanupRoomsRequest` /
+// `CleanupAllResponse` / `CleanupRoomsResponse` / `CleanupTokensResponse` /
+// `CleanupAbnormalDataResult`）。**必须显式列出**：`admin-cleanup-manager.ts` 里还有
+// 管理器类与其实现细节，不适合整包 `export *`；而 `CleanupRoomsRequest` 曾经在
+// `admin-server-types.ts` 有一份同名不同形的副本（已删）。
+export type {
+    CleanupAbnormalDataResult,
+    CleanupAllRequest,
+    CleanupAllResponse,
+    CleanupRoomsRequest,
+    CleanupRoomsResponse,
+    CleanupTokensResponse,
+} from "./sub-managers/admin-cleanup-manager";

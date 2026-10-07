@@ -19,36 +19,109 @@ export type DynamicConfig = Record<string, unknown>; // Dynamic: configuration s
 
 // ===== Config payloads =====
 
+/**
+ * `PATCH /_synapse/admin/v1/feature-flags/{flag_key}` 的请求体。
+ *
+ * 2026-10-08 对照后端 `feature_flags.rs::UpdateFeatureFlagRequest` 修正：
+ * - 原来的 `target_scope` 是**创建**请求（`CreateFeatureFlagRequest`）的字段，
+ *   更新端点**没有**它（`target_scope` 只在创建时定，之后不可改）；
+ * - 漏了 `expires_at` / `reason` / `status` / `targets` 四个真实字段；
+ * - 去掉 `[key: string]: unknown` —— 它让"多传一个键"在类型上合法，
+ *   而这类索引签名正是"请求体与后端不一致"长期不被发现的原因。
+ */
 export interface FeatureFlagUpdatePayload {
-    target_scope?: string;
     rollout_percent?: number;
-    [key: string]: unknown;
+    expires_at?: number | null;
+    reason?: string;
+    status?: string;
+    targets?: FeatureFlagTarget[];
 }
 
+/**
+ * `POST /_synapse/admin/v1/audit/events` 的请求体（后端 `audit.rs::CreateAuditEventBody`，`deny_unknown_fields`）。
+ *
+ * 2026-10-08：原声明的 `target_type` / `target_id` 后端**没有**（带 `deny_unknown_fields`
+ * ⇒ 传了直接 400），而真实字段 `actor_id` 被错标成可选、`details` 之外一律必填。
+ */
 export interface AuditEventCreateRequest {
+    actor_id: string;
     action: string;
-    target_type?: string;
-    target_id?: string;
-    actor_id?: string;
-    resource_type?: string;
-    resource_id?: string;
-    result?: string;
-    request_id?: string;
+    resource_type: string;
+    resource_id: string;
+    result: string;
+    request_id: string;
     details?: import("../../models/event").IContent;
-    [key: string]: unknown;
 }
 
+/**
+ * `POST /_synapse/admin/v1/account_validity` 的请求体（后端 `module.rs::CreateAccountValidityBody`，`deny_unknown_fields`）。
+ *
+ * 2026-10-08：原声明的 `enable_renewal_emails` 后端**没有**（会 400）；`expiration_ts`
+ * 后端是必填 `i64`（不是 `Option`）。
+ */
 export interface AccountValidityRequest {
     user_id: string;
-    expiration_ts?: number;
-    enable_renewal_emails?: boolean;
-    [key: string]: unknown;
+    expiration_ts: number;
+    is_valid?: boolean;
 }
 
+/**
+ * `POST /_synapse/admin/v1/account_validity/{user_id}/renew` 的请求体
+ * （后端 `module.rs::RenewAccountBody`，`deny_unknown_fields`）。
+ *
+ * 2026-10-08：原来的 `{expiration_ts?, enable_renewal_emails?}` 两个键后端**一个都不认识**
+ * ⇒ 该请求必然 400（`missing field renewal_token`）。
+ */
 export interface AccountValidityRenewRequest {
-    expiration_ts?: number;
-    enable_renewal_emails?: boolean;
-    [key: string]: unknown;
+    renewal_token: string;
+    new_expiration_ts: number;
+}
+
+/**
+ * `POST /_synapse/admin/v1/password_auth_providers` 的请求体
+ * （后端 `module.rs::CreatePasswordAuthProviderBody`，`deny_unknown_fields`）。
+ *
+ * 2026-10-08 起不再用 `DynamicConfig` 当签名：`DynamicConfig` 是
+ * `Record<string, unknown>`，等于**放弃类型检查**，而该端点会因多一个键直接 400。
+ */
+export interface CreatePasswordAuthProviderRequest {
+    provider_name: string;
+    provider_type: string;
+    config: import("../../models/event").IContent;
+    is_enabled?: boolean;
+    priority?: number;
+}
+
+/**
+ * `POST /_synapse/admin/v1/media_callbacks` 的请求体
+ * （后端 `module.rs::CreateMediaCallbackBody`，`deny_unknown_fields`）。
+ *
+ * ⚠️ 这里的 `callback_name` / `callback_type` / `url` 是**注册**一个回调配置；
+ * 而 `GET /media_callbacks` 返回的是回调**任务执行记录**（见 {@link AdminMediaCallback}）。
+ */
+export interface CreateMediaCallbackRequest {
+    callback_name: string;
+    callback_type: string;
+    url: string;
+    method?: string;
+    headers?: import("../../models/event").IContent;
+    is_enabled?: boolean;
+    timeout_ms?: number;
+    retry_count?: number;
+}
+
+/**
+ * `POST /_synapse/admin/v1/account_data_callbacks` 的请求体
+ * （后端 `module.rs::CreateAccountDataCallbackBody`，`deny_unknown_fields`）。
+ *
+ * ⚠️ 后端**没有** `callback_type` 这个键（带 `deny_unknown_fields` ⇒ 传了会 400）；
+ * 想按类型过滤要用 `data_types`。
+ */
+export interface CreateAccountDataCallbackRequest {
+    callback_name: string;
+    config: import("../../models/event").IContent;
+    is_enabled?: boolean;
+    data_types?: string[];
 }
 
 // ===== Retention policy types =====

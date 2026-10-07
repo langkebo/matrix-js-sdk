@@ -398,13 +398,19 @@ export function extractResponseVariants(fnBody) {
  * 决定"多一个字段就 400"）。响应侧的 struct 走 `parseSerdeStructs`。
  *
  * @param {string} src 已去注释的源码
- * @returns {Map<string, { fields: string[], denyUnknownFields: boolean }>}
+ * @returns {Map<string, { fields: string[], optionalFields: string[], ignoredFields: string[], denyUnknownFields: boolean, flatten: boolean }>}
  */
 export function parseDeserializeStructs(src) {
     const out = new Map();
     for (const [name, v] of parseSerdeStructs(src)) {
         if (v.derives.includes("Deserialize"))
-            out.set(name, { fields: v.fields, denyUnknownFields: v.denyUnknownFields });
+            out.set(name, {
+                fields: v.fields,
+                optionalFields: v.optionalFields,
+                ignoredFields: v.ignoredFields,
+                denyUnknownFields: v.denyUnknownFields,
+                flatten: v.flatten,
+            });
     }
     return out;
 }
@@ -426,7 +432,7 @@ export function parseDeserializeStructs(src) {
  * 标 `opaque` 的 struct 会被调用方当成"形状未知"落回覆盖桶，而不是拿错键去比对。
  *
  * @param {string} src 已去注释的源码
- * @returns {Map<string, { fields: string[], rustFields: string[], denyUnknownFields: boolean, derives: string[], opaque: boolean }>}
+ * @returns {Map<string, { fields: string[], rustFields: string[], optionalFields: string[], ignoredFields: string[], denyUnknownFields: boolean, flatten: boolean, derives: string[], opaque: boolean }>}
  */
 export function parseSerdeStructs(src) {
     const out = new Map();
@@ -435,19 +441,28 @@ export function parseSerdeStructs(src) {
         const headStart = Math.max(0, src.lastIndexOf("\n\n", m.index) + 1);
         const head = src.slice(headStart, m.index);
         if (!/#\[/.test(head)) continue;
+        // 容器级属性只认**紧邻本 struct** 的那一段（见 `containerAttributes`）
+        const container = containerAttributes(head);
         const dm = head.match(/#\[derive\(([^)]*)\)/);
         const derives = dm ? dm[1].split(",").map((s) => s.trim()) : [];
         if (!derives.includes("Serialize") && !derives.includes("Deserialize")) continue;
         const brace = m.index + m[0].length - 1;
         const slice = balancedSlice(src, brace);
         if (!slice) continue;
-        const { rust, json, unparsedRename } = scanStructFields(slice.text.slice(1, -1));
-        const renameAll = head.match(/rename_all\s*=\s*"([^"]+)"/);
+        const { rust, json, optionalJson, ignoredJson, flatten, unparsedRename } = scanStructFields(
+            slice.text.slice(1, -1),
+        );
+        const renameAll = container.match(/rename_all\s*=\s*"([^"]+)"/);
         const opaque = unparsedRename || (renameAll ? renameAll[1] !== "snake_case" : false);
+        // 容器级 `#[serde(default)]` ⇒ 每一个缺席字段都取容器默认值 ⇒ 全是可选。
+        const containerDefault = /#\[serde\([^)]*\bdefault\b/.test(container);
         out.set(m[2], {
             fields: [...new Set(json)].sort(),
             rustFields: [...new Set(rust)].sort(),
-            denyUnknownFields: /deny_unknown_fields/.test(head),
+            optionalFields: containerDefault ? [...new Set(json)].sort() : [...new Set(optionalJson)].sort(),
+            ignoredFields: [...new Set(ignoredJson)].sort(),
+            denyUnknownFields: /deny_unknown_fields/.test(container),
+            flatten,
             derives,
             opaque,
         });
@@ -459,6 +474,31 @@ export function parseSerdeStructs(src) {
 const SERDE_RENAME_RE = /rename\s*(?:=\s*"([^"]+)"|\(\s*(?:serialize\s*=\s*)?\s*"([^"]+)")/;
 
 /**
+ * 从 `字段名:` 之后读出**类型文本**（到同层的 `,` / `}` 为止）。
+ *
+ * 需要它是因为"这个字段能不能不传"完全由类型决定：`Option<T>` 与
+ * `#[serde(default)]` 缺席时 serde 会填默认值，而其余类型缺席即反序列化失败。
+ * 泛型里的逗号不能当分隔符（`HashMap<String, Vec<u8>>`），所以要跟深度。
+ *
+ * @param {string} bodyText struct 体
+ * @param {number} start 冒号之后的下标
+ * @returns {string} 归一化空白后的类型文本
+ */
+function readFieldType(bodyText, start) {
+    let depth = 0;
+    let i = start;
+    const n = bodyText.length;
+    while (i < n) {
+        const c = bodyText[i];
+        if (c === "<" || c === "(" || c === "[") depth++;
+        else if (c === ">" || c === ")" || c === "]") depth = Math.max(0, depth - 1);
+        else if (depth === 0 && (c === "," || c === "}")) break;
+        i++;
+    }
+    return bodyText.slice(start, i).replace(/\s+/g, " ").trim();
+}
+
+/**
  * 扫描 struct 体，把每个字段的 **JSON 键**（应用字段级 rename）与 **Rust 名**一起取出来。
  *
  * 用词法扫描而不是一条正则，是因为 rename 属性**在字段之前一行**：正则扫 `ident:` 拿不到
@@ -466,13 +506,25 @@ const SERDE_RENAME_RE = /rename\s*(?:=\s*"([^"]+)"|\(\s*(?:serialize\s*=\s*)?\s*
  * JSON 键 `is_allowed` —— 而 SDK 侧写的是后端真实的键 `allowed`，
  * 结果会把"其实一致"报成"字段名不一致"（本仓有 103 处字段级 rename）。
  *
+ * `optionalJson` 与 `ignoredJson` 服务于**请求体**检查（`Json<T>` 的 T）：
+ *
+ *   - `optionalJson`：缺席也不会让反序列化失败（`Option<T>` / `#[serde(default)]`）。
+ *     缺了它就没法区分"后端必填字段而 SDK 没声明"（真缺陷）与"后端本来就不要求"（无事）；
+ *   - `ignoredJson`：`#[serde(skip*)]` 的键**根本不是线上键**（`skip_deserializing` 传了也读不到、
+ *     `skip_serializing` 不会出现在响应里）⇒ 从键集里剔除，否则会制造"SDK 多声明字段"的假阳。
+ *
  * @param {string} bodyText struct 体（不含最外层花括号）
- * @returns {{ rust: string[], json: string[], unparsedRename: boolean }}
+ * @returns {{ rust: string[], json: string[], optionalJson: string[], ignoredJson: string[], flatten: boolean, unparsedRename: boolean }}
  */
 export function scanStructFields(bodyText) {
     const rust = [];
     const json = [];
+    const optionalJson = [];
+    const ignoredJson = [];
     let pending = null;
+    let pendingOptional = false;
+    let pendingSkip = false;
+    let flatten = false;
     let unparsedRename = false;
     let i = 0;
     const n = bodyText.length;
@@ -486,6 +538,13 @@ export function scanStructFields(bodyText) {
                     if (rm) pending = rm[1] ?? rm[2];
                     else unparsedRename = true;
                 }
+                // `#[serde(flatten)]` ⇒ 这些字段的键**不在本 struct 的键集里**，
+                // 且还能接受任意其余键 ⇒ 键集不再闭合，调用方须按"未知"处理。
+                if (/\bflatten\b/.test(s.text)) flatten = true;
+                // ⚠️ 不能用 `/\bskip\b/`：`skip_serializing_if` 是**条件序列化**（键照样存在），
+                // 把它当成 `skip` 会把字段从键集里剔掉 ⇒ 凭空造出"SDK 多声明字段"。
+                if (/\bskip(?:_(?:serializing|deserializing))?(?![_\w])/.test(s.text)) pendingSkip = true;
+                if (/\bdefault\b/.test(s.text)) pendingOptional = true;
                 i = s.end;
                 continue;
             }
@@ -501,16 +560,40 @@ export function scanStructFields(bodyText) {
             // 同类泄漏还有 `pub x: std::collections::HashMap<..>` ⇒ 多出键 `std`。
             const m = /^(?:pub\s+)?([A-Za-z_]\w*)\s*:(?!:)/.exec(bodyText.slice(i, i + 200));
             if (m) {
+                const key = pending ?? m[1];
+                const typeText = readFieldType(bodyText, i + m[0].length);
                 rust.push(m[1]);
-                json.push(pending ?? m[1]);
+                if (pendingSkip) {
+                    ignoredJson.push(key);
+                } else {
+                    json.push(key);
+                    if (pendingOptional || /^Option\s*</.test(typeText)) optionalJson.push(key);
+                }
                 pending = null;
+                pendingOptional = false;
+                pendingSkip = false;
                 i += m[0].length;
                 continue;
             }
         }
         i++;
     }
-    return { rust, json, unparsedRename };
+    return { rust, json, optionalJson, ignoredJson, flatten, unparsedRename };
+}
+
+/**
+ * 取 struct 声明**紧邻上方**的容器属性区（`#[derive(..)]` / `#[serde(..)]`）。
+ *
+ * 只取"最后一个 `}` 或 `;` 之后"那一段：`parseSerdeStructs` 原来用"上个空行到目前为止"，
+ * 当两个 struct 紧挨着（中间没有空行）时，**上一个 struct 的字段级属性**会落进这个窗口，
+ * 于是 `#[serde(default)]` 会被误读成容器级默认（把必填字段判成可选 ⇒ 真缺陷静默）。
+ *
+ * @param {string} head 上一个空行到 struct 关键字之间的文本
+ * @returns {string}
+ */
+function containerAttributes(head) {
+    const cut = Math.max(head.lastIndexOf("}"), head.lastIndexOf(";"));
+    return head.slice(cut + 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -1499,6 +1582,58 @@ export function extractHandlerIo(sig) {
 }
 
 /**
+ * 解析 `Json<Value>` 型请求体：处理器**读了哪些键**、哪些是必填。
+ *
+ * 本仓有十来个处理器不声明请求 struct，而是 `Json(body): Json<Value>` 后手工
+ * `body.get("k")` 取值（`cleanup_all` / `purge_room` / `purge_history` / `set_admin` /
+ * `restart_server` / `shutdown_room` …）。这类处理器**没有 struct 可读**，
+ * 于是它们的请求体长期落在"未知"桶里 —— 而"SDK 声明的字段处理器根本不读"
+ * 恰恰是隐形的（后端不报错，调用方以为设置生效了）。
+ *
+ * 判据（**fail-closed**）：只有整个函数体里**该变量的每一次出现都紧跟 `.get(`**
+ * （或 `["…"]`）时才敢下结论；一旦出现其它用法（`f(body)`、`Json(merged_body)`、
+ * `body.as_object()` …）就返回 `null` —— 那时键集无法穷举，给半份结论会把
+ * "其实一致"报成"多声明了"。
+ *
+ * 「必填」= 该次读取后面紧跟 `.ok_or` / `.ok_or_else` / `?`（本仓写法统一），
+ * 其余（`and_then(...)` 直接赋给变量）视为可选。
+ *
+ * @param {{ body: string, io: { hasJson: boolean, jsonType: string | null } }} fn
+ * @returns {{ keys: string[], required: string[] } | null}
+ */
+export function extractJsonValueBodyKeys(fn) {
+    if (!fn.io?.hasJson) return null;
+    if (fn.io.jsonType !== "Value" && fn.io.jsonType !== "serde_json_Value") return null;
+    const sigParen = fn.sig.indexOf("(");
+    const params = sigParen < 0 ? "" : (balancedSlice(fn.sig, sigParen)?.text.slice(1, -1) ?? "");
+    // `Json(body): Json<Value>` 或 `body: Json<Value>`（含 `mut`）
+    const bound =
+        /(?:^|,)\s*(?:mut\s+)?([A-Za-z_]\w*)\s*:\s*(?:[A-Za-z_]\w*\s*::\s*)*Json\s*</.exec(params) ??
+        /(?:^|,)\s*Json\s*\(\s*(?:mut\s+)?([A-Za-z_]\w*)\s*\)\s*:\s*(?:[A-Za-z_]\w*\s*::\s*)*Json\s*</.exec(params);
+    if (!bound) return null;
+    const varName = bound[1];
+    const body = fn.body;
+    const keys = new Map(); // key → required
+    const identRe = new RegExp(`(?<![\\w.])${varName}\\b`, "g");
+    let m;
+    while ((m = identRe.exec(body)) !== null) {
+        const rest = body.slice(m.index + varName.length);
+        const gm = /^\s*\.\s*get\s*\(\s*"([^"]+)"\s*\)/.exec(rest) ?? /^\s*\[\s*"([^"]+)"\s*\]/.exec(rest);
+        if (!gm) return null; // 有别的用法 ⇒ 键集无法穷举
+        // 读完之后到语句结束之间出现 ok_or / ok_or_else / `?` ⇒ 必填
+        const tail = rest.slice(gm[0].length);
+        const stmt = tail.split(";")[0] ?? "";
+        const required = /\.\s*ok_or(?:_else)?\b/.test(stmt) || /\)\s*\?/.test(stmt) || /\?\s*$/.test(stmt);
+        keys.set(gm[1], (keys.get(gm[1]) ?? false) || required);
+        // 同一次出现只记一遍：后续 `.get` 链上不会再有同名变量（`body.get(..)` 的返回值不是 body）
+        identRe.lastIndex = m.index + varName.length;
+    }
+    if (keys.size === 0) return null;
+    const sorted = [...keys.keys()].sort();
+    return { keys: sorted, required: sorted.filter((k) => keys.get(k)) };
+}
+
+/**
  * 解析 `.route("path", get(handler).post(handler2))` 表。
  *
  * 用括号配对而非行正则，才能覆盖本仓大量存在的多行 `.route(` 写法。
@@ -1599,11 +1734,15 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             for (const [mn, defs] of v) prev.set(mn, [...(prev.get(mn) ?? []), ...defs]);
         }
         // 同一个 struct 名在多处定义时，字段集不同就说明"名字撞了" ⇒ 标 opaque 拒绝下沉。
+        // 字段集相同但**可选性不同**（如 `Option<T>` vs `T`）同样是两个类型撞名：拿其中一个的
+        // 可选性去判"后端是否必填"会静默地把真缺陷放行 ⇒ 也标 opaque。
         for (const [k, v] of parseSerdeStructs(src)) {
             structHits.set(k, (structHits.get(k) ?? 0) + 1);
             const prev = structs.get(k);
             if (!prev) structs.set(k, v);
             else if (prev.fields.join(",") !== v.fields.join(",")) structs.set(k, { ...prev, opaque: true });
+            else if (prev.optionalFields.join(",") !== v.optionalFields.join(","))
+                structs.set(k, { ...prev, opaque: true });
             else structs.set(k, { ...prev, opaque: prev.opaque || v.opaque });
         }
         for (const fn of findAllRustFunctions(src)) {
@@ -1678,6 +1817,9 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
                     : null;
             const io = extractHandlerIo(fn.sig);
             const bodyStruct = io.jsonType && structs.has(io.jsonType) ? structs.get(io.jsonType) : null;
+            // `Json<Value>` 的处理器没有 struct，但它读了哪些键是静态可判的（见
+            // `extractJsonValueBodyKeys`）；判不出来时保持 null（未知桶）。
+            const bodyKeys = bodyStruct ? null : extractJsonValueBodyKeys({ sig: fn.sig, body: fn.body, io });
             if (responseVariants) responseKnown++;
             if (bodyStruct) requestKnown++;
             for (const rawRoute of routes) {
@@ -1695,9 +1837,27 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
                         ? {
                               name: io.jsonType,
                               fields: bodyStruct.fields,
+                              optional: bodyStruct.optionalFields,
+                              ignored: bodyStruct.ignoredFields,
                               denyUnknownFields: bodyStruct.denyUnknownFields,
+                              // `opaque`（改不出键的 rename_all）或 `flatten`（键集不闭合）
+                              // 都让"键集"不再是全貌 ⇒ 调用方按"未知"处理，不拿去比对。
+                              opaque: bodyStruct.opaque || bodyStruct.flatten,
                           }
-                        : null,
+                        : bodyKeys
+                          ? {
+                                name: `${io.jsonType}（手工 body.get）`,
+                                fields: bodyKeys.keys,
+                                optional: bodyKeys.keys.filter((k) => !bodyKeys.required.includes(k)),
+                                ignored: [],
+                                // `Json<Value>` 从不因多余键报错（没有 serde 反序列化在把关）
+                                denyUnknownFields: false,
+                                // 键集来自"读哪些键"，没有 flatten 概念；但要标出这行的来源，
+                                // 便于报告区分"struct 定义的键集"与"处理器实际读的键集"。
+                                manualRead: true,
+                                opaque: false,
+                            }
+                          : null,
                 };
                 byRoute.set(route, prev ? { ...prev, merged: [...(prev.merged ?? [prev]), entry] } : entry);
             }
@@ -1830,48 +1990,481 @@ export function normalizePath(p) {
 }
 
 /**
- * 取一个 `interface` / `type` 对象的**第一层**字段名。
+ * 解析 **TS 类型位置**上的对象体（`interface X { … }` 的体、`type X = { … }` 的体）的一层成员。
+ *
+ * 与旧实现的「4 空格缩进」启发式相比，这里按**深度 0 的分隔符**（`;` `,` 换行）切成员：
+ * 嵌套对象的字段天然落在 depth > 0 ⇒ 不会被算成外层字段（旧启发式同样能做到，
+ * 但会把「单行 interface」整条漏掉）。同时比旧实现多取一个东西：**可选性**（`a?: T`）——
+ * 「后端必填而 SDK 标成可选」意味着调用方可以合法地不传，然后收到 422。
+ *
+ * 三条**踩过的坑**都钉在这里：
+ *   1. `<`/`>` 必须计入深度：`devices: Record<\n string,\n {…}\n>;` 这种**多行泛型**里，
+ *      泛型实参会被当成独立成员 ⇒ 凭空多出字段名（实测多出一个 `string`）；
+ *   2. 类型位置**没有简写成员**（`{ a }` 不是合法 TS 类型）⇒ 不许有"裸标识符也算字段"的兜底，
+ *      否则上面那个 `string` 就会被收进字段集；
+ *   3. 索引签名 / 映射类型 / 计算键（都以 `[` 开头）⇒ `open: true`（键集不闭合）；
+ *      认不出的成员（方法签名等）**忽略**而不是标 open —— 它们本来就不产生线上键。
+ *
+ * @param {string} bodyText 不含最外层花括号的对象体
+ * @returns {{ fields: string[], optionalFields: string[], open: boolean }}
+ */
+function parseTsObjectMembers(bodyText) {
+    const fields = [];
+    const optionalFields = [];
+    let open = false;
+    let cur = "";
+    let depth = 0;
+    const flush = () => {
+        const t = cur.replace(/\s+/g, " ").trim();
+        cur = "";
+        if (!t) return;
+        if (t.startsWith("[")) {
+            open = true;
+            return;
+        }
+        const m = /^(?:readonly\s+)?([A-Za-z_$][\w$]*)\s*(\?)?\s*:/.exec(t);
+        if (m) {
+            fields.push(m[1]);
+            if (m[2]) optionalFields.push(m[1]);
+        }
+    };
+    for (let i = 0; i < bodyText.length; i++) {
+        const c = bodyText[i];
+        if (c === '"' || c === "'" || c === "`") {
+            const q = c;
+            cur += c;
+            i++;
+            while (i < bodyText.length) {
+                cur += bodyText[i];
+                if (bodyText[i] === "\\") {
+                    cur += bodyText[i + 1] ?? "";
+                    i += 2;
+                    continue;
+                }
+                if (bodyText[i] === q) break;
+                i++;
+            }
+            continue;
+        }
+        if (c === "<" || c === "(" || c === "[" || c === "{") depth++;
+        else if (c === ">" || c === ")" || c === "]" || c === "}") depth = Math.max(0, depth - 1);
+        else if (depth === 0 && (c === ";" || c === "," || c === "\n")) {
+            flush();
+            continue;
+        }
+        cur += c;
+    }
+    flush();
+    return { fields: [...new Set(fields)].sort(), optionalFields: [...new Set(optionalFields)].sort(), open };
+}
+
+/**
+ * 解析 **TS 值位置**上的对象字面量体，取一层键。
+ *
+ * 与类型位置的区别：这里有简写（`{ accept }`）与展开（`{ ...rest }`）。
+ * 展开 ⇒ 键集不闭合 ⇒ `open: true`（把展开当"没有其余字段"会制造"SDK 多声明字段"的假阳）。
+ * 值里的 `?` / 逗号都在 depth > 0，不会干扰键检测。
+ *
+ * @param {string} bodyText 不含最外层花括号的字面量体
+ * @returns {{ keys: string[], open: boolean }}
+ */
+function tsObjectLiteralKeys(bodyText) {
+    const keys = [];
+    let open = false;
+    let cur = "";
+    let depth = 0;
+    const flush = () => {
+        const t = cur.replace(/\s+/g, " ").trim();
+        cur = "";
+        if (!t) return;
+        if (t.startsWith("...")) {
+            open = true;
+            return;
+        }
+        const m = /^(?:([A-Za-z_$][\w$]*)|"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\s*(?::|$|,)/.exec(t);
+        if (m) {
+            keys.push(m[1] ?? m[2] ?? m[3]);
+            return;
+        }
+        open = true; // 计算键 `[k]: v` 之类 ⇒ 不假装知道
+    };
+    for (let i = 0; i < bodyText.length; i++) {
+        const c = bodyText[i];
+        if (c === '"' || c === "'" || c === "`") {
+            const q = c;
+            cur += c;
+            i++;
+            while (i < bodyText.length) {
+                cur += bodyText[i];
+                if (bodyText[i] === "\\") {
+                    cur += bodyText[i + 1] ?? "";
+                    i += 2;
+                    continue;
+                }
+                if (bodyText[i] === q) break;
+                i++;
+            }
+            continue;
+        }
+        if ("([{".includes(c)) depth++;
+        else if (")]}".includes(c)) depth = Math.max(0, depth - 1);
+        else if (depth === 0 && c === ",") {
+            flush();
+            continue;
+        }
+        cur += c;
+    }
+    flush();
+    return { keys, open };
+}
+
+/**
+ * 索引 TS 侧的类型形状：`interface` / `type X = {…}` / `type X = Y` / `type X = 其它`。
+ *
+ * 三个字段：
+ *   - `fields`：一层字段名；
+ *   - `optionalFields`：其中带 `?` 的（请求体检查要用）；
+ *   - `open`：键集不闭合（索引签名 / 映射类型 / 展开 / 联合等非对象 RHS）⇒ 调用方按"未知"处理。
+ *
+ * @param {string} src 已去注释的源码
+ * @returns {Map<string, { fields: string[], optionalFields: string[], open: boolean }>}
+ */
+export function extractTsTypeShapes(src) {
+    const own = new Map();
+    const bases = new Map();
+    const aliases = new Map();
+    for (const m of src.matchAll(/export\s+interface\s+([A-Za-z_$]\w*)\s*(?:<[^>]*>)?\s*(extends\s[^{]*)?\{/g)) {
+        const brace = src.indexOf("{", m.index + m[0].length - 1);
+        if (brace < 0) continue;
+        const slice = balancedSlice(src, brace);
+        if (!slice) continue;
+        own.set(m[1], parseTsObjectMembers(slice.text.slice(1, -1)));
+        if (m[2]) {
+            bases.set(
+                m[1],
+                [...m[2].replace(/^extends\s*/, "").matchAll(/([A-Za-z_$]\w*)/g)].map((x) => x[1]),
+            );
+        }
+    }
+    for (const m of src.matchAll(/export\s+type\s+([A-Za-z_$]\w*)\s*(?:<[^>]*>)?\s*=\s*/g)) {
+        const after = m.index + m[0].length;
+        const head = src.slice(after);
+        const lead = head.length - head.replace(/^\s+/, "").length;
+        const body = head.replace(/^\s+/, "");
+        if (body.startsWith("{")) {
+            const slice = balancedSlice(src, after + lead);
+            if (!slice) continue;
+            // ⚠️ 必须看**对象字面量之后**还有什么：`export type X = { a: string } | { b: string }`
+            // 的第一个分支也是 `{`，只解析它就等于把联合类型当成单个对象类型
+            // （字段集静默少一半，且 `open` 为 false ⇒ 会被拿去比对）。
+            const rest = src.slice(slice.end).replace(/^\s+/, "");
+            if (rest.length > 0 && !rest.startsWith(";")) {
+                own.set(m[1], { fields: [], optionalFields: [], open: true });
+                continue;
+            }
+            own.set(m[1], parseTsObjectMembers(slice.text.slice(1, -1)));
+            continue;
+        }
+        const am = /^([A-Za-z_$]\w*)\s*;/.exec(body);
+        if (am) {
+            aliases.set(m[1], { target: am[1], modifier: null });
+            continue;
+        }
+        // 工具类型别名（`type X = Partial<Y>` / `Required<Y>` / `Readonly<Y>`）：
+        // `Partial<CreateNotificationRequest>` 是"同一字段集、全部可选"，
+        // 判成 open 会让这类请求体**永远不被检查**（本仓 `UpdateNotificationRequest` 即如此）。
+        const um = /^(Partial|Required|Readonly|NonNullable)\s*<\s*([A-Za-z_$][\w$]*)\s*>\s*;/.exec(body);
+        if (um) {
+            aliases.set(m[1], { target: um[2], modifier: um[1] });
+            continue;
+        }
+        // 联合 / 交叉 / 数组等：键集判不出来 ⇒ open（而不是"没有字段"）
+        own.set(m[1], { fields: [], optionalFields: [], open: true });
+    }
+    // `interface X extends Y` 必须把 Y 的字段并进来：第一版的正则把 `extends Y` 与花括号
+    // 一并吃掉，只留自身字段 ⇒ `RoomRetentionPolicy extends RetentionPolicy` 少了 3 个键，
+    // 且**看起来像是 SDK 漏声明**（假阳/假阴同时出现）。凡用 extends 的类型都会中招。
+    const byName = (name, seen) => {
+        if (seen.has(name)) return null;
+        seen.add(name);
+        const self = own.get(name);
+        if (self) {
+            const fields = new Set(self.fields);
+            const optionalFields = new Set(self.optionalFields);
+            let open = self.open;
+            for (const b of bases.get(name) ?? []) {
+                const bv = byName(b, seen);
+                if (!bv) continue;
+                for (const f of bv.fields) fields.add(f);
+                for (const f of bv.optionalFields) optionalFields.add(f);
+                open = open || bv.open;
+            }
+            return { fields: [...fields].sort(), optionalFields: [...optionalFields].sort(), open };
+        }
+        const alias = aliases.get(name);
+        if (!alias) return null;
+        const v = byName(alias.target, seen);
+        if (!v || !alias.modifier) return v;
+        if (alias.modifier === "Partial") return { ...v, optionalFields: [...v.fields] };
+        if (alias.modifier === "Required") return { ...v, optionalFields: [] };
+        return v; // Readonly / NonNullable 不改字段集
+    };
+    const out = new Map();
+    for (const name of new Set([...own.keys(), ...aliases.keys()])) {
+        const v = byName(name, new Set());
+        if (v) out.set(name, v);
+    }
+    return out;
+}
+
+/**
+ * 取一个 `interface` / `type` 对象的**第一层**字段名（响应侧用）。
+ *
+ * 只收「键集闭合」的形状：`open` 的类型（索引签名 / 联合）只给出部分键，
+ * 拿它去比后端响应会凭空报"缺字段"或"多字段"（方向不定的假阳）⇒ 宁可落进
+ * 「接口找不到」覆盖桶（沉默必须可见），也不给半份结论。
  *
  * @param {string} src 已去注释的源码
  * @returns {Map<string, string[]>} 类型名 → 字段名（排序）
  */
 export function extractInterfaceFields(src) {
-    const own = new Map();
-    const bases = new Map();
-    for (const m of src.matchAll(/export\s+interface\s+([A-Za-z_]\w*)\s*(extends\s[^{]*)?\{/g)) {
-        const brace = src.indexOf("{", m.index);
-        const slice = balancedSlice(src, brace);
-        if (!slice) continue;
-        const fields = [];
-        for (const fm of slice.text.matchAll(/\n\s{4}(?:readonly\s+)?([A-Za-z_$][\w$]*)\s*\??\s*:/g))
-            fields.push(fm[1]);
-        own.set(m[1], fields.sort());
-        if (m[2]) {
-            bases.set(
-                m[1],
-                [...m[2].replace(/^extends\s*/, "").matchAll(/([A-Za-z_]\w*)/g)].map((x) => x[1]),
-            );
-        }
-    }
-    // `interface X extends Y` 必须把 Y 的字段并进来：第一版的正则把 `extends Y` 与花括号
-    // 一并吃掉，只留自身字段 ⇒ `RoomRetentionPolicy extends RetentionPolicy` 少了 3 个键，
-    // 且**看起来像是 SDK 漏声明**（假阳/假阴同时出现）。凡用 extends 的类型都会中招。
-    const resolve = (name, seen = new Set()) => {
-        if (seen.has(name)) return own.get(name) ?? [];
-        seen.add(name);
-        const merged = new Set(own.get(name) ?? []);
-        for (const b of bases.get(name) ?? []) for (const f of resolve(b, seen)) merged.add(f);
-        return [...merged].sort();
-    };
     const out = new Map();
-    for (const name of own.keys()) out.set(name, resolve(name));
-    // `export type X = Y;` 形式的别名（如 `AdminFederationDestinationDetail = FederationDestination`）
-    // 也要能查到字段，否则这类返回类型会整体落进「接口找不到」桶而**完全不被检查**。
-    for (const m of src.matchAll(/export\s+type\s+([A-Za-z_]\w*)\s*=\s*([A-Za-z_]\w*)\s*;/g)) {
-        const target = out.get(m[2]);
-        if (target) out.set(m[1], [...target]);
+    for (const [name, shape] of extractTsTypeShapes(src)) {
+        if (!shape.open) out.set(name, shape.fields);
     }
     return out;
+}
+
+/**
+ * 跳过一段引号包起来的字面量，返回**收尾引号**的下标（没有收尾则返回末位）。
+ *
+ * @param {string} text
+ * @param {number} start 起始引号下标
+ * @returns {number}
+ */
+function skipQuoted(text, start) {
+    const q = text[start];
+    let i = start + 1;
+    while (i < text.length) {
+        if (text[i] === "\\") {
+            i += 2;
+            continue;
+        }
+        if (text[i] === q) return i;
+        i++;
+    }
+    return text.length - 1;
+}
+
+/**
+ * 把 `cond ? A : B` 切成三段；不是三元（或找不到配对的 `:`）返回 `null`。
+ *
+ * `??` / `?.` 会被排除，否则 `payload ?? {}` 会被当成三元。
+ *
+ * @param {string} text
+ * @returns {[string, string, string] | null}
+ */
+function splitTsTernary(text) {
+    let depth = 0;
+    let q = -1;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"' || c === "'" || c === "`") {
+            i = skipQuoted(text, i);
+            continue;
+        }
+        if (c === "(" || c === "[" || c === "{") depth++;
+        else if (c === ")" || c === "]" || c === "}") depth = Math.max(0, depth - 1);
+        else if (depth === 0 && c === "?" && text[i + 1] !== "?" && text[i + 1] !== ".") {
+            q = i;
+            break;
+        }
+    }
+    if (q < 0) return null;
+    let d2 = 0;
+    for (let i = q + 1; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"' || c === "'" || c === "`") {
+            i = skipQuoted(text, i);
+            continue;
+        }
+        if (c === "(" || c === "[" || c === "{") d2++;
+        else if (c === ")" || c === "]" || c === "}") d2 = Math.max(0, d2 - 1);
+        else if (d2 === 0 && c === ":") return [text.slice(0, q), text.slice(q + 1, i), text.slice(i + 1)];
+    }
+    return null;
+}
+
+/**
+ * 解析 TS 参数表为 `参数名 → { typeText, optional }`。
+ *
+ * 默认值（`options?: X = {}`）要切掉：它属于**调用点**，不属于类型。
+ *
+ * @param {string} paramsText 不含最外层圆括号的参数表
+ * @returns {Map<string, { typeText: string | null, optional: boolean }>}
+ */
+function parseTsParams(paramsText) {
+    const out = new Map();
+    for (const raw of splitTopLevelArgs(paramsText)) {
+        const m =
+            /^\s*(?:public\s+|private\s+|protected\s+|readonly\s+)*([A-Za-z_$][\w$]*)\s*(\??)\s*(?::\s*([\s\S]*))?$/.exec(
+                raw,
+            );
+        if (!m) continue;
+        let typeText = (m[3] ?? "").replace(/\s+/g, " ").trim();
+        if (typeText) {
+            // 首个深度 0 的 `=` 之后是默认值
+            const eq = splitTopLevel(typeText, "=");
+            if (eq.length > 1) typeText = eq[0].trim();
+        }
+        out.set(m[1], { optional: m[2] === "?", typeText: typeText || null });
+    }
+    return out;
+}
+
+/**
+ * 找 `const/let/var <name>` 的类型标注与初始化表达式（方法体内）。
+ *
+ * 需要它是因为"请求体"常常先组装到局部变量再传：
+ * `const body: {...} = {...}; ... this.adminRequest(Method.Post, p, {}, body)`。
+ *
+ * @param {string} bodyText 方法体（含最外层花括号）
+ * @param {string} name
+ * @returns {{ typeText: string | null, rhs: string | null } | null}
+ */
+function findTsLetBinding(bodyText, name) {
+    const re = new RegExp(`\\b(?:const|let|var)\\s+${name}\\s*(?=[:=;,)]|$)`, "g");
+    const m = re.exec(bodyText);
+    if (!m) return null;
+    let i = m.index + m[0].length;
+    let typeText = null;
+    const n = bodyText.length;
+    if (bodyText[i] === ":") {
+        const start = i + 1;
+        let depth = 0;
+        while (i < n) {
+            const c = bodyText[i];
+            if (c === '"' || c === "'" || c === "`") {
+                i = skipQuoted(bodyText, i);
+            } else if (c === "<" || c === "(" || c === "[" || c === "{") depth++;
+            else if (c === ">" || c === ")" || c === "]" || c === "}") depth = Math.max(0, depth - 1);
+            else if (depth === 0 && (c === "=" || c === ";" || c === ",")) break;
+            i++;
+        }
+        typeText = bodyText.slice(start, i).replace(/\s+/g, " ").trim() || null;
+    }
+    if (bodyText[i] !== "=") return { typeText, rhs: null };
+    const start = i + 1;
+    let depth = 0;
+    while (i < n) {
+        const c = bodyText[i];
+        if (c === '"' || c === "'" || c === "`") {
+            i = skipQuoted(bodyText, i);
+        } else if (c === "(" || c === "[" || c === "{") depth++;
+        else if (c === ")" || c === "]" || c === "}") depth = Math.max(0, depth - 1);
+        else if (depth === 0 && c === ";") break;
+        i++;
+    }
+    return { typeText, rhs: bodyText.slice(start, i).trim() || null };
+}
+
+/**
+ * 解析 SDK 侧**请求体**的形状（字段名 + 可选性）；判不出来一律 `null`。
+ *
+ * 判据链（从"最直接"到"要推"）：
+ *   1. 内联对象字面量 `{ server_name: x, accept }` ⇒ 键集即字面量；含展开 ⇒ 判不了；
+ *   2. `x ?? {}` / `x || {}` ⇒ 回落成 `x`（右侧空对象不贡献键）；
+ *   3. 三元 `cond ? A : B` ⇒ 只有"一侧是缺席（`undefined`/`null`）"才敢定形状，两侧都成形且不同 ⇒ 判不了；
+ *   4. 裸标识符 ⇒ 先查**方法参数**的类型标注，再查**局部变量**的声明（类型标注优先，其次初始化表达式）；
+ *   5. 类型标注 ⇒ 内联对象类型或命名 interface/type（`open` 的、联合的、`&` 交叉的、`Partial<T>` 之外的
+ *      工具类型一律判不了；`Partial<T>` 把全部字段变可选）。
+ *
+ * ⚠️ **绝不**用"方法声明返回类型"或"某个同名类型"兜底 —— 猜出来的字段集比未知危险得多：
+ * 它会同时制造假阳（把其实一致的键报成不一致）与假阴（把真缺陷报成一致）。
+ *
+ * @param {{ params?: string, bodyArg?: string | null, methodBody?: string, shapes?: Map<string, object> }} input
+ * @returns {{ fields: string[], optionalFields: string[] } | null}
+ */
+export function resolveSdkRequestShape({ params, bodyArg, methodBody, shapes, ownShapes }) {
+    if (!bodyArg || !shapes) return null;
+    // 本文件先声明先赢：`ownShapes` 是该文件自己的表，跨文件重名时它才是"这个调用点
+    // 看到的那个类型"。
+    const lookup = (name) => ownShapes?.get(name) ?? shapes.get(name);
+    const parsedParams = parseTsParams(params ?? "");
+    const seenNames = new Set();
+
+    const resolveType = (raw, depth) => {
+        if (depth > 6 || !raw) return null;
+        const parts = splitTopLevel(raw, "|")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        const real = parts.filter((p) => p !== "null" && p !== "undefined" && p !== "void");
+        if (real.length !== 1) return null; // 联合（含"全是 null"）⇒ 判不了
+        const t = real[0];
+        if (splitTopLevel(t, "&").length > 1) return null; // 交叉类型：静态合并不可靠
+        const w = /^(Readonly|Required|Partial)\s*<\s*([\s\S]+?)\s*>$/.exec(t);
+        if (w) {
+            const inner = resolveType(w[2], depth + 1);
+            if (!inner) return null;
+            return w[1] === "Partial" ? { fields: inner.fields, optionalFields: [...inner.fields] } : inner;
+        }
+        if (t.startsWith("{")) {
+            const slice = balancedSlice(t, 0);
+            if (!slice) return null;
+            const body = parseTsObjectMembers(slice.text.slice(1, -1));
+            return body.open ? null : { fields: body.fields, optionalFields: body.optionalFields };
+        }
+        if (/^[A-Za-z_$][\w$]*$/.test(t)) {
+            const sh = lookup(t);
+            if (!sh || sh.open) return null;
+            return { fields: sh.fields, optionalFields: sh.optionalFields };
+        }
+        return null;
+    };
+
+    const resolveExpr = (raw, depth) => {
+        if (depth > 6 || !raw) return null;
+        const t = raw.replace(/\s+/g, " ").trim();
+        const nm = /^([A-Za-z_$][\w$]*)\s*(?:\?\?|\|\|)\s*([\s\S]+)$/.exec(t);
+        if (nm) {
+            if (!/^\{\s*\}$/.test(nm[2].trim())) return null; // 两侧都成形（且不同）⇒ 判不了
+            return resolveExpr(nm[1], depth + 1);
+        }
+        const tern = splitTsTernary(t);
+        if (tern) {
+            const absent = (s) => /^(?:undefined|null)$/.test(s.trim());
+            const a = absent(tern[1]) ? null : resolveExpr(tern[1], depth + 1);
+            const b = absent(tern[2]) ? null : resolveExpr(tern[2], depth + 1);
+            if (a && b) return a.fields.join(",") === b.fields.join(",") ? a : null;
+            return a ?? b;
+        }
+        if (t.startsWith("{")) {
+            const slice = balancedSlice(t, 0);
+            if (!slice) return null;
+            const lit = tsObjectLiteralKeys(slice.text.slice(1, -1));
+            return lit.open ? null : { fields: [...new Set(lit.keys)].sort(), optionalFields: [] };
+        }
+        if (/^[A-Za-z_$][\w$]*$/.test(t)) {
+            const p = parsedParams.get(t);
+            if (p?.typeText) {
+                const r = resolveType(p.typeText, depth + 1);
+                if (r) return r;
+            }
+            if (!seenNames.has(t)) {
+                seenNames.add(t);
+                const b = findTsLetBinding(methodBody ?? "", t);
+                if (b) {
+                    const byType = b.typeText ? resolveType(b.typeText, depth + 1) : null;
+                    if (byType) return byType;
+                    return resolveExpr(b.rhs, depth + 1);
+                }
+            }
+            return null;
+        }
+        return null;
+    };
+
+    return resolveExpr(bodyArg, 0);
 }
 
 /**
@@ -1884,7 +2477,7 @@ export function extractInterfaceFields(src) {
  * 必须在数据里显式记录下来，否则无从检查。
  *
  * @param {{ srcDir: string, prefixes?: Record<string, string> }} options
- * @returns {Promise<{ callSites: object[], fields: Map<string, string[]>, files: string[], stats: object }>}
+ * @returns {Promise<{ callSites: object[], fields: Map<string, string[]>, typeShapes: Map<string, object>, files: string[], stats: object }>}
  */
 export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
     const PREFIX_BY_WRAPPER = {
@@ -1903,6 +2496,17 @@ export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
     walk(srcDir);
     const fields = new Map();
     const fieldFiles = new Map();
+    // 请求体字段名比对用的「完整形状表」：带**可选性**与**是否闭合**（响应侧只认闭合形状，
+    // 请求侧则要把"闭合但可选/必填"区分开，见 `resolveSdkRequestShape`）。
+    // ⚠️ 形状表要**按文件**保留一份：TS 的类型解析是按模块的，同名类型在两个文件里
+    // 声明成不同形状时（本仓实测 `CleanupRoomsRequest`：`admin-cleanup-manager.ts`
+    // 是 `{min_age_ms}`、`admin-server-types.ts` 是带索引签名的 `{room_id?}`），
+    // 只用一张全局表 + 后写覆盖 ⇒ **同一个名字只有最后一个文件的形状生效**，
+    // 于是"哪个调用点被判成什么形状"取决于目录遍历顺序（不报错、静默判错）。
+    // 全局表只保留"形状唯一"的名字；拆不开的名字进本文件表优先、全局表按未知处理。
+    const typeShapes = new Map();
+    const typeShapeFiles = new Map();
+    const typeShapesByFile = new Map();
     const callSites = [];
     let methodsScanned = 0;
     // 类型声明所在文件按**仓库相对路径**记录，台账要据此在 CI 里定位文件
@@ -1913,6 +2517,20 @@ export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
         for (const [k, v] of extractInterfaceFields(src)) {
             fields.set(k, v);
             fieldFiles.set(k, rel);
+        }
+        const ownShapes = extractTsTypeShapes(src);
+        typeShapesByFile.set(rel, ownShapes);
+        for (const [k, v] of ownShapes) {
+            const shapeKey = (s) => `${s.fields.join(",")}|${s.optionalFields.join(",")}|${s.open}`;
+            const prev = typeShapes.get(k);
+            if (!prev) {
+                typeShapes.set(k, v);
+                typeShapeFiles.set(k, rel);
+            } else if (shapeKey(prev) !== shapeKey(v)) {
+                // 同名不同形 ⇒ **不许挑一个**（挑错会让调用方拿到另一份字段集）
+                typeShapes.set(k, { fields: [], optionalFields: [], open: true });
+                typeShapeFiles.set(k, rel);
+            }
         }
         for (const m of src.matchAll(/\n\s{4}(?:public\s+)?async\s+([A-Za-z_]\w*)\s*[(<]/g)) {
             // 函数体开括号必须**先跳过参数表**再找：参数类型里可能直接写对象字面量类型
@@ -1974,6 +2592,13 @@ export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
                     argCount: args.length,
                     hasQueryArg: present(2),
                     hasBodyArg: present(3),
+                    // 请求体字段名比对要用的三样东西（只在内存里，不进台账）：
+                    // 参数表（`payload: X` 的类型）、方法体（局部 `const body = {…}`）、
+                    // 以及第 4 实参原文（内联字面量 / `payload ?? {}` / 三元）。
+                    params: paren.text.slice(1, -1),
+                    methodBody: slice.text,
+                    bodyArg: present(3) ? args[3] : null,
+                    ownShapes,
                 });
             }
         }
@@ -1982,6 +2607,9 @@ export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
         callSites,
         fields,
         fieldFiles,
+        typeShapes,
+        typeShapeFiles,
+        typeShapesByFile,
         files: files.map((f) => path.relative(process.cwd(), f)),
         stats: {
             fileCount: files.length,
@@ -1995,6 +2623,59 @@ export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
 // ---------------------------------------------------------------------------
 // 比较
 // ---------------------------------------------------------------------------
+
+/**
+ * 比对**请求体字段名**（两侧都判得出来时才比）。
+ *
+ * 四档判定，全部以「后端处理器怎么写」为准：
+ *
+ *   - `request-unknown-field-rejected`：SDK 声明了后端没有的键，且后端带
+ *     `#[serde(deny_unknown_fields)]` ⇒ **必然 400**（`unknown field`）。最严重的一档；
+ *   - `request-unknown-field-ignored`：SDK 多声明了键而后端不 deny ⇒ 请求体被**静默忽略**。
+ *     字段名写错的调用方会以为设置生效了（本仓 `updateAccountDetails` 曾传 `suspended`、
+ *     `createAccountDataCallback` 曾传 `callback_type`，都属于这一类）；
+ *   - `request-missing-required-field` / `request-optional-vs-required`：后端必填（非
+ *     `Option`、无 `#[serde(default)]`）而 SDK 没声明（或声明成可选）⇒ 调用方可以合法地
+ *     不传，然后拿到 422。
+ *
+ * @param {{ sdkFields: string[], sdkOptional: string[], backendFields: string[], backendOptional: string[], denyUnknownFields: boolean, backendType: string }} input
+ * @returns {{ kind: string, detail: string } | null}
+ */
+export function diffRequestShape({
+    sdkFields,
+    sdkOptional,
+    backendFields,
+    backendOptional,
+    denyUnknownFields,
+    backendType,
+}) {
+    const bf = new Set(backendFields);
+    const bo = new Set(backendOptional);
+    const sf = new Set(sdkFields);
+    const so = new Set(sdkOptional);
+    const extra = sdkFields.filter((f) => !bf.has(f));
+    if (extra.length > 0) {
+        return {
+            kind: denyUnknownFields ? "request-unknown-field-rejected" : "request-unknown-field-ignored",
+            detail: `后端 ${backendType} 没有 [${extra.join(", ")}]`,
+        };
+    }
+    const missingRequired = backendFields.filter((f) => !bo.has(f) && !sf.has(f));
+    if (missingRequired.length > 0) {
+        return {
+            kind: "request-missing-required-field",
+            detail: `后端 ${backendType} 必填而 SDK 未声明 [${missingRequired.join(", ")}]`,
+        };
+    }
+    const optionalMismatch = backendFields.filter((f) => !bo.has(f) && sf.has(f) && so.has(f));
+    if (optionalMismatch.length > 0) {
+        return {
+            kind: "request-optional-vs-required",
+            detail: `后端 ${backendType} 必填而 SDK 标成可选 [${optionalMismatch.join(", ")}]`,
+        };
+    }
+    return null;
+}
 
 /**
  * 把声明返回类型归一化成「可查表的类型名」。

@@ -20,22 +20,39 @@ export interface AdminReasonPayload {
     reason?: string;
 }
 
+/**
+ * `POST /_synapse/admin/v1/rooms/{room_id}/ban`、`…/kick` 的请求体。
+ *
+ * ⚠️ `user_id` 是**必填**：后端 `RoomUserActionRequest` 把它声明成
+ * `pub user_id: String`（不是 `Option<String>`），且 `deny_unknown_fields`。
+ * 声明成可选会让调用方"合法地"省略它，然后在运行时收到 422。
+ */
 export interface AdminBanKickPayload {
-    user_id?: string;
+    user_id: string;
     reason?: string;
 }
 
+/** `PUT|POST /_synapse/admin/v1/rooms/{room_id}/make_admin` 的请求体。`user_id` 必填（同 {@link AdminBanKickPayload}）。 */
 export interface AdminMakeRoomAdminPayload {
-    user_id?: string;
+    user_id: string;
 }
 
+/**
+ * `POST /_synapse/admin/v1/rooms/search` 的请求体
+ * （后端 `room/types.rs::SearchAllRoomsRequest`，**全部字段可选**，`deny_unknown_fields`）。
+ *
+ * ⚠️ 2026-10-08 对照后端修正：原来漏了 `offset` / `is_public` / `is_encrypted`，
+ * 多了一个后端**不认识**的 `direction`（`deny_unknown_fields` ⇒ 传了直接 400）；
+ * 并去掉 `[key: string]: unknown` —— 索引签名 + deny 的组合会让"多传键"在类型上合法。
+ */
 export interface RoomSearchPayload {
     search_term?: string;
     limit?: number;
+    offset?: number;
+    from?: string;
     order_by?: string;
-    from?: number;
-    direction?: "f" | "b";
-    [key: string]: unknown;
+    is_public?: boolean;
+    is_encrypted?: boolean;
 }
 
 export interface RoomDeletePayload {
@@ -46,18 +63,30 @@ export interface RoomDeletePayload {
     [key: string]: unknown;
 }
 
+/**
+ * `POST /_synapse/admin/v1/rooms/{room_id}/purge_history` 的请求体。
+ *
+ * 2026-10-08 对照后端 `admin/room/management.rs::purge_history_by_room`：它把 `room_id`
+ * 塞进 body 后**原样转交** `purge_history`，而后者只读 `room_id` / `purge_up_to_ts` /
+ * `dry_run`。原先声明的 `purge_up_to_event_id` 与 `delete_local_events` 从不被读。
+ */
 export interface PurgeHistoryPayload {
-    purge_up_to_event_id?: string;
     purge_up_to_ts?: number;
-    delete_local_events?: boolean;
-    [key: string]: unknown;
+    dry_run?: boolean;
 }
 
+/**
+ * `POST /_synapse/admin/v1/rooms/{room_id}/search` 的请求体
+ * （后端 `room/types.rs::SearchRoomMessagesRequest`，`deny_unknown_fields`）。
+ *
+ * ⚠️ 2026-10-08 对照后端修正：`search_term` 是**必填**（后端 `String` 且无 `default`）；
+ * 原来多了一个后端不认识的 `filter`（会 400），漏了 `start_date` / `end_date`。
+ */
 export interface RoomEventSearchPayload {
-    search_term?: string;
-    filter?: import("../../models/event").IContent;
+    search_term: string;
     limit?: number;
-    [key: string]: unknown;
+    start_date?: number;
+    end_date?: number;
 }
 
 /**

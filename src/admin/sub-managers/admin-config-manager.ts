@@ -53,6 +53,9 @@ import type {
     AuditEventCreateRequest,
     AccountValidityRequest,
     AccountValidityRenewRequest,
+    CreatePasswordAuthProviderRequest,
+    CreateMediaCallbackRequest,
+    CreateAccountDataCallbackRequest,
     ThirdPartyRuleCheckPayload,
     ThirdPartyRuleCheckResult,
     SpamCheckResult,
@@ -185,17 +188,54 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Feature Flags =====
 
+    /**
+     * 列出 feature flag。
+     *
+     * ⚠️ 2026-10-08 修路径：后端注册的是 `/_synapse/admin/v1/feature-flags`（**连字符**，
+     * `feature_flags.rs` 路由表），下划线形态 `feature_flags` 在 derived route table 里
+     * 只作为**模块名**出现 —— 旧实现发 `GET /_synapse/admin/v1/feature_flags` 永远 404。
+     *
+     * @example
+     * ```typescript
+     * const page = await adminManager.getFeatureFlags();
+     * console.log(page.flags.length, page.next_batch);
+     * ```
+     */
     async getFeatureFlags(): Promise<FeatureFlagPage> {
-        return await this.adminRequest<FeatureFlagPage>(Method.Get, apu("/feature_flags"));
+        return await this.adminRequest<FeatureFlagPage>(Method.Get, apu("/feature-flags"));
     }
 
     async getFeatureFlag(flagKey: string): Promise<FeatureFlag> {
         if (!flagKey) {
             throw new ValidationError("Flag key is required");
         }
-        return await this.adminRequest<FeatureFlag>(Method.Get, apu(`/feature_flags/${encodeURIComponent(flagKey)}`));
+        return await this.adminRequest<FeatureFlag>(Method.Get, apu(`/feature-flags/${encodeURIComponent(flagKey)}`));
     }
 
+    /**
+     * 创建 feature flag。
+     *
+     * ⚠️ 2026-10-08 修正三处，旧实现**必然 404**：
+     * 1. 方法必须是 `POST`（后端 `create_feature_flag` 挂在 `POST /feature-flags` 上；
+     *    `/{flag_key}` 上只有 `GET` 与 `PATCH`，没有 `PUT`）；
+     * 2. 路径是**连字符** `/feature-flags`，不是 `/feature_flags`；
+     * 3. `flag_key` 在**请求体**里（`CreateFeatureFlagRequest.flag_key`），不在路径上。
+     *
+     * 想改已存在的 flag 请用 {@link updateFeatureFlag}（`PATCH /feature-flags/{flag_key}`）。
+     *
+     * @param flagKey - flag 键（写进请求体的 `flag_key`）
+     * @param targetScope - 作用域（必填）
+     * @param rolloutPercent - 灰度百分比（必填）
+     * @param expiresAt - 过期时间（毫秒；`null` 表示永不过期）
+     * @param reason - 变更原因（必填）
+     * @param targets - 定向目标列表
+     * @throws {ValidationError} `flagKey` 为空时（不会发出请求）
+     * @example
+     * ```typescript
+     * const flag = await adminManager.setFeatureFlag("beta.ui", "global", 10, null, "canary", []);
+     * console.log(flag.flag_key, flag.status);
+     * ```
+     */
     async setFeatureFlag(
         flagKey: string,
         targetScope: string,
@@ -208,24 +248,21 @@ export class AdminConfigManager extends AdminBaseManager {
             throw new ValidationError("Flag key is required");
         }
         const body: {
+            flag_key: string;
             target_scope: string;
             rollout_percent: number;
             expires_at: number | null;
             reason: string;
             targets: FeatureFlagTarget[];
         } = {
+            flag_key: flagKey,
             target_scope: targetScope,
             rollout_percent: rolloutPercent,
             expires_at: expiresAt,
             reason: reason,
             targets: targets,
         };
-        return await this.adminRequest<FeatureFlag>(
-            Method.Put,
-            apu(`/feature_flags/${encodeURIComponent(flagKey)}`),
-            undefined,
-            body,
-        );
+        return await this.adminRequest<FeatureFlag>(Method.Post, apu("/feature-flags"), undefined, body);
     }
 
     async deleteFeatureFlag(flagKey: string): Promise<void> {
@@ -539,7 +576,22 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, "/password_auth_providers");
     }
 
-    async createPasswordAuthProvider(payload: DynamicConfig): Promise<AdminPasswordAuthProvider> {
+    /**
+     * 创建密码认证提供方。
+     *
+     * 请求体是后端 `module.rs::CreatePasswordAuthProviderBody`（`deny_unknown_fields`）：
+     * `provider_name` / `provider_type` / `config` 必填。旧签名用的是 `DynamicConfig`
+     * （= `Record<string, unknown>`），等于放弃类型检查。
+     *
+     * @param payload - 提供方定义
+     * @example
+     * ```typescript
+     * const p = await adminManager.createPasswordAuthProvider({
+     *     provider_name: "ldap", provider_type: "ldap", config: { uri: "ldap://x" },
+     * });
+     * ```
+     */
+    async createPasswordAuthProvider(payload: CreatePasswordAuthProviderRequest): Promise<AdminPasswordAuthProvider> {
         return await this.adminRequest(Method.Post, "/password_auth_providers", {}, payload);
     }
 
@@ -581,7 +633,20 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, `/media_callbacks/${encodeURIComponent(callbackType)}`);
     }
 
-    async createMediaCallback(payload: DynamicConfig): Promise<AdminMediaCallback> {
+    /**
+     * 注册媒体回调（请求体是后端 `module.rs::CreateMediaCallbackBody`，`deny_unknown_fields`）。
+     *
+     * `callback_name` / `callback_type` / `url` 必填；旧签名用 `DynamicConfig` 无法表达这一点。
+     *
+     * @param payload - 回调注册定义
+     * @example
+     * ```typescript
+     * await adminManager.createMediaCallback({
+     *     callback_name: "scan", callback_type: "on_upload", url: "https://x/hook",
+     * });
+     * ```
+     */
+    async createMediaCallback(payload: CreateMediaCallbackRequest): Promise<AdminMediaCallback> {
         return await this.adminRequest(Method.Post, "/media_callbacks", {}, payload);
     }
 
@@ -610,7 +675,20 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, "/account_data_callbacks");
     }
 
-    async createAccountDataCallback(payload: DynamicConfig): Promise<AdminAccountDataCallback> {
+    /**
+     * 注册账户数据回调（`module.rs::CreateAccountDataCallbackBody`，`deny_unknown_fields`）。
+     *
+     * ⚠️ 后端**没有** `callback_type`：传了会 400；按类型过滤请用 `data_types`。
+     *
+     * @param payload - 回调注册定义
+     * @example
+     * ```typescript
+     * await adminManager.createAccountDataCallback({
+     *     callback_name: "mirror", config: {}, data_types: ["m.push_rules"],
+     * });
+     * ```
+     */
+    async createAccountDataCallback(payload: CreateAccountDataCallbackRequest): Promise<AdminAccountDataCallback> {
         return await this.adminRequest(Method.Post, "/account_data_callbacks", {}, payload);
     }
 

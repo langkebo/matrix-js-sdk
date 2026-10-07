@@ -258,8 +258,12 @@ state.state.forEach((event) => {
 await adminManager.deleteRoom("!spam:example.com");
 
 // 删除房间并清除历史
-await adminManager.deleteRoom("!spam:example.com", {
-    purge: true,
+// ⚠️ 不能靠 deleteRoom 的第二个参数：后端 `delete_room` 只收 Path，**整个 body 被忽略**
+//（`purge: true` 不会 purge）。真正的历史清理是另一个端点。
+await adminManager.deleteRoom("!spam:example.com");
+await adminManager.purgeRoomHistory("!spam:example.com", {
+    purge_up_to_ts: Date.now(),
+    dry_run: false,
 });
 
 // 封禁房间（阻止新用户加入）
@@ -269,7 +273,8 @@ await adminManager.blockRoom("!spam:example.com", true);
 await adminManager.blockRoom("!spam:example.com", false);
 
 // 关闭房间（踢出所有成员）
-const result = await adminManager.shutdownRoom("!spam:example.com");
+// 注意：后端只读请求体里的 `room_id`，`purge` / `block` / `message` 等一律忽略。
+const result = await adminManager.shutdownRoom({ room_id: "!spam:example.com" });
 console.log(`踢出 ${result.kicked_users.length} 个用户`);
 console.log(`失败 ${result.failed_to_kick_users.length} 个`);
 ```

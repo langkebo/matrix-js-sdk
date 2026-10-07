@@ -899,7 +899,24 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
     }
 
-    async blockEventReportUser(userId: string, payload: { blocked_until?: number; reason?: string }): Promise<void> {
+    /**
+     * 按事件举报限流记录封锁用户（`POST /_synapse/admin/v1/event_reports/rate_limit/{user_id}/block`）。
+     *
+     * ⚠️ `blocked_until` 与 `reason` 都是**必填**：后端 `event_report.rs::BlockUserBody`
+     * 声明的是 `pub blocked_until: i64` / `pub reason: String`（都不是 `Option`），
+     * 且带 `deny_unknown_fields`。此前声明成可选 ⇒ 省略任一个都会得到 422。
+     *
+     * @param userId - 用户 ID
+     * @param payload - `blocked_until`（毫秒时间戳，必填）与 `reason`（必填）
+     * @example
+     * ```typescript
+     * await adminManager.blockEventReportUser("@spammer:example.org", {
+     *     blocked_until: Date.now() + 86400_000,
+     *     reason: "repeat report abuse",
+     * });
+     * ```
+     */
+    async blockEventReportUser(userId: string, payload: { blocked_until: number; reason: string }): Promise<void> {
         await this.adminRequest(
             Method.Post,
             `/event_reports/rate_limit/${encodeURIComponent(userId)}/block`,

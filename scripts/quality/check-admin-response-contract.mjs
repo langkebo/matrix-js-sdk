@@ -56,6 +56,8 @@ import {
     collectRustAdminContract,
     collectSdkAdminContract,
     normalizeReturnType,
+    resolveSdkRequestShape,
+    diffRequestShape,
     diffResponse,
     diffFields,
 } from "./lib/admin-contract.mjs";
@@ -80,18 +82,21 @@ const STRICT = process.argv.includes("--strict");
 const REFRESH = process.argv.includes("--refresh");
 const EMIT_JSON = process.argv.includes("--json");
 
-const MUTATIONS = new Set(["POST", "PUT", "PATCH"]);
-
 /**
  * 请求体「该不该有」的判定。
  *
  * - `body-required-missing`：后端用 `Json<T>` 而 SDK 不传 body ⇒ 415（axum 要求 Content-Type）；
  * - `body-sent-ignored`：SDK 传了 body 而后端没有 `Json` 提取器 ⇒ 请求体被静默忽略。
  *
+ * ⚠️ **不能只看 `POST` / `PUT` / `PATCH`**：第一版把判据限制在"写方法"上，于是
+ * `DELETE /_synapse/admin/v1/rooms/{room_id}` 这种**带了 body 但后端处理器根本没有
+ * `Json` 提取器**的调用点整类隐身 —— 而 `deleteRoom(id, {purge: true})` 恰恰是
+ * "以为会 purge、实际整段 body 被丢掉"的真实缺陷（后端 `delete_room` 只 `delete(delete_room)`，
+ * 连 `Json` 参数都没有）。HTTP 方法不是判据，"有没有 `Json` 提取器"才是。
+ *
  * @returns {"body-required-missing" | "body-sent-ignored" | null}
  */
 function bodyPresence(cs, be) {
-    if (!MUTATIONS.has(cs.httpMethod)) return null;
     if (be.io.hasJson && !cs.hasBodyArg) return "body-required-missing";
     if (!be.io.hasJson && cs.hasBodyArg) return "body-sent-ignored";
     return null;
@@ -150,6 +155,7 @@ function classify({ sdk, rust }) {
     const comparable = [];
     const bodyIssues = [];
     const kindIssues = [];
+    const requestComparable = [];
     const unresolved = [];
     for (const cs of sdk.callSites) {
         const base = { managerMethod: cs.managerMethod, route: cs.route, declaredReturn: cs.declaredReturn };
@@ -162,6 +168,44 @@ function classify({ sdk, rust }) {
         const bodyIssue = bodyPresence(cs, be);
         if (bodyIssue && !bodyIssues.some((b) => b.route === cs.route && b.managerMethod === cs.managerMethod)) {
             bodyIssues.push({ ...base, handler: be.handler, bodyIssue });
+        }
+
+        // 请求体**字段名**：同样与响应形状无关，必须排在任何 `continue` 之前。
+        if (cs.hasBodyArg && be.io.hasJson) {
+            const bs = be.bodyStruct;
+            const shape = bs
+                ? resolveSdkRequestShape({
+                      params: cs.params,
+                      bodyArg: cs.bodyArg,
+                      methodBody: cs.methodBody,
+                      shapes: sdk.typeShapes,
+                      ownShapes: cs.ownShapes,
+                  })
+                : null;
+            if (!bs) {
+                unresolved.push({ ...base, kind: "request-shape-unknown", reason: "backend", handler: be.handler });
+            } else if (bs.opaque) {
+                unresolved.push({
+                    ...base,
+                    kind: "request-shape-unknown",
+                    reason: "backend-opaque",
+                    sdkType: bs.name,
+                    handler: be.handler,
+                });
+            } else if (!shape) {
+                unresolved.push({ ...base, kind: "request-shape-unknown", reason: "sdk", handler: be.handler });
+            } else {
+                requestComparable.push({
+                    ...base,
+                    handler: be.handler,
+                    backendType: bs.name,
+                    backendFields: bs.fields,
+                    backendOptional: bs.optional,
+                    fields: shape.fields,
+                    optionalFields: shape.optionalFields,
+                    denyUnknownFields: bs.denyUnknownFields,
+                });
+            }
         }
 
         const norm = wireClaim(cs);
@@ -237,7 +281,7 @@ function classify({ sdk, rust }) {
             diff,
         });
     }
-    return { comparable, bodyIssues, kindIssues, unresolved };
+    return { comparable, bodyIssues, kindIssues, requestComparable, unresolved };
 }
 
 function countByKind(unresolved) {
@@ -277,6 +321,34 @@ function buildEntries({ comparable } = {}) {
         .sort((a, b) => (a.route + a.sdkType).localeCompare(b.route + b.sdkType));
 }
 
+/**
+ * 记录「已核对一致」的**请求体**行。
+ *
+ * 与 `buildEntries` 的区别：请求体形状的判定**完全在 SDK 侧**（解析签名/内联字面量/
+ * 局部变量），所以 CI 半场不需要后端也能重算 —— 于是"改了请求体类型而没重新核后端"
+ * 同样能在 CI 抓到（CI 半场的 `sdk-request-drift`）。
+ *
+ * 同一路由可能有多个调用点（`makeRoomAdmin` 同时试 PUT 与 POST），按
+ * `route + managerMethod` 去重，保留字段集最大的那行（信息量最大）。
+ */
+function buildRequestEntries({ requestComparable } = {}) {
+    const byKey = new Map();
+    for (const r of requestComparable) {
+        if (!r.fields) continue;
+        const key = `${r.route}::${r.managerMethod}`;
+        const row = {
+            route: r.route,
+            managerMethod: r.managerMethod,
+            backendType: r.backendType,
+            fields: r.fields,
+            optionalFields: r.optionalFields,
+        };
+        const prev = byKey.get(key);
+        if (!prev || row.fields.length > prev.fields.length) byKey.set(key, row);
+    }
+    return [...byKey.values()].sort((a, b) => (a.route + a.managerMethod).localeCompare(b.route + b.managerMethod));
+}
+
 async function main() {
     const sdk = await collectSdkAdminContract({ srcDir: path.join(SDK_ROOT, "src", "admin") });
     const backendPresent = fs.existsSync(RUST_ROUTES_ROOT);
@@ -287,25 +359,29 @@ async function main() {
             process.exit(2);
         }
         const rust = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
-        const { comparable, unresolved } = classify({ sdk, rust });
+        const { comparable, requestComparable, unresolved } = classify({ sdk, rust });
         const previous = readLedger();
         const entries = buildEntries({ comparable });
+        const requestEntries = buildRequestEntries({ requestComparable });
         const ledger = {
             schema_version: 1,
             generated_at: new Date().toISOString(),
             synapseRustCommit: backendCommit(),
             note:
                 "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。" +
-                "`entries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；" +
+                "`entries` / `requestEntries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；" +
                 "`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；" +
                 "`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
             entries,
+            requestEntries,
             deviations: previous?.deviations ?? [],
             unresolved: Object.fromEntries(Object.entries(countByKind(unresolved)).map(([k, v]) => [k, { count: v }])),
         };
         fs.writeFileSync(LEDGER_PATH, JSON.stringify(ledger, null, 4) + "\n");
         console.log(`✅ 已写入台账 ${path.relative(SDK_ROOT, LEDGER_PATH)}`);
-        console.log(`   entries=${entries.length} deviations=${ledger.deviations.length}`);
+        console.log(
+            `   entries=${entries.length} requestEntries=${requestEntries.length} deviations=${ledger.deviations.length}`,
+        );
         console.log(`   unresolved=${JSON.stringify(ledger.unresolved)}`);
         return;
     }
@@ -338,6 +414,53 @@ async function main() {
                 route: entry.route,
                 sdkType: entry.sdkType,
                 detail: `字段集与台账不一致：台账 [${recorded}] vs 现状 [${actual}]`,
+            });
+        }
+    }
+
+    // 请求体形状同样在 CI 半场重算：这一步**不需要后端**（形状完全由 SDK 侧声明决定），
+    // 所以"改了请求体类型而没重新核后端"能在 CI 直接红。
+    for (const entry of ledger.requestEntries ?? []) {
+        const sites = sdk.callSites.filter(
+            (c) => c.route === entry.route && c.managerMethod === entry.managerMethod && c.hasBodyArg,
+        );
+        if (sites.length === 0) {
+            violations.push({
+                kind: "sdk-request-gone",
+                route: entry.route,
+                sdkType: entry.backendType,
+                detail: `${entry.managerMethod} 的请求体调用点已不在（改名/换管理器？）⇒ 需重新核对后端并 --refresh`,
+            });
+            continue;
+        }
+        const shapes = sites
+            .map((c) =>
+                resolveSdkRequestShape({
+                    params: c.params,
+                    bodyArg: c.bodyArg,
+                    methodBody: c.methodBody,
+                    shapes: sdk.typeShapes,
+                    ownShapes: c.ownShapes,
+                }),
+            )
+            .filter(Boolean);
+        if (shapes.length === 0) {
+            violations.push({
+                kind: "sdk-request-unresolvable",
+                route: entry.route,
+                sdkType: entry.backendType,
+                detail: "请求体形状现在判不出来了（签名被改成索引签名/联合类型？）⇒ 覆盖桶会涨，需重新核对",
+            });
+            continue;
+        }
+        const recorded = [...(entry.fields ?? [])].sort().join(",");
+        const actual = [...shapes[0].fields].sort().join(",");
+        if (recorded !== actual) {
+            violations.push({
+                kind: "sdk-request-drift",
+                route: entry.route,
+                sdkType: entry.backendType,
+                detail: `请求体字段集与台账不一致：台账 [${recorded}] vs 现状 [${actual}]`,
             });
         }
     }
@@ -400,6 +523,30 @@ async function main() {
             }
         }
 
+        // 请求体**字段名**：与响应形状无关，单独一轮（`request-unknown-field-ignored`
+        // 按**路由**豁免 —— 同一路由的 SDK 类型名会随签名变化，用类型名做键太脆）。
+        for (const row of evaluated.requestComparable) {
+            const issue = diffRequestShape({
+                sdkFields: row.fields,
+                sdkOptional: row.optionalFields,
+                backendFields: row.backendFields,
+                backendOptional: row.backendOptional,
+                denyUnknownFields: row.denyUnknownFields,
+                backendType: row.backendType,
+            });
+            if (!issue) continue;
+            const devKind = issue.kind === "request-unknown-field-rejected" ? "request-shape" : "request-body";
+            if (devs.has(deviationKey(row.route, row.backendType, devKind))) continue;
+            if (devBodyRoutes.has(row.route) && issue.kind === "request-unknown-field-ignored") continue;
+            violations.push({
+                kind: issue.kind,
+                route: row.route,
+                sdkType: row.backendType,
+                handler: row.handler,
+                detail: issue.detail,
+            });
+        }
+
         const live = countByKind(evaluated.unresolved);
         for (const [kind, n] of Object.entries(live)) {
             const recorded = ledger.unresolved?.[kind]?.count ?? 0;
@@ -436,8 +583,10 @@ async function main() {
     const payload = {
         backendPresent,
         ledgerEntries: (ledger.entries ?? []).length,
+        ledgerRequestEntries: (ledger.requestEntries ?? []).length,
         deviations: (ledger.deviations ?? []).length,
         comparable: evaluated?.comparable.length ?? null,
+        comparableRequests: evaluated?.requestComparable.length ?? null,
         unresolved: evaluated ? countByKind(evaluated.unresolved) : null,
         violations,
     };
@@ -449,8 +598,10 @@ async function main() {
             console.log(`[admin-response-contract] 后端仓不在场（${RUST_ROUTES_ROOT}）⇒ 只跑 CI 半场（SDK 自漂移）。`);
         }
         console.log(
-            `[admin-response-contract] entries=${payload.ledgerEntries} deviations=${payload.deviations}` +
-                (evaluated ? ` | 可比对=${payload.comparable} 覆盖桶=${JSON.stringify(payload.unresolved)}` : ""),
+            `[admin-response-contract] entries=${payload.ledgerEntries} requestEntries=${payload.ledgerRequestEntries} deviations=${payload.deviations}` +
+                (evaluated
+                    ? ` | 可比对=${payload.comparable} 可比对请求体=${payload.comparableRequests} 覆盖桶=${JSON.stringify(payload.unresolved)}`
+                    : ""),
         );
         if (violations.length === 0) {
             console.log("[admin-response-contract] ✅ 无违规");

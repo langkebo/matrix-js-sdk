@@ -25,7 +25,7 @@
             "throwsWithoutTag": 0
         },
         "AdminConfigManager": {
-            "missingJsDoc": 33,
+            "missingJsDoc": 28,
             "missingExample": 4,
             "throwsWithoutTag": 4
         },
@@ -65,7 +65,7 @@
             "throwsWithoutTag": 0
         },
         "AdminRoomManager": {
-            "missingJsDoc": 29,
+            "missingJsDoc": 28,
             "missingExample": 7,
             "throwsWithoutTag": 3
         },
@@ -75,7 +75,7 @@
             "throwsWithoutTag": 9
         },
         "AdminUserManager": {
-            "missingJsDoc": 19,
+            "missingJsDoc": 18,
             "missingExample": 18,
             "throwsWithoutTag": 7
         },

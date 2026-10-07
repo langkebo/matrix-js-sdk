@@ -365,7 +365,7 @@ export interface AdminManager {
     setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationUpdateResponse>;
     getUserPushers(userId: string): Promise<{ pushers: UserPusher[]; total: number }>;
     deleteUserPusher(userId: string, pushkey: string): Promise<void>;
-    blockEventReportUser(userId: string, payload: { blocked_until?: number; reason?: string }): Promise<void>;
+    blockEventReportUser(userId: string, payload: { blocked_until: number; reason: string }): Promise<void>;
     unblockEventReportUser(userId: string): Promise<void>;
 
     // ----- Synapse-specific admin methods（→ users） -----

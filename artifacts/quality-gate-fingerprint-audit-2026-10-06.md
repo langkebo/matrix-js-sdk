@@ -2631,6 +2631,182 @@ missingExample 31→30）；admin 六个 spec **338 例**。`deviations` 15 条�
 
 ---
 
+### §7.15-30 请求体字段名比对（后端可选性 + SDK 请求形状）
+
+承接 §7.15-29 §5 续接点第 2 条：「`bodyStruct.fields` 已抽出却**未参与比对**」。
+
+#### 1. 先把「后端接受哪些键」判准
+
+原来只有 `fields` + `denyUnknownFields` 两个信息，判不出**必填**与**可选**，于是只能比"字段名集合"，
+而"后端必填、SDK 标成可选"这类（调用方合法地不传 ⇒ 422）根本无从发现。本轮补三样：
+
+| 新增信息 | 判据 | 用在哪 |
+| --- | --- | --- |
+| `optional` | 字段类型 `Option<…>`，或 `#[serde(default)]`，或容器级 `#[serde(default)]` | 后端必填 / 可选 |
+| `ignored` | `#[serde(skip)]` / `skip_serializing` / `skip_deserializing` ⇒ **不是线上键**，从键集剔除 | 防止假"SDK 多声明" |
+| `flatten` | `#[serde(flatten)]` ⇒ 键集不闭合 | 与 `opaque` 一样落回"未知" |
+
+⚠️ **`skip_serializing_if` 不是 `skip`**：它是条件序列化（键照样存在）。第一版用 `/\bskip\b/` 判断，
+会把这类字段从键集里剔掉 ⇒ 凭空造出"SDK 多声明字段"。已改成 `/\bskip(?:_(?:serializing|deserializing))?(?![_\w])/`。
+
+⚠️ **容器级属性只认紧邻本 struct 的那一段**：原来取"上一个空行到现在"，两个 struct 紧挨着（中间没空行）时，
+**上一个 struct 的字段级 `#[serde(default)]` 会落进这个窗口**，于是下一个 struct 的必填字段被整体判成可选
+（真缺陷静默）。新增 `containerAttributes()`：只取最后一个 `}` 或 `;` 之后的属性区。
+
+#### 2. 再让 SDK **表达出**请求体形状
+
+`DynamicConfig = Record<string, unknown>` 之类的松散签名让请求体形状在类型层面不存在。
+新增 `resolveSdkRequestShape({ params, bodyArg, methodBody, shapes, ownShapes })`，按判据链解析第 4 实参：
+
+1. 内联对象字面量 `{ server_name: x, accept }`（含简写；含展开 ⇒ 判不了）；
+2. `x ?? {}` / `x || {}` ⇒ 回落成 `x`；三元 `cond ? A : undefined` ⇒ 取有形状的那一支，两侧都成形且不同 ⇒ 判不了；
+3. 裸标识符 ⇒ 先查**方法参数的类型标注**，再查**局部变量声明**（`const body: T = {…}`，类型标注优先）；
+4. 类型 ⇒ 内联对象类型 / 命名 `interface`|`type`（`Partial<T>` 令全部可选，`Required<T>` 反之）；
+   索引签名、联合、交叉、`Record`、认不出的表达式一律 `null`。
+
+同时新增 TS 形状索引 `extractTsTypeShapes`（`interface` / `type X = {…}` / `type X = Y` / 工具类型别名），
+并把「4 空格缩进」的成员启发式换成**深度 0 分隔符扫描**（单行 `interface` 原本整条漏掉）。
+
+#### 3. `Json<Value>` 的处理器也要能核（12 处 → 1 处）
+
+本仓有十来个处理器不声明请求 struct，而是 `Json(body): Json<Value>` 后手工 `body.get("k")` 取值
+（`cleanup_all` / `cleanup_rooms` / `purge_room` / `purge_history` / `shutdown_room` / `set_admin` /
+`restart_server`）。它们没有 struct 可读，于是请求体一直落在"未知"。新增
+`extractJsonValueBodyKeys`：只要**该变量的每一次出现都紧跟 `.get("k")`** 就取读到的键集，
+出现任何别的用法（`f(body)`、`Json(merged_body)`）就 `null`（键集无法穷举，给半份结论会把
+"其实一致"报成"多声明了"）。链上有 `.ok_or` / `?` 的读 = **必填**（本仓写法统一）。
+
+#### 4. 门禁新增四档判定 + 一个覆盖桶
+
+`diffRequestShape`（放在 `lib/` 里，spec 可直接测）：
+
+| 违规 kind | 条件 | 后果 |
+| --- | --- | --- |
+| `request-unknown-field-rejected` | SDK 多声明键 **且** 后端 `deny_unknown_fields` | **必然 400**（`unknown field`） |
+| `request-unknown-field-ignored` | SDK 多声明键而后端不 deny（含 `Json<Value>`） | 请求体被**静默忽略** |
+| `request-missing-required-field` | 后端必填而 SDK 未声明 | 调用方可以合法地不传 ⇒ 422 |
+| `request-optional-vs-required` | 后端必填而 SDK 标成可选 | 同上 |
+
+请求体**也要进台账**（`requestEntries`）：与响应侧不同的是，请求体形状的判定**完全在 SDK 侧**，
+所以 CI 半场不需要后端就能重算 ⇒ 新增 `sdk-request-drift` / `sdk-request-gone` / `sdk-request-unresolvable`
+三条 CI 判据（"改了请求体类型而没重新核后端"在 CI 直接红）。
+
+判不出来的情形进 `request-shape-unknown` 覆盖桶（**只降不升**），reason 分
+`backend`（`Json<Value>` 但键集穷举不了）/ `backend-opaque`（flatten / 改不出的 rename_all）/
+`sdk`（签名是索引签名 / `Record` / 联合）。
+
+#### 5. 抽取器第 18~21 坑（累计 21 次，仍全是"静默给错答案"）
+
+18. **`tsObjectLiteralKeys` 收了 `open` 却忘记返回** ⇒ 展开 `{...rest}` 被静默当成"无字段"
+    （`lit.open` 恒 `undefined`）；
+19. `export type X = { a: string } | { b: string }` —— 第一个分支也是 `{`，只解析它等于把**联合当成对象**：
+    字段集少一半且 `open: false` ⇒ 会被拿去比对；
+20. 类型位置的深度**不计 `<`/`>`** + "裸标识符也算字段"的兜底 ⇒ 多行泛型
+    （`devices: Record<\n string,\n {…}\n>;`）凭空多出字段 `string`（`WhoisResponse` 被误报）；
+21. **跨文件同名不同类型**：`CleanupRoomsRequest` 在 `admin-cleanup-manager.ts` 是 `{min_age_ms}`、
+    在 `admin-server-types.ts` 是带索引签名的 `{room_id?}` —— 全局形状表"后写覆盖"，
+    于是**哪个形状生效取决于目录遍历顺序**（不报错、静默判错）。
+    修法：按文件保留形状表（`typeShapesByFile`），调用点优先用**本文件**的表，
+    跨文件冲突的名字在全局表里标 `open`（未知）。
+
+（bug 18/19/20 由新 spec 当场抓到；bug 21 由"同名冲突"扫描发现。）
+
+#### 6. 修掉的 14 处真缺陷
+
+**请求体签名与后端不符（会 400 或静默忽略）**
+
+- `AdminBanKickPayload.user_id` / `AdminMakeRoomAdminPayload.user_id` 标成可选，而后端
+  `RoomUserActionRequest` / `MakeRoomAdminRequest` 是**必填** `String`（且 deny）⇒ 调用方可合法省略 → 422；
+- `UpdateAccountDetailsRequest` 声明了 `password` / `suspended` / `threepids` / `external_ids` ——
+  后端 `UpdateAccountRequest` 只有 `{displayname, avatar_url, admin}` 且 `deny_unknown_fields`
+  ⇒ **传这四个键必然 400**；同时补上后端支持却缺失的 `admin`；
+- `AuditEventCreateRequest` 的 `target_type` / `target_id` 后端没有（deny ⇒ 400），真实字段
+  `actor_id` 等被错标成可选；
+- `AccountValidityRequest.enable_renewal_emails` 后端没有（deny ⇒ 400）；`expiration_ts` 后端必填；
+- `AccountValidityRenewRequest` 的 `{expiration_ts?, enable_renewal_emails?}` 两个键后端**一个都不认识**
+  ⇒ `renewAccountValidity()` **必然 400**；真身是 `{renewal_token, new_expiration_ts}`；
+- `FeatureFlagUpdatePayload` 拿的是**创建**请求的字段（`target_scope`），更新端点没有它，
+  且漏了 `expires_at` / `reason` / `status` / `targets` 四个真字段；
+- `RoomSearchPayload` 多个后端不认识的 `direction`（deny ⇒ 400），漏 `offset` / `is_public` / `is_encrypted`；
+- `RoomEventSearchPayload` 多个 `filter`（deny ⇒ 400），`search_term` 实为**必填**；
+- `AdminRegisterRequest` **完全没有 `mac`**、`nonce` / `admin` 被标成可选 —— 后端 `RegisterRequest`
+  这五个键都是必填（`mac` 是 HMAC-SHA256 小写十六进制，**不是**上游 Synapse 的 SHA-1 大写布局）；
+- `blockEventReportUser` 的 `{blocked_until?, reason?}` 后端都是必填 `i64` / `String`（deny）⇒ 422；
+- `Post /cleanup/all` 的 `cleanupDatabase(options)` 声明了 **11 个字段**（`room_id`/`min_depth`/…），
+  后端 `cleanup_all` 只读 `min_age_ms` —— 调用方以为按房间/时间窗清理，**实际是全量清理**；
+- `PurgeHistoryRequest` / `PurgeHistoryPayload` 的 `purge_up_to_event_id` / `delete_local_events`
+  后端从不读（真读 `purge_up_to_ts` / `dry_run`）；
+- `ShutdownRoomRequest` 的 `purge` / `force_purge` / `block` / `message` / `new_room_name` /
+  `new_room_topic` 全部被静默忽略（后端只读 `room_id`）—— **"purge 并关房"实际不会 purge**；
+- `RestartServerPayload` 只有索引签名（任何键都合法），后端只读 `timeout_ms`。
+
+**路径与语义**（顺带，`route-not-resolved` 18 → 15）
+
+- `getFeatureFlags` / `getFeatureFlag` / `setFeatureFlag` 用的是**下划线**路径
+  `/_synapse/admin/v1/feature_flags`，后端只注册**连字符** `feature-flags`
+  （derived route table 里的 `feature_flags` 是**模块名**，不是路径）⇒ 三个方法必然 404；
+  `setFeatureFlag` 还用了 `PUT /{flag_key}`（后端该路径只有 `GET` / `PATCH`），
+  且把 `flag_key` 放在路径而非请求体 —— 已按后端 `CreateFeatureFlagRequest` 改成
+  `POST /feature-flags` + `flag_key` 进 body。`deleteFeatureFlag` 后端没有 DELETE，保留待决。
+
+**`delete` 家族的 body 被后端整段丢弃（顺带暴露门禁的"只看写方法"盲区）**
+
+- 后端 `admin/room/mod.rs` 把 `DELETE /_synapse/admin/v1/rooms/{room_id}` 与
+  `POST /_synapse/admin/v1/rooms/{room_id}/delete` 都指向**同一个** `delete_room`，
+  而它只收 `Path(room_id)`、**连 `Json` 提取器都没有** ⇒ `deleteRoom(id, {purge: true})` 与
+  `deleteRoomAdmin(id, {purge, reason})` 的整个 body 被静默丢弃，**`purge: true` 不会清除历史**
+  （真 purge 得走 `purgeRoomHistory`）。已在两处方法的 JSDoc 写明、`docs/ADMIN_GUIDE.md`
+  的示例改掉（原来那两段示例还在承诺 `deleteRoom(id, {purge: true})` 会清历史）。
+- **门禁的盲区**：`bodyPresence` 原来只看 `POST/PUT/PATCH`，于是"DELETE 带 body 而后端不读"
+  整类隐身。判据应该是「**有没有 `Json` 提取器**」而不是「是不是写方法」——
+  删掉 `MUTATIONS` 限制后，全仓只多出这一条（`DELETE /rooms/{x}`），已按既有惯例登记为
+  `body-sent-ignored` 偏差（reason 写清"以为会 purge、实际整段被丢掉"，expires 2026-11-30，
+  比其它偏差短——这是产品决策而不是长期豁免）。
+
+**单测第 10/11 次「mock 自造形状 + 断言该形状」**：`admin-new-endpoints.spec.ts` 里
+`updateAccountDetails({suspended:true})`、`searchRoomEvents({term:"hello"})`、`cleanupRooms({limit:100})`、
+`shutdownRoom({new_room_user_id})`、`purgeHistory({purge_up_to_ts})`、`restartServer({reason})`、
+`purgeRoomHistory({delete_local_events})`、`registerAdmin({username,password,admin})` 全部改真形状。
+
+#### 7. 结果
+
+| 指标 | §7.15-29 | 本节 |
+| --- | --- | --- |
+| 可比对（响应） | 133 | **136** |
+| `entries` | 126 | **129** |
+| **可比对请求体** | 0（未做） | **58** |
+| `requestEntries` | — | **58** |
+| `route-not-resolved` | 18 | **15** |
+| `backend-shape-unknown` | 1 | 1 |
+| 覆盖桶合计 | 23 | **21**（新增 `request-shape-unknown` 1，其余下降） |
+| `deviations` | 15 | **16**（新增 `DELETE /rooms/{x}` 的 `body-sent-ignored`） |
+
+守卫 spec 51 → **73 例**；16 条新判据做**变异自证**：首轮 15 次里 11 次有效变红，
+另外 3 次的变异串**其实是无效变异**（`/\bskip\b/` 对 `skip_serializing_if` 本来就不匹配；
+`<>` 深度那条在"去掉裸标识符兜底"之后已不再是行为改变；M8 的变异串缩进写错没命中）
+—— 换成 5 次**确实改变行为**的变异后 **5/5 全红**（合计 16/16）。教训：
+**变异"没变红"有两种原因，必须先确认变异本身真的改变了行为**，否则会把"判据有效"
+误记成"判据失效"（这次差点反过来）。⚠️ 另：前台跑变异脚本被沙箱 **SIGTERM(137)** 打断、
+`finally` 没执行、最后一条变异残留进工作区（`containerDefault = /default/.test(head);`），
+靠 `diff 备份 vs 工作区` 发现并还原 —— **变异脚本一律后台跑，跑完立刻核对**。
+`tsc` 0；`quality:contracts` / `real-backend-types`(0/0) / `lint:knip` / `gate-reachability`(50/4) 全绿。
+
+#### 8. 下一轮续接点
+
+1. **`route-not-resolved` 里 12 条未豁免的**（`presence_routes` ×2、`rate_limit_callbacks` ×2、
+   `invite/blocklist|allowlist` ×4、`backups`、`notifications/deactivate`…）—— 其中
+   `POST /invite/blocklist` 后端语义是**整体替换** `{user_ids}` 列表，SDK 却按"逐个增删"封装，
+   属"语义不匹配"（已在 `path-contract-waivers.json` 登记为 `semantic-mismatch`，但方法名与文档
+   仍在鼓励错误用法）。要么改 SDK API（`setInviteBlocklist(userIds[])`），要么删方法。
+2. **`quality:path-contract` 的 `apu(...)` 盲区**：该门禁报"0 不匹配"，但 49 条"动态跳过"里
+   包含 admin-config-manager 整族的 `apu("/x")` 包装调用 —— 上面那三个 `feature_flags` 错误路径
+   **它一个都没拦住**（是本节的门禁读真源码才暴露的）。给该门禁的包装器列表补 `apu` 后需要
+   重新对账豁免表（`presence_routes` 等已在表内，键名一致）。
+3. **嵌套形状**：仍只比顶层键（`CleanupAllResponse.rooms` 的错靠人工核对）。
+4. `get_all_health_status` 的值级类型推断（§7.15-29 遗留）。
+
+---
+
 ## 附录 A：核验命令（可复现）
 
 ```bash
@@ -2701,7 +2877,15 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-08（§7.15-29：**接收者类型推断** —— 从 `AdminContext` 的字段类型推出接收者、
+**最后更新**: 2026-10-08（§7.15-30：**请求体字段名比对** —— 给后端请求 struct 补「可选性 / `skip` / `flatten`」，
+再让 SDK 侧把请求体形状**表达出来**（内联字面量 / 参数类型 / 局部变量 / `Partial<T>`；含 `Json<Value>`
+处理器手工 `body.get("k")` 的键集），门禁新增四档判定（`rejected`=必然 400 / `ignored`=静默忽略 /
+`missing-required` / `optional-vs-required`）与 CI 侧的请求体漂移判据；可比对请求体 **0 → 58**，
+覆盖桶 23 → 21，又挖出并修掉 **14 处**真缺陷（`renewAccountValidity` / `setFeatureFlag` 必然 400 或 404、
+`cleanupDatabase` 的 11 字段虚构载荷导致「按房间清理」实为全量、`shutdownRoom` 的 purge 被静默忽略、
+`AdminRegisterRequest` 缺必填 `mac`、`UpdateAccountDetailsRequest` 传 `suspended` 必然 400 …），
+抽取器又错 4 次（含**跨文件同名类型「后写覆盖」⇒ 判据随目录顺序漂移**），16 条新判据 16/16 有效变异自证，
+spec 51 → 73 例。§7.15-29：**接收者类型推断** —— 从 `AdminContext` 的字段类型推出接收者、
 再去 `impl` 里找唯一实现（`dyn Trait` 取唯一「非测试」实现；同名方法优先固有实现，因为 Rust 就是这么
 解析的）；把 `backend-shape-unknown` 从 19 压到 **1**（覆盖桶合计 42 → 23、可比对 114 → 133、
 `entries` 107 → 126），又挖出并修掉 **6 处**真缺陷 —— `AuditEvent.ts` 应为 `created_ts`、
@@ -2866,4 +3050,30 @@ key-rotation 历史只有 `{ device_id, rotations: { key_id, rotated_ts }[] }`�
 给出把该检查做成 `scripts/quality/check-admin-response-contract.mjs` 的具体方案，
 并说明**本轮为何先不做**（新门禁需 spec + 变异自证，且台账初始值需人工区分 SDK 错 vs 后端 profile/历史包袱，
 草率建账＝注水）
+**§7.15-30 请求体字段名比对（可比对请求体 0 → 58，又修 14 处真缺陷）**：承接 §7.15-29 的续接点第 2 条。
+先给**后端**请求 struct 补 `optional`（`Option<T>` / `#[serde(default)]` / 容器级 `default`）、
+`ignored`（`#[serde(skip*)]` ⇒ 不是线上键）、`flatten`（键集不闭合）—— ⚠️ `skip_serializing_if`
+**不是** `skip`（条件序列化，键照样存在），第一版用 `/\bskip\b/` 会把键剔掉 ⇒ 凭空造"SDK 多声明"；
+容器级属性必须只认**紧邻本 struct** 那一段（原来取"上个空行到现在"，两个 struct 紧挨着时
+上一个的字段级 `#[serde(default)]` 会泄漏 ⇒ 下一个 struct 的必填字段被整体判成可选）。
+再让 **SDK** 把请求体形状表达出来（`resolveSdkRequestShape`：内联字面量 / 参数类型 / 局部变量 /
+`x ?? {}` / 三元 / `Partial<T>`；索引签名·联合·交叉·`Record` 一律 null），并把 `Json<Value>` 处理器
+手工 `body.get("k")` 的**键集**也抽出来（`extractJsonValueBodyKeys`，变量有别的用法就 null，fail-closed；
+链上有 `.ok_or` / `?` 的读 = 必填）⇒ 12 处"形状不可知"降到 1。
+门禁新增四档：`rejected`（SDK 多键 + 后端 deny ⇒ **必然 400**）/ `ignored`（静默忽略）/
+`missing-required` / `optional-vs-required`，并因"请求体形状只在 SDK 侧"而把 `requestEntries` 也纳入
+CI 半场（`sdk-request-drift` 三条判据）。挖出并修掉 **14 处**真缺陷：`renewAccountValidity` 两个键
+后端一个都不认识（必然 400）、`setFeatureFlag` 用下划线路径 + `PUT /{key}` + `flag_key` 位置全错
+（必然 404，另两个读方法同病）、`cleanupDatabase` 声明 11 个字段而后端只读 `min_age_ms`
+（"按房间清理"实际是全量）、`shutdownRoom` 的 `purge`/`force_purge` 被静默忽略、
+`AdminRegisterRequest` 完全没有必填的 `mac`、`UpdateAccountDetailsRequest` 传 `suspended` 必然 400 …
+另暴露门禁"只看写方法"的盲区（`DELETE /rooms/{x}` 带 body 而后端连 Json 提取器都没有 ⇒ `deleteRoom(id,{purge:true})` 的 body 被整段丢弃）；抽取器又错 4 次（`tsObjectLiteralKeys` 收了 `open` 忘记返回 ⇒ 展开被当成"无字段"；
+`type X = {…} | {…}` 只解析第一个分支 ⇒ 联合被当成对象；类型位置不计 `<`/`>` ⇒ 多行泛型凭空多出字段名；
+**跨文件同名类型"后写覆盖" ⇒ 判据随目录顺序漂移**，已改为按文件保留形状表 + 冲突标 `open`）。
+16 条新判据 **16/16 有效变异自证**（首轮 3 次变异是无效变异，已换掉 —— 见 §7.15-30 §7）；
+spec 51 → **73 例**；`tsc` 0，`quality:contracts` /
+`real-backend-types`(0/0) / `lint:knip` / `gate-reachability`(50/4) 全绿。
+续接点：`route-not-resolved` 剩余 12 条未豁免项（`invite/blocklist` 是"整体替换"语义、SDK 却按逐个增删封装）、
+`quality:path-contract` 的 **`apu(...)` 盲区**（它报"0 不匹配"，但整族 `apu("/x")` 落在"动态跳过"里，
+那三个错误路径一个都没拦住）、嵌套形状、`get_all_health_status` 的值级类型推断
 **关联**:`docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）

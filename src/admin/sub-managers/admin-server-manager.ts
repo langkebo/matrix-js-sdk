@@ -19,7 +19,12 @@ import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
-import type { CleanupAllResponse, CleanupRoomsResponse, CleanupTokensResponse } from "./admin-cleanup-manager";
+import type {
+    CleanupAllRequest,
+    CleanupAllResponse,
+    CleanupRoomsResponse,
+    CleanupTokensResponse,
+} from "./admin-cleanup-manager";
 // 通知端点的真实响应类型（与 `AdminNotificationManager` 用的是同一个）
 import type { ServerNotification } from "./admin-notification-manager";
 import type {
@@ -38,7 +43,6 @@ import type {
     AdminRegisterResult,
     AdminServerConfig,
     AdminInfoResponse,
-    DynamicConfig,
     AdminRegisterRequest,
     PurgeHistoryRequest,
     ShutdownRoomRequest,
@@ -48,6 +52,7 @@ import type {
     PurgeRoomResponse,
     WhoamiResponse,
 } from "../types";
+import type { CreateNotificationRequest, UpdateNotificationRequest } from "./admin-notification-manager";
 import { MatrixClient } from "../../client";
 
 export enum AdminServerEvent {
@@ -133,30 +138,24 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
     }
 
     /**
-     * 清理数据库
+     * 清理数据库（`POST /_synapse/admin/v1/cleanup/all`）。
      *
-     * @param options - 清理选项
+     * ⚠️ 2026-10-08 把一个**11 个字段的虚构载荷**收成真实键集：后端
+     * `cleanup.rs::cleanup_all` 是 `Json<Value>` + `body.get("min_age_ms")`，
+     * **只读这一个键**。原先声明的 `room_id` / `min_depth` / `max_depth` / `min_ts` /
+     * `max_ts` / `limit` / `delete_local_media` / `delete_remote_media` /
+     * `delete_old_events` / `delete_old_rooms` / `delete_old_users` 全部被静默忽略
+     * （调用方以为按房间或时间窗清理，实际是全量）。
+     *
+     * 与 {@link cleanupAll} 是同一个端点，参数类型统一为 `CleanupAllRequest`。
+     *
+     * @param options - 清理选项（仅 `min_age_ms` 生效）
      * @returns 清理结果
      */
-    async cleanupDatabase(options?: {
-        room_id?: string;
-        min_depth?: number;
-        max_depth?: number;
-        min_ts?: number;
-        max_ts?: number;
-        limit?: number;
-        delete_local_media?: boolean;
-        delete_remote_media?: boolean;
-        delete_old_events?: boolean;
-        delete_old_rooms?: boolean;
-        delete_old_users?: boolean;
-        /** 后端唯一消费的参数：只清理早于「现在 - min_age_ms」的数据。 */
-        min_age_ms?: number;
-    }): Promise<CleanupAllResponse> {
+    async cleanupDatabase(options?: CleanupAllRequest): Promise<CleanupAllResponse> {
         // 后端注册的是 `/cleanup/all`、`/cleanup/rooms`、`/cleanup/tokens`
         // （synapse-web/src/routes/admin/cleanup.rs），**没有**裸 `/cleanup`。
         // 本方法语义上做全量清理，故走 `/cleanup/all`。
-        // 注：后端当前只读 body 里的 `min_age_ms`，其余字段会被忽略（保留以备后端扩展）。
         return await this.adminRequest<CleanupAllResponse>(Method.Post, "/cleanup/all", undefined, options || {});
     }
 
@@ -258,12 +257,17 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
     }
 
     /**
-     * 创建系统通知
+     * 创建系统通知（`POST /_synapse/admin/v1/notifications`）。
      *
-     * @param payload - 通知内容
+     * ⚠️ 2026-10-08：签名原来写成 `DynamicConfig`（= `Record<string, unknown>`），
+     * 于是"`title` / `content` 必填"这条后端事实在类型上完全消失。改用
+     * {@link CreateNotificationRequest}；更完整的通知面请用
+     * `adminManager.notifications`（`AdminNotificationManager`）。
+     *
+     * @param payload - 通知内容（`title` / `content` 必填）
      * @returns 创建的通知信息
      */
-    async createNotification(payload: DynamicConfig): Promise<ServerNotification> {
+    async createNotification(payload: CreateNotificationRequest): Promise<ServerNotification> {
         return await this.adminRequest<ServerNotification>(Method.Post, "/notifications", {}, payload);
     }
 
@@ -307,7 +311,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 更新内容
      * @returns 更新后的通知信息
      */
-    async updateNotification(notificationId: string, payload: DynamicConfig): Promise<ServerNotification> {
+    async updateNotification(notificationId: string, payload: UpdateNotificationRequest): Promise<ServerNotification> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<ServerNotification>(
             Method.Put,

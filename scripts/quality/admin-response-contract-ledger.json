@@ -1,8 +1,8 @@
 {
     "schema_version": 1,
-    "generated_at": "2026-10-07T21:58:33.385Z",
+    "generated_at": "2026-10-07T23:11:47.030Z",
     "synapseRustCommit": "e17efb937a5cf800e22d246ca4846bc7328614b1",
-    "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
+    "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` / `requestEntries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
     "entries": [
         {
             "route": "GET /_synapse/admin/info",
@@ -108,6 +108,29 @@
             "fields": ["as_id", "created_ts", "display_name", "is_enabled", "is_healthy", "service_id", "service_type"],
             "arrayItem": true,
             "backendItemType": "ExternalServiceResponse"
+        },
+        {
+            "route": "GET /_synapse/admin/v1/feature-flags/{x}",
+            "sdkType": "FeatureFlag",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "flag_key",
+                "reason",
+                "rollout_percent",
+                "status",
+                "target_scope",
+                "targets",
+                "updated_ts"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/feature-flags",
+            "sdkType": "FeatureFlagPage",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["flags", "next_batch", "total"]
         },
         {
             "route": "GET /_synapse/admin/v1/feature-flags",
@@ -898,6 +921,23 @@
             "fields": ["as_id", "created_ts", "display_name", "is_enabled", "is_healthy", "service_id", "service_type"]
         },
         {
+            "route": "POST /_synapse/admin/v1/feature-flags",
+            "sdkType": "FeatureFlag",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "flag_key",
+                "reason",
+                "rollout_percent",
+                "status",
+                "target_scope",
+                "targets",
+                "updated_ts"
+            ]
+        },
+        {
             "route": "POST /_synapse/admin/v1/federation/confirm",
             "sdkType": "FederationAdmissionResult",
             "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
@@ -1231,6 +1271,526 @@
             "fields": ["is_enabled"]
         }
     ],
+    "requestEntries": [
+        {
+            "route": "PATCH /_synapse/admin/v1/feature-flags/{x}",
+            "managerMethod": "updateFeatureFlag",
+            "backendType": "UpdateFeatureFlagRequest",
+            "fields": ["expires_at", "reason", "rollout_percent", "status", "targets"],
+            "optionalFields": ["expires_at", "reason", "rollout_percent", "status", "targets"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/account_data_callbacks",
+            "managerMethod": "createAccountDataCallback",
+            "backendType": "CreateAccountDataCallbackBody",
+            "fields": ["callback_name", "config", "data_types", "is_enabled"],
+            "optionalFields": ["data_types", "is_enabled"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/account_validity/{x}/renew",
+            "managerMethod": "renewAccountValidity",
+            "backendType": "RenewAccountBody",
+            "fields": ["new_expiration_ts", "renewal_token"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/account_validity",
+            "managerMethod": "createAccountValidity",
+            "backendType": "CreateAccountValidityBody",
+            "fields": ["expiration_ts", "is_valid", "user_id"],
+            "optionalFields": ["is_valid"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/account/{x}",
+            "managerMethod": "updateAccountDetails",
+            "backendType": "UpdateAccountRequest",
+            "fields": ["admin", "avatar_url", "displayname"],
+            "optionalFields": ["admin", "avatar_url", "displayname"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/audit/events",
+            "managerMethod": "createAuditEvent",
+            "backendType": "CreateAuditEventBody",
+            "fields": ["action", "actor_id", "details", "request_id", "resource_id", "resource_type", "result"],
+            "optionalFields": ["details"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/all",
+            "managerMethod": "all",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["min_age_ms"],
+            "optionalFields": ["min_age_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/all",
+            "managerMethod": "cleanupAll",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["min_age_ms"],
+            "optionalFields": ["min_age_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/all",
+            "managerMethod": "cleanupDatabase",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["min_age_ms"],
+            "optionalFields": ["min_age_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/rooms",
+            "managerMethod": "cleanupRooms",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["min_age_ms"],
+            "optionalFields": ["min_age_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/rooms",
+            "managerMethod": "rooms",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["min_age_ms"],
+            "optionalFields": ["min_age_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/event_reports/rate_limit/{x}/block",
+            "managerMethod": "blockEventReportUser",
+            "backendType": "BlockUserBody",
+            "fields": ["blocked_until", "reason"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/external_services",
+            "managerMethod": "registerService",
+            "backendType": "RegisterExternalServiceBody",
+            "fields": ["api_key", "config", "display_name", "service_id", "service_type", "webhook_url"],
+            "optionalFields": ["api_key", "config", "webhook_url"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/feature-flags",
+            "managerMethod": "setFeatureFlag",
+            "backendType": "CreateFeatureFlagRequest",
+            "fields": ["expires_at", "flag_key", "reason", "rollout_percent", "target_scope", "targets"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/confirm",
+            "managerMethod": "confirmFederation",
+            "backendType": "ConfirmRequest",
+            "fields": ["accept", "server_name"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/resolve",
+            "managerMethod": "resolveFederation",
+            "backendType": "ResolveRequest",
+            "fields": ["server_name"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/rewrite",
+            "managerMethod": "rewriteFederation",
+            "backendType": "RewriteRequest",
+            "fields": ["from", "to"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/media_callbacks",
+            "managerMethod": "createMediaCallback",
+            "backendType": "CreateMediaCallbackBody",
+            "fields": [
+                "callback_name",
+                "callback_type",
+                "headers",
+                "is_enabled",
+                "method",
+                "retry_count",
+                "timeout_ms",
+                "url"
+            ],
+            "optionalFields": ["headers", "is_enabled", "method", "retry_count", "timeout_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/modules/{x}/enable",
+            "managerMethod": "setModuleEnabled",
+            "backendType": "EnableModuleBody",
+            "fields": ["is_enabled"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/modules/check_third_party_rule",
+            "managerMethod": "checkModuleThirdPartyRule",
+            "backendType": "CheckThirdPartyRuleBody",
+            "fields": ["content", "event_id", "event_type", "room_id", "sender", "state_events"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/notifications",
+            "managerMethod": "create",
+            "backendType": "CreateNotificationRequest",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title"
+            ],
+            "optionalFields": [
+                "action_text",
+                "action_url",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids"
+            ]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/notifications",
+            "managerMethod": "createNotification",
+            "backendType": "CreateNotificationRequest",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title"
+            ],
+            "optionalFields": [
+                "action_text",
+                "action_url",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids"
+            ]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/password_auth_providers",
+            "managerMethod": "createPasswordAuthProvider",
+            "backendType": "CreatePasswordAuthProviderBody",
+            "fields": ["config", "is_enabled", "priority", "provider_name", "provider_type"],
+            "optionalFields": ["is_enabled", "priority"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/purge_history",
+            "managerMethod": "purgeHistory",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["dry_run", "purge_up_to_ts", "room_id"],
+            "optionalFields": ["dry_run", "purge_up_to_ts"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/purge_room",
+            "managerMethod": "purgeRoom",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["room_id"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/register",
+            "managerMethod": "registerAdmin",
+            "backendType": "RegisterRequest",
+            "fields": [
+                "admin",
+                "approval_token",
+                "captcha_code",
+                "captcha_id",
+                "displayname",
+                "mac",
+                "nonce",
+                "password",
+                "user_type",
+                "username"
+            ],
+            "optionalFields": ["approval_token", "captcha_code", "captcha_id", "displayname", "user_type"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/registration_tokens/{x}",
+            "managerMethod": "updateRegistrationToken",
+            "backendType": "UpdateTokenRequest",
+            "fields": ["expiry_time", "uses_allowed"],
+            "optionalFields": ["expiry_time", "uses_allowed"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/registration_tokens",
+            "managerMethod": "createRegistrationToken",
+            "backendType": "CreateTokenRequest",
+            "fields": ["expiry_time", "length", "token", "uses_allowed"],
+            "optionalFields": ["expiry_time", "length", "token", "uses_allowed"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/restart",
+            "managerMethod": "restartServer",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["timeout_ms"],
+            "optionalFields": ["timeout_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/retention/policy/{x}",
+            "managerMethod": "setRoomRetentionPolicy",
+            "backendType": "RetentionPolicyRequest",
+            "fields": ["is_expire_on_clients", "max_lifetime", "min_lifetime"],
+            "optionalFields": ["is_expire_on_clients", "max_lifetime", "min_lifetime"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/retention/policy",
+            "managerMethod": "setRetentionPolicy",
+            "backendType": "RetentionPolicyRequest",
+            "fields": ["is_expire_on_clients", "max_lifetime", "min_lifetime"],
+            "optionalFields": ["is_expire_on_clients", "max_lifetime", "min_lifetime"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/retention/run",
+            "managerMethod": "runRetention",
+            "backendType": "RunRetentionRequest",
+            "fields": ["room_id"],
+            "optionalFields": ["room_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/ban/{x}",
+            "managerMethod": "banRoomMember",
+            "backendType": "BanRequest",
+            "fields": ["reason"],
+            "optionalFields": ["reason"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/ban",
+            "managerMethod": "banRoom",
+            "backendType": "RoomUserActionRequest",
+            "fields": ["reason", "user_id"],
+            "optionalFields": ["reason"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/block",
+            "managerMethod": "blockRoom",
+            "backendType": "BlockRoomRequest",
+            "fields": ["block", "reason"],
+            "optionalFields": ["reason"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/kick/{x}",
+            "managerMethod": "kickRoomMember",
+            "backendType": "BanRequest",
+            "fields": ["reason"],
+            "optionalFields": ["reason"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/kick",
+            "managerMethod": "kickRoom",
+            "backendType": "RoomUserActionRequest",
+            "fields": ["reason", "user_id"],
+            "optionalFields": ["reason"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/make_admin",
+            "managerMethod": "makeRoomAdmin",
+            "backendType": "MakeRoomAdminRequest",
+            "fields": ["user_id"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/search",
+            "managerMethod": "searchRoomEvents",
+            "backendType": "SearchRoomMessagesRequest",
+            "fields": ["end_date", "limit", "search_term", "start_date"],
+            "optionalFields": ["end_date", "limit", "start_date"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/cleanup",
+            "managerMethod": "cleanupRooms",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["min_age_ms"],
+            "optionalFields": ["min_age_ms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/search",
+            "managerMethod": "searchRoomsPost",
+            "backendType": "SearchAllRoomsRequest",
+            "fields": ["from", "is_encrypted", "is_public", "limit", "offset", "order_by", "search_term"],
+            "optionalFields": ["from", "is_encrypted", "is_public", "limit", "offset", "order_by", "search_term"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/send_server_notice",
+            "managerMethod": "sendServerNotice",
+            "backendType": "ServerNoticeRequest",
+            "fields": ["content", "user_id"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/shutdown_room",
+            "managerMethod": "shutdownRoom",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["room_id"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/override_ratelimit",
+            "managerMethod": "overrideRateLimit",
+            "backendType": "RateLimitRequest",
+            "fields": ["burst_count", "messages_per_second"],
+            "optionalFields": ["burst_count", "messages_per_second"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/override_ratelimit",
+            "managerMethod": "setRateLimit",
+            "backendType": "RateLimitRequest",
+            "fields": ["burst_count", "messages_per_second"],
+            "optionalFields": ["burst_count", "messages_per_second"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/password",
+            "managerMethod": "resetPassword",
+            "backendType": "ResetPasswordBody",
+            "fields": ["new_password"],
+            "optionalFields": []
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/batch_deactivate",
+            "managerMethod": "batchDeactivateUsers",
+            "backendType": "BatchDeactivateRequest",
+            "fields": ["erase", "users"],
+            "optionalFields": ["erase"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/batch",
+            "managerMethod": "batchCreateUsers",
+            "backendType": "BatchCreateUsersRequest",
+            "fields": ["users"],
+            "optionalFields": []
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/external_services/{x}",
+            "managerMethod": "updateService",
+            "backendType": "UpdateExternalServiceBody",
+            "fields": ["api_key", "config", "is_enabled", "webhook_url"],
+            "optionalFields": ["api_key", "config", "is_enabled", "webhook_url"]
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/modules/{x}/config",
+            "managerMethod": "updateModuleConfig",
+            "backendType": "UpdateModuleConfigBody",
+            "fields": ["config"],
+            "optionalFields": []
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/notifications/{x}",
+            "managerMethod": "update",
+            "backendType": "UpdateNotificationRequest",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title"
+            ],
+            "optionalFields": [
+                "action_text",
+                "action_url",
+                "content",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title"
+            ]
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/notifications/{x}",
+            "managerMethod": "updateNotification",
+            "backendType": "UpdateNotificationRequest",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title"
+            ],
+            "optionalFields": [
+                "action_text",
+                "action_url",
+                "content",
+                "expires_at",
+                "is_dismissable",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title"
+            ]
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/rooms/{x}/make_admin",
+            "managerMethod": "makeRoomAdmin",
+            "backendType": "MakeRoomAdminRequest",
+            "fields": ["user_id"],
+            "optionalFields": []
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/users/{x}/admin",
+            "managerMethod": "setAdmin",
+            "backendType": "Value（手工 body.get）",
+            "fields": ["admin"],
+            "optionalFields": []
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/users/{x}/notification",
+            "managerMethod": "setUserNotification",
+            "backendType": "UserNotificationRequest",
+            "fields": ["is_enabled"],
+            "optionalFields": []
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/users/{x}/rate_limit",
+            "managerMethod": "setRateLimit",
+            "backendType": "RateLimitRequest",
+            "fields": ["burst_count", "messages_per_second"],
+            "optionalFields": ["burst_count", "messages_per_second"]
+        },
+        {
+            "route": "PUT /_synapse/admin/v2/users/{x}",
+            "managerMethod": "activateUser",
+            "backendType": "CreateUpdateUserRequest",
+            "fields": ["deactivated"],
+            "optionalFields": []
+        },
+        {
+            "route": "PUT /_synapse/admin/v2/users/{x}",
+            "managerMethod": "createUser",
+            "backendType": "CreateUpdateUserRequest",
+            "fields": ["admin", "deactivated", "displayname", "password"],
+            "optionalFields": ["admin", "deactivated", "displayname", "password"]
+        }
+    ],
     "deviations": [
         {
             "route": "GET /_synapse/admin/v1/rooms/{x}",
@@ -1336,17 +1896,27 @@
             "kind": "body-sent-ignored",
             "expires": "2026-12-31",
             "reason": "该路由由 user.rs::logout_user_devices 处理（与 /logout 同一处理器！），后端不读请求体 ⇒ SDK 传的 devices 列表被静默忽略；注意这可能是**路由复用**导致的语义错配，需要单独核实。"
+        },
+        {
+            "kind": "body-sent-ignored",
+            "route": "DELETE /_synapse/admin/v1/rooms/{x}",
+            "sdkType": "",
+            "reason": "`deleteRoom(roomId, { purge: true })` 的 body 被后端**整段忽略**：`DELETE /_synapse/admin/v1/rooms/{room_id}` 与 `POST .../delete` 都指向同一个 `admin/room/mod.rs::delete_room`，它只收 `Path(room_id)`，**连 Json 提取器都没有** ⇒ `purge`/`force_purge`/`block`/`reason` 全部无效（要真 purge 得调 `purgeRoomHistory`）。保留签名是为了不破坏公开 API；删参数还是让后端支持 purge 属产品决策。",
+            "expires": "2026-11-30"
         }
     ],
     "unresolved": {
         "route-not-resolved": {
-            "count": 18
+            "count": 15
         },
         "array-return": {
             "count": 1
         },
         "inline-type-arg": {
             "count": 3
+        },
+        "request-shape-unknown": {
+            "count": 1
         },
         "backend-shape-unknown": {
             "count": 1

@@ -27,6 +27,11 @@ import {
     balancedSlice,
     collectMapInsertKeys,
     createResponseResolver,
+    diffRequestShape,
+    extractJsonValueBodyKeys,
+    extractTsTypeShapes,
+    resolveSdkRequestShape,
+    scanStructFields,
     diffResponse,
     extractHandlerIo,
     extractInterfaceFields,
@@ -857,6 +862,304 @@ impl Bar for Foo {
             expect(
                 r.resolveHandler({ sig: "async fn f(State(ctx): State<Ctx>) -> Result<Json<Value>, ApiError> ", body }),
             ).toEqual([{ kind: "object", keys: ["id", "title"] }]);
+        });
+    });
+    describe("第四轮：请求体字段名比对（后端可选性 + SDK 请求形状）", () => {
+        describe("scanStructFields / parseSerdeStructs —— 可选性与 skip", () => {
+            it("`Option<T>` 与 `#[serde(default)]` 记为可选；`#[serde(skip)]` 的键不是线上键", () => {
+                const body = `
+    pub required_name: String,
+    pub maybe: Option<i64>,
+    #[serde(default)]
+    pub with_default: i32,
+    #[serde(skip)]
+    pub hidden: String,
+`;
+                const r = scanStructFields(body);
+                expect(r.json).toEqual(["required_name", "maybe", "with_default"]);
+                expect(r.optionalJson.sort()).toEqual(["maybe", "with_default"]);
+                expect(r.ignoredJson).toEqual(["hidden"]);
+            });
+
+            it("阴性对照：`skip_serializing_if` 是**条件序列化**，键照样要算（不能当 skip 剔除）", () => {
+                const body = `
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maybe: Option<String>,
+`;
+                const r = scanStructFields(body);
+                expect(r.json).toEqual(["maybe"]);
+                expect(r.ignoredJson).toEqual([]);
+            });
+
+            it("`#[serde(flatten)]` ⇒ 标出来（键集不闭合，调用方必须落回未知）", () => {
+                const src = `#[derive(Serialize)]
+pub struct X {
+    pub a: i64,
+    #[serde(flatten)]
+    pub inner: Inner,
+}`;
+                const st = parseSerdeStructs(src).get("X");
+                expect(st?.flatten).toBe(true);
+            });
+
+            it("阴性对照：容器级 `#[serde(default)]` 只认紧邻本 struct 的属性（上个 struct 的字段属性不得泄漏）", () => {
+                // A 的字段级 #[serde(default)] 与 B 之间**没有空行**：
+                // 旧实现把"上个空行到现在"整段当容器属性 ⇒ 会把 B 的必填字段全判成可选。
+                const src = `#[derive(Deserialize)]
+pub struct A {
+    #[serde(default)]
+    pub a: i64,
+}
+#[derive(Deserialize)]
+pub struct B {
+    pub b: i64,
+}`;
+                const st = parseSerdeStructs(src);
+                expect(st.get("B")?.optionalFields).toEqual([]);
+                expect(st.get("A")?.optionalFields).toEqual(["a"]);
+            });
+
+            it("容器级 `#[serde(default)]` ⇒ 所有字段同为主题可选", () => {
+                const src = `#[derive(Deserialize)]
+#[serde(default)]
+pub struct X {
+    pub a: i64,
+    pub b: String,
+}`;
+                expect(parseSerdeStructs(src).get("X")?.optionalFields).toEqual(["a", "b"]);
+            });
+        });
+
+        describe("extractJsonValueBodyKeys —— `Json<Value>` 手工取键", () => {
+            const io = { hasJson: true, jsonType: "Value" };
+            it("读到的键与「必填」（链上有 ok_or / `?`）都要认出来", () => {
+                const r = extractJsonValueBodyKeys({
+                    sig: "async fn f(State(c): State<Ctx>, Json(body): Json<Value>) -> Result<Json<Value>, ApiError> ",
+                    body: `{
+    let room_id = body.get("room_id").and_then(|v| v.as_str()).ok_or_else(|| E("x"))?;
+    let ts = body.get("purge_up_to_ts").and_then(|v| v.as_i64());
+    Ok(Json(json!({ "room_id": room_id, "ts": ts })))
+}`,
+                    io,
+                });
+                expect(r?.keys).toEqual(["purge_up_to_ts", "room_id"]);
+                expect(r?.required).toEqual(["room_id"]);
+            });
+
+            it("阴性对照：变量有 `.get(..)` 之外的用法 ⇒ null（键集无法穷举，绝不交半份结论）", () => {
+                expect(
+                    extractJsonValueBodyKeys({
+                        sig: "async fn f(Json(body): Json<Value>) -> Result<Json<Value>, ApiError> ",
+                        body: `{
+    let merged = body;
+    let room_id = body.get("room_id").and_then(|v| v.as_str());
+    forward(merged).await
+}`,
+                        io,
+                    }),
+                ).toBeNull();
+            });
+
+            it("阴性对照：`Json<Struct>` 不走这条路径（由 struct 定义给键集）", () => {
+                expect(
+                    extractJsonValueBodyKeys({
+                        sig: "async fn f(Json(body): Json<CreateThingBody>) -> Result<Json<Value>, ApiError> ",
+                        body: `{ body.get("x") }`,
+                        io: { hasJson: true, jsonType: "CreateThingBody" },
+                    }),
+                ).toBeNull();
+            });
+
+            it("阴性对照：一个键都没读 ⇒ null（而不是「空键集」）", () => {
+                expect(
+                    extractJsonValueBodyKeys({
+                        sig: "async fn f(Json(body): Json<Value>) -> Result<Json<Value>, ApiError> ",
+                        body: `{ Ok(Json(json!({}))) }`,
+                        io,
+                    }),
+                ).toBeNull();
+            });
+        });
+
+        describe("extractTsTypeShapes —— 工具类型 / 索引签名 / 多行泛型", () => {
+            it("`Partial<X>` 继承 X 的字段且全部变可选；`Required<X>` 反之", () => {
+                const src = `export interface X {
+    a: string;
+    b?: number;
+}
+export type PartialX = Partial<X>;
+export type RequiredX = Required<X>;`;
+                const shapes = extractTsTypeShapes(src);
+                expect(shapes.get("PartialX")).toEqual({ fields: ["a", "b"], optionalFields: ["a", "b"], open: false });
+                expect(shapes.get("RequiredX")).toEqual({ fields: ["a", "b"], optionalFields: [], open: false });
+            });
+
+            it("索引签名 / 联合 RHS ⇒ open（键集不闭合）", () => {
+                const src = `export interface Open {
+    a?: string;
+    [key: string]: unknown;
+}
+export type Unioned = { a: string } | { b: string };`;
+                const shapes = extractTsTypeShapes(src);
+                expect(shapes.get("Open")?.open).toBe(true);
+                expect(shapes.get("Unioned")?.open).toBe(true);
+                // open 的形状不许进响应侧字段表（否则会被拿去比字段集，方向不定的假阳）
+                expect(extractInterfaceFields(src).has("Open")).toBe(false);
+            });
+
+            it("多行泛型（`Record<\n string,\n {…}\n>`）不得凭空多出字段名", () => {
+                // 踩过的坑：`<`/`>` 不计入深度 + "裸标识符也算字段"的兜底 ⇒ `string` 被当成字段
+                const src = `export interface WhoisResponse {
+    user_id: string;
+    devices: Record<
+        string,
+        {
+            sessions: Array<{ ip: string }>;
+        }
+    >;
+}`;
+                expect(extractTsTypeShapes(src).get("WhoisResponse")?.fields).toEqual(["devices", "user_id"]);
+            });
+
+            it("阴性对照：`type X = { … }` 的嵌套对象字段不泄漏到外层", () => {
+                const src = `export type T = {
+    a: { inner: string };
+    b: number;
+};`;
+                expect(extractTsTypeShapes(src).get("T")?.fields).toEqual(["a", "b"]);
+            });
+        });
+
+        describe("resolveSdkRequestShape —— 请求体实参解析", () => {
+            const shapes = new Map([
+                ["Payload", { fields: ["user_id", "reason"], optionalFields: ["reason"], open: false }],
+                ["OpenCfg", { fields: [], optionalFields: [], open: true }],
+            ]);
+
+            it("内联对象字面量（含简写）与命名类型都要能解析", () => {
+                expect(resolveSdkRequestShape({ params: "", bodyArg: "{ server_name: n, accept }", shapes })).toEqual({
+                    fields: ["accept", "server_name"],
+                    optionalFields: [],
+                });
+                expect(resolveSdkRequestShape({ params: "payload: Payload", bodyArg: "payload", shapes })).toEqual({
+                    fields: ["user_id", "reason"],
+                    optionalFields: ["reason"],
+                });
+            });
+
+            it("`x ?? {}`、`x || {}` 与「三元一侧缺席」都能定形状", () => {
+                expect(resolveSdkRequestShape({ params: "p?: Payload", bodyArg: "p ?? {}", shapes })).toEqual({
+                    fields: ["user_id", "reason"],
+                    optionalFields: ["reason"],
+                });
+                const ternary = resolveSdkRequestShape({
+                    params: "reason?: string",
+                    bodyArg: "reason ? { reason } : undefined",
+                    shapes,
+                });
+                expect(ternary).toEqual({ fields: ["reason"], optionalFields: [] });
+            });
+
+            it("阴性对照：`x ?? y` 的右侧**不是**空对象时判不了（不能把两个形状混起来）", () => {
+                // `p ?? q` 里 q 是另一个参数：两个形状都成形且不同 ⇒ 不猜
+                expect(
+                    resolveSdkRequestShape({
+                        params: "p?: Payload, q?: { other: string }",
+                        bodyArg: "p ?? q",
+                        shapes,
+                    }),
+                ).toBeNull();
+            });
+
+            it("局部变量：先看类型标注，再看初始化表达式", () => {
+                const methodBody = `{
+    const body: { a: string } = { a: x };
+    return this.adminRequest(Method.Post, "/x", {}, body);
+}`;
+                expect(
+                    resolveSdkRequestShape({
+                        params: "x: string",
+                        bodyArg: "body",
+                        methodBody,
+                        shapes,
+                    }),
+                ).toEqual({ fields: ["a"], optionalFields: [] });
+            });
+
+            it("阴性对照：展开 / 索引签名类型 / 认不出的表达式 ⇒ null（绝不猜）", () => {
+                expect(resolveSdkRequestShape({ params: "", bodyArg: "{ ...rest }", shapes })).toBeNull();
+                expect(resolveSdkRequestShape({ params: "p: OpenCfg", bodyArg: "p", shapes })).toBeNull();
+                expect(
+                    resolveSdkRequestShape({ params: "p: Record<string, unknown>", bodyArg: "p", shapes }),
+                ).toBeNull();
+                expect(
+                    resolveSdkRequestShape({ params: "p: Payload", bodyArg: "structuredClone(p)", shapes }),
+                ).toBeNull();
+            });
+
+            it("跨文件重名：本文件表优先（否则「哪个形状生效」取决于目录遍历顺序）", () => {
+                const ownShapes = new Map([
+                    ["Payload", { fields: ["min_age_ms"], optionalFields: ["min_age_ms"], open: false }],
+                ]);
+                expect(resolveSdkRequestShape({ params: "p: Payload", bodyArg: "p", shapes, ownShapes })).toEqual({
+                    fields: ["min_age_ms"],
+                    optionalFields: ["min_age_ms"],
+                });
+            });
+        });
+
+        describe("diffRequestShape —— 四档判定", () => {
+            it("SDK 多字段：后端 deny ⇒ rejected（必然 400）；不 deny ⇒ ignored（静默忽略）", () => {
+                const common = {
+                    sdkFields: ["a", "bogus"],
+                    sdkOptional: [],
+                    backendFields: ["a"],
+                    backendOptional: [],
+                    backendType: "T",
+                };
+                expect(diffRequestShape({ ...common, denyUnknownFields: true })?.kind).toBe(
+                    "request-unknown-field-rejected",
+                );
+                expect(diffRequestShape({ ...common, denyUnknownFields: false })?.kind).toBe(
+                    "request-unknown-field-ignored",
+                );
+            });
+
+            it("后端必填而 SDK 未声明 / 标成可选，各是一类", () => {
+                expect(
+                    diffRequestShape({
+                        sdkFields: [],
+                        sdkOptional: [],
+                        backendFields: ["user_id"],
+                        backendOptional: [],
+                        denyUnknownFields: true,
+                        backendType: "T",
+                    })?.kind,
+                ).toBe("request-missing-required-field");
+                expect(
+                    diffRequestShape({
+                        sdkFields: ["user_id"],
+                        sdkOptional: ["user_id"],
+                        backendFields: ["user_id"],
+                        backendOptional: [],
+                        denyUnknownFields: true,
+                        backendType: "T",
+                    })?.kind,
+                ).toBe("request-optional-vs-required");
+            });
+
+            it("一致（含「后端可选而 SDK 必填」/「后端可选而 SDK 未声明」）⇒ null", () => {
+                expect(
+                    diffRequestShape({
+                        sdkFields: ["a"],
+                        sdkOptional: [],
+                        backendFields: ["a", "b"],
+                        backendOptional: ["b"],
+                        denyUnknownFields: true,
+                        backendType: "T",
+                    }),
+                ).toBeNull();
+            });
         });
     });
 });

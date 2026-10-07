@@ -350,13 +350,25 @@ export interface BatchDeactivateUsersResponse {
 
 // ===== Update account types =====
 
+/**
+ * `POST /_synapse/admin/v1/account/{user_id}` 的请求体。
+ *
+ * ⚠️ 2026-10-08 对照后端 `user.rs::UpdateAccountRequest`：**只有这三个字段**，
+ * 且带 `#[serde(deny_unknown_fields)]`。此前的 `password` / `suspended` / `threepids` /
+ * `external_ids` 四个字段后端既不读也**不接受** —— 带上它们发出去必然 400
+ * （`unknown field`），而类型系统却在鼓励这样调用。
+ *
+ * 这些能力在别的端点上：改密码走 `PUT /_synapse/admin/v2/users/{user_id}`
+ * （请求体是 `{password, displayname, avatar_url, admin, deactivated, user_type}`，
+ * 后端 `CreateUpdateUserRequest`）、
+ * 停用走 `POST /_synapse/admin/v1/deactivate/{user_id}` / `POST /_synapse/admin/v1/users/batch_deactivate`
+ * （`erase` 决定是否抹除数据）、threepid 走用户目录接口。
+ */
 export interface UpdateAccountDetailsRequest {
     displayname?: string;
     avatar_url?: string;
-    password?: string;
-    suspended?: boolean;
-    threepids?: Array<{ medium: string; address: string }>;
-    external_ids?: Array<{ auth_provider: string; external_id: string }>;
+    /** 提权/降权（`admin: true|false`）—— 后端支持但此前 SDK 类型里没有。 */
+    admin?: boolean;
 }
 
 /**
