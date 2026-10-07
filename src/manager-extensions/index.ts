@@ -120,6 +120,27 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeAccountStatus", module: "account-status" },
     { option: "includeWorker", module: "worker" },
     { option: "includeRoomAlias", module: "room-alias" },
+    { option: "includeAggregations", module: "aggregations" },
+    { option: "includeCaptcha", module: "captcha" },
+    { option: "includeCryptoStore", module: "crypto-store" },
+    { option: "includeDirectory", module: "directory" },
+    { option: "includeEphemeral", module: "ephemeral" },
+    { option: "includeIdentity", module: "identity" },
+    { option: "includeInvites", module: "invites" },
+    { option: "includeLifecycle", module: "lifecycle" },
+    { option: "includeMembership", module: "membership" },
+    { option: "includePinnedMessages", module: "pinned-messages" },
+    { option: "includePushNotifications", module: "push-notifications" },
+    { option: "includeRetention", module: "retention" },
+    { option: "includeRoomCreation", module: "room-creation" },
+    { option: "includeRoomEvents", module: "room-events" },
+    { option: "includeRoomKeys", module: "room-keys" },
+    { option: "includeRoomMember", module: "room-member" },
+    { option: "includeSession", module: "session" },
+    { option: "includeSessions", module: "sessions" },
+    { option: "includeSyncAccumulator", module: "sync-accumulator" },
+    { option: "includeUploads", module: "uploads" },
+    { option: "includeWidgets", module: "widgets" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -200,6 +221,27 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeAccountStatus: true,
     includeWorker: true,
     includeRoomAlias: true,
+    includeAggregations: true,
+    includeCaptcha: true,
+    includeCryptoStore: true,
+    includeDirectory: true,
+    includeEphemeral: true,
+    includeIdentity: true,
+    includeInvites: true,
+    includeLifecycle: true,
+    includeMembership: true,
+    includePinnedMessages: true,
+    includePushNotifications: true,
+    includeRetention: true,
+    includeRoomCreation: true,
+    includeRoomEvents: true,
+    includeRoomKeys: true,
+    includeRoomMember: true,
+    includeSession: true,
+    includeSessions: true,
+    includeSyncAccumulator: true,
+    includeUploads: true,
+    includeWidgets: true,
 };
 
 let isInitialized = false;
@@ -644,6 +686,106 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeRoomAlias || all) {
                 promises.push(safeDynamicImport(import("../room-alias/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeAggregations || all) {
+                promises.push(
+                    safeDynamicImport(import("../aggregations/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeCaptcha || all) {
+                promises.push(safeDynamicImport(import("../captcha/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeCryptoStore || all) {
+                promises.push(
+                    safeDynamicImport(import("../crypto-store/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeDirectory || all) {
+                promises.push(safeDynamicImport(import("../directory/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeEphemeral || all) {
+                promises.push(safeDynamicImport(import("../ephemeral/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeIdentity || all) {
+                promises.push(safeDynamicImport(import("../identity/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeInvites || all) {
+                promises.push(safeDynamicImport(import("../invites/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeLifecycle || all) {
+                promises.push(safeDynamicImport(import("../lifecycle/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeMembership || all) {
+                promises.push(safeDynamicImport(import("../membership/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includePinnedMessages || all) {
+                promises.push(
+                    safeDynamicImport(import("../pinned-messages/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includePushNotifications || all) {
+                promises.push(
+                    safeDynamicImport(import("../push-notifications/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeRetention || all) {
+                promises.push(safeDynamicImport(import("../retention/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeRoomCreation || all) {
+                promises.push(
+                    safeDynamicImport(import("../room-creation/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeRoomEvents || all) {
+                promises.push(
+                    safeDynamicImport(import("../room-events/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeRoomKeys || all) {
+                promises.push(safeDynamicImport(import("../room-keys/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeRoomMember || all) {
+                promises.push(
+                    safeDynamicImport(import("../room-member/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeSession || all) {
+                promises.push(safeDynamicImport(import("../session/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeSessions || all) {
+                promises.push(safeDynamicImport(import("../sessions/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeSyncAccumulator || all) {
+                promises.push(
+                    safeDynamicImport(import("../sync-accumulator/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includeUploads || all) {
+                promises.push(safeDynamicImport(import("../uploads/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeWidgets || all) {
+                promises.push(safeDynamicImport(import("../widgets/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             await Promise.all(promises);

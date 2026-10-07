@@ -153,6 +153,32 @@ const MODULE_DEFS = [
     // `worker` 的入口不是 `<module>/index.js`，必须显式给 `path`。
     { option: "includeWorker", module: "worker", path: "client/worker/worker.js" },
     { option: "includeRoomAlias", module: "room-alias" },
+
+    // ── Group 4: 2026-10-07 补登记（这些模块早就实现了 extendMatrixClient，
+    //    但一直没进 MODULE_DEFS ⇒ 即便 { includeAll: true } 也不加载，
+    //    client.getXxxManager() 类型检查通过、运行时 undefined）。
+    //    实测判据见 spec/unit/manager-accessor-wiring.spec.ts。
+    { option: "includeAggregations", module: "aggregations" },
+    { option: "includeCaptcha", module: "captcha" },
+    { option: "includeCryptoStore", module: "crypto-store" },
+    { option: "includeDirectory", module: "directory" },
+    { option: "includeEphemeral", module: "ephemeral" },
+    { option: "includeIdentity", module: "identity" },
+    { option: "includeInvites", module: "invites" },
+    { option: "includeLifecycle", module: "lifecycle" },
+    { option: "includeMembership", module: "membership" },
+    { option: "includePinnedMessages", module: "pinned-messages" },
+    { option: "includePushNotifications", module: "push-notifications" },
+    { option: "includeRetention", module: "retention" },
+    { option: "includeRoomCreation", module: "room-creation" },
+    { option: "includeRoomEvents", module: "room-events" },
+    { option: "includeRoomKeys", module: "room-keys" },
+    { option: "includeRoomMember", module: "room-member" },
+    { option: "includeSession", module: "session" },
+    { option: "includeSessions", module: "sessions" },
+    { option: "includeSyncAccumulator", module: "sync-accumulator" },
+    { option: "includeUploads", module: "uploads" },
+    { option: "includeWidgets", module: "widgets" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────

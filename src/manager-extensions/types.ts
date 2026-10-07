@@ -93,6 +93,27 @@ export interface ManagerExtensionsOptions {
     includeReactions?: boolean;
     includeBeacon?: boolean;
     includeManagerAccessor?: boolean;
+    includeAggregations?: boolean;
+    includeCaptcha?: boolean;
+    includeCryptoStore?: boolean;
+    includeDirectory?: boolean;
+    includeEphemeral?: boolean;
+    includeIdentity?: boolean;
+    includeInvites?: boolean;
+    includeLifecycle?: boolean;
+    includeMembership?: boolean;
+    includePinnedMessages?: boolean;
+    includePushNotifications?: boolean;
+    includeRetention?: boolean;
+    includeRoomCreation?: boolean;
+    includeRoomEvents?: boolean;
+    includeRoomKeys?: boolean;
+    includeRoomMember?: boolean;
+    includeSession?: boolean;
+    includeSessions?: boolean;
+    includeSyncAccumulator?: boolean;
+    includeUploads?: boolean;
+    includeWidgets?: boolean;
     includeAll?: boolean;
 }
 
