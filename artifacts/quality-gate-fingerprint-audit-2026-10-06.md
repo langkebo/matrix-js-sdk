@@ -275,18 +275,18 @@ function isSwallowing(body) {
 
 > 以下是顺着这个问题挖出来的、**跨门禁系统性问题**，不是单点 bug。
 
-| 编号   | 问题                                      | 现状                                                                                                             | 影响                                                                      |
-| ------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **P1** | **baseline 指纹策略无统一规范**           | 4 个 baseline 型门禁里 **2 个对、2 个错**，无共享 lib、无文字规范                                                | 后来者反复踩坑；本仓已有两个正解却未被复用                                |
-| **P2** | **`--update-baseline` 无条件全量重写**    | swallow / generated-dto / technical-debt / real-backend-types 皆有，均无 diff 分类、无 `--accept-new`、无 reason | 「重记行号」与「静默放行新缺陷」共用一个动作，只能靠人工 `git diff` 兜底  |
-| **P3** | **baseline 赦免缺到期强制（口径不一致）** | `path-contract-waivers` 有 `expires` + `quality:waiver-expiry` 硬阻断；swallow 的 baseline 过期**只 warn**       | 同一仓库两种豁免纪律，可永久不还的债务存在                                |
-| **P4** | **门禁检测器用字符窗口而非语法边界**      | swallow 的 `catch(){[\s\S]{0,240}?return…}` 已确认 6/64 错配                                                     | 假阳性 + **定位错误**（报表指向错误的 catch）+ snippet 跨边界加剧指纹漂移 |
-| **P5** | **假阳性被"加注释消警"掩盖**              | 6 处错配 catch 前都有 `@swallow-error` 注释（`refactor-bot` 名下 8 条）                                          | 误报被固化成"已豁免债务"，无人再质疑；注释与代码语义相反                  |
-| **P6** | **门禁自身缺测试**                        | 27 个 quality 脚本中 **18 个无任何 spec 引用**，含出事的 swallow                                                 | 门禁是"守门人的守门人"，却没被守；对照 P1 相关性极强                      |
-| **P7** | **门禁脚本不在 lint 作用域**              | `lint:js = eslint src spec perf`，不含 `scripts/`                                                                | `scripts/quality/*.mjs` 的代码质量问题永远不被发现                        |
-| **P8** | **红灯归因不可自证**                      | 判断"是本轮改红还是本来就红"需人工 `git worktree add HEAD --detach` 复现                                         | 每轮都要重建环境；无 `lastGreenCommit` / 无 pass 快照                     |
-| **P9** | **依赖环境特性的质量门不可重复执行**      | `npx eslint <多文件>` 在沙箱内**第二次调用即挂**（file-broker IPC 超时，EXIT=2）                                 | 门禁结论依赖执行方式；须非沙箱才能取确定结果                              |
-| **P10** | **孤岛脚本：写完再没人跑过**             | `scripts/` 下 76 个脚本里 **7 个零引用**；且可达性门禁只枚举 exit-1 脚本 ⇒ 无 exit-1 的诊断脚本对它**完全隐形**  | 零引用脚本坏了没人知道（§7.11-2 的 probe 坏了半年）；"看起来有人在看这件事"是假象 |
+| 编号    | 问题                                      | 现状                                                                                                             | 影响                                                                              |
+| ------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **P1**  | **baseline 指纹策略无统一规范**           | 4 个 baseline 型门禁里 **2 个对、2 个错**，无共享 lib、无文字规范                                                | 后来者反复踩坑；本仓已有两个正解却未被复用                                        |
+| **P2**  | **`--update-baseline` 无条件全量重写**    | swallow / generated-dto / technical-debt / real-backend-types 皆有，均无 diff 分类、无 `--accept-new`、无 reason | 「重记行号」与「静默放行新缺陷」共用一个动作，只能靠人工 `git diff` 兜底          |
+| **P3**  | **baseline 赦免缺到期强制（口径不一致）** | `path-contract-waivers` 有 `expires` + `quality:waiver-expiry` 硬阻断；swallow 的 baseline 过期**只 warn**       | 同一仓库两种豁免纪律，可永久不还的债务存在                                        |
+| **P4**  | **门禁检测器用字符窗口而非语法边界**      | swallow 的 `catch(){[\s\S]{0,240}?return…}` 已确认 6/64 错配                                                     | 假阳性 + **定位错误**（报表指向错误的 catch）+ snippet 跨边界加剧指纹漂移         |
+| **P5**  | **假阳性被"加注释消警"掩盖**              | 6 处错配 catch 前都有 `@swallow-error` 注释（`refactor-bot` 名下 8 条）                                          | 误报被固化成"已豁免债务"，无人再质疑；注释与代码语义相反                          |
+| **P6**  | **门禁自身缺测试**                        | 27 个 quality 脚本中 **18 个无任何 spec 引用**，含出事的 swallow                                                 | 门禁是"守门人的守门人"，却没被守；对照 P1 相关性极强                              |
+| **P7**  | **门禁脚本不在 lint 作用域**              | `lint:js = eslint src spec perf`，不含 `scripts/`                                                                | `scripts/quality/*.mjs` 的代码质量问题永远不被发现                                |
+| **P8**  | **红灯归因不可自证**                      | 判断"是本轮改红还是本来就红"需人工 `git worktree add HEAD --detach` 复现                                         | 每轮都要重建环境；无 `lastGreenCommit` / 无 pass 快照                             |
+| **P9**  | **依赖环境特性的质量门不可重复执行**      | `npx eslint <多文件>` 在沙箱内**第二次调用即挂**（file-broker IPC 超时，EXIT=2）                                 | 门禁结论依赖执行方式；须非沙箱才能取确定结果                                      |
+| **P10** | **孤岛脚本：写完再没人跑过**              | `scripts/` 下 76 个脚本里 **7 个零引用**；且可达性门禁只枚举 exit-1 脚本 ⇒ 无 exit-1 的诊断脚本对它**完全隐形**  | 零引用脚本坏了没人知道（§7.11-2 的 probe 坏了半年）；"看起来有人在看这件事"是假象 |
 
 ---
 
@@ -309,23 +309,23 @@ function isSwallowing(body) {
 
 ### 7.1 状态总表
 
-| 编号   | 审计结论                                   | 落地结果                                                                                                            |
-| ------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| **α**  | 指纹含行号                                 | ✅ 已修：`stableId(file, [snippet, ordinal])`，行号降为展示字段                                                     |
-| **β**  | 字符窗口跨块                               | ✅ 已修：配平扫描，只在 catch 语法块内判定                                                                          |
-| **γ**  | 语法族偏窄                                 | ✅ 已修，**但边界与本文 §4.4 不同**（见 7.4-2）                                                                     |
-| **δ**  | 240 字符上限                               | ✅ 已修：块内判定天然无长度上限                                                                                     |
-| **加** | 白名单注解泄漏进指纹（收尾复核发现，§7.9） | ✅ 已修：指纹输入剔除注解                                                                                           |
-| **P1** | 指纹策略无规范                             | ✅ 共享 lib + generated-dto 横向整改 + 补 id 稳定性 spec                                                            |
-| **P2** | `--update-baseline` 无审查                 | ✅ 两个门禁均加四分类摘要 + `--accept-new`                                                                          |
-| **P4** | 字符窗口                                   | ✅ 同 β                                                                                                             |
-| **P5** | 加注释消警                                 | ✅ 删 8 处误加注释、补 5 处真实缺失                                                                                 |
-| **P6** | 门禁缺测试                                 | ◐ `codegen-coverage-gate.spec.ts` 长期红灯已修；**口径重测 52 个 quality 脚本中 37 个无 spec**（旧口径 27/18），本轮新守 4 个（§7.13-5）；剩余长尾的高杠杆解法已查明        |
-| **P7** | scripts 不在 lint 作用域                   | ✅ 已纳入，**代价与本文明示不同**（见 7.7）                                                                         |
-| **P3** | 豁免无到期强制                             | ✅ 已开 `--strict-baseline`（原先预估的"会转红"未出现，见 7.6）                                                     |
-| **P8** | 红灯归因不可自证                           | ✅ 已做：`scripts/audit/gate-golden.mjs`（`pnpm quality:golden`），见 §7.12                                         |
-| **P9** | 沙箱内 eslint 不可重复执行                 | ❌ 未做（环境问题）                                                                                                 |
-| **P10** | **孤岛脚本"写完再没人跑"**                | ✅ 已做：可达性门禁补三条"假绿"通道 + 孤岛台账（7 个已登记，只能变小），见 §7.13                                    |
+| 编号    | 审计结论                                   | 落地结果                                                                                                                                                             |
+| ------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **α**   | 指纹含行号                                 | ✅ 已修：`stableId(file, [snippet, ordinal])`，行号降为展示字段                                                                                                      |
+| **β**   | 字符窗口跨块                               | ✅ 已修：配平扫描，只在 catch 语法块内判定                                                                                                                           |
+| **γ**   | 语法族偏窄                                 | ✅ 已修，**但边界与本文 §4.4 不同**（见 7.4-2）                                                                                                                      |
+| **δ**   | 240 字符上限                               | ✅ 已修：块内判定天然无长度上限                                                                                                                                      |
+| **加**  | 白名单注解泄漏进指纹（收尾复核发现，§7.9） | ✅ 已修：指纹输入剔除注解                                                                                                                                            |
+| **P1**  | 指纹策略无规范                             | ✅ 共享 lib + generated-dto 横向整改 + 补 id 稳定性 spec                                                                                                             |
+| **P2**  | `--update-baseline` 无审查                 | ✅ 两个门禁均加四分类摘要 + `--accept-new`                                                                                                                           |
+| **P4**  | 字符窗口                                   | ✅ 同 β                                                                                                                                                              |
+| **P5**  | 加注释消警                                 | ✅ 删 8 处误加注释、补 5 处真实缺失                                                                                                                                  |
+| **P6**  | 门禁缺测试                                 | ◐ `codegen-coverage-gate.spec.ts` 长期红灯已修；**口径重测 52 个 quality 脚本中 37 个无 spec**（旧口径 27/18），本轮新守 4 个（§7.13-5）；剩余长尾的高杠杆解法已查明 |
+| **P7**  | scripts 不在 lint 作用域                   | ✅ 已纳入，**代价与本文明示不同**（见 7.7）                                                                                                                          |
+| **P3**  | 豁免无到期强制                             | ✅ 已开 `--strict-baseline`（原先预估的"会转红"未出现，见 7.6）                                                                                                      |
+| **P8**  | 红灯归因不可自证                           | ✅ 已做：`scripts/audit/gate-golden.mjs`（`pnpm quality:golden`），见 §7.12                                                                                          |
+| **P9**  | 沙箱内 eslint 不可重复执行                 | ❌ 未做（环境问题）                                                                                                                                                  |
+| **P10** | **孤岛脚本"写完再没人跑"**                 | ✅ 已做：可达性门禁补三条"假绿"通道 + 孤岛台账（7 个已登记，只能变小），见 §7.13                                                                                     |
 
 ### 7.2 量化验证：修复前后与本文 §2 的独立统计逐项吻合
 
@@ -785,49 +785,49 @@ $ node scripts/audit/gate-golden.mjs attrib quality:exports
 
 ### 7.13-1 被测事实：`scripts/` 下 76 个脚本的三层分类
 
-| 层                     | 数量 | 说明                                                                               |
-| ---------------------- | ---- | ---------------------------------------------------------------------------------- |
-| 自称门禁（含 exit-1）  | 56   | 其中**受管辖 44**（`scripts/quality/` 或 check-/verify-/validate-/assert-/enforce- 命名）/ 工具类 12 |
-| 其余脚本               | 32   | 诊断、报告器、共享库、构建助手                                                     |
-| **未接入 lint/CI 链路** | 21   | 有接线的人工工具 14 ＋ **零引用孤岛 7**                                             |
+| 层                      | 数量 | 说明                                                                                                 |
+| ----------------------- | ---- | ---------------------------------------------------------------------------------------------------- |
+| 自称门禁（含 exit-1）   | 56   | 其中**受管辖 44**（`scripts/quality/` 或 check-/verify-/validate-/assert-/enforce- 命名）/ 工具类 12 |
+| 其余脚本                | 32   | 诊断、报告器、共享库、构建助手                                                                       |
+| **未接入 lint/CI 链路** | 21   | 有接线的人工工具 14 ＋ **零引用孤岛 7**                                                              |
 
 **7 个孤岛（零引用 = 没有 npm script、没有别的脚本调用、没有 spec 引用）**：
 
-| 脚本                                        | 判据 | 处置                                                     |
-| ------------------------------------------- | ---- | -------------------------------------------------------- |
-| `scripts/audit/compare-routes.mjs`          | 1384 行 | 保留（人工审计工具，依赖 codegen 产物）                  |
-| `scripts/audit/probe-route-module-attribution.mjs` | 39 行 | **建议删除**（一次性探针，结论已入文档）                 |
-| `scripts/generate-api-coverage-report.mjs`  | 162 行 | **建议删除**（与 `quality:coverage` / `quality:coverage-report` 职能重叠） |
-| `scripts/quality/debt-weekly-report.mjs`    | 174 行 | 保留（按周人工/定时运行）                                |
-| `scripts/quality/probe-contract-drift.mjs`  | 78 行 | 保留（§7.11-2 已修好，仍是人工取证工具）                 |
-| `scripts/release/merge-release-notes.cjs`   | 5761 B | **建议删除**（上游脚本副本；本仓 CI 从 `.action-repo/` 加载，本仓这份从未被调用） |
-| `scripts/update-doc-hashes.mjs`             | 117 行 | 保留（自述 one-shot helper）                             |
+| 脚本                                               | 判据    | 处置                                                                              |
+| -------------------------------------------------- | ------- | --------------------------------------------------------------------------------- |
+| `scripts/audit/compare-routes.mjs`                 | 1384 行 | 保留（人工审计工具，依赖 codegen 产物）                                           |
+| `scripts/audit/probe-route-module-attribution.mjs` | 39 行   | **建议删除**（一次性探针，结论已入文档）                                          |
+| `scripts/generate-api-coverage-report.mjs`         | 162 行  | **建议删除**（与 `quality:coverage` / `quality:coverage-report` 职能重叠）        |
+| `scripts/quality/debt-weekly-report.mjs`           | 174 行  | 保留（按周人工/定时运行）                                                         |
+| `scripts/quality/probe-contract-drift.mjs`         | 78 行   | 保留（§7.11-2 已修好，仍是人工取证工具）                                          |
+| `scripts/release/merge-release-notes.cjs`          | 5761 B  | **建议删除**（上游脚本副本；本仓 CI 从 `.action-repo/` 加载，本仓这份从未被调用） |
+| `scripts/update-doc-hashes.mjs`                    | 117 行  | 保留（自述 one-shot helper）                                                      |
 
 ### 7.13-2 根因：可达性门禁有三条"假绿"通道（一条已存在，两条潜在）
 
 `check-gate-reachability.mjs` 回答"这个脚本会不会被执行"。它自己会**把"没人跑"判成"有人跑"** —— 这类错比漏报危险，因为它让人放心。
 
-| # | 通道 | 后果 | 修法 |
-| - | ---- | ---- | ---- |
-| 1 | **枚举盲区**：`collectExitOneScripts()` 只收正文含 `process.exitCode = 1` 的脚本 | `scripts/quality/` 下**不含 exit-1** 的诊断脚本对门禁**完全隐形** —— `probe-contract-drift.mjs` 坏了半年没人知道（§7.11-2 的根因） | 枚举改由**目录**决定（`collectScripts()` 收 `scripts/` 下全部脚本）；"自称门禁"只用来**分类** |
-| 2 | **注释自指假绿**：可达性 = "谁**调用**了它"，但旧实现扫的是**原始文本**（含注释） | 在任一**可达**脚本的注释里写一句 `scripts/quality/xxx.mjs`，xxx 立即变成"可达"。**本门禁自己的文档注释里就写着 `probe-contract-drift.mjs`——实测把它从孤岛"救活"** | 先 `stripComments()` 再抽引用（`@discovers-gates` 标记按约定写在注释里，故标记仍从原文取） |
-| 3 | **相对引用解析错**：`import "./lib/stable-id.mjs"` 被当成**仓库根相对** | 共享库（`lib/stable-id.mjs`、`contract-module-map.mjs`）解析不到 ⇒ import 图断开，库会被误判成孤岛 | `extractReferences(text, baseDir)` 按**引用者目录**解析 `./` `/../` |
+| #   | 通道                                                                              | 后果                                                                                                                                                              | 修法                                                                                          |
+| --- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 1   | **枚举盲区**：`collectExitOneScripts()` 只收正文含 `process.exitCode = 1` 的脚本  | `scripts/quality/` 下**不含 exit-1** 的诊断脚本对门禁**完全隐形** —— `probe-contract-drift.mjs` 坏了半年没人知道（§7.11-2 的根因）                                | 枚举改由**目录**决定（`collectScripts()` 收 `scripts/` 下全部脚本）；"自称门禁"只用来**分类** |
+| 2   | **注释自指假绿**：可达性 = "谁**调用**了它"，但旧实现扫的是**原始文本**（含注释） | 在任一**可达**脚本的注释里写一句 `scripts/quality/xxx.mjs`，xxx 立即变成"可达"。**本门禁自己的文档注释里就写着 `probe-contract-drift.mjs`——实测把它从孤岛"救活"** | 先 `stripComments()` 再抽引用（`@discovers-gates` 标记按约定写在注释里，故标记仍从原文取）    |
+| 3   | **相对引用解析错**：`import "./lib/stable-id.mjs"` 被当成**仓库根相对**           | 共享库（`lib/stable-id.mjs`、`contract-module-map.mjs`）解析不到 ⇒ import 图断开，库会被误判成孤岛                                                                | `extractReferences(text, baseDir)` 按**引用者目录**解析 `./` `/../`                           |
 
 还有第 4 条是**我修完前三条后新撞出来的**：
 
-| # | 通道 | 后果 | 修法 |
-| - | ---- | ---- | ---- |
-| 4 | **反例夹具假接线**：把"spec 文本里出现过脚本名"当成"有人跑它" | spec 里 `expect(GATE_LIKE.test("scripts/audit/compare-routes.mjs")).toBe(false)` 这种**反例夹具**会把真孤岛从台账抹掉；实测它让 2 个孤岛"消失"，反过来把台账判成腐烂 | spec 只认**解析得到的路径引用**（`new URL("../../scripts/x.cjs", import.meta.url)` / `import`），不认文本里出现的名字 |
+| #   | 通道                                                          | 后果                                                                                                                                                                 | 修法                                                                                                                  |
+| --- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 4   | **反例夹具假接线**：把"spec 文本里出现过脚本名"当成"有人跑它" | spec 里 `expect(GATE_LIKE.test("scripts/audit/compare-routes.mjs")).toBe(false)` 这种**反例夹具**会把真孤岛从台账抹掉；实测它让 2 个孤岛"消失"，反过来把台账判成腐烂 | spec 只认**解析得到的路径引用**（`new URL("../../scripts/x.cjs", import.meta.url)` / `import`），不认文本里出现的名字 |
 
 > 这四条是同一个病的四个切面：**把"文本里出现过"当成"真的执行了"**。与 §7.11-2 的 `probe-contract-drift` 用正则去咬另一个文件的源码、与 §2.2 的 β（字符窗口跨块）同源 —— 都是**把"相邻"当成"相关"**。
 
 ### 7.13-3 变异自证（新增的三种失败模式真的会失败）
 
-| 变异                                         | 期望                     | 实测                                                     |
-| -------------------------------------------- | ------------------------ | -------------------------------------------------------- |
-| 新造一个零引用脚本 `scripts/quality/orphan-probe-tmp.mjs` | 报"未登记的孤岛"          | ✗ 未登记的孤岛脚本：`scripts/quality/orphan-probe-tmp.mjs`，exit 1 |
-| 台账里登记一个**不存在**的文件                | 报"孤岛台账腐烂"          | ✗ `does-not-exist.mjs —— 文件已不存在`，exit 1            |
-| 关闭 `stripComments` 里的**正则识别**（spec 变异） | 恰好 1 条用例红           | `17 tests \| 1 failed`，红的正是"正则字面量里的引号/反引号不能让词法器错位" |
+| 变异                                                      | 期望             | 实测                                                                        |
+| --------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------- |
+| 新造一个零引用脚本 `scripts/quality/orphan-probe-tmp.mjs` | 报"未登记的孤岛" | ✗ 未登记的孤岛脚本：`scripts/quality/orphan-probe-tmp.mjs`，exit 1          |
+| 台账里登记一个**不存在**的文件                            | 报"孤岛台账腐烂" | ✗ `does-not-exist.mjs —— 文件已不存在`，exit 1                              |
+| 关闭 `stripComments` 里的**正则识别**（spec 变异）        | 恰好 1 条用例红  | `17 tests \| 1 failed`，红的正是"正则字面量里的引号/反引号不能让词法器错位" |
 
 > 第三条尤其值得记：`stripComments` 是**朴素词法器**，遇到正则字面量里的 `` ` ``、`"`、`'` 会进入"字符串态"再不出来，于是**其后整篇注释都剥不掉** —— 而 `extractReferences` 自己那个正则的字符类里恰好同时含这三个字符。这不是 hypothetical：第一版就踩了，表现是"孤岛从 7 个变 5 个"。
 
@@ -849,22 +849,22 @@ $ node scripts/audit/gate-golden.mjs attrib quality:exports
 
 ### 7.13-5 P6 长尾：口径重测（**27/18 → 52/37**）与本轮成果
 
-| 口径                                   | 数值      |
-| -------------------------------------- | --------- |
-| `scripts/quality/*.mjs`                | **52**    |
-| 有 spec 引用（本轮前 → 后）             | 11 → **15** |
-| 无 spec 引用（本轮前 → 后）             | 41 → **37** |
+| 口径                        | 数值        |
+| --------------------------- | ----------- |
+| `scripts/quality/*.mjs`     | **52**      |
+| 有 spec 引用（本轮前 → 后） | 11 → **15** |
+| 无 spec 引用（本轮前 → 后） | 41 → **37** |
 
 > **口径说明**：审计原表写"27 个 quality 脚本中 18 个无 spec"，而现状是 52 个脚本。原口径是**当时的脚本数 + `grep -rl <stem> spec/`**；脚本数后来长到 52（含 18 个 granular），且附录 A 那条 grep 在本轮 spec 变多后不再等价。故 §5/§7.1 的"18"应读作**旧口径**，本文以 52/37 为准。
 
 **本轮新守住 4 个门禁**（均先导出纯函数 + 双模式入口，再补 spec + `.d.mts`）：
 
-| 门禁                       | 为什么它值得先守                                                                 | spec 用例数 |
-| -------------------------- | -------------------------------------------------------------------------------- | ----------- |
-| `check-gate-reachability`  | 它自己就是"守门人的守门人"，且本轮刚被大改（§7.13-2 三条通道）                    | 17          |
-| `check-no-default-key`     | 防的是**公开常量密钥回归**（`legacyPickleKey ?? "DEFAULT_KEY"`，端侧 E2EE 归零）   | 7           |
-| `check-log-sensitive`      | 警告型门禁最大的失效方式是**噪音**（一吵人就整体忽略），两侧判据都要钉死           | 8           |
-| `check-waiver-expiry`      | P3 的到期强制；**边界错一天**就变成"每逢到期日假红"或"债务永不归还"                | 8           |
+| 门禁                      | 为什么它值得先守                                                                 | spec 用例数 |
+| ------------------------- | -------------------------------------------------------------------------------- | ----------- |
+| `check-gate-reachability` | 它自己就是"守门人的守门人"，且本轮刚被大改（§7.13-2 三条通道）                   | 17          |
+| `check-no-default-key`    | 防的是**公开常量密钥回归**（`legacyPickleKey ?? "DEFAULT_KEY"`，端侧 E2EE 归零） | 7           |
+| `check-log-sensitive`     | 警告型门禁最大的失效方式是**噪音**（一吵人就整体忽略），两侧判据都要钉死         | 8           |
+| `check-waiver-expiry`     | P3 的到期强制；**边界错一天**就变成"每逢到期日假红"或"债务永不归还"              | 8           |
 
 **结构性发现（剩余 37 个的高杠杆解法）**：剩下的无 spec 里，**18 个 `check-*-granular-coverage.mjs` 全在其中**。它们不是 18 份逻辑，而是**同一模板的 18 份副本**——`readRelative` / `escapeRegex` / `hasMethod` / `collectMissing` 四个 helper 逐字重复，各文件只有 `CHECKS` 数据不同。
 因此正确解法不是补 18 个 spec，而是**抽 `scripts/quality/lib/granular-coverage.mjs` + 一份 spec**，18 个门禁只留数据。这一步可把"无 spec"从 37 一次性压到 ~19，且顺带消掉 18 份重复代码。**本轮未做**（涉及 18 个文件，需单独一轮 + 对拍自证）。
@@ -887,20 +887,20 @@ $ node scripts/audit/gate-golden.mjs attrib quality:exports
 
 ### 7.14-1 `quality:exports` 红灯：文档没跟上 `f728df035` 的重命名
 
-| 项 | 事实 |
-|---|---|
-| 现象 | `quality:contracts` 的第一步即挂 ⇒ CI 全链红 |
-| 根因 | `docs/api-contract/exports.md` 里仍写 `./notification`；`package.json` 早在 **`f728df035`**（`refactor(sdk)!`，BREAKING CHANGE 明写"`./notification` 重命名为 `./notifications`"）就已改名，该提交的 `--stat` 从不碰文档 |
-| 修法 | 改文档那一行（`./notification` → `./notifications`） |
-| 下游核查 | 全仓搜 `'./notification'` 裸引用（含 ts/mjs/cjs/json/md）→ 除本文档外无残留 |
-| 结果 | ✅ 50 exports / 50 documented rows，`EXIT=0` |
+| 项       | 事实                                                                                                                                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 现象     | `quality:contracts` 的第一步即挂 ⇒ CI 全链红                                                                                                                                                                             |
+| 根因     | `docs/api-contract/exports.md` 里仍写 `./notification`；`package.json` 早在 **`f728df035`**（`refactor(sdk)!`，BREAKING CHANGE 明写"`./notification` 重命名为 `./notifications`"）就已改名，该提交的 `--stat` 从不碰文档 |
+| 修法     | 改文档那一行（`./notification` → `./notifications`）                                                                                                                                                                     |
+| 下游核查 | 全仓搜 `'./notification'` 裸引用（含 ts/mjs/cjs/json/md）→ 除本文档外无残留                                                                                                                                              |
+| 结果     | ✅ 50 exports / 50 documented rows，`EXIT=0`                                                                                                                                                                             |
 
 ### 7.14-2 `quality:public-api-docs` 红灯：棘轮 R2 补文档 + R3 下调台账
 
-| 类型 | 内容 | 处置 |
-|---|---|---|
+| 类型                           | 内容                                                                                                                                                                         | 处置                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | **R2**（缺口上升，必须补文档） | 台账快照 2026-10-05 之后新增的 11 个方法缺 `@example` / `@throws`：NotificationsManager 4、RoomManager 3、RoomSummaryManager 1、RoomSummaryKeyManager 1、TurnServerManager 2 | 逐个补 JSDoc（对齐本仓 `@example` 文风），缺口 763→752、220→215，正好 −11/−5 |
-| **R3**（缺口收窄，需下调台账） | AdminFederation / AdminServer / AdminUser 三个 manager 的缺口变小 | `--write-ledger` 下调，台账 `capturedAt` 随之更新 |
+| **R3**（缺口收窄，需下调台账） | AdminFederation / AdminServer / AdminUser 三个 manager 的缺口变小                                                                                                            | `--write-ledger` 下调，台账 `capturedAt` 随之更新                            |
 
 **方法学**：不用"缺口对不上就补"的蛮力，而是 `git log --since=2026-10-05` 定位台账快照之后**真新增**的方法——实测两者 **1:1 对上**，说明棘轮没有误报。补完 `tsc`/`swallow-fallbacks`/`manager-codegen`/`docs-examples` 全部复跑无副作用。
 
@@ -924,40 +924,40 @@ $ node scripts/audit/gate-golden.mjs attrib quality:exports
 
 ### 7.14-4 新暴露 5 个死门禁：**1 个是漏接，4 个是登记**
 
-判据一改，立刻显形 5 个"在 `scripts/quality/` 下或叫 check-*，但没有任何入口会跑"的脚本：
+判据一改，立刻显形 5 个"在 `scripts/quality/` 下或叫 check-\*，但没有任何入口会跑"的脚本：
 
-| 脚本 | npm 入口 | 判定 | 处置 |
-|---|---|---|---|
-| `scripts/quality/find-lowest-coverage-modules.mjs` | `quality:coverage:weak-modules` | **漏接**：兄弟 `weak-files` 早在 `systemic_refactor_quality_gate.yml:94`，它却没有 | ✅ **接线**（加 workflow 步骤，advisory 不阻断） |
-| `scripts/check-bundle-size.mjs` | `quality:bundle-size` | 只被 `prepublishOnly` 引用；本门禁的可达根是 lint + workflow，发布钩不在图内 | 登记豁免（pnpm publish 必过此步，非无人跑） |
-| `scripts/quality/generate-coverage-report.mjs` | `quality:coverage-report` | 产出 markdown 的**生成器**（写文件），不是判定门禁 | 登记豁免 |
-| `scripts/quality/debt-weekly-report.mjs` | 无 | 周报生成器，人工/定时运行 | 由孤岛台账**迁到**豁免台账（升格为门禁后走门禁纪律） |
-| `scripts/quality/probe-contract-drift.mjs` | 无 | 诊断脚本，自述"不是门禁" | 同上 |
+| 脚本                                               | npm 入口                        | 判定                                                                               | 处置                                                 |
+| -------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `scripts/quality/find-lowest-coverage-modules.mjs` | `quality:coverage:weak-modules` | **漏接**：兄弟 `weak-files` 早在 `systemic_refactor_quality_gate.yml:94`，它却没有 | ✅ **接线**（加 workflow 步骤，advisory 不阻断）     |
+| `scripts/check-bundle-size.mjs`                    | `quality:bundle-size`           | 只被 `prepublishOnly` 引用；本门禁的可达根是 lint + workflow，发布钩不在图内       | 登记豁免（pnpm publish 必过此步，非无人跑）          |
+| `scripts/quality/generate-coverage-report.mjs`     | `quality:coverage-report`       | 产出 markdown 的**生成器**（写文件），不是判定门禁                                 | 登记豁免                                             |
+| `scripts/quality/debt-weekly-report.mjs`           | 无                              | 周报生成器，人工/定时运行                                                          | 由孤岛台账**迁到**豁免台账（升格为门禁后走门禁纪律） |
+| `scripts/quality/probe-contract-drift.mjs`         | 无                              | 诊断脚本，自述"不是门禁"                                                           | 同上                                                 |
 
 waiver 台账此前为空（"45 个门禁全部可达"），本轮首批登记 4 条，每条带 reason；孤岛台账相应删除 2 条（升格）。
 
 ### 7.14-5 granular 抽库：18 份副本 → 1 个共享引擎 + 18 份数据
 
-| 步骤 | 实测 |
-|---|---|
-| 预实验 | `room-space-search` 用的是宽松 `includes` 判据，其余 17 份是带词边界的正则。先在副本上换成严格判据 → **stdout 逐字节一致** ⇒ 可安全统一（否则得保留双判据） |
-| 存金标准 | 对 18 个门禁各 `capture` 一份 stdout（P8 工具） |
-| 抽库 | 建 `scripts/quality/lib/granular-coverage.mjs`；18 个文件重写为「`CHECKS` 数据（含注释逐字保留）+ 一行 `runGranularCoverage({title, checks})`」 |
-| 对拍 | `verify` × 18 → **18/18 逐字节一致**，零行为变化 |
-| 补 spec | `spec/unit/granular-coverage-gate.spec.ts`（14 例），重点钉死**两侧判据严宽不对称**：`hasMethod`（owner 侧）带词边界、`hasTestHit`（测试侧）是字面 `method(` 子串。"统一"成同一套会让 18 个门禁集体假红或假绿 |
-| 变异自证 | 去掉 `hasMethod` 的 `\b` → **恰好 1 条** spec 红；还原后复跑绿 |
+| 步骤     | 实测                                                                                                                                                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 预实验   | `room-space-search` 用的是宽松 `includes` 判据，其余 17 份是带词边界的正则。先在副本上换成严格判据 → **stdout 逐字节一致** ⇒ 可安全统一（否则得保留双判据）                                                   |
+| 存金标准 | 对 18 个门禁各 `capture` 一份 stdout（P8 工具）                                                                                                                                                               |
+| 抽库     | 建 `scripts/quality/lib/granular-coverage.mjs`；18 个文件重写为「`CHECKS` 数据（含注释逐字保留）+ 一行 `runGranularCoverage({title, checks})`」                                                               |
+| 对拍     | `verify` × 18 → **18/18 逐字节一致**，零行为变化                                                                                                                                                              |
+| 补 spec  | `spec/unit/granular-coverage-gate.spec.ts`（14 例），重点钉死**两侧判据严宽不对称**：`hasMethod`（owner 侧）带词边界、`hasTestHit`（测试侧）是字面 `method(` 子串。"统一"成同一套会让 18 个门禁集体假红或假绿 |
+| 变异自证 | 去掉 `hasMethod` 的 `\b` → **恰好 1 条** spec 红；还原后复跑绿                                                                                                                                                |
 
 **收益**：18 份重复 helper（~4 个 × 18）收敛为 1 处；P6 覆盖从 15 直接到 33（见 §7.14-6）；聚合运行器 `run-granular-coverage-gates.mjs` 复跑 18/18 通过。
 
 ### 7.14-6 P6 长尾：口径更新 **52 中已覆盖 34 / 未覆盖 18**
 
-| 口径 | §7.13-5 结束时 | 本轮结束 |
-|---|---|---|
-| `scripts/quality/*.mjs` 总数 | 52 | 52 |
-| 直接有 spec | 15 | 16 |
-| 经共享引擎覆盖（18 个 granular） | 0 | 18 |
-| **合计已覆盖** | 15 | **34** |
-| **仍无 spec** | 37 | **18** |
+| 口径                             | §7.13-5 结束时 | 本轮结束 |
+| -------------------------------- | -------------- | -------- |
+| `scripts/quality/*.mjs` 总数     | 52             | 52       |
+| 直接有 spec                      | 15             | 16       |
+| 经共享引擎覆盖（18 个 granular） | 0              | 18       |
+| **合计已覆盖**                   | 15             | **34**   |
+| **仍无 spec**                    | 37             | **18**   |
 
 计数按**真实引用**（spec 里解析得到的路径），不按"文本里出现过名字"——后者会把 spec 里的反例夹具当接线（§7.13-2 第 4 条）。
 
@@ -965,11 +965,11 @@ waiver 台账此前为空（"45 个门禁全部可达"），本轮首批登记 4
 
 删除前确认：三个文件均**已被 git 跟踪**（可回溯），且全仓除历史审计文档与台账自身外**无任何代码引用**。
 
-| 删除的文件 | 理由 |
-|---|---|
-| `scripts/audit/probe-route-module-attribution.mjs`（39 行） | 一次性探针：硬编码 9 条 route 探测归属，结论已入审计文档 |
-| `scripts/generate-api-coverage-report.mjs`（162 行） | 职能与 `quality:coverage`（repo/critical）及 `quality:coverage-report` 重叠 |
-| `scripts/release/merge-release-notes.cjs` | 上游 `matrix-org/matrix-js-sdk` 的 release 脚本副本；本仓 CI 从 `.action-repo/` sparse-checkout 加载，这份从未被调用 |
+| 删除的文件                                                  | 理由                                                                                                                 |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `scripts/audit/probe-route-module-attribution.mjs`（39 行） | 一次性探针：硬编码 9 条 route 探测归属，结论已入审计文档                                                             |
+| `scripts/generate-api-coverage-report.mjs`（162 行）        | 职能与 `quality:coverage`（repo/critical）及 `quality:coverage-report` 重叠                                          |
+| `scripts/release/merge-release-notes.cjs`                   | 上游 `matrix-org/matrix-js-sdk` 的 release 脚本副本；本仓 CI 从 `.action-repo/` sparse-checkout 加载，这份从未被调用 |
 
 剩余的 2 个孤岛（`audit/compare-routes.mjs` 1384 行审计工具、`update-doc-hashes.mjs` 自述 one-shot）保留并已在台账登记。
 
