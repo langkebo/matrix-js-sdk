@@ -1,0 +1,64 @@
+{
+    "note": "类型表 `src/matrix-client-extensions.ts` 的 `interface MatrixClientExtensionMethods` 声明了、但**运行时不存在**的方法台账。守卫: spec/unit/manager-accessor-wiring.spec.ts（真实初始化后逐个检查 MatrixClient.prototype）。**这是棘轮台账：只能减少**。",
+    "why": "类型表声明的方法必须在运行时真的挂在 MatrixClient.prototype 上，否则调用方「类型检查通过、运行时 TypeError」。判据来自 `knip.ts` 注释里记过的真实事故（worker / room-alias 曾因未接入 MODULE_DEFS 而让 client.getWorkerManager() 在运行时是 undefined）。",
+    "measuredAt": "2026-10-07",
+    "measuredBy": "真实执行 `extendMatrixClientWithManagers({ includeAll: true })` 后，逐个 `typeof MatrixClient.prototype[name] === 'function'`。**不是静态扫描** —— 静态能看到挂载代码，但看不到那些代码有没有被动态 import 执行到。",
+    "groups": {
+        "pendingWiring": {
+            "reason": "模块实现了 extendMatrixClient，但尚未登记进 `src/manager-extensions/index.ts` 的 MODULE_DEFS（knip.ts 里这批条目的注释是 'older modules pending migration'）。修法：补 MODULE_DEFS 条目 + 对应 option 字段，重跑 generate-manager-extensions.mjs。",
+            "methods": [
+                "getAggregationsManager",
+                "getCaptchaManager",
+                "getCryptoStoreManager",
+                "getDeviceKeysManager",
+                "getDirectMessageManager",
+                "getDirectoryManager",
+                "getEphemeralManager",
+                "getIdentityManager",
+                "getInvitesManager",
+                "getLifecycleManager",
+                "getMembershipManager",
+                "getPinnedMessagesManager",
+                "getPushNotificationsManager",
+                "getPushRulesManager",
+                "getRetentionManager",
+                "getRoomCreationManager",
+                "getRoomEventsManager",
+                "getRoomKeysManager",
+                "getRoomMemberManager",
+                "getSamlAuthManager",
+                "getSessionManager",
+                "getSessionsManager",
+                "getSyncAccumulatorManager",
+                "getUploadsManager",
+                "getWidgetsManager"
+            ]
+        },
+        "notOnMatrixClient": {
+            "reason": "上游 matrix-js-sdk 的 MatrixClient API 残留声明：本 fork 已把实现移到各 Manager（如 getDisplayName → ProfileManager.getDisplayName），但这些方法名仍留在类型表里。于是 `client.getDisplayName()` 类型合法、运行时 undefined。修法二选一：① 从类型表删除（让类型如实，推荐 —— 正确用法是经 Manager）；② 在模块的 extendMatrixClient 里补一层委托。注意其中 4 个已有真实调用点（见 spec 的 `internalCallers` 断言）。",
+            "methods": [
+                "addPushRule",
+                "deleteDevice",
+                "deleteMultipleDevices",
+                "deletePushRule",
+                "getDevice",
+                "getDevices",
+                "getDisplayName",
+                "getMediaApiUrl",
+                "getPushRules",
+                "getRoomEvent",
+                "getRoomStateEvent",
+                "getVerificationRequestsToDevice",
+                "mxcUrlToHttp",
+                "oidcUserInfo",
+                "redact",
+                "removeRoomTag",
+                "sendEmote",
+                "setDeviceName",
+                "setPushRule",
+                "setPusher",
+                "setUserPowerLevel"
+            ]
+        }
+    }
+}
