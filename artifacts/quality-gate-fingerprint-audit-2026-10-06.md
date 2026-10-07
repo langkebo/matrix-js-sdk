@@ -1186,6 +1186,79 @@ CLI 行为均经 gate-golden 对拍**逐字节一致**。
 - 两处已知小缺陷**故意未修**（已在对应 spec 里钉住现状，改它们属判定类改动）：
   `summarizeLcov` 末尾段缺 `end_of_record` 时 `fileCount` 漏计 1（只影响日志）；
   `collectTypeScriptFiles` 传入不存在目录抛 ENOENT（调用方已先 filter）。
+- **`quality:coverage:critical` 三模块不达标**：`admin` 69.00 < 70、`push` 77.14 < 89、
+  `space` 75.71 < 77。**属既有债，不是本轮引入**（本轮只动 spec 与 `.d.mts`，不碰 `src/`），
+  详见 §7.15-11。**未擅自改动 floor** —— `critical-modules.json` 头注明
+  "never lower it without explaining why"，下调需人决策。
+
+#### 7.15-11 全仓复检三轮：共享库层的两个零 spec（2026-10-07）
+
+判定类门禁已 0 个未覆盖之后，把判据下沉一层看 **共享库**：`scripts/quality/lib/` 下
+3 个模块里 **2 个零 spec**，而它们的注释恰恰记着本仓踩过的坑。
+
+| 库                      | 行数 | 被谁依赖                                       | 补的例数 |
+| ----------------------- | ---- | ---------------------------------------------- | -------- |
+| `stable-id.mjs`         | 75   | 所有 baseline 机制（α 缺陷的正解实现）         | 18       |
+| `spec-import-graph.mjs` | 151  | `find-lowest-coverage-{files,modules}`         | 28       |
+| `granular-coverage.mjs` | 187  | 18 个 `check-*-granular-coverage`（已有 spec） | —        |
+
+**`stable-id.mjs` 钉住的四件事**（每条都做了变异自证）：
+
+- 维度连接符必须是 NUL。若用 `|`，`["b|c"]` 与 `["b","c"]` 拼成同一个串 ⇒ **维度边界丢失**，
+  两条不同条目撞成一个 id：修掉一条，另一条被当成"已修复"。这是选 NUL 的唯一理由。
+- `digest` 定长 16：baseline 是可读文本，长度变了等于全量重写。
+- `nextOrdinal` 不折叠：复制粘贴的第二份缺陷要有自己的序数，否则删第一份时它会被当已修复。
+- `normalizeSnippet` 折叠空白：prettier 重排不该让指纹漂移 —— 这是 α 不复发的前提。
+
+**`spec-import-graph.mjs`**：头部注释记的四个历史坑全部转成断言 ——
+`walk` 用 `endsWith` 而非 `path.extname`（后者让 `[".spec.ts"]` 恒为空，即
+「471 源文件 / 0 测试文件」的根因）；`collectSourceFiles` 必须排除 src 下的 spec
+（含 `__generated__` 生成的）；`collectAllSpecFiles` 必须带上 in-src spec；
+模块名与 spec 名不同（`three-pids` ← `threepids`）只能靠 import 图认出。
+
+##### ⚠️ 变异自证的新坑：同一处代码不要同时施加两个变异
+
+10 处变异里有 2 处第一次没抓到，都**不是断言无效，而是变异本身的问题**：
+
+- **M10 被 M9 遮蔽**。两者改在 `buildSpecImportSet` 同一段：M9 删掉了 variants 的第三个
+  元素（`.js` → `.ts` 映射），于是 M10 想让"仓外目标入库"的那个目标**根本解析不出来**，
+  断言无从失败。日志里只打印了 2 个 variant 而不是 3 个才看出来。分开跑立刻拿到红。
+- **M1 构造错了**：最初拿 `filePath` 不同的两组比，而 id 本身是 `filePath#digest`，
+  恒不等。真正的撞车是维度边界丢失 —— 得让 `filePath` 相同、只变维度切分。
+
+**判据**：变异后必须确认 spec 转红；没转红先怀疑变异（无效 / 被遮蔽 / 构造错），
+而不是假设断言有效。这是继上一轮「变异本身纸面通过」之后的第二类。
+
+##### ⚠️ 不要在门禁扫描运行时施加变异
+
+本轮全量扫描在后台跑的同时施加了 `stable-id` 的 4 处变异，结果
+`quality:contracts` 报红 67 条。还原后重跑是 **exit 0，`generated-dto-strictness`
+`current: 67, new: 0`** —— 那 67 条全是变异造出来的假红：改掉 SEPARATOR / digest 长度 /
+ordinal 后，**全仓 baseline 指纹集体失效**，任何 baseline 类门禁都会整批假红。
+
+**判据**：`lib/` 是共享层，动它等于同时动所有依赖方。变异自证期间不要相信任何并发中的
+全量扫描结果；扫完再改、或改完再扫。
+
+##### `quality:coverage:critical` 的红：口径假说被证伪，floor 本身偏高
+
+`critical-modules.json` 的 note 说 floor 来自「各模块自身 spec 的**定向**覆盖率」，
+并注明"可能低于全仓覆盖率"，而门禁读的是**全仓 lcov**。怀疑是口径不一致造成系统性假红，
+于是按 note 描述的方式定向重测（产物写 `/tmp`，不污染工作区）：
+
+| 模块        | floor | 定向实测  | 全仓 lcov | 与 floor 差 |
+| ----------- | ----- | --------- | --------- | ----------- |
+| `src/admin` | 70    | 69.00     | 69.00     | −1.00       |
+| `src/push`  | 89    | **74.28** | 77.14     | **−11.86**  |
+| `src/space` | 77    | 75.71     | 75.71     | −1.29       |
+
+**假说被证伪**：两个口径对这三个模块几乎一致（push 的全仓值反而更高，正合 note 所说
+"跨模块 import 会顺带覆盖"）。所以红的原因是 **floor 本身高于任何口径下的实测**，
+其中 `push` 的 floor 89 自 2026-09-13 设定后从未调整，与实测差 12–15 个百分点。
+
+三个走向均需人决策，**未擅自改动**：① 补测试把 push 提到 89（工程量最大）；
+② 按实测下调 floor（违反棘轮纪律，需提交信息说明理由）；③ 维持红灯并登记为已知债。
+另注：CI 里 `quality:coverage:critical` 读的是同 job 内 `pnpm test --coverage` 的 lcov，
+与本地缓存 lcov 未必同值，**本地红不等于 CI 红**，判断前需取 CI 实测值。
 
 ---
 
@@ -1283,5 +1356,11 @@ CLI 行为逐字节一致；并定位修掉 `quality:report` 240s 超时
 根因是门禁顶层 `process.exit(2)` 逼得 spec 只能抄副本；已改造门禁并改为 import 真模块
 （28 例，含与 `src/http-api/prefix.ts` 的一致性守卫，兑现门禁注释里的空头承诺，见 §7.15-9）。
 至此**判定类门禁 0 个未覆盖**，剩余 6 个全是报告生成器 / 查询器 / runner / 诊断工具；
-口径判据改为「spec 真不真跑这个脚本」而非文件名配对）
+口径判据改为「spec 真不真跑这个脚本」而非文件名配对）；
+**§7.15-11 全仓复检三轮（判据下沉到共享库层）**：`scripts/quality/lib/` 3 个库里
+2 个零 spec，补 `stable-id`(18) 与 `spec-import-graph`(28) 共 46 例，把这两个文件注释里
+记的历史坑全部转成断言；记录变异自证的两类新坑（同一处代码两个变异会**互相遮蔽**、
+变异构造错会"纸面通过"），以及**不要在门禁扫描运行时施加变异**（本轮因此误报
+`quality:contracts` 67 条假红，还原后 exit 0）；并查清 `quality:coverage:critical`
+三模块红的真相是 floor 本身高于实测（口径不一致的假说已定向重测证伪），未擅自改动 floor）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
