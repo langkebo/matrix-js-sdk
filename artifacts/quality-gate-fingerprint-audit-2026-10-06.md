@@ -1545,6 +1545,74 @@ push-notifications / room-creation / room-events / sessions / sync-accumulator /
 **共同点**：**每一层都"看起来完整"，断链都在下一层。** 所以判据要一层层往下验证到
 **可观测的行为**为止，而不是停在"我看到了这段代码/这个文件/这次调用"。
 
+#### 7.15-17 空壳收口（第一批）：31 处转发改走真实能力 + 20 处假声明删除（2026-10-07）
+
+§7.15-16 把问题分成三层（模块能否加载 / 类型声明多不多 / 加载后能否用）。本节收口**第三层**。
+
+**已收口 7 个模块**
+
+| 模块               | 改  | 去处                                                                                                        |
+| ------------------ | --- | ----------------------------------------------------------------------------------------------------------- |
+| push-rules         | 5   | 全部委托 `PushManager`（推送规则的唯一实现）；统一双份 `IPushRule` DTO                                      |
+| room-events        | 6   | 5 处走 `Room`（`getLiveTimeline()` / `findEventById()` / `currentState.events`），1 处走 `EphemeralManager` |
+| invites            | 5+1 | `invite` / `joinRoom` / `leaveRoomChain` / `getRooms` + 成员态；**另修一处活 bug**                          |
+| push-notifications | 4   | 3 处委托 `PushManager`；`getPusherData` **删除**（规范里无此能力）                                          |
+| room-creation      | 4   | `createRoom` + `invite`/`is_direct`；选项模板改**模块内自持**                                               |
+| uploads            | 3   | `uploadContent` / `getCurrentUploads`+`cancelUpload`；`getUploadProgress` **删除**（无 uploadId 概念）      |
+| lifecycle          | 4   | **全部删除**（协议没有"退出/终止/重置客户端"）                                                              |
+
+**三个值得单独记的洞**
+
+1. **`invites.inviteByThreePid` 是活 bug**：实现用 `as unknown as { inviteByThreePid:
+(medium, address, roomId) => … }` 按 `(medium, address, roomId)` 传参，真实签名是
+   `(roomId, medium, address)`（`src/client.ts:2908`）⇒ **运行时 medium 被当成 roomId 发出去**。
+   而类型表注释（`matrix-client-extensions.ts:704-707`）**早就承认**了这处不一致，
+   旧 spec 还把错误顺序断言成期望值 —— 三重掩盖：双重断言 + 注释承认而不修 + 断言固化错误。
+2. **旧 spec 的"假绿"机制**：这些模块的 spec 全部把"运行时不存在的方法"`vi.fn()` 到
+   mockClient 上，于是"转发到不存在的东西"永远测不出来。新 spec 的 mockClient
+   **故意不提供**那些方法 —— 实现若回退，立刻 TypeError 而非"通过"。
+3. **测试构造也会失效**：`mockClient.getAccountData = () => …` 直接赋普通函数会**换掉 spy**，
+   后续 `toHaveBeenCalledWith` 以 "[Function] is not a spy" 失败。要用 `mockReturnValue`。
+
+**结构性收获：删声明让"转发到不存在"变成编译错误**
+
+`matrix-client-extensions.ts` 里有一批 MatrixClient **从未实现**的方法声明（上游 API 的表面，
+能力已移进各 Manager）。本节删了 20 条（push 7 + pusher 4 + invite 5 + lifecycle 4）。
+效果是**根治**：任何"转发到不存在方法"的写法从此**直接编译失败**，不必等运行时撞到。
+
+**"改名实验"：用编译器拿完备清单（本节最有价值的一步）**
+
+把剩余假声明**临时改名**（`getRoomName` → `__DEAD__getRoomName`）后跑 `tsc`，
+报错 **25 条，全部落在已知位置**：
+
+```
+src/device-keys(3)  src/lifecycle(4)  src/room-creation(4)  src/sessions(6)
+src/sync-accumulator(3)  spec/test-utils/client.ts(2)
+```
+
+⇒ ① 没有任何**模块外**的生产代码依赖这些假声明；② 手工 grep 会漏，用编译器扫才完备。
+（实验后已从副本恢复，工作区零残留。）
+
+**实验同时暴露了我自己判据的一个缺陷**：改名正则写成 `(name)(\s*[(:<])`，而 `x?: T`
+这种**可选属性**里 `?` 在 `:` 之前 ⇒ 不匹配 ⇒ 漏计（"79"偏低，实际 84 处被改名）。
+**登记规则：查声明时 `x?: T` 与 `x: T` 必须一并纳入。**
+
+**剩余 3 个模块 / 12 处（待决策，本轮未动）**
+
+| 模块             | 处  | 判定                                                                                                                                                                                  |
+| ---------------- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| device-keys      | 3   | `getDeviceKeys` 与既有 `getUserDevices` **重复**（删）；`uploadDeviceKeys` → `client.uploadKeysRequest`（可映射）；`hasDevice` → `deviceManager.getCachedDevice() !== null`（可映射） |
+| sessions         | 6   | Matrix 规范**没有 session 概念**（只有 device）⇒ 要么映射到 `DeviceManager`（语义混用风险），要么整模块删除                                                                           |
+| sync-accumulator | 5   | `client.syncAccumulator` **不存在** ⇒ `get/setSyncAccumulator` 也是坏的（永远返回 null）。要么改为模块内自持 `SyncAccumulator` 实例，要么删                                           |
+
+**为什么停在这里**：这三处属"语义映射 vs 删除模块"的架构选择 —— 前者可能造出像
+`inviteByThreePid` 那样的**语义错位**，后者动公开模块。留给下一次决策。
+
+**台账同步（守卫 spec 由红转绿）**：`notOnMatrixClient` 21 → 16、`emptyShellModules` 10 → **3**、
+`pendingWiring` 2 → 2。守卫 spec 的 3 条台账断言本轮**转红**，这正是它该做的事：模块修好了，
+账必须改。反向断言那一条还额外暴露了一个坑 —— `push-rules` 的**说明注释**里引用了原写法，
+被 needle 命中 ⇒ **先剥注释再断言**（与「注释里写路径即算可达」是同一坑的镜像）。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1670,4 +1738,16 @@ TypeError」**（25 个模块未接线 + 21 个上游 API 残留声明），登�
 `getDirectMessageManager` 是误登记（已在 MODULE_DEFS），而 **`getSamlAuthManager` 是真 bug**
 （MODULE_DEFS 标了 `standalone:false` ⇒ 生成器不产出 import 块 ⇒ saml 从不被加载），已修。
 台账 pendingWiring 25 → **23**；三连同构：spec 存在/代码存在/**调用存在**，都可「形似而神不至」）
+**§7.15-16 判据漏了一半**：把 `MatrixClientInternalMethods` 纳入（它自称"类中已实现"，
+实际另缺 74 个），合计 95 个假声明；新一类**空壳模块**（模块自己的方法转发给不存在的方法），
+**接线治不了它**；四连同构：spec 存在 / 代码存在 / 调用存在 / **模块存在且能加载**，断链都在下一层）；
+**§7.15-17 空壳收口第一批**：7 个模块 31 处转发改走真实能力
+（push-rules→PushManager、room-events→Room/EphemeralManager、invites→invite/joinRoom/leaveRoomChain、
+push-notifications→PushManager、room-creation→createRoom、uploads→uploadContent、lifecycle→**删除**），
+并修掉一处**活 bug**（`inviteByThreePid` 用双重断言按反向顺序传参，运行时 medium 被当成 roomId；
+类型表注释早已承认、旧 spec 还把错误顺序断言成期望值）；删 20 条 MatrixClient 从未实现的声明，
+使"转发到不存在"**直接编译失败**；用**改名实验**（临时改名后跑 tsc）拿到完备清单 ——
+25 条报错全部落在已知位置，证明无模块外依赖（同时暴露我自己的判据漏了 `x?: T` 形式）；
+台账 notOnMatrixClient 21→16、emptyShellModules 10→**3**；剩余 device-keys / sessions /
+sync-accumulator 共 12 处属"语义映射 vs 删模块"的架构选择，留给下一次决策）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
