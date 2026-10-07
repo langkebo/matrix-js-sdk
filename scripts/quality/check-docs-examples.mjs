@@ -51,18 +51,18 @@ const TSCONFIG_PATH = path.join(GENERATED_DIR, "tsconfig.json");
  *
  * 维护约定：新增示例后把此数字同步调高；有意删除示例时同步调低。
  */
-const MIN_EXTRACTED_BLOCKS = 6;
+export const MIN_EXTRACTED_BLOCKS = 6;
 
 /** 需要映射到源码目录的子路径入口。新增文档示例用到的新入口时需在此登记。 */
-const SUBPATH_ENTRIES = {
+export const SUBPATH_ENTRIES = {
     // 根入口：src/index.ts 汇聚了 MatrixClient / 事件枚举 / 类型
     "@langkebo/matrix-js-sdk": ["src/index.ts"],
     // crypto 子入口：decodeRecoveryKey / VerificationRequestEvent 等只在这里
     "@langkebo/matrix-js-sdk/crypto": ["src/crypto-api/index.ts"],
 };
 
-function listMarkdownFiles(dir) {
-    const abs = path.join(PROJECT_ROOT, dir);
+export function listMarkdownFiles(dir, root = PROJECT_ROOT) {
+    const abs = path.join(root, dir);
     if (!fs.existsSync(abs)) {
         console.error(`[docs-examples] 目录不存在: ${dir}`);
         process.exit(1);
@@ -76,10 +76,14 @@ function listMarkdownFiles(dir) {
     return out.sort();
 }
 
-/** 抽取所有 ```typescript title="..." 围栏。 */
-function extractBlocks(markdownPath) {
-    const abs = path.join(PROJECT_ROOT, markdownPath);
-    const lines = fs.readFileSync(abs, "utf8").split("\n");
+/**
+ * 抽取所有 ```typescript title="..." 围栏。
+ *
+ * 纯函数：不读文件、不写文件、不 exit —— 未闭合围栏作为 `unclosed` 返回，
+ * 由调用方决定怎么报错。这样「围栏写法被改坏」这件事可以在 spec 里直接构造，
+ * 不必真的往 docs/guide 里塞一个坏文件。
+ */
+export function parseBlocks(lines, markdownPath) {
     const blocks = [];
     let open = null;
 
@@ -101,44 +105,75 @@ function extractBlocks(markdownPath) {
         }
     }
 
-    if (open !== null) {
-        console.error(`[docs-examples] ${markdownPath}:${open.startLine} 代码围栏未闭合`);
+    return {
+        blocks,
+        unclosed: open === null ? null : { markdownPath, startLine: open.startLine },
+    };
+}
+
+/** 读文件后抽取；未闭合围栏保留原先的「报错 + 置 exitCode」语义。 */
+export function extractBlocks(markdownPath, root = PROJECT_ROOT) {
+    const abs = path.join(root, markdownPath);
+    const { blocks, unclosed } = parseBlocks(fs.readFileSync(abs, "utf8").split("\n"), markdownPath);
+
+    if (unclosed) {
+        console.error(`[docs-examples] ${unclosed.markdownPath}:${unclosed.startLine} 代码围栏未闭合`);
         process.exitCode = 1;
     }
     return blocks;
+}
+
+/**
+ * 规划落盘目标。
+ *
+ * 两件必须守住的事：
+ *   · title 只取 basename —— 否则 `title="../../etc/passwd"` 会写到仓外；
+ *   · 非 .ts 结尾与重复 title 都是**错误**，收集起来由调用方统一报错，
+ *     而不是遇到第一个就 return（那样后面的问题永远看不见）。
+ */
+export function planGenerated(blocks) {
+    const planned = [];
+    const errors = [];
+
+    for (const block of blocks) {
+        const fileName = path.basename(block.title);
+        if (!fileName.endsWith(".ts")) {
+            errors.push(`[docs-examples] ${block.markdownPath}:${block.fenceLine} title 必须以 .ts 结尾`);
+            continue;
+        }
+        const duplicate = planned.find((w) => w.fileName === fileName);
+        if (duplicate) {
+            errors.push(
+                `[docs-examples] 重复的 title="${block.title}"` +
+                    `（${duplicate.markdownPath} 与 ${block.markdownPath}）`,
+            );
+            continue;
+        }
+        planned.push({ fileName, ...block });
+    }
+
+    return { planned, errors };
 }
 
 function writeGenerated(blocks) {
     fs.rmSync(GENERATED_DIR, { recursive: true, force: true });
     fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
-    const written = [];
-    for (const block of blocks) {
-        // title 只取 basename，防止有人用 "../../etc/passwd" 这类路径
-        const fileName = path.basename(block.title);
-        if (!fileName.endsWith(".ts")) {
-            console.error(`[docs-examples] ${block.markdownPath}:${block.fenceLine} title 必须以 .ts 结尾`);
-            process.exitCode = 1;
-            continue;
-        }
-        const target = path.join(GENERATED_DIR, fileName);
-        if (fs.existsSync(target)) {
-            console.error(
-                `[docs-examples] 重复的 title="${block.title}"` +
-                    `（${written.find((w) => w.fileName === fileName)?.markdownPath} 与 ${block.markdownPath}）`,
-            );
-            process.exitCode = 1;
-            continue;
-        }
-        fs.writeFileSync(target, `${block.body}\n`);
-        written.push({ fileName, ...block });
+    const { planned, errors } = planGenerated(blocks);
+    for (const message of errors) {
+        console.error(message);
+        process.exitCode = 1;
+    }
+
+    for (const block of planned) {
+        fs.writeFileSync(path.join(GENERATED_DIR, block.fileName), `${block.body}\n`);
     }
 
     fs.writeFileSync(TSCONFIG_PATH, `${JSON.stringify(buildTsconfig(), null, 4)}\n`);
-    return written;
+    return planned;
 }
 
-function buildTsconfig() {
+export function buildTsconfig() {
     return {
         compilerOptions: {
             target: "esnext",
@@ -185,7 +220,7 @@ function main() {
 
     const scope = dirArg ?? SCOPE_DIR;
     const markdownFiles = listMarkdownFiles(scope);
-    const blocks = markdownFiles.flatMap(extractBlocks);
+    const blocks = markdownFiles.flatMap((file) => extractBlocks(file));
     const written = writeGenerated(blocks);
 
     if (process.exitCode === 1) {
@@ -247,4 +282,8 @@ function main() {
     process.exit(tsc.ok ? 0 : 1);
 }
 
-main();
+// 顶层裸跑 main() 会让 `import` 这个模块的 spec 直接扫全仓并 process.exit(1)，
+// 所以只在被当作脚本直接执行时才跑。
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}
