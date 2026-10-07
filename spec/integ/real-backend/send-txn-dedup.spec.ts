@@ -17,6 +17,7 @@ limitations under the License.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { type MatrixClient } from "../../../src/matrix";
+import { Method } from "../../../src/http-api/method.ts";
 import { createTestUser, registerTestUser, sleep, withRateLimitRetry } from "./auth-test-helpers";
 
 /**
@@ -69,7 +70,7 @@ describe("ISSUE-03 send txn dedup (real backend)", () => {
         // 第一次 PUT /send
         const firstResp = await withRateLimitRetry(() =>
             client!.http.authedRequest(
-                "PUT",
+                Method.Put,
                 `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${encodeURIComponent(txnId)}`,
                 undefined,
                 body,
@@ -84,7 +85,7 @@ describe("ISSUE-03 send txn dedup (real backend)", () => {
         // 第二次 PUT /send（同 txnId，应被去重）
         const secondResp = await withRateLimitRetry(() =>
             client!.http.authedRequest(
-                "PUT",
+                Method.Put,
                 `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${encodeURIComponent(txnId)}`,
                 undefined,
                 body,
@@ -100,7 +101,7 @@ describe("ISSUE-03 send txn dedup (real backend)", () => {
         // 查询 /messages 断言房间仅 1 条 m.room.message 事件
         await sleep(1000); // 等待事件落库
         const messagesResp = await withRateLimitRetry(() =>
-            client!.http.authedRequest("GET", `/rooms/${encodeURIComponent(roomId)}/messages`, {
+            client!.http.authedRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/messages`, {
                 dir: "b",
                 limit: 10,
             }),

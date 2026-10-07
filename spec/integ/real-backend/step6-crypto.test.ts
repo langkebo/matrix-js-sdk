@@ -126,7 +126,7 @@ async function main(): Promise<void> {
 
     await runTest("getKeyBackupEnabled", async () => {
         try {
-            const enabled = await client!.getKeyBackupEnabled();
+            const enabled = await client!.getKeyBackupManager().checkKeyBackup();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Key backup not available");
@@ -135,7 +135,7 @@ async function main(): Promise<void> {
 
     await runTest("getKeyBackupVersion", async () => {
         try {
-            const version = await client!.getKeyBackupVersion();
+            const version = await client!.getKeyBackupManager().getLatestBackupVersion();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Key backup version not available");
@@ -144,7 +144,7 @@ async function main(): Promise<void> {
 
     await runTest("checkKeyBackupAndEnable", async () => {
         try {
-            const result = await client!.checkKeyBackupAndEnable();
+            const result = await client!.getKeyBackupManager().checkKeyBackup();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Check key backup not available");
@@ -263,7 +263,7 @@ async function main(): Promise<void> {
 
     await runTest("setDeviceDetails", async () => {
         try {
-            await client!.setDeviceDetails("test-device", {
+            await client!.getDeviceManager().setDeviceDetails("test-device", {
                 display_name: "Test Device",
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any

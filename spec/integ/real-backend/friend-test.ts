@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     // 3.11 添加好友
     await runTest("addFriend - 添加好友", async () => {
         try {
-            await friendManager.addFriend(TestConfig.secondaryUser.userId, "测试添加好友");
+            await friendManager.addFriend(TestConfig.secondaryUser.userId, { reason: "测试添加好友" });
             console.log("      已发送添加好友请求");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {

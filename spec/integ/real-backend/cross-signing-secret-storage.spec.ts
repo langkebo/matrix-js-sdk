@@ -27,7 +27,9 @@ describe("Cross-signing + secret storage real backend integration", () => {
             const user = createTestUser("sdk_cs_ssss");
             const registeredClient = await registerTestUser(user);
 
-            const cachedSecretStorageKeys = new Map<string, Uint8Array>();
+            // TS 5.7 起 `Uint8Array<ArrayBufferLike>` 与回调要求的 `Uint8Array<ArrayBuffer>` 不再互相赋值，
+            // 显式标注成后者（只是类型标注，运行时不变）。
+            const cachedSecretStorageKeys = new Map<string, Uint8Array<ArrayBuffer>>();
 
             client = createClient({
                 baseUrl: TestConfig.baseUrl,

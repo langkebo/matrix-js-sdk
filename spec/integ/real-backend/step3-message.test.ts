@@ -205,7 +205,7 @@ async function main(): Promise<void> {
             });
             // 后端可能不支持Reaction API
             try {
-                await client!.sendReaction(testRoomId, msgResult.event_id, "👍");
+                await client!.getReactionsManager().reactToMessage(testRoomId, msgResult.event_id, "👍");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Reaction API not supported by backend");
@@ -221,7 +221,7 @@ async function main(): Promise<void> {
             });
             // 后端可能不支持Reaction API
             try {
-                await client!.sendReaction(testRoomId, msgResult.event_id, "🎉");
+                await client!.getReactionsManager().reactToMessage(testRoomId, msgResult.event_id, "🎉");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Reaction API not supported by backend");
@@ -250,7 +250,8 @@ async function main(): Promise<void> {
 
     await runTest("createThread", async () => {
         if (testRoomId && testEventId) {
-            const thread = await client!.createThread(testRoomId, testEventId, "Thread reply");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            const thread = await (client as any).createThread(testRoomId, testEventId, "Thread reply");
             if (!thread) throw new Error("Failed to create thread");
         }
     });
@@ -307,7 +308,8 @@ async function main(): Promise<void> {
 
     await runTest("createMessageEvent", async () => {
         if (testRoomId) {
-            const event = client!.createMessageEvent("m.room.message", {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            const event = (client as any).createMessageEvent("m.room.message", {
                 msgtype: MsgType.Text,
                 body: "Created event",
             });

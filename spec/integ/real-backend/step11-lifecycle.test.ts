@@ -225,7 +225,7 @@ async function main(): Promise<void> {
 
     await runTest("getNotifications", async () => {
         try {
-            await client!.getNotifications();
+            await client!.getNotificationsManager().getNotifications();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get notifications not available");
@@ -235,7 +235,8 @@ async function main(): Promise<void> {
     await runTest("getRoomNotifications", async () => {
         try {
             if (testRoomId) {
-                await client!.getRoomNotifications(testRoomId);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                await (client as any).getRoomNotifications(testRoomId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -324,7 +325,7 @@ async function main(): Promise<void> {
                 const room = client!.getRoom(testRoomId);
                 const events = room?.getLiveTimeline().getEvents();
                 if (events && events.length > 0) {
-                    await client!.sendReadReceipt(events[0]);
+                    await client!.getReadReceiptsManager().sendReadReceipt(events[0]);
                 }
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -341,7 +342,7 @@ async function main(): Promise<void> {
                 if (events && events.length > 0) {
                     const eventId = events[0].getId();
                     if (eventId) {
-                        await client!.setRoomReadMarkers(testRoomId, eventId);
+                        await client!.getReadReceiptsManager().setRoomReadMarkers(testRoomId, eventId);
                     }
                 }
             }

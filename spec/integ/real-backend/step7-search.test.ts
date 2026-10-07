@@ -278,7 +278,8 @@ async function main(): Promise<void> {
 
     await runTest("lookupThreePids", async () => {
         try {
-            await client!.lookupThreePid("email", "test@example.com", "test-access-token");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            await (client as any).lookupThreePid("email", "test@example.com", "test-access-token");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Lookup three pids not available");

@@ -64,8 +64,12 @@ describe("AdminManager — real backend", () => {
             if (!backendAvailable) return;
             const admin = client.getAdminManager();
             const status = await admin.server.getServerStatus();
-            expect(status).toHaveProperty("server_ok");
-            expect(status.server_ok).toBe(true);
+            // ⚠️ 该端点实际返回 `server_ok`，而 SDK 的 `ServerStatus` 类型声明的是
+            // `status: "online" | "offline" | "degraded"`。这里**保留用例对真实响应的断言**、只做窄读取，
+            // 不把用例改成迁就 SDK 类型 —— 契约不符本身是要留证据的（审计 §7.15-20）。
+            const rawStatus = status as unknown as Record<string, unknown>;
+            expect(rawStatus).toHaveProperty("server_ok");
+            expect(rawStatus.server_ok).toBe(true);
         });
 
         it("returns server_version via getServerVersion", async () => {
@@ -97,8 +101,8 @@ describe("AdminManager — real backend", () => {
             if (!backendAvailable) return;
             const admin = client.getAdminManager();
             const result = await admin.users.getUsersPaginated({ limit: 5 });
-            expect(result).toHaveProperty("users");
-            expect(Array.isArray(result.users)).toBe(true);
+            expect(result).toHaveProperty("items");
+            expect(Array.isArray(result.items)).toBe(true);
             expect(result).toHaveProperty("total");
             expect(result.total).toBeGreaterThan(0);
         });
@@ -137,8 +141,8 @@ describe("AdminManager — real backend", () => {
             if (!backendAvailable) return;
             const admin = client.getAdminManager();
             const result = await admin.rooms.getRoomsPaginated({ limit: 5 });
-            expect(result).toHaveProperty("rooms");
-            expect(Array.isArray(result.rooms)).toBe(true);
+            expect(result).toHaveProperty("items");
+            expect(Array.isArray(result.items)).toBe(true);
             expect(result).toHaveProperty("total");
         });
 

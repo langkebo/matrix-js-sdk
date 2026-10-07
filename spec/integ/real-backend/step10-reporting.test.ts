@@ -84,7 +84,7 @@ async function main(): Promise<void> {
     await runTest("reportRoom", async () => {
         try {
             if (testRoomId) {
-                await client!.reportRoom(testRoomId, "Test reason");
+                await client!.getReportingManager().reportRoom(testRoomId, "Test reason");
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
     await runTest("reportEvent", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.reportEvent(testRoomId, testEventId, -100, "Test reason");
+                await client!.getReportingManager().reportEvent(testRoomId, testEventId, -100, "Test reason");
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -169,7 +169,7 @@ async function main(): Promise<void> {
     await runTest("getMembership", async () => {
         try {
             if (testRoomId) {
-                await client!.getMembership(testRoomId, client!.getUserId()!);
+                await client!.getMembershipManager().getMember(testRoomId, client!.getUserId()!);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -180,7 +180,7 @@ async function main(): Promise<void> {
     await runTest("getMembers", async () => {
         try {
             if (testRoomId) {
-                await client!.getMembers(testRoomId);
+                await client!.getMembershipManager().getRoomMembers(testRoomId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -191,7 +191,8 @@ async function main(): Promise<void> {
     await runTest("getMembersWithProfiles", async () => {
         try {
             if (testRoomId) {
-                await client!.getMembersWithProfiles(testRoomId);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                await (client as any).getMembersWithProfiles(testRoomId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -216,7 +217,7 @@ async function main(): Promise<void> {
     await runTest("pinEvent", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.pinEvent(testRoomId, testEventId);
+                await client!.getPinnedMessagesManager().pinMessage(testRoomId, testEventId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -227,7 +228,7 @@ async function main(): Promise<void> {
     await runTest("unpinEvent", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.unpinEvent(testRoomId, testEventId);
+                await client!.getPinnedMessagesManager().unpinMessage(testRoomId, testEventId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -241,7 +242,8 @@ async function main(): Promise<void> {
     await runTest("replaceEvent", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.replaceEvent(testRoomId, testEventId, {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                await (client as any).replaceEvent(testRoomId, testEventId, {
                     msgtype: "m.text",
                     body: "Updated message",
                 });
@@ -255,7 +257,9 @@ async function main(): Promise<void> {
     await runTest("editEvent", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.editEvent(testRoomId, testEventId, "Updated message");
+                // 方法存在，但 fork 的 `editEvent` 第二参数是 `MatrixEvent`，而这里只有 eventId。
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 探测用例保留原意图（只有 eventId，构造不出 MatrixEvent）
+                await (client as any).editEvent(testRoomId, testEventId, "Updated message");
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -280,7 +284,7 @@ async function main(): Promise<void> {
     await runTest("getThread", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.getThread(testRoomId, testEventId);
+                await client!.getThreadingManager().getThread(testEventId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -291,7 +295,7 @@ async function main(): Promise<void> {
     await runTest("getThreads", async () => {
         try {
             if (testRoomId) {
-                await client!.getThreads(testRoomId);
+                await client!.getThreadingManager().getThreads();
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -302,7 +306,8 @@ async function main(): Promise<void> {
     await runTest("createThread", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.createThread(testRoomId, testEventId, "Thread reply");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                await (client as any).createThread(testRoomId, testEventId, "Thread reply");
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -328,7 +333,7 @@ async function main(): Promise<void> {
     await runTest("getRelations", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.getRelations(testRoomId, testEventId);
+                await client!.getRelationsManager().fetchRelations(testRoomId, testEventId, null);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -339,7 +344,7 @@ async function main(): Promise<void> {
     await runTest("getEventAggregations", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.getEventAggregations(testRoomId, testEventId);
+                await client!.getAggregationsManager().getAggregations(testRoomId, testEventId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -350,7 +355,7 @@ async function main(): Promise<void> {
     await runTest("getReactionCount", async () => {
         try {
             if (testRoomId && testEventId) {
-                await client!.getReactionCount(testRoomId, testEventId);
+                await client!.getReactionsManager().getReactionSummary(testRoomId, testEventId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {

@@ -1767,6 +1767,101 @@ knip 因而报 `Refine entry pattern (no matches)` 提示。删掉后 `lint:knip
 （约 40 处调用点）是下一轮可决策的事。另：`knip.ts` 不在 `eslint` 的 project 里
 （`tsconfig.json` 的 include 只有 src / spec / perf），对它的改动**没有 lint 覆盖**。
 
+#### 7.15-20 `spec/integ/real-backend/` 类型债清零：**85 → 0**（2026-10-07）
+
+§7.15-19 把 `quality:real-backend-types` 从"红"拉回"绿"，但基线里仍冻结着 **78 条**债。本轮把它清到 **0**。
+
+**这些债为什么长期隐形**
+
+`spec/integ/real-backend/**` 被主 `tsconfig.json` **exclude**（另有 `tsconfig.real-backend.json`），
+而这些探索性用例一律写成：
+
+```ts
+await runTest("getXyz", async () => {
+    try {
+        await client!.getXyz(args);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+        console.log("    ⚠️ Xyz not available");
+    }
+});
+```
+
+—— **TypeError 被自己的 `catch` 吃掉**。于是「调用本 fork 根本不存在的方法」看起来永远"通过"，
+而唯一的哨兵（冻结基线）一旦过期就再没人看。
+
+**78 条按病因分五类**
+
+| 病因                                | 处  | 处置                                                                                                                                                                                                                                                                                             |
+| ----------------------------------- | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 枚举字面量 vs fork 枚举             | 13  | `"POST"`/`"GET"`/`"PUT"` → `Method.*`；`"private"`/`"private_chat"`/`"public"` → `Visibility.*` / `Preset.*`                                                                                                                                                                                     |
+| 必填 / 字段名不符                   | 14  | 含 space 的 `CreateSpaceOptions.room_id`（必填，原用例缺）；`uploadContent` 选项名是 `name` 不是 `filename`；`getUrlPreview` 少第二参数；`setPusher` 缺 3 个必填字段；`sendTyping` 多一个参数；任意 account data 类型超出 SDK 已知联合（2 处）；`addFriend` 第二参数是 `{reason?}` 不是字符串 等 |
+| 请求体字段名不符                    | 2   | `rotateKey({reason})` → `rotateKey()`；`updateConfig({auto_rotation_enabled, rotation_period_ms})` → `{ enabled, interval_ms }`                                                                                                                                                                  |
+| 响应字段名与 SDK 归一化后的契约不符 | 8   | admin 分页 `result.users`/`result.rooms` → `result.items`（`getUsersPaginated` 内部用 `toPaginatedResult(resp, "users")` 归一）；key-rotation 历史 `next_batch`×2 / `rotated_at` / `reason` / `previous_key_id`×2 → 契约只有 `{ device_id, rotations: { key_id, rotated_ts }[] }`                |
+| 调用了本 fork 不存在的能力          | 41  | 见下                                                                                                                                                                                                                                                                                             |
+
+**41 处「不存在的能力」分两半**
+
+- **25 处改走真实 Manager**（能力都在，只是不在 `MatrixClient` 上）：
+  `reportRoom`/`reportEvent`→ReportingManager；`getMembership`/`getMembers`→MembershipManager；
+  `pinEvent`/`unpinEvent`→PinnedMessagesManager；`getThread`/`getThreads`→ThreadingManager；
+  `getRelations`→RelationsManager.`fetchRelations`；`getEventAggregations`→AggregationsManager；
+  `getReactionCount`→ReactionsManager.`getReactionSummary`；`sendReaction`→ReactionsManager.`reactToMessage`；
+  `getNotifications`→NotificationsManager；`sendReadReceipt`/`setRoomReadMarkers`→ReadReceiptsManager；
+  `sendTyping`/`getTypingUsers`→TypingManager（`postTyping` / `getTypingUsers`）；
+  `getDownloadLink`/`getThumbnail`→MediaManager（`getDownloadUrl` / `getThumbnailUrl`）；
+  `getKeyBackupEnabled`/`getKeyBackupVersion`/`checkKeyBackupAndEnable`→KeyBackupManager；`setDeviceDetails`→DeviceManager。
+  **这一步是净收益**：这些探测从「必然 TypeError ⇒ 必然打印 ⚠️」变成真的在调 SDK 的能力。
+- **16 处确实没有等价能力**（`getMembersWithProfiles` / `replaceEvent` / `createThread` /
+  `createMessageEvent` / `ignoreUser` / `unignoreUser` / `getCredentialsManager` / `getOEmbedUrl` /
+  `getPushNotifications` / `getRoomNotifications` / `getReadReceipt` / `getReadReceiptsForEvent` /
+  `lookupThreePid` 等）：按这些文件**自身已有的惯例**（如 `(client as any).rotateOlmKeys()`）改写成
+  `(client as any).X(...)` + 带原因的 `eslint-disable` 注释 —— **保留探测意图，不假装能力存在**。
+
+**3 处不是"用例写错"**
+
+1. **`admin.server.getServerStatus()`**：用例断言响应里有 `server_ok`，而 SDK 的 `ServerStatus` 类型声明的是
+   `status: "online" | "offline" | "degraded"`。**没有把用例改成迁就 SDK 类型** —— 那等于删掉证据；
+   改成窄读取（`status as unknown as Record<string, unknown>`）并留注释，**契约不符本身值得留证**。
+2. **`space.createSpace`**：用例按 `{name, topic, visibility}` 调用，而 `CreateSpaceOptions.room_id` 是**必填**
+   （后端是围绕一个已存在的房间建 Space），且 `visibility` 是普通字符串联合、**不是** `Visibility` 枚举。
+   已改为先 `client.createRoom(...)` 取 `room_id` 再建 Space。
+   ⚠️ **我第一次机械地把 `visibility: "private"` 换成 `Visibility.Private` 是错的** ——
+   真正的病是缺必填字段，`tsc` 立刻把这条假修复顶了回来（见"纪律"）。
+3. **两处纯类型标注问题**：cross-signing 的 `getSecretStorageKey` 回调 —— TS 5.7 起
+   `Uint8Array<ArrayBufferLike>` 与回调要求的 `Uint8Array<ArrayBuffer>` 不再互相赋值，显式标注成后者即可，
+   运行时不变；`presence-cross-user` 的 `getContent` on `never` —— 变量只在事件回调里赋值，
+   TS 控制流在读取点把它窄化成 `null`，显式还原声明类型再读。
+
+**纪律：先看完整错误再改**
+
+space 那处暴露的坑值得记下来：**同一处报错可能有多个病因，机械改掉"看得见的那个"会把真病因顶回来**。
+`tsc` 的 whole-object assignability 报错不会一次列全（缺必填字段 + 枚举类型不符同时存在），
+必须打开类型定义逐个字段核对，改完再跑一次。
+
+**结果与台账**
+
+`quality:real-backend-types`：**current 0 / baseline 0 / new 0**（基线 85 → 0，**棘轮收缩到零**，
+未重新"注水"）。基线重新冻结为 `{ total: 0, ids: [] }` ⇒ 今后任何一处 real-backend 类型错误都会直接让门禁红
+—— 这才是这个门禁该有的样子。
+
+**欠账（诚实记录）**
+
+- 这些用例需要真后端（`pnpm test:real-backend`），**本轮只做到"类型正确"**，没有跑过实际断言；
+- 16 处 `(client as any)` 探测在真后端上仍会走 `catch` 打印 ⚠️ —— 它们记录的正是 fork 的能力缺口，
+  一旦补齐就应改走 Manager（或删除）；
+- space 用例现在会额外留下一个 backing room（`afterAll` 只清 Space），下次可一并清理。
+
+**本节验证**
+
+| 项                                            | 结果                              |
+| --------------------------------------------- | --------------------------------- |
+| `tsc -p tsconfig.real-backend.json --noEmit`  | **0 错**（原 78）                 |
+| `quality:real-backend-types`                  | ✅ current 0 / baseline 0 / new 0 |
+| `tsc --noEmit`（主项目）                      | 0 错                              |
+| `prettier --check spec/integ/real-backend/**` | ✅ 干净                           |
+| `eslint spec/integ/real-backend`              | ✅ 0 error / 0 warning            |
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1839,7 +1934,8 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.11 续修：`manager-codegen` 性能、`probe-contract-drift` 死脚本、门禁 spec 长期红灯；
+**最后更新**: 2026-10-07（§7.15-19/20：类型表 69 条假声明清零 + 最后 2 个模块接线 + `spec/integ/real-backend/` 类型债 **85 → 0**；
+§7.11 续修：`manager-codegen` 性能、`probe-contract-drift` 死脚本、门禁 spec 长期红灯；
 §7.12 **P8 落地**：`scripts/audit/gate-golden.mjs` 把「存金标准 → 改 → 对拍」与红灯归因产品化；
 §7.13 **孤岛脚本盘点 + P6 长尾一轮**：可达性门禁补三条"假绿"通道、新增孤岛台账 ratchet，
 口径重测 52/37，新守 4 个门禁，并查明 18 个 granular 门禁是同一模板的 18 份副本；
@@ -1924,4 +2020,16 @@ sync-accumulator 共 12 处属"语义映射 vs 删模块"的架构选择，留�
 变异 A（塞假声明）双判据红、变异 B（禁用 import）**只运行时红**；另修两个独立问题：
 `quality:msc` 在 HEAD 上本就红（MSC3881 未登记）且其 `--update-baseline` **会把 lint 弄红**
 （`JSON.stringify(…, null, 4)` 与 prettier 的数组折叠不一致）已一并修掉；`knip.ts` 里 `src/sessions/index.ts` 的失效 entry 也已清
+**§7.15-20 `spec/integ/real-backend/` 类型债清零（85 → 0）**：把基线里冻结的 **78 条**逐条清完 ——
+13 处枚举字面量（`Method.*` / `Visibility.*` / `Preset.*`）、14 处必填/字段名不符
+（含 `CreateSpaceOptions.room_id` 必填、`uploadContent` 的选项名是 `name` 不是 `filename`）、
+2 处请求体字段名、8 处响应字段名与 SDK 归一化契约不符（admin 分页 → `items`；
+key-rotation 历史只有 `{ device_id, rotations: { key_id, rotated_ts }[] }`）；
+41 处「调用了不存在的能力」中 **25 处改走真实 Manager**（探测因此从"必然 TypeError"变成真在调 SDK），
+**16 处确无等价能力**按文件自身惯例保留为 `(client as any)` 探测 + 带原因注释；
+`admin.server.getServerStatus()` 的 `server_ok` 与 SDK 的 `ServerStatus` 契约不符 ——
+**没有把用例改成迁就 SDK 类型**，只做窄读取并留证；记录一条纪律：
+**同一处报错可能有多个病因，机械改掉"看得见的那个"会把真病因顶回来**（space 的
+`visibility` 换成枚举后 `tsc` 立刻顶回，真正的病是缺必填 `room_id`）。
+结果 `current 0 / baseline 0 / new 0`，基线与棘轮**收缩到零**（不再有 waiver 兜底）
 **关联**:`docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）

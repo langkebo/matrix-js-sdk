@@ -388,7 +388,8 @@ async function main(): Promise<void> {
     await runTest("setRoomAccountData", async () => {
         if (testRoomId) {
             try {
-                await client!.setRoomAccountData(testRoomId, "m.test", { key: "value" });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 探测任意 account data 类型，超出 SDK 的已知事件联合
+                await (client as any).setRoomAccountData(testRoomId, "m.test", { key: "value" });
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Set room account data not available");

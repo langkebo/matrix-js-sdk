@@ -57,17 +57,13 @@ describe("KeyRotationManager real backend integration", () => {
             const statusError = await expectApiError(manager.getStatus(true), 403, "M_FORBIDDEN");
             expect(statusError.message).toContain("getStatus failed");
 
-            const rotateError = await expectApiError(
-                manager.rotateKey({ reason: "integration_test" }),
-                403,
-                "M_FORBIDDEN",
-            );
+            const rotateError = await expectApiError(manager.rotateKey(), 403, "M_FORBIDDEN");
             expect(rotateError.message).toContain("rotateKey failed");
 
             const configError = await expectApiError(
                 manager.updateConfig({
-                    auto_rotation_enabled: true,
-                    rotation_period_ms: 3_600_000,
+                    enabled: true,
+                    interval_ms: 3_600_000,
                 }),
                 403,
                 "M_FORBIDDEN",
@@ -87,19 +83,19 @@ describe("KeyRotationManager real backend integration", () => {
             expect(deviceId).toBeTruthy();
 
             const history = await manager.getRotationHistory(deviceId!);
-            // SDK type: { rotations: KeyRotationHistoryEntry[], next_batch?: string }
+            // SDK 契约（`docs/api-contract/key-rotation.md` → `src/key-rotation/__generated__/dto.ts`）：
+            // `{ device_id, rotations: { key_id, rotated_ts }[] }` —— **没有** next_batch。
             expect(Array.isArray(history.rotations)).toBe(true);
-            if (history.next_batch !== undefined) {
-                expect(typeof history.next_batch).toBe("string");
-            }
+            expect(typeof history.device_id).toBe("string");
 
             for (const rotation of history.rotations) {
-                // SDK type: { key_id: string, rotated_at: number, reason: string, previous_key_id?: string }
-                expect(typeof rotation.key_id).toBe("string");
-                expect(typeof rotation.rotated_at).toBe("number");
-                expect(typeof rotation.reason).toBe("string");
-                if (rotation.previous_key_id !== undefined) {
-                    expect(typeof rotation.previous_key_id).toBe("string");
+                // 契约里每个条目只有 `{ key_id: string | null, rotated_ts: number | null }`：
+                // 原先断言的 `rotated_at` / `reason` / `previous_key_id` 都不存在。
+                if (rotation.key_id !== null) {
+                    expect(typeof rotation.key_id).toBe("string");
+                }
+                if (rotation.rotated_ts !== null) {
+                    expect(typeof rotation.rotated_ts).toBe("number");
                 }
             }
 

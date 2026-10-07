@@ -17,6 +17,7 @@ limitations under the License.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { type MatrixClient } from "../../../src/matrix";
+import { Method } from "../../../src/http-api/method.ts";
 import { createTestUser, registerTestUser, sleep, withRateLimitRetry } from "./auth-test-helpers";
 
 /**
@@ -72,7 +73,7 @@ describe("ISSUE-06 messages pagination boundary (real backend)", () => {
         for (let i = 0; i < 3; i++) {
             const resp = await withRateLimitRetry(() =>
                 client!.http.authedRequest(
-                    "PUT",
+                    Method.Put,
                     `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/txn_${Date.now()}_${i}`,
                     undefined,
                     { msgtype: "m.text", body: `pagination probe ${i}` },
@@ -87,7 +88,7 @@ describe("ISSUE-06 messages pagination boundary (real backend)", () => {
 
         // 2. 第一页：limit=2 向后翻页
         const firstPageResp = await withRateLimitRetry(() =>
-            client!.http.authedRequest("GET", `/rooms/${encodeURIComponent(roomId)}/messages`, {
+            client!.http.authedRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/messages`, {
                 dir: "b",
                 limit: 2,
             }),
@@ -107,7 +108,7 @@ describe("ISSUE-06 messages pagination boundary (real backend)", () => {
         // 3. 第二页：使用第一页的 end token 继续翻页
         expect(firstPage.end).toBeTruthy();
         const secondPageResp = await withRateLimitRetry(() =>
-            client!.http.authedRequest("GET", `/rooms/${encodeURIComponent(roomId)}/messages`, {
+            client!.http.authedRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/messages`, {
                 dir: "b",
                 limit: 2,
                 from: firstPage.end,

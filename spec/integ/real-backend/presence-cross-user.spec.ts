@@ -94,7 +94,9 @@ describe("ISSUE-01 presence cross-user fanout (real backend)", () => {
                 const userB = clientA!.getUser(bUserId);
                 if (presenceFromB && userB?.presence === "online") {
                     // sync 流收到事件 + User 模型已更新（UserEvent.presence 路径）
-                    expect(presenceFromB.getContent().presence).toBe("online");
+                    // `presenceFromB` 只在事件回调里被赋值，TS 的控制流把它在这一点窄化成 `null`；
+                    // 显式还原声明类型再读（运行时确实是 MatrixEvent）。
+                    expect((presenceFromB as MatrixEvent | null)!.getContent().presence).toBe("online");
                     expect(userB.presenceStatusMsg).toBe(statusMsg);
                     return;
                 }

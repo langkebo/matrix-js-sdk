@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
+import { Preset, Visibility } from "../../../src/@types/partials.ts";
 import {
     BurnAfterReadManager,
     BurnAfterReadEvent,
@@ -30,8 +31,8 @@ describe("Burn After Read 集成测试", () => {
             const room = await client.createRoom({
                 name: `Burn Test ${Date.now()}`,
                 topic: "Burn after read integration test",
-                visibility: "private",
-                preset: "private_chat",
+                visibility: Visibility.Private,
+                preset: Preset.PrivateChat,
             });
             roomId = room.room_id;
             backendAvailable = true;

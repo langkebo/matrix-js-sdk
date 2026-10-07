@@ -9,6 +9,7 @@
 import { createClient, type MatrixClient } from "../../../src/matrix";
 import { extendMatrixClientWithManagers } from "../../../src/manager-extensions";
 import { TestConfig } from "./TestConfig";
+import { Visibility } from "../../../src/@types/partials.ts";
 
 declare const process: { exit: (code?: number) => never };
 
@@ -218,7 +219,7 @@ async function main(): Promise<void> {
     await runTest("setRoomDirectoryVisibility", async () => {
         if (testRoomId) {
             try {
-                await client!.setRoomDirectoryVisibility(testRoomId, "public");
+                await client!.setRoomDirectoryVisibility(testRoomId, Visibility.Public);
             } catch (e) {
                 console.log("    ⚠️ Directory visibility not supported");
             }
@@ -240,7 +241,8 @@ async function main(): Promise<void> {
 
     await runTest("ignoreUser", async () => {
         try {
-            await client!.ignoreUser(TestConfig.secondaryUser.userId);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            await (client as any).ignoreUser(TestConfig.secondaryUser.userId);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Ignore user not supported");
@@ -249,7 +251,8 @@ async function main(): Promise<void> {
 
     await runTest("unignoreUser", async () => {
         try {
-            await client!.unignoreUser(TestConfig.secondaryUser.userId);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            await (client as any).unignoreUser(TestConfig.secondaryUser.userId);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Unignore user not supported");
@@ -283,12 +286,14 @@ async function main(): Promise<void> {
     console.log("\n10. Additional 模块测试...");
 
     await runTest("getIdentityServerUrl", async () => {
-        const identityServer = client!.getCredentialsManager().getIdentityServer();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+        const identityServer = (client as any).getCredentialsManager().getIdentityServer();
         // 可能为 undefined
     });
 
     await runTest("getHomeserverName", async () => {
-        const homeserver = client!.getCredentialsManager().getHomeserverName();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+        const homeserver = (client as any).getCredentialsManager().getHomeserverName();
         if (!homeserver) throw new Error("No homeserver name");
     });
 

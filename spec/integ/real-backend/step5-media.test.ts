@@ -75,7 +75,7 @@ async function main(): Promise<void> {
         try {
             const result = await client!.uploadContent(content, {
                 type: "text/plain",
-                filename: "test.txt",
+                name: "test.txt",
             });
             // 可能返回 content URI
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,7 +94,7 @@ async function main(): Promise<void> {
         // 测试获取下载链接
         try {
             const mxcUrl = "mxc://test-server.com/test-media";
-            const link = await client!.getDownloadLink(mxcUrl);
+            const link = client!.getMediaManager().getDownloadUrl(mxcUrl);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Download link not available");
@@ -104,7 +104,7 @@ async function main(): Promise<void> {
     await runTest("getThumbnail", async () => {
         try {
             const mxcUrl = "mxc://test-server.com/test-media";
-            const thumb = await client!.getThumbnail(mxcUrl, 100, 100);
+            const thumb = client!.getMediaManager().getThumbnailUrl(mxcUrl, { width: 100, height: 100 });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Thumbnail not available");
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
 
     await runTest("getUrlPreview", async () => {
         try {
-            const preview = await client!.getUrlPreview("https://matrix.org");
+            const preview = await client!.getUrlPreview("https://matrix.org", Date.now());
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ URL preview not supported");
@@ -125,7 +125,8 @@ async function main(): Promise<void> {
 
     await runTest("getOEmbedUrl", async () => {
         try {
-            const oembed = await client!.getOEmbedUrl("https://matrix.org", true);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            const oembed = await (client as any).getOEmbedUrl("https://matrix.org", true);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ OEmbed not supported");
@@ -150,6 +151,9 @@ async function main(): Promise<void> {
                 pushkey: "test-pushkey",
                 kind: "http",
                 app_id: "test-app",
+                app_display_name: "Test App",
+                device_display_name: "Test Device",
+                lang: "en",
                 device_id: "test-device",
                 data: {
                     url: "https://test.com",
@@ -198,7 +202,8 @@ async function main(): Promise<void> {
 
     await runTest("getPushNotifications", async () => {
         try {
-            const notifications = await client!.getPushNotifications({}, 10);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+            const notifications = await (client as any).getPushNotifications({}, 10);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Push notifications not supported");
@@ -210,7 +215,7 @@ async function main(): Promise<void> {
 
     await runTest("getNotifications", async () => {
         try {
-            const notifications = await client!.getNotifications();
+            const notifications = await client!.getNotificationsManager().getNotifications();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Notifications not supported");
@@ -220,7 +225,8 @@ async function main(): Promise<void> {
     await runTest("getRoomNotifications", async () => {
         try {
             if (testRoomId) {
-                const notifications = await client!.getRoomNotifications(testRoomId);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                const notifications = await (client as any).getRoomNotifications(testRoomId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -234,7 +240,7 @@ async function main(): Promise<void> {
     await runTest("sendReadReceipt", async () => {
         if (testRoomId) {
             try {
-                await client!.sendReadReceipt(testRoomId, "$test-event");
+                await client!.getReadReceiptsManager().sendReadReceiptByEventId(testRoomId, "$test-event");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Send read receipt may require event");
@@ -245,7 +251,8 @@ async function main(): Promise<void> {
     await runTest("getReadReceipt", async () => {
         if (testRoomId) {
             try {
-                const receipt = await client!.getReadReceipt(testRoomId, client!.getUserId() || "");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                const receipt = await (client as any).getReadReceipt(testRoomId, client!.getUserId() || "");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get read receipt not supported");
@@ -256,7 +263,8 @@ async function main(): Promise<void> {
     await runTest("getReadReceiptsForEvent", async () => {
         if (testRoomId) {
             try {
-                const receipts = await client!.getReadReceiptsForEvent(testRoomId, "$test-event");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
+                const receipts = await (client as any).getReadReceiptsForEvent(testRoomId, "$test-event");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get receipts for event not supported");
@@ -270,7 +278,7 @@ async function main(): Promise<void> {
     await runTest("sendTyping", async () => {
         if (testRoomId) {
             try {
-                await client!.sendTyping(testRoomId, client!.getUserId() || "", true, 5000);
+                await client!.getTypingManager().postTyping(testRoomId, client!.getUserId() || "", true, 5000);
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Send typing not supported");
@@ -281,7 +289,7 @@ async function main(): Promise<void> {
     await runTest("getTypingUsers", async () => {
         if (testRoomId) {
             try {
-                const users = await client!.getTypingUsers(testRoomId);
+                const users = await client!.getTypingManager().getTypingUsers(testRoomId);
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get typing users not supported");
@@ -333,7 +341,8 @@ async function main(): Promise<void> {
     await runTest("getRoomAccountData (tags)", async () => {
         if (testRoomId) {
             try {
-                await client!.setRoomAccountData(testRoomId, "m.tag", { tags: {} });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 探测任意 account data 类型，超出 SDK 的已知事件联合
+                await (client as any).setRoomAccountData(testRoomId, "m.tag", { tags: {} });
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Room account data not supported");

@@ -17,6 +17,7 @@ limitations under the License.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
+import { Method } from "../../../src/http-api/method.ts";
 import { TestConfig } from "./TestConfig";
 import { createTestUser, registerTestUser, sleep } from "./auth-test-helpers";
 import { syncPromise } from "../../test-utils/test-utils";
@@ -130,16 +131,25 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
             };
 
             // 通过 /keys/upload 上传 fallback key
-            const uploadResp = await clientB.http.authedRequest("POST", "/keys/upload", undefined, fallbackUploadBody);
+            const uploadResp = await clientB.http.authedRequest(
+                Method.Post,
+                "/keys/upload",
+                undefined,
+                fallbackUploadBody,
+            );
             console.log(`ISSUE-02 diag: fallback key upload response=${JSON.stringify(uploadResp)}`);
 
             // 验证 fallback key 已上传：检查 /sync 的 device_unused_fallback_key_types
             await sleep(1000);
-            const syncCheckResp = await clientB.http.authedRequest("GET", "/sync", {
+            const syncCheckResp = await clientB.http.authedRequest(Method.Get, "/sync", {
                 timeout: 500,
                 full_state: "false",
             });
-            const fallbackTypes: string[] = syncCheckResp?.device_unused_fallback_key_types ?? [];
+            // `/sync` 的响应类型在 SDK 里是 `{}`；这里探测的是后端实际字段，故窄断言读取。
+            const fallbackTypes: string[] =
+                ((syncCheckResp as Record<string, unknown> | undefined)?.device_unused_fallback_key_types as
+                    | string[]
+                    | undefined) ?? [];
             console.log(
                 `ISSUE-02 diag: after upload, device_unused_fallback_key_types=${JSON.stringify(fallbackTypes)}`,
             );
@@ -188,7 +198,7 @@ describe("ISSUE-02 OTK exhaustion fallback key (real backend)", () => {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test double / partial mock
             let claimResp: any;
             try {
-                claimResp = await clientA!.http.authedRequest("POST", "/keys/claim", undefined, {
+                claimResp = await clientA!.http.authedRequest(Method.Post, "/keys/claim", undefined, {
                     one_time_keys: {
                         [userIdB]: { [deviceIdB]: "signed_curve25519" },
                     },

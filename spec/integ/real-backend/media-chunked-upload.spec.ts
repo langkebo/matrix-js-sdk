@@ -17,6 +17,7 @@ limitations under the License.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { type MatrixClient, MediaPrefix } from "../../../src/matrix";
+import { Method } from "../../../src/http-api/method.ts";
 import { createTestUser, registerTestUser, sleep, withRateLimitRetry } from "./auth-test-helpers";
 
 /**
@@ -68,7 +69,7 @@ describe("ISSUE-04 media chunked upload (real backend)", () => {
         const filename = `chunk_test_${Date.now()}.bin`;
         const startResp = await withRateLimitRetry(() =>
             client!.http.authedRequest(
-                "POST",
+                Method.Post,
                 "/upload/chunk/start",
                 undefined,
                 {

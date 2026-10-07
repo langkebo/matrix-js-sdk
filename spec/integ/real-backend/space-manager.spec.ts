@@ -31,6 +31,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient as extendSpaceClient } from "../../../src/space/index";
 import { TestConfig } from "./TestConfig";
+import { Visibility } from "../../../src/@types/partials.ts";
 import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendSpaceClient();
@@ -67,7 +68,14 @@ describe("SpaceManager — real backend", () => {
         it("creates a space via createSpace", async () => {
             if (!backendAvailable) return;
             const space = client.getSpaceManager();
+            // `CreateSpaceOptions.room_id` 是**必填**（后端围绕一个已存在的房间建 Space，
+            // 且 `visibility` 是普通字符串联合而不是 `Visibility` 枚举）—— 原用例两条都不符。
+            const backingRoom = await client.createRoom({
+                name: `Space backing room ${Date.now()}`,
+                visibility: Visibility.Private,
+            });
             const result = await space.createSpace({
+                room_id: backingRoom.room_id,
                 name: `Test Space ${Date.now()}`,
                 topic: "Created by real-backend test",
                 visibility: "private",
@@ -110,7 +118,12 @@ describe("SpaceManager — real backend", () => {
             if (createdSpaces.length === 0) {
                 // Create one specifically for deletion
                 const space = client.getSpaceManager();
+                const backingRoom = await client.createRoom({
+                    name: `Delete Test Space backing room ${Date.now()}`,
+                    visibility: Visibility.Private,
+                });
                 const created = await space.createSpace({
+                    room_id: backingRoom.room_id,
                     name: `Delete Test Space ${Date.now()}`,
                     visibility: "private",
                 });
