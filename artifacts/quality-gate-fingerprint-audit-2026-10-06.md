@@ -1187,9 +1187,8 @@ CLI 行为均经 gate-golden 对拍**逐字节一致**。
   `summarizeLcov` 末尾段缺 `end_of_record` 时 `fileCount` 漏计 1（只影响日志）；
   `collectTypeScriptFiles` 传入不存在目录抛 ENOENT（调用方已先 filter）。
 - **`quality:coverage:critical` 三模块不达标**：`admin` 69.00 < 70、`push` 77.14 < 89、
-  `space` 75.71 < 77。**属既有债，不是本轮引入**（本轮只动 spec 与 `.d.mts`，不碰 `src/`），
-  详见 §7.15-11。**未擅自改动 floor** —— `critical-modules.json` 头注明
-  "never lower it without explaining why"，下调需人决策。
+  `space` 75.71 < 77。**已于 2026-10-07 闭环**（删重复别名方法 + 补测，三模块均达 100%），
+  见 §7.15-12。
 
 #### 7.15-11 全仓复检三轮：共享库层的两个零 spec（2026-10-07）
 
@@ -1259,6 +1258,78 @@ ordinal 后，**全仓 baseline 指纹集体失效**，任何 baseline 类门禁
 ② 按实测下调 floor（违反棘轮纪律，需提交信息说明理由）；③ 维持红灯并登记为已知债。
 另注：CI 里 `quality:coverage:critical` 读的是同 job 内 `pnpm test --coverage` 的 lcov，
 与本地缓存 lcov 未必同值，**本地红不等于 CI 红**，判断前需取 CI 实测值。
+
+#### 7.15-12 覆盖率三模块红的闭环：删掉「为凑审计报告而生的代码」+ 补真实缺测（2026-10-07）
+
+##### 根因不是口径差，是**为新代码写了 89.01 → 74.28 的真实回归**
+
+先按 §7.15-11 的线索往下挖 `push`：它在 2026-09-13 被实测为 **89.01%**（那次提交信息
+里有记录），floor 89 就是照它设的。此后 `src/push/index.ts` 净增 74 行，而 **push 的
+spec 一行没动** —— 典型的新代码没配测试。
+
+那 74 行是什么？`getPushersWithTrailingSlash` 与 `createPusher`，JSDoc 自述：
+
+```
+Note: 此方法与 getPushers() 功能相同，仅为了完整覆盖后端路由
+```
+
+**零调用方**（src/ 与 spec/ 全无引用），与 `getPushers` / `setPusher` 逐字节等价。
+来源是 2026-09-29 的提交：`scripts/audit/compare-routes.mjs` 生成的「SDK 契约缺口报告」
+显示后端路由 1147 → 1166，于是往 SDK 里塞别名方法让报告变绿。
+
+**但 `/pushers` 与 `/pushers/`（尾斜杠）、`/pushers` 与 `/pushers/set`（新旧规范路径）
+在 Matrix 规范里是同一端点** —— SDK 封装面本来就该按**业务能力**对齐，而不是按路由
+字面量一一对应。加方法的收益是零：删掉后重跑缺口报告，实现面覆盖**反而上升**
+（678/758 = 89.4% → **689/758 = 90.9%**，缺口 70 → 68）。
+
+⇒ **「审计工具要求什么，就往产品代码里加什么」是比覆盖率更值得警惕的病**：
+它同时劣化三个指标 —— 维护面、覆盖率分母、以及审计本身的信号（报告变绿并不代表
+能力变全）。判据：**新加的方法若拿不出调用方，先问它服务的是产品还是工具。**
+
+##### 处理
+
+| 动作                                            | 结果                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------ |
+| 删 `getPushersWithTrailingSlash`/`createPusher` | push/index.ts 749 → 678 行；覆盖率 74.28% → 85.71%           |
+| 补 `push-coverage-gaps.spec.ts`（21 例）        | 覆盖 8 处 catch 分支、缓存命中、房间规则读写、start() 并发   |
+| 补 `admin-space-lifecycle.spec.ts`（9 例）      | 两个 `stop()`、`getMetrics/clearCache/start`、20+ 便捷访问器 |
+
+定向覆盖率（与全仓同样的 LF）：**push 74.28 → 100%、admin 69.00 → 100%、space 75.71 → 100%**。
+
+顺带发现两处「有 spec 但等于没测」：
+
+- `admin.spec.ts` 里那个 `describe("extendMatrixClient")` **从未真正调用**
+  `extendMatrixClient()`，只断言了「类能导出」—— 挂原型那 30 条语句一条都没执行过。
+- push 的 8 处 `catch`（emit `PushError` + 规范化重抛）**一条都没测**。
+
+##### 端到端验证（以及验证方法本身踩的坑）
+
+`check-critical-coverage.mjs` 接受 lcov 路径参数，于是可以离线验证而不必重跑 77 分钟的全仓。
+**第一次尝试就制造了假红**：拿「定向 lcov」（只跑各模块自己的 spec）冒充全仓 lcov，
+结果 auth 78.23 < 87、event 89.57 < 99、room 82.45 < 92 三个模块被判失败 ——
+它们的代码与测试本轮**一行未动**，全仓口径下是达标的（87.90 / 99.13 / 92.82）。
+
+⇒ **定向跑只给下界**（缺跨模块 import 的顺带覆盖）。用它当全仓数据，会把
+「定向缺失」误报成「覆盖率不足」。**判据**：比对前先确认两边的 **LF（可执行行数）
+一致** —— 一致才说明统计的是同一组行，差异只在 LH。
+
+改用「3 个模块取新测数据 + 其余 5 个取原全仓数据」的混合 lcov（`LH = LF` 的 100%
+是无歧义的），门禁给出：
+
+```
+[critical-coverage] 8 critical module(s) meet their ratchet floor (target=90%)   exit 0
+```
+
+##### 附带订正：`critical-modules.json` 的 `measuredBy` 与事实不符
+
+该字段自称 floor 是「各模块自身 spec 的定向覆盖率」，并附注「可能低于全仓覆盖率」。
+实测证伪：auth 定向 78.23 而 floor 87、event 定向 89.57 而 floor 99，而 floor 与
+**全仓 lcov 逐位吻合**（87.90 / 99.13）；2026-09-13 设定 floor 那次提交信息里记的
+实测值也是全仓口径。
+
+**这条错误描述正是 §7.15-11「口径差」假说的由来** —— 它把「定向低于全仓」说成常态，
+于是真实的回归（push 89.01 → 74.28）被解释成口径差异而放过。已订正注释，
+**floorPercent 一条未动**。
 
 ---
 
@@ -1362,5 +1433,12 @@ CLI 行为逐字节一致；并定位修掉 `quality:report` 240s 超时
 记的历史坑全部转成断言；记录变异自证的两类新坑（同一处代码两个变异会**互相遮蔽**、
 变异构造错会"纸面通过"），以及**不要在门禁扫描运行时施加变异**（本轮因此误报
 `quality:contracts` 67 条假红，还原后 exit 0）；并查清 `quality:coverage:critical`
-三模块红的真相是 floor 本身高于实测（口径不一致的假说已定向重测证伪），未擅自改动 floor）
+三模块红的真相是 floor 本身高于实测（口径不一致的假说已定向重测证伪），未擅自改动 floor）；
+**§7.15-12 覆盖率红的闭环**：挖出 `push` 89.01 → 74.28 是**真实回归**，那 74 行是
+2026-09-29 为「让契约缺口报告变绿」塞进 SDK 的重复别名方法（`getPushersWithTrailingSlash`
+/ `createPusher`，零调用方、与既有方法逐字节等价）—— 删掉后实现面覆盖反而 89.4% → 90.9%；
+再补 30 例覆盖真实缺测（8 处 catch 分支、缓存命中、房间规则、生命周期、20+ 便捷访问器），
+三模块定向覆盖率均达 **100%**，混合 lcov 端到端验证门禁 exit 0；记录验证方法自身的坑
+（定向 lcov 冒充全仓 lcov 会假红，判据是先对齐 LF）；并订正 `critical-modules.json`
+`measuredBy` 的错误描述（floor 来自全仓 lcov，"定向可能低于全仓"的说法正是误放假说的由来））
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
