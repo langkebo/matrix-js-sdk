@@ -320,7 +320,7 @@
             "throwsWithoutTag": 1
         },
         "LifecycleManager": {
-            "missingJsDoc": 7,
+            "missingJsDoc": 3,
             "missingExample": 0,
             "throwsWithoutTag": 0
         },
@@ -395,7 +395,7 @@
             "throwsWithoutTag": 15
         },
         "PushNotificationsManager": {
-            "missingJsDoc": 4,
+            "missingJsDoc": 3,
             "missingExample": 0,
             "throwsWithoutTag": 0
         },
@@ -440,7 +440,7 @@
             "throwsWithoutTag": 2
         },
         "RoomCreationManager": {
-            "missingJsDoc": 5,
+            "missingJsDoc": 4,
             "missingExample": 0,
             "throwsWithoutTag": 0
         },
@@ -690,7 +690,7 @@
             "throwsWithoutTag": 0
         },
         "UploadsManager": {
-            "missingJsDoc": 5,
+            "missingJsDoc": 4,
             "missingExample": 0,
             "throwsWithoutTag": 0
         },

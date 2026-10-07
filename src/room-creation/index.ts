@@ -71,22 +71,18 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
         super(client, opts);
     }
 
-    /** 房间创建选项模板（模块内自持状态，不随 client 走）。 */
-    private createRoomOptionsTemplate: ICreateRoomOptionsConfig = {};
-
-    public async createRoom(options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
-        return this.withRetry(
-            () => this.client.createRoom({ ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts),
-            "createRoom",
-        );
-    }
-
-    /**
-     * 创建私聊房间。
-     *
-     * 本 fork 没有 `client.createDirectRoom` —— 它只是 `createRoom` 外加
-     * `invite: [userId]` 与 `is_direct: true`（Matrix 规范里"私聊"就是这个形状）。
-     */
+    // 房间创建选项模板（模块内自持状态，不随 client 走）。 */
+    // private createRoomOptionsTemplate: ICreateRoomOptionsConfig = {};
+    // public async createRoom(options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
+    // return this.withRetry(
+    // () => this.client.createRoom({ ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts),
+    // "createRoom",
+    // );
+    // }
+    // /**
+    // 创建私聊房间。
+    // 本 fork 没有 `client.createDirectRoom` —— 它只是 `createRoom` 外加
+    // `invite: [userId]` 与 `is_direct: true`（Matrix 规范里"私聊"就是这个形状）。
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
         const opts = { ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts;
         opts.invite = [...(opts.invite ?? []), userId];
@@ -96,12 +92,9 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
         return this.withRetry(() => this.client.createRoom(opts), "createDirectRoom");
     }
 
-    /**
-     * 找到与某人的既有私聊；没有就新建。
-     *
-     * 依据 `m.direct` account data —— Matrix 规范里它是"私聊房间"的权威索引。
-     * 本 fork 没有 `client.findOrCreateDirectRoom`。
-     */
+    // 找到与某人的既有私聊；没有就新建。
+    // 依据 `m.direct` account data —— Matrix 规范里它是"私聊房间"的权威索引。
+    // 本 fork 没有 `client.findOrCreateDirectRoom`。
     public async findOrCreateDirectRoom(userId: string): Promise<ICreateRoomResponse> {
         const direct = this.client.getAccountData(EventType.Direct)?.getContent() as
             | Record<string, string[]>
@@ -114,12 +107,9 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
         return this.createDirectRoom(userId);
     }
 
-    /**
-     * 读 / 写"房间创建选项模板"——**模块内自持状态**。
-     *
-     * 此前这两个方法转发给 `client.getCreateRoomOptions()` / `setCreateRoomOptions()`，
-     * 而 MatrixClient 上没有这两个方法 —— "模板"是本模块的概念，不是 client 的概念。
-     */
+    // 读 / 写"房间创建选项模板"——**模块内自持状态**。
+    // 此前这两个方法转发给 `client.getCreateRoomOptions()` / `setCreateRoomOptions()`，
+    // 而 MatrixClient 上没有这两个方法 —— "模板"是本模块的概念，不是 client 的概念。
     public getCreateRoomOptions(): ICreateRoomOptionsConfig {
         return { ...this.createRoomOptionsTemplate };
     }

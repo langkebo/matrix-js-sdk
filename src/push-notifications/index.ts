@@ -49,7 +49,7 @@ export class PushNotificationsManager {
         return { pushers: await this.client.getPushManager().getPushers() };
     }
 
-    /** 逐个下发 —— `PushManager.setPusher` 一次只处理一个推送器。 */
+    // 逐个下发 —— `PushManager.setPusher` 一次只处理一个推送器。
     public async setPushers(pushers: IPusher[]): Promise<void> {
         const pushManager = this.client.getPushManager();
         for (const pusher of pushers) {
