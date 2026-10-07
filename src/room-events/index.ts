@@ -50,28 +50,52 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         super(client, opts);
     }
 
+    // 以下 6 个方法此前逐个转发 `this.client.getRoomEvents()` / `getStateEventsForRoom()`
+    // / `getTimelineEvents()` / `getEphemeralEvents()` / `hasTimelineEvent()` / `findEventById()`
+    // —— 这 6 个方法在本 fork 的 MatrixClient 上**运行时并不存在**（类型表却声明了它们），
+    // 调用即 TypeError。真实能力分散在两处：房间内事件在 `Room`（`client.getRoom()`），
+    // 临时事件在 `EphemeralManager`。这里改为委托它们。
+    // 另：这些都是**本地查询**（不产生 HTTP 请求），不该套 `withRetry` —— 原先的重试
+    // 只会把同一个同步查询重做三遍，还会把 `Promise` 包装成"看起来是网络操作"。
+
+    /** 房间直播时间线上的事件；传 `limit` 则取**最近** limit 条。 */
     public async getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]> {
-        return this.withRetry(() => this.client.getRoomEvents(roomId, limit), "getRoomEvents");
+        const events = this.client.getRoom(roomId)?.getLiveTimeline().getEvents() ?? [];
+        return limit === undefined ? events : events.slice(-limit);
     }
 
+    /**
+     * 房间当前状态里的全部 state 事件。
+     *
+     * `RoomState.getStateEvents()` 必须指定 `eventType`，没有 all-getter；
+     * 而 `RoomState.events` 是公开字段（`Map<eventType, Map<stateKey, MatrixEvent>>`，
+     * 见 `src/models/room-state.ts:163`），故在此摊平。
+     */
     public async getStateEventsForRoom(roomId: string): Promise<MatrixEvent[]> {
-        return this.withRetry(() => this.client.getStateEventsForRoom(roomId), "getStateEventsForRoom");
+        const state = this.client.getRoom(roomId)?.currentState;
+        if (!state) return [];
+
+        const events: MatrixEvent[] = [];
+        for (const perType of state.events.values()) {
+            events.push(...perType.values());
+        }
+        return events;
     }
 
     public getTimelineEvents(roomId: string): MatrixEvent[] {
-        return this.client.getTimelineEvents(roomId);
+        return this.client.getRoom(roomId)?.getLiveTimeline().getEvents() ?? [];
     }
 
     public getEphemeralEvents(roomId: string): IEphemeralEventData[] {
-        return this.client.getEphemeralEvents(roomId);
+        return this.client.getEphemeralManager().getEphemeralEvents(roomId);
     }
 
     public hasTimelineEvent(roomId: string, eventId: string): boolean {
-        return this.client.hasTimelineEvent(roomId, eventId);
+        return this.getTimelineEvents(roomId).some((event) => event.getId() === eventId);
     }
 
     public findEventById(roomId: string, eventId: string): MatrixEvent | null {
-        return this.client.findEventById(roomId, eventId);
+        return this.client.getRoom(roomId)?.findEventById(eventId) ?? null;
     }
 
     public async getEvent(roomId: string, eventId: string): Promise<IEvent> {
