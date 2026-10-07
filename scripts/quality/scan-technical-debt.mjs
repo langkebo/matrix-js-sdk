@@ -45,11 +45,16 @@ function listSourceFiles(dir) {
     return files;
 }
 
-function normalizePath(value) {
+/** 统一成 `/` 分隔（Windows 路径会让同一条债在不同机器上算出不同指纹）。 */
+export function normalizePath(value) {
     return value.replaceAll("\\", "/");
 }
 
-function escapeCsvField(value) {
+/**
+ * CSV 字段转义：含 `,` `"` 或换行时整体加引号，内部 `"` 翻倍。
+ * 不做转义的话，一条含逗号的 TODO 会把一行拆成两列，整份清单错位。
+ */
+export function escapeCsvField(value) {
     const normalized = String(value ?? "");
     if (normalized.includes(",") || normalized.includes('"') || normalized.includes("\n")) {
         return `"${normalized.replaceAll('"', '""')}"`;
@@ -57,25 +62,26 @@ function escapeCsvField(value) {
     return normalized;
 }
 
-function fingerprintFor(filePath, markerType, snippet) {
+/** 指纹 = sha1(路径|类型|片段)：片段变了就算一条新债（避免改动后被旧基线豁免）。 */
+export function fingerprintFor(filePath, markerType, snippet) {
     return crypto.createHash("sha1").update(`${filePath}|${markerType}|${snippet}`).digest("hex");
 }
 
-function inferSeverity(markerType) {
+export function inferSeverity(markerType) {
     if (markerType === "FIXME") return "Critical";
     if (markerType === "TODO") return "Major";
     if (markerType === "HACK") return "Major";
     return "Minor";
 }
 
-function inferPriority(markerType) {
+export function inferPriority(markerType) {
     if (markerType === "FIXME") return "P0";
     if (markerType === "TODO") return "P1";
     if (markerType === "HACK") return "P2";
     return "P3";
 }
 
-function scoreFromPriority(priority) {
+export function scoreFromPriority(priority) {
     if (priority === "P0") return 4.6;
     if (priority === "P1") return 3.8;
     if (priority === "P2") return 3.2;
@@ -98,7 +104,8 @@ function writeBaseline(items) {
     fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
 }
 
-function parseMeta(rawText) {
+/** 从注释文本里提取 owner / 日期 / jira / 状态；取不到就用空串或 "Open"。 */
+export function parseMeta(rawText) {
     const owner = rawText.match(ownerPattern)?.[1] ?? rawText.match(mentionOwnerPattern)?.[1] ?? "";
     const createdAt = rawText.match(isoDatePattern)?.[1] ?? "";
     const dueDate = rawText.match(dueDatePattern)?.[1] ?? "";
@@ -229,33 +236,41 @@ function writeInventory(items) {
     fs.writeFileSync(outputCsvPath, `${lines.join("\n")}\n`, "utf8");
 }
 
-const items = scanDebtItems();
-writeInventory(items);
+function main() {
+    const items = scanDebtItems();
+    writeInventory(items);
 
-if (shouldUpdateBaseline) {
-    writeBaseline(items);
-    console.log(`[technical-debt] baseline updated with ${items.length} entries`);
-    process.exit(0);
-}
-
-const baseline = readBaseline();
-const baselineIds = new Set(baseline.ids);
-const newItems = items.filter((item) => !baselineIds.has(item.id));
-const blockingItems = strictMode
-    ? newItems
-    : newItems.filter((item) => item.markerType === "FIXME" || item.markerType === "HACK");
-
-if (blockingItems.length > 0) {
-    console.error("[technical-debt] quality gate failed: new high-risk debt markers detected");
-    for (const item of blockingItems) {
-        console.error(
-            `- ${item.priority} ${item.markerType} ${item.filePath}:${item.line} owner=${item.owner} snippet=${item.snippet}`,
-        );
+    if (shouldUpdateBaseline) {
+        writeBaseline(items);
+        console.log(`[technical-debt] baseline updated with ${items.length} entries`);
+        process.exit(0);
     }
-    console.error("[technical-debt] Run: node scripts/quality/scan-technical-debt.mjs --update-baseline");
-    process.exit(1);
+
+    const baseline = readBaseline();
+    const baselineIds = new Set(baseline.ids);
+    const newItems = items.filter((item) => !baselineIds.has(item.id));
+    const blockingItems = strictMode
+        ? newItems
+        : newItems.filter((item) => item.markerType === "FIXME" || item.markerType === "HACK");
+
+    if (blockingItems.length > 0) {
+        console.error("[technical-debt] quality gate failed: new high-risk debt markers detected");
+        for (const item of blockingItems) {
+            console.error(
+                `- ${item.priority} ${item.markerType} ${item.filePath}:${item.line} owner=${item.owner} snippet=${item.snippet}`,
+            );
+        }
+        console.error("[technical-debt] Run: node scripts/quality/scan-technical-debt.mjs --update-baseline");
+        process.exit(1);
+    }
+
+    console.log(
+        `[technical-debt] quality gate passed (current: ${items.length}, new: ${newItems.length}, strict=${strictMode})`,
+    );
 }
 
-console.log(
-    `[technical-debt] quality gate passed (current: ${items.length}, new: ${newItems.length}, strict=${strictMode})`,
-);
+// 仅在被直接执行时跑 main（原为顶层裸跑：import 会扫全仓、写 inventory，
+// 并在有新增高风险债时 process.exit(1)）
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}
