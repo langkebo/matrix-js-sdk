@@ -36,7 +36,7 @@ function walk(dir, predicate = () => true, acc = []) {
     return acc;
 }
 
-function splitTableCells(line) {
+export function splitTableCells(line) {
     if (!line.trim().startsWith("|")) return [];
     return line
         .split("|")
@@ -44,17 +44,17 @@ function splitTableCells(line) {
         .map((cell) => cell.trim());
 }
 
-function isDividerRow(cells) {
+export function isDividerRow(cells) {
     return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s+/g, "")));
 }
 
-function extractInlineCode(cell) {
+export function extractInlineCode(cell) {
     const matches = [...cell.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
     if (matches.length > 0) return matches[0];
     return cell.replace(/\*\*/g, "").trim();
 }
 
-function normalizePathLiteral(text) {
+export function normalizePathLiteral(text) {
     if (typeof text !== "string") return undefined;
     const trimmed = text.trim();
     if (trimmed.length >= 2) {
@@ -67,11 +67,11 @@ function normalizePathLiteral(text) {
     return trimmed;
 }
 
-function upperFirst(text) {
+export function upperFirst(text) {
     return text ? text[0].toUpperCase() + text.slice(1) : text;
 }
 
-function normalizeOwner(rawOwner) {
+export function normalizeOwner(rawOwner) {
     const owner = rawOwner.trim();
     if (!owner || owner === "-") return null;
     if (owner === "client" || owner === "Client" || owner === "MatrixClient") return "MatrixClient";
@@ -93,7 +93,7 @@ function normalizeOwner(rawOwner) {
     return owner;
 }
 
-function normalizeMethod(rawMethod) {
+export function normalizeMethod(rawMethod) {
     const method = rawMethod.trim();
     if (!method || method === "-") return null;
 
@@ -105,7 +105,7 @@ function normalizeMethod(rawMethod) {
     return null;
 }
 
-function parseSdkReferenceFromCell(cell) {
+export function parseSdkReferenceFromCell(cell) {
     const value = extractInlineCode(cell);
     if (!value || value === "-") return null;
 
@@ -406,7 +406,7 @@ function resolvePrefixVariants(node, sourceFile, fromNode) {
     return resolveStringVariants(node, sourceFile, fromNode);
 }
 
-function canonicalizeMethod(methodExpr) {
+export function canonicalizeMethod(methodExpr) {
     if (!methodExpr) return undefined;
     if (typeof methodExpr !== "string") return undefined;
     const cleaned = methodExpr.replace(/\s+/g, "");
@@ -429,7 +429,7 @@ function resolveMethodVariants(node, sourceFile, fromNode) {
     return methods.length > 0 ? methods : undefined;
 }
 
-function resolvePrefix(prefixExpr) {
+export function resolvePrefix(prefixExpr) {
     if (prefixExpr === "") return "";
     if (!prefixExpr) return undefined;
     if (typeof prefixExpr !== "string") return undefined;
@@ -438,7 +438,7 @@ function resolvePrefix(prefixExpr) {
     return undefined;
 }
 
-function joinPrefixAndPath(prefix, reqPath) {
+export function joinPrefixAndPath(prefix, reqPath) {
     if (!reqPath || typeof reqPath !== "string") return undefined;
     const pathPart = reqPath.startsWith("/") ? reqPath : `/${reqPath}`;
     if (prefix === undefined) {
@@ -448,7 +448,7 @@ function joinPrefixAndPath(prefix, reqPath) {
     return `${prefix}${pathPart}`;
 }
 
-function normalizePathForMatch(input) {
+export function normalizePathForMatch(input) {
     if (typeof input !== "string") return undefined;
     let normalized = input.trim();
     if (!normalized.startsWith("/")) return undefined;
@@ -471,15 +471,15 @@ function normalizePathForMatch(input) {
     return normalized;
 }
 
-function isWildcardSegment(segment) {
+export function isWildcardSegment(segment) {
     return /^\{[^}]+\}/.test(segment);
 }
 
-function splitPathSegments(routePath) {
+export function splitPathSegments(routePath) {
     return routePath.split("/").filter(Boolean);
 }
 
-function pathsMatchWithWildcards(leftPath, rightPath) {
+export function pathsMatchWithWildcards(leftPath, rightPath) {
     const left = normalizePathForMatch(leftPath);
     const right = normalizePathForMatch(rightPath);
     if (!left || !right) return false;
@@ -508,7 +508,7 @@ function pathsMatchWithWildcards(leftPath, rightPath) {
     });
 }
 
-function pathEndsWithPattern(fullPath, suffixPath) {
+export function pathEndsWithPattern(fullPath, suffixPath) {
     const full = normalizePathForMatch(fullPath);
     const suffix = normalizePathForMatch(suffixPath);
     if (!full || !suffix) return false;
@@ -1130,7 +1130,7 @@ function parseBackendCodePath(filePath) {
     return path.resolve(path.dirname(filePath), rawPath);
 }
 
-function findMatchingDelimiter(input, openIndex, openChar = "(", closeChar = ")") {
+export function findMatchingDelimiter(input, openIndex, openChar = "(", closeChar = ")") {
     let depth = 0;
     let quote = null;
     let escaped = false;
@@ -1174,7 +1174,7 @@ function findMatchingDelimiter(input, openIndex, openChar = "(", closeChar = ")"
     return -1;
 }
 
-function splitTopLevelArgs(input) {
+export function splitTopLevelArgs(input) {
     let depthParen = 0;
     let depthBrace = 0;
     let depthBracket = 0;
@@ -1218,7 +1218,7 @@ function splitTopLevelArgs(input) {
     return [input.trim(), ""];
 }
 
-function parseRustStringLiteral(input) {
+export function parseRustStringLiteral(input) {
     const trimmed = input.trim();
     const match = trimmed.match(/^"([^"]*)"$/s);
     return match ? match[1] : undefined;
@@ -1303,7 +1303,7 @@ function parseRustRouterReference(expression, bindings) {
     return /^[A-Za-z_][A-Za-z0-9_]*$/.test(current) ? current : undefined;
 }
 
-function joinRustRoutePrefix(prefix, routePath) {
+export function joinRustRoutePrefix(prefix, routePath) {
     if (!prefix) return routePath;
     if (!routePath) return prefix;
     return `${prefix.replace(/\/$/, "")}/${routePath.replace(/^\//, "")}`;
@@ -1466,284 +1466,292 @@ function writeSummary({
     fs.appendFileSync(stepSummaryPath, `${lines.join("\n")}\n`);
 }
 
-if (!fs.existsSync(docsRoot)) {
-    console.error(`[sdk-contract-alignment] docs root not found: ${docsRoot}`);
-    process.exit(1);
-}
-
-if (!fs.existsSync(srcRoot)) {
-    console.error(`[sdk-contract-alignment] src root not found: ${srcRoot}`);
-    process.exit(1);
-}
-
-const methodIndex = collectMethodIndex();
-const sourceFiles = walk(srcRoot, (filePath) => filePath.endsWith(".ts") && !filePath.endsWith(".d.ts"));
-const traceIndex = collectTraceIndex(sourceFiles);
-const docFiles = walk(
-    docsRoot,
-    (filePath) =>
-        filePath.endsWith(".md") &&
-        !filePath.includes(`${path.sep}history${path.sep}`) &&
-        !["README.md", "CHANGELOG.md", "VERIFICATION_REPORT.md", "THROW_ON_ERROR_MIGRATION.md"].includes(
-            path.basename(filePath),
-        ),
-);
-
-const alignedRows = docFiles.flatMap((filePath) => parseSdkAlignedRows(filePath));
-const documentedEndpointsByFile = new Map(
-    docFiles.map((filePath) => [path.relative(projectRoot, filePath), parseDocumentedEndpoints(filePath)]),
-);
-const requestCalls = sourceFiles
-    .flatMap((filePath) => scanSourceRequestCalls(filePath))
-    .filter((item) => item.fullPath);
-const parseFailures = [];
-const missingMethods = [];
-const pathParseFailures = [];
-const unresolvedRows = [];
-const missingPaths = [];
-const unresolvedAttributions = [];
-const attributedMismatches = [];
-const backendParseFailures = [];
-const missingBackendRoutes = [];
-
-for (const row of alignedRows) {
-    if (!row.reference) {
-        parseFailures.push({
-            file: row.file,
-            line: row.line,
-            raw: row.methodCell || row.managerCell || row.status,
-        });
-        continue;
+function main() {
+    if (!fs.existsSync(docsRoot)) {
+        console.error(`[sdk-contract-alignment] docs root not found: ${docsRoot}`);
+        process.exit(1);
     }
 
-    const ownerMethods = methodIndex.get(row.reference.owner);
-    const fileHits = ownerMethods?.get(row.reference.method);
-    if (!fileHits || fileHits.size === 0) {
-        missingMethods.push({
-            file: row.file,
-            line: row.line,
-            reference: `${row.reference.owner}.${row.reference.method}()`,
-        });
+    if (!fs.existsSync(srcRoot)) {
+        console.error(`[sdk-contract-alignment] src root not found: ${srcRoot}`);
+        process.exit(1);
     }
 
-    if (!row.endpoint) {
-        pathParseFailures.push({
-            file: row.file,
-            line: row.line,
-            raw: row.endpointCell,
-        });
-        continue;
-    }
-
-    const documentedEndpoints = documentedEndpointsByFile.get(row.file) ?? [];
-    const candidates = resolveDocumentedCandidates(row, documentedEndpoints);
-    if (candidates.length === 0) {
-        unresolvedRows.push({
-            file: row.file,
-            line: row.line,
-            endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
-        });
-        continue;
-    }
-
-    const matchedRequest = requestCalls.find(
-        (request) =>
-            request.method === row.endpoint.method &&
-            candidates.some((candidate) => pathsMatchWithWildcards(request.fullPath, candidate.path)),
+    const methodIndex = collectMethodIndex();
+    const sourceFiles = walk(srcRoot, (filePath) => filePath.endsWith(".ts") && !filePath.endsWith(".d.ts"));
+    const traceIndex = collectTraceIndex(sourceFiles);
+    const docFiles = walk(
+        docsRoot,
+        (filePath) =>
+            filePath.endsWith(".md") &&
+            !filePath.includes(`${path.sep}history${path.sep}`) &&
+            !["README.md", "CHANGELOG.md", "VERIFICATION_REPORT.md", "THROW_ON_ERROR_MIGRATION.md"].includes(
+                path.basename(filePath),
+            ),
     );
 
-    if (!matchedRequest) {
-        missingPaths.push({
-            file: row.file,
-            line: row.line,
-            endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
-            reference: `${row.reference.owner}.${row.reference.method}()`,
-            candidates: candidates.map((candidate) => candidate.path),
-        });
-    }
-
-    const attributedRequests = traceRequestsForReference(row.reference, traceIndex);
-    if (attributedRequests.length === 0) {
-        unresolvedAttributions.push({
-            file: row.file,
-            line: row.line,
-            endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
-            reference: `${row.reference.owner}.${row.reference.method}()`,
-        });
-        continue;
-    }
-
-    const attributedMatch = attributedRequests.find(
-        (request) =>
-            request.method === row.endpoint.method &&
-            candidates.some((candidate) => pathsMatchWithWildcards(request.fullPath, candidate.path)),
+    const alignedRows = docFiles.flatMap((filePath) => parseSdkAlignedRows(filePath));
+    const documentedEndpointsByFile = new Map(
+        docFiles.map((filePath) => [path.relative(projectRoot, filePath), parseDocumentedEndpoints(filePath)]),
     );
+    const requestCalls = sourceFiles
+        .flatMap((filePath) => scanSourceRequestCalls(filePath))
+        .filter((item) => item.fullPath);
+    const parseFailures = [];
+    const missingMethods = [];
+    const pathParseFailures = [];
+    const unresolvedRows = [];
+    const missingPaths = [];
+    const unresolvedAttributions = [];
+    const attributedMismatches = [];
+    const backendParseFailures = [];
+    const missingBackendRoutes = [];
 
-    if (!attributedMatch) {
-        attributedMismatches.push({
-            file: row.file,
-            line: row.line,
-            endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
-            reference: `${row.reference.owner}.${row.reference.method}()`,
-            tracedRequests: attributedRequests.map((request) => `${request.method} ${request.fullPath}`),
-        });
-    }
-}
-
-const synapseRootAvailable = fs.existsSync(synapseRoot);
-if (!synapseRootAvailable) {
-    console.warn(
-        `[sdk-contract-alignment] synapse-rust not found at ${synapseRoot}, skipping backend route validation`,
-    );
-} else {
-    const docsWithAlignedRows = [...new Set(alignedRows.map((row) => row.file))];
-    for (const relativeDocPath of docsWithAlignedRows) {
-        const absoluteDocPath = path.join(projectRoot, relativeDocPath);
-        const backendFilePath = parseBackendCodePath(absoluteDocPath);
-        if (!backendFilePath || !fs.existsSync(backendFilePath)) {
-            backendParseFailures.push({
-                file: relativeDocPath,
-                reason: "backend code path missing or file not found",
+    for (const row of alignedRows) {
+        if (!row.reference) {
+            parseFailures.push({
+                file: row.file,
+                line: row.line,
+                raw: row.methodCell || row.managerCell || row.status,
             });
             continue;
         }
 
-        const extracted = extractBackendRoutesFromFile(backendFilePath);
-        if (!extracted.ok) {
-            backendParseFailures.push({
-                file: relativeDocPath,
-                reason: extracted.reason,
-                backendFile: path.relative(projectRoot, backendFilePath),
+        const ownerMethods = methodIndex.get(row.reference.owner);
+        const fileHits = ownerMethods?.get(row.reference.method);
+        if (!fileHits || fileHits.size === 0) {
+            missingMethods.push({
+                file: row.file,
+                line: row.line,
+                reference: `${row.reference.owner}.${row.reference.method}()`,
+            });
+        }
+
+        if (!row.endpoint) {
+            pathParseFailures.push({
+                file: row.file,
+                line: row.line,
+                raw: row.endpointCell,
             });
             continue;
         }
 
-        const documentedEndpoints = documentedEndpointsByFile.get(relativeDocPath) ?? [];
-        for (const endpoint of documentedEndpoints) {
-            const matched = extracted.routes.find(
-                (route) => route.method === endpoint.method && pathsMatchWithWildcards(route.path, endpoint.path),
-            );
+        const documentedEndpoints = documentedEndpointsByFile.get(row.file) ?? [];
+        const candidates = resolveDocumentedCandidates(row, documentedEndpoints);
+        if (candidates.length === 0) {
+            unresolvedRows.push({
+                file: row.file,
+                line: row.line,
+                endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
+            });
+            continue;
+        }
 
-            if (!matched) {
-                missingBackendRoutes.push({
+        const matchedRequest = requestCalls.find(
+            (request) =>
+                request.method === row.endpoint.method &&
+                candidates.some((candidate) => pathsMatchWithWildcards(request.fullPath, candidate.path)),
+        );
+
+        if (!matchedRequest) {
+            missingPaths.push({
+                file: row.file,
+                line: row.line,
+                endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
+                reference: `${row.reference.owner}.${row.reference.method}()`,
+                candidates: candidates.map((candidate) => candidate.path),
+            });
+        }
+
+        const attributedRequests = traceRequestsForReference(row.reference, traceIndex);
+        if (attributedRequests.length === 0) {
+            unresolvedAttributions.push({
+                file: row.file,
+                line: row.line,
+                endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
+                reference: `${row.reference.owner}.${row.reference.method}()`,
+            });
+            continue;
+        }
+
+        const attributedMatch = attributedRequests.find(
+            (request) =>
+                request.method === row.endpoint.method &&
+                candidates.some((candidate) => pathsMatchWithWildcards(request.fullPath, candidate.path)),
+        );
+
+        if (!attributedMatch) {
+            attributedMismatches.push({
+                file: row.file,
+                line: row.line,
+                endpoint: `${row.endpoint.method} ${row.endpoint.path}`,
+                reference: `${row.reference.owner}.${row.reference.method}()`,
+                tracedRequests: attributedRequests.map((request) => `${request.method} ${request.fullPath}`),
+            });
+        }
+    }
+
+    const synapseRootAvailable = fs.existsSync(synapseRoot);
+    if (!synapseRootAvailable) {
+        console.warn(
+            `[sdk-contract-alignment] synapse-rust not found at ${synapseRoot}, skipping backend route validation`,
+        );
+    } else {
+        const docsWithAlignedRows = [...new Set(alignedRows.map((row) => row.file))];
+        for (const relativeDocPath of docsWithAlignedRows) {
+            const absoluteDocPath = path.join(projectRoot, relativeDocPath);
+            const backendFilePath = parseBackendCodePath(absoluteDocPath);
+            if (!backendFilePath || !fs.existsSync(backendFilePath)) {
+                backendParseFailures.push({
                     file: relativeDocPath,
-                    line: endpoint.line,
-                    endpoint: `${endpoint.method} ${endpoint.path}`,
+                    reason: "backend code path missing or file not found",
+                });
+                continue;
+            }
+
+            const extracted = extractBackendRoutesFromFile(backendFilePath);
+            if (!extracted.ok) {
+                backendParseFailures.push({
+                    file: relativeDocPath,
+                    reason: extracted.reason,
                     backendFile: path.relative(projectRoot, backendFilePath),
                 });
+                continue;
+            }
+
+            const documentedEndpoints = documentedEndpointsByFile.get(relativeDocPath) ?? [];
+            for (const endpoint of documentedEndpoints) {
+                const matched = extracted.routes.find(
+                    (route) => route.method === endpoint.method && pathsMatchWithWildcards(route.path, endpoint.path),
+                );
+
+                if (!matched) {
+                    missingBackendRoutes.push({
+                        file: relativeDocPath,
+                        line: endpoint.line,
+                        endpoint: `${endpoint.method} ${endpoint.path}`,
+                        backendFile: path.relative(projectRoot, backendFilePath),
+                    });
+                }
             }
         }
     }
-}
 
-if (
-    parseFailures.length ||
-    missingMethods.length ||
-    pathParseFailures.length ||
-    unresolvedRows.length ||
-    missingPaths.length ||
-    attributedMismatches.length ||
-    backendParseFailures.length ||
-    missingBackendRoutes.length
-) {
-    console.error("[sdk-contract-alignment] contract alignment check failed");
-    if (parseFailures.length) {
-        console.error("[sdk-contract-alignment] unable to parse aligned SDK references:");
-        for (const item of parseFailures) {
-            console.error(`- ${item.file}:${item.line} -> ${item.raw}`);
+    if (
+        parseFailures.length ||
+        missingMethods.length ||
+        pathParseFailures.length ||
+        unresolvedRows.length ||
+        missingPaths.length ||
+        attributedMismatches.length ||
+        backendParseFailures.length ||
+        missingBackendRoutes.length
+    ) {
+        console.error("[sdk-contract-alignment] contract alignment check failed");
+        if (parseFailures.length) {
+            console.error("[sdk-contract-alignment] unable to parse aligned SDK references:");
+            for (const item of parseFailures) {
+                console.error(`- ${item.file}:${item.line} -> ${item.raw}`);
+            }
         }
-    }
-    if (missingMethods.length) {
-        console.error("[sdk-contract-alignment] missing SDK methods referenced by docs:");
-        for (const item of missingMethods) {
-            console.error(`- ${item.file}:${item.line} -> ${item.reference}`);
+        if (missingMethods.length) {
+            console.error("[sdk-contract-alignment] missing SDK methods referenced by docs:");
+            for (const item of missingMethods) {
+                console.error(`- ${item.file}:${item.line} -> ${item.reference}`);
+            }
         }
-    }
-    if (pathParseFailures.length) {
-        console.error("[sdk-contract-alignment] unable to parse aligned endpoint references:");
-        for (const item of pathParseFailures) {
-            console.error(`- ${item.file}:${item.line} -> ${item.raw}`);
+        if (pathParseFailures.length) {
+            console.error("[sdk-contract-alignment] unable to parse aligned endpoint references:");
+            for (const item of pathParseFailures) {
+                console.error(`- ${item.file}:${item.line} -> ${item.raw}`);
+            }
         }
-    }
-    if (unresolvedRows.length) {
-        console.error("[sdk-contract-alignment] unable to resolve aligned rows to documented endpoint details:");
-        for (const item of unresolvedRows) {
-            console.error(`- ${item.file}:${item.line} -> ${item.endpoint}`);
+        if (unresolvedRows.length) {
+            console.error("[sdk-contract-alignment] unable to resolve aligned rows to documented endpoint details:");
+            for (const item of unresolvedRows) {
+                console.error(`- ${item.file}:${item.line} -> ${item.endpoint}`);
+            }
         }
-    }
-    if (missingPaths.length) {
-        console.error("[sdk-contract-alignment] aligned endpoints not covered by SDK request paths:");
-        for (const item of missingPaths) {
-            console.error(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
+        if (missingPaths.length) {
+            console.error("[sdk-contract-alignment] aligned endpoints not covered by SDK request paths:");
+            for (const item of missingPaths) {
+                console.error(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
+            }
         }
-    }
-    if (attributedMismatches.length) {
+        if (attributedMismatches.length) {
+            console.error(
+                "[sdk-contract-alignment] documented method-to-endpoint mappings do not match traced request paths:",
+            );
+            for (const item of attributedMismatches) {
+                console.error(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
+                for (const tracedRequest of item.tracedRequests.slice(0, 3)) {
+                    console.error(`  traced: ${tracedRequest}`);
+                }
+            }
+        }
+        if (backendParseFailures.length) {
+            console.error("[sdk-contract-alignment] unable to parse backend route files referenced by docs:");
+            for (const item of backendParseFailures) {
+                console.error(`- ${item.file} -> ${item.reason}`);
+            }
+        }
+        if (missingBackendRoutes.length) {
+            console.error("[sdk-contract-alignment] documented endpoints not found in referenced backend route files:");
+            for (const item of missingBackendRoutes) {
+                console.error(`- ${item.file}:${item.line} -> ${item.endpoint} (${item.backendFile})`);
+            }
+        }
+        console.error("[sdk-contract-alignment] remediation hints:");
         console.error(
-            "[sdk-contract-alignment] documented method-to-endpoint mappings do not match traced request paths:",
+            "- keep `SDK 对齐状态` tables using either `Owner.method()` or split `SDK Manager` / `SDK 方法` columns",
         );
-        for (const item of attributedMismatches) {
-            console.error(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
-            for (const tracedRequest of item.tracedRequests.slice(0, 3)) {
-                console.error(`  traced: ${tracedRequest}`);
-            }
-        }
+        console.error(
+            "- keep `后端端点` rows in `METHOD /path` format and ensure they map to a detailed `**路径**` entry",
+        );
+        console.error("- update docs when the source symbol name changes");
+        console.error("- update docs when a method is implemented via a different backend route than documented");
+        console.error("- keep doc `> 后端代码:` pointers pointing at concrete synapse-rust route files");
+        console.error("- re-run: pnpm quality:sdk-contracts");
+        writeSummary({
+            ok: false,
+            checkedRows: alignedRows.length,
+            parseFailures,
+            missingMethods,
+            pathParseFailures,
+            unresolvedRows,
+            missingPaths,
+            unresolvedAttributions,
+            attributedMismatches,
+            backendParseFailures,
+            missingBackendRoutes,
+        });
+        process.exit(1);
     }
-    if (backendParseFailures.length) {
-        console.error("[sdk-contract-alignment] unable to parse backend route files referenced by docs:");
-        for (const item of backendParseFailures) {
-            console.error(`- ${item.file} -> ${item.reason}`);
-        }
-    }
-    if (missingBackendRoutes.length) {
-        console.error("[sdk-contract-alignment] documented endpoints not found in referenced backend route files:");
-        for (const item of missingBackendRoutes) {
-            console.error(`- ${item.file}:${item.line} -> ${item.endpoint} (${item.backendFile})`);
-        }
-    }
-    console.error("[sdk-contract-alignment] remediation hints:");
-    console.error(
-        "- keep `SDK 对齐状态` tables using either `Owner.method()` or split `SDK Manager` / `SDK 方法` columns",
+
+    console.log(
+        `[sdk-contract-alignment] ok (${alignedRows.length} aligned rows checked, ${unresolvedAttributions.length} unresolved attributions)`,
     );
-    console.error("- keep `后端端点` rows in `METHOD /path` format and ensure they map to a detailed `**路径**` entry");
-    console.error("- update docs when the source symbol name changes");
-    console.error("- update docs when a method is implemented via a different backend route than documented");
-    console.error("- keep doc `> 后端代码:` pointers pointing at concrete synapse-rust route files");
-    console.error("- re-run: pnpm quality:sdk-contracts");
+    if (unresolvedAttributions.length) {
+        console.warn("[sdk-contract-alignment] unresolved method attributions:");
+        for (const item of unresolvedAttributions) {
+            console.warn(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
+        }
+    }
     writeSummary({
-        ok: false,
+        ok: true,
         checkedRows: alignedRows.length,
-        parseFailures,
-        missingMethods,
-        pathParseFailures,
-        unresolvedRows,
-        missingPaths,
+        parseFailures: [],
+        missingMethods: [],
+        pathParseFailures: [],
+        unresolvedRows: [],
+        missingPaths: [],
         unresolvedAttributions,
-        attributedMismatches,
-        backendParseFailures,
-        missingBackendRoutes,
+        attributedMismatches: [],
+        backendParseFailures: [],
+        missingBackendRoutes: [],
     });
-    process.exit(1);
 }
 
-console.log(
-    `[sdk-contract-alignment] ok (${alignedRows.length} aligned rows checked, ${unresolvedAttributions.length} unresolved attributions)`,
-);
-if (unresolvedAttributions.length) {
-    console.warn("[sdk-contract-alignment] unresolved method attributions:");
-    for (const item of unresolvedAttributions) {
-        console.warn(`- ${item.file}:${item.line} -> ${item.endpoint} via ${item.reference}`);
-    }
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
 }
-writeSummary({
-    ok: true,
-    checkedRows: alignedRows.length,
-    parseFailures: [],
-    missingMethods: [],
-    pathParseFailures: [],
-    unresolvedRows: [],
-    missingPaths: [],
-    unresolvedAttributions,
-    attributedMismatches: [],
-    backendParseFailures: [],
-    missingBackendRoutes: [],
-});
