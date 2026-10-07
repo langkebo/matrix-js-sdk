@@ -6,139 +6,159 @@ import path from "node:path";
 const projectRoot = process.cwd();
 const packageJsonPath = path.join(projectRoot, "package.json");
 const docsPath = path.join(projectRoot, "docs/api-contract/exports.md");
-const stepSummaryPath = process.env.GITHUB_STEP_SUMMARY;
 
-if (!fs.existsSync(packageJsonPath)) {
-    console.error(`[exports-docs] package.json not found at ${packageJsonPath}`);
-    process.exit(1);
-}
+// 核心入口必须填写 Key Exports：留空就等于文档没说清这个入口到底导出什么。
+const MANDATORY_KEY_EXPORTS = new Set([".", "./core", "./advanced", "./legacy", "./client"]);
 
-if (!fs.existsSync(docsPath)) {
-    console.error(`[exports-docs] docs not found at ${docsPath}`);
-    process.exit(1);
-}
+/**
+ * 比对 package.json#exports 与 docs/api-contract/exports.md。
+ *
+ * 纯函数：不读文件、不写文件、不 exit —— 所有文件系统动作都留在 main() 里，
+ * 这样 spec 才能用临时目录构造 package.json / src / md 来跑真实判定。
+ */
+export function evaluateExportsDocs({ exportKeys, docRows, pkgExports, root }) {
+    const docKeys = new Set(docRows.map((row) => row.exportKey));
+    const duplicateDocKeys = findDuplicates(docRows.map((row) => row.exportKey));
+    const rowsMissingScope = docRows.filter((row) => !row.whitelistScope.trim()).map((row) => row.exportKey);
+    const rowsMissingMandatoryKeyExports = docRows
+        .filter(
+            (row) =>
+                MANDATORY_KEY_EXPORTS.has(row.exportKey) && parseRequiredSymbols(row.keyExports).length === 0,
+        )
+        .map((row) => row.exportKey);
 
-const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-const exportKeys = Object.keys(pkg.exports ?? {}).sort();
+    const docByKey = new Map(docRows.map((row) => [row.exportKey, row]));
 
-const docsContent = fs.readFileSync(docsPath, "utf8");
-const docRows = parseExportRows(docsContent);
-const docKeys = new Set(docRows.map((row) => row.exportKey));
-const duplicateDocKeys = findDuplicates(docRows.map((row) => row.exportKey));
-const rowsMissingScope = docRows.filter((row) => !row.whitelistScope.trim()).map((row) => row.exportKey);
-const mandatoryKeyExports = new Set([".", "./core", "./advanced", "./legacy", "./client"]);
-const rowsMissingMandatoryKeyExports = docRows
-    .filter((row) => mandatoryKeyExports.has(row.exportKey) && parseRequiredSymbols(row.keyExports).length === 0)
-    .map((row) => row.exportKey);
+    const symbolMismatches = [];
+    for (const key of exportKeys) {
+        const row = docByKey.get(key);
+        if (!row) continue;
 
-const docByKey = new Map(docRows.map((row) => [row.exportKey, row]));
+        const requiredSymbols = parseRequiredSymbols(row.keyExports);
+        if (requiredSymbols.length === 0) continue;
 
-const symbolMismatches = [];
-for (const key of exportKeys) {
-    const row = docByKey.get(key);
-    if (!row) continue;
+        const sourceFile = resolveSourceFile(root, pkgExports[key]);
+        if (!sourceFile) {
+            symbolMismatches.push({
+                key,
+                reason: "source file cannot be resolved from package.json exports mapping",
+                missing: requiredSymbols,
+            });
+            continue;
+        }
 
-    const requiredSymbols = parseRequiredSymbols(row.keyExports);
-    if (requiredSymbols.length === 0) continue;
-
-    const sourceFile = resolveSourceFile(projectRoot, pkg.exports[key]);
-    if (!sourceFile) {
-        symbolMismatches.push({
-            key,
-            reason: "source file cannot be resolved from package.json exports mapping",
-            missing: requiredSymbols,
-        });
-        continue;
-    }
-
-    const exportedSymbols = collectExportedSymbols(sourceFile, new Set());
-    const missingSymbols = requiredSymbols.filter((symbol) => !exportedSymbols.has(symbol));
-    if (missingSymbols.length > 0) {
-        symbolMismatches.push({
-            key,
-            reason: `missing required symbols in ${path.relative(projectRoot, sourceFile)}`,
-            missing: missingSymbols,
-        });
-    }
-}
-
-const missingInDocs = exportKeys.filter((k) => !docKeys.has(k));
-const extraInDocs = [...docKeys].filter((k) => !exportKeys.includes(k)).sort();
-
-if (
-    missingInDocs.length ||
-    extraInDocs.length ||
-    duplicateDocKeys.length ||
-    rowsMissingScope.length ||
-    rowsMissingMandatoryKeyExports.length ||
-    symbolMismatches.length
-) {
-    console.error("[exports-docs] mismatch between package.json exports and docs/api-contract/exports.md");
-    if (missingInDocs.length) {
-        console.error("[exports-docs] missing in docs:");
-        for (const key of missingInDocs) console.error(`- ${key}`);
-    }
-    if (extraInDocs.length) {
-        console.error("[exports-docs] extra in docs:");
-        for (const key of extraInDocs) console.error(`- ${key}`);
-    }
-    if (duplicateDocKeys.length) {
-        console.error("[exports-docs] duplicate export rows in docs:");
-        for (const key of duplicateDocKeys) console.error(`- ${key}`);
-    }
-    if (rowsMissingScope.length) {
-        console.error("[exports-docs] missing whitelist scope:");
-        for (const key of rowsMissingScope) console.error(`- ${key}`);
-    }
-    if (rowsMissingMandatoryKeyExports.length) {
-        console.error("[exports-docs] missing mandatory key exports (for core entrypoints):");
-        for (const key of rowsMissingMandatoryKeyExports) console.error(`- ${key}`);
-    }
-    if (symbolMismatches.length) {
-        console.error("[exports-docs] required symbol check failed:");
-        for (const mismatch of symbolMismatches) {
-            console.error(`- ${mismatch.key}: ${mismatch.reason}`);
-            for (const symbol of mismatch.missing) {
-                console.error(`  - ${symbol}`);
-            }
+        const exportedSymbols = collectExportedSymbols(sourceFile, new Set());
+        const missingSymbols = requiredSymbols.filter((symbol) => !exportedSymbols.has(symbol));
+        if (missingSymbols.length > 0) {
+            symbolMismatches.push({
+                key,
+                reason: `missing required symbols in ${path.relative(root, sourceFile)}`,
+                missing: missingSymbols,
+            });
         }
     }
-    printRemediationHints({
+
+    const missingInDocs = exportKeys.filter((k) => !docKeys.has(k));
+    const extraInDocs = [...docKeys].filter((k) => !exportKeys.includes(k)).sort();
+
+    return {
         missingInDocs,
         extraInDocs,
         duplicateDocKeys,
         rowsMissingScope,
         rowsMissingMandatoryKeyExports,
         symbolMismatches,
-    });
-    writeExportsSummary({
-        ok: false,
-        exportCount: exportKeys.length,
-        rowCount: docRows.length,
-        missingInDocs,
-        extraInDocs,
-        duplicateDocKeys,
-        rowsMissingScope,
-        rowsMissingMandatoryKeyExports,
-        symbolMismatches,
-    });
-    process.exit(1);
+    };
 }
 
-console.log(`[exports-docs] ok (${exportKeys.length} exports, ${docRows.length} documented rows)`);
-writeExportsSummary({
-    ok: true,
-    exportCount: exportKeys.length,
-    rowCount: docRows.length,
-    missingInDocs: [],
-    extraInDocs: [],
-    duplicateDocKeys: [],
-    rowsMissingScope: [],
-    rowsMissingMandatoryKeyExports: [],
-    symbolMismatches: [],
-});
+export function hasExportsDocsFailure(result) {
+    return (
+        result.missingInDocs.length > 0 ||
+        result.extraInDocs.length > 0 ||
+        result.duplicateDocKeys.length > 0 ||
+        result.rowsMissingScope.length > 0 ||
+        result.rowsMissingMandatoryKeyExports.length > 0 ||
+        result.symbolMismatches.length > 0
+    );
+}
 
-function parseExportRows(markdown) {
+function main() {
+    const stepSummaryPath = process.env.GITHUB_STEP_SUMMARY;
+
+    if (!fs.existsSync(packageJsonPath)) {
+        console.error(`[exports-docs] package.json not found at ${packageJsonPath}`);
+        process.exit(1);
+    }
+
+    if (!fs.existsSync(docsPath)) {
+        console.error(`[exports-docs] docs not found at ${docsPath}`);
+        process.exit(1);
+    }
+
+    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    const exportKeys = Object.keys(pkg.exports ?? {}).sort();
+
+    const docsContent = fs.readFileSync(docsPath, "utf8");
+    const docRows = parseExportRows(docsContent);
+
+    const result = evaluateExportsDocs({
+        exportKeys,
+        docRows,
+        pkgExports: pkg.exports ?? {},
+        root: projectRoot,
+    });
+
+    if (hasExportsDocsFailure(result)) {
+        console.error("[exports-docs] mismatch between package.json exports and docs/api-contract/exports.md");
+        if (result.missingInDocs.length) {
+            console.error("[exports-docs] missing in docs:");
+            for (const key of result.missingInDocs) console.error(`- ${key}`);
+        }
+        if (result.extraInDocs.length) {
+            console.error("[exports-docs] extra in docs:");
+            for (const key of result.extraInDocs) console.error(`- ${key}`);
+        }
+        if (result.duplicateDocKeys.length) {
+            console.error("[exports-docs] duplicate export rows in docs:");
+            for (const key of result.duplicateDocKeys) console.error(`- ${key}`);
+        }
+        if (result.rowsMissingScope.length) {
+            console.error("[exports-docs] missing whitelist scope:");
+            for (const key of result.rowsMissingScope) console.error(`- ${key}`);
+        }
+        if (result.rowsMissingMandatoryKeyExports.length) {
+            console.error("[exports-docs] missing mandatory key exports (for core entrypoints):");
+            for (const key of result.rowsMissingMandatoryKeyExports) console.error(`- ${key}`);
+        }
+        if (result.symbolMismatches.length) {
+            console.error("[exports-docs] required symbol check failed:");
+            for (const mismatch of result.symbolMismatches) {
+                console.error(`- ${mismatch.key}: ${mismatch.reason}`);
+                for (const symbol of mismatch.missing) {
+                    console.error(`  - ${symbol}`);
+                }
+            }
+        }
+        printRemediationHints(result);
+        writeExportsSummary(
+            { ok: false, exportCount: exportKeys.length, rowCount: docRows.length, ...result },
+            stepSummaryPath,
+        );
+        process.exit(1);
+    }
+
+    console.log(`[exports-docs] ok (${exportKeys.length} exports, ${docRows.length} documented rows)`);
+    writeExportsSummary(
+        { ok: true, exportCount: exportKeys.length, rowCount: docRows.length, ...result },
+        stepSummaryPath,
+    );
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}
+
+export function parseExportRows(markdown) {
     const rows = [];
     const lines = markdown.split(/\r?\n/);
 
@@ -167,7 +187,7 @@ function parseExportRows(markdown) {
     return rows;
 }
 
-function findDuplicates(items) {
+export function findDuplicates(items) {
     const seen = new Set();
     const duplicates = new Set();
     for (const item of items) {
@@ -207,7 +227,7 @@ function printRemediationHints({
     console.error("- re-run: pnpm quality:exports");
 }
 
-function parseRequiredSymbols(keyExportsCell) {
+export function parseRequiredSymbols(keyExportsCell) {
     const normalized = keyExportsCell.trim();
     if (!normalized || normalized === "-" || normalized === "`-`") return [];
 
@@ -227,17 +247,19 @@ function parseRequiredSymbols(keyExportsCell) {
     ];
 }
 
-function writeExportsSummary({
-    ok,
-    exportCount,
-    rowCount,
-    missingInDocs,
-    extraInDocs,
-    duplicateDocKeys,
-    rowsMissingScope,
-    rowsMissingMandatoryKeyExports,
-    symbolMismatches,
-}) {
+function writeExportsSummary(payload, stepSummaryPath) {
+    const {
+        ok,
+        exportCount,
+        rowCount,
+        missingInDocs,
+        extraInDocs,
+        duplicateDocKeys,
+        rowsMissingScope,
+        rowsMissingMandatoryKeyExports,
+        symbolMismatches,
+    } = payload;
+
     if (!stepSummaryPath) return;
 
     const lines = [];
@@ -273,7 +295,7 @@ function writeExportsSummary({
     fs.appendFileSync(stepSummaryPath, `${lines.join("\n")}\n`);
 }
 
-function resolveSourceFile(root, exportEntry) {
+export function resolveSourceFile(root, exportEntry) {
     if (!exportEntry) return null;
 
     const exportPath =
@@ -300,7 +322,7 @@ function resolveSourceFile(root, exportEntry) {
     return null;
 }
 
-function collectExportedSymbols(filePath, visited) {
+export function collectExportedSymbols(filePath, visited) {
     const symbols = new Set();
 
     if (visited.has(filePath)) return symbols;
@@ -353,7 +375,7 @@ function collectExportedSymbols(filePath, visited) {
     return symbols;
 }
 
-function resolveRelativeModule(fromFile, importSpecifier) {
+export function resolveRelativeModule(fromFile, importSpecifier) {
     if (!importSpecifier.startsWith(".")) return null;
 
     const fromDir = path.dirname(fromFile);
