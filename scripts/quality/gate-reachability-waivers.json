@@ -1,12 +1,36 @@
 {
     "$comment": [
         "check-gate-reachability.mjs 的豁免台账（ratchet 纪律：修一条删一条）。",
-        "受管辖门禁 = scripts/quality/ 下的脚本，或文件名以 check-/verify-/validate-/assert-/enforce- 开头。",
-        "仅当某个受管辖门禁确实不该进 lint/CI（例如只对 release 分支生效）时才登记，且必须写 reason。",
-        "腐烂条目（文件已删 / 已可达 / 缺 reason）会让门禁直接失败。",
-        "当前为空 —— 2026-10-05：45 个受管辖门禁全部可从 lint/CI 到达。",
-        "历史：check-repo-coverage.mjs 曾短暂登记为临时豁免（等实测定标），",
-        "  实测全仓 lines 81.49% ≥ floor 65% 后已接线，豁免随之删除。"
+        "受管辖门禁 = **按路径认定**：scripts/quality/ 下（lib/ 除外）的脚本，或文件名以",
+        "  check-/verify-/validate-/assert-/enforce- 开头。不要求正文里出现 exit-1 ——",
+        "  曾经要求过，结果 18 个 granular 门禁把判定逻辑抽到共享库后集体掉出管辖范围。",
+        "仅当某个受管辖门禁确实不该进 lint/CI（例如人工取证工具 / 只在发布时触发）时才登记，",
+        "且必须写 reason。腐烂条目（文件已删 / 已可达 / 缺 reason）会让门禁直接失败。",
+        "",
+        "历史：2026-10-05 时为空 —— 45 个受管辖门禁全部可从 lint/CI 到达。",
+        "  check-repo-coverage.mjs 曾短暂登记为临时豁免（等实测定标），",
+        "  实测全仓 lines 81.49% ≥ floor 65% 后已接线，豁免随之删除。",
+        "",
+        "2026-10-07 首批登记 4 条：受管辖判据改为按路径后，新暴露 5 个死门禁 ——",
+        "  其中 quality:coverage:weak-modules 属漏接（兄弟 weak-files 早已在 CI），已接线而非豁免；",
+        "  余下 4 条确属『有入口但不在 lint/CI 图内』或『纯人工工具』，登记如下。"
     ],
-    "waivers": []
+    "waivers": [
+        {
+            "file": "scripts/check-bundle-size.mjs",
+            "reason": "npm script quality:bundle-size 存在，但只被 prepublishOnly 引用（发布前体积门禁）。本门禁的可达根是 lint + workflow run 命令，发布钩不在其内 —— 它并非无人跑，pnpm publish 必过此步。"
+        },
+        {
+            "file": "scripts/quality/generate-coverage-report.mjs",
+            "reason": "npm script quality:coverage-report 存在，但它是**产出 markdown 报告**的生成器（会写文件），不是判定门禁；每次提交都跑会污染工作区。阻断判定由 lint 里的 quality:coverage:critical-files 等承担。"
+        },
+        {
+            "file": "scripts/quality/debt-weekly-report.mjs",
+            "reason": "技术债周报生成器：按周产出 docs/governance 报告，预期由人工或定时任务运行，无 npm script 入口。此前登记在孤岛台账，受管辖判据改为按路径后升格为门禁，故迁到此处。"
+        },
+        {
+            "file": "scripts/quality/probe-contract-drift.mjs",
+            "reason": "诊断脚本（自称『不是门禁』）：列出每个 ledger 模块的 route-table ↔ 后端清单双向差集，供人工取证。§7.11-2 已修好它的两处 bug，但设计上就是人工工具，不进 CI（同 debt-weekly-report，由孤岛台账迁来）。"
+        }
+    ]
 }

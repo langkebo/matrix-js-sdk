@@ -1,0 +1,41 @@
+{
+    "$comment": [
+        "check-gate-reachability.mjs 的孤岛台账（2026-10-07 建档）。",
+        "孤岛 = scripts/ 下**零引用**脚本：进不了 lint/CI 链路，npm script 正文、其它脚本正文、spec 正文里都查不到它。",
+        "即『写完再没人跑过』的那一类 —— 它坏了不会有人知道（§7.11-2 的 probe-contract-drift.mjs 就是这么坏了半年）。",
+        "",
+        "纪律（与 gate-reachability-waivers.json 同）：",
+        "  · 台账里出现新条目 ⇒ 必须在此登记并写 reason，否则门禁失败；",
+        "  · 条目已接线 / 文件已删 / 缺 reason ⇒ 台账腐烂，门禁失败（修一条删一条）；",
+        "  · **登记不等于修好**：登记只是把『全仓有多少脚本没人跑』钉成一个只能变小的数字。",
+        "  · 真正的修法只有两条：接进入口（npm script + lint/CI 步骤），或删除该脚本。",
+        "",
+        "建档时实测：scripts/ 下 76 个脚本 → 自称门禁 56（受管辖 44 / 工具类 12）、其余 32；",
+        "  未接入 lint/CI 链路 21 个 = 有接线的人工工具 14 + 零引用孤岛 7（即下表）。",
+        "",
+        "2026-10-07 收敛：受管辖判据改为**按路径**（不再要求正文自称 exit-1），",
+        "  于是 scripts/quality/ 下两个零引用脚本（debt-weekly-report / probe-contract-drift）",
+        "  从『孤岛』升格为『受管辖门禁』——它们本就该按门禁纪律管，只是没有 CI 入口。",
+        "  故从本台账移除，改登记到 gate-reachability-waivers.json（豁免台账）。",
+        "  下表由 7 条收敛为 5 条。",
+        "",
+        "2026-10-07 再收敛：3 条 candidate-delete 已**删除**（均已被 git 跟踪，可回溯）：",
+        "  · scripts/audit/probe-route-module-attribution.mjs（一次性探针，结论已入审计文档）",
+        "  · scripts/generate-api-coverage-report.mjs（职能与 quality:coverage* 重叠）",
+        "  · scripts/release/merge-release-notes.cjs（上游副本，本仓 CI 从 .action-repo/ 加载）",
+        "  删除前已确认：全仓除文档（历史审计记录）与台账自身外无任何代码引用。",
+        "  下表由 5 条收敛为 2 条。"
+    ],
+    "orphans": [
+        {
+            "file": "scripts/audit/compare-routes.mjs",
+            "kind": "keep-manual",
+            "reason": "审计工具（1384 行）：后端路由契约 ↔ SDK 封装面差异扫描器 v2，输出三级证据矩阵。属一次性审计取证，依赖 contract codegen 已生成的 docs/api-contract/generated/*，不适合挂在 lint 上。"
+        },
+        {
+            "file": "scripts/update-doc-hashes.mjs",
+            "kind": "keep-manual",
+            "reason": "脚本自述『One-shot helper』：contract:check 报 generated_hash 过期时，手工重算各 module .md 的 frontmatter hash。设计上就是一次性工具。"
+        }
+    ]
+}
