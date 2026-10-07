@@ -118,6 +118,12 @@ export interface RetentionStatus {
 
 // ===== Audit event types =====
 
+/**
+ * 审计事件（`GET /_synapse/admin/v1/audit/events/{id}` 与 `POST /audit/events` 的响应）。
+ *
+ * 2026-10-07 对照后端 `synapse-storage/src/audit.rs::AuditEvent`：时间戳键是
+ * **`created_ts`**（原声明写作 `ts` ⇒ 取值恒为 `undefined`）。
+ */
 export interface AuditEvent {
     event_id: string;
     actor_id: string;
@@ -126,7 +132,7 @@ export interface AuditEvent {
     resource_id: string;
     result: string;
     request_id: string;
-    ts: number;
+    created_ts: number;
     details?: import("../../models/event").IContent;
 }
 
@@ -256,18 +262,29 @@ export interface AdminModulePage {
     next_batch?: string | null;
 }
 
+/**
+ * 模块执行日志条目。
+ *
+ * 2026-10-07 对照后端 `synapse-storage/src/module.rs::ModuleExecutionLog`：
+ * 原声明（`log_id`/`module_id`/`level`/`message`/`ts`）**五个键后端一个都没有**，
+ * 真实键是 `id`/`module_name`/`module_type`/`event_id`/`room_id`/`execution_time_ms`/
+ * `is_success`/`error_message`/`metadata`/`executed_ts`。
+ *
+ * ⚠️ `GET /_synapse/admin/v1/modules/logs/{module_name}` 返回的是**裸数组**
+ * （`module_service::get_execution_logs` → `Vec<ModuleExecutionLog>` → `Ok(Json(logs))`），
+ * 不存在 `{logs, total, next_token}` 包装对象 —— `AdminModuleLogPage` 已删除。
+ */
 export interface AdminModuleLog {
-    log_id: string;
-    module_id: string;
-    level?: string;
-    message?: string;
-    ts?: number;
-}
-
-export interface AdminModuleLogPage {
-    logs: AdminModuleLog[];
-    total?: number;
-    next_token?: string;
+    id: number;
+    module_name: string;
+    module_type: string;
+    event_id: string | null;
+    room_id: string | null;
+    execution_time_ms: number | null;
+    is_success: boolean;
+    error_message: string | null;
+    metadata: DynamicConfig | null;
+    executed_ts: number;
 }
 
 /**
@@ -481,11 +498,21 @@ export interface SpamCheckResult {
     action_taken?: string;
 }
 
-/** Response for GET /modules/third_party_rule/{eventId} — third-party rule result */
+/**
+ * `POST /_synapse/admin/v1/modules/check_third_party_rule` 的响应。
+ *
+ * 2026-10-07 对照后端 `synapse-services/src/module_service.rs::ThirdPartyRuleOutput`：
+ * 缺 `modified_content`（规则可以改写事件内容，字段名就是它）。
+ *
+ * 注意与 `GET /modules/third_party_rule/{eventId}` 的 {@link ThirdPartyRuleResult} 不是一回事 ——
+ * 后者是"历史结果行"，字段多得多。
+ */
 export interface ThirdPartyRuleCheckResult {
+    /** 序列化名是 `allowed`（Rust 侧字段叫 `is_allowed`） */
     allowed?: boolean;
     reason?: string;
-    [key: string]: unknown;
+    /** 被规则改写后的内容；未改写时为 `null` */
+    modified_content?: DynamicConfig | null;
 }
 
 export interface ThirdPartyRuleResult {

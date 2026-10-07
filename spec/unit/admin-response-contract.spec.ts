@@ -33,18 +33,27 @@ import {
     extractJsonReturnExprs,
     extractResponseVariants,
     extractReturnType,
+    extractStateContext,
     findLetBinding,
+    findMatchScrutinee,
     jsonMacroTopLevelKeys,
     normalizePath,
     normalizeReturnType,
     parseJsonObjectTopLevel,
     parseRouteTable,
+    parseRustImplMethods,
+    parseRustStructFieldTypes,
+    parseRustTraitImpls,
     parseSerdeStructs,
+    splitGenericArgs,
     splitTopLevelArgs,
     stripRustComments,
     stripTsComments,
     structLiteralShape,
     tailExpression,
+    typeOfRustReturn,
+    unwrapRustTraitType,
+    unwrapRustType,
 } from "../../scripts/quality/lib/admin-contract.mjs";
 
 describe("admin-contract 抽取器（守卫）", () => {
@@ -496,6 +505,358 @@ pub struct X {
                     body: `{ if c { Ok(Json(json!({ "a": 1 }))) } else { Ok(Json(unknown_thing)) } }`,
                 }),
             ).toBeNull();
+        });
+    });
+
+    /*
+     * 第三轮（§7.15-29）：**接收者类型推断** —— 把 `ctx.<service>.<method>(..)` 从
+     * "按方法名猜"改成"从 `AdminContext` 的字段类型推出接收者，再去 `impl` 里找唯一实现"。
+     *
+     * 这一轮又踩了 4 个坑，其中一个是**根因级**的：
+     *   13. `stripRustComments` 把 Rust 的**生命周期**当字符字面量 ⇒ `&'static str` 之后一路吞到
+     *       下一个 `'`，中间的花括号全被吃掉 ⇒ `balancedSlice` 在**整个 `impl` 块**上返回 null
+     *       （`room/messaging/events.rs` 的 `impl MessagingService` 整块隐身，78 个 `async fn` 零索引）；
+     *   14. `impl` 头带前导换行 ⇒ `^impl` 永不匹配 ⇒ **所有类型都没有方法**；
+     *   15. 递归深度上限 5 ⇒ 一条真实链（handler → Ok 解包 → 变量 → 服务方法 → 又一条链 → storage 方法
+     *       → `Value::Object`）**刚好差一层**返回 null，表现为"这条链就是解析不出来"；
+     *   16. 特征实现是薄委派（`self.cleanup_abnormal_data(..).await`）而固有方法才是真的 ⇒
+     *       两个同名 def 时抓错会绕回自己。
+     */
+    describe("第三轮：接收者类型推断", () => {
+        it("生命周期不能被当成字符字面量（否则整块 impl 都取不到）", () => {
+            const src = `impl S {
+    pub fn f(&self) -> &'static str {
+        let a = 'x';
+        let b = '\\n';
+        "done"
+    }
+}`;
+            const stripped = stripRustComments(src);
+            // 生命周期被换成等宽空格；字符字面量原样保留
+            expect(stripped).toContain("'x'");
+            expect(stripped).toContain("'\\n'");
+            expect(stripped).not.toContain("'static");
+            expect(stripped.length).toBe(src.length); // 等宽 ⇒ 所有下标都不受影响
+            // 关键：括号配平能取到整个 impl 块（旧行为在这里返回 null）
+            const slice = balancedSlice(stripped, stripped.indexOf("{"));
+            expect(slice).not.toBeNull();
+            expect(slice?.text).toContain('"done"');
+            expect(slice?.text.trimEnd().endsWith("}")).toBe(true);
+        });
+
+        it("类型脱壳：Wrapper / 路径 / 泛型 / dyn / 元组", () => {
+            expect(unwrapRustType("Arc<synapse_services::room::RoomService>")).toEqual({
+                name: "RoomService",
+                isArray: false,
+            });
+            // 必须取**末段**路径名：取首个标识符会得到 `synapse_services`
+            expect(unwrapRustType("serde_json::Value")).toEqual({ name: "Value", isArray: false });
+            expect(unwrapRustType("Option<Arc<RoomState>>")).toEqual({ name: "RoomState", isArray: false });
+            expect(unwrapRustType("Vec<ModuleExecutionLog>")).toEqual({ name: "ModuleExecutionLog", isArray: true });
+            expect(unwrapRustType("&'static str")?.name).toBe("str");
+            expect(unwrapRustType("Arc<dyn RoomStoreApi>")).toBeNull(); // 具体类型不可知
+            expect(unwrapRustTraitType("Arc<dyn RoomStoreApi>")).toEqual({ trait: "RoomStoreApi" });
+            expect(unwrapRustTraitType("RoomService")).toBeNull();
+        });
+
+        it("返回类型剥离：Result / ApiResult / Option 都要能脱掉（且不许切错泛型）", () => {
+            expect(typeOfRustReturn("Result<Option<ServerNotification>, ApiError>")).toEqual({
+                name: "ServerNotification",
+                isArray: false,
+            });
+            expect(typeOfRustReturn("ApiResult<serde_json::Value>")).toEqual({ name: "Value", isArray: false });
+            expect(typeOfRustReturn("Vec<ModuleExecutionLog>")).toEqual({ name: "ModuleExecutionLog", isArray: true });
+            // → 无返回类型
+            expect(typeOfRustReturn(null)).toBeNull();
+        });
+
+        it("splitGenericArgs 按深度 0 逗号切分（`HashMap<String, i64>` 不能切成两段）", () => {
+            expect(splitGenericArgs("HashMap<String, i64>, ApiError")).toEqual(["HashMap<String, i64>", "ApiError"]);
+            expect(splitGenericArgs("Option<AuditEvent>")).toEqual(["Option<AuditEvent>"]);
+        });
+
+        it("取 `State(ctx): State<AdminContext>` 的变量名与类型（链的根）", () => {
+            expect(extractStateContext("async fn f(_a: AdminUser, State(ctx): State<AdminContext>) -> X ")).toEqual({
+                name: "ctx",
+                type: "AdminContext",
+            });
+            expect(extractStateContext("async fn f(a: i32) -> X ")).toBeNull();
+        });
+
+        it("struct 字段类型表：同名 struct 撞了就整条作废（不许把 A 的字段当成 B 的）", () => {
+            const src = `pub struct A {
+    pub x: Arc<Foo>,
+    pub y: String,
+}
+pub struct B {
+    pub x: serde_json::Value,
+}`;
+            const t = parseRustStructFieldTypes(src);
+            expect([...(t.get("A")?.keys() ?? [])]).toEqual(["x", "y"]);
+            // 直接写路径类型也不能凭空多出一个叫 `serde_json` 的字段
+            expect([...(t.get("B")?.keys() ?? [])]).toEqual(["x"]);
+        });
+
+        it("impl 方法索引：`impl` 头带前导换行也要认出 self 类型；`for` 形式取 for 之后那段", () => {
+            const src = `
+impl Foo {
+    pub async fn a(&self) -> Result<String, E> {
+        Ok("x".to_string())
+    }
+}
+impl Bar for Foo {
+    async fn b(&self) -> Result<i64, E> {
+        Ok(1)
+    }
+}`;
+            const m = parseRustImplMethods(src);
+            expect(m.get("Foo")?.has("a")).toBe(true);
+            expect(m.get("Foo")?.get("b")?.[0].traitName).toBe("Bar");
+            expect(m.get("Foo")?.get("a")?.[0].traitName).toBeNull();
+            expect(parseRustTraitImpls(src).get("Bar")).toEqual(["Foo"]);
+        });
+
+        it("解析链：ctx 字段 → 方法 → 返回类型 ⇒ 形状", () => {
+            const types = {
+                structFields: new Map([
+                    [
+                        "Ctx",
+                        new Map([
+                            ["svc", "Arc<Dyn>"],
+                            ["audit", "Arc<AuditSvc>"],
+                        ]),
+                    ],
+                    ["AuditSvc", new Map()],
+                    ["Ctx2", new Map()],
+                ]),
+                methods: new Map([
+                    [
+                        "AuditSvc",
+                        new Map([
+                            [
+                                "get_event",
+                                [
+                                    {
+                                        ret: "Result<Option<AuditEvent>, E>",
+                                        body: "{ Ok(1) }",
+                                        selfType: "AuditSvc",
+                                        traitName: null,
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                ]),
+                traitImpls: new Map([["Dyn", ["RealSvc"]]]),
+            };
+            const structs = new Map([
+                ["AuditEvent", { fields: ["created_ts", "event_id"], rustFields: [], opaque: false }],
+            ]);
+            const r = createResponseResolver({ structs, functions: new Map(), types });
+            expect(
+                r.resolveHandler({
+                    sig: "async fn f(State(c): State<Ctx>) -> Result<Json<Value>, ApiError> ",
+                    body: `{ let e = c.audit.get_event(&id).await?; Ok(Json(json!(e))) }`,
+                }),
+            ).toEqual([{ kind: "object", keys: ["created_ts", "event_id"] }]);
+        });
+
+        it("dyn Trait ⇒ 唯一「非测试」实现；两个实现一律 null（fail-closed）", () => {
+            const types = {
+                structFields: new Map([
+                    [
+                        "Svc",
+                        new Map([
+                            ["store", "Arc<dyn StoreApi>"],
+                            ["weird", "Arc<dyn TwoImpls>"],
+                        ]),
+                    ],
+                ]),
+                methods: new Map([
+                    [
+                        "RealStore",
+                        new Map([
+                            [
+                                "load",
+                                [
+                                    {
+                                        ret: "Result<Value, E>",
+                                        body: `{ let mut m = serde_json::Map::new(); m.insert("k".to_string(), json!(1)); Ok(serde_json::Value::Object(m)) }`,
+                                        selfType: "RealStore",
+                                        traitName: "StoreApi",
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                    // 两个实现的 trait：**两个**都要有可解析的 load，否则"唯一性"判据会被
+                    // "方法找不到"那道守门遮住 —— 变异测试（放开唯一性检查）不会变红。
+                    [
+                        "A",
+                        new Map([
+                            [
+                                "load",
+                                [
+                                    {
+                                        ret: "Result<Value, E>",
+                                        body: `{ Ok(json!({ "from_a": 1 })) }`,
+                                        selfType: "A",
+                                        traitName: "TwoImpls",
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                ]),
+                traitImpls: new Map([
+                    ["StoreApi", ["RealStore"]],
+                    ["TwoImpls", ["A", "B"]],
+                ]),
+            };
+            const r = createResponseResolver({ structs: new Map(), functions: new Map(), types });
+            const sig = "async fn f(State(c): State<Svc>) -> Result<Json<Value>, ApiError> ";
+            // dyn → RealStore →（特征实现）→ Map::insert 的键
+            expect(r.resolveHandler({ sig, body: `{ let v = c.store.load(&id).await?; Ok(Json(v)) }` })).toEqual([
+                { kind: "object", keys: ["k"] },
+            ]);
+            // 两个非测试实现 ⇒ 拒绝（不挑一个继续给形状）
+            expect(r.resolveHandler({ sig, body: `{ let v = c.weird.load(&id).await?; Ok(Json(v)) }` })).toBeNull();
+        });
+
+        it("经 dyn 进来用该特征的实现；该实现委派到固有方法时**不绕回自己**", () => {
+            const types = {
+                structFields: new Map([["Svc", new Map([["store", "Arc<dyn StoreApi>"]])]]),
+                methods: new Map([
+                    [
+                        "RealStore",
+                        new Map([
+                            [
+                                "load",
+                                [
+                                    // 特征实现常常只是薄薄一层委派（真身是固有方法）
+                                    {
+                                        ret: "Result<Value, E>",
+                                        body: "{ self.load(&id).await }",
+                                        selfType: "RealStore",
+                                        traitName: "StoreApi",
+                                    },
+                                    {
+                                        ret: "Result<Value, E>",
+                                        body: `{ Ok(json!({ "real": true })) }`,
+                                        selfType: "RealStore",
+                                        traitName: null,
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                ]),
+                traitImpls: new Map([["StoreApi", ["RealStore"]]]),
+            };
+            const r = createResponseResolver({ structs: new Map(), functions: new Map(), types });
+            const sig = "async fn f(State(c): State<Svc>) -> Result<Json<Value>, ApiError> ";
+            // 委派体里的 `self.load(..)` 会走到**固有**实现（`viaTrait` 已清空）⇒ 真正取到形状
+            expect(r.resolveHandler({ sig, body: `{ let v = c.store.load(&id).await?; Ok(Json(v)) }` })).toEqual([
+                { kind: "object", keys: ["real"] },
+            ]);
+        });
+
+        it("`Some(..)` / `to_value(..)` 解包都要支持（服务层常见写法）", () => {
+            const types = {
+                structFields: new Map<string, Map<string, string> | null>([
+                    ["Svc", new Map([["store", "Arc<dyn StoreApi>"]])],
+                ]),
+                methods: new Map<
+                    string,
+                    Map<string, { ret: string | null; body: string; selfType: string; traitName: string | null }[]>
+                >([
+                    [
+                        "Svc",
+                        new Map([
+                            [
+                                "deep",
+                                [
+                                    {
+                                        ret: "ApiResult<Value>",
+                                        body: `{ let result = json!({ "auto": 1 }); Ok(serde_json::to_value(result).map_err(|e| E(e.to_string()))?) }`,
+                                        selfType: "Svc",
+                                        traitName: null,
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                    [
+                        "RealStore",
+                        new Map([
+                            [
+                                "load",
+                                [
+                                    {
+                                        ret: "Result<Option<Value>, E>",
+                                        body: `{ Ok(Some(json!({ "room_id": room_id }))) }`,
+                                        selfType: "RealStore",
+                                        traitName: "StoreApi",
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                ]),
+                traitImpls: new Map([["StoreApi", ["RealStore"]]]),
+            };
+            const r = createResponseResolver({ structs: new Map(), functions: new Map(), types });
+            const sig = "async fn f(State(c): State<Svc>) -> Result<Json<Value>, ApiError> ";
+            //  handler → Ok 解包 → 变量 → 又一条链 → dyn → 特征实现 → Ok(Some(json!)) ⇒ 逐层解开
+            expect(r.resolveHandler({ sig, body: `{ let v = c.store.load(&id).await?; Ok(Json(v)) }` })).toEqual([
+                { kind: "object", keys: ["room_id"] },
+            ]);
+            // `to_value(result?)` + `let result = json!(..)`
+            expect(r.resolveHandler({ sig, body: `{ let v = c.deep().await?; Ok(Json(v)) }` })).toEqual([
+                { kind: "object", keys: ["auto"] },
+            ]);
+            // 链上有一段解析不出来（`c.deep` 上没有 get）⇒ 整体未知
+            expect(r.resolveHandler({ sig, body: `{ let v = c.deep.get().await?; Ok(Json(v)) }` })).toBeNull();
+        });
+
+        it("match 模式绑定：`match x { Some(n) => .. }` 里 n 的类型来自 scrutinee", () => {
+            const body = `{
+    let notification = ctx.svc.get_notification(id).await?;
+    match notification {
+        Some(n) => Ok(Json(json!(n))),
+        None => Err(ApiError::not_found("x".to_string())),
+    }
+}`;
+            expect(findMatchScrutinee(body, "n")).toBe("notification");
+            expect(findMatchScrutinee(body, "zzz")).toBeNull();
+            // 合成解析
+            const types = {
+                structFields: new Map([["Ctx", new Map([["svc", "Arc<NotifSvc>"]])]]),
+                methods: new Map([
+                    [
+                        "NotifSvc",
+                        new Map([
+                            [
+                                "get_notification",
+                                [
+                                    {
+                                        ret: "Result<Option<Notif>, E>",
+                                        body: "{ Ok(1) }",
+                                        selfType: "NotifSvc",
+                                        traitName: null,
+                                    },
+                                ],
+                            ],
+                        ]),
+                    ],
+                ]),
+                traitImpls: new Map(),
+            };
+            const structs = new Map([["Notif", { fields: ["id", "title"], rustFields: [], opaque: false }]]);
+            const r = createResponseResolver({ structs, functions: new Map(), types });
+            expect(
+                r.resolveHandler({ sig: "async fn f(State(ctx): State<Ctx>) -> Result<Json<Value>, ApiError> ", body }),
+            ).toEqual([{ kind: "object", keys: ["id", "title"] }]);
         });
     });
 });

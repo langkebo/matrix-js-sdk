@@ -34,7 +34,7 @@ import type {
     AuditEventPage,
     AdminModuleInfo,
     AdminModulePage,
-    AdminModuleLogPage,
+    AdminModuleLog,
     AdminAccountValidityInfo,
     AdminPasswordAuthProvider,
     AdminPresenceRoute,
@@ -288,7 +288,22 @@ export class AdminConfigManager extends AdminBaseManager {
         );
     }
 
-    async getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLogPage> {
+    /**
+     * 取模块执行日志。
+     *
+     * ⚠️ 后端 `module_service::get_execution_logs` 返回 `Vec<ModuleExecutionLog>`，
+     * 处理器直接 `Ok(Json(logs))` —— 响应是**裸数组**，不是 `{logs, total, next_token}`。
+     *
+     * @param moduleId - 模块名（后端注册的是 `GET /modules/logs/{module_name}`）
+     * @param options - 分页参数
+     *
+     * @example
+     * ```typescript
+     * const logs = await adminManager.getModuleLogs("spam_checker", { limit: 50 });
+     * console.log(logs.filter((l) => !l.is_success).length);
+     * ```
+     */
+    async getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLog[]> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);

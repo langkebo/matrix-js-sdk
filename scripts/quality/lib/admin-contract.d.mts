@@ -147,15 +147,61 @@ export function findAllRustFunctions(
 /** 响应形状。 */
 export type ResponseShape = { kind: "object"; keys: string[] } | { kind: "array"; item: string | null };
 
-/** 造一个「响应形状解析器」：把 `Ok(Json(<expr>))` 下沉到 struct / 辅助函数；判不出来返回 `null`。 */
+/** 按深度 0 的逗号切分泛型实参。 */
+export function splitGenericArgs(text: string): string[];
+
+/** 把 Rust 类型文本脱壳成 `{name, isArray}`（取**末段**路径名；`dyn`/`impl` 返回 null）。 */
+export function unwrapRustType(text: string): { name: string; isArray: boolean } | null;
+
+/** 从 `Arc<dyn Trait>` 里取出特征名（`unwrapRustType` 对 `dyn` 返回 null）。 */
+export function unwrapRustTraitType(text: string): { trait: string } | null;
+
+/** 从**返回类型**求值类型（剥 `Result` / `ApiResult` / `Option` 等外壳）。 */
+export function typeOfRustReturn(ret: string | null): { name: string; isArray: boolean } | null;
+
+/** 取处理器签名里 `State(<name>): State<<Type>>` 的变量名与类型（链的根）。 */
+export function extractStateContext(sig: string): { name: string; type: string } | null;
+
+/** 索引 struct 的字段类型：`structName → (field → typeText)`（同名 struct 字段集不同则整条作废）。 */
+export function parseRustStructFieldTypes(src: string): Map<string, Map<string, string> | null>;
+
+/** 索引 `impl` 块里的方法；每个定义带 `selfType` 与 `traitName`（固有方法为 null）。 */
+export function parseRustImplMethods(
+    src: string,
+): Map<
+    string,
+    Map<string, Array<{ name?: string; ret: string | null; body: string; selfType: string; traitName: string | null }>>
+>;
+
+/** 索引 `impl <Trait> for <Type>` 关系：`traitName → [selfType, …]`。 */
+export function parseRustTraitImpls(src: string): Map<string, string[]>;
+
+/** 找把 `<name>` 绑起来的 `match`，返回 scrutinee 文本（返回类型不可知时为 null）。 */
+export function findMatchScrutinee(bodyText: string, name: string): string | null;
+
+/**
+ * 造一个「响应形状解析器」：把 `Ok(Json(<expr>))` 下沉到 struct / 辅助函数 / 服务方法；
+ * 判不出来返回 `null`（**fail-closed**，绝不交半份结论）。
+ */
 export function createResponseResolver(input: {
     structs: Map<string, { fields: string[]; rustFields?: string[]; opaque?: boolean }>;
     functions: Map<
         string,
         { body: string; ret: string | null; topLevel: boolean; isHandler?: boolean; ambiguous?: boolean } | null
     >;
+    types?: {
+        structFields: Map<string, Map<string, string> | null>;
+        methods: Map<
+            string,
+            Map<
+                string,
+                Array<{ name?: string; ret: string | null; body: string; selfType: string; traitName: string | null }>
+            >
+        >;
+        traitImpls?: Map<string, string[]>;
+    };
 }): {
-    resolveHandler(fn: { name?: string; body: string; ret?: string | null }): ResponseShape[] | null;
+    resolveHandler(fn: { name?: string; body: string; ret?: string | null; sig?: string }): ResponseShape[] | null;
     resolveExpr(expr: string, scope: { body?: string }, depth?: number): ResponseShape[] | null;
 };
 

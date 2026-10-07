@@ -87,7 +87,6 @@ import {
     type FeatureFlagTarget,
     type FeatureFlag,
     type FeatureFlagPage,
-    type SystemNotificationInfo,
     type SystemNotificationPage,
     type UserPusher,
     type SpacePage,
@@ -116,7 +115,7 @@ import {
     type AdminReportPage,
     type AdminModuleInfo,
     type AdminModulePage,
-    type AdminModuleLogPage,
+    type AdminModuleLog,
     type AdminAccountValidityInfo,
     type AdminPasswordAuthProvider,
     type AdminPresenceRoute,
@@ -205,6 +204,7 @@ import type {
     CleanupRoomsResponse,
     CleanupTokensResponse,
 } from "./sub-managers/admin-cleanup-manager";
+import type { ServerNotification } from "./sub-managers/admin-notification-manager";
 import { AdminNotificationManager } from "./sub-managers/admin-notification-manager";
 import { AdminReportManager } from "./sub-managers/admin-report-manager";
 import { AdminPolicyManager } from "./sub-managers/admin-policy-manager";
@@ -463,10 +463,10 @@ export interface AdminManager {
     deleteServerNotice(notificationId: string): Promise<void>;
     getServerNotice(noticeId: string): Promise<ServerNotice>;
     listNotifications(from?: string, limit?: number): Promise<SystemNotificationPage>;
-    createNotification(payload: DynamicConfig): Promise<SystemNotificationInfo>;
-    listActiveNotifications(): Promise<SystemNotificationInfo[]>;
-    getNotification(notificationId: string): Promise<SystemNotificationInfo>;
-    updateNotification(notificationId: string, payload: DynamicConfig): Promise<SystemNotificationInfo>;
+    createNotification(payload: DynamicConfig): Promise<ServerNotification>;
+    listActiveNotifications(): Promise<ServerNotification[]>;
+    getNotification(notificationId: string): Promise<ServerNotification>;
+    updateNotification(notificationId: string, payload: DynamicConfig): Promise<ServerNotification>;
     deactivateNotification(notificationId: string): Promise<void>;
     deleteNotification(notificationId: string): Promise<void>;
     getServerConfig(throwOnError?: boolean): Promise<AdminServerConfig>;
@@ -562,7 +562,7 @@ export interface AdminManager {
     listModulesByType(moduleType: string): Promise<AdminModuleInfo[]>;
     updateModuleConfig(moduleId: string, config: DynamicConfig): Promise<AdminModuleInfo>;
     setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<AdminModuleInfo>;
-    getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLogPage>;
+    getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLog[]>;
     checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<ThirdPartyRuleCheckResult>;
     getModuleSpamCheckResult(eventId: string): Promise<SpamCheckResult>;
     listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<SpamCheckResult[]>;

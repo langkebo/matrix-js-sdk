@@ -2546,6 +2546,91 @@ expect(members).toHaveLength(2);
 
 ---
 
+### 7.15-29 接收者类型推断：`backend-shape-unknown` 19 → 1，又挖出 6 处真缺陷
+
+承接 §7.15-28 §6 的续接点第 1 条。上一轮**明确拒绝**过"按方法名猜"：`cleanup_abnormal_data`
+全仓有 3 处同名定义。这一轮补上**类型推断**，把"猜"换成"推"。
+
+#### 1. 新增的类型索引与链解析
+
+| 组件 | 作用 |
+| --- | --- |
+| `parseRustStructFieldTypes` | `struct → (字段 → 类型文本)`；同名 struct 字段集不同则整条作废 |
+| `extractStateContext` | 从处理器签名取 `State(ctx): State<AdminContext>` 的**变量名与类型**（链的根） |
+| `parseRustImplMethods` | `impl` 块 → `类型 → 方法 → [{ret, body, selfType, traitName}]` |
+| `parseRustTraitImpls` + `unwrapRustTraitType` | `impl Trait for Type` 关系；`Arc<dyn Trait>` ⇒ **唯一「非测试」实现**（`test_mocks/`、`tests/`、`test_*.rs` 不计） |
+| `unwrapRustType` / `typeOfRustReturn` | 脱 `&` / `Arc` / `Option` / `Vec` / `Box`，再脱 `Result` / `ApiResult`；**取末段路径名** |
+| `resolveChain` | 沿 `ctx.a.b(..).c()` 走；**fail-closed**：任一段判不出来即整体 `null` |
+| 下沉 | 末段返回类型是 `Value` 时，**下沉进被调方法的函数体**并以 `self` 为新的链根（递归，深度上限 12） |
+
+两条是 **Rust 的语言规则而不是启发式**：① 同名方法优先**固有实现**（`impl Type`）而不是特征实现
+—— 本仓的特征实现常常只是薄委派（`self.cleanup_abnormal_data(..).await`），抓错就会绕回自己；
+② 经 `dyn Trait` 进来时**只能**用该特征的实现。
+
+顺带补上几处语法解包：`Ok(..)`、`Some(..)`、`serde_json::to_value(..)`、
+`Value::Object(map)`（含 `serde_json::Value::Object` 限定写法）、以及 **`match` 模式绑定**
+（`match x { Some(n) => .. }` 里 `n` 的类型来自 scrutinee）。
+
+#### 2. 抽取器又错了 4 次（累计 16 次，仍然全是「静默给错答案」）
+
+| # | 坑 | 症状 |
+| --- | --- | --- |
+| 13 | **`stripRustComments` 把生命周期当字符字面量** | `&'static str` 之后一路吞到下一个 `'`，中间的花括号全被吃掉 ⇒ `balancedSlice` 在**整块 `impl`** 上返回 `null`：`room/messaging/events.rs` 的 `impl MessagingService` 整块隐身（60 个方法只索引到 9 个）。修法是把生命周期**原地换成等宽空格**（长度不变 ⇒ 下游所有下标都不受影响） |
+| 14 | `impl` 头带前导换行 | `^impl` 永不匹配 ⇒ **所有类型都没有方法**，`methods` 表里 264 个类型全是空 Map |
+| 15 | 递归深度上限 5 | 一条真实链（handler → `Ok` 解包 → 变量 → 服务方法 → 又一条链 → storage 方法 → `Value::Object`）**刚好差一层**返回 `null` —— 表现为"这条链就是解析不出来"，没有任何报错 |
+| 16 | 只认裸 `Value::Object(..)` | storage 层写的是 `Ok(serde_json::Value::Object(results))`，限定写法整类不匹配 |
+| 17 | `scanStructFields` 的 `\s*:` 会吃掉 `::` | `pub target_user_ids: serde_json::Value` 凭空多出一个叫 `serde_json` 的**键** ⇒ `ServerNotification` 被报成"SDK 少一个字段"（方向错误的假阳性） |
+
+#13 与 #15 尤其值得记：#13 是**判据失效的根因级缺陷**（一整块 `impl` 消失，而"没有方法"与
+"这个方法不存在"同形）；#15 是"差一层就静默放弃"，两者都不会报错。
+**12 条规则做了 12/12 变异自证**（生命周期回退 / `impl` 头不 trim / 取首段路径名 / 深度回退到 5 /
+不优先固有方法 / `dyn` 不要求唯一实现 / 不做 match 绑定 / 不解 `Some` / 不解 `to_value` /
+`Value::Object` 不认限定写法 / 去掉 `(?!:)` / 链上"交半份结论" ⇒ 全部变红）。
+
+#### 3. 门禁立即找出并修掉的 6 处真缺陷
+
+| #   | 端点 / 类型                                            | 事实                                                                                                                                                                                            |
+| --- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1-2 | `GET/POST /audit/events` → `AuditEvent`                | 时间戳键是 **`created_ts`**，原声明写作 `ts` ⇒ 取值恒 `undefined`                                                                                                                               |
+| 3   | `POST /modules/check_third_party_rule` → `ThirdPartyRuleCheckResult` | 缺 `modified_content`（规则改写后的内容）                                                                                                                         |
+| 4   | `GET /modules/logs/{x}`                                | 后端 `get_execution_logs` 返回 **`Vec<ModuleExecutionLog>`**（裸数组）；SDK 原声明的 5 个键（`log_id`/`module_id`/`level`/`message`/`ts`）后端**一个都没有** ⇒ 按真实 10 字段重写 `AdminModuleLog`，`AdminModuleLogPage` 删除 |
+| 5   | `POST/GET/PUT /notifications…` → `SystemNotificationInfo` | 自造形状（`notification_id`/`type`/`target_users`），真身是 `ServerNotification`（16 字段）⇒ 类型删除，改为复用同目录里**本就正确**的 `ServerNotification` |
+| 6   | `AdminServerManager.listActiveNotifications()`         | 后端 `list_active_notifications` 是 `Ok(Json(json!(notifications)))` —— 顶层就是**数组**；SDK 按 `{notifications: [...]}` 解包 ⇒ `response.notifications` 恒 `undefined`，**永远返回空数组**（而且"合法地返回空"，调用方看不出异常） |
+| 7   | `spec/unit/admin-new-endpoints.spec.ts`                | **第 9 次**「mock 自造形状 + 断言该形状」（mock 造了 `{notifications: [...]}` 并断言解包结果）                                                                                                   |
+
+#### 4. 结果
+
+| 指标                     | §7.15-28 | 本节     |
+| ------------------------ | -------- | -------- |
+| 可比对                   | 114      | **133**  |
+| `entries`（已核对一致）  | 107      | **126**  |
+| `backend-shape-unknown`  | 19       | **1**    |
+| `array-return`           | 1        | 1        |
+| `inline-type-arg`        | 4        | **3**    |
+| `route-not-resolved`     | 18       | 18（不变） |
+| 覆盖桶合计               | 42       | **23**   |
+
+守卫 spec 39 → **51 例**；`tsc` 0；`quality:contracts`（含 `contract:codegen:check`）/
+`real-backend-types`(0/0) / `lint:knip` / `gate-reachability`（50 可达 / 4 豁免）全绿；
+`public-api-docs` 台账下调（`AdminConfigManager` missingJsDoc 34→33、`AdminServerManager`
+missingExample 31→30）；admin 六个 spec **338 例**。`deviations` 15 条不变。
+
+#### 5. 剩余 1 条与下一轮续接点
+
+- `get_all_health_status`：链的根是**自由函数的返回值**
+  （`let integration = external_service_integration(&ctx);` → `Arc<ExternalServiceIntegration>`）——
+  需要给"由自由函数定型"的局部变量做**值级类型推断**，本轮没做。
+- **请求体字段名**：`bodyStruct.fields` 已抽出但仍**未参与比对**，因为 SDK 侧
+  `createXxx(payload: DynamicConfig)` 把请求体声明成松散字典。实测
+  `createAccountDataCallback({callback_name, callback_type, config})` 里的 `callback_type`
+  后端**静默忽略**（该 body 无 `deny_unknown_fields`），而 `CreateMediaCallbackBody` **有** ⇒ 会 400。
+  要关这个洞得先把 SDK 的请求体签名收紧成真实接口。
+- **嵌套形状**：门禁仍只比顶层键（`CleanupAllResponse.rooms` 的错就是手工核对发现的）。
+- 两个 Manager 覆盖同一批通知端点（`AdminServerManager` / `AdminNotificationManager`），
+  类型已统一到 `ServerNotification`，但合并属公开 API 决策，未动。
+
+---
+
 ## 附录 A：核验命令（可复现）
 
 ```bash
@@ -2616,7 +2701,16 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-28：**下沉到 struct 定义**，把 `backend-shape-unknown` 从 55 压到 19
+**最后更新**: 2026-10-08（§7.15-29：**接收者类型推断** —— 从 `AdminContext` 的字段类型推出接收者、
+再去 `impl` 里找唯一实现（`dyn Trait` 取唯一「非测试」实现；同名方法优先固有实现，因为 Rust 就是这么
+解析的）；把 `backend-shape-unknown` 从 19 压到 **1**（覆盖桶合计 42 → 23、可比对 114 → 133、
+`entries` 107 → 126），又挖出并修掉 **6 处**真缺陷 —— `AuditEvent.ts` 应为 `created_ts`、
+`AdminModuleLog` 五个键后端一个都没有且列表端点返**裸数组**、`SystemNotificationInfo` 是自造形状
+（真身 `ServerNotification`）、`listActiveNotifications()` 因按 `{notifications:[..]}` 解包而
+**永远返回空数组**；抽取器又错 4 次（**生命周期被当字符字面量** ⇒ 整块 `impl` 隐身（60 个方法只剩 9 个）/
+`impl` 头前导换行 ⇒ 所有类型都没有方法 / 深度上限 5 让深链"差一层静默失败" / `Value::Object` 不认限定写法），
+12 条规则做了 12/12 变异自证；spec 39 → 51 例。
+§7.15-28：**下沉到 struct 定义**，把 `backend-shape-unknown` 从 55 压到 19
 （覆盖桶合计 81 → 42、可比对 75 → 114），又挖出并修掉 **21 处**真缺陷 —— `AdminCleanupResponse`
 三个键后端一个都不返回、`AdminModuleInfo` 主键写成后端不存在的 `module_id`、`AdminMediaCallback`
 把"回调任务记录"当"注册项"、5 个列表端点后端返**裸数组**而 SDK 声明包装对象（调用方 `.modules.map()`

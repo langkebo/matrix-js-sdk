@@ -20,6 +20,8 @@ import { NotFoundError, ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
 import type { CleanupAllResponse, CleanupRoomsResponse, CleanupTokensResponse } from "./admin-cleanup-manager";
+// 通知端点的真实响应类型（与 `AdminNotificationManager` 用的是同一个）
+import type { ServerNotification } from "./admin-notification-manager";
 import type {
     ServerStats,
     ServerStatus,
@@ -28,7 +30,6 @@ import type {
     ServerNotice,
     ServerNoticePage,
     SendServerNoticeResult,
-    SystemNotificationInfo,
     SystemNotificationPage,
     AdminPurgeHistoryResult,
     AdminShutdownRoomResult,
@@ -262,21 +263,27 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 通知内容
      * @returns 创建的通知信息
      */
-    async createNotification(payload: DynamicConfig): Promise<SystemNotificationInfo> {
-        return await this.adminRequest<SystemNotificationInfo>(Method.Post, "/notifications", {}, payload);
+    async createNotification(payload: DynamicConfig): Promise<ServerNotification> {
+        return await this.adminRequest<ServerNotification>(Method.Post, "/notifications", {}, payload);
     }
 
     /**
      * 获取活跃的系统通知列表
      *
+     * ⚠️ 后端 `notification.rs::list_active_notifications` 是 `Ok(Json(json!(notifications)))`
+     * —— 顶层就是**数组**。旧实现按 `{notifications: [...]}` 解包，于是 `response.notifications`
+     * 恒为 `undefined`，**永远返回空数组**（且因为是"合法地返回空"，调用方看不出异常）。
+     *
      * @returns 活跃的系统通知列表
+     *
+     * @example
+     * ```typescript
+     * const active = await adminManager.listActiveNotifications();
+     * console.log(active.length);
+     * ```
      */
-    async listActiveNotifications(): Promise<SystemNotificationInfo[]> {
-        const response = await this.adminRequest<{ notifications?: SystemNotificationInfo[] }>(
-            Method.Get,
-            "/notifications/active",
-        );
-        return response.notifications || [];
+    async listActiveNotifications(): Promise<ServerNotification[]> {
+        return await this.adminRequest<ServerNotification[]>(Method.Get, "/notifications/active");
     }
 
     /**
@@ -285,9 +292,9 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param notificationId - 通知 ID
      * @returns 通知详情
      */
-    async getNotification(notificationId: string): Promise<SystemNotificationInfo> {
+    async getNotification(notificationId: string): Promise<ServerNotification> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        return await this.adminRequest<SystemNotificationInfo>(
+        return await this.adminRequest<ServerNotification>(
             Method.Get,
             `/notifications/${encodeURIComponent(notificationId)}`,
         );
@@ -300,9 +307,9 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 更新内容
      * @returns 更新后的通知信息
      */
-    async updateNotification(notificationId: string, payload: DynamicConfig): Promise<SystemNotificationInfo> {
+    async updateNotification(notificationId: string, payload: DynamicConfig): Promise<ServerNotification> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        return await this.adminRequest<SystemNotificationInfo>(
+        return await this.adminRequest<ServerNotification>(
             Method.Put,
             `/notifications/${encodeURIComponent(notificationId)}`,
             {},

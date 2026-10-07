@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import type { ServerNotification } from "./admin-notification-manager";
+
 // ===== Server payloads =====
 
 export interface WhoamiResponse {
@@ -194,22 +196,24 @@ export interface SendServerNoticeResult {
     notice_id: number;
 }
 
-export interface SystemNotificationInfo {
-    notification_id: string;
-    content?: string;
-    type?: string;
-    target_users?: string[];
-    created_ts?: number;
-    [key: string]: unknown;
-}
+// `SystemNotificationInfo`（`{notification_id, content, type, target_users, created_ts}`）
+// 已于 2026-10-08 删除：它声明的是"系统通知"的**自造**形状，而后端
+// `POST/GET/PUT /_synapse/admin/v1/notifications...` 返回的就是
+// `synapse-storage/src/server_notification/models.rs::ServerNotification`（16 个字段）。
+// 五个键里只有 `created_ts` 真实存在，`notification_id` 的真名是 `id`。
+// 正确的类型是 `admin-notification-manager.ts` 里的 **`ServerNotification`**。
 
 /**
- * `GET /_synapse/admin/v1/notifications` 的响应。
+ * `GET /_synapse/admin/v1/notifications` 的响应（`{notifications, next_batch}`）。
  *
- * 游标键是 **`next_batch`**（原先声明 `next_token`，恒 `undefined`）。
+ * 游标键是 **`next_batch`**（原先声明 `next_token`，恒 `undefined`）；
+ * 元素类型是 {@link ServerNotification}。
+ *
+ * ⚠️ 与 `admin-notification-manager.ts` 的 `NotificationsListResponse` 形状相同 ——
+ * 两个 Manager 覆盖了同一批端点（见该文件头注释），合并属公开 API 决策，暂不动。
  */
 export interface SystemNotificationPage {
-    notifications: SystemNotificationInfo[];
+    notifications: ServerNotification[];
     next_batch?: string | null;
 }
 

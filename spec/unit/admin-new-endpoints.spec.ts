@@ -488,10 +488,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         });
 
         it("listActiveNotifications uses GET /v1/notifications/active", async () => {
-            req.mockResolvedValueOnce({ notifications: [{ notification_id: "n1" }] });
+            // ⚠️ 后端 `notification.rs::list_active_notifications` 是 `Ok(Json(json!(notifications)))`
+            // —— 顶层就是**数组**（元素是 `ServerNotification`）。旧 mock 造了
+            // `{notifications: [...]}` 并断言解包结果 —— 第 9 次「mock 自造形状 + 断言该形状」：
+            // 真实响应下 `response.notifications` 恒为 `undefined`，该方法**永远返回空数组**。
+            req.mockResolvedValueOnce([{ id: 1, title: "n1" }]);
             const result = await manager.listActiveNotifications();
             expect(req.mock.calls[0][1]).toBe("/notifications/active");
-            expect(result).toEqual([{ notification_id: "n1" }]);
+            expect(result).toEqual([{ id: 1, title: "n1" }]);
         });
 
         it("getUserNotification/setUserNotification use user route", async () => {

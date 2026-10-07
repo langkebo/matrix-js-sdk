@@ -75,7 +75,25 @@ export function stripRustComments(src) {
             i++;
             continue;
         }
-        if (c === '"' || c === "'") {
+        if (c === '"') {
+            str = c;
+            out += c;
+            i++;
+            continue;
+        }
+        if (c === "'") {
+            // ⚠️ **生命周期不是字符字面量**。把 `'` 一律当字符串起始会让 `&'static str` 之后
+            // 直接跳到下一个 `'`（那是很远的地方），把中间的花括号一并吞掉 ⇒ 下游按括号配平取
+            // 函数体/`impl` 块时**整个块返回 null**（本仓 `room/messaging/events.rs` 的
+            // `impl MessagingService` 就这样整块隐身，78 个 `async fn` 一个都没被索引）。
+            // 判据：`'x'` / `'\n'` 是字符字面量；其余 `'ident`（后面不是闭合撇号）是生命周期。
+            // 生命周期原地换成**等宽空格**（长度不变 ⇒ 下游所有下标都不受影响）。
+            const isCharLiteral = src[i + 1] === "\\" ? true : src[i + 1] !== undefined && src[i + 2] === "'";
+            if (!isCharLiteral) {
+                out += " ";
+                i++;
+                continue;
+            }
             str = c;
             out += c;
             i++;
@@ -477,7 +495,11 @@ export function scanStructFields(bodyText) {
             continue;
         }
         if (i === 0 || /[\s;{}]/.test(bodyText[i - 1])) {
-            const m = /^(?:pub\s+)?([A-Za-z_]\w*)\s*:/.exec(bodyText.slice(i, i + 200));
+            // `(?!:)` 不能省：`pub target_user_ids: serde_json::Value,` 里，`serde_json` 后面跟的是
+            // **路径分隔符** `::` 而不是字段的冒号。少了这个否定断言，`\s*:` 会吃掉 `::` 的第一个冒号
+            // ⇒ 凭空多出一个叫 `serde_json` 的字段（实测把 `ServerNotification` 报成"SDK 少一个字段"）。
+            // 同类泄漏还有 `pub x: std::collections::HashMap<..>` ⇒ 多出键 `std`。
+            const m = /^(?:pub\s+)?([A-Za-z_]\w*)\s*:(?!:)/.exec(bodyText.slice(i, i + 200));
             if (m) {
                 rust.push(m[1]);
                 json.push(pending ?? m[1]);
@@ -816,6 +838,328 @@ export function findLetBinding(bodyText, name) {
 const SHAPE_RETURN = /\bValue\b|\bJson\s*<|IntoResponse/;
 
 /**
+ * 找 `match <scrutinee> { … Some(<name>) … }` 里把 `<name>` 绑起来的那次 match，返回 scrutinee 文本。
+ *
+ * `match x { Some(n) => Ok(Json(json!(n))) }` 这类写法在 admin 面很常见（"查到就返回、查不到 404"）。
+ * 变量 `n` 没有 `let` 绑定，只能从 match 的模式里反推：**绑定值的类型 = scrutinee 的类型**。
+ *
+ * ⚠️ 只认"构造器模式 `Some(name)` / `Ok(name)`"与"裸标识符模式 `name =>` / `name |`"，
+ * 且只在同一函数体内找**第一处**命中 —— 遮蔽（shadowing）会取到最近的那层，与 Rust 语义一致。
+ *
+ * @param {string} bodyText
+ * @param {string} name
+ * @returns {string | null}
+ */
+export function findMatchScrutinee(bodyText, name) {
+    const patternRe = new RegExp(`\\b(?:Some|Ok)\\s*\\(\\s*${name}\\s*\\)|\\b(?:mut\\s+)?${name}\\s*(?:=>|\\|)`);
+    for (const m of bodyText.matchAll(/\bmatch\s+/g)) {
+        const start = m.index + m[0].length;
+        let depth = 0;
+        let i = start;
+        let brace = -1;
+        while (i < bodyText.length) {
+            const c = bodyText[i];
+            if (c === '"') {
+                i++;
+                while (i < bodyText.length) {
+                    if (bodyText[i] === "\\") {
+                        i += 2;
+                        continue;
+                    }
+                    if (bodyText[i] === '"') {
+                        i++;
+                        break;
+                    }
+                    i++;
+                }
+                continue;
+            }
+            if ("([".includes(c)) depth++;
+            else if (")]".includes(c)) depth--;
+            else if (c === "{" && depth === 0) {
+                brace = i;
+                break;
+            }
+            i++;
+        }
+        if (brace < 0) continue;
+        const block = balancedSlice(bodyText, brace);
+        if (!block || !patternRe.test(block.text)) continue;
+        return bodyText.slice(start, brace).trim();
+    }
+    return null;
+}
+
+/**
+ * 形状解析的最大递归深度。
+ *
+ * 一个真实的链**很深**：处理器 → `Ok(Json(expr))` → 变量 → `Ok(..)` 解包 → `serde_json::to_value(..)`
+ * → 表达式 → 服务方法体 → 又一条链 → storage 方法体 → `Value::Object(map)` ——
+ * 每层都要吃掉一格。定 5 的时候 `get_event_context_admin` 会**刚好差一层**返回 `null`
+ * （表现为"这条链就是解析不出来"，没有任何报错）。定 12 留足余量；配上"命名歧义即拒绝"
+ * 与"链上每段都要唯一"两条判据，深度本身不再是精度问题，只是终止性保障。
+ */
+const MAX_RESOLVE_DEPTH = 12;
+
+/**
+ * 链上的**透明后缀**：它们只做包装/解包，不改变"这个值是什么类型"。
+ *
+ * ⚠️ 刻意**不含** `.map(..)` / `.and_then(..)` / `.into()` / `.collect()` —— 那些会改变类型，
+ * 当透明跳过会让链条解析出的类型与实际不符（而错的形状比未知更危险）。
+ */
+const TRANSPARENT_POSTFIX = new Set([
+    "await",
+    "ok_or",
+    "ok_or_else",
+    "map_err",
+    "expect",
+    "unwrap",
+    "unwrap_or",
+    "unwrap_or_else",
+    "clone",
+    "as_ref",
+    "borrow",
+    "to_owned",
+]);
+
+/**
+ * 序列化类型：**值类型是不可知的**（`serde_json::Value` / `Value`）。
+ *
+ * 遇到它不算失败 —— 应当**继续下沉到被调方法的函数体**（`Ok(Value::Object(map))` 这种）。
+ */
+const OPAQUE_TYPES = new Set(["Value", "serde_json_Value", "serde_json::Value"]);
+
+/** 通用容器：脱掉外壳后继续看里面。不是容器也不认识的类型名就直接返回。 */
+const RUST_WRAPPERS = /^(?:std\s*::\s*)?(?:Arc|Rc|Box|Option|Vec|Mutex|RwLock|Cow|Pin|RefCell)$/;
+
+/**
+ * 按**深度 0 的逗号**切分泛型实参（`Result<HashMap<String, i64>, ApiError>` → 两段）。
+ *
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function splitGenericArgs(text) {
+    const out = [];
+    let depth = 0;
+    let cur = "";
+    for (const c of text) {
+        if ("<([".includes(c)) depth++;
+        else if (">)]".includes(c)) depth--;
+        else if (c === "," && depth === 0) {
+            out.push(cur.trim());
+            cur = "";
+            continue;
+        }
+        cur += c;
+    }
+    out.push(cur.trim());
+    return out.filter((s) => s.length > 0);
+}
+
+/**
+ * 把 Rust 类型文本化成 `{ name, isArray }`（脱掉 `&`/`Arc`/`Option`/`Vec`… 外壳，取末段名）。
+ *
+ * `Vec<T>` ⇒ `isArray = true`（响应顶层是**数组**，不是对象）—— 这是本门禁区分
+ * 「SDK 声明包装对象而后端返裸数组」的关键信号。
+ *
+ * 判不出来返回 `null`（如 `&dyn Trait`、`impl IntoResponse`、裸元组）。
+ *
+ * @param {string} text
+ * @returns {{ name: string, isArray: boolean } | null}
+ */
+export function unwrapRustType(text) {
+    let t = text.replace(/\s+/g, " ").trim();
+    t = t.replace(/^&\s*(?:'\w+\s*)?/, "");
+    let isArray = false;
+    for (;;) {
+        const m = /^([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)\s*<([\s\S]*)>$/.exec(t);
+        if (!m) break;
+        const short = m[1].split("::").pop();
+        if (!RUST_WRAPPERS.test(short)) break;
+        const inner = splitGenericArgs(m[2]);
+        if (inner.length !== 1) break;
+        if (short === "Vec") isArray = true;
+        t = inner[0].trim();
+    }
+    // `dyn Trait` / `impl Trait` 不是具体类型
+    if (/^(?:dyn|impl)\b/.test(t)) return null;
+    // ⚠️ 必须取**最后一段**路径：`synapse_services::admin::AdminAuditService` 的类型名是
+    // `AdminAuditService`，取首个标识符会得到 `synapse_services` —— 后续按这个"类型名"去查
+    // `impl` 会一无所获（表现为"整类方法解析不出来"，不报错）。
+    const m = /^([A-Za-z_]\w*)/.exec(t.split("::").pop().trim());
+    return m ? { name: m[1], isArray } : null;
+}
+
+/**
+ * 从 `Arc<dyn Trait>` / `&dyn Trait` 这类**特征对象**里取出特征名。
+ *
+ * 服务结构体的存储字段普遍写成 `Arc<dyn RoomStoreApi>`（`unwrapRustType` 会对 `dyn` 返回
+ * `null`）—— 也就是说"值是什么类型"这一层信息在类型文本里只有特征名。要接着往下解析
+ * `self.room_storage.cleanup_abnormal_data(..)`，只能靠 `impl Trait for X` 关系把 `X` 找回来。
+ *
+ * @param {string} text
+ * @returns {{ trait: string } | null}
+ */
+export function unwrapRustTraitType(text) {
+    const m = /(?:^|[\s<&])(?:dyn\s+)([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*)/.exec(text.replace(/\s+/g, " ").trim());
+    if (!m) return null;
+    return { trait: m[1].split("::").pop() };
+}
+
+/**
+ * 索引 `impl <Trait> for <Type>` 关系：`traitName → [selfType, …]`。
+ *
+ * @param {string} src 已去注释的源码
+ * @returns {Map<string, string[]>}
+ */
+export function parseRustTraitImpls(src) {
+    const out = new Map();
+    for (const m of src.matchAll(/\nimpl\b/g)) {
+        const brace = src.indexOf("{", m.index);
+        if (brace < 0) continue;
+        const head = src.slice(m.index, brace).trimStart();
+        const m2 = /^impl(?:\s*<[^>]*>)?\s+([A-Za-z_][\w:]*)\s+for\s+([A-Za-z_][\w:]*)/.exec(head);
+        if (!m2) continue;
+        const trait = m2[1].split("::").pop();
+        const self = m2[2].split("::").pop();
+        out.set(trait, [...(out.get(trait) ?? []), self]);
+    }
+    return out;
+}
+
+/**
+ * 从**返回类型**求值类型：先剥 `Result<X, E>` / `ApiResult<X>` 一层，再去壳。
+ *
+ * `Result<Option<ServerNotification>, ApiError>` ⇒ `ServerNotification`（`?` + `match` 已经把
+ * Option 消费掉了，剩下的是值本身）。
+ *
+ * @param {string | null} ret
+ * @returns {{ name: string, isArray: boolean } | null}
+ */
+export function typeOfRustReturn(ret) {
+    if (!ret) return null;
+    let t = ret.replace(/\s+/g, " ").trim();
+    for (;;) {
+        const m = /^([A-Za-z_]\w*(?:\s*::\s*[A-Za-z_]\w*)*)\s*<([\s\S]*)>$/.exec(t);
+        if (!m) break;
+        const short = m[1].split("::").pop();
+        if (short !== "Result" && short !== "ApiResult") break;
+        const parts = splitGenericArgs(m[2]);
+        if (parts.length < 1) break;
+        t = parts[0];
+    }
+    return unwrapRustType(t);
+}
+
+/**
+ * 取处理器签名里 `State(<name>): State<<Type>>` 的变量名与类型 —— 也就是"链的根"。
+ *
+ * 没有它就完全无法解析 `ctx.<service>.<method>(..)`；有了它，配合 `parseRustImplMethods`
+ * 才谈得上"接收者类型是**推出来的**"而不是"按方法名猜的"。
+ *
+ * @param {string} sig
+ * @returns {{ name: string, type: string } | null}
+ */
+export function extractStateContext(sig) {
+    const paren = sig.indexOf("(");
+    if (paren < 0) return null;
+    const params = balancedSlice(sig, paren);
+    if (!params) return null;
+    const m = /State\s*\(\s*([A-Za-z_]\w*)\s*\)\s*:\s*State\s*<\s*([A-Za-z_]\w*)\s*>/.exec(params.text);
+    return m ? { name: m[1], type: m[2] } : null;
+}
+
+/**
+ * 索引 struct 的**字段类型**：`structName → (field → typeText)`。
+ *
+ * 复用 `parseJsonObjectTopLevel`（它本来就是"取一层 `key: value`"，`pub` 会被当成
+ * 非键的自然跳过）。
+ *
+ * ⚠️ 同名 struct 只保留首次出现：名字撞了就**不索引**（标 `__ambiguous`），
+ * 否则会把 A 的字段类型当成 B 的 —— 而下游据此推出的形状会是错的。
+ *
+ * @param {string} src 已去注释的源码
+ * @returns {Map<string, Map<string, string>>}
+ */
+export function parseRustStructFieldTypes(src) {
+    const out = new Map();
+    for (const m of src.matchAll(/(?:pub\s+)?struct\s+([A-Za-z_]\w*)\s*(?:<[^>]*>)?\s*\{/g)) {
+        const slice = balancedSlice(src, m.index + m[0].length - 1);
+        if (!slice) continue;
+        const fields = parseJsonObjectTopLevel(slice.text.slice(1, -1));
+        const prev = out.get(m[1]);
+        if (prev) {
+            // 字段集不同 ⇒ 名字撞了，整条类型不可信
+            const a = [...prev.keys()].sort().join(",");
+            const b = [...fields.keys()].sort().join(",");
+            if (a !== b) out.set(m[1], null);
+            continue;
+        }
+        out.set(m[1], fields);
+    }
+    return out;
+}
+
+/**
+ * 索引 `impl` 块里的方法：`selfType → methodName → [{ ret, body, selfType }]`。
+ *
+ * self 类型判定：有 `for`（取 `for` 之后的类型名）就取其，否则取 `impl` 后第一段。
+ * 泛型 `impl<T> Foo<T>` 取 `Foo`；限定路径 `impl a::b::Foo` 取末段。
+ *
+ * 同名方法**不在这里去重**：调用方按 `length === 1` 判唯一性，多份即拒绝解析。
+ *
+ * @param {string} src 已去注释的源码
+ * @returns {Map<string, Map<string, object[]>>}
+ */
+export function parseRustImplMethods(src) {
+    const out = new Map();
+    for (const m of src.matchAll(/\nimpl\b/g)) {
+        const brace = src.indexOf("{", m.index);
+        if (brace < 0) continue;
+        const head = src.slice(m.index, brace).trimStart();
+        const slice = balancedSlice(src, brace);
+        if (!slice) continue;
+        let selfType = null;
+        let depth = 0;
+        for (let i = 0; i < head.length; i++) {
+            const c = head[i];
+            if (c === "<") depth++;
+            else if (c === ">") depth--;
+            else if (
+                depth === 0 &&
+                head.startsWith("for", i) &&
+                !/\w/.test(head[i - 1] ?? "") &&
+                !/\w/.test(head[i + 3] ?? "")
+            ) {
+                const m2 = /^for\s+(?:<[^>]*>\s*)?([A-Za-z_][\w:]*)/.exec(head.slice(i));
+                if (m2) selfType = m2[1].split("::").pop();
+                break;
+            }
+        }
+        if (!selfType) {
+            const m2 = /^impl(?:\s*<[^>]*>)?\s+([A-Za-z_][\w:]*)/.exec(head);
+            if (m2) selfType = m2[1].split("::").pop();
+        }
+        if (!selfType) continue;
+        // `traitName` 记录这个 `impl` 是不是某个特征的实现：
+        //   - Rust 的方法解析**优先取固有方法**（`impl Type`）而不是特征方法 ⇒ 两个同名 def 时
+        //     优先用 `traitName === null` 那个，这不是启发式而是语言规则；
+        //   - 经由 `dyn Trait` 调用时，必须用**该特征**的实现（动态派发没有别的选择）。
+        const traitName = /\bfor\b/.test(head)
+            ? (/^impl(?:\s*<[^>]*>)?\s+([A-Za-z_][\w:]*)\s+for\b/.exec(head)?.[1].split("::").pop() ?? null)
+            : null;
+        const inner = out.get(selfType) ?? new Map();
+        for (const fn of findAllRustFunctions(slice.text)) {
+            const list = inner.get(fn.name) ?? [];
+            list.push({ name: fn.name, ret: extractReturnType(fn.sig), body: fn.body, selfType, traitName });
+            inner.set(fn.name, list);
+        }
+        out.set(selfType, inner);
+    }
+    return out;
+}
+
+/**
  * 造一个"响应形状解析器"：把 `Ok(Json(<expr>))` 的 `<expr>` 一路下沉到
  * struct 定义 / struct 字面量 / `::from` / `Map::insert` / 同步辅助函数 / 委派目标。
  *
@@ -831,20 +1175,169 @@ const SHAPE_RETURN = /\bValue\b|\bJson\s*<|IntoResponse/;
  *
  * @param {{ structs: Map<string, { fields: string[], opaque?: boolean }>, functions: Map<string, { body: string, ret: string | null, topLevel: boolean, isHandler?: boolean, ambiguous?: boolean }> }} input
  */
-export function createResponseResolver({ structs, functions }) {
+export function createResponseResolver({
+    structs,
+    functions,
+    types = { structFields: new Map(), methods: new Map(), traitImpls: new Map() },
+}) {
     const structShape = (name) => {
         const st = structs.get(name);
         if (!st || st.opaque) return null;
         return { kind: "object", keys: st.fields };
     };
 
+    /**
+     * 解析 `ctx.a.b(..).c()` / `self.a.b(..)` 这类链，返回**末段的类型**。
+     *
+     * **fail-closed**：链上任何一段判不出来（方法名在本类型下不存在 / 同名多处 / 字段类型
+     * 不是已知 struct / 出现无法归类的后缀）⇒ 整体 `null`。**不允许"解析到一半就交结论"**：
+     * `ctx.a.b().c()` 的类型由整条链决定，停在 `b()` 上会给出错的形状 —— 而错的形状比未知更危险。
+     *
+     * 只把 `.await` / `?` / `ok_or[_else]` / `map_err` / `unwrap[_or[_else]]` / `expect` / `clone`
+     * / `as_ref` 当**透明后缀**跳过（它们不改变"值是什么类型"这一事实，只做包装/解包）。
+     * `.map(..)` / `.and_then(..)` / `.into()` 会改变类型 ⇒ 不在透明表里。
+     *
+     * @param {string} text
+     * @param {{ selfType: string | null, rootName: string | null }} scope
+     * @returns {{ name: string, isArray: boolean, def: object | null } | null}
+     */
+    /**
+     * `dyn Trait` ⇒ 该特征的**生产实现**类型。
+     *
+     * 判据是"**非测试路径**下的实现恰好一个"：本仓每个存储特征都有两个 `impl`，一个在
+     * `synapse-storage/src/<domain>/…`（生产），一个在 `synapse-storage/src/test_mocks/…`
+     * （内存测试替身）。唯一的例外情况（0 个或 ≥2 个非测试实现）**拒绝解析**——
+     * 也就是说，将来真加出第二个生产实现时，这里会退化成"未知"并让覆盖桶计数上涨
+     * （门禁会据此报红），而不是挑一个继续给出可能错的形状。
+     */
+    const resolveTraitObject = (typeText) => {
+        const t = unwrapRustTraitType(typeText);
+        if (!t) return null;
+        const impls = types.traitImpls?.get(t.trait);
+        if (!impls || impls.length !== 1) return null;
+        return { name: impls[0], isArray: false, viaTrait: t.trait };
+    };
+
+    /**
+     * 在 `cur` 类型上找一个**唯一**的方法定义。
+     *
+     * `viaTrait` 非空表示"当前接收者是 `dyn Trait`"：此时必须用该特征的实现
+     * （动态派发没有别的选择）。否则按 Rust 的规则**优先固有方法**（`impl Type { … }`），
+     * 固有方法不存在时才接受唯一的特征实现 —— 本仓的特征实现常常只是薄薄一层委派
+     * （`self.cleanup_abnormal_data(..).await`），抓错了会绕回自己。
+     */
+    const pickMethod = (cur, name, viaTrait) => {
+        const defs = types.methods.get(cur)?.get(name) ?? [];
+        if (viaTrait) {
+            const d = defs.filter((x) => x.traitName === viaTrait);
+            return d.length === 1 ? d[0] : null;
+        }
+        const inherent = defs.filter((x) => !x.traitName);
+        if (inherent.length === 1) return inherent[0];
+        if (inherent.length === 0 && defs.length === 1) return defs[0];
+        return null;
+    };
+
+    const resolveChain = (text, scope) => {
+        if (!scope.selfType) return null;
+        let rest = text.replace(/\s+/g, " ").trim();
+        const rootRe = scope.rootName ? new RegExp(`^(?:self|${scope.rootName})\\b`) : /^self\b/;
+        if (!rootRe.test(rest)) return null;
+        rest = rest.replace(rootRe, "").replace(/^\s*/, "");
+        let cur = scope.selfType;
+        let viaTrait = null;
+        let last = null;
+        while (rest.length) {
+            if (rest[0] === "?") {
+                rest = rest.slice(1).replace(/^\s*/, "");
+                continue;
+            }
+            const m = /^\.\s*([A-Za-z_]\w*)/.exec(rest);
+            if (!m) return null;
+            const name = m[1];
+            let after = rest.slice(m[0].length);
+            if (/^\s*\(/.test(after)) {
+                const p = after.indexOf("(");
+                const s = balancedSlice(after, p);
+                if (!s) return null;
+                after = after.slice(s.end);
+                if (!TRANSPARENT_POSTFIX.has(name)) {
+                    const def = pickMethod(cur, name, viaTrait);
+                    if (!def) return null;
+                    const ty = typeOfRustReturn(def.ret);
+                    if (!ty) return null;
+                    cur = ty.name;
+                    viaTrait = null;
+                    last = { ...ty, def };
+                }
+            } else if (!TRANSPARENT_POSTFIX.has(name)) {
+                const ft = types.structFields.get(cur)?.get(name);
+                if (!ft) return null;
+                const ty = unwrapRustType(ft) ?? resolveTraitObject(ft);
+                if (!ty) return null;
+                cur = ty.name;
+                viaTrait = ty.viaTrait ?? null;
+                last = { ...ty, def: null };
+            }
+            rest = after.replace(/^\s*/, "");
+        }
+        return last;
+    };
+
+    /** 把「类型」变成「形状」；返回类型是 `Value` 时会**下沉到被调方法的函数体**。 */
+    const shapeOfResolved = (resolved, depth) => {
+        if (!resolved) return null;
+        if (resolved.isArray) {
+            const st = structs.get(resolved.name);
+            return [
+                {
+                    kind: "array",
+                    item: st ? resolved.name : null,
+                    itemKeys: st && !st.opaque ? st.fields : null,
+                },
+            ];
+        }
+        if (OPAQUE_TYPES.has(resolved.name)) {
+            // 返回类型是 `Value` ⇒ 值类型不可知，但**方法体自己知道**：下沉进去接着解析
+            return resolved.def ? resolveBody(resolved.def.body, resolved.def.selfType, "self", depth + 1) : null;
+        }
+        const st = structs.get(resolved.name);
+        if (!st || st.opaque) return null;
+        return [{ kind: "object", keys: st.fields }];
+    };
+
     const resolveExpr = (rawExpr, scope, depth) => {
-        if (depth > 5) return null;
+        if (depth > MAX_RESOLVE_DEPTH) return null;
         let expr = rawExpr.trim();
         expr = expr
             .replace(/\s*\.await\s*\??\s*$/, "")
             .replace(/\?\s*$/, "")
             .trim();
+
+        // 0) `Ok(<expr>)` 解包（storage 层的返回值常写成 `Ok(Value::Object(map))`，没有 `Json(`）。
+        //    `Err(..)` 不是响应 ⇒ 未知。
+        const okM = /^Ok\s*\(/.exec(expr);
+        if (okM) {
+            const s = balancedSlice(expr, okM[0].length - 1);
+            if (!s) return null;
+            return resolveExpr(s.text.slice(1, -1), scope, depth + 1);
+        }
+        if (/^Err\s*\(/.test(expr)) return null;
+        // `Some(<expr>)` —— storage 层常把可选结果写成 `Ok(Some(json!({…})))`。
+        // 解包后形状由 `<expr>` 决定；`None` 不携带形状 ⇒ 交不出结论（但要与"整块未知"区分开，
+        // 所以这里返回 `[]`：**确认为空**，对应"该分支没有响应体"）。
+        const someM = /^Some\s*\(/.exec(expr);
+        if (someM) {
+            const s = balancedSlice(expr, someM[0].length - 1);
+            const inner = s ? s.text.slice(1, -1).trim() : "";
+            if (inner === "None" || inner === "") return [];
+            return resolveExpr(inner, scope, depth + 1);
+        }
+
+        // 0b) `self.` / `<ctx 变量>.` 链 —— 下沉一层到被调方法的返回类型
+        if (/^(?:self|ctx|ctx_)\b/.test(expr) || (scope.rootName && new RegExp(`^${scope.rootName}\\b`).test(expr))) {
+            return shapeOfResolved(resolveChain(expr, scope), depth);
+        }
 
         // 1) json!(...) / serde_json::json!(...)
         const jm = /^(?:[A-Za-z_]\w*\s*::\s*)*json!\s*\(/.exec(expr);
@@ -858,6 +1351,15 @@ export function createResponseResolver({ structs, functions }) {
             const inner = s ? s.text.slice(1, -1).trim() : "";
             if (/^[A-Za-z_]\w*$/.test(inner)) return resolveIdent(inner, scope, depth + 1);
             return null;
+        }
+
+        // 1b) `serde_json::to_value(<expr>)` —— 服务层常把 `json!` 结果先 to_value 再返回。
+        //     只看括号里的那个表达式（外面的 `.map_err(..)?` 不改变值）。
+        const tv = /^(?:[A-Za-z_]\w*\s*::\s*)*to_value\s*\(/.exec(expr);
+        if (tv) {
+            const s = balancedSlice(expr, expr.indexOf("(", tv[0].length - 1));
+            const inner = s ? s.text.slice(1, -1).trim() : "";
+            return inner ? resolveExpr(inner, scope, depth + 1) : null;
         }
 
         // 2) T::from(x) / T::try_from(x) —— 形状由 T 决定
@@ -882,8 +1384,9 @@ export function createResponseResolver({ structs, functions }) {
             return [{ kind: "object", keys: lit.keys }];
         }
 
-        // 4) Value::Object(mapVar)
-        const vm = /^Value\s*::\s*Object\s*\(\s*([A-Za-z_]\w*)\s*\)$/.exec(expr);
+        // 4) Value::Object(mapVar) —— 允许限定写法（`serde_json::Value::Object(results)`，
+        //    storage 层就是这样把 `serde_json::Map` 转成响应的）
+        const vm = /^(?:[A-Za-z_]\w*\s*::\s*)*Value\s*::\s*Object\s*\(\s*([A-Za-z_]\w*)\s*\)$/.exec(expr);
         if (vm) {
             const keys = collectMapInsertKeys(scope.body ?? "", vm[1]);
             return keys ? [{ kind: "object", keys }] : null;
@@ -901,50 +1404,61 @@ export function createResponseResolver({ structs, functions }) {
     };
 
     const resolveIdent = (name, scope, depth) => {
-        if (depth > 5) return null;
+        if (depth > MAX_RESOLVE_DEPTH) return null;
         const b = findLetBinding(scope.body ?? "", name);
-        if (!b) return null;
+        if (!b) {
+            // 没有 `let` 绑定 ⇒ 可能是 `match x { Some(name) => .. }` 的模式绑定
+            const scrutinee = findMatchScrutinee(scope.body ?? "", name);
+            return scrutinee ? resolveExpr(scrutinee, scope, depth + 1) : null;
+        }
         if (b.type) {
-            const vec = /^(?:std\s*::\s*vec\s*::\s*)?Vec\s*<\s*([A-Za-z_]\w*)\s*>$/.exec(b.type);
-            if (vec) {
-                const item = structs.get(vec[1]);
-                return [
-                    {
-                        kind: "array",
-                        item: item ? vec[1] : null,
-                        itemKeys: item && !item.opaque ? item.fields : null,
-                    },
-                ];
+            const ty = unwrapRustType(b.type);
+            // 显式类型标注最多能给出"是数组/是哪个 struct"；标注成 `Value` 时仍要去解析 rhs
+            if (ty && (ty.isArray || (!OPAQUE_TYPES.has(ty.name) && structs.has(ty.name)))) {
+                return shapeOfResolved({ ...ty, def: null }, depth);
             }
-            const st = structs.get(b.type);
-            if (st) return st.opaque ? null : [{ kind: "object", keys: st.fields }];
-            // 类型标注不是已知 struct（`Value` / 泛型 / 自定义枚举）⇒ 不据此断言形状
         }
         return resolveExpr(b.rhs, scope, depth + 1);
     };
 
-    const resolveFunction = (fn, depth) => {
-        if (!fn || fn.ambiguous || depth > 5) return null;
-        if (!fn.isHandler && !(fn.topLevel && SHAPE_RETURN.test(fn.ret ?? ""))) return null;
-        const exprs = extractJsonReturnExprs(fn.body);
+    /**
+     * 解析一段**函数体**。
+     *
+     * `rootType` / `rootName` 描述"链的根"：处理器体里是 `State(ctx): State<AdminContext>`
+     * 的变量名与类型；下沉到服务方法体里是隐式的 `self` + 该 `impl` 的目标类型。
+     * 两者不可混用 —— 处理器体里的 `ctx` 与服务方法体里的 `self` 是不同世界的根。
+     */
+    const resolveBody = (body, rootType, rootName, depth) => {
+        if (depth > MAX_RESOLVE_DEPTH) return null;
+        const scope = { body, selfType: rootType ?? null, rootName: rootName ?? null };
+        const exprs = extractJsonReturnExprs(body);
         if (exprs.length) {
             const out = [];
             for (const e of exprs) {
-                const s = resolveExpr(e, { body: fn.body }, depth + 1);
-                if (!s) return null; // 任一分支判不出来 ⇒ 整个处理器"未知"，不给半份结论
+                const s = resolveExpr(e, scope, depth + 1);
+                if (!s) return null; // 任一分支判不出来 ⇒ 整体"未知"，不给半份结论
                 out.push(...s);
             }
             return out;
         }
-        const tail = tailExpression(fn.body);
+        const tail = tailExpression(body);
         if (!tail) return null;
-        return resolveExpr(tail, { body: fn.body }, depth + 1);
+        return resolveExpr(tail, scope, depth + 1);
+    };
+
+    const resolveFunction = (fn, depth) => {
+        if (!fn || fn.ambiguous || depth > MAX_RESOLVE_DEPTH) return null;
+        if (!fn.isHandler && !(fn.topLevel && SHAPE_RETURN.test(fn.ret ?? ""))) return null;
+        return resolveBody(fn.body, fn.selfType ?? null, fn.selfType ? "self" : null, depth);
     };
 
     return {
-        /** @param {{ body: string, ret: string | null, name: string }} fn */
+        /**
+         * @param {{ body: string, ret: string | null, name?: string, sig?: string }} fn
+         */
         resolveHandler(fn) {
-            return resolveFunction({ ...fn, isHandler: true, topLevel: true }, 0);
+            const ctx = fn.sig ? extractStateContext(fn.sig) : null;
+            return resolveBody(fn.body, ctx?.type ?? null, ctx?.name ?? "ctx", 0);
         },
         resolveExpr,
     };
@@ -1055,9 +1569,35 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
     const structHits = new Map();
     const perFile = new Map();
     const rawFunctions = new Map();
+    // 接收者类型推断需要的两张表：`struct → 字段类型` 与 `impl 目标类型 → 方法`。
+    const structFields = new Map();
+    const methods = new Map();
+    // `dyn Trait` ⇒ 生产实现。测试替身（`test_mocks` / `tests` / `test_*.rs`）不进这张表：
+    // 它们与生产实现同名，混在一起会让"唯一实现"判据恒不成立（本仓每个存储特征都有两个 impl）。
+    const traitImpls = new Map();
+    const isTestishPath = (p) =>
+        /(?:^|\/)(?:test_mocks|tests?|testutils|mocks)\/|(?:^|\/)test_[^/]*\.rs$|_tests?\.rs$/.test(p);
     for (const f of [...files, ...sinkFiles]) {
         const src = stripRustComments(fs.readFileSync(f, "utf8"));
         if (files.includes(f)) perFile.set(f, src);
+        for (const [k, v] of parseRustStructFieldTypes(src)) {
+            if (v === null) structFields.set(k, null);
+            else if (!structFields.has(k)) structFields.set(k, v);
+        }
+        if (!isTestishPath(f)) {
+            for (const [trait, selfs] of parseRustTraitImpls(src)) {
+                const seen = new Set([...(traitImpls.get(trait) ?? []), ...selfs]);
+                traitImpls.set(trait, [...seen]);
+            }
+        }
+        for (const [k, v] of parseRustImplMethods(src)) {
+            const prev = methods.get(k);
+            if (!prev) {
+                methods.set(k, v);
+                continue;
+            }
+            for (const [mn, defs] of v) prev.set(mn, [...(prev.get(mn) ?? []), ...defs]);
+        }
         // 同一个 struct 名在多处定义时，字段集不同就说明"名字撞了" ⇒ 标 opaque 拒绝下沉。
         for (const [k, v] of parseSerdeStructs(src)) {
             structHits.set(k, (structHits.get(k) ?? 0) + 1);
@@ -1111,7 +1651,11 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
     const functions = new Map();
     for (const name of rawFunctions.keys()) functions.set(name, pickFunction(name));
 
-    const resolver = createResponseResolver({ structs, functions });
+    const resolver = createResponseResolver({
+        structs,
+        functions,
+        types: { structFields, methods, traitImpls },
+    });
 
     let handlerCount = 0;
     let responseKnown = 0;
@@ -1125,6 +1669,7 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             const responseShapes = resolver.resolveHandler({
                 name: fn.name,
                 body: fn.body,
+                sig: fn.sig,
                 ret: extractReturnType(fn.sig),
             });
             const responseVariants =

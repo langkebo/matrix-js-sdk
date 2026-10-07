@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "generated_at": "2026-10-07T15:20:28.595Z",
+    "generated_at": "2026-10-07T21:58:33.385Z",
     "synapseRustCommit": "e17efb937a5cf800e22d246ca4846bc7328614b1",
     "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
     "entries": [
@@ -51,6 +51,22 @@
                 "name",
                 "room_count",
                 "user_id"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/audit/events/{x}",
+            "sdkType": "AuditEvent",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "action",
+                "actor_id",
+                "created_ts",
+                "details",
+                "event_id",
+                "request_id",
+                "resource_id",
+                "resource_type",
+                "result"
             ]
         },
         {
@@ -110,6 +126,21 @@
             "sdkType": "AdminFederationDestinationRooms",
             "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
             "fields": ["rooms", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/federation/destinations/{x}",
+            "sdkType": "AdminFederationDestinationDetail",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": [
+                "destination",
+                "failure_count",
+                "failure_ts",
+                "last_successful_ts",
+                "retry_interval",
+                "retry_last_ts",
+                "status",
+                "updated_ts"
+            ]
         },
         {
             "route": "GET /_synapse/admin/v1/federation/pending",
@@ -199,6 +230,25 @@
             "fields": ["default_count_limit", "default_size_limit", "total_count", "total_size"]
         },
         {
+            "route": "GET /_synapse/admin/v1/modules/logs/{x}",
+            "sdkType": "AdminModuleLog",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "error_message",
+                "event_id",
+                "executed_ts",
+                "execution_time_ms",
+                "id",
+                "is_success",
+                "metadata",
+                "module_name",
+                "module_type",
+                "room_id"
+            ],
+            "arrayItem": true,
+            "backendItemType": "ModuleExecutionLog"
+        },
+        {
             "route": "GET /_synapse/admin/v1/modules/spam_check/{x}",
             "sdkType": "SpamCheckResult",
             "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
@@ -285,6 +335,77 @@
             "sdkType": "AdminModulePage",
             "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
             "fields": ["modules", "next_batch"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/notifications/{x}",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/notifications/{x}",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/notifications/active",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
+            ],
+            "arrayItem": true,
+            "backendItemType": "ServerNotification"
         },
         {
             "route": "GET /_synapse/admin/v1/notifications",
@@ -415,10 +536,36 @@
             ]
         },
         {
+            "route": "GET /_synapse/admin/v1/room_stats/{x}",
+            "sdkType": "RoomStats",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["admin_count", "is_encrypted", "last_message_ts", "member_count", "message_count", "room_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/room_stats",
+            "sdkType": "RoomStatsOverview",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": [
+                "active_rooms",
+                "average_messages_per_room",
+                "encrypted_rooms",
+                "public_rooms",
+                "total_members",
+                "total_messages",
+                "total_rooms"
+            ]
+        },
+        {
             "route": "GET /_synapse/admin/v1/rooms/{x}/block",
             "sdkType": "AdminRoomBlockStatus",
             "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
             "fields": ["block", "blocked_at"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/event_context/{x}",
+            "sdkType": "AdminEventContext",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["event", "events_after", "events_before", "state"]
         },
         {
             "route": "GET /_synapse/admin/v1/rooms/{x}/forward_extremities",
@@ -624,6 +771,23 @@
             "fields": ["devices", "user_id"]
         },
         {
+            "route": "PATCH /_synapse/admin/v1/feature-flags/{x}",
+            "sdkType": "FeatureFlag",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "flag_key",
+                "reason",
+                "rollout_percent",
+                "status",
+                "target_scope",
+                "targets",
+                "updated_ts"
+            ]
+        },
+        {
             "route": "POST /_synapse/admin/v1/account_data_callbacks",
             "sdkType": "AdminAccountDataCallback",
             "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
@@ -664,10 +828,20 @@
             "fields": ["updated", "user_id"]
         },
         {
-            "route": "POST /_synapse/admin/v1/cleanup/all",
-            "sdkType": "CleanupAllResponse",
-            "sdkFile": "src/admin/sub-managers/admin-cleanup-manager.ts",
-            "fields": ["rooms", "tokens"]
+            "route": "POST /_synapse/admin/v1/audit/events",
+            "sdkType": "AuditEvent",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "action",
+                "actor_id",
+                "created_ts",
+                "details",
+                "event_id",
+                "request_id",
+                "resource_id",
+                "resource_type",
+                "result"
+            ]
         },
         {
             "route": "POST /_synapse/admin/v1/cleanup/all",
@@ -680,6 +854,24 @@
             "sdkType": "CleanupAllResponse",
             "sdkFile": "src/admin/sub-managers/admin-cleanup-manager.ts",
             "fields": ["rooms", "tokens"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/all",
+            "sdkType": "CleanupAllResponse",
+            "sdkFile": "src/admin/sub-managers/admin-cleanup-manager.ts",
+            "fields": ["rooms", "tokens"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/rooms",
+            "sdkType": "CleanupRoomsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-cleanup-manager.ts",
+            "fields": ["deleted_empty_rooms", "deleted_events_in_empty_rooms"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/cleanup/rooms",
+            "sdkType": "CleanupRoomsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-cleanup-manager.ts",
+            "fields": ["deleted_empty_rooms", "deleted_events_in_empty_rooms"]
         },
         {
             "route": "POST /_synapse/admin/v1/cleanup/tokens",
@@ -758,6 +950,58 @@
                 "priority",
                 "updated_ts",
                 "version"
+            ]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/modules/check_third_party_rule",
+            "sdkType": "ThirdPartyRuleCheckResult",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["allowed", "modified_content", "reason"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/notifications",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
+            ]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/notifications",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
             ]
         },
         {
@@ -840,6 +1084,12 @@
             "sdkType": "AdminRoomEventSearchPage",
             "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
             "fields": ["count", "results", "room_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/cleanup",
+            "sdkType": "CleanupRoomsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-cleanup-manager.ts",
+            "fields": ["deleted_empty_rooms", "deleted_events_in_empty_rooms"]
         },
         {
             "route": "POST /_synapse/admin/v1/rooms/search",
@@ -926,6 +1176,52 @@
                 "priority",
                 "updated_ts",
                 "version"
+            ]
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/notifications/{x}",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
+            ]
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/notifications/{x}",
+            "sdkType": "ServerNotification",
+            "sdkFile": "src/admin/sub-managers/admin-notification-manager.ts",
+            "fields": [
+                "action_text",
+                "action_url",
+                "content",
+                "created_by",
+                "created_ts",
+                "expires_at",
+                "id",
+                "is_dismissable",
+                "is_enabled",
+                "notification_type",
+                "priority",
+                "starts_at",
+                "target_audience",
+                "target_user_ids",
+                "title",
+                "updated_ts"
             ]
         },
         {
@@ -1043,9 +1339,6 @@
         }
     ],
     "unresolved": {
-        "backend-shape-unknown": {
-            "count": 19
-        },
         "route-not-resolved": {
             "count": 18
         },
@@ -1053,7 +1346,10 @@
             "count": 1
         },
         "inline-type-arg": {
-            "count": 4
+            "count": 3
+        },
+        "backend-shape-unknown": {
+            "count": 1
         }
     }
 }
