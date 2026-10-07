@@ -75,6 +75,7 @@ pnpm quality:report                   # Full quality report
 pnpm quality:type-coverage            # Check type coverage (no new `any` regressions)
 pnpm quality:swallow-fallbacks        # Detect empty catch blocks
 pnpm quality:debt-markers             # Scan for technical debt markers
+pnpm quality:golden                   # Golden-standard diff (capture/verify) + red-light attribution (attrib)
 ```
 
 ### Documentation

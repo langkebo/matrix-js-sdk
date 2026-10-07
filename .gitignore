@@ -26,3 +26,6 @@ out
 
 # 文档示例抽取产物（check-docs-examples.mjs 生成）
 /.docs-examples/
+
+# gate-golden.mjs 存的「金标准」（一次重构内的临时产物，不该入库）
+/.quality-goldens/

@@ -78,6 +78,7 @@
         "quality:coverage:weak-modules": "node scripts/quality/find-lowest-coverage-modules.mjs",
         "quality:granular-coverage": "node scripts/quality/run-granular-coverage-gates.mjs",
         "quality:gate-reachability": "node scripts/quality/check-gate-reachability.mjs",
+        "quality:golden": "node scripts/audit/gate-golden.mjs",
         "quality:path-contract": "node scripts/quality/verify-path-contract.mjs",
         "quality:msc": "node scripts/quality/check-msc-changes.mjs",
         "quality:msc:strict": "node scripts/quality/check-msc-changes.mjs --strict",
