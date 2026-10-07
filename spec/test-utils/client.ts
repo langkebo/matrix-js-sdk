@@ -70,7 +70,6 @@ export const mockClientMethodsUser = (userId = "@alice:domain") => ({
     getSafeUserId: vi.fn<MatrixClient["getSafeUserId"]>().mockReturnValue(userId),
     getUser: vi.fn<MatrixClient["getUser"]>().mockReturnValue(new User(userId)),
     isGuest: vi.fn<MatrixClient["isGuest"]>().mockReturnValue(false),
-    mxcUrlToHttp: vi.fn<MatrixClient["mxcUrlToHttp"]>().mockReturnValue("mock-mxcUrlToHttp"),
     credentials: { userId },
     getThreePids: vi.fn<(...args: unknown[]) => unknown>().mockResolvedValue({ threepids: [] }),
     getAccessToken: vi.fn<MatrixClient["getAccessToken"]>(),
@@ -93,7 +92,6 @@ export const mockClientMethodsEvents = () => ({
  * Returns basic mocked client methods related to server support
  */
 export const mockClientMethodsServer = (): Partial<Record<MethodLikeKeys<MatrixClient>, unknown>> => ({
-    getIdentityServerUrl: vi.fn(),
     getHomeserverUrl: vi.fn(),
     getCachedCapabilities: vi.fn().mockReturnValue({}),
     doesServerSupportUnstableFeature: vi.fn().mockResolvedValue(false),
