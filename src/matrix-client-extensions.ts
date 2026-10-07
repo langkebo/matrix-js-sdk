@@ -218,29 +218,10 @@ export interface MatrixClientExtensionMethods {
     // ============ Push Notifications ============
     // ⚠️ Push Manager - 提供完整的推送规则和 pusher 管理
     getPushManager(): import("./push/index").PushManager;
-    getPushRules(): Promise<import("./push/index").IPushRules>;
-    // Overloads for PushRulesManager (2-arg/3-arg signatures) - must come before PushManager signatures
-    setPushRule(kind: string, ruleId: string, body: import("./push-rules/index").ISetPushRuleBody): Promise<void>;
-    // PushManager signature (4-6 args)
-    setPushRule(
-        scope: string,
-        kind: import("./@types/PushRules").PushRuleKind,
-        ruleId: string,
-        actions: import("./@types/PushRules").PushRuleAction[],
-        conditions?: import("./@types/PushRules").PushRuleCondition[],
-        pattern?: string,
-    ): Promise<void>;
-    addPushRule(
-        scope: string,
-        kind: import("./@types/PushRules").PushRuleKind,
-        ruleId: string,
-        body: import("./push/index").IUpdatePushRuleRequest,
-    ): Promise<void>;
-    // Overload for PushRulesManager (2-arg signature) - must come before PushManager signature
-    deletePushRule(kind: string, ruleId: string): Promise<void>;
-    // PushManager signature (3 args)
-    deletePushRule(scope: string, kind: import("./@types/PushRules").PushRuleKind, ruleId: string): Promise<void>;
-    setPusher(pusher: import("./push/index").IPusherRequest): Promise<void>;
+    // 以下 client-level 的 push 方法（getPushRules / setPushRule / addPushRule / deletePushRule /
+    // setPusher / getPushRule / enablePushRule）**从未在 MatrixClient 上实现** —— 能力全在
+    // `client.getPushManager()` 里。它们此前只以"类型声明 + 注释里的 overload 顺序要求"存在，
+    // 使 `client.getPushRules()` 这类调用通过类型检查、运行时 TypeError。2026-10-07 删除。
     getPushRulesManager(): import("./push-rules/index").PushRulesManager;
     getPushNotificationsManager(): import("./push-notifications/index").PushNotificationsManager;
     getNotificationsManager(): import("./notifications/index").NotificationsManager;
@@ -682,16 +663,17 @@ export interface MatrixClientInternalMethods {
     storeValue(key: string, value: unknown): Promise<void>;
     getStoredValue(key: string): Promise<unknown>;
 
-    // ============ Push Rules (push-rules/index.ts) ============
-    getPushRule(kind: string, ruleId: string): Promise<import("./push-rules/index").IPushRule | null>;
-    enablePushRule(kind: string, ruleId: string, enabled: boolean): Promise<void>;
+    // ============ Push Rules ============
+    // `pushRules` 是 MatrixClient 上的**真实属性**（src/client.ts:733）。
+    // 注意 `getPushRule` / `enablePushRule` 等不在 MatrixClient 上（能力在 `client.getPushManager()`），
+    // 此前这里声明过它们，2026-10-07 删除。
     pushRules?: import("./@types/PushRules").IPushRules;
 
     // ============ Push Notifications (push-notifications/index.ts) ============
-    getPushers(): Promise<import("./push-notifications/index").IPushersResponse>;
-    setPushers(pushers: import("./push-notifications/index").IPusher[]): Promise<void>;
-    removePusher(pusherData: import("./push-notifications/index").IPusher): Promise<void>;
-    getPusherData(roomId: string, userId: string): import("./push-notifications/index").IPusherData | null;
+    // 该模块的便捷方法**不在** MatrixClient 上，而在 `client.getPushNotificationsManager()` 的成员上。
+    // 此前这里声明过 getPushers / setPushers / removePusher / getPusherData，但 MatrixClient
+    // **从未实现**它们（模块自己的实现也只是转发给这些不存在的方法）⇒ 调用即 TypeError。
+    // 2026-10-07：模块已改为委托 `PushManager`，这里的假声明一并删除。
 
     // ============ Lifecycle (lifecycle/index.ts) ============
     clientRunning?: boolean;
@@ -701,16 +683,12 @@ export interface MatrixClientInternalMethods {
     prepare(clientOptions?: import("./lifecycle/index").IClientOptions): Promise<void>;
 
     // ============ Invites (invites/index.ts) ============
-    // Note: inviteByThreePid has incompatible signature with MatrixClient's actual method
-    // Real: inviteByThreePid(roomId, medium, address): Promise<EmptyObject>
-    // Manager expects: inviteByThreePid(medium, address, roomId): Promise<IInviteResponse>
-    // Access via type assertion in InvitesManager
-    // inviteByThreePid(medium: string, address: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
-    inviteUserToRoom(userId: string, roomId: string): Promise<import("./invites/index").IInviteResponse>;
-    getInviteEvents(): import("./invites/index").IInviteEvent[];
-    hasInvite(roomId: string): boolean;
-    acceptInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
-    declineInvite(roomId: string): Promise<import("./invites/index").IInviteResponse>;
+    // 便捷方法在 `client.getInvitesManager()` 上，**不在** MatrixClient 上。此前这里声明过
+    // inviteUserToRoom / getInviteEvents / hasInvite / acceptInvite / declineInvite，但 MatrixClient
+    // 从未实现它们 ⇒ 调用即 TypeError。
+    // 注意 `inviteByThreePid`：它在 MatrixClient 上**有**实现，但签名是
+    // `(roomId, medium, address)`（src/client.ts:2908），而 InvitesManager 曾用 `as unknown as`
+    // 双重断言按 `(medium, address, roomId)` 反向传参 —— 2026-10-07 已改为按真实签名调用。
 
     // ============ Capabilities (capabilities/index.ts) ============
     // Note: serverCapabilitiesService is private on MatrixClient

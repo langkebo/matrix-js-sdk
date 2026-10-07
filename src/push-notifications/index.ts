@@ -21,46 +21,44 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
+import { type IPusher as PushManagerPusher } from "../push";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-export interface IPusher {
-    pushkey: string;
-    kind: string;
-    app_id: string;
-    app_display_name: string;
-    device_display_name: string;
-    profile_tag?: string;
-    lang: string;
-    data: Record<string, unknown>; // Dynamic: pusher data varies by kind
-}
+/**
+ * 推送器的权威形状，别名到 `PushManager`（`src/push/index.ts`）使用的 `IPusher`。
+ *
+ * 此前本文件自己抄了一份：`kind` 写成必需 `string`、`data` 写成必需，
+ * 且缺 `enabled` / `device_id`。与 `PushManager` 的那份并存过。
+ */
+export type IPusher = PushManagerPusher;
 
 export interface IPushersResponse {
     pushers: IPusher[];
 }
 
-export interface IPusherData {
-    url?: string;
-    format?: string;
-    default_payload?: Record<string, unknown>; // Dynamic: push notification payload varies by pusher
-}
-
 export class PushNotificationsManager {
     constructor(private client: MatrixClient) {}
 
+    // 全部委托给 `PushManager` —— 它才是推送器的**唯一实现**（含 `/_matrix/client/v3/pushers`
+    // 的读写、缓存 `pushersCache`、MSC3881 兼容处理与 `PushEvent` 上报）。
+    // 本模块此前逐个转发 `this.client.getPushers()` / `setPushers()` / `removePusher()` /
+    // `getPusherData()` —— 这 4 个方法在本 fork 的 MatrixClient 上**运行时并不存在**
+    // （类型表却声明了它们：src/matrix-client-extensions.ts:690-694），调用即 TypeError。
+
     public async getPushers(): Promise<IPushersResponse> {
-        return this.client.getPushers();
+        return { pushers: await this.client.getPushManager().getPushers() };
     }
 
+    /** 逐个下发 —— `PushManager.setPusher` 一次只处理一个推送器。 */
     public async setPushers(pushers: IPusher[]): Promise<void> {
-        return this.client.setPushers(pushers);
+        const pushManager = this.client.getPushManager();
+        for (const pusher of pushers) {
+            await pushManager.setPusher(pusher);
+        }
     }
 
     public async removePusher(pusherData: IPusher): Promise<void> {
-        return this.client.removePusher(pusherData);
-    }
-
-    public getPusherData(roomId: string, userId: string): IPusherData | null {
-        return this.client.getPusherData(roomId, userId);
+        await this.client.getPushManager().removePusher(pusherData.pushkey, pusherData.app_id, pusherData.device_id);
     }
 }
 

@@ -22,6 +22,8 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { MatrixEvent } from "../models/event";
+import { EventType } from "../@types/event";
+import { KnownMembership } from "../@types/membership";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -47,38 +49,68 @@ export class InvitesManager extends BaseManager<keyof InvitesManagerEvents, Invi
         super(client, opts);
     }
 
+    /**
+     * 通过第三方标识（邮箱 / 手机号）邀请某人入房。
+     *
+     * ⚠️ 本轮修复：此前这里用 `as unknown as { inviteByThreePid: (medium, address, roomId) => … }`
+     * 双重断言，把参数按 `(medium, address, roomId)` 传；而真实签名是
+     * `inviteByThreePid(roomId, medium, address)`（`src/client.ts:2908`）。
+     * `matrix-client-extensions.ts:704-708` 的注释其实承认了这处不一致（"Access via
+     * type assertion in InvitesManager"）—— 断言让编译器闭嘴，运行时三个参数**整体错位**
+     * （medium 被当成 roomId 发出去）。现按真实顺序调用，断言删除。
+     */
     public async inviteByThreePid(medium: string, address: string, roomId: string): Promise<IInviteResponse> {
-        // Type assertion needed: real MatrixClient.inviteByThreePid has different param order (roomId, medium, address)
-        // and return type (Promise<EmptyObject>), but this manager expects (medium, address, roomId) => Promise<IInviteResponse>
-        return this.withRetry(
-            () =>
-                (
-                    this.internalClient as unknown as {
-                        inviteByThreePid: (medium: string, address: string, roomId: string) => Promise<IInviteResponse>;
-                    }
-                ).inviteByThreePid(medium, address, roomId),
-            "inviteByThreePid",
-        );
+        await this.client.inviteByThreePid(roomId, medium, address);
+        return { room_id: roomId };
     }
 
+    /** 邀请用户入房。`client.invite` 的参数顺序是 `(roomId, userId)`，与本方法相反。 */
     public async inviteUserToRoom(userId: string, roomId: string): Promise<IInviteResponse> {
-        return this.withRetry(() => this.client.inviteUserToRoom(userId, roomId), "inviteUserToRoom");
+        await this.client.invite(roomId, userId);
+        return { room_id: roomId };
     }
 
+    /** 当前待处理的邀请（`membership === invite` 的房间）。 */
     public getInviteEvents(): IInviteEvent[] {
-        return this.client.getInviteEvents();
+        const userId = this.client.getUserId();
+        if (!userId) return [];
+
+        const invites: IInviteEvent[] = [];
+        for (const room of this.client.getRooms()) {
+            if (room.getMyMembership() !== KnownMembership.Invite) continue;
+
+            const event = room.currentState.getStateEvents(EventType.RoomMember, userId);
+            if (!event) continue;
+
+            invites.push({
+                roomId: room.roomId,
+                sender: event.getSender() ?? "",
+                timestamp: event.getTs(),
+                event,
+            });
+        }
+        return invites;
     }
 
     public hasInvite(roomId: string): boolean {
-        return this.client.hasInvite(roomId);
+        return this.client.getRoom(roomId)?.getMyMembership() === KnownMembership.Invite;
     }
 
+    /** 接受邀请 = 加入房间。 */
     public async acceptInvite(roomId: string): Promise<IInviteResponse> {
-        return this.withRetry(() => this.client.acceptInvite(roomId), "acceptInvite");
+        const room = await this.client.joinRoom(roomId);
+        return { room_id: room.roomId };
     }
 
+    /**
+     * 拒绝邀请 = 离开房间。
+     *
+     * 本 fork 没有 `client.leaveRoom(roomId)`（只有 `leaveRoomChain`，用于连带处理
+     * room upgrade 链），故走后者 —— 对"拒绝一个邀请"来说语义足够，且是唯一可用入口。
+     */
     public async declineInvite(roomId: string): Promise<IInviteResponse> {
-        return this.withRetry(() => this.client.declineInvite(roomId), "declineInvite");
+        await this.client.leaveRoomChain(roomId);
+        return { room_id: roomId };
     }
 }
 
