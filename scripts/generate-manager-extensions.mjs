@@ -175,7 +175,6 @@ const MODULE_DEFS = [
     { option: "includeRoomKeys", module: "room-keys" },
     { option: "includeRoomMember", module: "room-member" },
     { option: "includeSession", module: "session" },
-    { option: "includeSessions", module: "sessions" },
     { option: "includeSyncAccumulator", module: "sync-accumulator" },
     { option: "includeUploads", module: "uploads" },
     { option: "includeWidgets", module: "widgets" },

@@ -110,7 +110,6 @@ export interface ManagerExtensionsOptions {
     includeRoomKeys?: boolean;
     includeRoomMember?: boolean;
     includeSession?: boolean;
-    includeSessions?: boolean;
     includeSyncAccumulator?: boolean;
     includeUploads?: boolean;
     includeWidgets?: boolean;

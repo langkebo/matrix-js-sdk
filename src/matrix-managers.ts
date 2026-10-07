@@ -215,7 +215,6 @@ export {
 } from "./server-capabilities";
 export { ServerTimeManager } from "./server-time";
 export { SessionManager } from "./session";
-export { SessionsManager } from "./sessions";
 export { SyncAccumulatorManager } from "./sync-accumulator/index";
 export { SyncManager } from "./sync-management";
 export { TagsManager } from "./tags-management";

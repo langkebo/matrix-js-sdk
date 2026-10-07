@@ -266,9 +266,6 @@ export interface MatrixClientExtensionMethods {
         nextLink?: string,
     ): Promise<import("./client-api-types").IRequestMsisdnTokenResponse>;
 
-    // ============ Sessions & Tokens ============
-    getSessionsManager(): import("./sessions/index").SessionsManager;
-
     // ============ Server & Network ============
     getCapabilitiesManager(): import("./capabilities/index").CapabilitiesManager;
     getCasManager(): import("./cas/index").CasManager;
@@ -629,14 +626,6 @@ export interface MatrixClientInternalMethods {
     setDeviceVerified(userId: string, deviceId: string): Promise<void>;
     markDeviceAsVerified(userId: string, deviceId: string): Promise<void>;
     markAllDevicesAsVerified(userId: string): Promise<void>;
-
-    // ============ Sessions (sessions/index.ts) ============
-    getActiveSessions(): import("./sessions/index").ISessionInfo[];
-    getSessionInfo(): import("./sessions/index").ISessionInfo | null;
-    refreshSession(): Promise<import("./sessions/index").ISessionInfo>;
-    revokeSession(deviceId: string): Promise<void>;
-    getLastActiveSession(): import("./sessions/index").ISessionDetail | null;
-    setLastActiveSession(sessionId: string): void;
 
     // ============ Room Events (room-events/index.ts) ============
     getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]>;

@@ -579,11 +579,6 @@
             "missingExample": 6,
             "throwsWithoutTag": 0
         },
-        "SessionsManager": {
-            "missingJsDoc": 6,
-            "missingExample": 0,
-            "throwsWithoutTag": 0
-        },
         "SpaceChildManager": {
             "missingJsDoc": 0,
             "missingExample": 0,

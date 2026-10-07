@@ -154,7 +154,6 @@ export type ManagerName =
     | "serverCapabilities"
     | "serverTime"
     | "session"
-    | "sessions"
     | "space"
     | "stateSend"
     | "syncAccumulator"
@@ -261,7 +260,6 @@ export interface ManagerTypeMap {
     serverCapabilities: import("../server-capabilities/index").ServerCapabilitiesManager;
     serverTime: import("../server-time/index").ServerTimeManager;
     session: import("../session/index").SessionManager;
-    sessions: import("../sessions/index").SessionsManager;
     space: import("../space/index").SpaceManager;
     stateSend: import("../state-send/index").StateSendManager;
     syncAccumulator: import("../sync-accumulator/index").SyncAccumulatorManager;

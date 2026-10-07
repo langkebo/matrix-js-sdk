@@ -137,7 +137,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeRoomKeys", module: "room-keys" },
     { option: "includeRoomMember", module: "room-member" },
     { option: "includeSession", module: "session" },
-    { option: "includeSessions", module: "sessions" },
     { option: "includeSyncAccumulator", module: "sync-accumulator" },
     { option: "includeUploads", module: "uploads" },
     { option: "includeWidgets", module: "widgets" },
@@ -238,7 +237,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeRoomKeys: true,
     includeRoomMember: true,
     includeSession: true,
-    includeSessions: true,
     includeSyncAccumulator: true,
     includeUploads: true,
     includeWidgets: true,
@@ -768,10 +766,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeSession || all) {
                 promises.push(safeDynamicImport(import("../session/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeSessions || all) {
-                promises.push(safeDynamicImport(import("../sessions/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeSyncAccumulator || all) {

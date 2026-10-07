@@ -6,7 +6,10 @@
     "groups": {
         "pendingWiring": {
             "reason": "这 2 个模块**没有**登记进 MODULE_DEFS（不像其它 21 个已在 2026-10-07 补登记），所以它们的 get*Manager 在运行时是 undefined。**但它们即使接线也不可用** —— 真正的病在 emptyShellModules 组（内部转发给不存在的 client 方法），故先留在这里。",
-            "methods": ["getDeviceKeysManager", "getPushRulesManager"],
+            "methods": [
+                "getDeviceKeysManager",
+                "getPushRulesManager"
+            ],
             "wiredAt": "2026-10-07",
             "wiredNote": "21 个 clean 模块（aggregations/captcha/crypto-store/directory/ephemeral/identity/invites/lifecycle/membership/pinned-messages/push-notifications/retention/room-creation/room-events/room-keys/room-member/session/sessions/sync-accumulator/uploads/widgets）已补进 MODULE_DEFS + types.ts，MODULE_DEFS 条目 76 → 97。"
         },
@@ -32,8 +35,8 @@
             ]
         },
         "emptyShellModules": {
-            "reason": "**空壳模块**：模块自己的方法转发给「运行时不存在于 MatrixClient 的方法」⇒ `client.getXxxManager().someMethod()` 一调用就 TypeError。接线治不了它：接线只让 prototype 上多一个函数，函数体第一行的转发就炸。\n2026-10-07 已修 push-rules / room-events / invites / push-notifications / room-creation / uploads （10→3）；lifecycle 的 4 个无能力方法直接删除（模块不再是空壳）。\n剩余 3 个待处理：device-keys(3 处) / sessions(6 处) / sync-accumulator(5 处)。",
-            "modules": ["src/device-keys/index.ts", "src/sessions/index.ts", "src/sync-accumulator/index.ts"],
+            "reason": "**空壳模块**：模块自己的方法转发给「运行时不存在于 MatrixClient 的方法」。2026-10-07 已修 push-rules / room-events / invites / push-notifications / room-creation / uploads / device-keys / sync-accumulator（8 个），并删除 lifecycle 的 4 个无能力方法、删除整个 sessions 模块（Matrix 无 session 概念）。",
+            "modules": [],
             "independentOfWiring": "这 10 个里，invites / lifecycle / push-notifications / room-creation / room-events / sessions / sync-accumulator / uploads **已于 2026-10-07 接线**（它们的 get*Manager 运行时可用了），但内部转发仍然坏；device-keys / push-rules 则连接线都没做。",
             "updatedAt": "2026-10-07"
         }
