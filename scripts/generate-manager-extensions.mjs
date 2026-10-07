@@ -106,7 +106,11 @@ const MODULE_DEFS = [
     { option: "includeE2EE", module: "e2ee" },
     { option: "includeWorkerBody", module: "worker-body", standalone: false },
     { option: "includeVoice", module: "voice" },
-    { option: "includeSamlAuth", module: "saml", standalone: false },
+    // ⚠️ 这里原先标着 `standalone: false`，导致生成器**不生成** saml 的 import 块，
+    // 而 saml 也不在任何 `adminExtras` 里 —— 于是它**从不被加载**，
+    // `client.getSamlAuthManager()` 永远 undefined（类型表却声明了它）。
+    // 2026-10-07 实测确认（resetManagerExtensions() 后用 includeAll 初始化，saml 仍缺失）后改回默认。
+    { option: "includeSamlAuth", module: "saml" },
     { option: "includeCas", module: "cas" },
     { option: "includeExternalService", module: "external-service" },
     { option: "includeDehydratedDevice", module: "dehydrated-device" },

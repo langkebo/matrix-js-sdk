@@ -5,13 +5,12 @@
     "measuredBy": "真实执行 `extendMatrixClientWithManagers({ includeAll: true })` 后，逐个 `typeof MatrixClient.prototype[name] === 'function'`。**不是静态扫描** —— 静态能看到挂载代码，但看不到那些代码有没有被动态 import 执行到。",
     "groups": {
         "pendingWiring": {
-            "reason": "模块实现了 extendMatrixClient，但尚未登记进 `src/manager-extensions/index.ts` 的 MODULE_DEFS（knip.ts 里这批条目的注释是 'older modules pending migration'）。修法：补 MODULE_DEFS 条目 + 对应 option 字段，重跑 generate-manager-extensions.mjs。",
+            "reason": "模块实现了 extendMatrixClient，但**没有登记进 `src/manager-extensions/index.ts` 的 MODULE_DEFS**，因此即便 `extendMatrixClientWithManagers({ includeAll: true })` 也不会加载它们（knip.ts 里这批条目的注释是 'older modules pending migration'）。修法：补 MODULE_DEFS 条目 + 在 src/manager-extensions/types.ts 补对应 option 字段，重跑 `node scripts/generate-manager-extensions.mjs`。",
             "methods": [
                 "getAggregationsManager",
                 "getCaptchaManager",
                 "getCryptoStoreManager",
                 "getDeviceKeysManager",
-                "getDirectMessageManager",
                 "getDirectoryManager",
                 "getEphemeralManager",
                 "getIdentityManager",
@@ -26,7 +25,6 @@
                 "getRoomEventsManager",
                 "getRoomKeysManager",
                 "getRoomMemberManager",
-                "getSamlAuthManager",
                 "getSessionManager",
                 "getSessionsManager",
                 "getSyncAccumulatorManager",
@@ -60,5 +58,7 @@
                 "setUserPowerLevel"
             ]
         }
-    }
+    },
+    "correctedAt": "2026-10-07",
+    "correctionNote": "本台账第一版把 getDirectMessageManager 也列为缺失 —— 那是**测量方法错了**：spec/setupTests.ts 的全局 beforeAll 已用 `{includeDm:false}` 初始化过一次，而 extendMatrixClientWithManagers 是幂等的（isInitialized 后直接 return），不先 resetManagerExtensions() 就调 {includeAll:true} 等于什么都没做。加 reset 后重测，dm 不再缺失（它在 MODULE_DEFS 里），其余 24 个仍缺失（确实不在 MODULE_DEFS）。 另外 getSamlAuthManager 也已修：MODULE_DEFS 里 saml 原先标了 standalone:false，生成器因而不产出它的 import 块，而它也不在任何 adminExtras 里 ⇒ saml 从不被加载。改成默认（standalone 省略）后生成 `import(\"../saml/index.js\")`。"
 }

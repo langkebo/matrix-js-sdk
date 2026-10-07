@@ -490,6 +490,10 @@ export async function extendMatrixClientWithManagers(
                 promises.push(safeDynamicImport(import("../voice/index.js").then((m) => m?.extendMatrixClient())));
             }
 
+            if (currentOptions.includeSamlAuth || all) {
+                promises.push(safeDynamicImport(import("../saml/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
             if (currentOptions.includeCas || all) {
                 promises.push(safeDynamicImport(import("../cas/index.js").then((m) => m?.extendMatrixClient())));
             }

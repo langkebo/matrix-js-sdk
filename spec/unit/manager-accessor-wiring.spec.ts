@@ -24,7 +24,7 @@ import path from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { MatrixClient } from "../../src/client";
-import { extendMatrixClientWithManagers } from "../../src/manager-extensions";
+import { extendMatrixClientWithManagers, resetManagerExtensions } from "../../src/manager-extensions";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -74,7 +74,16 @@ let runtimeHas: (name: string) => boolean;
 let declared: string[];
 
 beforeAll(async () => {
+    // ⚠️ 必须先 reset。`spec/setupTests.ts` 的全局 beforeAll 已经用
+    // `{ includeDm: false }`（即默认核心集合）初始化过一次，而
+    // `extendMatrixClientWithManagers` 是**幂等**的：
+    //     if (isInitialized) return;              // ← 后续任何 options 都被静默忽略
+    // 不 reset 就在这里调 `{ includeAll: true }`，等于什么都没做 ——
+    // 本 spec 的第一版正是这样测的，于是把「不在默认集合里的模块」误判成
+    // 「模块没接线」，一口气报了 25 个假缺失。reset 之后 `includeAll` 才真正生效。
+    resetManagerExtensions();
     await extendMatrixClientWithManagers({ includeAll: true });
+
     const proto = MatrixClient.prototype as unknown as Record<string, unknown>;
     runtimeHas = (name) => typeof proto[name] === "function";
     declared = collectDeclaredExtensionMethods();
