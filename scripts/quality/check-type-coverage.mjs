@@ -18,7 +18,7 @@ const COMMON_ARGS = [
     "--json-output",
 ];
 
-function collectTypeScriptFiles(rootDir, recursive = true) {
+export function collectTypeScriptFiles(rootDir, recursive = true) {
     const files = [];
 
     for (const entry of readdirSync(rootDir, { withFileTypes: true })) {
@@ -101,39 +101,46 @@ async function runPool(tasks) {
     return results;
 }
 
-const srcRoot = join(PROJECT_ROOT, "src");
-const moduleTargets = [
-    { label: "src/root", files: collectTypeScriptFiles(srcRoot, false) },
-    { label: "src/@types", files: collectTypeScriptFiles(join(srcRoot, "@types")) },
-    { label: "src/models", files: collectTypeScriptFiles(join(srcRoot, "models")) },
-    { label: "src/store", files: collectTypeScriptFiles(join(srcRoot, "store")) },
-    { label: "src/web-rtc", files: collectTypeScriptFiles(join(srcRoot, "web-rtc")) },
-    { label: "src/matrix-rtc", files: collectTypeScriptFiles(join(srcRoot, "matrix-rtc")) },
-    { label: "src/rust-crypto", files: collectTypeScriptFiles(join(srcRoot, "rust-crypto")) },
-    { label: "src/runtime-schemas", files: collectTypeScriptFiles(join(srcRoot, "runtime-schemas")) },
-].filter(
-    (target) =>
-        target.files.length > 0 &&
-        existsSync(join(PROJECT_ROOT, target.label)) &&
-        statSync(join(PROJECT_ROOT, target.label)).isDirectory(),
-);
-
-const [overall, ...modules] = await runPool([
-    () => runTypeCoverage("src", collectTypeScriptFiles(srcRoot), OVERALL_THRESHOLD),
-    ...moduleTargets.map((target) => () => runTypeCoverage(target.label, target.files, MODULE_THRESHOLD)),
-]);
-const failures = [overall, ...modules].filter((entry) => !entry.passed);
-
-for (const result of [overall, ...modules]) {
-    console.log(
-        `${result.label}: ${result.percent.toFixed(2)}% (${result.correctCount}/${result.totalCount}) target >= ${result.threshold}%`,
+async function main() {
+    const srcRoot = join(PROJECT_ROOT, "src");
+    const moduleTargets = [
+        { label: "src/root", files: collectTypeScriptFiles(srcRoot, false) },
+        { label: "src/@types", files: collectTypeScriptFiles(join(srcRoot, "@types")) },
+        { label: "src/models", files: collectTypeScriptFiles(join(srcRoot, "models")) },
+        { label: "src/store", files: collectTypeScriptFiles(join(srcRoot, "store")) },
+        { label: "src/web-rtc", files: collectTypeScriptFiles(join(srcRoot, "web-rtc")) },
+        { label: "src/matrix-rtc", files: collectTypeScriptFiles(join(srcRoot, "matrix-rtc")) },
+        { label: "src/rust-crypto", files: collectTypeScriptFiles(join(srcRoot, "rust-crypto")) },
+        { label: "src/runtime-schemas", files: collectTypeScriptFiles(join(srcRoot, "runtime-schemas")) },
+    ].filter(
+        (target) =>
+            target.files.length > 0 &&
+            existsSync(join(PROJECT_ROOT, target.label)) &&
+            statSync(join(PROJECT_ROOT, target.label)).isDirectory(),
     );
+
+    const [overall, ...modules] = await runPool([
+        () => runTypeCoverage("src", collectTypeScriptFiles(srcRoot), OVERALL_THRESHOLD),
+        ...moduleTargets.map((target) => () => runTypeCoverage(target.label, target.files, MODULE_THRESHOLD)),
+    ]);
+    const failures = [overall, ...modules].filter((entry) => !entry.passed);
+
+    for (const result of [overall, ...modules]) {
+        console.log(
+            `${result.label}: ${result.percent.toFixed(2)}% (${result.correctCount}/${result.totalCount}) target >= ${result.threshold}%`,
+        );
+    }
+
+    if (failures.length > 0) {
+        console.error("\nType coverage threshold failures:");
+        for (const failure of failures) {
+            console.error(`- ${failure.label}: ${failure.percent.toFixed(2)}% < ${failure.threshold}%`);
+        }
+        process.exitCode = 1;
+    }
 }
 
-if (failures.length > 0) {
-    console.error("\nType coverage threshold failures:");
-    for (const failure of failures) {
-        console.error(`- ${failure.label}: ${failure.percent.toFixed(2)}% < ${failure.threshold}%`);
-    }
-    process.exitCode = 1;
+// 仅在被直接执行时跑 main（原为顶层裸跑：import 会触发 9 次完整类型检查）
+if (import.meta.url === `file://${process.argv[1]}`) {
+    await main();
 }
