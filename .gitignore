@@ -29,3 +29,9 @@ out
 
 # gate-golden.mjs 存的「金标准」（一次重构内的临时产物，不该入库）
 /.quality-goldens/
+
+# 报告生成器产物：跑一次门禁就会写回工作区，不入库
+# （SDK_COVERAGE_REPORT.md 早在 38cb40301「SDK Phase D 冗余清理」就被有意删过，
+#   而 generate-coverage-report.mjs 仍会把它重新写出来）
+/docs/SDK_COVERAGE_REPORT.md
+/docs/governance/debt-weekly-report-*.md
