@@ -1613,6 +1613,57 @@ src/sync-accumulator(3)  spec/test-utils/client.ts(2)
 账必须改。反向断言那一条还额外暴露了一个坑 —— `push-rules` 的**说明注释**里引用了原写法，
 被 needle 命中 ⇒ **先剥注释再断言**（与「注释里写路径即算可达」是同一坑的镜像）。
 
+#### 7.15-18 空壳收口第二批：**空壳模块归零**（2026-10-07）
+
+§7.15-17 列的剩余 12 处，本轮 8 修 + 4 删 + 6 删（整模块）：
+
+| 模块             | 处  | 处置                                                                                                                                        |
+| ---------------- | --- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| device-keys      | 3   | `getDeviceKeys` 与既有 `getUserDevices` **重复** ⇒ 删；`uploadDeviceKeys` → `uploadKeysRequest`；`hasDevice` → `getCachedDevice() !== null` |
+| sync-accumulator | 5   | `client.syncAccumulator` **属性不存在**（get 恒 null / set 静默丢弃）⇒ 改为**模块内自持** `SyncAccumulator` 实例                            |
+| sessions         | 6   | **整个模块删除**（理由见下）                                                                                                                |
+
+**结果：`emptyShellModules` 10 → 0** —— §7.15-16 提出的那一类**清完**。
+
+**为什么 sessions 是删而不是修**
+
+- `ISessionInfo.accessToken` / `refreshToken` 是**客户端凭据**，本 fork 无从从"会话列表"提供；
+- `refreshSession()` 的**无参**版本在 Matrix 里不可实现（`POST /refresh` 必须带 refresh_token）；
+- `revokeSession(deviceId)` 虽有对应，但那是 **device** 不是 session；
+- `get/setLastActiveSession` 无规范依据。
+
+**Matrix 规范里没有 session 概念，只有 device。** 硬映射会造出 `inviteByThreePid` 那类
+语义错位；而 `DeviceManager` 已完整覆盖（`getDevices` / `getCurrentDevice` / `deleteDevice`）。
+零消费者、不在 `package.json` exports ⇒ 删除是净改善。
+
+**两个新发现**
+
+1. **同名 spec ≠ 覆盖**（又一次，与 §7.15-9「纸面 spec」同源）：
+   `spec/unit/sync-accumulator.spec.ts` 测的是上游 `SyncAccumulator` **类**，
+   而 `SyncAccumulatorManager` 的 5 个方法**零覆盖**。已新写
+   `spec/unit/sync-accumulator-manager.spec.ts`（5 例，mockClient 是**空对象**）。
+2. **弱断言的新形态：只断言返回值、不断言入参形状**。`uploadDeviceKeys` 的变异
+   （少包一层 `device_keys`）**第一次没红** —— mock 无论收到什么入参都返回同一个对象。
+   补 `toHaveBeenCalledWith({ device_keys: keys })` 后转红。
+   **凡"转发型"方法，必须同时断言「落到哪个方法」与「入参形状」。**
+
+**改名实验（第二轮）与它的副产品**
+
+把剩余假声明重新改名后跑 tsc：**报错 2 条，全在 `spec/test-utils/client.ts`**
+⇒ **生产代码已零依赖**。那 2 处已修，且查实 `mockClientMethodsUser` /
+`mockClientMethodsServer` 在 `spec/` 下**零消费者** —— 它们 mock 的 `mxcUrlToHttp` /
+`getIdentityServerUrl` 在本 fork 也不存在。**"有 mock"也是一种"看起来做了"。**
+
+**⚠️ 删 69 条声明的批量脚本本轮失败（未提交）**
+
+第一次尝试只删掉 **8 条**（预期 69 个名字）并吃掉一个 `}`，`tsc` 报 `'}' expected`。
+已立即还原、**未提交**。教训：
+① 批量删除要用 **「预期条数 == 实际条数」做断言** —— 69 个名字只删到 8 条本身就很可疑，
+说明匹配判据错了；② 删完必须跑 `tsc` 复核结构完整性。下轮改用更稳的解析方式。
+
+**本节验证**：`tsc` 0 错；device-keys / sync-accumulator / 守卫 spec 全绿；
+`emptyShellModules` 归零；`public-api-docs` 的 R3（收窄）/ R4（台账里的类已不存在）均已按棘轮规则处理。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1750,4 +1801,13 @@ push-notifications→PushManager、room-creation→createRoom、uploads→upload
 25 条报错全部落在已知位置，证明无模块外依赖（同时暴露我自己的判据漏了 `x?: T` 形式）；
 台账 notOnMatrixClient 21→16、emptyShellModules 10→**3**；剩余 device-keys / sessions /
 sync-accumulator 共 12 处属"语义映射 vs 删模块"的架构选择，留给下一次决策）
+**§7.15-18 空壳收口第二批（空壳模块归零）**：device-keys 3 处（`getDeviceKeys` 与
+`getUserDevices` 重复 ⇒ 删；`uploadDeviceKeys` → `uploadKeysRequest`；`hasDevice` →
+`getCachedDevice()`）、sync-accumulator 5 处（`client.syncAccumulator` **属性不存在** ⇒
+改模块内自持实例）、**sessions 整模块删除**（Matrix 没有 session 概念，其 `ISessionInfo`
+的 `accessToken`/`refreshToken` 是客户端凭据、`refreshSession()` 无参不可实现）；
+`emptyShellModules` **10 → 0**；新发现「同名 spec ≠ 覆盖」（`sync-accumulator.spec.ts` 测的是
+上游 **类**，Manager 5 个方法零覆盖）与弱断言新形态（**只断言返回值、不断言入参形状**）；
+第二轮改名实验证明删声明的阻力只剩 test-utils 2 行（已修，且该工具零消费者）；
+**删 69 条声明的批量脚本本轮失败未提交**（只删掉 8 条并吃掉一个 `}`，已还原）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
