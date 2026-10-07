@@ -21,7 +21,13 @@ function read(relPath) {
     return fs.readFileSync(abs, "utf8");
 }
 
-function extractExportSpecifiers(source) {
+/**
+ * 抽出 `export * from "..."` / `export { ... } from "..."` 的**来源说明符**。
+ *
+ * 只认行首 `export` + 双引号再导出；`export const a = 1` 这类本地声明不是「来源」，
+ * 收进来会让「core 只能从白名单模块再导出」这条规则形同虚设。
+ */
+export function extractExportSpecifiers(source) {
     const exports = [];
     const exportFromRe = /^\s*export\s+(?:type\s+)?(?:\*\s+from|\{[^}]*\}\s+from)\s+"([^"]+)";\s*$/gm;
     for (const match of source.matchAll(exportFromRe)) {
@@ -30,23 +36,38 @@ function extractExportSpecifiers(source) {
     return exports;
 }
 
+/** 命中禁用模式的那些（全部返回，不 early return）。 */
+export function findForbiddenPatterns(source, forbidden) {
+    return forbidden.filter((pattern) => source.includes(pattern));
+}
+
 function assertNoForbiddenPatterns(relPath, source, forbidden) {
-    for (const pattern of forbidden) {
-        if (source.includes(pattern)) {
-            throw new Error(`[entrypoint-layering] ${relPath}: forbidden pattern found: ${pattern}`);
-        }
+    const hits = findForbiddenPatterns(source, forbidden);
+    if (hits.length) {
+        throw new Error(`[entrypoint-layering] ${relPath}: forbidden pattern found: ${hits[0]}`);
     }
 }
 
+/** 不在白名单里的来源（全部返回）。 */
+export function findDisallowedExportFrom(exportFrom, allowed) {
+    return exportFrom.filter((p) => !allowed.has(p));
+}
+
 function assertAllowedExportFrom(relPath, exportFrom, allowed) {
-    const violations = exportFrom.filter((p) => !allowed.has(p));
+    const violations = findDisallowedExportFrom(exportFrom, allowed);
     if (violations.length) {
         const lines = violations.map((p) => `- ${p}`).join("\n");
         throw new Error(`[entrypoint-layering] ${relPath}: disallowed export sources:\n${lines}`);
     }
 }
 
-function collectExportedSymbols(absFilePath, visited = new Set()) {
+/**
+ * 收集文件导出的符号集合。
+ *
+ * `export * from` 会递归展开，但**不传递 default**（星号再导出按规范就不导出默认）——
+ * 收进来会让「core 泄漏了某个符号」的判定在只有星号链路时假绿。
+ */
+export function collectExportedSymbols(absFilePath, visited = new Set()) {
     const symbols = new Set();
     if (visited.has(absFilePath)) return symbols;
     visited.add(absFilePath);
@@ -84,7 +105,8 @@ function collectExportedSymbols(absFilePath, visited = new Set()) {
     return symbols;
 }
 
-function resolveRelativeModule(fromFile, importSpecifier) {
+/** 解析相对 import 说明符为真实文件；非 `.` 开头返回 null。 */
+export function resolveRelativeModule(fromFile, importSpecifier) {
     if (!importSpecifier.startsWith(".")) return null;
     const basePath = path.resolve(path.dirname(fromFile), importSpecifier);
     const candidates = [
@@ -100,10 +122,15 @@ function resolveRelativeModule(fromFile, importSpecifier) {
     return null;
 }
 
+/** 命中禁用符号的那些（按 forbiddenSymbols 原顺序返回）。 */
+export function findForbiddenExportedSymbols(exportedSymbols, forbiddenSymbols) {
+    return forbiddenSymbols.filter((symbol) => exportedSymbols.has(symbol));
+}
+
 function assertNoForbiddenExportedSymbols(relPath, forbiddenSymbols) {
     const absPath = path.join(projectRoot, relPath);
     const exportedSymbols = collectExportedSymbols(absPath);
-    const hits = forbiddenSymbols.filter((symbol) => exportedSymbols.has(symbol));
+    const hits = findForbiddenExportedSymbols(exportedSymbols, forbiddenSymbols);
     if (hits.length) {
         throw new Error(
             `[entrypoint-layering] ${relPath}: forbidden exported symbols detected:\n${hits.map((s) => `- ${s}`).join("\n")}`,
@@ -111,84 +138,92 @@ function assertNoForbiddenExportedSymbols(relPath, forbiddenSymbols) {
     }
 }
 
-try {
-    const corePath = "src/core.ts";
-    const advancedPath = "src/advanced.ts";
-    const legacyPath = "src/legacy.ts";
+function main() {
+    try {
+        const corePath = "src/core.ts";
+        const advancedPath = "src/advanced.ts";
+        const legacyPath = "src/legacy.ts";
 
-    const coreSource = read(corePath);
-    const advancedSource = read(advancedPath);
-    const legacySource = read(legacyPath);
+        const coreSource = read(corePath);
+        const advancedSource = read(advancedPath);
+        const legacySource = read(legacyPath);
 
-    assertNoForbiddenPatterns(corePath, coreSource, ['export * from "./matrix"']);
-    assertNoForbiddenPatterns(advancedPath, advancedSource, ['export * from "./matrix"']);
+        assertNoForbiddenPatterns(corePath, coreSource, ['export * from "./matrix"']);
+        assertNoForbiddenPatterns(advancedPath, advancedSource, ['export * from "./matrix"']);
 
-    const coreAllowed = new Set([
-        "./matrix",
-        "./client",
-        "./errors",
-        "./http-api/index",
-        "./http-api/prefix",
-        "./http-api/method",
-        "./models/event",
-        "./models/room",
-        "./models/thread",
-        "./models/user",
-        "./@types/event",
-        "./@types/events",
-        "./@types/auth",
-        "./@types/requests",
-        "./@types/read_receipts",
-        "./client-config-types",
-        "./models/room-member",
-        "./@types/PushRules",
-        "./@types/membership",
-        "./@types/search",
-        "./@types/topic",
-        "./@types/three-pids",
-        "./@types/partials",
-        "./models/event-timeline",
-        "./telemetry/index",
-        "./manager-extensions/index",
-    ]);
+        const coreAllowed = new Set([
+            "./matrix",
+            "./client",
+            "./errors",
+            "./http-api/index",
+            "./http-api/prefix",
+            "./http-api/method",
+            "./models/event",
+            "./models/room",
+            "./models/thread",
+            "./models/user",
+            "./@types/event",
+            "./@types/events",
+            "./@types/auth",
+            "./@types/requests",
+            "./@types/read_receipts",
+            "./client-config-types",
+            "./models/room-member",
+            "./@types/PushRules",
+            "./@types/membership",
+            "./@types/search",
+            "./@types/topic",
+            "./@types/three-pids",
+            "./@types/partials",
+            "./models/event-timeline",
+            "./telemetry/index",
+            "./manager-extensions/index",
+        ]);
 
-    const advancedAllowed = new Set([
-        "./core",
-        "./crypto-api/index",
-        "./admin",
-        "./dm",
-        "./friend",
-        "./push",
-        "./space",
-        "./room-summary",
-        "./beacon",
-    ]);
+        const advancedAllowed = new Set([
+            "./core",
+            "./crypto-api/index",
+            "./admin",
+            "./dm",
+            "./friend",
+            "./push",
+            "./space",
+            "./room-summary",
+            "./beacon",
+        ]);
 
-    assertAllowedExportFrom(corePath, extractExportSpecifiers(coreSource), coreAllowed);
-    assertAllowedExportFrom(advancedPath, extractExportSpecifiers(advancedSource), advancedAllowed);
+        assertAllowedExportFrom(corePath, extractExportSpecifiers(coreSource), coreAllowed);
+        assertAllowedExportFrom(advancedPath, extractExportSpecifiers(advancedSource), advancedAllowed);
 
-    assertNoForbiddenExportedSymbols(corePath, [
-        "AdminManager",
-        "DirectMessageManager",
-        "FriendManager",
-        "PushManager",
-        "SpaceManager",
-        "RoomSummaryManager",
-        "BeaconManager",
-    ]);
+        assertNoForbiddenExportedSymbols(corePath, [
+            "AdminManager",
+            "DirectMessageManager",
+            "FriendManager",
+            "PushManager",
+            "SpaceManager",
+            "RoomSummaryManager",
+            "BeaconManager",
+        ]);
 
-    if (!legacySource.trim().length) {
-        throw new Error("[entrypoint-layering] src/legacy.ts is empty");
+        if (!legacySource.trim().length) {
+            throw new Error("[entrypoint-layering] src/legacy.ts is empty");
+        }
+
+        console.log("[entrypoint-layering] ok");
+        writeEntrypointSummary({ ok: true });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(message);
+        console.error(REMEDIATION_TEXT);
+        writeEntrypointSummary({ ok: false, errorMessage: message });
+        process.exit(1);
     }
+}
 
-    console.log("[entrypoint-layering] ok");
-    writeEntrypointSummary({ ok: true });
-} catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    console.error(REMEDIATION_TEXT);
-    writeEntrypointSummary({ ok: false, errorMessage: message });
-    process.exit(1);
+// 顶层裸跑 main() 会让 `import` 这个模块的 spec 直接扫全仓并在违规时
+// process.exit(1)，所以只在被当作脚本直接执行时才跑。
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
 }
 
 function writeEntrypointSummary({ ok, errorMessage = "" }) {
