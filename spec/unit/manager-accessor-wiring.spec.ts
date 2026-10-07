@@ -206,18 +206,23 @@ describe("类型表声明 vs 运行时挂载", () => {
         expect(actuallyAlive, "这些方法运行时其实存在，却还留在台账里").toEqual([]);
     });
 
-    it("已知 4 处内部调用点仍在（改类型表删声明前必须先处理它们）", () => {
-        // 这 4 处 Manager 内部直接调 `this.client.X(...)`，而 X 不在运行时。
-        // 记录在此，是为了让「删掉类型声明」这个动作无法悄悄绕过它们。
-        const internalCallers: Array<[string, string]> = [
-            ["src/device-keys/index.ts", "getDevice"],
-            ["src/push-rules/index.ts", "getPushRules"],
-            ["src/push-rules/index.ts", "setPushRule"],
-            ["src/push-rules/index.ts", "deletePushRule"],
+    it("已收口的内部调用点不得回退（原先 4 处已改走 Manager）", () => {
+        // 这 4 处曾直接 `this.client.X(...)` 调运行时不存在的方法，2026-10-07 已改走 Manager：
+        //   device-keys:470 → this.client.getDeviceManager().getDevice(...)
+        //   push-rules      → this.client.getPushManager().getPushRules/setPushRule/deletePushRule
+        // 反向断言，防止回退到"类型检查通过、运行时 TypeError"。
+        // ⚠️ 必须先剥注释：说明性注释里会引用原来的写法（`` `this.client.getPushRules()` ``），
+        // 直接在原文里搜 needle 会被注释命中 —— 这与「注释里写路径即算可达」是同一个坑的镜像。
+        const stripComments = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+        const fixed: Array<[string, string]> = [
+            ["src/device-keys/index.ts", "this.client.getDevice("],
+            ["src/push-rules/index.ts", "this.client.getPushRules("],
+            ["src/push-rules/index.ts", "this.client.setPushRule("],
+            ["src/push-rules/index.ts", "this.client.deletePushRule("],
         ];
-        for (const [rel, method] of internalCallers) {
-            const src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
-            expect(src, `${rel} 里应仍有 this.client.${method}(...) 调用`).toContain(`client.${method}(`);
+        for (const [rel, needle] of fixed) {
+            const src = stripComments(fs.readFileSync(path.join(REPO_ROOT, rel), "utf8"));
+            expect(src, `${rel} 不应再出现 ${needle}`).not.toContain(needle);
         }
     });
 

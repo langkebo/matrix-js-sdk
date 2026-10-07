@@ -24,18 +24,7 @@ import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-export interface IClientOptions {
-    baseUrl?: string;
-    idBaseUrl?: string;
-    accessToken?: string;
-    userId?: string;
-    deviceId?: string;
-    sessionStore?: unknown;
-    store?: unknown;
-    scheduler?: unknown;
-    cryptoStore?: unknown;
-    verificationMethods?: string[];
-}
+// 原 `IClientOptions` 已随 `prepare()` 一并删除 —— 它只服务于那个并不存在的方法。
 
 export interface LifecycleManagerEvents {
     client_started: void;
@@ -61,21 +50,12 @@ export class LifecycleManager extends BaseManager<keyof LifecycleManagerEvents, 
         return this.client.clientRunning ?? false;
     }
 
-    public async exit(code?: number): Promise<void> {
-        await this.client.exit(code);
-    }
-
-    public terminate(): void {
-        this.client.terminate();
-    }
-
-    public async reset(): Promise<void> {
-        await this.client.reset();
-    }
-
-    public async prepare(clientOptions?: IClientOptions): Promise<void> {
-        await this.client.prepare(clientOptions);
-    }
+    // ⚠️ 2026-10-07 删除 `exit` / `terminate` / `reset` / `prepare`：
+    // 它们逐个转发 `this.client.exit()` / `.terminate()` / `.reset()` / `.prepare()`，
+    // 而 MatrixClient **从未实现**过这四个方法（类型表却声明了它们）⇒ 调用即 TypeError。
+    // 与其它空壳模块不同，这里**没有真实能力可以改走** —— Matrix 协议本身就没有
+    // "退出 / 终止 / 重置客户端"这类概念，那是宿主应用（Electron / 浏览器）的职责。
+    // 留着它们等于留一个"类型检查通过、调用即崩"的陷阱，故直接删除。
 }
 
 export function extendMatrixClient(): void {

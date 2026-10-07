@@ -676,11 +676,9 @@ export interface MatrixClientInternalMethods {
     // 2026-10-07：模块已改为委托 `PushManager`，这里的假声明一并删除。
 
     // ============ Lifecycle (lifecycle/index.ts) ============
+    // `clientRunning` 是**真实属性**（src/client.ts:668）。其余四个
+    // （exit / terminate / reset / prepare）MatrixClient 从未实现过，2026-10-07 删除。
     clientRunning?: boolean;
-    exit(code?: number): Promise<void>;
-    terminate(): void;
-    reset(): Promise<void>;
-    prepare(clientOptions?: import("./lifecycle/index").IClientOptions): Promise<void>;
 
     // ============ Invites (invites/index.ts) ============
     // 便捷方法在 `client.getInvitesManager()` 上，**不在** MatrixClient 上。此前这里声明过
