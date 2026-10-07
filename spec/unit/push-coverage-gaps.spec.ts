@@ -1,7 +1,11 @@
 /*
- * PushManager 的覆盖缺口补测（错误分支 / 缓存命中 / 房间规则 / 生命周期）。
+ * PushManager 的错误路径与生命周期行为测试（错误分支 / 缓存命中 / 房间规则 / start()）。
  *
- * 背景：`src/push/index.ts` 的覆盖率自 2026-09-13（当时实测 89.01%）一路掉到 74.28%，
+ * ⚠️ 来历与内容性质要分清：本文件诞生于一次覆盖率治理（见下），但里面**每一条都是
+ * 行为断言**，不是为凑行数写的 —— 覆盖率只是副产品。一条测试该不该留，看的是
+ * 「把实现改坏它会不会红」，不是「它在不在这个文件里」。8 处变异自证全部转红。
+ *
+ * 来历：`src/push/index.ts` 的覆盖率自 2026-09-13（当时实测 89.01%）一路掉到 74.28%，
  * 低于 `critical-modules.json` 的 floor 89。根因是 2026-09-29 那次提交为「完整覆盖后端
  * 路由」塞进来两个零调用方的别名方法（`getPushersWithTrailingSlash` / `createPusher`，
  * 与 `getPushers` / `setPusher` 逐字节等价），它们已删除；剩下的缺口是**真实未测的行为**：
@@ -158,11 +162,15 @@ describe("PushManager 覆盖缺口", () => {
             ).rejects.toThrow(InvalidParamError);
         });
 
-        it("关键字 / 用户 ID 快捷方法", async () => {
-            await expect(pushManager.addKeywordHighlight("")).rejects.toThrow(InvalidParamError);
-            await expect(pushManager.removeKeywordHighlight("")).rejects.toThrow(InvalidParamError);
-            await expect(pushManager.ignoreSender("")).rejects.toThrow(InvalidParamError);
-            await expect(pushManager.unignoreSender("")).rejects.toThrow(InvalidParamError);
+        it("关键字 / 用户 ID 快捷方法：空参数必须在**本层**就被拦下", async () => {
+            // ⚠️ 这里必须断言**具体错误消息**，不能只断言 InvalidParamError。
+            // 这四个方法内部会转发给 createPushRule/deletePushRule，而后者自己也校验
+            // `!scope || !kind || !ruleId` —— 只断言异常类型的话，把本层的校验删掉，
+            // 下游照旧抛 InvalidParamError，断言仍然通过（变异自证实测如此）。
+            await expect(pushManager.addKeywordHighlight("")).rejects.toThrow("keyword is required");
+            await expect(pushManager.removeKeywordHighlight("")).rejects.toThrow("keyword is required");
+            await expect(pushManager.ignoreSender("")).rejects.toThrow("userId is required");
+            await expect(pushManager.unignoreSender("")).rejects.toThrow("userId is required");
         });
     });
 
