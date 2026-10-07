@@ -8,21 +8,21 @@ describe("DeviceKeysManager", () => {
     let manager: DeviceKeysManager;
 
     beforeEach(() => {
+        // ⚠️ mockClient **故意不提供** getDeviceKeys / uploadDeviceKeys / hasDevice ——
+        // 它们在本 fork 的 MatrixClient 上运行时并不存在。旧 spec 把它们 vi.fn() 到
+        // client 上，于是"转发到不存在的东西"被掩盖。
         mockClient = {
             http: {
                 authedRequest: vi.fn(),
             },
-            getDeviceKeys: vi.fn().mockResolvedValue({
-                D1: { user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} },
-            }),
-            uploadDeviceKeys: vi.fn().mockResolvedValue({ one_time_key_counts: { signed_curve25519: 1 } }),
             getUserDevices: vi.fn().mockResolvedValue({
                 D1: { user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} },
             }),
-            hasDevice: vi.fn().mockReturnValue(true),
-            getDevice: vi
-                .fn()
-                .mockReturnValue({ user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} }),
+            uploadKeysRequest: vi.fn().mockResolvedValue({ one_time_key_counts: { signed_curve25519: 1 } }),
+            getDeviceManager: () => ({
+                getCachedDevice: (deviceId: string) => (deviceId === "D1" ? { device_id: "D1" } : null),
+                getDevice: vi.fn().mockResolvedValue({ device_id: "D1" }),
+            }),
         };
         manager = new DeviceKeysManager(mockClient);
     });
@@ -87,12 +87,13 @@ describe("DeviceKeysManager", () => {
         await manager.sendToDevice("m.test", "t1", { "@a:hs": { D1: { body: "x" } } });
         expect(emitSpy).toHaveBeenCalledWith(DeviceKeysEvent.RoomKeyRequested, [{ request_id: "r1" }]);
 
-        await expect(manager.getDeviceKeys("@a:hs")).resolves.toHaveProperty("D1");
-        await expect(
-            manager.uploadDeviceKeys({ user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} }),
-        ).resolves.toEqual({
+        const deviceKeys = { user_id: "@a:hs", device_id: "D1", algorithms: [], keys: {}, signatures: {} };
+        await expect(manager.uploadDeviceKeys(deviceKeys)).resolves.toEqual({
             one_time_key_counts: { signed_curve25519: 1 },
         });
+        // ⚠️ 必须断言**入参形状**：`POST /keys/upload` 的 body 是 `{ device_keys: … }`。
+        // 只断言返回值抓不到"少包一层" —— mock 无论收到什么都返回同一个对象（变异 M2 实测未转红）。
+        expect(mockClient.uploadKeysRequest).toHaveBeenCalledWith({ device_keys: deviceKeys });
         await expect(manager.getUserDevices("@a:hs")).resolves.toHaveProperty("D1");
         expect(manager.hasDevice("D1")).toBe(true);
         await expect(manager.getDevice("D1")).resolves.toHaveProperty("device_id", "D1");

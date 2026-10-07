@@ -155,7 +155,7 @@
             "throwsWithoutTag": 0
         },
         "DeviceKeysManager": {
-            "missingJsDoc": 5,
+            "missingJsDoc": 4,
             "missingExample": 12,
             "throwsWithoutTag": 0
         },

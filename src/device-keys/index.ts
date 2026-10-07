@@ -42,6 +42,7 @@ import { ClientPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { IContent } from "../models/event";
 import type { IDevice } from "../device/index";
+import type { IUploadKeysRequest } from "../client-api-types";
 
 export interface DeviceKeys {
     user_id: string;
@@ -440,12 +441,17 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         });
     }
 
-    public async getDeviceKeys(userId: string): Promise<Record<string, DeviceKeys>> {
-        return this.client.getDeviceKeys(userId);
-    }
+    // ⚠️ 2026-10-07 删除 `getDeviceKeys(userId)`：它与本类已有的
+    // `getUserDevices(userId)` 是**同一能力**（都走 `POST /keys/query`），
+    // 两个方法并存只会让调用方猜该用哪个（`getUserDevices` 有真实消费者：
+    // Tjg 的 `CryptoDeviceAdapter`）。原实现转发给 `client.getDeviceKeys()` ——
+    // 那个方法在 MatrixClient 上并不存在。
 
+    // 上传本设备的密钥。
+    // 本 fork 没有 `client.uploadDeviceKeys`；真实入口是
+    // `client.uploadKeysRequest({ device_keys })`（`POST /keys/upload`）。
     public async uploadDeviceKeys(keys: DeviceKeys): Promise<UploadKeysResponse> {
-        return this.client.uploadDeviceKeys(keys);
+        return this.client.uploadKeysRequest({ device_keys: keys } as IUploadKeysRequest);
     }
 
     /**
@@ -462,8 +468,10 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         return this.client.getUserDevices(userId);
     }
 
+    // 本 fork 没有 `client.hasDevice`；等价物是 `DeviceManager` 的缓存查询
+    // （`getCachedDevice` 先查已拉取的设备列表，未命中返回 null ⇒ 即"没有这个设备"）。
     public hasDevice(deviceId: string): boolean {
-        return this.client.hasDevice(deviceId);
+        return this.client.getDeviceManager().getCachedDevice(deviceId) !== null;
     }
 
     public async getDevice(deviceId: string): Promise<IDevice | null> {

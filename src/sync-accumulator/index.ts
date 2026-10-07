@@ -61,24 +61,39 @@ export class SyncAccumulatorManager extends BaseManager<
         super(client, opts);
     }
 
+    // ⚠️ 本模块此前把状态放在 `this.client.syncAccumulator` 上 —— 而 MatrixClient 上
+    // **没有这个属性**（`getSyncAccumulator()` 因此恒返回 null，`setSyncAccumulator()`
+    // 写到一个不存在的属性上）。另外三个方法转发给 `client.accumulateSyncData()` /
+    // `getAccumulatedData()` / `resetAccumulator()`，同样不存在 ⇒ 调用即 TypeError。
+    //
+    // 改为**模块内自持**实例：累积器本就是"这次 /sync 走到哪了"的状态，归 Manager 持有
+    // 即可（`SyncAccumulator` 是 `src/sync-accumulator.ts:248` 的真实类，有
+    // `accumulate()` / `getJSON()` / `getNextBatchToken()`）。
+
+    private accumulator: SyncAccumulator | null = null;
+
     public getSyncAccumulator(): SyncAccumulator | null {
-        return this.client.syncAccumulator ?? null;
+        return this.accumulator;
     }
 
     public setSyncAccumulator(accumulator: SyncAccumulator): void {
-        this.client.syncAccumulator = accumulator;
+        this.accumulator = accumulator;
     }
 
     public async accumulateSyncData(data: ISyncResponse): Promise<void> {
-        return this.withRetry(() => this.client.accumulateSyncData(data), "accumulateSyncData");
+        if (!this.accumulator) {
+            this.accumulator = new SyncAccumulator();
+        }
+        this.accumulator.accumulate(data);
     }
 
     public getAccumulatedData(): ISyncAccumulatedData | null {
-        return this.client.getAccumulatedData();
+        if (!this.accumulator) return null;
+        return this.accumulator.getJSON() as ISyncAccumulatedData;
     }
 
     public resetAccumulator(): void {
-        this.client.resetAccumulator();
+        this.accumulator = null;
     }
 }
 
