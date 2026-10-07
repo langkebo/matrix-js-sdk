@@ -32,6 +32,14 @@ export interface AdminRegisterRequest {
     [key: string]: unknown;
 }
 
+/**
+ * `POST /_synapse/admin/v1/register` 的响应 —— 就是 `routes/admin/register.rs::RegisterResponse`
+ * 的 6 个字段。
+ *
+ * ⚠️ 原先多声明了 `nonce`：nonce 是**请求侧**参数（由
+ * `GET /_synapse/admin/v1/register/nonce` 取得、放进请求体），后端从不把它回显到响应里，
+ * 读它恒为 `undefined`。
+ */
 export interface AdminRegisterResult {
     access_token?: string;
     refresh_token?: string;
@@ -39,7 +47,6 @@ export interface AdminRegisterResult {
     device_id?: string;
     user_id: string;
     home_server?: string;
-    nonce?: string;
 }
 
 export interface PurgeHistoryRequest {
@@ -142,11 +149,10 @@ export interface AdminInfoResponse {
     [key: string]: unknown;
 }
 
-export interface AdminCleanupResponse {
-    cleaned?: number;
-    cleaned_count?: number;
-    message?: string;
-}
+// `AdminCleanupResponse`（`{cleaned?, cleaned_count?, message?}`）已于 2026-10-07 删除：
+// 后端三个 cleanup 端点**从不返回**这三个键（见 `routes/admin/cleanup.rs`），
+// 它是由"未核对后端就写类型"留下的虚构形状。正确类型见
+// `./admin-cleanup-manager.ts` 的 CleanupAllResponse / CleanupRoomsResponse / CleanupTokensResponse。
 
 // ===== Notification types =====
 

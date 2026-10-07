@@ -25,18 +25,26 @@ import { describe, it, expect } from "vitest";
 
 import {
     balancedSlice,
+    collectMapInsertKeys,
+    createResponseResolver,
     diffResponse,
     extractHandlerIo,
     extractInterfaceFields,
+    extractJsonReturnExprs,
     extractResponseVariants,
+    extractReturnType,
+    findLetBinding,
     jsonMacroTopLevelKeys,
     normalizePath,
     normalizeReturnType,
     parseJsonObjectTopLevel,
     parseRouteTable,
+    parseSerdeStructs,
     splitTopLevelArgs,
     stripRustComments,
     stripTsComments,
+    structLiteralShape,
+    tailExpression,
 } from "../../scripts/quality/lib/admin-contract.mjs";
 
 describe("admin-contract 抽取器（守卫）", () => {
@@ -302,6 +310,192 @@ export interface C extends B {
             expect(out).toContain("`/a/${x}/b`");
             expect(out).toContain("const y = 1;");
             expect(out).not.toContain("真注释");
+        });
+    });
+
+    /*
+     * 第二轮（§7.15-28）：把 `backend-shape-unknown` 55 条下沉到 struct / 辅助函数。
+     *
+     * 这一轮又踩了 3 个"看起来正常"的坑，全部表现为**抽取器静默给出错答案**：
+     *   a. `structLiteralShape` 把**值里的裸标识符**当成简写字段 ⇒ `x.max(0) as u64,`
+     *      凭空多出一个键 `u64`（`register` 因此被报成"SDK 多声明 nonce"）；
+     *   b. 修 a 时把"字段起始位"判据建立在上一个 token 上，却把**空白**也写进了 token
+     *      ⇒ 判据永不成立、键集**恒为空**（`feature-flags` / `modules` / `register` 集体隐身）；
+     *   c. `Ok((StatusCode::CREATED, Json(..)))` 的元组响应：整体是**一个**以 `(` 开头的实参，
+     *      只按 `,` 切会把它整段跳过 ⇒ 所有"带状态码的创建类"处理器落进未知桶。
+     */
+    describe("第二轮下沉：struct 字面量 / ::from / Map::insert / 委派 / 数组", () => {
+        it("struct 字面量取简写字段（不能把 `as u64` 里的裸标识符当键）", () => {
+            const lit = structLiteralShape("RegisterResponse { a: r.a.max(0) as u64, b: r.b, c }");
+            expect(lit?.keys).toEqual(["a", "b", "c"]);
+            expect(lit?.keys).not.toContain("u64");
+        });
+
+        it("阴性对照：多行 + 混合写法都能取到键（prevToken 不能被空白顶掉）", () => {
+            expect(structLiteralShape("FeatureFlagListResponse { flags, total, next_batch }")?.keys).toEqual([
+                "flags",
+                "next_batch",
+                "total",
+            ]);
+            expect(structLiteralShape("X {\n    a: 1,\n    b,\n    c: some.map(|x| x),\n}")?.keys).toEqual([
+                "a",
+                "b",
+                "c",
+            ]);
+            // 空键集是"抽取器坏了"的信号，不能与"空对象"混为一谈
+            expect(structLiteralShape("X { a }")?.keys).not.toEqual([]);
+        });
+
+        it("`..spread` 不能当成「没有其余字段」（否则制造「SDK 多声明字段」的假阳）", () => {
+            const lit = structLiteralShape("X { a: 1, ..base }");
+            expect(lit?.spread).toBe(true);
+            expect(lit?.keys).toBeNull();
+        });
+
+        it("字段级 `#[serde(rename)]` 要变成 JSON 键（Rust 名与 JSON 键分开存）", () => {
+            const src = `#[derive(Debug, Serialize)]
+pub struct ThirdPartyRuleResultResponse {
+    /// The \`id\` field.
+    pub id: i64,
+    #[serde(rename = "allowed")]
+    /// The \`is_allowed\` field.
+    pub is_allowed: bool,
+    pub rule_name: String,
+}`;
+            const st = parseSerdeStructs(src).get("ThirdPartyRuleResultResponse");
+            expect(st?.fields).toEqual(["allowed", "id", "rule_name"]);
+            expect(st?.rustFields).toEqual(["id", "is_allowed", "rule_name"]);
+            expect(st?.opaque).toBe(false);
+        });
+
+        it("阴性对照：非 snake_case 的 rename_all 判不出键 ⇒ opaque（不猜）", () => {
+            const src = `#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct X {
+    pub a_b: i64,
+}`;
+            expect(parseSerdeStructs(src).get("X")?.opaque).toBe(true);
+        });
+
+        it("元组响应 `Ok((StatusCode::CREATED, Json(..)))` 也要抽到（否则整族创建类端点隐身）", () => {
+            const body = `{
+    let x = ctx.svc.create(body).await?;
+    Ok((StatusCode::CREATED, Json(AccountValidityResponse::from(x))))
+}`;
+            expect(extractJsonReturnExprs(body)).toEqual(["AccountValidityResponse::from(x)"]);
+        });
+
+        it("阴性对照：`Ok(Json(f(x, Json(body))))` 里参数位置的 Json 不是返回值", () => {
+            const body = `{
+    Ok(Json(purge_history(admin, State(ctx), headers, Json(merged_body)).await?))
+}`;
+            expect(extractJsonReturnExprs(body)).toEqual([
+                "purge_history(admin, State(ctx), headers, Json(merged_body)).await?",
+            ]);
+        });
+
+        it("`serde_json::json!` 限定写法与裸 `json!` 等价", () => {
+            const body = `{ Ok(Json(serde_json::json!({ "a": 1, "b": 2 }))) }`;
+            expect(extractJsonReturnExprs(body)).toEqual(['serde_json::json!({ "a": 1, "b": 2 })']);
+        });
+
+        it("Map::insert 取顶层键，且不能把嵌套 map 的键算进来", () => {
+            const body = `{
+    let mut results = serde_json::Map::new();
+    let mut token_results = serde_json::Map::new();
+    token_results.insert("access_tokens_deleted".to_string(), json!(1));
+    token_results.insert("refresh_tokens_deleted".to_string(), json!(2));
+    results.insert("rooms".to_string(), json!({}));
+    results.insert("tokens".to_string(), Value::Object(token_results));
+    Ok(Json(Value::Object(results)))
+}`;
+            // `\b` 边界：`results` 不能匹配到 `token_results`
+            expect(collectMapInsertKeys(body, "results")).toEqual(["rooms", "tokens"]);
+            expect(extractJsonReturnExprs(body)).toEqual(["Value::Object(results)"]);
+        });
+
+        it("取返回类型 / let 绑定 / 尾表达式", () => {
+            expect(
+                extractReturnType("async fn f(State(ctx): State<AdminContext>) -> Result<Json<Value>, ApiError>"),
+            ).toBe("Result<Json<Value>, ApiError>");
+            expect(findLetBinding(`{ let stats: Vec<ModuleResponse> = x.map(y).collect(); }`, "stats")).toEqual({
+                type: "Vec<ModuleResponse>",
+                rhs: "x.map(y).collect()",
+            });
+            expect(
+                tailExpression(`{
+    let merged = match body { _ => json!({}) };
+    purge_history(admin, State(ctx), headers, Json(merged)).await
+}`),
+            ).toBe("purge_history(admin, State(ctx), headers, Json(merged)).await");
+        });
+
+        it("解析器：struct 字面量 / ::from / let 类型标注 / 委派 / 数组元素", () => {
+            const structs = new Map([
+                ["ModuleResponse", { fields: ["id", "module_name"], rustFields: ["id", "module_name"], opaque: false }],
+                [
+                    "AccountValidityResponse",
+                    { fields: ["is_valid", "user_id"], rustFields: ["is_valid", "user_id"], opaque: false },
+                ],
+            ]);
+            const functions = new Map([
+                [
+                    "purge_history",
+                    {
+                        body: `{ Ok(Json(json!({ "purged": true }))) }`,
+                        ret: "Result<Json<Value>, ApiError>",
+                        topLevel: true,
+                    },
+                ],
+                [
+                    "report_to_json",
+                    { body: `{ json!({ "id": r.id, "reason": r.reason }) }`, ret: "Value", topLevel: true },
+                ],
+            ]);
+            const r = createResponseResolver({ structs, functions });
+
+            expect(r.resolveHandler({ body: `{ Ok(Json(ModuleResponse { id: m.id, module_name: m.n })) }` })).toEqual([
+                { kind: "object", keys: ["id", "module_name"] },
+            ]);
+            expect(r.resolveHandler({ body: `{ Ok(Json(AccountValidityResponse::from(validity))) }` })).toEqual([
+                { kind: "object", keys: ["is_valid", "user_id"] },
+            ]);
+            expect(
+                r.resolveHandler({
+                    body: `{
+    let responses: Vec<ModuleResponse> = modules.into_iter().map(ModuleResponse::from).collect();
+    Ok(Json(responses))
+}`,
+                }),
+            ).toEqual([{ kind: "array", item: "ModuleResponse", itemKeys: ["id", "module_name"] }]);
+            // 纯委派：体内没有 Ok(Json(..))，尾表达式指向另一个处理器
+            expect(r.resolveHandler({ body: `{ purge_history(admin, State(ctx)).await }` })).toEqual([
+                { kind: "object", keys: ["purged"] },
+            ]);
+            // 同步辅助函数（非 async、返回 Value）
+            expect(r.resolveHandler({ body: `{ Ok(Json(report_to_json(&report))) }` })).toEqual([
+                { kind: "object", keys: ["id", "reason"] },
+            ]);
+        });
+
+        it("解析器：判不出来必须返回 null，绝不猜（方法链 / 非对象字面量的 json! / opaque）", () => {
+            const structs = new Map([["Opaque", { fields: ["a"], rustFields: ["a"], opaque: true }]]);
+            const r = createResponseResolver({ structs, functions: new Map() });
+            // 接收者类型未知的方法链 —— 本仓同名方法在 services/storage 多处定义，靠名字下沉会猜错
+            expect(
+                r.resolveHandler({ body: `{ let s = ctx.room_service.state().get_room_stats().await?; Ok(Json(s)) }` }),
+            ).toBeNull();
+            // `json!(event)` 的 event 来自服务调用（无类型标注）
+            expect(
+                r.resolveHandler({ body: `{ let e = ctx.svc.get_event(&id).await?; Ok(Json(json!(e))) }` }),
+            ).toBeNull();
+            expect(r.resolveHandler({ body: `{ Ok(Json(Opaque::from(x))) }` })).toBeNull();
+            // 分支里有一个判不出来 ⇒ 整体未知，不交半份结论
+            expect(
+                r.resolveHandler({
+                    body: `{ if c { Ok(Json(json!({ "a": 1 }))) } else { Ok(Json(unknown_thing)) } }`,
+                }),
+            ).toBeNull();
         });
     });
 });

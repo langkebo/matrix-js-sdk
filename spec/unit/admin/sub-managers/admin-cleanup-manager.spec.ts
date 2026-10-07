@@ -34,8 +34,13 @@ describe("AdminCleanupManager", () => {
     });
 
     it("all() calls POST /cleanup/all", async () => {
+        // ⚠️ 形状必须来自后端 `routes/admin/cleanup.rs::cleanup_all`：
+        //   rooms  = `cleanup_abnormal_data` 的结果对象（不是 {rooms_deleted, events_deleted}）
+        //   tokens = 四个令牌表的删除计数
+        // 旧 mock 自造了 `rooms_deleted` / `events_deleted` 并断言它们 —— 第 8 次同一失效模式
+        // （mock 与断言同源，"测试通过"只证明了 mock 自洽）。
         mockClient.http.authedRequest.mockResolvedValue({
-            rooms: { rooms_deleted: 5, events_deleted: 1234 },
+            rooms: { deleted_events_in_empty_rooms: 1234, deleted_empty_rooms: 5 },
             tokens: {
                 access_tokens_deleted: 10,
                 refresh_tokens_deleted: 8,
@@ -46,7 +51,7 @@ describe("AdminCleanupManager", () => {
 
         const result = await manager.all({ min_age_ms: 86400000 });
 
-        expect(result.rooms.rooms_deleted).toBe(5);
+        expect(result.rooms.deleted_empty_rooms).toBe(5);
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Post,
             "/cleanup/all",
@@ -57,11 +62,14 @@ describe("AdminCleanupManager", () => {
     });
 
     it("rooms() calls POST /cleanup/rooms", async () => {
-        mockClient.http.authedRequest.mockResolvedValue({ rooms: 3 });
+        mockClient.http.authedRequest.mockResolvedValue({
+            deleted_events_in_empty_rooms: 77,
+            deleted_empty_rooms: 3,
+        });
 
         const result = await manager.rooms({ min_age_ms: 604800000 });
 
-        expect(result.rooms).toBe(3);
+        expect(result.deleted_empty_rooms).toBe(3);
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Post,
             "/cleanup/rooms",

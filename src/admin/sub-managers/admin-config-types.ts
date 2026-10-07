@@ -163,9 +163,16 @@ export interface FeatureFlag {
     targets: FeatureFlagTarget[];
 }
 
+/**
+ * `GET /_synapse/admin/v1/feature-flags` 的响应。
+ *
+ * 后端 `feature_flags.rs::FeatureFlagListResponse` 的游标键是 `next_batch`
+ * （原声明漏了它，取值恒为 `undefined`）。
+ */
 export interface FeatureFlagPage {
     flags: FeatureFlag[];
     total: number;
+    next_batch?: string | null;
 }
 
 // ===== Registration token types =====
@@ -214,18 +221,39 @@ export interface RegistrationTokenRequest {
 
 // ===== Module and account validity types =====
 
+/**
+ * 模块（`ModuleResponse`）。
+ *
+ * 2026-10-07 对照后端 `synapse-web/src/routes/module.rs::ModuleResponse`：原先把主键写成
+ * `module_id`（后端**全仓没有这个键**，主键叫 `id`，名字叫 `module_name`），并漏掉了
+ * 版本 / 优先级 / 时间戳 / 执行统计等 10 个真实字段。
+ */
 export interface AdminModuleInfo {
-    module_id: string;
-    module_type?: string;
-    config?: DynamicConfig;
-    is_enabled?: boolean;
-    description?: string;
+    id: number;
+    module_name: string;
+    module_type: string;
+    version: string;
+    description: string | null;
+    is_enabled: boolean;
+    priority: number;
+    config: DynamicConfig | null;
+    created_ts: number;
+    updated_ts: number;
+    last_executed_ts: number | null;
+    execution_count: number;
+    error_count: number;
+    last_error: string | null;
 }
 
+/**
+ * `GET /_synapse/admin/v1/modules` 的响应。
+ *
+ * 后端 `get_all_modules` 的游标键是 `next_batch`（不是 `next_token`），且**不返回** `total`。
+ * 注意 `GET /modules/type/{module_type}` 返回的是**裸数组** `AdminModuleInfo[]`。
+ */
 export interface AdminModulePage {
     modules: AdminModuleInfo[];
-    total?: number;
-    next_token?: string;
+    next_batch?: string | null;
 }
 
 export interface AdminModuleLog {
@@ -242,24 +270,44 @@ export interface AdminModuleLogPage {
     next_token?: string;
 }
 
+/**
+ * 账户有效期条目。
+ *
+ * 2026-10-07 对照后端 `routes/module.rs::AccountValidityResponse`：补上原先漏掉的
+ * `last_check_at` / `renewal_token` / `created_ts` / `updated_ts` 四个真实字段。
+ */
 export interface AdminAccountValidityInfo {
     user_id: string;
-    expiration_ts?: number;
-    is_valid?: boolean;
+    expiration_ts: number | null;
+    last_check_at: number | null;
+    renewal_token: string | null;
+    is_valid: boolean;
+    created_ts: number;
+    updated_ts: number;
 }
 
 // ===== Auth/presence/media callback types =====
 
+/**
+ * 密码认证提供方。
+ *
+ * 2026-10-07 对照后端 `routes/module.rs::PasswordAuthProviderResponse`：
+ * 原先只有 3 个字段，`id` / `is_enabled` / `priority` / `created_ts` / `updated_ts` 全缺。
+ */
 export interface AdminPasswordAuthProvider {
+    id: number;
     provider_name: string;
     provider_type: string;
-    config?: DynamicConfig;
+    config: DynamicConfig | null;
+    is_enabled: boolean;
+    priority: number;
+    created_ts: number;
+    updated_ts: number;
 }
 
-export interface AdminPasswordAuthProviderPage {
-    providers: AdminPasswordAuthProvider[];
-    total?: number;
-}
+// `AdminPasswordAuthProviderPage` 已删除：`GET /_synapse/admin/v1/password_auth_providers`
+// 返回的是**裸数组** `PasswordAuthProviderResponse[]`（后端 `Ok(Json(responses))`），
+// 不存在 `{providers, total}` 包装对象。
 
 export interface AdminPresenceRoute {
     route_name: string;
@@ -272,16 +320,24 @@ export interface AdminPresenceRoutePage {
     total?: number;
 }
 
+/**
+ * 媒体回调**任务**记录。
+ *
+ * 2026-10-07 对照后端 `routes/module.rs::MediaCallbackResponse`：原先把它当成"回调注册项"
+ * （`callback_name` / `url` / `config`），而后端返回的是**一次回调调用的执行记录**
+ * （`media_id` / `user_id` / `status` / `result` / `completed_ts`）。
+ * 两个"列表"端点返回的是**裸数组**，不存在 `{callbacks, total}` 包装对象。
+ */
 export interface AdminMediaCallback {
-    callback_name: string;
+    id: number;
     callback_type: string;
-    url?: string;
-    config?: DynamicConfig;
-}
-
-export interface AdminMediaCallbackPage {
-    callbacks: AdminMediaCallback[];
-    total?: number;
+    media_id: string;
+    user_id: string;
+    status: string;
+    result: unknown;
+    created_ts: number;
+    completed_ts: number | null;
+    is_enabled: boolean;
 }
 
 export interface AdminRateLimitCallback {
@@ -295,15 +351,20 @@ export interface AdminRateLimitCallbackPage {
     total?: number;
 }
 
+/**
+ * 账户数据回调配置项。
+ *
+ * 2026-10-07 对照后端 `routes/module.rs::AccountDataCallbackResponse`：
+ * 补 `id` / `is_enabled` / `data_types` / `created_ts`；删掉后端从不返回的 `callback_type`。
+ * 列表端点返回的是**裸数组**，不存在 `{callbacks, total}` 包装对象。
+ */
 export interface AdminAccountDataCallback {
+    id: number;
     callback_name: string;
-    callback_type: string;
-    config?: DynamicConfig;
-}
-
-export interface AdminAccountDataCallbackPage {
-    callbacks: AdminAccountDataCallback[];
-    total?: number;
+    is_enabled: boolean;
+    data_types: string[] | null;
+    config: DynamicConfig | null;
+    created_ts: number;
 }
 
 // ===== Invite / Jitsi types =====

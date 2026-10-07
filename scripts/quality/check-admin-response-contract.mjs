@@ -57,6 +57,7 @@ import {
     collectSdkAdminContract,
     normalizeReturnType,
     diffResponse,
+    diffFields,
 } from "./lib/admin-contract.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -64,6 +65,16 @@ const SDK_ROOT = path.resolve(__dirname, "..", "..");
 const LEDGER_PATH = path.join(__dirname, "admin-response-contract-ledger.json");
 const BACKEND_ROOT = process.env.SYNAPSE_RUST_REPO ?? path.resolve(SDK_ROOT, "..", "synapse-rust");
 const RUST_ROUTES_ROOT = path.join(BACKEND_ROOT, "synapse-web", "src");
+/**
+ * 响应形状的下沉目录：响应 struct 与辅助函数不都在 `synapse-web` 里。
+ *
+ * `synapse-storage` / `synapse-common` 定义了 `AuditEvent` / `ServerNotification` /
+ * `RateLimitConfig` 这类被直接 `Ok(Json(struct))` 返回的类型；不索引它们，
+ * 这些端点只能落进"未知"桶（沉默不等于通过）。
+ */
+const RUST_SINK_DIRS = ["synapse-storage/src", "synapse-common/src", "synapse-services/src"].map((d) =>
+    path.join(BACKEND_ROOT, d),
+);
 
 const STRICT = process.argv.includes("--strict");
 const REFRESH = process.argv.includes("--refresh");
@@ -87,7 +98,40 @@ function bodyPresence(cs, be) {
 }
 
 /**
- * 把调用点分成「可比对」「请求体问题」与「覆盖不到的桶」。
+ * 求一个调用点的「**线格式声明**」—— 也就是"这个端点实际发出的 JSON 形状，SDK 是怎么声明的"。
+ *
+ * ⚠️ 不能直接拿方法的声明返回类型：两者只在**原样返回**时一致。本仓里存在一批
+ * 加工后再返回的方法（`const r = await this.adminRequest(..); return r.destinations;`），
+ * 它们的声明返回类型是"加工后的值"，拿去比后端响应会得到"后端返回对象、SDK 声明数组"
+ * 这种假阳性（`getFederationDestinations` 实测如此）。判据是：
+ *
+ *   1. 显式传了泛型实参 `adminRequest<T>(..)` ⇒ **T 才是线格式**；
+ *      但 T 是内联对象字面量类型（`{ destinations: ... }`）时，它是"这个方法消费的字段"
+ *      的窄视图，不是响应模型 ⇒ 判不了，落回未知桶。
+ *   2. 没传泛型实参、且调用点原样 `return`（`directReturn`）⇒ 声明返回类型即线格式。
+ *   3. 其余（加工后返回又没有显式线格式）⇒ 未知。**不要**退化成用声明返回类型兜底。
+ *
+ * @param {object} cs
+ * @returns {{ base: string | null, isArray: boolean, primitive: boolean, unknown?: string }}
+ */
+function wireClaim(cs) {
+    if (cs.typeArg) {
+        const n = normalizeReturnType(cs.typeArg);
+        if (n.base || n.primitive) return n;
+        // `{ destinations: FederationDestination[] }` 这类内联对象字面量类型：
+        // 它是"方法消费的字段"的窄视图，不是响应模型 ⇒ 判不了，不拿声明返回类型兜底
+        return { base: null, isArray: false, primitive: false, unknown: "inline-type-arg" };
+    }
+    const declared = normalizeReturnType(cs.declaredReturn);
+    // `Promise<void>` 的写入型方法本来就"不返回 `await` 的值"，没有响应形状可核对 ——
+    // 它们不该落进任何覆盖桶（否则桶里全是噪声，真缺口被淹没）。
+    if (declared.primitive) return declared;
+    if (cs.directReturn) return declared;
+    return { base: null, isArray: false, primitive: false, unknown: "no-wire-claim" };
+}
+
+/**
+ * 把调用点分成「可比对」「形状类型不符」「请求体问题」与「覆盖不到的桶」。
  *
  * ⚠️ **请求体检查必须独立于响应形状的可比对性**：第一版把两项检查写在同一个循环里，
  * 于是响应形状不透明的处理器（如 `cleanup_all` 走 `Ok(Json(Value::Object(...)))`）
@@ -95,11 +139,17 @@ function bodyPresence(cs, be) {
  * 恰恰最容易发生在这些手工组装响应的处理器上。变异测试（去掉 `cleanupAll` 的 body）
  * 没有让门禁变红，才暴露出这个结构缺陷。
  *
+ * ⚠️ **数组/对象的种类也必须比**：`get_modules_by_type` 后端返回的是**裸数组**
+ * （`let responses: Vec<ModuleResponse> = ..; Ok(Json(responses))`），而 SDK 声明
+ * `AdminModulePage`（对象）。第一版因为"后端形状不可知"把这一类整体跳过了 ——
+ * 于是"声明成对象、实际收到数组"的调用方会在 `.modules.map()` 上直接抛 TypeError。
+ *
  * @param {{ sdk: object, rust: object }} input
  */
 function classify({ sdk, rust }) {
     const comparable = [];
     const bodyIssues = [];
+    const kindIssues = [];
     const unresolved = [];
     for (const cs of sdk.callSites) {
         const base = { managerMethod: cs.managerMethod, route: cs.route, declaredReturn: cs.declaredReturn };
@@ -114,7 +164,11 @@ function classify({ sdk, rust }) {
             bodyIssues.push({ ...base, handler: be.handler, bodyIssue });
         }
 
-        const norm = normalizeReturnType(cs.declaredReturn);
+        const norm = wireClaim(cs);
+        if (norm.unknown) {
+            unresolved.push({ ...base, kind: norm.unknown });
+            continue;
+        }
         if (norm.primitive) continue; // `Promise<void>` 之类没有响应形状可核对，不进覆盖桶
         if (!norm.base) {
             unresolved.push({ ...base, kind: "return-type-not-named" });
@@ -125,15 +179,55 @@ function classify({ sdk, rust }) {
             unresolved.push({ ...base, kind: "interface-not-found", sdkType: norm.base });
             continue;
         }
-        if (norm.isArray) {
-            unresolved.push({ ...base, kind: "array-return", sdkType: norm.base });
+        const shapes = be.responseShapes;
+        if (!shapes) {
+            unresolved.push({
+                ...base,
+                kind: norm.isArray ? "array-return" : "backend-shape-unknown",
+                sdkType: norm.base,
+                handler: be.handler,
+            });
             continue;
         }
-        const diff = diffResponse({ sdkFields, variants: be.responseVariants });
-        if (diff.unknown) {
-            unresolved.push({ ...base, kind: "backend-shape-unknown", sdkType: norm.base, handler: be.handler });
+        const kinds = new Set(shapes.map((s) => s.kind));
+        if (kinds.size > 1) {
+            unresolved.push({ ...base, kind: "backend-shape-mixed", sdkType: norm.base, handler: be.handler });
             continue;
         }
+        const isBackendArray = shapes[0].kind === "array";
+        if (isBackendArray !== norm.isArray) {
+            kindIssues.push({
+                ...base,
+                handler: be.handler,
+                sdkType: `${norm.base}${norm.isArray ? "[]" : ""}`,
+                backendKind: isBackendArray ? `array<${shapes[0].item ?? "?"}>` : "object",
+            });
+            continue;
+        }
+        if (isBackendArray) {
+            const itemKeys = shapes[0].itemKeys;
+            if (!itemKeys) {
+                unresolved.push({
+                    ...base,
+                    kind: "backend-array-item-unknown",
+                    sdkType: norm.base,
+                    handler: be.handler,
+                });
+                continue;
+            }
+            comparable.push({
+                ...base,
+                sdkType: norm.base,
+                sdkFile: sdk.fieldFiles.get(norm.base),
+                sdkFields,
+                handler: be.handler,
+                arrayItem: true,
+                backendItemType: shapes[0].item,
+                diff: diffFields({ sdkFields, backendKeys: itemKeys }),
+            });
+            continue;
+        }
+        const diff = diffResponse({ sdkFields, variants: shapes.map((s) => s.keys) });
         comparable.push({
             ...base,
             sdkType: norm.base,
@@ -143,7 +237,7 @@ function classify({ sdk, rust }) {
             diff,
         });
     }
-    return { comparable, bodyIssues, unresolved };
+    return { comparable, bodyIssues, kindIssues, unresolved };
 }
 
 function countByKind(unresolved) {
@@ -164,15 +258,21 @@ function backendCommit() {
     }
 }
 
-/** 只记录「已核对一致」的行；这是 CI 半场比对的对象。 */
+/**
+ * 只记录「已核对一致」的行；这是 CI 半场比对的对象。
+ *
+ * `arrayItem: true` 表示这一行核对的是**数组元素**类型（后端裸数组 + SDK 声明 `X[]`），
+ * `sdkType` 仍是元素类型名，CI 半场据此查字段集，不需要额外分支。
+ */
 function buildEntries({ comparable } = {}) {
     return comparable
-        .filter((r) => r.diff.ok && !r.bodyIssue)
+        .filter((r) => r.diff.ok)
         .map((r) => ({
             route: r.route,
             sdkType: r.sdkType,
             sdkFile: r.sdkFile,
             fields: r.sdkFields,
+            ...(r.arrayItem ? { arrayItem: true, backendItemType: r.backendItemType } : {}),
         }))
         .sort((a, b) => (a.route + a.sdkType).localeCompare(b.route + b.sdkType));
 }
@@ -186,7 +286,7 @@ async function main() {
             console.error(`❌ --refresh 需要后端仓，未找到 ${RUST_ROUTES_ROOT}`);
             process.exit(2);
         }
-        const rust = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT });
+        const rust = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
         const { comparable, unresolved } = classify({ sdk, rust });
         const previous = readLedger();
         const entries = buildEntries({ comparable });
@@ -245,7 +345,7 @@ async function main() {
     // ─── 半场 2：与后端实际形状比对（后端不在场则 skip）───
     let evaluated = null;
     if (backendPresent) {
-        const rust = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT });
+        const rust = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
         evaluated = classify({ sdk, rust });
         const devs = new Set((ledger.deviations ?? []).map((d) => deviationKey(d.route, d.sdkType, d.kind)));
         // 请求体偏差按**路由**匹配（同一路由的 sdkType 可能随方法签名变化，用类型名做键太脆）
@@ -258,11 +358,24 @@ async function main() {
                 violations.push({
                     kind: "response-shape",
                     route: row.route,
-                    sdkType: row.sdkType,
+                    sdkType: row.arrayItem ? `${row.sdkType}[]（元素）` : row.sdkType,
                     handler: row.handler,
                     detail: `SDK 缺 [${row.diff.missing.join(", ") || "—"}]；SDK 多 [${row.diff.extra.join(", ") || "—"}]`,
                 });
             }
+        }
+
+        // 数组 / 对象种类不符：SDK 声明对象而收到裸数组（或反之）—— 调用方会在
+        // `.x.map()` / `.length` 上直接抛，比字段名错更致命，必须单列一类。
+        for (const row of evaluated.kindIssues) {
+            if (devs.has(deviationKey(row.route, row.sdkType, "response-kind"))) continue;
+            violations.push({
+                kind: "response-kind",
+                route: row.route,
+                sdkType: row.sdkType,
+                handler: row.handler,
+                detail: `后端返回 ${row.backendKind}，SDK 声明 ${row.sdkType.includes("[]") ? "数组" : "对象"}`,
+            });
         }
 
         // 请求体问题与响应形状无关：即使响应形状不透明（`Ok(Json(struct))`）也要查

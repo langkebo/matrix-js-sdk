@@ -19,12 +19,12 @@ import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
+import type { CleanupAllResponse, CleanupRoomsResponse, CleanupTokensResponse } from "./admin-cleanup-manager";
 import type {
     ServerStats,
     ServerStatus,
     ServerHealth,
     ServerInfo,
-    AdminCleanupResponse,
     ServerNotice,
     ServerNoticePage,
     SendServerNoticeResult,
@@ -151,12 +151,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         delete_old_users?: boolean;
         /** 后端唯一消费的参数：只清理早于「现在 - min_age_ms」的数据。 */
         min_age_ms?: number;
-    }): Promise<AdminCleanupResponse> {
+    }): Promise<CleanupAllResponse> {
         // 后端注册的是 `/cleanup/all`、`/cleanup/rooms`、`/cleanup/tokens`
         // （synapse-web/src/routes/admin/cleanup.rs），**没有**裸 `/cleanup`。
         // 本方法语义上做全量清理，故走 `/cleanup/all`。
         // 注：后端当前只读 body 里的 `min_age_ms`，其余字段会被忽略（保留以备后端扩展）。
-        return await this.adminRequest<AdminCleanupResponse>(Method.Post, "/cleanup/all", undefined, options || {});
+        return await this.adminRequest<CleanupAllResponse>(Method.Post, "/cleanup/all", undefined, options || {});
     }
 
     /**
@@ -492,7 +492,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * await adminManager.cleanupAll({ min_age_ms: 86_400_000 });
      * ```
      */
-    async cleanupAll(payload?: { min_age_ms?: number }): Promise<AdminCleanupResponse> {
+    async cleanupAll(payload?: { min_age_ms?: number }): Promise<CleanupAllResponse> {
         return await this.adminRequest(Method.Post, "/cleanup/all", {}, payload ?? {});
     }
 
@@ -501,7 +501,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @returns 清理结果
      */
-    async cleanupTokens(): Promise<AdminCleanupResponse> {
+    async cleanupTokens(): Promise<CleanupTokensResponse> {
         return await this.adminRequest(Method.Post, "/cleanup/tokens", {}, undefined);
     }
 
@@ -511,7 +511,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param payload - 清理选项
      * @returns 清理结果
      */
-    async cleanupRooms(payload?: CleanupRoomsRequest): Promise<AdminCleanupResponse> {
+    async cleanupRooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse> {
         try {
             return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
         } catch (e) {

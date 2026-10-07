@@ -38,14 +38,28 @@ export interface CleanupAllRequest {
 }
 
 /**
- * 全局清理响应
+ * 「异常数据清理」的结果。
+ *
+ * 2026-10-07 对照后端 `synapse-storage/src/room/admin.rs::cleanup_abnormal_data`：
+ * 它只往响应里塞两个键（原先那三步"孤儿清理"因 `ON DELETE CASCADE` 结构上不可能命中，
+ * 已被移除，见后端 D-103 / D-100）。
+ */
+export interface CleanupAbnormalDataResult {
+    /** 随空房间一起删除的事件数 */
+    deleted_events_in_empty_rooms: number;
+    /** 删除的空房间数 */
+    deleted_empty_rooms: number;
+}
+
+/**
+ * 全局清理响应（`POST /_synapse/admin/v1/cleanup/all`）。
+ *
+ * `rooms` 是清理器的**原始**结果对象（与 `CleanupRoomsResponse` 同形状），
+ * `tokens` 是四个令牌表的删除计数。
  */
 export interface CleanupAllResponse {
     /** 房间清理结果 */
-    rooms: {
-        rooms_deleted: number;
-        events_deleted: number;
-    };
+    rooms: CleanupAbnormalDataResult;
     /** 令牌清理结果 */
     tokens: {
         access_tokens_deleted: number;
@@ -64,15 +78,18 @@ export interface CleanupRoomsRequest {
 }
 
 /**
- * 房间清理响应
+ * 房间清理响应（`POST /_synapse/admin/v1/cleanup/rooms`、`POST /_synapse/admin/v1/rooms/cleanup`）。
+ *
+ * ⚠️ 不是 `{rows: number}`：后端把 `cleanup_abnormal_data` 的**整个结果对象**直接
+ * `Ok(Json(results))` 回去（`routes/admin/cleanup.rs::cleanup_rooms`）。
  */
-export interface CleanupRoomsResponse {
-    /** 删除的房间数量 */
-    rooms: number;
-}
+export type CleanupRoomsResponse = CleanupAbnormalDataResult;
 
 /**
- * 令牌清理响应
+ * 令牌清理响应（`POST /_synapse/admin/v1/cleanup/tokens`）。
+ *
+ * 只有两个键 —— 与 `/cleanup/all` 里的 `tokens` 子对象（四个键）**不同**：
+ * 该处理器只清 access / refresh 两类令牌。
  */
 export interface CleanupTokensResponse {
     /** 删除的 access token 数量 */
@@ -124,7 +141,7 @@ export class AdminCleanupManager extends AdminBaseManager {
      * @example
      * ```typescript
      * const result = await adminManager.cleanup.rooms({ min_age_ms: 604800000 });
-     * console.log(result.rooms, 'rooms cleaned');
+     * console.log(result.deleted_empty_rooms, 'empty rooms deleted');
      * ```
      */
     async rooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse> {

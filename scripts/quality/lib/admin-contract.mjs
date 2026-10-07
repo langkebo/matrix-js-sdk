@@ -376,25 +376,578 @@ export function extractResponseVariants(fnBody) {
 /**
  * 抽取带 `Deserialize` 的 struct：字段名 + 是否 `deny_unknown_fields`。
  *
+ * 只服务于**请求体**检查（`Json<T>` 的 T 必须 Deserialize，且 `deny_unknown_fields`
+ * 决定"多一个字段就 400"）。响应侧的 struct 走 `parseSerdeStructs`。
+ *
  * @param {string} src 已去注释的源码
  * @returns {Map<string, { fields: string[], denyUnknownFields: boolean }>}
  */
 export function parseDeserializeStructs(src) {
     const out = new Map();
+    for (const [name, v] of parseSerdeStructs(src)) {
+        if (v.derives.includes("Deserialize"))
+            out.set(name, { fields: v.fields, denyUnknownFields: v.denyUnknownFields });
+    }
+    return out;
+}
+
+/**
+ * 索引带 `Serialize` 或 `Deserialize` 的 struct：字段名 / `deny_unknown_fields` / 派生列表。
+ *
+ * 与 `parseDeserializeStructs` 的区别是**要能解析响应**：响应 struct 往往只派生
+ * `Serialize`（`#[derive(Debug, Serialize)]`），只认 `Deserialize` 会让它们全部落空。
+ *
+ * `fields` 是**序列化后的键**（已应用字段级 `#[serde(rename = "…")]`），`rustFields` 是
+ * Rust 侧声明名 —— 两者要分开存：与本门禁比对的是前者，而"struct 字面量"（`X { rust_name: .. }`）
+ * 写的是后者，交叉校验时得用并集。
+ *
+ * `opaque` 的含义（**不做猜测**）：只有两种情况会标它 ——
+ *   1. 出现了 `rename` 但值解析不出来（属性写法超出本抽取器覆盖范围）；
+ *   2. struct 级 `rename_all` 不是 `snake_case`（等价于对已是 snake_case 的字段名做恒等变换，
+ *      其余（`camelCase` / `lowercase` / …）需要按规则改写每个键，本抽取器不去猜）。
+ * 标 `opaque` 的 struct 会被调用方当成"形状未知"落回覆盖桶，而不是拿错键去比对。
+ *
+ * @param {string} src 已去注释的源码
+ * @returns {Map<string, { fields: string[], rustFields: string[], denyUnknownFields: boolean, derives: string[], opaque: boolean }>}
+ */
+export function parseSerdeStructs(src) {
+    const out = new Map();
     for (const m of src.matchAll(/(pub\s+)?struct\s+([A-Za-z_]\w*)\s*(?:<[^>]*>)?\s*\{/g)) {
         // 往前看属性块（`#[...]` 行），限制在同一声明之前
         const headStart = Math.max(0, src.lastIndexOf("\n\n", m.index) + 1);
         const head = src.slice(headStart, m.index);
-        if (!/Deserialize/.test(head)) continue;
-        const deny = /deny_unknown_fields/.test(head);
+        if (!/#\[/.test(head)) continue;
+        const dm = head.match(/#\[derive\(([^)]*)\)/);
+        const derives = dm ? dm[1].split(",").map((s) => s.trim()) : [];
+        if (!derives.includes("Serialize") && !derives.includes("Deserialize")) continue;
         const brace = m.index + m[0].length - 1;
         const slice = balancedSlice(src, brace);
         if (!slice) continue;
-        const fields = [];
-        for (const fm of slice.text.matchAll(/\n\s*(?:pub\s+)?([A-Za-z_]\w*)\s*:/g)) fields.push(fm[1]);
-        out.set(m[2], { fields: fields.sort(), denyUnknownFields: deny });
+        const { rust, json, unparsedRename } = scanStructFields(slice.text.slice(1, -1));
+        const renameAll = head.match(/rename_all\s*=\s*"([^"]+)"/);
+        const opaque = unparsedRename || (renameAll ? renameAll[1] !== "snake_case" : false);
+        out.set(m[2], {
+            fields: [...new Set(json)].sort(),
+            rustFields: [...new Set(rust)].sort(),
+            denyUnknownFields: /deny_unknown_fields/.test(head),
+            derives,
+            opaque,
+        });
     }
     return out;
+}
+
+/** `#[serde(rename = "x")]` / `#[serde(rename(serialize = "x"))]` 的值。 */
+const SERDE_RENAME_RE = /rename\s*(?:=\s*"([^"]+)"|\(\s*(?:serialize\s*=\s*)?\s*"([^"]+)")/;
+
+/**
+ * 扫描 struct 体，把每个字段的 **JSON 键**（应用字段级 rename）与 **Rust 名**一起取出来。
+ *
+ * 用词法扫描而不是一条正则，是因为 rename 属性**在字段之前一行**：正则扫 `ident:` 拿不到
+ * 上一行的属性，于是 `#[serde(rename = "allowed")] pub is_allowed: bool` 会被读成
+ * JSON 键 `is_allowed` —— 而 SDK 侧写的是后端真实的键 `allowed`，
+ * 结果会把"其实一致"报成"字段名不一致"（本仓有 103 处字段级 rename）。
+ *
+ * @param {string} bodyText struct 体（不含最外层花括号）
+ * @returns {{ rust: string[], json: string[], unparsedRename: boolean }}
+ */
+export function scanStructFields(bodyText) {
+    const rust = [];
+    const json = [];
+    let pending = null;
+    let unparsedRename = false;
+    let i = 0;
+    const n = bodyText.length;
+    while (i < n) {
+        const c = bodyText[i];
+        if (c === "#" && bodyText[i + 1] === "[") {
+            const s = balancedSlice(bodyText, i + 1);
+            if (s) {
+                if (/\brename\s*[=(]/.test(s.text) && !/rename_all/.test(s.text)) {
+                    const rm = SERDE_RENAME_RE.exec(s.text);
+                    if (rm) pending = rm[1] ?? rm[2];
+                    else unparsedRename = true;
+                }
+                i = s.end;
+                continue;
+            }
+        }
+        if (c === "/" && bodyText[i + 1] === "/") {
+            while (i < n && bodyText[i] !== "\n") i++;
+            continue;
+        }
+        if (i === 0 || /[\s;{}]/.test(bodyText[i - 1])) {
+            const m = /^(?:pub\s+)?([A-Za-z_]\w*)\s*:/.exec(bodyText.slice(i, i + 200));
+            if (m) {
+                rust.push(m[1]);
+                json.push(pending ?? m[1]);
+                pending = null;
+                i += m[0].length;
+                continue;
+            }
+        }
+        i++;
+    }
+    return { rust, json, unparsedRename };
+}
+
+// ---------------------------------------------------------------------------
+// 形状解析：把「返回表达式」下沉到 struct 定义 / 辅助函数
+// ---------------------------------------------------------------------------
+
+/**
+ * 响应形状。`object` 可核对字段集；`array` 表示 JSON 顶层是数组（`item` 为元素类型名，
+ * 判不出时 `null`）。
+ *
+ * @typedef {{ kind: "object", keys: string[] } | { kind: "array", item: string | null }} ResponseShape
+ */
+
+/**
+ * 取 `fn` 签名里的返回类型文本（不含 `->`）。
+ *
+ * @param {string} sig `findRustFunctions` 给的签名片段
+ * @returns {string | null}
+ */
+export function extractReturnType(sig) {
+    const paren = sig.indexOf("(");
+    if (paren < 0) return null;
+    const params = balancedSlice(sig, paren);
+    if (!params) return null;
+    const rest = sig.slice(params.end).trim();
+    const m = rest.match(/^->\s*([\s\S]+)$/);
+    return m ? m[1].replace(/\s+/g, " ").trim() : null;
+}
+
+/**
+ * 找出源码里所有 `fn`（含同步函数、含 `pub(crate)` 等可见性修饰）。
+ *
+ * 与 `findRustFunctions`（只认 `async fn`，用于"路由指向的处理器"）分开：
+ * 响应形状的解析要能下沉到**同步辅助函数**（如 `fn report_to_json(..) -> Value`），
+ * 但把同步函数也算进"处理器"会让 `handlerCount` 之类的统计失真。
+ *
+ * `topLevel` 只对**行首无缩进**的定义为真 —— 这是在刻意排除 `impl` 里的方法：
+ * 同一方法名在多个 `impl` 块里重复定义（本仓 `cleanup_abnormal_data` 就有 3 处），
+ * 靠名字下沉到方法体会把"接收者类型未知"悄悄变成"形状已知"。宁可少解析。
+ *
+ * @param {string} src 已去注释的源码
+ * @returns {Array<{ name: string, sig: string, body: string, topLevel: boolean, start: number }>}
+ */
+export function findAllRustFunctions(src) {
+    const out = [];
+    for (const m of src.matchAll(/\n([ \t]*)(pub(?:\([^)]*\))?\s+)?(async\s+)?fn\s+([A-Za-z_]\w*)\s*[(<]/g)) {
+        const brace = src.indexOf("{", m.index);
+        if (brace < 0) continue;
+        const slice = balancedSlice(src, brace);
+        if (!slice) continue;
+        out.push({
+            name: m[4],
+            sig: src.slice(m.index, brace),
+            body: slice.text,
+            topLevel: m[1] === "",
+            start: m.index,
+        });
+    }
+    return out;
+}
+
+/**
+ * 按深度 0 的分隔符切分一段文本（不切字符串/字符字面量里的分隔符）。
+ *
+ * @param {string} text
+ * @param {string} sep 单字符分隔符
+ * @returns {string[]}
+ */
+export function splitTopLevel(text, sep) {
+    const parts = [];
+    let depth = 0;
+    let cur = "";
+    let i = 0;
+    const n = text.length;
+    while (i < n) {
+        const c = text[i];
+        if (c === '"' || c === "'") {
+            const q = c;
+            cur += c;
+            i++;
+            while (i < n) {
+                cur += text[i];
+                if (text[i] === "\\") {
+                    cur += text[i + 1] ?? "";
+                    i += 2;
+                    continue;
+                }
+                if (text[i] === q) {
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            continue;
+        }
+        if ("([{".includes(c)) depth++;
+        else if (")]}".includes(c)) depth--;
+        else if (c === sep && depth === 0) {
+            parts.push(cur);
+            cur = "";
+            i++;
+            continue;
+        }
+        cur += c;
+        i++;
+    }
+    parts.push(cur);
+    return parts;
+}
+
+/**
+ * 取 Rust 块体的**尾表达式**（函数体在 Rust 里就是返回值）。
+ *
+ * 处理器写成 `fn a(..) { let x = ..; b(..).await }` 这种纯委派时，体内根本没有
+ * `Ok(Json(..))`；尾表达式是唯一能指出"形状由谁决定"的线索。
+ *
+ * @param {string} body 含最外层花括号的函数体
+ * @returns {string | null}
+ */
+export function tailExpression(body) {
+    const inner = body.replace(/^\s*\{/, "").replace(/\}\s*$/, "");
+    const parts = splitTopLevel(inner, ";");
+    for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i].trim();
+        if (p.length > 0) return p;
+    }
+    return null;
+}
+
+/**
+ * 找出函数体里所有 `Ok(Json(<expr>))` 的 `<expr>`（含 `Ok((StatusCode::X, Json(..)))` 元组形态）。
+ *
+ * 与 `extractResponseVariants` 的分工：后者只看返回值**是不是 `json!` 对象字面量**，
+ * 前者把表达式原样交出来，供"下沉到 struct / 辅助函数"的解析器继续处理。
+ * 必须在 `Ok(` 之后立刻找 `Json(`：`Ok(Json(f(x, Json(body))))` 这种写法里的内层
+ * `Json(` 属于**参数位置**，不是返回值。
+ *
+ * @param {string} fnBody
+ * @returns {string[]}
+ */
+export function extractJsonReturnExprs(fnBody) {
+    const out = [];
+    for (const m of fnBody.matchAll(/(?<![\w.])Ok\s*\(/g)) {
+        const paren = fnBody.indexOf("(", m.index + m[0].length - 1);
+        if (paren < 0) continue;
+        const slice = balancedSlice(fnBody, paren);
+        if (!slice) continue;
+        let args = splitTopLevelArgs(slice.text.slice(1, -1));
+        // `Ok((StatusCode::CREATED, Json(..)))` —— 元组响应把整个返回值又包了一层括号，
+        // 只按 `,` 切会得到**一个**以 `(` 开头的实参，形如 `(StatusCode::.., Json(..))`，
+        // 于是所有"带状态码的创建类"处理器（本仓十几处）整体落进未知桶。必须再拆一层。
+        if (args.length === 1 && args[0].startsWith("(")) {
+            const tuple = balancedSlice(args[0], 0);
+            if (tuple) args = splitTopLevelArgs(tuple.text.slice(1, -1));
+        }
+        for (const a of args) {
+            const t = a.trim();
+            const jm = /^(?:[A-Za-z_]\w*\s*::\s*)*Json\s*\(/.exec(t);
+            if (!jm) continue;
+            const p = t.indexOf("(", jm[0].length - 1);
+            const inner = balancedSlice(t, p);
+            if (!inner) continue;
+            out.push(inner.text.slice(1, -1).trim());
+        }
+    }
+    return out;
+}
+
+/**
+ * 取 struct 字面量 `Type { a, b: v }` 的一层字段名。
+ *
+ * `..base` / `..Default::default()` 这类展开无法静态判断 ⇒ 返回 `spread: true`，
+ * 调用方必须落回"未知"（把展开当"没有其余字段"会制造"SDK 多编字段"的假阳）。
+ *
+ * @param {string} text
+ * @returns {{ type: string, keys: string[] | null, spread: boolean } | null}
+ */
+export function structLiteralShape(text) {
+    const t = text.trim();
+    const m = /^((?:[A-Za-z_]\w*\s*::\s*)*[A-Za-z_]\w*)\s*(?:<[^<>]*>)?\s*\{/.exec(t);
+    if (!m) return null;
+    const brace = t.indexOf("{", m.index + m[0].length - 1);
+    const slice = balancedSlice(t, brace);
+    if (!slice) return null;
+    const body = slice.text.slice(1, -1);
+    const keys = [];
+    let depth = 0;
+    let prevToken = "";
+    let i = 0;
+    const n = body.length;
+    while (i < n) {
+        const c = body[i];
+        if (c === '"' || c === "'") {
+            const q = c;
+            i++;
+            while (i < n) {
+                if (body[i] === "\\") {
+                    i += 2;
+                    continue;
+                }
+                if (body[i] === q) {
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            prevToken = "str";
+            continue;
+        }
+        if (c === "/" && body[i + 1] === "/") {
+            while (i < n && body[i] !== "\n") i++;
+            continue;
+        }
+        if ("([{".includes(c)) {
+            depth++;
+            prevToken = c;
+            i++;
+            continue;
+        }
+        if (")]}".includes(c)) {
+            depth--;
+            prevToken = c;
+            i++;
+            continue;
+        }
+        if (depth === 0 && c === "." && body[i + 1] === ".") return { type: m[1], keys: null, spread: true };
+        if (depth === 0 && IDENT_START.test(c)) {
+            let k = i;
+            while (k < n && /\w/.test(body[k])) k++;
+            const word = body.slice(i, k);
+            let j = k;
+            while (j < n && /\s/.test(body[j])) j++;
+            // 简写字段（`flags,` / 尾随 `flags`）**只允许出现在"字段起始位"**，即前面
+            // 紧邻的深度 0 token 是 `,` 或整个字面量的开头。少了这个前置条件，
+            // 值里的裸标识符会被当成键：`expires_in: r.expires_in.max(0) as u64,`
+            // 会凭空多出一个键 `u64`（实测在 `register` 上就是这样）。
+            const atFieldStart = prevToken === "," || prevToken === "";
+            if (atFieldStart && (body[j] === "," || j >= n)) {
+                keys.push(word);
+                // 消费掉 `,`，于是下一个字段的"起始位"判据成立
+                prevToken = ",";
+                i = j + 1;
+                continue;
+            }
+            if (atFieldStart && body[j] === ":") {
+                keys.push(word);
+                prevToken = ":";
+                i = j + 1;
+                continue;
+            }
+            prevToken = word;
+            i = k;
+            continue;
+        }
+        // 只记录**非空白** token：把空格写进 prevToken 会让"字段起始位"判据永远不成立
+        // （`X { a, b, c }` 会解析出空键集 —— 这种"恒为空"的抽取器比漏抽更危险）。
+        if (!/\s/.test(c)) prevToken = c;
+        i++;
+    }
+    return { type: m[1], keys: [...new Set(keys)].sort(), spread: false };
+}
+
+/**
+ * 取 `serde_json::Map` 变量上 `insert("k", ..)` 的键集合。
+ *
+ * `cleanup_all` 就是这样组装的响应：它没有 `json!` 字面量，键是靠 `insert` 一个个塞进去的。
+ * `\b` 边界是必须的：`results.insert` 不能匹配到 `token_results.insert`，
+ * 否则会把嵌套 map 的键当成顶层键（`cleanup_all` 就会凭空多出 4 个 `*_deleted`）。
+ *
+ * @param {string} bodyText 函数体（或任意作用域文本）
+ * @param {string} varName
+ * @returns {string[] | null} 排序去重后的键；没有 `insert` 时 `null`（未知）
+ */
+export function collectMapInsertKeys(bodyText, varName) {
+    const re = new RegExp(`(?<![\\w.])${varName}\\s*\\.\\s*insert\\s*\\(\\s*"([^"]+)"`, "g");
+    const keys = [];
+    for (const m of bodyText.matchAll(re)) keys.push(m[1]);
+    return keys.length ? [...new Set(keys)].sort() : null;
+}
+
+/**
+ * 在作用域文本里找 `let <name> [: <type>] = <rhs>` 的绑定。
+ *
+ * @param {string} bodyText
+ * @param {string} name
+ * @returns {{ type: string | null, rhs: string } | null}
+ */
+export function findLetBinding(bodyText, name) {
+    const re = new RegExp(`(?<![\\w.])let\\s+(?:mut\\s+)?${name}\\s*(?::\\s*([^=;]+?))?\\s*=\\s*`, "g");
+    const m = re.exec(bodyText);
+    if (!m) return null;
+    const rhsStart = m.index + m[0].length;
+    const n = bodyText.length;
+    let depth = 0;
+    let i = rhsStart;
+    while (i < n) {
+        const c = bodyText[i];
+        if (c === '"' || c === "'") {
+            const q = c;
+            i++;
+            while (i < n) {
+                if (bodyText[i] === "\\") {
+                    i += 2;
+                    continue;
+                }
+                if (bodyText[i] === q) {
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            continue;
+        }
+        if ("([{".includes(c)) depth++;
+        else if (")]}".includes(c)) {
+            if (depth === 0) break;
+            depth--;
+        } else if (c === ";" && depth === 0) break;
+        i++;
+    }
+    return { type: m[1] ? m[1].replace(/\s+/g, " ").trim() : null, rhs: bodyText.slice(rhsStart, i).trim() };
+}
+
+/** 只有当被下沉的函数**可能**返回序列化结果时才允许下沉。 */
+const SHAPE_RETURN = /\bValue\b|\bJson\s*<|IntoResponse/;
+
+/**
+ * 造一个"响应形状解析器"：把 `Ok(Json(<expr>))` 的 `<expr>` 一路下沉到
+ * struct 定义 / struct 字面量 / `::from` / `Map::insert` / 同步辅助函数 / 委派目标。
+ *
+ * ## 判定不了就返回 `null`（= 未知），绝不猜
+ *
+ * 明确**不做**的事（都在 `null` 一侧）：
+ *   - 接收者类型推断：`ctx.foo_service.bar(..)` 的 `bar` 返回什么，需要知道
+ *     `AdminContext::foo_service` 的类型再找对应 `impl`；本仓 `bar` 常常在
+ *     services/storage 两处同名（`cleanup_abnormal_data` 有 3 处），靠名字下沉
+ *     会把"不知道"变成"知道"，方向错得比漏检更危险。这类留在 unknown 桶。
+ *   - `match` 模式绑定（`Some(n) => Ok(Json(json!(n)))`）的变量类型。
+ *   - `..` 展开的 struct 字面量。
+ *
+ * @param {{ structs: Map<string, { fields: string[], opaque?: boolean }>, functions: Map<string, { body: string, ret: string | null, topLevel: boolean, isHandler?: boolean, ambiguous?: boolean }> }} input
+ */
+export function createResponseResolver({ structs, functions }) {
+    const structShape = (name) => {
+        const st = structs.get(name);
+        if (!st || st.opaque) return null;
+        return { kind: "object", keys: st.fields };
+    };
+
+    const resolveExpr = (rawExpr, scope, depth) => {
+        if (depth > 5) return null;
+        let expr = rawExpr.trim();
+        expr = expr
+            .replace(/\s*\.await\s*\??\s*$/, "")
+            .replace(/\?\s*$/, "")
+            .trim();
+
+        // 1) json!(...) / serde_json::json!(...)
+        const jm = /^(?:[A-Za-z_]\w*\s*::\s*)*json!\s*\(/.exec(expr);
+        if (jm) {
+            const bang = expr.indexOf("!", jm[0].length - 2);
+            const keys = jsonMacroTopLevelKeys(expr, bang);
+            if (keys !== null) return [{ kind: "object", keys }];
+            // json!(ident) —— 参数不是对象字面量，跟着标识符走
+            const p = expr.indexOf("(", bang);
+            const s = balancedSlice(expr, p);
+            const inner = s ? s.text.slice(1, -1).trim() : "";
+            if (/^[A-Za-z_]\w*$/.test(inner)) return resolveIdent(inner, scope, depth + 1);
+            return null;
+        }
+
+        // 2) T::from(x) / T::try_from(x) —— 形状由 T 决定
+        const fm = /^([A-Za-z_]\w*)\s*::\s*(?:from|try_from)\s*\(/.exec(expr);
+        if (fm) {
+            const s = structShape(fm[1]);
+            return s ? [s] : null;
+        }
+
+        // 3) struct 字面量
+        const lit = structLiteralShape(expr);
+        if (lit) {
+            if (lit.spread || !lit.keys) return null;
+            const declared = structs.get(lit.type);
+            // 字面量本身就是真值；但若解析到的字段与 struct 定义对不上，说明是简写下标/多行
+            // 写法把解析带偏了 ⇒ 不猜。字面量写的是 **Rust 名**（`is_allowed: ..`）而
+            // `fields` 存的是 **JSON 键**（`allowed`），所以交叉校验必须用两者并集。
+            if (declared) {
+                const known = new Set([...declared.fields, ...(declared.rustFields ?? [])]);
+                if ([...known].some((k) => !lit.keys.includes(k))) return null;
+            }
+            return [{ kind: "object", keys: lit.keys }];
+        }
+
+        // 4) Value::Object(mapVar)
+        const vm = /^Value\s*::\s*Object\s*\(\s*([A-Za-z_]\w*)\s*\)$/.exec(expr);
+        if (vm) {
+            const keys = collectMapInsertKeys(scope.body ?? "", vm[1]);
+            return keys ? [{ kind: "object", keys }] : null;
+        }
+
+        // 5) 裸标识符 —— 看它的 let 绑定
+        if (/^[A-Za-z_]\w*$/.test(expr)) return resolveIdent(expr, scope, depth + 1);
+
+        // 6) 无接收者的自由函数调用 —— 下沉（受 SHAPE_RETURN 约束）
+        const cm = /^([A-Za-z_]\w*)\s*(?:::\s*[A-Za-z_]\w*)?\s*\(/.exec(expr);
+        if (cm) return resolveFunction(functions.get(cm[1]), depth + 1);
+
+        // 7) 其余（方法链等）—— 未知
+        return null;
+    };
+
+    const resolveIdent = (name, scope, depth) => {
+        if (depth > 5) return null;
+        const b = findLetBinding(scope.body ?? "", name);
+        if (!b) return null;
+        if (b.type) {
+            const vec = /^(?:std\s*::\s*vec\s*::\s*)?Vec\s*<\s*([A-Za-z_]\w*)\s*>$/.exec(b.type);
+            if (vec) {
+                const item = structs.get(vec[1]);
+                return [
+                    {
+                        kind: "array",
+                        item: item ? vec[1] : null,
+                        itemKeys: item && !item.opaque ? item.fields : null,
+                    },
+                ];
+            }
+            const st = structs.get(b.type);
+            if (st) return st.opaque ? null : [{ kind: "object", keys: st.fields }];
+            // 类型标注不是已知 struct（`Value` / 泛型 / 自定义枚举）⇒ 不据此断言形状
+        }
+        return resolveExpr(b.rhs, scope, depth + 1);
+    };
+
+    const resolveFunction = (fn, depth) => {
+        if (!fn || fn.ambiguous || depth > 5) return null;
+        if (!fn.isHandler && !(fn.topLevel && SHAPE_RETURN.test(fn.ret ?? ""))) return null;
+        const exprs = extractJsonReturnExprs(fn.body);
+        if (exprs.length) {
+            const out = [];
+            for (const e of exprs) {
+                const s = resolveExpr(e, { body: fn.body }, depth + 1);
+                if (!s) return null; // 任一分支判不出来 ⇒ 整个处理器"未知"，不给半份结论
+                out.push(...s);
+            }
+            return out;
+        }
+        const tail = tailExpression(fn.body);
+        if (!tail) return null;
+        return resolveExpr(tail, { body: fn.body }, depth + 1);
+    };
+
+    return {
+        /** @param {{ body: string, ret: string | null, name: string }} fn */
+        resolveHandler(fn) {
+            return resolveFunction({ ...fn, isHandler: true, topLevel: true }, 0);
+        },
+        resolveExpr,
+    };
 }
 
 /**
@@ -464,28 +1017,60 @@ export function parseRouteTable(src) {
 }
 
 /**
- * 收集后端 admin 契约：路由 → { handler, responseVariants, io, bodyStruct }。
+ * 收集后端 admin 契约：路由 → { handler, responseShapes, responseVariants, io, bodyStruct }。
  *
- * @param {{ routesDir: string }} options
+ * `sinkDirs` 是**响应形状的下沉目录**：响应 struct 常常定义在 `synapse-storage/src` /
+ * `synapse-common/src`（`ServerNotification` / `AuditEvent` / `RateLimitConfig` …），
+ * 而辅助函数（`fn report_to_json(..) -> Value`）也在 `synapse-web/src` 里。
+ * 不索引它们，`Ok(Json(<struct>))` 这一大类处理器就只能落进"未知"桶 —— 沉默不是通过。
+ *
+ * ## `responseShapes` 与 `responseVariants` 的关系
+ *
+ * `responseShapes` 是**严格**结论：所有返回分支都能判定才算数，任一分支判不出来就整体
+ * `null`（不交半份结论）。`responseVariants` 是兼容旧台账/旧 spec 的**对象视图**：
+ * 全部变体都是对象时才给出键集，否则 `null`。
+ *
+ * @param {{ routesDir: string, sinkDirs?: string[] }} options
  * @returns {Promise<{ byRoute: Map<string, object>, stats: object, files: string[] }>}
  */
-export async function collectRustAdminContract({ routesDir }) {
-    const files = [];
+export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
     const walk = (dir) => {
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, e.name);
-            if (e.isDirectory()) walk(full);
-            else if (e.name.endsWith(".rs")) files.push(full);
-        }
+        const out = [];
+        const rec = (d) => {
+            for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+                const full = path.join(d, e.name);
+                if (e.isDirectory()) rec(full);
+                else if (e.name.endsWith(".rs")) out.push(full);
+            }
+        };
+        rec(dir);
+        return out;
     };
-    walk(routesDir);
+    const files = walk(routesDir);
+    const sinkFiles = [];
+    for (const d of sinkDirs) if (fs.existsSync(d)) sinkFiles.push(...walk(d));
+
     const byRoute = new Map();
     const structs = new Map();
+    const structHits = new Map();
     const perFile = new Map();
-    for (const f of files) {
+    const rawFunctions = new Map();
+    for (const f of [...files, ...sinkFiles]) {
         const src = stripRustComments(fs.readFileSync(f, "utf8"));
-        perFile.set(f, src);
-        for (const [k, v] of parseDeserializeStructs(src)) structs.set(k, v);
+        if (files.includes(f)) perFile.set(f, src);
+        // 同一个 struct 名在多处定义时，字段集不同就说明"名字撞了" ⇒ 标 opaque 拒绝下沉。
+        for (const [k, v] of parseSerdeStructs(src)) {
+            structHits.set(k, (structHits.get(k) ?? 0) + 1);
+            const prev = structs.get(k);
+            if (!prev) structs.set(k, v);
+            else if (prev.fields.join(",") !== v.fields.join(",")) structs.set(k, { ...prev, opaque: true });
+            else structs.set(k, { ...prev, opaque: prev.opaque || v.opaque });
+        }
+        for (const fn of findAllRustFunctions(src)) {
+            const list = rawFunctions.get(fn.name) ?? [];
+            list.push({ ...fn, ret: extractReturnType(fn.sig), file: f });
+            rawFunctions.set(fn.name, list);
+        }
     }
     const handlerRoutes = new Map();
     for (const src of perFile.values()) {
@@ -499,6 +1084,35 @@ export async function collectRustAdminContract({ routesDir }) {
             }
         }
     }
+
+    /**
+     * 按名字挑出**唯一**可下沉的函数定义。
+     *
+     * 名字撞了就返回 `null`（拒绝下沉），而不是"随便挑一个"：本仓同一方法名在多个
+     * `impl` 里重复定义很常见，猜错会把"不知道"变成"知道"，而错的形状比未知更危险。
+     *
+     * @param {string} name
+     * @returns {object | null}
+     */
+    const pickFunction = (name) => {
+        const list = rawFunctions.get(name);
+        if (!list) return null;
+        if (handlerRoutes.has(name)) {
+            // 路由指向的处理器：限定在**扫描根之内**、且返回类型像响应（排除同名普通函数）
+            const inRoutes = list.filter(
+                (f) => f.file.startsWith(routesDir + path.sep) && SHAPE_RETURN.test(f.ret ?? ""),
+            );
+            if (inRoutes.length === 1) return inRoutes[0];
+            return null;
+        }
+        const tops = list.filter((f) => f.topLevel);
+        return tops.length === 1 ? tops[0] : null;
+    };
+    const functions = new Map();
+    for (const name of rawFunctions.keys()) functions.set(name, pickFunction(name));
+
+    const resolver = createResponseResolver({ structs, functions });
+
     let handlerCount = 0;
     let responseKnown = 0;
     let requestKnown = 0;
@@ -508,7 +1122,15 @@ export async function collectRustAdminContract({ routesDir }) {
             const routes = handlerRoutes.get(fn.name);
             if (!routes) continue;
             handlerCount++;
-            const responseVariants = extractResponseVariants(fn.body);
+            const responseShapes = resolver.resolveHandler({
+                name: fn.name,
+                body: fn.body,
+                ret: extractReturnType(fn.sig),
+            });
+            const responseVariants =
+                responseShapes && responseShapes.every((s) => s.kind === "object")
+                    ? responseShapes.map((s) => s.keys)
+                    : null;
             const io = extractHandlerIo(fn.sig);
             const bodyStruct = io.jsonType && structs.has(io.jsonType) ? structs.get(io.jsonType) : null;
             if (responseVariants) responseKnown++;
@@ -521,6 +1143,7 @@ export async function collectRustAdminContract({ routesDir }) {
                     rawRoute,
                     file: path.relative(routesDir, f),
                     handler: fn.name,
+                    responseShapes,
                     responseVariants,
                     io,
                     bodyStruct: bodyStruct
@@ -540,6 +1163,7 @@ export async function collectRustAdminContract({ routesDir }) {
         files: files.map((f) => path.relative(routesDir, f)),
         stats: {
             fileCount: files.length,
+            sinkFileCount: sinkFiles.length,
             handlerCount,
             responseKnown,
             requestKnown,
@@ -783,11 +1407,23 @@ export async function collectSdkAdminContract({ srcDir, prefixes = {} }) {
                     const a = args[i];
                     return typeof a === "string" && a.length > 0 && a !== "undefined" && a !== "void 0";
                 };
+                // 这个调用点是不是**原样返回**（`return [await] this.adminRequest(..);`）？
+                //
+                // 决定了"方法的声明返回类型"能不能当**线格式声明**用：
+                //   `return await this.adminRequest<T>(..)` ⇒ 响应原样交给调用方 ⇒ T 就是线格式；
+                //   `const r = await this.adminRequest(..); return r.destinations;`
+                //   ⇒ 声明返回类型是**加工后**的值，拿它去比后端响应形状会误报
+                //   （`getFederationDestinations` 就这样被误报成"SDK 声明数组、后端返回对象"）。
+                const beforeCall = slice.text.slice(0, cm.index);
+                const afterCall = slice.text.slice(callSlice.end).replace(/^\s*/, "");
+                const directReturn =
+                    /(?:^|[;{}\s])return\s+(?:await\s+)?this\s*\.\s*$/.test(beforeCall) && afterCall.startsWith(";");
                 callSites.push({
                     file: path.relative(path.dirname(srcDir), f),
                     managerMethod: m[1],
                     declaredReturn,
                     typeArg: cm[2] ? cm[2].replace(/\s+/g, " ").trim() : null,
+                    directReturn,
                     httpMethod: hm[1].toUpperCase(),
                     route: `${hm[1].toUpperCase()} ${norm}`,
                     argCount: args.length,

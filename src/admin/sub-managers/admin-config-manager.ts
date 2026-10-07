@@ -37,15 +37,12 @@ import type {
     AdminModuleLogPage,
     AdminAccountValidityInfo,
     AdminPasswordAuthProvider,
-    AdminPasswordAuthProviderPage,
     AdminPresenceRoute,
     AdminPresenceRoutePage,
     AdminMediaCallback,
-    AdminMediaCallbackPage,
     AdminRateLimitCallback,
     AdminRateLimitCallbackPage,
     AdminAccountDataCallback,
-    AdminAccountDataCallbackPage,
     AdminInviteAllowlist,
     AdminInviteBlocklist,
     AdminJitsiConfig,
@@ -261,7 +258,20 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Get, "/modules", query);
     }
 
-    async listModulesByType(moduleType: string): Promise<AdminModulePage> {
+    /**
+     * 按类型列出模块。
+     *
+     * ⚠️ 后端 `module.rs::get_modules_by_type` 返回的是**裸数组**（`Vec<ModuleResponse>`），
+     * 不是 `{modules, next_batch}` 包装对象 —— 旧类型声明为 `AdminModulePage` 会让调用方
+     * 在 `result.modules.map(...)` 上直接抛 `TypeError`。
+     *
+     * @example
+     * ```typescript
+     * const modules = await adminManager.listModulesByType("spam_checker");
+     * console.log(modules.map((m) => m.module_name));
+     * ```
+     */
+    async listModulesByType(moduleType: string): Promise<AdminModuleInfo[]> {
         return await this.adminRequest(Method.Get, `/modules/type/${encodeURIComponent(moduleType)}`);
     }
 
@@ -501,7 +511,16 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Password Auth Providers =====
 
-    async listPasswordAuthProviders(): Promise<AdminPasswordAuthProviderPage> {
+    /**
+     * 列出密码认证提供方（后端返回**裸数组**，无 `{providers, total}` 包装）。
+     *
+     * @example
+     * ```typescript
+     * const providers = await adminManager.listPasswordAuthProviders();
+     * console.log(providers.map((p) => p.provider_name));
+     * ```
+     */
+    async listPasswordAuthProviders(): Promise<AdminPasswordAuthProvider[]> {
         return await this.adminRequest(Method.Get, "/password_auth_providers");
     }
 
@@ -521,11 +540,29 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Media Callbacks =====
 
-    async listMediaCallbacks(): Promise<AdminMediaCallbackPage> {
+    /**
+     * 列出媒体回调**任务记录**（后端返回**裸数组**，无 `{callbacks, total}` 包装）。
+     *
+     * @example
+     * ```typescript
+     * const jobs = await adminManager.listMediaCallbacks();
+     * console.log(jobs.map((j) => j.status));
+     * ```
+     */
+    async listMediaCallbacks(): Promise<AdminMediaCallback[]> {
         return await this.adminRequest(Method.Get, "/media_callbacks");
     }
 
-    async listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallbackPage> {
+    /**
+     * 按 `callback_type` 过滤媒体回调任务记录（后端同样返回**裸数组**）。
+     *
+     * @example
+     * ```typescript
+     * const jobs = await adminManager.listMediaCallbacksByType("on_upload");
+     * console.log(jobs.length);
+     * ```
+     */
+    async listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallback[]> {
         return await this.adminRequest(Method.Get, `/media_callbacks/${encodeURIComponent(callbackType)}`);
     }
 
@@ -545,7 +582,16 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Account Data Callbacks =====
 
-    async listAccountDataCallbacks(): Promise<AdminAccountDataCallbackPage> {
+    /**
+     * 列出账户数据回调配置（后端返回**裸数组**，无 `{callbacks, total}` 包装）。
+     *
+     * @example
+     * ```typescript
+     * const hooks = await adminManager.listAccountDataCallbacks();
+     * console.log(hooks.filter((h) => h.is_enabled).length);
+     * ```
+     */
+    async listAccountDataCallbacks(): Promise<AdminAccountDataCallback[]> {
         return await this.adminRequest(Method.Get, "/account_data_callbacks");
     }
 

@@ -15,6 +15,14 @@ export interface RustRouteContract {
     handler: string;
     /** 各分支「返回位置」`json!` 的第一层键；`null` 表示无法判定（非对象字面量/先算后组装） */
     responseVariants: string[][] | null;
+    /**
+     * 各返回分支的**响应形状**（严格结论：任一分支判不出来就是 `null`）。
+     *
+     * `object` 给出 JSON 键集；`array` 表示顶层是数组，`item` / `itemKeys` 为元素类型信息。
+     */
+    responseShapes: Array<
+        { kind: "object"; keys: string[] } | { kind: "array"; item: string | null; itemKeys: string[] | null }
+    > | null;
     /** Query / Path / Json 提取器（只看参数表，不看返回类型） */
     io: {
         hasQuery: boolean;
@@ -36,6 +44,8 @@ export interface RustAdminContract {
     files: string[];
     stats: {
         fileCount: number;
+        /** 响应形状下沉目录（storage / common / services）里扫到的文件数 */
+        sinkFileCount?: number;
         handlerCount: number;
         responseKnown: number;
         requestKnown: number;
@@ -50,6 +60,8 @@ export interface SdkCallSite {
     managerMethod: string;
     declaredReturn: string | null;
     typeArg: string | null;
+    /** 调用点是否**原样返回**（`return [await] this.adminRequest(..);`）—— 决定声明返回类型能否当线格式声明 */
+    directReturn: boolean;
     httpMethod: string;
     /** `METHOD /归一化路径` */
     route: string;
@@ -95,14 +107,69 @@ export function extractResponseVariants(fnBody: string): string[][] | null;
 /** 抽取带 `Deserialize` 的 struct 字段与 `deny_unknown_fields`。 */
 export function parseDeserializeStructs(src: string): Map<string, { fields: string[]; denyUnknownFields: boolean }>;
 
+/** 索引带 `Serialize` / `Deserialize` 的 struct：JSON 键、Rust 名、派生列表与 `opaque`。 */
+export function parseSerdeStructs(
+    src: string,
+): Map<
+    string,
+    { fields: string[]; rustFields?: string[]; denyUnknownFields: boolean; derives: string[]; opaque: boolean }
+>;
+
+/** 扫描 struct 体，取每个字段的 JSON 键（应用字段级 `#[serde(rename)]`）与 Rust 名。 */
+export function scanStructFields(bodyText: string): { rust: string[]; json: string[]; unparsedRename: boolean };
+
+/** 取 struct 字面量 `Type { a, b: v }` 的一层字段名；`..spread` 时 `keys` 为 `null`。 */
+export function structLiteralShape(text: string): { type: string; keys: string[] | null; spread: boolean } | null;
+
+/** 取 `serde_json::Map` 变量上 `insert("k", ..)` 的顶层键；没有 `insert` 时 `null`。 */
+export function collectMapInsertKeys(bodyText: string, varName: string): string[] | null;
+
+/** 在作用域文本里找 `let <name> [: <type>] = <rhs>` 的绑定。 */
+export function findLetBinding(bodyText: string, name: string): { type: string | null; rhs: string } | null;
+
+/** 按深度 0 的分隔符切分文本。 */
+export function splitTopLevel(text: string, sep: string): string[];
+
+/** 取 Rust 块体的尾表达式（Rust 里函数体尾表达式就是返回值）。 */
+export function tailExpression(body: string): string | null;
+
+/** 找函数体里所有 `Ok(Json(<expr>))` 的 `<expr>`（含 `Ok((StatusCode, Json(..)))` 元组形态）。 */
+export function extractJsonReturnExprs(fnBody: string): string[];
+
+/** 取 `fn` 签名里的返回类型文本。 */
+export function extractReturnType(sig: string): string | null;
+
+/** 找出所有 `fn`（含同步函数）；`topLevel` 只对行首无缩进的定义为真。 */
+export function findAllRustFunctions(
+    src: string,
+): Array<{ name: string; sig: string; body: string; topLevel: boolean; start: number }>;
+
+/** 响应形状。 */
+export type ResponseShape = { kind: "object"; keys: string[] } | { kind: "array"; item: string | null };
+
+/** 造一个「响应形状解析器」：把 `Ok(Json(<expr>))` 下沉到 struct / 辅助函数；判不出来返回 `null`。 */
+export function createResponseResolver(input: {
+    structs: Map<string, { fields: string[]; rustFields?: string[]; opaque?: boolean }>;
+    functions: Map<
+        string,
+        { body: string; ret: string | null; topLevel: boolean; isHandler?: boolean; ambiguous?: boolean } | null
+    >;
+}): {
+    resolveHandler(fn: { name?: string; body: string; ret?: string | null }): ResponseShape[] | null;
+    resolveExpr(expr: string, scope: { body?: string }, depth?: number): ResponseShape[] | null;
+};
+
 /** 从**参数表**抽取 Query / Path / Json 提取器。 */
 export function extractHandlerIo(sig: string): RustRouteContract["io"];
 
 /** 解析 `.route("path", get(handler))` 表（支持多行与 `mod::handler` 限定路径）。 */
 export function parseRouteTable(src: string): Array<{ path: string; methods: string[]; handlers: string[] }>;
 
-/** 收集后端契约。 */
-export function collectRustAdminContract(options: { routesDir: string }): Promise<RustAdminContract>;
+/** 收集后端契约。`sinkDirs` 是响应形状的下沉目录（storage / common / services）。 */
+export function collectRustAdminContract(options: {
+    routesDir: string;
+    sinkDirs?: string[];
+}): Promise<RustAdminContract>;
 
 /** 归一化路径参数段为 `{x}`。 */
 export function normalizePath(p: string): string;

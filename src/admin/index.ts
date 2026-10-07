@@ -66,7 +66,6 @@ import {
     type ServerStatus,
     type ServerHealth,
     type ServerInfo,
-    type AdminCleanupResponse,
     type AccountStatus,
     type ServerNotice,
     type ServerNoticePage,
@@ -120,15 +119,12 @@ import {
     type AdminModuleLogPage,
     type AdminAccountValidityInfo,
     type AdminPasswordAuthProvider,
-    type AdminPasswordAuthProviderPage,
     type AdminPresenceRoute,
     type AdminPresenceRoutePage,
     type AdminMediaCallback,
-    type AdminMediaCallbackPage,
     type AdminRateLimitCallback,
     type AdminRateLimitCallbackPage,
     type AdminAccountDataCallback,
-    type AdminAccountDataCallbackPage,
     type AdminInviteAllowlist,
     type AdminInviteBlocklist,
     type AdminJitsiConfig,
@@ -203,6 +199,12 @@ import { AdminMediaManager } from "./sub-managers/admin-media-manager";
 import { AdminConfigManager } from "./sub-managers/admin-config-manager";
 import { AdminExternalServiceManager } from "./sub-managers/admin-external-service-manager";
 import { AdminCleanupManager } from "./sub-managers/admin-cleanup-manager";
+// `AdminManager` 接口要用到这几个**响应**类型（`export … from` 不产生本地绑定，必须单独 import）
+import type {
+    CleanupAllResponse,
+    CleanupRoomsResponse,
+    CleanupTokensResponse,
+} from "./sub-managers/admin-cleanup-manager";
 import { AdminNotificationManager } from "./sub-managers/admin-notification-manager";
 import { AdminReportManager } from "./sub-managers/admin-report-manager";
 import { AdminPolicyManager } from "./sub-managers/admin-policy-manager";
@@ -452,7 +454,7 @@ export interface AdminManager {
         delete_old_events?: boolean;
         delete_old_rooms?: boolean;
         delete_old_users?: boolean;
-    }): Promise<AdminCleanupResponse>;
+    }): Promise<CleanupAllResponse>;
     getServerNotices(fromOrLimit?: string | number, limit?: number): Promise<ServerNoticePage>;
     sendServerNotice(
         arg1: string,
@@ -478,9 +480,9 @@ export interface AdminManager {
     purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse>;
     purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult>;
     shutdownRoom(payload: ShutdownRoomRequest): Promise<AdminShutdownRoomResult>;
-    cleanupAll(payload?: { min_age_ms?: number }): Promise<AdminCleanupResponse>;
-    cleanupRooms(payload?: CleanupRoomsRequest): Promise<AdminCleanupResponse>;
-    cleanupTokens(): Promise<AdminCleanupResponse>;
+    cleanupAll(payload?: { min_age_ms?: number }): Promise<CleanupAllResponse>;
+    cleanupRooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse>;
+    cleanupTokens(): Promise<CleanupTokensResponse>;
 
     // ----- 联邦管理（→ federation） -----
     getFederationBlacklist(options?: { from?: string; limit?: number }): Promise<FederationBlacklistPage>;
@@ -557,7 +559,7 @@ export interface AdminManager {
     listFeatureFlags(options?: Record<string, string | number | undefined>): Promise<FeatureFlagPage>;
     updateFeatureFlag(flagId: string, payload: FeatureFlagUpdatePayload): Promise<FeatureFlag>;
     listModules(options?: { limit?: number; from?: string }): Promise<AdminModulePage>;
-    listModulesByType(moduleType: string): Promise<AdminModulePage>;
+    listModulesByType(moduleType: string): Promise<AdminModuleInfo[]>;
     updateModuleConfig(moduleId: string, config: DynamicConfig): Promise<AdminModuleInfo>;
     setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<AdminModuleInfo>;
     getModuleLogs(moduleId: string, options?: { limit?: number; from?: number }): Promise<AdminModuleLogPage>;
@@ -582,16 +584,16 @@ export interface AdminManager {
     createAccountValidity(payload: AccountValidityRequest): Promise<AdminAccountValidityInfo>;
     getAccountValidity(userId: string): Promise<AdminAccountValidityInfo>;
     renewAccountValidity(userId: string, payload: AccountValidityRenewRequest): Promise<AdminAccountValidityInfo>;
-    listPasswordAuthProviders(): Promise<AdminPasswordAuthProviderPage>;
+    listPasswordAuthProviders(): Promise<AdminPasswordAuthProvider[]>;
     createPasswordAuthProvider(payload: DynamicConfig): Promise<AdminPasswordAuthProvider>;
     listPresenceRoutes(): Promise<AdminPresenceRoutePage>;
     createPresenceRoute(payload: DynamicConfig): Promise<AdminPresenceRoute>;
-    listMediaCallbacks(): Promise<AdminMediaCallbackPage>;
-    listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallbackPage>;
+    listMediaCallbacks(): Promise<AdminMediaCallback[]>;
+    listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallback[]>;
     createMediaCallback(payload: DynamicConfig): Promise<AdminMediaCallback>;
     listRateLimitCallbacks(): Promise<AdminRateLimitCallbackPage>;
     createRateLimitCallback(payload: DynamicConfig): Promise<AdminRateLimitCallback>;
-    listAccountDataCallbacks(): Promise<AdminAccountDataCallbackPage>;
+    listAccountDataCallbacks(): Promise<AdminAccountDataCallback[]>;
     createAccountDataCallback(payload: DynamicConfig): Promise<AdminAccountDataCallback>;
     getInviteAllowlist(): Promise<AdminInviteAllowlist>;
     getInviteBlocklist(): Promise<AdminInviteBlocklist>;

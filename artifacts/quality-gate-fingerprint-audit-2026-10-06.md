@@ -2434,6 +2434,118 @@ expect(members).toHaveLength(2);
 
 ---
 
+### 7.15-28 下沉到 struct 定义：`backend-shape-unknown` 55 → 19，又挖出 21 处真缺陷
+
+§7.15-27 的「已知覆盖缺口」第 1 条就是本节。55 处 `backend-shape-unknown` 的共同特征是
+**处理器不写 `json!({...})` 字面量**：它 `Ok(Json(SomeStruct))`、`Ok(Json(Struct::from(x)))`、
+`Ok(Json(Value::Object(map)))`、或者干脆委派给另一个函数。本节把抽取器往下沉一层。
+
+#### 1. 新增的解析规则（每条都配「判不出来 ⇒ null」）
+
+| 规则                                              | 例子                                                                               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `serde_json::json!` 限定写法                      | `Ok(Json(serde_json::json!({…})))`（旧正则只认裸 `json!`）                          |
+| **元组响应**                                      | `Ok((StatusCode::CREATED, Json(T::from(x))))`                                       |
+| struct 字面量取一层键（含简写 `flags,`）          | `Ok(Json(FeatureFlagListResponse { flags, total, next_batch }))`                    |
+| `T::from(x)` / `T::try_from(x)`                   | `Ok(Json(ModuleResponse::from(module)))`                                            |
+| `serde_json::Map` 的 `.insert("k", …)` 键集       | `cleanup_all` / `cleanup_tokens` / `cleanup_abnormal_data`                          |
+| `let x: T = …` / `let x = T { … }` 的绑定追踪     | `let responses: Vec<ModuleResponse> = …` ⇒ 得到**数组**形状（含元素 struct 字段）    |
+| 纯委派（体内无 `Ok(Json(..))`，尾表达式是函数调用） | `purge_history_by_room` → `purge_history`；`{set,get}_user_override_rate_limit`     |
+| 同步辅助函数（`fn report_to_json(..) -> Value`）  | `get_report` / `get_room_report`                                                    |
+
+配套的 struct 索引也从 `routesDir`（`synapse-web/src`）扩到 `synapse-storage/src` /
+`synapse-common/src` / `synapse-services/src` —— 响应 struct 本来就定义在那里
+（`ServerNotification` / `AuditEvent` / `RateLimitConfig` …），只索引 web 层等于放弃这一整类。
+
+**刻意不做的两件事**（都留在"未知"一侧）：
+① **接收者类型推断**：`ctx.room_service.state().cleanup_abnormal_data(..)` 的返回形状需要先解析
+`AdminContext` 的字段类型再找 `impl`；而 `cleanup_abnormal_data` 在本仓有 **3 处**同名定义
+（services 一处 + storage 两处），靠名字下沉会把"不知道"变成"知道"。
+② **`match` 模式绑定的变量类型**：`Some(n) => Ok(Json(json!(n)))`。
+
+#### 2. 抽取器又错了 3 次（累计 12 次），全部是「静默给错答案」
+
+| #   | 坑                                                                 | 症状                                                                                              |
+| --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| 10  | struct 字面量把**值里的裸标识符**当简写字段                        | `expires_in: r.expires_in.max(0) as u64,` 凭空多出一个键 `u64` ⇒ `register` 被报成"SDK 多声明 nonce" |
+| 11  | 修 #10 时把**空白**也写进「上一个 token」                          | 字段起始位判据永不成立 ⇒ 键集**恒为空**，`feature-flags`/`modules`/`register` 集体隐身             |
+| 12  | 元组响应整体是**一个**以 `(` 开头的实参                             | 只按 `,` 切会整段跳过 ⇒ 所有"带状态码的创建类"处理器（十几处）落进未知桶                           |
+
+#11 尤其值得记：它是**修 bug 引入的 bug**，而症状（空键集）与"确实没有字段"无法区分 ——
+正是 §7.15-27 那条"沉默不等于通过"的同类。6 条新规则全部做了**变异自证**（删掉字段起始位判据 /
+把空白写进 token / 不拆元组 / 去掉 `collectMapInsertKeys` 的标识符边界 / 忽略字段级 `rename` /
+在方法链上"猜一个形状" ⇒ **6/6 变红**）。
+
+#### 3. 顺带修正一处方向性错误：比对基准应是「线格式声明」，不是「方法返回类型」
+
+门禁原先拿**方法的声明返回类型**去比后端响应形状。这在本仓不成立：存在一批**加工后返回**的方法
+（`const r = await this.adminRequest(..); return r.destinations;`），它们的返回类型是"加工后的值"。
+实测 `getFederationDestinations` 因此被误报成"SDK 声明数组、后端返回对象"。
+
+改为三级判据：
+1. 显式泛型实参 `adminRequest<T>(…)` ⇒ **T 是线格式**；T 是内联对象字面量类型
+   （`{ destinations: … }`）时它只是"这个方法消费的字段"的窄视图 ⇒ 判不了，落回未知桶；
+2. 无泛型实参且调用点**原样 `return`**（新增 `directReturn` 判据）⇒ 声明返回类型即线格式；
+3. 其余 ⇒ 未知。**不拿声明返回类型兜底**。
+
+同时新增 **数组/对象种类**比对（`response-kind`）：后端返回裸数组而 SDK 声明对象时，
+调用方会在 `.modules.map()` 上直接抛 `TypeError`，比字段名错更致命。
+
+#### 4. 门禁立即找出的 21 处真缺陷（全部已修）
+
+| # | 端点 / 类型 | 事实 |
+| --- | --- | --- |
+| 1 | `POST /register` → `AdminRegisterResult` | 多声明 `nonce`（nonce 是**请求侧**参数，后端从不回显）—— 同步修 `docs/api-contract/admin.md` 的 DTO 块并重跑 codegen |
+| 2 | `GET /feature-flags` → `FeatureFlagPage` | 缺游标 `next_batch` |
+| 3 | `GET /modules` → `AdminModulePage` | 游标实为 `next_batch`（原 `next_token`），且**不返回** `total` |
+| 4-5 | `PUT /modules/{x}/config`、`POST /modules/{x}/enable` → `AdminModuleInfo` | 主键写成 `module_id`（后端全仓**没有这个键**，主键叫 `id`、名字叫 `module_name`），另漏 10 个真实字段（`version`/`priority`/4 个时间戳/执行统计） |
+| 6 | `GET /modules/type/{x}` | 后端返回**裸数组**，SDK 声明 `AdminModulePage` |
+| 7-9 | `POST/GET /account_validity…` ×3 → `AdminAccountValidityInfo` | 缺 `last_check_at`/`renewal_token`/`created_ts`/`updated_ts` |
+| 10-11 | `POST /password_auth_providers` → `AdminPasswordAuthProvider` | 缺 `id`/`is_enabled`/`priority`/2 个时间戳 |
+| 12 | `GET /password_auth_providers` | 裸数组（原 `AdminPasswordAuthProviderPage`）—— 类型已删 |
+| 13-15 | `GET /media_callbacks`、`GET /media_callbacks/{type}` | 裸数组；且 `AdminMediaCallback` 整体是**错的概念**：后端返回的是"回调**任务执行记录**"（`media_id`/`user_id`/`status`/`result`/`completed_ts`），SDK 声明的是"注册项"（`callback_name`/`url`/`config`） |
+| 16 | `GET /account_data_callbacks` | 裸数组 + 缺 `id`/`is_enabled`/`data_types`/`created_ts`、多 `callback_type` |
+| 17-19 | `POST /cleanup/all`、`POST /cleanup/tokens`、`CleanupRoomsResponse` | `AdminCleanupResponse`（`{cleaned, cleaned_count, message}`）**三个键后端一个都不返回**；`CleanupAllResponse.rooms` 也编错（实为 `{deleted_events_in_empty_rooms, deleted_empty_rooms}`）；`CleanupRoomsResponse` 的 `{rooms: number}` 同样错。**正确的 `CleanupTokensResponse` 本就在同文件里**，只是没人用它 |
+| 20 | `POST /register` 的 DTO 与手写类型 | 同 1（契约文档 → codegen 链） |
+| 21 | `spec/unit/admin/sub-managers/admin-cleanup-manager.spec.ts` | **第 8 次**「mock 自造形状 + 断言该形状」：mock 返回 `{rooms: {rooms_deleted, events_deleted}}` 并断言 `result.rooms.rooms_deleted`，而这两个键后端都不存在 |
+
+#### 5. 结果
+
+| 指标 | §7.15-27 | 本节 |
+| --- | --- | --- |
+| 可比对行 | 75 | **114** |
+| `entries`（已核对一致） | 68 | **107**（含 8 行数组元素） |
+| `backend-shape-unknown` | 55 | **19** |
+| `array-return` | 8 | **1** |
+| 覆盖桶合计 | 81 | **42** |
+| `route-not-resolved` | 18 | 18（不变） |
+
+新增覆盖桶 `inline-type-arg` **4**（内联对象字面量泛型实参，见 §3 判据 1）—— 属**新暴露**的
+"判不了"类别，不是从别处搬来的；同理原 `backend-shape-unknown` 里有 5 处（`get_room_stats`/
+`get_single_room_stats`/`get_server_notice`/`get_audit_event` 等）因"接收者类型不推断"留在原地。
+
+守卫 spec 从 27 例扩到 **39 例**；`tsc` 0 错；`quality:contracts`（含 `contract:codegen:check`）/
+`real-backend-types`(0/0) / `lint:knip` / `gate-reachability`（50 可达 / 4 豁免）全绿；
+`public-api-docs` 台账下调（`AdminConfigManager` `missingJsDoc` 39→34，同时给 5 个新写 JSDoc 的方法补 `@example`）。
+
+门禁级变异自证：删掉 SDK `FeatureFlagPage.next_batch` ⇒ **CI 半场 `sdk-drift` + 工作区半场
+`response-shape` 双红**（证明两个半场都活着）。
+
+#### 6. 下一轮续接点（诚实记录）
+
+- **接收者类型推断**：`ctx.<field>.<method>(…)` 下沉（需从 `AdminContext` 取字段类型再去 `impl` 里找
+  唯一实现）。这一条能把剩下 19 + 1 处 `backend-shape-unknown` / `array-return` 里的多数解决，
+  但必须先解决"同名方法"（`cleanup_abnormal_data` 3 处）的歧义策略。
+- **请求体字段名**：`bodyStruct.fields` 已经抽出来了，却**没有参与比对** —— 因为 SDK 侧
+  `createXxx(payload: DynamicConfig)` 把请求体声明成松散字典，两边对不起来。
+  实测 `createAccountDataCallback({callback_name, callback_type, config})` 里的 `callback_type`
+  后端**静默忽略**（该 body 无 `deny_unknown_fields`），而 `CreateMediaCallbackBody` 有 ⇒ 会 400。
+  要关这个洞得先把 SDK 的请求体签名收紧成真实接口。
+- **嵌套形状**：门禁只比顶层键。`CleanupAllResponse.rooms` 的错（本节已手工修）它抓不到。
+- `route-not-resolved` 18 处的成因与处置见 §7.15-27 §5。
+
+---
+
 ## 附录 A：核验命令（可复现）
 
 ```bash
@@ -2504,7 +2616,15 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-27：**把六轮人工核对固化成门禁** `quality:admin-response-contract`
+**最后更新**: 2026-10-07（§7.15-28：**下沉到 struct 定义**，把 `backend-shape-unknown` 从 55 压到 19
+（覆盖桶合计 81 → 42、可比对 75 → 114），又挖出并修掉 **21 处**真缺陷 —— `AdminCleanupResponse`
+三个键后端一个都不返回、`AdminModuleInfo` 主键写成后端不存在的 `module_id`、`AdminMediaCallback`
+把"回调任务记录"当"注册项"、5 个列表端点后端返**裸数组**而 SDK 声明包装对象（调用方 `.modules.map()`
+必抛）、`AdminRegisterResult.nonce` 是请求侧参数；同时修正比对基准（线格式声明 ≠ 方法返回类型，
+`directReturn` + 泛型实参三级判据，消除 `getFederationDestinations` 这类假阳性）并新增数组/对象种类比对；
+抽取器又错 3 次（值里的裸标识符被当简写字段 / 空白顶掉 token 导致键集恒空 / 元组响应整段跳过），
+6 条新规则做了 6/6 变异自证；spec 27 → 39 例。
+§7.15-27：**把六轮人工核对固化成门禁** `quality:admin-response-contract`
 —— 两个半场（CI 半场靠台账冻结「路由↔SDK 类型↔字段集」发现 SDK 单方改动；工作区半场重抽后端再比），
 `deviations` 限时 + `unresolved` 覆盖桶只降不升；**抽取器自己先错了 9 次**（带引号的键全丢 /
 嵌套键当顶层 / 审计 `json!` 混入 / 非对象字面量当空对象 / 返回类型里的 `Json` 让提取器判据恒真 /

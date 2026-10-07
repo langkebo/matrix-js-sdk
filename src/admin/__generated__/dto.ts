@@ -104,13 +104,14 @@ export interface AdminRegistrationTokenDto {
 }
 
 export interface AdminRegisterResultDto {
+    // 后端 register.rs::RegisterResponse 只有这 6 个字段；
+    // `nonce` 是请求侧参数（GET /register/nonce 取得后放进请求体），响应里不存在。
     access_token?: string;
     refresh_token?: string;
     expires_in?: number;
     device_id?: string;
     user_id: string;
     home_server?: string;
-    nonce?: string;
 }
 
 export interface AdminFederationBlacklistEntryDto {
