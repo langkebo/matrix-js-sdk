@@ -44,19 +44,16 @@ export interface AdminServerStatusDto {
 }
 
 export interface AdminUserAccountDto {
-    user_id: string;
+    user_id?: string;
     name?: string;
     displayname?: string;
     avatar_url?: string;
     admin?: boolean;
     deactivated?: boolean;
-    suspended?: boolean;
+    creation_ts?: number;
     created_ts?: number;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
     user_type?: string;
     is_guest?: boolean;
-    erased?: boolean;
 }
 
 export interface AdminDeviceDto {
@@ -64,7 +61,6 @@ export interface AdminDeviceDto {
     display_name?: string;
     last_seen_ip?: string;
     last_seen_ts?: number;
-    user_id?: string;
 }
 
 export interface AdminRoomInfoDto {

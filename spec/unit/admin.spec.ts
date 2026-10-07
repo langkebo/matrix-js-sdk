@@ -200,15 +200,23 @@ describe("AdminManager", () => {
         });
 
         it("应该获取账户状态", async () => {
+            // 后端 `…::get_account_details` 的真实形状（没有 exists/locked/suspended）。
             transport.respondWith({
+                name: "user",
                 user_id: "@user:example.com",
-                exists: true,
+                displayname: "User",
+                admin: false,
                 deactivated: false,
+                creation_ts: 1700000000000,
+                device_count: 2,
+                room_count: 3,
             });
 
             const status = await adminManager.getAccountStatus("@user:example.com");
-            expect(status?.exists).toBe(true);
+            expect(status?.user_id).toBe("@user:example.com");
             expect(status?.deactivated).toBe(false);
+            expect(status?.device_count).toBe(2);
+            expect(status?.room_count).toBe(3);
         });
 
         it("应该检查管理员状态", async () => {

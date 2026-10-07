@@ -90,12 +90,16 @@ export interface DeactivateUserResponse {
 
 // ===== Device and session types =====
 
+/**
+ * `GET /_synapse/admin/v1/users/{user_id}/devices` 的设备条目。
+ *
+ * 后端 `…/admin/user.rs::get_user_devices_admin` 只返回这 4 个键（**没有 `user_id`**）。
+ */
 export interface DeviceInfo {
     device_id: string;
     display_name?: string;
     last_seen_ip?: string;
     last_seen_ts?: number;
-    user_id?: string;
 }
 
 export interface UserSession {
@@ -108,30 +112,55 @@ export interface UserSession {
 
 // ===== Account types =====
 
+/**
+ * 账号对象 —— 由 `/v2/users`（列表）、`/v2/users/{user_id}`（单项）与
+ * `/v1/users`（v2 的 404 回退）共用。
+ *
+ * 2026-10-07 对照后端源码（`synapse-web/src/routes/admin/user.rs`）核对：
+ * - `user_id` **只有 `/v2` 路径返回**；`/v1/users` 回退路径的条目只有 `name`，
+ *   所以这里是可选的（该路径下请用 `name`）—— 若要让调用方永远拿到 `user_id`，
+ *   应改由 `AdminUserManager` 在回退分支里做 `user_id ?? name` 归一（待办）。
+ * - 时间戳键在两个端点间**不一致**：列表用 `creation_ts`、单项用 `created_ts`，故两者都声明。
+ * - 原先声明的 `suspended` / `erased` / `last_seen_ts` / `last_seen_ip` 该后端**从不返回**，已删除。
+ */
 export interface AdminAccountDetails {
-    user_id: string;
+    user_id?: string;
     name?: string;
     displayname?: string;
     avatar_url?: string;
     admin?: boolean;
     deactivated?: boolean;
-    suspended?: boolean;
+    creation_ts?: number;
     created_ts?: number;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
     user_type?: string;
     is_guest?: boolean;
-    erased?: boolean;
 }
 
+/**
+ * `GET /_synapse/admin/v1/account/{user_id}` 的响应。
+ *
+ * 后端 `…::get_account_details` 返回
+ * `{name, user_id, displayname, admin, deactivated, creation_ts, device_count, room_count}`；
+ * 原先声明的 `exists`（必填）/ `locked` / `suspended` 后端一个都不返回 —— `exists` 在运行时
+ * 恒为 `undefined`，而调用方按 `boolean` 用它做判断，属"类型检查通过、运行时错判"。
+ */
 export interface AccountStatus {
+    name?: string;
     user_id: string;
-    exists: boolean;
+    displayname?: string;
+    admin?: boolean;
     deactivated?: boolean;
-    locked?: boolean;
-    suspended?: boolean;
+    creation_ts?: number;
+    device_count?: number;
+    room_count?: number;
 }
 
+/**
+ * ⚠️ `GET /users/{user_id}/shadow_ban` **后端未实现**（只注册了 POST / DELETE），
+ * 已在 `scripts/quality/path-contract-waivers.json` 豁免台账里登记（category `backend-missing`）。
+ * 该类型的形状与 POST/DELETE 的响应（`{is_shadow_banned}`）无关，是一个"超前封装"的占位类型；
+ * 待后端补 GET 或产品决定移除该方法时一并处理。
+ */
 export interface ShadowBanStatus {
     user_id: string;
     banned: boolean;

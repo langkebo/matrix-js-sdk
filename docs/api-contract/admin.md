@@ -314,19 +314,16 @@ export interface AdminServerStatusDto {
 
 ```typescript
 export interface AdminUserAccountDto {
-    user_id: string;
+    user_id?: string;
     name?: string;
     displayname?: string;
     avatar_url?: string;
     admin?: boolean;
     deactivated?: boolean;
-    suspended?: boolean;
+    creation_ts?: number;
     created_ts?: number;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
     user_type?: string;
     is_guest?: boolean;
-    erased?: boolean;
 }
 
 export interface AdminDeviceDto {
@@ -334,9 +331,22 @@ export interface AdminDeviceDto {
     display_name?: string;
     last_seen_ip?: string;
     last_seen_ts?: number;
-    user_id?: string;
 }
 ```
+
+**响应体来源（2026-10-07 逐条核对，后端源码为准）**
+
+| 端点                                             | 后端处理器                      | 实际返回                                                                                                                                          |
+| ------------------------------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /_synapse/admin/v2/users`                   | `…/admin/user.rs::get_users_v2` | `{users: [{name, user_id, creation_ts, admin, is_guest, user_type, deactivated, displayname, avatar_url}], total, next_batch?}`                   |
+| `GET /_synapse/admin/v2/users/{user_id}`         | `…::get_user_v2`                | 同上但键是 **`created_ts`**（列表用 `creation_ts`、单项用 `created_ts`，是后端自身的不一致），另含 `devices[]` / `threepids[]` / `external_ids[]` |
+| `GET /_synapse/admin/v1/users`（v2 的 404 回退） | `…::get_users`                  | 条目键 **没有 `user_id`**（标识键是 `name`）                                                                                                      |
+| `GET /_synapse/admin/v1/users/{user_id}/devices` | `…::get_user_devices_admin`     | `{devices: [{device_id, display_name, last_seen_ts, last_seen_ip}], total}`                                                                       |
+| `GET /_synapse/admin/v1/account/{user_id}`       | `…::get_account_details`        | `{name, user_id, displayname, admin, deactivated, creation_ts, device_count, room_count}`                                                         |
+
+> 因此 `AdminUserAccountDto.user_id` 是**可选**的：只有 `/v2` 路径返回它，`/v1/users` 回退路径不返回
+> （该路径下要用 `name`）。同理 `creation_ts` 与 `created_ts` 两者都可能出现，取决于端点。
+> 原先声明的 `suspended` / `erased` / `last_seen_ts` / `last_seen_ip`（账号对象上）后端都不返回，已删除。
 
 ### Room
 

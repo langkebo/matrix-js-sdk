@@ -1928,6 +1928,79 @@ space 那处暴露的坑值得记下来：**同一处报错可能有多个病因
 只有后者被 `contract:codegen:check` 守（前者是手写的、无门禁）。建议让前者改为单向依赖生成物
 （`export type { AdminServerInfoDto as ServerInfo, … }`），从根上消灭这份重复。
 
+#### 7.15-22 响应体契约核对（第二轮）：user 模块 + 量化剩余范围（2026-10-07）
+
+**承上**：§7.15-21 修完 admin-server 的 7 个类型后，把同一手法扩到**其余 admin 模块**，并把它固化成可复现的配方。
+
+**配方（先抽后端、再对 SDK）**
+
+临时脚本（放 `/tmp`，不进仓）解析 `synapse-web/src/routes/admin/**/*.rs`：
+
+1. 从各 `create_*_router` 抓 `.route("<path>", get(handler))`，建 handler → 路径映射；
+2. 对每个 `pub async fn`，**按花括号配对取函数体**，再抽函数体内所有 `json!({...})` 的顶层键；
+3. 与 SDK 对应 `interface` 的字段逐个比对。
+
+⚠️ **第一版用固定 6000 字符窗口取函数体，结果串到下一个 handler，把两个 handler 的键混成一个** ——
+差点据此误判（"这个响应怎么有 18 个字段"）。改成花括号配对后数字才可信。**这类"抽错源"的错误比漏抽更危险**。
+
+输出：**120 个有 JSON 响应的 handler**，分布：
+
+| 模块文件                             | handler | 模块文件                               | handler   |
+| ------------------------------------ | ------- | -------------------------------------- | --------- |
+| `user.rs`                            | 18      | `notification.rs`                      | 7         |
+| `media.rs`                           | 18      | `token.rs`                             | 6         |
+| `server.rs`                          | 17      | `retention.rs`                         | 6         |
+| `room/`（mod + spaces + management） | 30      | `security.rs`                          | 4         |
+| `federation.rs`                      | 9       | `report.rs` / `policy.rs` / `audit.rs` | 2 / 2 / 1 |
+
+**本轮修掉的（`user` 模块；证据全部来自 `…/admin/user.rs`）**
+
+| SDK 类型              | 原声明                                                                    | 后端实际                                                                                                                               | 危害                                                                                              |
+| --------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `AccountStatus`       | `{user_id, exists: boolean, deactivated?, locked?, suspended?}`           | `…::get_account_details` → `{name, user_id, displayname, admin, deactivated, creation_ts, device_count, room_count}`                   | **`exists` 是必填 boolean，运行时恒 `undefined`** ⇒ 调用方 `if (status.exists)` 永远走 false 分支 |
+| `AdminAccountDetails` | `{user_id: string, …, suspended?, erased?, last_seen_ts?, last_seen_ip?}` | `/v2/users` 列表项 `{name, user_id, creation_ts, …}`；`/v2/users/{id}` 单项键是 **`created_ts`**；`/v1/users` 回退项**没有 `user_id`** | 4 个字段后端从不返回；时间戳键在两个端点间不一致；`user_id` 在回退路径恒 `undefined`              |
+| `DeviceInfo`          | `{…, user_id?}`                                                           | `…::get_user_devices_admin` 条目只有 `device_id/display_name/last_seen_ts/last_seen_ip`                                                | 多一个从不存在的键                                                                                |
+
+**顺带发现：「后端自身不一致」不是 SDK 的错**
+
+`/v2/users` **列表**项用 `creation_ts`，`/v2/users/{user_id}` **单项**用 `created_ts` ——
+同一后端两个端点对同一语义用了不同键名。SDK 只能两个键都声明为可选，并在注释里写明出处。
+（识别这一点很重要：否则会去"修"一个本来就对的客户端。）
+
+**⚠️ 一个**不能改\*\*的：`getShadowBanStatus`
+
+它走 `GET /users/{id}/shadow_ban`，而后端**只注册了 POST / DELETE** ⇒ 这个 GET 必 404。
+但它**已在 `path-contract-waivers.json` 豁免台账里登记**（第 19 条，category `backend-missing`），
+属**已知**的超前封装。所以本轮只给类型补了说明注释、**不动它的形状** ——
+**把已登记的豁免项当新缺陷去"修"是浪费，还会把台账搅乱**。
+
+**为什么单测又拦不住（第三次同一模式）**
+
+`spec/unit/admin.spec.ts` 的 `getAccountStatus` 用例 mock `{user_id, exists: true, deactivated: false}`、
+再断言 `status.exists === true` —— 断言的就是它自己编的形状。本轮改成后端真实形状后，
+断言跟着变成 `user_id` / `device_count` / `room_count`。
+
+**结果**：`tsc` 0 错；`admin` 四个 spec 共 **239 例**通过；`quality:contracts` / `lint:knip` /
+`real-backend-types` 全绿。
+
+**剩余范围（下一轮机械化推进）**
+
+- 已完成：`server.rs` 全部（§7.15-21）+ `user.rs` 的账号/设备三类（本节）。
+- 未覆盖：`media.rs`(18) / `room/*`(30) / `federation.rs`(9) / `notification.rs`(7) / `token.rs`(6) /
+  `retention.rs`(6) / `security.rs`(4) / `report.rs` / `policy.rs` / `audit.rs`，以及 `user.rs` 余下的
+  会话 / 令牌 / 批量类 handler。
+
+**建议：把它做成门禁**（这是唯一能长期兜住这类缺陷的办法）
+
+把上面的抽取逻辑产品化为 `scripts/quality/check-admin-response-contract.mjs`：
+后端侧抽 `json!` 顶层键、SDK 侧抽 `interface` 字段，按 handler → route → SDK 方法 → 返回类型比对，
+未覆盖 / 多余的字段进棘轮台账（只能降）。放 `scripts/quality/` 需同时补 spec + `.d.mts` 声明，
+并遵守 `gate-reachability` 的「按路径受管辖」判据。
+
+**本轮没有直接做**，理由记下来：新门禁必须配 spec 与变异自证，而台账初始值需要人工判定
+「哪些是 SDK 的错、哪些是后端 profile / 历史包袱」（本轮就遇到两例：profile 差异、
+以及已登记的豁免项）。草率建账会变成又一笔**注水台账** —— 宁可先留一份可复现的配方与清单。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -2000,7 +2073,8 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-21：拿后端源码核对 admin 响应体契约，修 7 个与后端完全不符的类型；
+**最后更新**: 2026-10-07（§7.15-22：响应体契约核对第二轮（user 模块）+ 量化剩余范围与门禁方案；
+§7.15-21：拿后端源码核对 admin 响应体契约，修 7 个与后端完全不符的类型；
 §7.15-19/20：类型表 69 条假声明清零 + 最后 2 个模块接线 + `spec/integ/real-backend/` 类型债 **85 → 0**；
 §7.11 续修：`manager-codegen` 性能、`probe-contract-drift` 死脚本、门禁 spec 长期红灯；
 §7.12 **P8 落地**：`scripts/audit/gate-golden.mjs` 把「存金标准 → 改 → 对拍」与红灯归因产品化；
@@ -2110,4 +2184,14 @@ key-rotation 历史只有 `{ device_id, rotations: { key_id, rotated_ts }[] }`�
 并量化了新缺口：`quality:docs-examples` 的 `SCOPE_DIR` 只覆盖 `docs/guide`，
 而 `docs/ADMIN_GUIDE.md` 的 **30 个** 未标注 `title=` 的示例块**一个都没被检查**（已实测其腐烂：
 调了不存在的 `getCachedServerStats()`）
+**§7.15-22 响应体契约核对（第二轮，user 模块 + 量化剩余）**：把「抽后端 `json!` 键 → 对 SDK 类型」固化成配方
+（⚠️ 抽函数体必须按花括号配对，用固定字符窗口会把两个 handler 的键混成一个 —— 差点据此误判）；
+统计出后端 admin 共 **120 个有 JSON 响应的 handler**（user 18 / media 18 / server 17 / room 30 / federation 9 …）；
+本轮修掉 user 模块三类：`AccountStatus.exists` 是**必填 boolean 但运行时恒 undefined**、
+`AdminAccountDetails` 有 4 个从不返回的字段且列表用 `creation_ts` 而单项用 `created_ts`、
+`DeviceInfo` 多了 `user_id`；识别出「已登记的豁免项」不是缺陷（`getShadowBanStatus` 的 GET 后端未实现，
+已在 waiver 台账里）而不去"修"它；单测**第三次**踩同一个坑（mock 自造形状 + 断言该形状）。
+给出把该检查做成 `scripts/quality/check-admin-response-contract.mjs` 的具体方案，
+并说明**本轮为何先不做**（新门禁需 spec + 变异自证，且台账初始值需人工区分 SDK 错 vs 后端 profile/历史包袱，
+草率建账＝注水）
 **关联**:`docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
