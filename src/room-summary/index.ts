@@ -799,6 +799,11 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param roomId - 房间 ID
      * @returns 该房间当前备份版本下的逐条会话密钥
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().getRoomKeys("!room:example.com");
+     * console.log(result.version, result.keys.length);
+     * ```
      */
     async getRoomKeys(roomId: string): Promise<RoomKeysResult> {
         return this.keys.getRoomKeys(roomId);

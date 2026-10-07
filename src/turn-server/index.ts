@@ -91,6 +91,11 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
      * 便于客户端在建立通话前做整体可用性判断。
      *
      * @returns VoIP 配置；服务未启用时 `turn_servers` 为空数组、`stun_servers` 为 null
+     * @example
+     * ```typescript
+     * const config = await client.getTurnServerManager().getVoipConfig();
+     * console.log(config.turn_servers?.length ?? 0, "TURN servers configured");
+     * ```
      */
     public async getVoipConfig(): Promise<IVoipConfigResponse> {
         return this.withRetry(async () => {
@@ -111,6 +116,11 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
      * 不要假设一定拿到凭据。
      *
      * @returns 访客 TURN 凭据（`username`/`password`/`uris`/`ttl`）
+     * @example
+     * ```typescript
+     * const creds = await client.getTurnServerManager().getGuestTurnServerConfig();
+     * console.log("TURN via", creds.uris?.join(", "));
+     * ```
      */
     public async getGuestTurnServerConfig(): Promise<ITurnServerResponse> {
         return this.withRetry(async () => {

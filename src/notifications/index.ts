@@ -212,6 +212,11 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      * 对应 `GET /_matrix/client/v3/push/devices`。
      *
      * @returns 推送设备列表（后端返回**裸数组**；为兼容包裹形态同时接受 `{ devices }`）
+     * @example
+     * ```typescript
+     * const devices = await client.getNotificationsManager().getPushDevices();
+     * console.log(devices.length, "push devices registered");
+     * ```
      */
     public async getPushDevices(): Promise<IPushDevice[]> {
         const res = await this.withRetry(
@@ -234,6 +239,16 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      *
      * @param body - 注册请求体（`device_id`/`push_token`/`push_type` 必填）
      * @returns 注册后的设备信息
+     * @throws ValidationError `device_id`/`push_token`/`push_type` 任一缺失时
+     * @example
+     * ```typescript
+     * const device = await client.getNotificationsManager().registerPushDevice({
+     *     device_id: "ABCDEF",
+     *     push_token: "apns-token-or-fcm-token",
+     *     push_type: "apns",
+     * });
+     * console.log("registered", device.device_id);
+     * ```
      */
     public async registerPushDevice(body: IRegisterPushDeviceRequest): Promise<IPushDevice> {
         if (!body?.device_id) throw new ValidationError("device_id is required");
@@ -259,6 +274,11 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      *
      * @param deviceId - 设备 ID
      * @returns 后端回执 `{ message }`
+     * @throws ValidationError `deviceId` 为空时
+     * @example
+     * ```typescript
+     * await client.getNotificationsManager().unregisterPushDevice("ABCDEF");
+     * ```
      */
     public async unregisterPushDevice(deviceId: string): Promise<IPushAckResponse> {
         if (!deviceId) throw new ValidationError("deviceId is required");
@@ -281,6 +301,15 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      *
      * @param body - 推送内容（`title`/`body` 必填）
      * @returns 后端回执 `{ message }`（入队成功）
+     * @throws ValidationError `title`/`body` 任一缺失时
+     * @example
+     * ```typescript
+     * const ack = await client.getNotificationsManager().sendPushNotification({
+     *     title: "新消息",
+     *     body: "来自 Tjg 的推送测试",
+     * });
+     * console.log(ack.message);
+     * ```
      */
     public async sendPushNotification(body: ISendPushNotificationRequest): Promise<IPushAckResponse> {
         if (!body?.title) throw new ValidationError("title is required");

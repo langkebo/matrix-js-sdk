@@ -1,7 +1,7 @@
 {
     "schemaVersion": 3,
-    "capturedAt": "2026-10-05",
-    "previousCapturedAt": null,
+    "capturedAt": "2026-10-07",
+    "previousCapturedAt": "2026-10-05",
     "note": "公开 API 文档棘轮台账。本文件是「允许存在的缺口上限」，只能下降不能上升。用 node scripts/quality/check-public-api-docs.mjs --write-ledger 更新，该命令在检测到任何指标恶化时会拒绝写入。",
     "ratchet": {
         "AccountDataManager": {
@@ -37,7 +37,7 @@
         "AdminFederationManager": {
             "missingJsDoc": 0,
             "missingExample": 20,
-            "throwsWithoutTag": 9
+            "throwsWithoutTag": 7
         },
         "AdminManager": {
             "missingJsDoc": 0,
@@ -72,12 +72,12 @@
         "AdminServerManager": {
             "missingJsDoc": 0,
             "missingExample": 32,
-            "throwsWithoutTag": 12
+            "throwsWithoutTag": 9
         },
         "AdminUserManager": {
             "missingJsDoc": 34,
             "missingExample": 19,
-            "throwsWithoutTag": 8
+            "throwsWithoutTag": 7
         },
         "AggregationsManager": {
             "missingJsDoc": 4,

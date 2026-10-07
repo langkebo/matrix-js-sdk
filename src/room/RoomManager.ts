@@ -350,6 +350,13 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      *
      * @param options - 其余建房选项（`invite`、`name`、`topic`、`initial_state` 等）
      * @returns 新房间的 `room_id`
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomManager().createPrivateRoom({
+     *     invite: ["@peer:example.com"],
+     *     name: "私聊",
+     * });
+     * ```
      */
     public async createPrivateRoom(
         options: Omit<ICreateRoomOpts, "preset" | "visibility"> = {},
@@ -1034,6 +1041,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      *
      * @param userId - 目标用户 MXID（必须是当前登录用户）
      * @returns 已加入的房间 ID 列表（`joined_rooms`）
+     * @throws InvalidParamError `userId` 为空时；查询他人时后端返回 403
+     * @example
+     * ```typescript
+     * const { joined_rooms } = await client.getRoomManager().getUserRooms(client.getUserId()!);
+     * console.log(joined_rooms.length, "rooms joined");
+     * ```
      */
     public async getUserRooms(userId: string): Promise<IUserRoomsResponse> {
         if (!userId) throw new InvalidParamError("userId is required");
@@ -1063,6 +1076,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * @param opts.limit - 单页上限
      * @param opts.batchToken - 上一页返回的 `next_batch_token`
      * @returns 共同房间列表与下一页 token
+     * @throws InvalidParamError `userId` 为空时；查询自己时后端返回 403
+     * @example
+     * ```typescript
+     * const res = await client.getRoomManager().getMutualRooms("@peer:example.com", { limit: 50 });
+     * console.log(res.joined.length, "mutual rooms");
+     * ```
      */
     public async getMutualRooms(
         userId: string,

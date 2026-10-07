@@ -93,6 +93,11 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @returns 房间密钥列表
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().keys.getRoomKeys("!room:example.com");
+     * console.log(result.keys.length, "sessions in backup version", result.version);
+     * ```
      */
     public async getRoomKeys(roomId: string): Promise<RoomKeysResult> {
         this.validateRoomId(roomId);
