@@ -114,16 +114,20 @@ export interface AdminRegisterResultDto {
 
 export interface AdminFederationBlacklistEntryDto {
     server_name: string;
-    reason?: string;
-    added_ts?: number;
+    /** 后端键名是 added_at（来自 row.created_ts.unwrap_or(0)），不是 added_ts */
+    added_at: number;
+    reason: string | null;
 }
 
 export interface AdminFederationDestinationDto {
     destination: string;
-    retry_last_ts?: number;
-    retry_interval?: number;
-    failure_ts?: number;
-    last_successful_stream_ordering?: number;
-    status?: "pending" | "active" | "rejected";
-    updated_ts?: number;
+    retry_last_ts: number | null;
+    /** 后端写死 None，恒为 null */
+    retry_interval: number | null;
+    failure_ts: number | null;
+    /** 后端真实字段（上游 Synapse 的 last_successful_stream_ordering 本后端不返回） */
+    last_successful_ts: number | null;
+    failure_count: number;
+    status: string;
+    updated_ts: number | null;
 }

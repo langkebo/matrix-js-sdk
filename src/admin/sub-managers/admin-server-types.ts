@@ -150,11 +150,42 @@ export interface AdminCleanupResponse {
 
 // ===== Notification types =====
 
+/**
+ * 已投递的 server notice
+ *
+ * 键取自后端 `server_notification/repository.rs::get_server_notices_paginated` 的
+ * 内联 `json!`（5 键）。⚠️ 原先漏了 `id`（表格主键，删除/查详情都要用）。
+ */
 export interface ServerNotice {
+    id: number;
     event_id: string;
     user_id: string;
-    content: import("../../models/event").IContent;
+    content: string;
+    /** 投递时间（毫秒） */
     sent_ts: number;
+}
+
+/**
+ * `GET /_synapse/admin/v1/server_notices` 的响应
+ *
+ * 后端返回 `{notices, total, next_batch}`；⚠️ 没有 `next_token`（原声明读它，恒为 `undefined`）。
+ */
+export interface ServerNoticePage {
+    notices: ServerNotice[];
+    /** 全量条数 */
+    total: number;
+    next_batch: string | null;
+}
+
+/**
+ * `POST /_synapse/admin/v1/send_server_notice` 的响应
+ *
+ * ⚠️ 后端返回 3 个键；原声明只声明了 `event_id`。
+ */
+export interface SendServerNoticeResult {
+    event_id: string;
+    room_id: string;
+    notice_id: number;
 }
 
 export interface SystemNotificationInfo {

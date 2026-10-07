@@ -410,18 +410,22 @@ export interface AdminRegisterResultDto {
 ```typescript
 export interface AdminFederationBlacklistEntryDto {
     server_name: string;
-    reason?: string;
-    added_ts?: number;
+    /** 后端键名是 added_at（来自 row.created_ts.unwrap_or(0)），不是 added_ts */
+    added_at: number;
+    reason: string | null;
 }
 
 export interface AdminFederationDestinationDto {
     destination: string;
-    retry_last_ts?: number;
-    retry_interval?: number;
-    failure_ts?: number;
-    last_successful_stream_ordering?: number;
-    status?: "pending" | "active" | "rejected";
-    updated_ts?: number;
+    retry_last_ts: number | null;
+    /** 后端写死 None，恒为 null */
+    retry_interval: number | null;
+    failure_ts: number | null;
+    /** 后端真实字段（上游 Synapse 的 last_successful_stream_ordering 本后端不返回） */
+    last_successful_ts: number | null;
+    failure_count: number;
+    status: string;
+    updated_ts: number | null;
 }
 ```
 
@@ -530,3 +534,63 @@ export interface AdminFederationDestinationDto {
 > 在后端**没有注册** —— 见 `scripts/quality/path-contract-waivers.json` 第 16、17 条。
 > 前者对应能力是 `POST /admin/room/{room_id}/redact`（按时间范围批量撤回），
 > 后者对应的真实端点是 `PUT /v1/rooms/{room_id}/members/{user_id}`。
+
+### Federation
+
+对照 `synapse-web/src/routes/admin/federation.rs`（2026-10-07）。
+
+| 端点                                                  | 后端处理器                               | 实际返回                                                                                                                     |
+| ----------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/federation/destinations`                     | `federation.rs::get_destinations`        | `{destinations, total, total_count, next_batch}`；条目是 `DestinationInfo`（见下）                                           |
+| `GET /v1/federation/destinations/{destination}`       | `federation.rs::get_destination`         | 同上的**单个** `DestinationInfo` 对象                                                                                        |
+| `GET /v1/federation/destinations/{destination}/rooms` | `federation.rs::get_destination_rooms`   | `{rooms: [<room id 字符串>], total}` —— ⚠️ 元素是**字符串**，不是对象                                                        |
+| `GET /v1/federation/pending`                          | `federation.rs::list_pending_federation` | `{servers, total, limit, next_batch}`                                                                                        |
+| `GET /v1/federation/blacklist`                        | `federation.rs::get_blacklist`           | `{blacklist: [{server_name, added_at, reason}], total, next_batch}`                                                          |
+| `GET /v1/federation/cache`                            | `federation.rs::get_federation_cache`    | `{cache: [{key, value, expiry_ts}], total}`                                                                                  |
+| `POST /v1/federation/cache/clear`                     | `federation.rs::clear_federation_cache`  | `{deleted}`                                                                                                                  |
+| `POST /v1/federation/confirm`                         | `federation.rs::confirm_federation`      | `{server_name, status, previous_status, updated_ts, confirmed_by}`；请求体 `{server_name, accept}`                           |
+| `POST /v1/federation/resolve` / `rewrite`             | 同名处理器                               | `{server_name, resolved, blacklisted, in_destinations, resolved_by}` / `{from, to, rewritten, rooms_affected, rewritten_by}` |
+
+**`DestinationInfo` 字段（列表与详情同形状）**：
+
+`destination` `retry_last_ts` `retry_interval`（后端写死 `None`，恒 `null`）`failure_ts`
+`last_successful_ts` `failure_count` `status` `updated_ts`
+
+> ⚠️ 上游 Synapse 的 `last_successful_stream_ordering` **本后端不返回**；真实字段是
+> `last_successful_ts` + `failure_count`。
+> ⚠️ 三个**请求体**带 `#[serde(deny_unknown_fields)]`，字段名必须完全一致，否则 400：
+> `ConfirmRequest {server_name, accept}`、`ResolveRequest {server_name}`、`RewriteRequest {from, to}`；
+> `DestinationsQuery` / `ListPendingQuery` / `BlacklistQuery` 也只认 `limit` / `from`（`DestinationsQuery`
+> 另外接受 `offset` 但**非 0 即 400**，旧 offset 分页已被显式拒绝）。
+
+### Notification（server-notifications feature）
+
+对照 `synapse-web/src/routes/admin/notification.rs` 与
+`synapse-storage/src/server_notification/models.rs`（2026-10-07）。这些路由**仅在
+`server-notifications` feature 打开时注册**（`../synapse-rust` 的 `all` profile 有、`default` profile 没有）。
+
+| 端点                                    | 后端处理器                 | 实际返回                                                                                                      |
+| --------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/notifications`                 | `list_notifications`       | `{notifications: [<ServerNotification>], next_batch}`；**无 `total`**                                         |
+| `GET /v1/notifications/{id}`            | `get_notification`         | **裸 `ServerNotification` 对象**（不是 `{notification: …}` 包装）                                             |
+| `POST /v1/notifications`                | `create_notification`      | 裸通知对象；请求体 `{title, content, …}`（`title`/`content` 必填）                                            |
+| `PUT /v1/notifications/{id}`            | `update_notification`      | 裸通知对象；请求体同创建但全可选                                                                              |
+| `PUT /v1/notifications/{id}/deactivate` | `deactivate_notification`  | `{is_enabled: false}`                                                                                         |
+| `POST /v1/send_server_notice`           | `send_server_notice`       | `{event_id, room_id, notice_id}`；请求体 `{user_id, content: {msgtype, body}}`                                |
+| `GET /v1/server_notices`                | `get_server_notices`       | `{notices: [{id, user_id, event_id, content, sent_ts}], total, next_batch}`                                   |
+| `GET /v1/users/{user_id}/notification`  | `get_user_notification`    | `{enabled}`                                                                                                   |
+| `PUT /v1/users/{user_id}/notification`  | `update_user_notification` | `{is_enabled}`；请求体 `{is_enabled}`                                                                         |
+| `GET /v1/users/{user_id}/pushers`       | `get_user_pushers`         | `{pushers: [{pushkey, kind, app_id, app_display_name, device_display_name, profile_tag, lang, data}], total}` |
+
+**`ServerNotification` 字段（16 个）**：
+
+`id` `title` `content` `notification_type` `priority` `target_audience` `target_user_ids`
+`starts_at` `expires_at` `is_enabled` `is_dismissable` `action_url` `action_text` `created_by`
+`created_ts` `updated_ts`
+
+> ⚠️ **GET 与 PUT 的键名不一致**：`GET /users/{id}/notification` 返回 `{enabled}`，
+> 而 `PUT` 收/发 `{is_enabled}`（`UserNotificationRequest` 同样带 `deny_unknown_fields`）。
+> SDK 的 `setUserNotification(userId, { enabled })` 保留这一更自然的入参并在内部映射为 `is_enabled`。
+>
+> ⚠️ `DELETE /v1/notifications/deactivate` **在后端没有注册**（真实端点是上文带 `{id}` 的 PUT），
+> 该差异已登记在 `path-contract-waivers.json` 第 14 条，故 SDK 未改行为、仅补注释。

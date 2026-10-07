@@ -323,12 +323,31 @@ export interface UserRoomsResponse {
 
 // ===== User notification types =====
 
-/** Response for GET /users/{userId}/notification — user notification setting */
+/**
+ * `GET /users/{userId}/notification` 的响应 —— 用户通知开关
+ *
+ * ⚠️ 注意 GET 与 PUT 用的是**不同的键**：GET 返回 `{enabled}`，PUT 返回 `{is_enabled}`
+ * （后端 `notification.rs` 的两个处理器各写一套）。见 {@link UserNotificationUpdateResponse}。
+ */
 export interface UserNotificationResponse {
     enabled: boolean;
 }
 
-/** Payload for PUT /users/{userId}/notification — set user notification setting */
+/**
+ * `PUT /users/{userId}/notification` 的响应
+ *
+ * 后端返回 `{is_enabled: <请求值>}`（键名与 GET 的 `enabled` 不一致）。
+ */
+export interface UserNotificationUpdateResponse {
+    is_enabled: boolean;
+}
+
+/**
+ * Payload for PUT /users/{userId}/notification — set user notification setting
+ *
+ * ⚠️ 后端 `UserNotificationRequest` 带 `#[serde(deny_unknown_fields)]`，字段名是 `is_enabled`；
+ * 本类型保留对调用方更自然的 `enabled`，由 `setUserNotification` 负责映射到线上字段。
+ */
 export interface UserNotificationPayload {
     enabled: boolean;
 }

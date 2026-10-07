@@ -21,10 +21,12 @@ import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from
 import { buildPaginationParams } from "../utils";
 import type {
     FederationBlacklistEntry,
+    FederationBlacklistPage,
     FederationDestination,
     AdminFederationDestinationDetail,
     FederationAdmissionResult,
     PendingFederationList,
+    PendingFederationServer,
     AdminFederationCache,
     AdminFederationDestinationRooms,
     FederationResolveResponse,
@@ -40,14 +42,21 @@ export class AdminFederationManager extends AdminBaseManager {
     /**
      * 获取联邦黑名单列表
      *
-     * @returns 联邦黑名单列表
+     * 对应 `GET /_synapse/admin/v1/federation/blacklist`，后端返回
+     * `{blacklist, total, next_batch}`（游标键是 `next_batch`，`total` 是本页条数）。
+     *
+     * @param options - 可选分页参数
+     * @returns 黑名单页（含游标）
      */
-    async getFederationBlacklist(): Promise<FederationBlacklistEntry[]> {
-        const response = await this.adminRequest<{ blacklist: FederationBlacklistEntry[] }>(
-            Method.Get,
-            "/federation/blacklist",
-        );
-        return response.blacklist || [];
+    async getFederationBlacklist(options?: { from?: string; limit?: number }): Promise<FederationBlacklistPage> {
+        const queryParams = buildPaginationParams(options?.limit, options?.from);
+        const response = await this.adminRequest<{
+            blacklist?: FederationBlacklistEntry[];
+            total?: number;
+            next_batch?: string | null;
+        }>(Method.Get, "/federation/blacklist", queryParams);
+        const blacklist = response.blacklist ?? [];
+        return { blacklist, total: response.total ?? blacklist.length, next_batch: response.next_batch ?? null };
     }
 
     /**
@@ -213,7 +222,9 @@ export class AdminFederationManager extends AdminBaseManager {
 
     /**
      * 获取联邦缓存信息
-     * 对接: GET /_synapse/admin/v1/federation/cache
+     *
+     * 对应 `GET /_synapse/admin/v1/federation/cache`，后端返回 `{cache, total}`。
+     * ⚠️ 列表键是 `cache`（不是 `entries`）。
      */
     async getFederationCache(): Promise<AdminFederationCache> {
         return await this.adminRequest(Method.Get, apu("/federation/cache"));
@@ -241,18 +252,19 @@ export class AdminFederationManager extends AdminBaseManager {
     }
 
     /**
-     * 获取联邦准入列表
+     * 获取待处理联邦服务器列表（审批队列）
      *
-     * @returns 联邦准入列表
+     * 对应 `GET /_synapse/admin/v1/federation/pending`，后端返回 `{servers, total, limit, next_batch}`。
+     *
+     * ⚠️ 旧实现读的是 `admissions` / `pending` 两个**后端从不返回**的键 ⇒ 恒返回 `[]`
+     * （与 {@link getPendingFederationServers} 打同一端点、但取错键）。
      */
-    async getFederationAdmissionList(): Promise<FederationAdmissionResult[]> {
-        // `/federation/admissions` 回退分支已删除：后端只注册
-        // `GET /_synapse/admin/v1/federation/pending`，从未注册 `/federation/admissions`。
-        const response = await this.adminRequest<{
-            admissions?: FederationAdmissionResult[];
-            pending?: FederationAdmissionResult[];
-        }>(Method.Get, "/federation/pending");
-        return response.admissions || response.pending || [];
+    async getFederationAdmissionList(): Promise<PendingFederationServer[]> {
+        const response = await this.adminRequest<{ servers?: PendingFederationServer[] }>(
+            Method.Get,
+            "/federation/pending",
+        );
+        return response.servers ?? [];
     }
 
     /**
@@ -291,17 +303,23 @@ export class AdminFederationManager extends AdminBaseManager {
     }
 
     /**
-     * 确认联邦
+     * 确认联邦准入
      *
-     * @param payload - 确认载荷
-     * @returns 确认结果
+     * 对应 `POST /_synapse/admin/v1/federation/confirm`。后端 `ConfirmRequest`
+     * 带 `#[serde(deny_unknown_fields)]`，字段是 **`{server_name, accept}`**。
+     *
+     * ⚠️ 旧签名收 `{server_name?, action?, reason?}` —— `accept` 缺失 + `action`/`reason`
+     * 是未知字段 ⇒ 该请求**必然 400**（`deny_unknown_fields` 连多余字段都不放过）。
+     *
+     * @param serverName - 待确认的服务器名
+     * @param accept - `true` 接受、`false` 拒绝
+     * @returns 准入结果
+     *
+     * @throws {ValidationError} 如果 serverName 为空
      */
-    async confirmFederation(payload: {
-        server_name?: string;
-        action?: string;
-        reason?: string;
-    }): Promise<FederationAdmissionResult> {
-        return await this.adminRequest(Method.Post, "/federation/confirm", {}, payload);
+    async confirmFederation(serverName: string, accept: boolean): Promise<FederationAdmissionResult> {
+        if (!serverName) throw new ValidationError("serverName is required");
+        return await this.adminRequest(Method.Post, "/federation/confirm", {}, { server_name: serverName, accept });
     }
 
     /**

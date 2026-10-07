@@ -33,18 +33,40 @@ describe("AdminNotificationManager", () => {
         manager = new AdminNotificationManager(mockClient);
     });
 
-    it("list() returns paginated notifications", async () => {
+    it("list() returns {notifications, next_batch} (backend has no total, no next_token)", async () => {
         mockClient.http.authedRequest.mockResolvedValue({
             notifications: [
-                { id: 1, message: "Test", important: false, sent_ts: null, created_ts: 1700000000000, expired: false },
+                {
+                    id: 1,
+                    title: "维护",
+                    content: "02:00 维护",
+                    notification_type: "maintenance",
+                    priority: 0,
+                    target_audience: "all",
+                    target_user_ids: null,
+                    starts_at: null,
+                    expires_at: null,
+                    is_enabled: true,
+                    is_dismissable: true,
+                    action_url: null,
+                    action_text: null,
+                    created_by: null,
+                    created_ts: 1700000000000,
+                    updated_ts: 1700000000000,
+                },
             ],
-            total: 1,
+            next_batch: "1700000000000|1",
         });
 
         const result = await manager.list({ limit: 10 });
 
         expect(result.notifications).toHaveLength(1);
-        expect(result.total).toBe(1);
+        expect(result.notifications[0].title).toBe("维护");
+        expect(result.next_batch).toBe("1700000000000|1");
+        expect(result).not.toHaveProperty("total");
+        expect(result).not.toHaveProperty("next_token");
+        expect(result.notifications[0]).not.toHaveProperty("message");
+        expect(result.notifications[0]).not.toHaveProperty("important");
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Get,
             "/notifications",
@@ -54,20 +76,31 @@ describe("AdminNotificationManager", () => {
         );
     });
 
-    it("get() returns single notification", async () => {
-        const notification = {
+    it("get() reads the notification object directly (backend does NOT wrap it)", async () => {
+        // 后端 get_notification 返回 Json(json!(notification)) —— 裸对象，没有 {notification: …} 包装。
+        mockClient.http.authedRequest.mockResolvedValue({
             id: 1,
-            message: "Test",
-            important: false,
-            sent_ts: null,
+            title: "维护",
+            content: "02:00 维护",
+            notification_type: "maintenance",
+            priority: 0,
+            target_audience: "all",
+            target_user_ids: null,
+            starts_at: null,
+            expires_at: null,
+            is_enabled: true,
+            is_dismissable: true,
+            action_url: null,
+            action_text: null,
+            created_by: null,
             created_ts: 1700000000000,
-            expired: false,
-        };
-        mockClient.http.authedRequest.mockResolvedValue({ notification });
+            updated_ts: 1700000000000,
+        });
 
         const result = await manager.get(1);
 
         expect(result.id).toBe(1);
+        expect(result.title).toBe("维护");
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Get,
             "/notifications/1",
@@ -77,48 +110,66 @@ describe("AdminNotificationManager", () => {
         );
     });
 
-    it("create() returns created notification", async () => {
-        const notification = {
-            id: 2,
-            message: "New",
-            important: true,
-            sent_ts: null,
-            created_ts: 1700000001000,
-            expired: false,
-        };
-        mockClient.http.authedRequest.mockResolvedValue({ notification });
+    it("create() sends the real CreateNotificationRequest shape (title/content) and reads a bare object back", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({
+            id: 1,
+            title: "维护",
+            content: "02:00 维护",
+            notification_type: "maintenance",
+            priority: 0,
+            target_audience: "all",
+            target_user_ids: null,
+            starts_at: null,
+            expires_at: null,
+            is_enabled: true,
+            is_dismissable: true,
+            action_url: null,
+            action_text: null,
+            created_by: null,
+            created_ts: 1700000000000,
+            updated_ts: 1700000000000,
+        });
 
-        const result = await manager.create({ message: "New", important: true });
+        const result = await manager.create({ title: "维护", content: "02:00 维护" });
 
-        expect(result.id).toBe(2);
+        expect(result.id).toBe(1);
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Post,
             "/notifications",
             undefined,
-            { message: "New", important: true },
+            { title: "维护", content: "02:00 维护" },
             { prefix: "/_synapse/admin/v1" },
         );
     });
 
-    it("update() returns updated notification", async () => {
-        const notification = {
+    it("update() sends real fields (title/content) and reads a bare object back", async () => {
+        mockClient.http.authedRequest.mockResolvedValue({
             id: 1,
-            message: "Updated",
-            important: true,
-            sent_ts: null,
+            title: "维护",
+            content: "02:00 维护",
+            notification_type: "maintenance",
+            priority: 0,
+            target_audience: "all",
+            target_user_ids: null,
+            starts_at: null,
+            expires_at: null,
+            is_enabled: true,
+            is_dismissable: true,
+            action_url: null,
+            action_text: null,
+            created_by: null,
             created_ts: 1700000000000,
-            expired: false,
-        };
-        mockClient.http.authedRequest.mockResolvedValue({ notification });
+            updated_ts: 1700000000000,
+        });
 
-        const result = await manager.update(1, { message: "Updated" });
+        const result = await manager.update(1, { title: "维护（改）" });
 
-        expect(result.message).toBe("Updated");
+        expect(result.title).toBe("维护");
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
             Method.Put,
             "/notifications/1",
             undefined,
-            { message: "Updated" },
+            { title: "维护（改）" },
             { prefix: "/_synapse/admin/v1" },
         );
     });
@@ -137,6 +188,9 @@ describe("AdminNotificationManager", () => {
         );
     });
 
+    // ⚠️ 这条断言的是**既有行为**（不是契约）：后端注册的是
+    // PUT /notifications/{notification_id}/deactivate，DELETE /notifications/deactivate 并不存在；
+    // 该差异已登记在 path-contract-waivers.json（semantic-mismatch），故本轮不改行为。
     it("deactivate() calls DELETE /notifications/deactivate", async () => {
         mockClient.http.authedRequest.mockResolvedValue(undefined);
 

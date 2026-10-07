@@ -52,6 +52,7 @@ import type {
     UserStatsListResponse,
     UserRoomsResponse,
     UserNotificationResponse,
+    UserNotificationUpdateResponse,
     UserNotificationPayload,
 } from "../types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../../@types/synapse";
@@ -625,18 +626,51 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/notification`);
     }
 
-    async setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationResponse> {
+    /**
+     * 设置用户的通知开关
+     *
+     * ⚠️ GET 与 PUT 在后端用的是**不同的键**：GET 返回 `{enabled}`，PUT 收/发 `{is_enabled}`
+     * （`UserNotificationRequest` 带 `deny_unknown_fields`）。本方法接收对调用方更自然的
+     * `{enabled}` 并映射为线上字段 `{is_enabled}`；返回值用后端的 `{is_enabled}`。
+     *
+     * @example
+     * ```typescript
+     * const { is_enabled } = await adminManager.setUserNotification("@alice:example.org", { enabled: false });
+     * console.log(is_enabled);
+     * ```
+     */
+    async setUserNotification(
+        userId: string,
+        payload: UserNotificationPayload,
+    ): Promise<UserNotificationUpdateResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/notification`, {}, payload);
+        return await this.adminRequest(
+            Method.Put,
+            `/users/${encodeURIComponent(userId)}/notification`,
+            {},
+            { is_enabled: payload.enabled },
+        );
     }
 
-    async getUserPushers(userId: string): Promise<{ pushers: UserPusher[] }> {
+    /**
+     * 列出用户的 pusher
+     *
+     * 后端返回 `{pushers, total}`（原先只声明并返回了 `pushers`，丢掉了 `total`）。
+     *
+     * @example
+     * ```typescript
+     * const { pushers, total } = await adminManager.getUserPushers("@alice:example.org");
+     * console.log(total, pushers.map((p) => p.pushkey));
+     * ```
+     */
+    async getUserPushers(userId: string): Promise<{ pushers: UserPusher[]; total: number }> {
         AdminValidators.validateUserId(userId);
-        const response = await this.adminRequest<{ pushers?: UserPusher[] }>(
+        const response = await this.adminRequest<{ pushers?: UserPusher[]; total?: number }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/pushers`,
         );
-        return { pushers: response.pushers || [] };
+        const pushers = response.pushers ?? [];
+        return { pushers, total: response.total ?? pushers.length };
     }
 
     async deleteUserPusher(userId: string, pushkey: string): Promise<void> {

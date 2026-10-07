@@ -123,26 +123,40 @@ describe("AdminManager", () => {
         });
 
         it("应该获取服务器通知列表", async () => {
+            // 形状取自后端 notification.rs::get_server_notices：{notices, total, next_batch}；
+            // 条目含 id（原声明漏了），游标键是 next_batch（不是 next_token）。
             transport.respondWith({
-                notices: [{ event_id: "$event1", user_id: "@user:example.com", content: {}, sent_ts: 123456 }],
-                next_token: "token123",
+                notices: [{ id: 7, event_id: "$event1", user_id: "@user:example.com", content: "hi", sent_ts: 123456 }],
+                total: 1,
+                next_batch: "123456|7",
             });
 
             const result = await adminManager.getServerNotices(10);
-            expect(result?.notices).toHaveLength(1);
-            expect(result?.next_token).toBe("token123");
+            expect(result.notices).toHaveLength(1);
+            expect(result.notices[0].id).toBe(7);
+            expect(result.total).toBe(1);
+            expect(result.next_batch).toBe("123456|7");
+            expect(result).not.toHaveProperty("next_token");
         });
     });
 
     describe("联邦黑名单管理", () => {
         it("应该获取联邦黑名单", async () => {
+            // 形状取自后端 federation.rs::get_blacklist：条目键是 added_at（不是 added_ts），
+            // 响应壳含 total / next_batch。
             transport.respondWith({
-                blacklist: [{ server_name: "evil.com", reason: "spam" }],
+                blacklist: [{ server_name: "evil.com", added_at: 1700000000000, reason: "spam" }],
+                total: 1,
+                next_batch: null,
             });
 
-            const blacklist = await adminManager.getFederationBlacklist();
-            expect(blacklist).toHaveLength(1);
-            expect(blacklist[0].server_name).toBe("evil.com");
+            const page = await adminManager.getFederationBlacklist();
+            expect(page.blacklist).toHaveLength(1);
+            expect(page.blacklist[0].server_name).toBe("evil.com");
+            expect(page.blacklist[0].added_at).toBe(1700000000000);
+            expect(page.blacklist[0]).not.toHaveProperty("added_ts");
+            expect(page.total).toBe(1);
+            expect(page.next_batch).toBeNull();
         });
 
         it("应该添加服务器到黑名单", async () => {

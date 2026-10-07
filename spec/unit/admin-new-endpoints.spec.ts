@@ -118,15 +118,18 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await expect(manager.rewriteFederation("a", "")).rejects.toThrow(ValidationError);
         });
 
-        it("confirmFederation POSTs payload to /v1/federation/confirm", async () => {
-            await manager.confirmFederation({ server_name: "example.org", action: "approve", reason: "verified" });
+        it("confirmFederation POSTs {server_name, accept} to /v1/federation/confirm", async () => {
+            // 回归守卫：后端 ConfirmRequest 带 deny_unknown_fields，字段是 {server_name, accept}；
+            // 旧签名发 {server_name, action, reason} ⇒ accept 缺失 + 两个未知字段 ⇒ 必然 400。
+            await manager.confirmFederation("example.org", true);
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/federation/confirm");
-            expect(req.mock.calls[0][3]).toEqual({
-                server_name: "example.org",
-                action: "approve",
-                reason: "verified",
-            });
+            expect(req.mock.calls[0][3]).toEqual({ server_name: "example.org", accept: true });
+            expect(req.mock.calls[0][3]).not.toHaveProperty("action");
+        });
+
+        it("confirmFederation rejects an empty server name", async () => {
+            await expect(manager.confirmFederation("", true)).rejects.toThrow(ValidationError);
         });
     });
 
@@ -195,12 +198,19 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     });
 
     describe("federation pending/admission compatibility", () => {
-        it("getFederationAdmissionList prefers /v1/federation/pending", async () => {
-            req.mockResolvedValueOnce({ pending: [{ server_name: "example.org" }] });
+        it("getFederationAdmissionList reads the real `servers` key from /v1/federation/pending", async () => {
+            // 回归守卫：后端返回 {servers, total, limit, next_batch}；旧实现读
+            // `admissions` / `pending` 两个从不存在的键 ⇒ 恒返回 []。
+            req.mockResolvedValueOnce({
+                servers: [{ server_name: "example.org", failure_count: 0, status: "pending" }],
+                total: 1,
+                limit: 100,
+                next_batch: null,
+            });
             const result = await manager.getFederationAdmissionList();
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/federation/pending");
-            expect(result).toEqual([{ server_name: "example.org" }]);
+            expect(result).toEqual([{ server_name: "example.org", failure_count: 0, status: "pending" }]);
         });
 
         it("getFederationAdmissionList does NOT fall back on 404", async () => {
@@ -488,7 +498,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/notification");
             expect(req.mock.calls[1][0]).toBe("PUT");
             expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/notification");
-            expect(req.mock.calls[1][3]).toEqual({ enabled: false });
+            // 线上字段是 is_enabled（后端 UserNotificationRequest 带 deny_unknown_fields）；
+            // 方法签名保留 {enabled} 并在此映射。
+            expect(req.mock.calls[1][3]).toEqual({ is_enabled: false });
         });
 
         it("getUserPushers/deleteUserPusher use pusher routes", async () => {
@@ -1258,6 +1270,97 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
 
         it("rejects empty userId", async () => {
             await expect(manager.media.deleteUserMedia("")).rejects.toThrow(ValidationError);
+        });
+    });
+
+    // --------- Federation 响应/请求形状（对照后端 federation.rs 与 notification.rs 逐个核对）---------
+    describe("federation & notification payload shapes (backend-verified)", () => {
+        it("getFederationDestinations: item has last_successful_ts/failure_count, NOT last_successful_stream_ordering", async () => {
+            req.mockResolvedValue({
+                destinations: [
+                    {
+                        destination: "a.tld",
+                        retry_last_ts: null,
+                        retry_interval: null,
+                        failure_ts: null,
+                        last_successful_ts: 1700000000000,
+                        failure_count: 2,
+                        status: "active",
+                        updated_ts: 1700000000000,
+                    },
+                ],
+                total: 1,
+                total_count: 1,
+                next_batch: null,
+            });
+            const list = await manager.getFederationDestinations();
+            expect(list[0]!.last_successful_ts).toBe(1700000000000);
+            expect(list[0]!.failure_count).toBe(2);
+            expect(list[0]).not.toHaveProperty("last_successful_stream_ordering");
+        });
+
+        it("getFederationDestinationRooms: rooms is a string id array (not objects) and there is no cursor", async () => {
+            req.mockResolvedValue({ rooms: ["!a:x", "!b:x"], total: 2 });
+            const page = await manager.getFederationDestinationRooms("a.tld");
+            expect(page.rooms).toEqual(["!a:x", "!b:x"]);
+            expect(typeof page.rooms[0]).toBe("string");
+            expect(page).not.toHaveProperty("next_token");
+        });
+
+        it("getFederationCache: list key is cache, entries carry expiry_ts (not size/last_access_ts)", async () => {
+            req.mockResolvedValue({ cache: [{ key: "k", value: { v: 1 }, expiry_ts: 1700000000000 }], total: 1 });
+            const cache = await manager.getFederationCache();
+            expect(cache.cache[0]!.key).toBe("k");
+            expect(cache.cache[0]!.expiry_ts).toBe(1700000000000);
+            expect(cache).not.toHaveProperty("entries");
+            expect(cache.cache[0]).not.toHaveProperty("size");
+            expect(cache.cache[0]).not.toHaveProperty("last_access_ts");
+        });
+
+        it("getPendingFederationServers: cursor is next_batch (backend never returns offset)", async () => {
+            req.mockResolvedValue({ servers: [], total: 0, limit: 100, next_batch: "1700000000000|a.tld" });
+            const page = await manager.getPendingFederationServers();
+            expect(page.next_batch).toBe("1700000000000|a.tld");
+            expect(page).not.toHaveProperty("offset");
+        });
+
+        it("sendServerNotice: object form posts {user_id, content} and returns {event_id, room_id, notice_id}", async () => {
+            req.mockResolvedValue({ event_id: "$e:x", room_id: "!r:x", notice_id: 3 });
+            const result = await manager.sendServerNotice("@a:x", { msgtype: "m.text", body: "hi" });
+            expect(req.mock.calls[0][1]).toBe("/send_server_notice");
+            expect(req.mock.calls[0][3]).toEqual({ user_id: "@a:x", content: { msgtype: "m.text", body: "hi" } });
+            expect(result.notice_id).toBe(3);
+            expect(result.room_id).toBe("!r:x");
+        });
+
+        it("sendServerNotice: the string form throws instead of sending a body the backend always rejects", async () => {
+            // 后端 ServerNoticeRequest 带 deny_unknown_fields，且 content 必须是 {msgtype, body}；
+            // 旧实现在该分支发 {content: "<字符串>", type, target_users} ⇒ 必然 400。
+            await expect(manager.sendServerNotice("some text", "m.text")).rejects.toThrow(ValidationError);
+            expect(req).not.toHaveBeenCalled();
+        });
+
+        it("setUserNotification posts {is_enabled} and returns {is_enabled} (GET returns {enabled})", async () => {
+            req.mockResolvedValue({ is_enabled: false });
+            const result = await manager.setUserNotification("@a:x", { enabled: false });
+            expect(req.mock.calls[0][0]).toBe("PUT");
+            expect(req.mock.calls[0][1]).toBe("/users/%40a%3Ax/notification");
+            // 请求体走 is_enabled（后端 UserNotificationRequest 带 deny_unknown_fields）
+            expect(req.mock.calls[0][3]).toEqual({ is_enabled: false });
+            expect(result.is_enabled).toBe(false);
+        });
+
+        it("getUserNotification reads {enabled} (GET and PUT use different keys on the backend)", async () => {
+            req.mockResolvedValue({ enabled: true });
+            const result = await manager.getUserNotification("@a:x");
+            expect(result.enabled).toBe(true);
+        });
+
+        it("getUserPushers returns {pushers, total}", async () => {
+            req.mockResolvedValue({ pushers: [{ pushkey: "k", app_id: "a" }], total: 1 });
+            const result = await manager.getUserPushers("@a:x");
+            expect(result.pushers).toHaveLength(1);
+            expect(result.total).toBe(1);
         });
     });
 

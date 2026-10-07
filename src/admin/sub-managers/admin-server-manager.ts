@@ -26,6 +26,8 @@ import type {
     ServerInfo,
     AdminCleanupResponse,
     ServerNotice,
+    ServerNoticePage,
+    SendServerNoticeResult,
     SystemNotificationInfo,
     SystemNotificationPage,
     AdminPurgeHistoryResult,
@@ -160,14 +162,13 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
     /**
      * 获取服务器通知列表
      *
+     * 后端返回 `{notices, total, next_batch}`。
+     *
      * @param fromOrLimit - 分页起点或数量限制
      * @param limit - 数量限制
-     * @returns 服务器通知列表
+     * @returns 服务器通知页（含游标）
      */
-    async getServerNotices(
-        fromOrLimit?: string | number,
-        limit?: number,
-    ): Promise<{ notices: ServerNotice[]; next_token?: string }> {
+    async getServerNotices(fromOrLimit?: string | number, limit?: number): Promise<ServerNoticePage> {
         let from: string | undefined;
         let localLimit: number | undefined = limit;
         if (typeof fromOrLimit === "number") {
@@ -176,43 +177,44 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             from = fromOrLimit;
         }
         const queryParams = buildPaginationParams(localLimit, from);
-        const response = await this.adminRequest<{ notices: ServerNotice[]; next_token?: string }>(
-            Method.Get,
-            "/server_notices",
-            queryParams,
-        );
-        return { notices: response.notices || [], next_token: response.next_token };
+        const response = await this.adminRequest<{
+            notices?: ServerNotice[];
+            total?: number;
+            next_batch?: string | null;
+        }>(Method.Get, "/server_notices", queryParams);
+        const notices = response.notices ?? [];
+        return { notices, total: response.total ?? notices.length, next_batch: response.next_batch ?? null };
     }
 
     /**
      * 发送服务器通知
      *
-     * @param arg1 - 通知内容或用户 ID
-     * @param arg2 - 通知类型或通知内容对象
-     * @param arg3 - 目标用户列表
+     * 对应 `POST /_synapse/admin/v1/send_server_notice`。后端 `ServerNoticeRequest`
+     * 带 `#[serde(deny_unknown_fields)]`，形状是 **`{user_id, content: {msgtype, body}}`**。
+     *
+     * ⚠️ 本方法**只支持对象形态**（`arg1` = 用户 id，`arg2` = `{msgtype, body, …}`）。
+     * 字符形态（`sendServerNotice("text", "m.text")`）无论怎么拼都凑不出 `user_id`
+     * —— 旧实现在那个分支发的是 `{content: "<字符串>", type, target_users}`，
+     * 三个键全是未知字段，**必然 400**。现在该分支直接抛出 `ValidationError` 并指路。
+     *
+     * @param arg1 - 用户 id（对象形态）
+     * @param arg2 - 通知内容对象 `{msgtype, body}`
+     * @returns 投递结果（`{event_id, room_id, notice_id}`）
+     *
+     * @throws {ValidationError} 如果未传内容对象（字符串形态已不再支持）
      */
     async sendServerNotice(
         arg1: string,
         arg2?: string | { msgtype: string; body: string; [k: string]: unknown },
-        arg3?: string[],
-    ): Promise<{ event_id?: string }> {
-        if (typeof arg2 === "object" && arg2 !== null) {
-            const body = {
-                user_id: arg1,
-                content: arg2,
-            };
-            return await this.adminRequest<{ event_id?: string }>(Method.Post, "/send_server_notice", {}, body);
+    ): Promise<SendServerNoticeResult> {
+        if (typeof arg2 !== "object" || arg2 === null) {
+            throw new ValidationError(
+                "sendServerNotice requires a content object: sendServerNotice(userId, { msgtype, body }). " +
+                    "The backend rejects any other shape with 400 (deny_unknown_fields).",
+            );
         }
-        const body: { content: string; type?: string; target_users?: string[] } = { content: arg1 };
-        if (typeof arg2 === "string") {
-            body.type = arg2;
-        }
-        if (arg3) {
-            body.target_users = arg3;
-        }
-        // 后端发送服务器通知的端点是 `POST /_synapse/admin/v1/send_server_notice`
-        // —— 与上面对象分支走的是同一条（`/server_notices` 只注册了 GET/DELETE）。
-        return await this.adminRequest<{ event_id?: string }>(Method.Post, "/send_server_notice", {}, body);
+        const body = { user_id: arg1, content: arg2 };
+        return await this.adminRequest<SendServerNoticeResult>(Method.Post, "/send_server_notice", {}, body);
     }
 
     /**

@@ -2202,6 +2202,79 @@ expect(members).toHaveLength(2);
 **剩余**：后端 admin 尚余 `federation.rs`(9) / `notification.rs`(7) / `token.rs`(6) /
 `retention.rs`(6) / `security.rs`(4) 等模块未核；`user.rs` 的会话/令牌/批量 handler 也未核。
 
+### 7.15-25 响应体契约核对第五轮（federation / notification）：五个"必然 400"的请求体
+
+本轮覆盖 `federation.rs` 与 `notification.rs`（各 15 个 handler），对照
+`admin-federation-manager.ts` / `admin-notification-manager.ts` / `admin-server-manager.ts`
+的 server-notices 段落 / `admin-user-manager.ts` 的 notification 与 pushers 段落。
+
+#### 1. 五个「请求体形状不对 ⇒ 必然 400」（比响应体错更硬）
+
+后端在这些**请求**结构体上标了 `#[serde(deny_unknown_fields)]`，字段名必须完全一致，
+连多余字段都不放过 —— 而 SDK 送的是另一套名字：
+
+| SDK 方法                                         | 旧请求体                                    | 后端真实要求                          | 后果                                   |
+| ------------------------------------------------ | ------------------------------------------- | ------------------------------------- | -------------------------------------- |
+| `confirmFederation(payload)`                     | `{server_name, action, reason}`             | `{server_name, accept}`               | `accept` 缺失 + 两个未知字段 ⇒ **400** |
+| `notifications.create({message, important})`     | `{message, important}`                      | `{title, content, …}`                 | `title`/`content` 必填缺失 ⇒ **400**   |
+| `notifications.update(id, {message, important})` | 同上                                        | 同创建（全可选）                      | 未知字段 ⇒ **400**                     |
+| `setUserNotification(userId, {enabled})`         | `{enabled}`                                 | `{is_enabled}`                        | 未知字段 + 必填缺失 ⇒ **400**          |
+| `sendServerNotice(text, type)`（字符串分支）     | `{content: "<字符串>", type, target_users}` | `{user_id, content: {msgtype, body}}` | 三个键全是未知字段 ⇒ **400**           |
+
+`sendServerNotice` 的字符串分支尤其说明问题：**那个签名无论如何都凑不出 `user_id`**，
+是一个不可能成功的分支。本轮把它改为直接抛 `ValidationError`（附正确用法），
+而不是继续发一个注定 400 的请求 —— 「静默失败」是本轮所有问题的共同形态。
+
+#### 2. 响应体：三条"完全不相干" + 两个"永远取不到"
+
+| 方法                                    | 声明                                                     | 后端实际                                                                                            |
+| --------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `getFederationAdmissionList()`          | 读 `admissions` / `pending` 两个键                       | 后端只有 `servers` ⇒ **恒返回 `[]`**（且与 `getPendingFederationServers` 打同一端点，一个对一个错） |
+| `getFederationCache()`                  | `{entries, total?}`                                      | 列表键是 **`cache`** ⇒ `cache.entries` **恒 `undefined`**                                           |
+| `notifications.get()/create()/update()` | 读 `{notification: {...}}` 包装                          | 后端返回**裸通知对象** ⇒ 三个方法**恒返回 `undefined`**                                             |
+| `ServerNotification`                    | `{id, message, important, sent_ts, created_ts, expired}` | 后端 16 个字段（`title`/`content`/`notification_type`/…）—— **4 个是假的、12 个缺失**               |
+| `ServerNotice`                          | `{event_id, user_id, content, sent_ts}`                  | 后端 5 键，多一个 `id`（表格主键，删/查详情都要用）                                                 |
+
+#### 3. "键名看着像"与"元素类型编错"（延续上一轮的两种形态）
+
+- `FederationBlacklistEntry.added_ts` → 实为 **`added_at`**；
+- `PendingFederationList.offset` → 实为 **`next_batch`**；
+- `FederationDestination.last_successful_stream_ordering` → 本后端**不返回**，真实是
+  `last_successful_ts` + `failure_count`（前者是上游 Synapse 的字段）；
+- `AdminFederationDestinationRooms.rooms` → 声明成对象数组，实为 **room id 字符串数组**；
+- `AdminFederationCacheEntry.size` / `last_access_ts` → 不存在，真实是 `expiry_ts`；
+- `NotificationsListResponse.next_token` → 实为 **`next_batch`**；`ServerNoticePage` 同理；
+- `ServerNotification.sent_ts` / `expired` → 后端没有；`created_ts` 有但语义不同。
+
+#### 4. 单测第六次同源失效 —— 这次连**请求体**都被固化
+
+```
+前端 spec 原文：
+  expect(req.mock.calls[0][3]).toEqual({ server_name: "example.org", action: "approve", reason: "verified" });
+  expect(mockClient.http.authedRequest).toHaveBeenCalledWith(..., { message: "New", important: true }, ...);
+  expect(mockClient.http.authedRequest.mockResolvedValue({ notification }));   // ← 期望"被包装"的响应
+```
+
+三处都把**错的请求体/响应包装**写成了期望值。第六次的形态是"请求体 + 响应包装同时固化"。
+⇒ 与 §7.15-23 同一结论，再收一档：**这类测试的价值为零甚至为负** ——
+它让正确修法先要"弄红测试"，而修复者看到红灯的第一反应往往是怀疑修改本身。
+
+#### 5. 一条纪律：已登记的 `semantic-mismatch` 不要顺手"修"
+
+`notifications.deactivate()` 打的 `DELETE /v1/notifications/deactivate` 后端**没有注册**
+（真实端点是 `PUT /v1/notifications/{id}/deactivate`），但已在
+`path-contract-waivers.json` 第 14 条登记。本轮**只补 JSDoc 指向真实端点、不改行为**，
+并在 spec 里注明"这条断言的是既有行为、不是契约"。
+（同一模式下 §7.15-24 已处理过 `deleteRoomMessage` / `joinRoom` 两例。）
+
+#### 6. 变异自证 2 次
+
+- 变异 A（`confirmFederation` 换回 `{server_name, action}`）⇒ 守卫红；
+- 变异 B（`getFederationAdmissionList` 换回读 `pending`）⇒ 守卫红（`expected [] to deeply equal [Array(1)]`）。
+
+**剩余**：`token.rs`(9) / `retention.rs`(6) / `security.rs`(8) 未核；
+`user.rs` 的会话/令牌/批量 handler 亦未核。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -2274,7 +2347,12 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-24：响应体契约核对第四轮（room / space / report）—— 13 类不符 / 2 条已登记路径缺口；
+**最后更新**: 2026-10-07（§7.15-25：响应体契约核对第五轮（federation / notification）—— 15 个 handler × 2 模块；
+**5 个「请求体形状不对 ⇒ 必然 400」**（`confirmFederation` / `notifications.create|update` /
+`setUserNotification` / `sendServerNotice` 字符串分支，后端都带 `deny_unknown_fields`）；
+`getFederationAdmissionList` 与 `notifications.get|create|update` **恒返回 `[]` / `undefined`**；
+`ServerNotification` 16 个真实字段里 12 个缺失、4 个是假的；
+§7.15-24：响应体契约核对第四轮（room / space / report）—— 13 类不符 / 2 条已登记路径缺口；
 `getRoomStats` 取 `response.rooms` 导致**运行时恒返回空数组**、`getRoomForwardExtremities` 把整数计数声明成对象数组；
 键名 `public`/`version`/`join_rules` 实为 `is_public`/`room_version`/`join_rule`；单测第五次同源失效（连"条目是对象还是字符串"都编错）；
 **并新发现 `docs/ADMIN_GUIDE.md` 有 7 个方法、12 处调用指向不存在的 API**，已全部改正并新增守卫 spec；

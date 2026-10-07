@@ -69,7 +69,11 @@ import {
     type AdminCleanupResponse,
     type AccountStatus,
     type ServerNotice,
+    type ServerNoticePage,
+    type SendServerNoticeResult,
     type FederationBlacklistEntry,
+    type FederationBlacklistPage,
+    type PendingFederationServer,
     type RegistrationToken,
     type FederationDestination,
     type AdminFederationDestinationDetail,
@@ -171,6 +175,7 @@ import {
     type UserStatsListResponse,
     type UserRoomsResponse,
     type UserNotificationResponse,
+    type UserNotificationUpdateResponse,
     type UserNotificationPayload,
     type RestartServerPayload,
     type RestartServerResponse,
@@ -353,8 +358,8 @@ export interface AdminManager {
     getUserMedia(userId: string, from?: string, limit?: number): Promise<UserMediaList>;
     deleteUserMedia(userId: string): Promise<void>;
     getUserNotification(userId: string): Promise<UserNotificationResponse>;
-    setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationResponse>;
-    getUserPushers(userId: string): Promise<{ pushers: UserPusher[] }>;
+    setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationUpdateResponse>;
+    getUserPushers(userId: string): Promise<{ pushers: UserPusher[]; total: number }>;
     deleteUserPusher(userId: string, pushkey: string): Promise<void>;
     blockEventReportUser(userId: string, payload: { blocked_until?: number; reason?: string }): Promise<void>;
     unblockEventReportUser(userId: string): Promise<void>;
@@ -446,15 +451,11 @@ export interface AdminManager {
         delete_old_rooms?: boolean;
         delete_old_users?: boolean;
     }): Promise<AdminCleanupResponse>;
-    getServerNotices(
-        fromOrLimit?: string | number,
-        limit?: number,
-    ): Promise<{ notices: ServerNotice[]; next_token?: string }>;
+    getServerNotices(fromOrLimit?: string | number, limit?: number): Promise<ServerNoticePage>;
     sendServerNotice(
         arg1: string,
         arg2?: string | { msgtype: string; body: string; [k: string]: unknown },
-        arg3?: string[],
-    ): Promise<{ event_id?: string }>;
+    ): Promise<SendServerNoticeResult>;
     deleteServerNotice(notificationId: string): Promise<void>;
     getServerNotice(noticeId: string): Promise<ServerNotice>;
     listNotifications(from?: string, limit?: number): Promise<SystemNotificationPage>;
@@ -480,7 +481,7 @@ export interface AdminManager {
     cleanupTokens(): Promise<AdminCleanupResponse>;
 
     // ----- 联邦管理（→ federation） -----
-    getFederationBlacklist(): Promise<FederationBlacklistEntry[]>;
+    getFederationBlacklist(options?: { from?: string; limit?: number }): Promise<FederationBlacklistPage>;
     addFederationBlacklistEntry(serverName: string, reason?: string): Promise<void>;
     removeFederationBlacklistEntry(serverName: string): Promise<void>;
     addToFederationBlacklist(serverName: string, reason?: string): Promise<void>;
@@ -501,15 +502,11 @@ export interface AdminManager {
     getFederationCache(): Promise<AdminFederationCache>;
     clearFederationCache(): Promise<void>;
     deleteFederationCacheEntry(key: string): Promise<void>;
-    getFederationAdmissionList(): Promise<FederationAdmissionResult[]>;
+    getFederationAdmissionList(): Promise<PendingFederationServer[]>;
     getPendingFederationServers(from?: string, limit?: number): Promise<PendingFederationList>;
     resolveFederation(serverName: string): Promise<FederationResolveResponse>;
     rewriteFederation(from: string, to: string): Promise<FederationRewriteResponse>;
-    confirmFederation(payload: {
-        server_name?: string;
-        action?: string;
-        reason?: string;
-    }): Promise<FederationAdmissionResult>;
+    confirmFederation(serverName: string, accept: boolean): Promise<FederationAdmissionResult>;
 
     // ----- 媒体管理（→ media） -----
     getMedia(fromOrLimit?: string | number, limitOrFrom?: number | string): Promise<MediaPage>;
