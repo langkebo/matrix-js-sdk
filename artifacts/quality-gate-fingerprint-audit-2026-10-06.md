@@ -59,7 +59,7 @@
 > ④ **granular 抽库** —— 18 份副本 → 1 个共享引擎 + 18 份数据，金标准对拍 **18/18 逐字节一致**，
 > P6 未覆盖数 **37 → 18**；
 > ⑤ **孤岛 7 → 2**（删除 3 个已确认无引用的脚本）；⑥ 修 `check-waiver-expiry` 报告头的 UTC 打印（diff 恰好 1 行）。
-> 详见 **§7.14**。**P9 / `quality:report` 超时仍未做**。
+> 详见 **§7.14**。**P9 仍未做（环境限制）；`quality:report` 240s 超时已定位并修完，见 §7.15-9**。
 
 ---
 
@@ -1064,7 +1064,7 @@ pre-commit 只处理 `ts/tsx/py/md/yaml`，于是 `scripts/quality/**` 的门禁
 可达闭包的传递性与收敛性、`.js`→`.ts` 与目录→`index.ts` 的解析。
 变异自证：① `isTrackedClassName` 去掉 `$` 锚定 → 转红；② `resolveSpecifier` 去掉 `.js` 映射 → 转红。
 
-#### 7.15-7 P6 后续批次：已完成 9 个，剩余 4 个
+#### 7.15-7 P6 后续批次：13 个判定类门禁全部守住
 
 按"改造风险"而非纯规模排序推进，每个都走「capture → 抽纯函数 → verify 对拍 → spec → 变异自证」。
 
@@ -1079,23 +1079,69 @@ pre-commit 只处理 `ts/tsx/py/md/yaml`，于是 `scripts/quality/**` 的门禁
 | `check-large-file-changes`      | 59   | 9    | 阈值是 `>` 非 `>=`；已删除文件必须跳过                                           |
 | `scan-technical-debt`           | 261  | 20   | 指纹含片段（改措辞即新债）+ 路径归一；CSV 逗号转义；FIXME 必须 P0                |
 | `check-type-coverage`           | 139  | 6    | `recursive=false` 只收一层（模块档关掉会虚高到 100%）；排除 `.test-d.ts`         |
+| `check-exports-docs`            | 374  | 25   | 六类问题互不遮蔽；核心入口必填 Key Exports；`export *` 不传 `default`            |
+| `check-sdk-contract-alignment`  | 1755 | 46   | 版本段归一；`VendorPrefix` 必须解析；不等长对齐**尾缀**；`{}` 不算通配段         |
+| `check-docs-examples`           | 250  | 18   | 只有带 title 的围栏参与编译；title 取 basename；下限必须**等于**实际抽取数       |
+| `check-entrypoint-layering`     | 230  | 21   | `export *` 不传 `default`；`as` 取别名；只认再导出来源；真实 `core.ts` 不泄漏    |
 
-**顺带修掉 5 处"无条件 `main()` / 顶层裸跑"**：`check-coverage-critical-files`、
+**顺带修掉 10 处"无条件 `main()` / 顶层裸跑"**：`check-coverage-critical-files`、
 `check-msc-changes`、`check-vendor-prefix-migration`、`check-contract-provenance`、
-`scan-technical-debt`、`check-type-coverage` —— 它们 import 时会跑全仓扫描或
-`git diff`，且有违规时 `process.exit(1)` 会让 spec 以"莫名其妙的红"失败。
+`scan-technical-debt`、`check-type-coverage`、`check-exports-docs`、`check-sdk-contract-alignment`、
+`check-docs-examples`、`check-entrypoint-layering` —— 它们 import 时会跑全仓扫描、抽示例跑 tsc
+或读 `git diff`，且有违规时 `process.exit(1)` 会让 spec 以"莫名其妙的红"失败。
 CLI 行为均经 gate-golden 对拍**逐字节一致**。
 
 ⚠️ 侦察入口形态时**不能** grep `import.meta.url`（`fileURLToPath(import.meta.url)`
 会误命中），只能看文件末尾是不是 `main();` 裸调用。
 
-**剩余 4 个**：`check-sdk-contract-alignment`（1749，顶层有副作用，改造最难）、
-`check-exports-docs`（374，顶层 `readFileSync`）、`check-docs-examples`（250）、
-`check-entrypoint-layering`（230）。
+**最后 4 个**本轮全部啃完，难度各异：
 
-#### 7.15-8 仍未做（其它）
+- `check-sdk-contract-alignment`（1755，全仓最大）：顶层 ~280 行裸跑逻辑，用 Python 脚本
+  机械包进 `main()` 再对拍，避免手抄出错；导出判定链上 20 个纯函数。
+- `check-exports-docs`（374）：顶层 `readFileSync` + `process.exit(1)`。
+- `check-docs-examples`（250）：判定埋在读文件/写文件副作用里，拆出 `parseBlocks` /
+  `planGenerated` / `buildTsconfig` 三个纯函数才测得动。
+- `check-entrypoint-layering`（230）：整个判定是一段顶层 `try` 块，且四处都是
+  「遍历到第一个就 `throw`」—— 改成「先算出全部违规、再 `throw`」后违规集合才可测。
 
-- **`quality:report` 240s 超时**：仍未定位（需活后端 / 全量测试）。
+⚠️ **变异自证本身也会"纸面通过"**：给 `entrypoint-layering` 的第一版变异是把
+`\{[^}]*\}\s+from` 放宽成 `\{[^}]*\}\s*(?:from)?`，跑出来**一条用例都没红**——
+因为正则后半段仍要求双引号，`export { a, b };` 照样不匹配。换成正真能触发的
+变异（放宽到 `export const a = 1;` 也匹配）才拿到 2 条红。
+**教训：变异后必须确认 spec 转红；没转红先怀疑变异无效，而不是假设断言有效。**
+
+**新的剩余（口径按 spec 文件名双向配对重算：52 个脚本 / 43 已覆盖 / 8 未覆盖）**：
+
+- 判定类门禁 3 个：`verify-path-contract`（1096）、`check-manager-codegen-coverage`（399）、
+  `check-generated-dto-strictness`（201）；
+- 报告生成器 / runner / 查询器 5 个：`generate-coverage-report`、`debt-weekly-report`、
+  `find-lowest-coverage-files`、`find-lowest-coverage-modules`、`run-granular-coverage-gates`
+  （无"红/绿"判定，价值主要在产物而非断言）。
+
+#### 7.15-8 `quality:report` 240s 超时：根因是「静默重跑两遍全量 vitest」
+
+§7.14/§7.15 一直记为"未定位"。根因与后端无关（`https://matrix.test/health` 返回 200 也照旧）：
+
+1. `coverage/lcov.info` 不存在时，`collectCoverageMetrics()` 会**静默**跑一次
+   `npx vitest run --coverage`（`silent=true`，输出全吞）；
+2. `collectTestStats()` 紧接着**又跑一遍**全量 vitest（`--reporter=json`）——
+   同一批测试跑两次，实测合计 **11 分 14 秒**。输出被吞掉后，从外面看就是
+   "脚本卡住不动"，直到 CI/沙箱的 240s 上限把它杀掉；
+3. 更糟的是跑完**也未必产出 lcov**：沙箱里 `V8CoverageProvider.clean` 要删 775 个
+   coverage 文件，撞上每回合删除上限，vitest 启动即崩 —— 于是下一轮照旧白跑；
+4. 附带隐患：`collectTestStats` 那轨的 stdout 达 **21.7MB**，逼近 `execSync` 默认
+   20MB `maxBuffer`（今天是没超，加一个 reporter 就会 ENOBUFS）。
+
+**修法**：默认只读产物 —— 缺 lcov 就把"该跑的那条命令"直接打印出来并跳过该轨，
+把决定权交回调用方；确实要自跑用 `--run-tests`（且不再 silent）。
+修后同场景 **16.5s**（lcov 存在）/ 秒级（缺失）。
+
+这个坑的形态值得记：**"慢"和"卡住"在门禁里长得一模一样**，而根因常常是
+"某条静默路径在替调用方做一件很贵的事"。判据：凡 `runCommand(..., silent=true)`
+且命令里带 `vitest`/`tsc`，都要问一句"它凭什么替我决定要跑这个"。
+
+#### 7.15-9 仍未做（其它）
+
 - **P9**：`npx eslint <多文件>` 在本机沙箱 SIGTERM(137)，只能后台跑；属环境问题。
 - **`check-cross-repo-pin`**、4 条豁免、2 条 keep-manual 孤岛：**按设计如此**，记录不修。
 - 两处已知小缺陷**故意未修**（已在对应 spec 里钉住现状，改它们属判定类改动）：
@@ -1187,5 +1233,10 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 修"跑一遍门禁就污染工作区"（报告生成器产物入 `.gitignore`），
 `check-type-coverage` 并发化 **85.8s → ~40s**（gate-golden 对拍 stdout 逐字节一致），
 补 `.lintstagedrc` 覆盖 `.mjs`，P6 口径精算为"52 个脚本中 17 个非 granular 无 spec（13 个判定类）"
-并新守 `check-public-api-docs`（16 例 + 两次变异自证））
+并新守 `check-public-api-docs`（16 例 + 两次变异自证）；
+**§7.15 续修（P6 收尾）**：13 个判定类门禁**全部守住**，本轮新增
+`check-exports-docs`(25) / `check-sdk-contract-alignment`(46) / `check-docs-examples`(18) /
+`check-entrypoint-layering`(21) 共 110 例，均走「capture → 抽纯函数 → verify 对拍 → 变异自证」，
+CLI 行为逐字节一致；口径重算为 **52 个脚本 / 43 已覆盖 / 8 未覆盖**（判定类仅剩 3 个）；
+并定位修掉 `quality:report` 240s 超时（根因：缺 lcov 时静默重跑两遍全量 vitest，11m14s，见 §7.15-8））
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
