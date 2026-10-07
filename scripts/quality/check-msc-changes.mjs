@@ -200,4 +200,9 @@ function main() {
     console.log("   Consider updating baseline: node scripts/quality/check-msc-changes.mjs --update-baseline");
 }
 
-main();
+// 仅在被直接执行时跑 main。原来这里是**无条件** main()：任何 import 它的 spec
+// 都会顺带跑一遍全仓 MSC 扫描；更糟的是 main() 在文档未覆盖 / strict 模式下会
+// `process.exit(1)`，那时 spec 会以"莫名其妙的红"失败，而不是给出可读的断言错误。
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}

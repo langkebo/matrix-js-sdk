@@ -80,16 +80,19 @@ function loadLedger() {
     }
 }
 
-function main() {
-    const jsonMode = process.argv.includes("--json");
-
-    const critical = analyze();
-    const ledger = loadLedger();
-    const entries = ledger.entries || [];
+/**
+ * R1–R4 的判定（纯函数，便于单测 —— 原实现把四条规则全写在 main() 里，
+ * 既没法测，也没法在 CI 之外复现）。
+ *
+ * `today` 显式入参而不是内部取 `new Date()`：R3 是"deadline 过期且仍未覆盖"，
+ * 这个判定随日期变化，不参数化就只能写"今天前后"这种会自己腐烂的用例。
+ *
+ * @param {{critical: Array<{file: string, lines: number, httpCalls: number, evidence: string}>,
+ *          entries: Array<Record<string, unknown>>, today: Date}} input
+ * @returns {{violations: Array<Record<string, unknown>>, tracked: Array<Record<string, unknown>>}}
+ */
+export function evaluateLedger({ critical, entries, today }) {
     const byFile = new Map(entries.map((e) => [e.file, e]));
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const violations = [];
     const tracked = [];
 
@@ -154,6 +157,20 @@ function main() {
         }
     }
 
+    return { violations, tracked };
+}
+
+function main() {
+    const jsonMode = process.argv.includes("--json");
+
+    const critical = analyze();
+    const ledger = loadLedger();
+    const entries = ledger.entries || [];
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const { violations, tracked } = evaluateLedger({ critical, entries, today });
+
     if (jsonMode) {
         console.log(
             JSON.stringify(
@@ -203,4 +220,9 @@ function main() {
     process.exit(violations.length > 0 ? 1 : 0);
 }
 
-main();
+// 仅在被直接执行时跑 main。原来这里是**无条件** main() —— 于是任何
+// `import` 它的 spec 都会顺带跑一遍全仓扫描，并在仓库真有违规时被
+// `process.exit(1)` 打断（spec 假红，且红得莫名其妙）。
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}
