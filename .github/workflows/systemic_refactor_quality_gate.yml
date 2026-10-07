@@ -93,6 +93,12 @@ jobs:
             - name: Weak coverage report (advisory, non-blocking)
               run: pnpm quality:coverage:weak-files
 
+            # 模块级版本：与上面文件级同源（find-lowest-coverage-modules.mjs / -files.mjs
+            # 曾共享同一个 bug，说明两者本就该成对维护）。此前只有文件级进了 CI，
+            # 模块级这个 npm script 没有任何 workflow 调用 ⇒ 被可达性门禁判为死门禁。
+            - name: Weak coverage report - modules (advisory, non-blocking)
+              run: pnpm quality:coverage:weak-modules
+
             - name: High severity audit gate
               run: pnpm audit:high
 
