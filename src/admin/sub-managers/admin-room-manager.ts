@@ -26,19 +26,23 @@ import type {
     RoomInfo,
     RoomStateEvent,
     RoomMessage,
+    RoomMessagePage,
     RoomStats,
+    RoomStatsOverview,
+    AdminRoomMember,
+    AdminRoomMemberPage,
     SpaceInfo,
     SpacePage,
-    SpaceUser,
-    SpaceRoom,
+    SpaceRoomsResponse,
+    SpaceUsersResponse,
     PaginatedResponse,
-    AdminAccountDetails,
     AdminRoomVersionResponse,
     AdminRoomBlockStatus,
     AdminEventContext,
-    AdminForwardExtremity,
+    AdminRoomForwardExtremities,
     AdminTokenSync,
-    AdminRoomSearchResult,
+    AdminRoomEventSearchPage,
+    AdminRoomSearchPage,
     AdminRoomListings,
     AdminRoomRedactPayload,
     AdminRoomRedactResult,
@@ -117,7 +121,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return toPaginatedResult<RoomInfo>(response as unknown as Record<string, unknown>, "rooms");
     }
 
-    async searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchResult> {
+    async searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchPage> {
         const query: Record<string, string> = {};
         if (options) {
             for (const [k, v] of Object.entries(options)) {
@@ -127,7 +131,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, "/rooms/search", query);
     }
 
-    async searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchResult> {
+    async searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchPage> {
         return await this.adminRequest(Method.Post, "/rooms/search", {}, payload);
     }
 
@@ -220,18 +224,32 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     /**
-     * 获取房间成员列表
+     * 获取房间成员
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/members`。后端返回
+     * `{members: [{user_id, displayname, avatar_url, membership}], total, next_batch}`。
+     *
+     * ⚠️ 此前声明/返回的是 `AdminAccountDetails[]`（账号对象的字段集），与真实成员条目完全不同；
+     * 且 `total` / `next_batch` 被静默丢弃。
      *
      * @param roomId - 房间 ID
-     * @returns 房间成员列表
+     * @param options - 可选分页参数
+     * @example
+     * ```typescript
+     * const page = await adminManager.getRoomMembers("!room:example.org", { limit: 100 });
+     * console.log(`${page.members.length}/${page.total}`, page.next_batch);
+     * ```
      */
-    async getRoomMembers(roomId: string): Promise<AdminAccountDetails[]> {
+    async getRoomMembers(roomId: string, options?: { from?: string; limit?: number }): Promise<AdminRoomMemberPage> {
         AdminValidators.validateRoomId(roomId);
-        const response = await this.adminRequest<{ members: AdminAccountDetails[] }>(
-            Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/members`,
-        );
-        return response.members || [];
+        const queryParams = buildPaginationParams(options?.limit, options?.from);
+        const response = await this.adminRequest<{
+            members?: AdminRoomMember[];
+            total?: number;
+            next_batch?: string | null;
+        }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/members`, queryParams);
+        const members = response.members ?? [];
+        return { members, total: response.total ?? members.length, next_batch: response.next_batch ?? null };
     }
 
     async addRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
@@ -331,16 +349,24 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     /**
      * 获取房间消息
      *
+     * 后端返回 `{chunk, start, end, next_batch}`；此前实现丢弃了 `next_batch`
+     * （`null` 表示末页）。
+     *
      * @param roomId - 房间 ID
-     * @param optionsOrFrom.from - 分页起点
+     * @param optionsOrFrom.from - 分页起点（后端按 `from` 数字解析，解析失败即视为首页）
      * @param limit - 数量限制
-     * @returns 房间消息列表
+     * @returns 消息列表 + 三个游标字段
+     * @example
+     * ```typescript
+     * const page = await adminManager.getRoomMessages("!room:example.org", { limit: 50, dir: "b" });
+     * console.log(page.chunk.length, page.next_batch);
+     * ```
      */
     async getRoomMessages(
         roomId: string,
         optionsOrFrom?: string | { from?: string; limit?: number; dir?: "b" | "f" | string },
         limit?: number,
-    ): Promise<{ chunk: RoomMessage[]; start?: string; end?: string }> {
+    ): Promise<RoomMessagePage> {
         AdminValidators.validateRoomId(roomId);
         const queryParams: Record<string, string> = {};
         if (typeof optionsOrFrom === "string") {
@@ -355,12 +381,14 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             chunk?: RoomMessage[];
             start?: string;
             end?: string;
+            next_batch?: string | null;
             messages?: RoomMessage[];
         }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/messages`, queryParams);
         return {
-            chunk: response.chunk || response.messages || [],
-            start: response.start,
-            end: response.end,
+            chunk: response.chunk ?? response.messages ?? [],
+            start: response.start ?? "0",
+            end: response.end ?? "",
+            next_batch: response.next_batch ?? null,
         };
     }
 
@@ -455,7 +483,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
-    async getRoomForwardExtremities(roomId: string): Promise<AdminForwardExtremity[]> {
+    /**
+     * 获取房间的前向极点数
+     *
+     * ⚠️ 对应 `GET /_synapse/admin/v1/rooms/{room_id}/forward_extremities`，
+     * 后端返回 `{room_id, forward_extremities: <整数>}` —— **不是极点的对象数组**。
+     * 原先声明成 `AdminForwardExtremity[]` 与真实响应毫无关系。
+     * @example
+     * ```typescript
+     * const { forward_extremities } = await adminManager.getRoomForwardExtremities("!room:example.org");
+     * console.log(`前向极点数: ${forward_extremities}`);
+     * ```
+     */
+    async getRoomForwardExtremities(roomId: string): Promise<AdminRoomForwardExtremities> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/forward_extremities`);
     }
@@ -465,7 +505,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/token_sync`);
     }
 
-    async searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomSearchResult> {
+    async searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomEventSearchPage> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/search`, {}, payload);
     }
@@ -486,27 +526,63 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     /**
-     * 获取房间统计信息
+     * 获取房间统计**总览**
      *
-     * @param from - 分页起点
-     * @param limit - 数量限制
-     * @returns 房间统计信息列表
+     * ⚠️ 对应 `GET /_synapse/admin/v1/room_stats`，后端返回的是**单个概览对象**
+     * `{total_rooms, encrypted_rooms, public_rooms, total_messages, total_members,
+     * active_rooms, average_messages_per_room}` —— **不是房间数组**，
+     * 而且该端点**不读 `from` / `limit`**（参数仅为与旧签名兼容而保留）。
+     * 原先实现按 `response.rooms` 取值，运行时恒得到空数组。
+     *
+     * @param from - 已废弃：后端不读该参数
+     * @param limit - 已废弃：后端不读该参数
+     * @returns 全局房间统计概览
+     * @example
+     * ```typescript
+     * const overview = await adminManager.getRoomStats();
+     * console.log(`房间总数 ${overview.total_rooms}，其中公开 ${overview.public_rooms}`);
+     * ```
      */
-    async getRoomStats(from?: string, limit?: number): Promise<RoomStats[]> {
+    async getRoomStats(from?: string, limit?: number): Promise<RoomStatsOverview> {
         const queryParams = buildPaginationParams(limit, from);
-        const response = await this.adminRequest<{ rooms: RoomStats[] }>(Method.Get, "/room_stats", queryParams);
-        return response.rooms || [];
+        return await this.adminRequest<RoomStatsOverview>(Method.Get, "/room_stats", queryParams);
     }
 
+    /** 获取单个房间的统计信息（`GET /room_stats/{room_id}`） */
     async getRoomStatsByRoom(roomId: string): Promise<RoomStats> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomStats>(Method.Get, `/room_stats/${encodeURIComponent(roomId)}`);
     }
 
+    /**
+     * 强制把用户加入房间
+     *
+     * ⚠️ 该路径（`POST /rooms/{room_id}/join`）在后端**不存在**，调用必得 404；
+     * 对应的真实端点是 `PUT /rooms/{room_id}/members/{user_id}`
+     * （见 {@link addRoomMember}）。此差异已登记在
+     * `scripts/quality/path-contract-waivers.json`（`semantic-mismatch`），
+     * 保留方法是为了不破坏既有调用方的编译，**新代码请用 `addRoomMember`**。
+     * @example
+     * ```typescript
+     * // 注意：该路径后端未注册（见方法注释），请优先使用 addRoomMember
+     * await adminManager.addRoomMember("!room:example.org", "@alice:example.org");
+     * ```
+     */
     async joinRoom(roomId: string, userId: string): Promise<void> {
         await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/join`, {}, { user_id: userId });
     }
 
+    /**
+     * 列出事件举报
+     *
+     * 后端返回 `{reports, total}`；翻页游标是**请求侧**的 `since_ts` / `since_id`，
+     * 响应里没有 `next_token`。⚠️ 本方法传的 `from` 后端**不读**（静默忽略）。
+     * @example
+     * ```typescript
+     * const page = await adminManager.listReports({ limit: 50 });
+     * console.log(`共 ${page.total} 条举报`);
+     * ```
+     */
     async listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         const query = buildPaginationParams(options?.limit, options?.from);
         return await this.adminRequest(Method.Get, "/reports", query);
@@ -542,6 +618,16 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}`);
     }
 
+    /**
+     * 列出全部 Space
+     *
+     * 后端返回 `{spaces, total}` —— **没有分页游标**，`from` / `limit` 后端不读。
+     * @example
+     * ```typescript
+     * const page = await adminManager.listSpaces();
+     * console.log(page.spaces.map((s) => s.space_id));
+     * ```
+     */
     async listSpaces(from?: string, limit?: number): Promise<SpacePage> {
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, "/spaces", query);
@@ -552,11 +638,18 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         await this.adminRequest(Method.Delete, `/spaces/${encodeURIComponent(spaceId)}`);
     }
 
-    async getSpaceRooms(
-        spaceId: string,
-        from?: string,
-        limit?: number,
-    ): Promise<{ rooms: SpaceRoom[]; next_batch?: string }> {
+    /**
+     * 列出 Space 的子房间
+     *
+     * ⚠️ 后端返回 `{rooms: string[], total}` —— `rooms` 是 **room id 字符串数组**，
+     * 不是对象数组；也没有分页游标。
+     * @example
+     * ```typescript
+     * const { rooms, total } = await adminManager.getSpaceRooms("!space:example.org");
+     * console.log(total, rooms);
+     * ```
+     */
+    async getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<SpaceRoomsResponse> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
@@ -567,11 +660,18 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/stats`);
     }
 
-    async getSpaceUsers(
-        spaceId: string,
-        from?: string,
-        limit?: number,
-    ): Promise<{ users: SpaceUser[]; next_batch?: string }> {
+    /**
+     * 列出 Space 的成员
+     *
+     * ⚠️ 后端返回 `{users: string[], total}` —— `users` 是 **user id 字符串数组**，
+     * 不是对象数组；也没有分页游标。
+     * @example
+     * ```typescript
+     * const { users, total } = await adminManager.getSpaceUsers("!space:example.org");
+     * console.log(total, users);
+     * ```
+     */
+    async getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<SpaceUsersResponse> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/users`, query);

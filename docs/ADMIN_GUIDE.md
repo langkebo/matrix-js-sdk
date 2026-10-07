@@ -60,13 +60,13 @@ await adminManager.createUser("@bob:example.com", {
     displayname: "Bob Smith",
 });
 
-// 3. 获取房间列表
-const rooms = await adminManager.getRooms();
-console.log(`总共 ${rooms.rooms.length} 个房间`);
+// 3. 获取房间列表（分页接口，返回 { items, next, total }）
+const rooms = await adminManager.getRoomsPaginated({ limit: 50 });
+console.log(`本页 ${rooms.items.length} 个房间，总计 ${rooms.total ?? "未知"}`);
 
 // 4. 检查服务器状态
 const status = await adminManager.getServerStatus();
-console.log(`服务器状态: ${status?.status}`);
+console.log(`服务器可用: server_ok=${status?.server_ok}, db_ok=${status?.db_ok}`);
 ```
 
 ---
@@ -76,18 +76,18 @@ console.log(`服务器状态: ${status?.status}`);
 ### 获取用户列表
 
 ```typescript
-// 获取前 50 个用户
-const result = await adminManager.getUsers(undefined, 50);
-console.log(`获取 ${result.users.length} 个用户`);
+// 获取前 50 个用户（分页接口返回 { items, next, total }）
+const result = await adminManager.getUsersPaginated({ limit: 50 });
+console.log(`获取 ${result.items.length} 个用户`);
 
 // 分页获取所有用户
 let from: string | undefined;
 const allUsers: UserInfo[] = [];
 
 do {
-    const result = await adminManager.getUsers(from, 100);
-    allUsers.push(...result.users);
-    from = result.next_token;
+    const page = await adminManager.getUsersPaginated({ from, limit: 100 });
+    allUsers.push(...page.items);
+    from = page.next;
 } while (from);
 
 console.log(`总共 ${allUsers.length} 个用户`);
@@ -209,39 +209,40 @@ await adminManager.unshadowBanUser("@spammer:example.com");
 ### 获取房间列表
 
 ```typescript
-// 获取所有房间
-const result = await adminManager.getRooms();
-console.log(`总共 ${result.rooms.length} 个房间`);
+// 获取所有房间（分页接口返回 { items, next, total }）
+const page = await adminManager.getRoomsPaginated({ limit: 50 });
+console.log(`本页 ${page.items.length} 个房间，总计 ${page.total ?? "未知"}`);
 
-// 搜索房间
-const result = await adminManager.getRooms(undefined, 50, "general");
-result.rooms.forEach((room) => {
+// 搜索房间（后端端点是 /rooms/search；结果条目含 member_count）
+const search = await adminManager.searchRooms({ search_term: "general", limit: 50 });
+search.results.forEach((room) => {
     console.log(`${room.name} (${room.room_id})`);
-    console.log(`  成员数: ${room.joined_members}`);
+    console.log(`  成员数: ${room.member_count}`);
 });
 
 // 分页获取
 let from: string | undefined;
 do {
-    const result = await adminManager.getRooms(from, 100);
+    const page = await adminManager.getRoomsPaginated({ from, limit: 100 });
     // 处理房间...
-    from = result.next_token;
+    from = page.next;
 } while (from);
 ```
 
 ### 房间详情
 
 ```typescript
-// 获取房间信息
+// 获取房间信息（详情端点返回 is_public / room_version / join_rule；member_count 而非 joined_members）
 const room = await adminManager.getRoom("!abc123:example.com");
 console.log(`房间名称: ${room.name}`);
 console.log(`创建者: ${room.creator}`);
-console.log(`成员数: ${room.joined_members}`);
-console.log(`是否公开: ${room.public}`);
+console.log(`成员数: ${room.member_count}`);
+console.log(`是否公开: ${room.is_public}`);
 
-// 获取房间成员
-const members = await adminManager.getRoomMembers("!abc123:example.com");
-console.log(`成员: ${members.join(", ")}`);
+// 获取房间成员（返回 { members, total, next_batch }；members 是对象数组）
+const memberPage = await adminManager.getRoomMembers("!abc123:example.com");
+console.log(`成员 ${memberPage.members.length}/${memberPage.total}`);
+console.log(`成员列表: ${memberPage.members.map((m) => m.user_id).join(", ")}`);
 
 // 获取房间状态
 const state = await adminManager.getRoomState("!abc123:example.com");
@@ -276,20 +277,20 @@ console.log(`失败 ${result.failed_to_kick_users.length} 个`);
 ### 房间成员管理
 
 ```typescript
-// 强制用户加入房间
-await adminManager.forceJoinRoom("!room:example.com", "@alice:example.com");
+// 强制用户加入房间（PUT /rooms/{room_id}/members/{user_id}）
+await adminManager.addRoomMember("!room:example.com", "@alice:example.com");
 
-// 强制用户离开房间
-await adminManager.forceLeaveRoom("!room:example.com", "@alice:example.com");
+// 强制用户离开房间（DELETE /rooms/{room_id}/members/{user_id}）
+await adminManager.removeRoomMember("!room:example.com", "@alice:example.com");
 
-// 封禁用户
-await adminManager.banUser("!room:example.com", "@spammer:example.com", "垃圾消息");
+// 封禁用户（POST /rooms/{room_id}/ban/{user_id}）
+await adminManager.banRoomMember("!room:example.com", "@spammer:example.com", { reason: "垃圾消息" });
 
-// 解封用户
-await adminManager.unbanUser("!room:example.com", "@spammer:example.com");
+// 解封用户（POST /rooms/{room_id}/unban/{user_id}）
+await adminManager.unbanRoomMember("!room:example.com", "@spammer:example.com");
 
-// 踢出用户
-await adminManager.kickUser("!room:example.com", "@alice:example.com", "违反规则");
+// 踢出用户（POST /rooms/{room_id}/kick/{user_id}）
+await adminManager.kickRoomMember("!room:example.com", "@alice:example.com", { reason: "违反规则" });
 ```
 
 ---
@@ -529,9 +530,9 @@ async function getAllUsers(): Promise<UserInfo[]> {
     let from: string | undefined;
 
     do {
-        const result = await adminManager.getUsers(from, 100);
-        allUsers.push(...result.users);
-        from = result.next_token;
+        const page = await adminManager.getUsersPaginated({ from, limit: 100 });
+        allUsers.push(...page.items);
+        from = page.next;
 
         // 避免过快请求
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -656,16 +657,19 @@ async function deactivateInactiveUsers(inactiveDays: number) {
     const cutoffTime = Date.now() - inactiveDays * 24 * 60 * 60 * 1000;
 
     do {
-        const result = await adminManager.getUsers(from, 100);
+        const page = await adminManager.getUsersPaginated({ from, limit: 100 });
 
-        for (const user of result.users) {
-            if (user.last_seen_ts && user.last_seen_ts < cutoffTime) {
+        // ⚠️ 账号对象上**没有** `last_seen_ts`（后端 admin/user.rs 不返回该字段），
+        // 这里以「创建时间早于 cutoff」作为示例判据。
+        for (const user of page.items) {
+            if (user.deactivated || !user.user_id) continue;
+            if ((user.creation_ts ?? 0) < cutoffTime) {
                 await adminManager.deactivateUser(user.user_id);
-                console.log(`停用不活跃用户: ${user.user_id}`);
+                console.log(`停用早于 cutoff 的用户: ${user.user_id}`);
             }
         }
 
-        from = result.next_token;
+        from = page.next;
         await new Promise((resolve) => setTimeout(resolve, 100));
     } while (from);
 }

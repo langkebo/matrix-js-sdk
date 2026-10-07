@@ -61,7 +61,6 @@ import {
     type MediaPage,
     type UserMediaList,
     type RoomStateEvent,
-    type RoomMessage,
     type RoomInfo,
     type ServerStats,
     type ServerStatus,
@@ -89,18 +88,22 @@ import {
     type SystemNotificationPage,
     type UserPusher,
     type SpacePage,
-    type SpaceUser,
-    type SpaceRoom,
     type SpaceInfo,
+    type SpaceRoomsResponse,
+    type SpaceUsersResponse,
+    type RoomStatsOverview,
+    type RoomMessagePage,
+    type AdminRoomMemberPage,
+    type AdminRoomForwardExtremities,
     type AuditEvent,
     type AuditEventPage,
     type PaginatedResponse,
     type AdminRoomVersionResponse,
     type AdminRoomBlockStatus,
     type AdminEventContext,
-    type AdminForwardExtremity,
     type AdminTokenSync,
-    type AdminRoomSearchResult,
+    type AdminRoomSearchPage,
+    type AdminRoomEventSearchPage,
     type AdminRoomListings,
     type AdminFederationCache,
     type AdminFederationDestinationRooms,
@@ -369,8 +372,8 @@ export interface AdminManager {
         order_by?: string;
         sort_order?: "asc" | "desc";
     }): Promise<PaginatedResponse<RoomInfo>>;
-    searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchResult>;
-    searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchResult>;
+    searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchPage>;
+    searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchPage>;
     getRoom(roomId: string, throwOnError?: boolean): Promise<RoomInfo | null>;
     deleteRoom(
         roomId: string,
@@ -382,7 +385,7 @@ export interface AdminManager {
     purgeRoomHistory(roomId: string, payload?: PurgeHistoryPayload): Promise<AdminPurgeHistoryResult>;
     blockRoom(roomId: string, block: boolean, reason?: string): Promise<void>;
     unblockRoom(roomId: string, payload?: AdminReasonPayload): Promise<void>;
-    getRoomMembers(roomId: string): Promise<AdminAccountDetails[]>;
+    getRoomMembers(roomId: string, options?: { from?: string; limit?: number }): Promise<AdminRoomMemberPage>;
     addRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void>;
     removeRoomMember(roomId: string, userId: string): Promise<void>;
     banRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void>;
@@ -396,19 +399,19 @@ export interface AdminManager {
         roomId: string,
         optionsOrFrom?: string | { from?: string; limit?: number; dir?: "b" | "f" | string },
         limit?: number,
-    ): Promise<{ chunk: RoomMessage[]; start?: string; end?: string }>;
+    ): Promise<RoomMessagePage>;
     deleteRoomMessage(roomId: string, eventId: string, reason?: string): Promise<void>;
     getRoomAliases(roomId: string): Promise<{ aliases: string[] }>;
     getRoomVersion(roomId: string): Promise<AdminRoomVersionResponse>;
     getRoomBlockStatus(roomId: string): Promise<AdminRoomBlockStatus>;
     getRoomEventContext(roomId: string, eventId: string): Promise<AdminEventContext>;
-    getRoomForwardExtremities(roomId: string): Promise<AdminForwardExtremity[]>;
+    getRoomForwardExtremities(roomId: string): Promise<AdminRoomForwardExtremities>;
     getRoomTokenSync(roomId: string): Promise<AdminTokenSync>;
-    searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomSearchResult>;
+    searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomEventSearchPage>;
     getRoomListings(roomId: string): Promise<AdminRoomListings>;
     setRoomPublicListing(roomId: string): Promise<void>;
     deleteRoomPublicListing(roomId: string): Promise<void>;
-    getRoomStats(from?: string, limit?: number): Promise<RoomStats[]>;
+    getRoomStats(from?: string, limit?: number): Promise<RoomStatsOverview>;
     getRoomStatsByRoom(roomId: string): Promise<RoomStats>;
     joinRoom(roomId: string, userId: string): Promise<void>;
     listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage>;
@@ -419,9 +422,9 @@ export interface AdminManager {
     getSpace(spaceId: string): Promise<SpaceInfo>;
     listSpaces(from?: string, limit?: number): Promise<SpacePage>;
     deleteSpace(spaceId: string): Promise<void>;
-    getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<{ rooms: SpaceRoom[]; next_batch?: string }>;
+    getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<SpaceRoomsResponse>;
     getSpaceStats(spaceId: string): Promise<SpaceStats>;
-    getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<{ users: SpaceUser[]; next_batch?: string }>;
+    getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<SpaceUsersResponse>;
 
     // ----- 服务器管理（→ server） -----
     whoami(): Promise<WhoamiResponse>;

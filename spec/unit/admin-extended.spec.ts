@@ -218,15 +218,28 @@ describe("AdminManager - Extended Tests", () => {
         });
 
         it("should get room members successfully", async () => {
+            // 形状取自后端 admin/room/mod.rs::get_room_members_admin：条目是**对象**
+            // （不是 user id 字符串），响应壳含 total / next_batch。
             mockClient.http.authedRequest.mockResolvedValue({
-                members: ["@user1:example.com", "@user2:example.com"],
+                members: [
+                    { user_id: "@user1:example.com", displayname: "User One", avatar_url: null, membership: "join" },
+                    { user_id: "@user2:example.com", displayname: null, avatar_url: null, membership: "join" },
+                ],
                 total: 2,
+                next_batch: "@user2:example.com",
             });
 
-            const members = await adminManager.getRoomMembers("!room:example.com");
+            const page = await adminManager.getRoomMembers("!room:example.com");
 
-            expect(members).toHaveLength(2);
-            expect(members).toContain("@user1:example.com");
+            expect(page.members).toHaveLength(2);
+            expect(page.members[0]).toEqual({
+                user_id: "@user1:example.com",
+                displayname: "User One",
+                avatar_url: null,
+                membership: "join",
+            });
+            expect(page.total).toBe(2);
+            expect(page.next_batch).toBe("@user2:example.com");
         });
 
         it("should join room as user successfully", async () => {

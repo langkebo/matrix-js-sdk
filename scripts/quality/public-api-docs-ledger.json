@@ -65,8 +65,8 @@
             "throwsWithoutTag": 0
         },
         "AdminRoomManager": {
-            "missingJsDoc": 36,
-            "missingExample": 9,
+            "missingJsDoc": 29,
+            "missingExample": 7,
             "throwsWithoutTag": 3
         },
         "AdminServerManager": {

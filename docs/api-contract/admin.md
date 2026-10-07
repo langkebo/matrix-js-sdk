@@ -472,3 +472,61 @@ export interface AdminFederationDestinationDto {
 > **隔离变更条目字段（`MediaQuarantineChange`）**：`stream_id` `media_id` `server_name`
 > `change_type`（`"quarantine"` \| `"unquarantine"`）`changed_by` `created_ts`。
 > 原先声明的 `action` / `changed_ts` / `reason` 后端都不返回。
+
+### Room / Space / Report
+
+同样**没有 DTO 代码块**（原因见上节）。下表对照 `synapse-web/src/routes/admin/room/{mod,management,spaces}.rs`
+与 `report.rs`（2026-10-07 核对）。
+
+**房间与成员**
+
+| 端点                                                  | 后端处理器                                  | 实际返回                                                                                                                                 |
+| ----------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/rooms`                                       | `room/mod.rs::get_rooms`                    | `{rooms: [{room_id, name, topic, creator, joined_members, joined_local_members, is_public}], total, next_batch}`                         |
+| `GET /v1/rooms/{room_id}`                             | `room/mod.rs::get_room`                     | `{room_id, name, topic, creator, member_count, room_version, encryption, is_public, join_rule, tombstoned, replacement_room}`            |
+| `GET /v1/rooms/{room_id}/members`                     | `room/mod.rs::get_room_members_admin`       | `{members: [{user_id, displayname, avatar_url, membership}], total, next_batch}`                                                         |
+| `GET /v1/rooms/{room_id}/state`                       | `room/mod.rs::get_room_state_admin`         | `{state: [{type, state_key, content, sender, event_id}]}`；⚠️ 5 个键各自 `unwrap_or(Value::Null)` ⇒ 都可能为 `null`                      |
+| `GET /v1/rooms/{room_id}/messages`                    | `room/mod.rs::get_room_messages_admin`      | `{chunk: [{event_id, type, content, sender, origin_server_ts}], start, end, next_batch}`                                                 |
+| `GET /v1/rooms/{room_id}/aliases`                     | `room/mod.rs::get_room_aliases_admin`       | `{aliases: []}` —— **恒为空数组**（处理器硬编码，功能未实现）                                                                            |
+| `GET /v1/rooms/{room_id}/version`                     | `room/mod.rs::get_room_version`             | `{room_id, room_version}`                                                                                                                |
+| `GET /v1/rooms/{room_id}/block`                       | `room/management.rs::get_room_block_status` | 已封锁 `{block: true, blocked_at}`；未封锁 `{block: false}`                                                                              |
+| `GET /v1/rooms/{room_id}/forward_extremities`         | `room/mod.rs::get_room_forward_extremities` | `{room_id, forward_extremities: <整数计数>}` —— **不是对象数组**                                                                         |
+| `GET /v1/rooms/{room_id}/token_sync`                  | `room/mod.rs::get_room_token_sync_admin`    | `{room_id, results: [<18 键>], total, next_batch, summary: {active_token_count, expired_token_count, distinct_users, distinct_devices}}` |
+| `GET /v1/rooms/{room_id}/event_context/{event_id}`    | `room/mod.rs::get_event_context_admin`      | `{event, events_before, events_after, state}`（`state` 恒为 `[]`）                                                                       |
+| `GET /v1/rooms/{room_id}/listings`                    | `room/spaces.rs::get_room_listings`         | `{room_id, public, in_directory}` —— **单个房间的目录状态**，不是房间列表                                                                |
+| `POST /v1/rooms/{room_id}/purge_history`              | `room/management.rs::purge_history_by_room` | `{success, deleted_events, dry_run}`（`purge_id` 属于另一个端点 `POST /v1/purge_room`）                                                  |
+| `POST /v1/rooms/search`（亦支持 `GET`）               | `room/mod.rs::search_all_rooms{,_query}`    | `{results: [{room_id, name, topic, creator, is_public, member_count, is_encrypted, creation_ts}], count, total, limit, next_batch}`      |
+| `POST /v1/rooms/{room_id}/search`                     | `room/mod.rs::search_room_messages_admin`   | `{results: [<事件 + room_id>], count, room_id}`                                                                                          |
+| `POST /_matrix/client/v3/admin/room/{room_id}/redact` | `room/management.rs::redact_room_events`    | `{redacted}`                                                                                                                             |
+| `DELETE /v1/rooms/{room_id}`                          | `room/mod.rs::delete_room`                  | `{room_id, deleted: true}`                                                                                                               |
+
+**统计**
+
+| 端点                           | 后端处理器                              | 实际返回                                                                                                                                                       |
+| ------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/room_stats`           | `room/spaces.rs::get_room_stats`        | **单个概览对象** `{total_rooms, encrypted_rooms, public_rooms, total_messages, total_members, active_rooms, average_messages_per_room}`；不读 `from` / `limit` |
+| `GET /v1/room_stats/{room_id}` | `room/spaces.rs::get_single_room_stats` | `{room_id, member_count, message_count, last_message_ts, is_encrypted, admin_count}`（`last_message_ts` 可为 `null`）                                          |
+
+**Space**
+
+| 端点                              | 后端处理器                        | 实际返回                                                                   |
+| --------------------------------- | --------------------------------- | -------------------------------------------------------------------------- |
+| `GET /v1/spaces`                  | `room/spaces.rs::get_spaces`      | `{spaces: [{space_id, room_id, name, topic, creator, created_ts}], total}` |
+| `GET /v1/spaces/{space_id}`       | `room/spaces.rs::get_space`       | 同上单项                                                                   |
+| `GET /v1/spaces/{space_id}/stats` | `room/spaces.rs::get_space_stats` | `{space_id, member_count, child_room_count}`                               |
+| `GET /v1/spaces/{space_id}/users` | `room/spaces.rs::get_space_users` | `{users: [<user id 字符串>], total}` —— ⚠️ 元素是**字符串**，不是对象      |
+| `GET /v1/spaces/{space_id}/rooms` | `room/spaces.rs::get_space_rooms` | `{rooms: [<room id 字符串>], total}` —— ⚠️ 同上                            |
+| `DELETE /v1/spaces/{space_id}`    | `room/spaces.rs::delete_space`    | `{deleted: true}`                                                          |
+
+**举报**
+
+| 端点                              | 后端处理器                    | 实际返回                                                                                                                                                                                                      |
+| --------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/reports`                 | `report.rs::get_all_reports`  | `{reports, total}`；条目 `{id(整数), room_id, event_id, user_id, reported_user_id, reason, content, status, score, received_ts}`；⚠️ **无 `next_token`**，游标是请求侧 `since_ts` / `since_id`（`from` 不读） |
+| `GET /v1/rooms/{room_id}/reports` | `report.rs::get_room_reports` | 同上                                                                                                                                                                                                          |
+
+> **两处「路径存在但语义/参数不符」且已登记豁免，勿当新缺陷**：
+> `DELETE /v1/rooms/{room_id}/messages/{event_id}` 与 `POST /v1/rooms/{room_id}/join`
+> 在后端**没有注册** —— 见 `scripts/quality/path-contract-waivers.json` 第 16、17 条。
+> 前者对应能力是 `POST /admin/room/{room_id}/redact`（按时间范围批量撤回），
+> 后者对应的真实端点是 `PUT /v1/rooms/{room_id}/members/{user_id}`。

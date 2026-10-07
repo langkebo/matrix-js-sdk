@@ -2103,6 +2103,105 @@ it("passes before_ts body when provided", async () => {
 （`GET /rooms/{room_id}/media`、`GET /media/quarantine_changes`、`POST /media/protect/...`、
 `POST /media/delete`），属「是否新增能力」的决策，不在本轮。
 
+### 7.15-24 响应体契约核对第四轮（room / space / report）：键名"看着像"但都不对
+
+本轮覆盖 `room/{mod,management,spaces}.rs`（30 个有 JSON 响应的 handler）与 `report.rs`（6 个端点），
+对照 `admin-room-manager.ts` 的全部方法。**13 类响应体不符 + 2 条已登记的路径缺口**。
+
+#### 1. 三条"完全不相干"的声明
+
+| 方法                          | 声明                                                                                     | 后端实际                                                                                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getRoomStats()`              | `Promise<RoomStats[]>`，实现里取 `response.rooms`                                        | `GET /room_stats` 返回**单个概览对象** `{total_rooms, encrypted_rooms, …, average_messages_per_room}`，没有 `rooms` 键 ⇒ **运行时恒返回空数组**（静默，不报错） |
+| `getRoomForwardExtremities()` | `Promise<AdminForwardExtremity[]>`（`{event_id, state_group, depth, received_ts}` 数组） | `{room_id, forward_extremities: <整数计数>}` —— 一个**整数**                                                                                                    |
+| `getRoomTokenSync()`          | `{stream_ordering, room_id}`                                                             | `{room_id, results: [<18 键的 token 条目>], total, next_batch, summary: {…}}`；`stream_ordering` 这个键根本不存在                                               |
+
+#### 2. 键名"看着像"但都不对（最危险的一类）
+
+```ts
+public       → is_public       // 房间公开状态
+version      → room_version    // 房间版本
+join_rules   → join_rule       // 加入规则（单数）
+```
+
+这类错误**不会在 IDE 里露馅**（补全能给出旧名字、类型检查也通过），
+运行时读到的是 `undefined`，而"`undefined` 为假"恰好让 `if (room.public)` 这类判断**看起来正常**
+（公开房间也走 false 分支）—— 静默的行为偏差。
+
+#### 3. 语义反转：`AdminRoomListings` 不是"房间列表"
+
+声明为 `{rooms: AdminRoomListing[], total?, next_batch?}`，实现里方法名也是 `getRoomListings`。
+后端 `GET /rooms/{room_id}/listings` 返回的却是**单个房间的目录可见性** `{room_id, public, in_directory}`，
+且该端点不接受分页参数。⇒ 类型名、方法名、响应对不上，是"名字诱导的错"。
+
+#### 4. 其余逐条
+
+| 项                                     | 病                                                                                                                                                                                                                                       |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getRoomMembers()`                     | 声明/返回 `AdminAccountDetails[]`（账号对象字段集），真实条目是 `{user_id, displayname, avatar_url, membership}`；`total` / `next_batch` 被丢弃                                                                                          |
+| `getRoomMessages()`                    | 丢弃 `next_batch`（三游标里唯一可用于翻页的那个）                                                                                                                                                                                        |
+| `getRoomBlockStatus()`                 | 多出 `room_id` / `user_id`（后端不返回）；漏 `blocked_at`（仅已封锁时出现）                                                                                                                                                              |
+| `purgeRoomHistory()`                   | 声明 `{purge_id}`，后端是 `{success, deleted_events, dry_run}`；`purge_id` 来自**另一个**端点 `POST /purge_room` —— 两个端点的字段被混在了一个类型里（`admin-server-manager.purgeHistory` 同样受害）                                     |
+| `getRoomEventContext()`                | 声明 `{events[], state?, start?, end?}`，后端是 `{event, events_before, events_after, state}`                                                                                                                                            |
+| `searchRooms()` / `searchRoomEvents()` | 共用一个 `AdminRoomSearchResult`，但两条链路的**条目类型不同**（前者是房间记录，后者是事件）、字段集也不重合（无 `highlights`；前者多 `total`/`limit`，后者多顶层 `room_id`）⇒ 已拆成 `AdminRoomSearchPage` / `AdminRoomEventSearchPage` |
+| `SpaceInfo`                            | 多出 `child_rooms` / `member_count`；漏 `topic` / `created_ts`                                                                                                                                                                           |
+| `SpacePage`                            | 多出 `next_batch`（后端无游标）；漏 `total`                                                                                                                                                                                              |
+| `SpaceStats`                           | `{joined_members, rooms_count}` **两个字段都错**（真实 `space_id`/`member_count`/`child_room_count`）；因带 `[key: string]: unknown` 索引签名，编译期完全看不出来                                                                        |
+| `SpaceUser` / `SpaceRoom`              | 后端 `users` / `rooms` 是**字符串 id 数组**，不是对象数组 ⇒ 两个类型纯属虚构，已删除并改为 `SpaceUsersResponse` / `SpaceRoomsResponse`                                                                                                   |
+| `RoomStateEvent`                       | 后端对 5 个键逐个 `unwrap_or(Value::Null)` ⇒ 都可能为 `null`，原声明全是非空 `string`                                                                                                                                                    |
+| `RoomStats`（单房间）                  | 多出 `name`/`topic`/`avatar_url`/`created_ts`；`last_message_ts` 可为 `null`（原 `number?`）                                                                                                                                             |
+| `AdminReport`                          | 多出 `name`/`sender`；漏 `reported_user_id`/`content`/`status`；`id` 后端是**整数**（`Path<i64>`）而声明 `string`                                                                                                                        |
+| `AdminReportPage`                      | 多出 `next_token`；游标其实是请求侧 `since_ts`/`since_id`（而 `listReports` 传的 `from` 后端**不读**，静默忽略）                                                                                                                         |
+
+#### 5. 两条已登记的路径缺口（按纪律不动）
+
+`DELETE /v1/rooms/{room_id}/messages/{event_id}`（`deleteRoomMessage`）与
+`POST /v1/rooms/{room_id}/join`（`joinRoom`）后端**都没有注册**，调用必 404 ——
+但二者已在 `path-contract-waivers.json` 第 16 / 17 条登记。本轮**只补 JSDoc 指向真实端点**
+（前者对应 `POST /admin/room/{room_id}/redact`，后者对应 `PUT /rooms/{room_id}/members/{user_id}`），
+不改行为、不搅动台账。
+
+#### 6. 单测第五次踩同一失效模式（形态又升级）
+
+```ts
+mockClient.http.authedRequest.mockResolvedValue({
+    members: ["@user1:example.com", "@user2:example.com"], // ← 成员从来是对象，不是字符串
+    total: 2,
+});
+const members = await adminManager.getRoomMembers("!room:example.com");
+expect(members).toHaveLength(2);
+```
+
+前四次固化的分别是：响应体字段（§7.15-9）、后端从不返回的字段（§7.15-18/-21）、
+**请求参数位置**（§7.15-23）。这次连**元素的类型**（对象 vs 字符串）都是编的。
+⇒ 结论再收一档：**测试里的假数据与实现同源时，测试的"通过"只是"两边一致"，不含任何契约信息。**
+
+#### 7. 新增发现：`docs/ADMIN_GUIDE.md` 的示例在调用不存在的方法
+
+上轮只发现该文件里一处腐烂（`getCachedServerStats()`）。本轮把整份指南扫了一遍：
+
+- 出现 47 个 `adminManager.<name>(` 调用，其中 **7 个方法、12 处**指向**不存在的 API**：
+  `getUsers`（4 处）、`getRooms`（4 处）、`forceJoinRoom`、`forceLeaveRoom`、`banUser`、`unbanUser`、`kickUser`；
+- 示例里的响应字段同样是编的：`room.public`（应为 `is_public`）、`room.joined_members`（详情端点不返回）、
+  `members.join(", ")`（`members` 是 `{members, total, next_batch}` 而非数组）、
+  `user.last_seen_ts`（上一轮已确认后端不返回该字段）。
+
+**已全部改正**，并新增守卫 spec `spec/unit/admin-guide-method-references.spec.ts`：
+断言指南引用的每个方法都能在 `src/admin/` 下的源码里找到，并配阴/阳对照。
+
+> ⚠️ **扫描面必须精确**：本轮第一版守卫扫的是整个 `src/`，于是 `getUsers` 被 `src/` 里别处的同名方法
+> 判成"存在"（**假绿**）。收紧到 `src/admin/` 后，7 个缺失才全部显形。
+> 这与"按路径判受管辖"（§7.14）是同一类错误的两个面：**判据的作用域与结论的作用域必须一致。**
+
+#### 8. 变异自证 2 次
+
+- 变异 A（把指南里一处 `searchRooms` 改回不存在的 `getRooms`）⇒ 新守卫 spec 红
+  （`docs/ADMIN_GUIDE.md 引用了不存在的 admin 方法: getRooms`）；
+- 变异 B（`getRoomStats` 改回 `response.rooms` 取值）⇒ 形状守卫红（`expected undefined to be 5`）。
+
+**剩余**：后端 admin 尚余 `federation.rs`(9) / `notification.rs`(7) / `token.rs`(6) /
+`retention.rs`(6) / `security.rs`(4) 等模块未核；`user.rs` 的会话/令牌/批量 handler 也未核。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -2175,7 +2274,11 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-23：响应体契约核对第三轮（media 模块）—— 5 类不符 / 6 个签名，
+**最后更新**: 2026-10-07（§7.15-24：响应体契约核对第四轮（room / space / report）—— 13 类不符 / 2 条已登记路径缺口；
+`getRoomStats` 取 `response.rooms` 导致**运行时恒返回空数组**、`getRoomForwardExtremities` 把整数计数声明成对象数组；
+键名 `public`/`version`/`join_rules` 实为 `is_public`/`room_version`/`join_rule`；单测第五次同源失效（连"条目是对象还是字符串"都编错）；
+**并新发现 `docs/ADMIN_GUIDE.md` 有 7 个方法、12 处调用指向不存在的 API**，已全部改正并新增守卫 spec；
+§7.15-23：响应体契约核对第三轮（media 模块），
 其中 `purgeMediaCache` 的 `before_ts` **参数位置错**（body → 后端只读 query）导致静默 no-op，
 且单测把该错误位置写进了期望值（「mock 自造形状」第四次，形态升级到请求侧）；
 §7.15-22：响应体契约核对第二轮（user 模块）+ 量化剩余范围与门禁方案；

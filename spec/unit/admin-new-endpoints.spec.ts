@@ -1260,4 +1260,252 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await expect(manager.media.deleteUserMedia("")).rejects.toThrow(ValidationError);
         });
     });
+
+    // --------- Room / Space 响应体形状（对照后端 room/*.rs 与 report.rs 逐个核对）---------
+    describe("room & space response shapes (backend-verified)", () => {
+        it("getRoom returns the detail shape (is_public / room_version / join_rule, NOT public / version / join_rules)", async () => {
+            req.mockResolvedValue({
+                room_id: "!r:x",
+                name: "R",
+                topic: "T",
+                creator: "@a:x",
+                member_count: 3,
+                room_version: "10",
+                encryption: null,
+                is_public: false,
+                join_rule: "invite",
+                tombstoned: false,
+                replacement_room: null,
+            });
+            const room = await manager.getRoom("!r:x");
+            expect(room).not.toBeNull();
+            expect(room!.is_public).toBe(false);
+            expect(room!.room_version).toBe("10");
+            expect(room!.join_rule).toBe("invite");
+            // 旧声明里的键后端都不返回
+            expect(room).not.toHaveProperty("public");
+            expect(room).not.toHaveProperty("version");
+            expect(room).not.toHaveProperty("join_rules");
+            expect(room!.encryption).toBeNull();
+        });
+
+        it("getRoomMembers returns object items plus total/next_batch (not AdminAccountDetails[])", async () => {
+            req.mockResolvedValue({
+                members: [{ user_id: "@a:x", displayname: "A", avatar_url: null, membership: "join" }],
+                total: 1,
+                next_batch: null,
+            });
+            const page = await manager.getRoomMembers("!r:x");
+            expect(page.members[0]).toEqual({
+                user_id: "@a:x",
+                displayname: "A",
+                avatar_url: null,
+                membership: "join",
+            });
+            expect(page.total).toBe(1);
+            expect(page.next_batch).toBeNull();
+            expect(req.mock.calls[0][2]).toEqual({});
+        });
+
+        it("getRoomMessages keeps next_batch (backend returns chunk/start/end/next_batch)", async () => {
+            req.mockResolvedValue({ chunk: [], start: "0", end: "17", next_batch: "17" });
+            const page = await manager.getRoomMessages("!r:x");
+            expect(page.next_batch).toBe("17");
+            expect(page.start).toBe("0");
+            expect(page.end).toBe("17");
+        });
+
+        it("getRoomStats returns the global overview object (backend does NOT wrap in {rooms})", async () => {
+            req.mockResolvedValue({
+                total_rooms: 5,
+                encrypted_rooms: 1,
+                public_rooms: 2,
+                total_messages: 90,
+                total_members: 12,
+                active_rooms: 3,
+                average_messages_per_room: 18,
+            });
+            const overview = await manager.getRoomStats();
+            expect(overview.total_rooms).toBe(5);
+            expect(overview.average_messages_per_room).toBe(18);
+            expect(overview).not.toHaveProperty("rooms");
+        });
+
+        it("getRoomStatsByRoom accepts null last_message_ts (empty room)", async () => {
+            req.mockResolvedValue({
+                room_id: "!r:x",
+                member_count: 0,
+                message_count: 0,
+                last_message_ts: null,
+                is_encrypted: false,
+                admin_count: 0,
+            });
+            const stats = await manager.getRoomStatsByRoom("!r:x");
+            expect(stats.last_message_ts).toBeNull();
+            expect(stats).not.toHaveProperty("name");
+            expect(stats).not.toHaveProperty("avatar_url");
+        });
+
+        it("getRoomBlockStatus reflects {block:false} with no blocked_at", async () => {
+            req.mockResolvedValue({ block: false });
+            const status = await manager.getRoomBlockStatus("!r:x");
+            expect(status.block).toBe(false);
+            expect(status.blocked_at).toBeUndefined();
+            expect(status).not.toHaveProperty("room_id");
+            expect(status).not.toHaveProperty("user_id");
+        });
+
+        it("getRoomForwardExtremities is a count, not an array of objects", async () => {
+            req.mockResolvedValue({ room_id: "!r:x", forward_extremities: 4 });
+            const result = await manager.getRoomForwardExtremities("!r:x");
+            expect(result.forward_extremities).toBe(4);
+            expect(Array.isArray(result)).toBe(false);
+            expect(result).not.toHaveProperty("event_id");
+        });
+
+        it("getRoomTokenSync returns results/total/next_batch/summary (no stream_ordering)", async () => {
+            req.mockResolvedValue({
+                room_id: "!r:x",
+                results: [
+                    {
+                        user_id: "@a:x",
+                        device_id: "D",
+                        conn_id: null,
+                        list_key: null,
+                        pos: null,
+                        token_created_ts: null,
+                        token_expires_at: null,
+                        room_timestamp: 0,
+                        room_updated_ts: 1,
+                        bump_stamp: 0,
+                        highlight_count: 0,
+                        notification_count: 2,
+                        is_dm: false,
+                        is_encrypted: true,
+                        is_tombstoned: false,
+                        invited: false,
+                        name: "R",
+                        avatar: null,
+                        is_expired: false,
+                    },
+                ],
+                total: 1,
+                next_batch: null,
+                summary: {
+                    active_token_count: 0,
+                    expired_token_count: 0,
+                    distinct_users: 1,
+                    distinct_devices: 1,
+                },
+            });
+            const sync = await manager.getRoomTokenSync("!r:x");
+            expect(sync.summary.distinct_devices).toBe(1);
+            expect(sync.results[0]!.notification_count).toBe(2);
+            expect(sync.results[0]!.invited).toBe(false);
+            expect(sync).not.toHaveProperty("stream_ordering");
+        });
+
+        it("getRoomEventContext returns {event, events_before, events_after, state} (no events/start/end)", async () => {
+            req.mockResolvedValue({
+                event: {
+                    event_id: "$e",
+                    type: "m.room.message",
+                    sender: "@a:x",
+                    content: {},
+                    room_id: "!r:x",
+                    origin_server_ts: 1,
+                },
+                events_before: [],
+                events_after: [],
+                state: [],
+            });
+            const ctx = await manager.getRoomEventContext("!r:x", "$e");
+            expect(ctx.event.event_id).toBe("$e");
+            expect(ctx.events_before).toEqual([]);
+            expect(ctx.events_after).toEqual([]);
+            expect(ctx.state).toEqual([]);
+            expect(ctx).not.toHaveProperty("events");
+        });
+
+        it("getRoomListings returns a single room's listing status (not a room list)", async () => {
+            req.mockResolvedValue({ room_id: "!r:x", public: true, in_directory: false });
+            const listings = await manager.getRoomListings("!r:x");
+            expect(listings.public).toBe(true);
+            expect(listings.in_directory).toBe(false);
+            expect(listings).not.toHaveProperty("rooms");
+            expect(listings).not.toHaveProperty("next_batch");
+        });
+
+        it("purgeRoomHistory returns success/deleted_events/dry_run (purge_id belongs to /purge_room)", async () => {
+            req.mockResolvedValue({ success: true, deleted_events: 7, dry_run: false });
+            const result = await manager.purgeRoomHistory("!r:x", { purge_up_to_ts: 1 });
+            expect(result.deleted_events).toBe(7);
+            expect(result.success).toBe(true);
+            expect(result.dry_run).toBe(false);
+            expect(result).not.toHaveProperty("purge_id");
+        });
+
+        it("listSpaces returns {spaces, total} with no cursor", async () => {
+            req.mockResolvedValue({
+                spaces: [{ space_id: "!s:x", room_id: "!s:x", name: "S", topic: null, creator: "@a:x", created_ts: 1 }],
+                total: 1,
+            });
+            const page = await manager.listSpaces();
+            expect(page.spaces[0]!.space_id).toBe("!s:x");
+            expect(page.spaces[0]!.topic).toBeNull();
+            expect(page.total).toBe(1);
+            expect(page).not.toHaveProperty("next_batch");
+            expect(page.spaces[0]).not.toHaveProperty("child_rooms");
+            expect(page.spaces[0]).not.toHaveProperty("member_count");
+        });
+
+        it("getSpaceStats exposes member_count/child_room_count (not joined_members/rooms_count)", async () => {
+            req.mockResolvedValue({ space_id: "!s:x", member_count: 3, child_room_count: 2 });
+            const stats = await manager.getSpaceStats("!s:x");
+            expect(stats.member_count).toBe(3);
+            expect(stats.child_room_count).toBe(2);
+            expect(stats).not.toHaveProperty("joined_members");
+            expect(stats).not.toHaveProperty("rooms_count");
+        });
+
+        it("getSpaceUsers / getSpaceRooms return string id arrays, not object arrays", async () => {
+            req.mockResolvedValue({ users: ["@a:x", "@b:x"], total: 2 });
+            const users = await manager.getSpaceUsers("!s:x");
+            expect(users.users).toEqual(["@a:x", "@b:x"]);
+            expect(typeof users.users[0]).toBe("string");
+            expect(users).not.toHaveProperty("next_batch");
+
+            req.mockResolvedValue({ rooms: ["!a:x", "!b:x"], total: 2 });
+            const rooms = await manager.getSpaceRooms("!s:x");
+            expect(rooms.rooms).toEqual(["!a:x", "!b:x"]);
+            expect(typeof rooms.rooms[0]).toBe("string");
+            expect(rooms).not.toHaveProperty("next_batch");
+        });
+
+        it("listReports returns {reports, total} with no next_token (cursor is request-side since_ts/since_id)", async () => {
+            req.mockResolvedValue({
+                reports: [
+                    {
+                        id: 1,
+                        room_id: "!r:x",
+                        event_id: "$e",
+                        user_id: "@a:x",
+                        reported_user_id: null,
+                        reason: null,
+                        content: null,
+                        status: "open",
+                        score: 0,
+                        received_ts: 1,
+                    },
+                ],
+                total: 1,
+            });
+            const page = await manager.listReports();
+            expect(page.total).toBe(1);
+            expect(page.reports[0]!.id).toBe(1);
+            expect(page).not.toHaveProperty("next_token");
+            expect(page.reports[0]).not.toHaveProperty("name");
+            expect(page.reports[0]).not.toHaveProperty("sender");
+        });
+    });
 });
