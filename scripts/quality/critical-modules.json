@@ -1,7 +1,7 @@
 {
     "note": "Single source of truth for the 'critical module' coverage set. Consumed by scripts/quality/check-critical-coverage.mjs (CI gate) and scripts/quality-report.mjs (reporting) so the two can no longer disagree — before 2026-09-13 they listed 5 and 8 modules respectively. `floorPercent` is a ratchet minimum measured from a real coverage run; raise it when coverage improves, and never lower it without explaining why in the commit message. `targetPercent` is the aspiration for every module.",
     "measuredAt": "2026-10-01",
-    "measuredBy": "targeted per-module runs (`vitest run <该模块的 spec> --coverage --coverage.include='src/<模块>/**'`)，避免全仓跑触发限流。数字是各模块自身 spec 的定向覆盖率，可能低于全仓覆盖率（跨模块 import 会顺带覆盖）。",
+    "measuredBy": "**全仓** `pnpm test --coverage` 的 lcov（即门禁实际读的那份数据）。⚠️ 2026-10-07 实测订正：此字段原先写的是「targeted per-module runs（各模块自身 spec 的定向覆盖率）」，与事实不符 —— 用定向方式重跑，auth 只有 78.23%（floor 87）、event 89.57%（floor 99）、room 82.45%（floor 92），而 floor 与全仓 lcov 逐位吻合（auth 87.90、event 99.13），2026-09-13 设定 floor 那次提交信息里记录的实测值同样是全仓口径。**这个错误描述会误导人把「定向低值」当成正常**：真正的覆盖率回归（push 89.01 → 74.28）会被误判成口径差异而放过。定向跑只能给出该模块覆盖率的下界，比对 floor 一律以全仓 lcov 为准。",
     "targetPercent": 90,
     "modules": [
         { "path": "src/admin/index.ts", "floorPercent": 70 },
