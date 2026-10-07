@@ -66,7 +66,7 @@ function loadDoc() {
     return readFileSync(DOC_PATH, "utf8");
 }
 
-function formatDiff(current, baseline) {
+export function formatDiff(current, baseline) {
     const added = [];
     const removed = [];
     const moved = [];
