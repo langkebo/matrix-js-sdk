@@ -25,6 +25,12 @@
 > 均已修复并附变异自证；P1 / P2 / P3 / P4 / P5 / P7 已修复；P6 长尾 / P8 / P9 明确未做。
 > **执行中有 3 处按实测证据修正了本文原方案**（§4.2 的 rethrow 判定、
 > §4.4 的裸 `return;`、§4.1 的 id 形态），详见 **§7**。§5 的问题清单状态见 **§7.1**。
+>
+> **续修（2026-10-07）**：又清掉三处 ——
+> ① `quality:manager-codegen` 的 **O(模块 × 文件)** 性能缺陷（**29 分 37 秒 → 18 秒**，输出与修复前逐字节一致）；
+> ② `probe-contract-drift.mjs` 的**「抓源码常量」死脚本**（抓不到 `LEDGER_MODULE_*` 后崩在启动阶段，而它不在 lint 里，坏了没人发现）；
+> ③ `codegen-coverage-gate.spec.ts` 的**长期红灯**（`push_notification` 的 waiver 被移除后断言没跟着改，红了好几天）。
+> 详见 **§7.11**。**P6 长尾 / P8 / P9 仍未做**。
 
 ---
 
@@ -273,22 +279,22 @@ function isSwallowing(body) {
 
 ### 7.1 状态总表
 
-| 编号   | 审计结论                                   | 落地结果                                                                               |
-| ------ | ------------------------------------------ | -------------------------------------------------------------------------------------- |
-| **α**  | 指纹含行号                                 | ✅ 已修：`stableId(file, [snippet, ordinal])`，行号降为展示字段                        |
-| **β**  | 字符窗口跨块                               | ✅ 已修：配平扫描，只在 catch 语法块内判定                                             |
-| **γ**  | 语法族偏窄                                 | ✅ 已修，**但边界与本文 §4.4 不同**（见 7.4-2）                                        |
-| **δ**  | 240 字符上限                               | ✅ 已修：块内判定天然无长度上限                                                        |
-| **加** | 白名单注解泄漏进指纹（收尾复核发现，§7.9） | ✅ 已修：指纹输入剔除注解                                                              |
-| **P1** | 指纹策略无规范                             | ✅ 共享 lib + generated-dto 横向整改 + 补 id 稳定性 spec                               |
-| **P2** | `--update-baseline` 无审查                 | ✅ 两个门禁均加四分类摘要 + `--accept-new`                                             |
-| **P4** | 字符窗口                                   | ✅ 同 β                                                                                |
-| **P5** | 加注释消警                                 | ✅ 删 8 处误加注释、补 5 处真实缺失                                                    |
-| **P6** | 门禁缺测试                                 | ◐ 只补了出事的两个门禁（swallow 32 例 / generated-dto +2 例）；18 个无 spec 的长尾未动 |
-| **P7** | scripts 不在 lint 作用域                   | ✅ 已纳入，**代价与本文明示不同**（见 7.7）                                            |
-| **P3** | 豁免无到期强制                             | ✅ 已开 `--strict-baseline`（原先预估的"会转红"未出现，见 7.6）                        |
-| **P8** | 红灯归因不可自证                           | ❌ 未做                                                                                |
-| **P9** | 沙箱内 eslint 不可重复执行                 | ❌ 未做（环境问题）                                                                    |
+| 编号   | 审计结论                                   | 落地结果                                                                                                            |
+| ------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **α**  | 指纹含行号                                 | ✅ 已修：`stableId(file, [snippet, ordinal])`，行号降为展示字段                                                     |
+| **β**  | 字符窗口跨块                               | ✅ 已修：配平扫描，只在 catch 语法块内判定                                                                          |
+| **γ**  | 语法族偏窄                                 | ✅ 已修，**但边界与本文 §4.4 不同**（见 7.4-2）                                                                     |
+| **δ**  | 240 字符上限                               | ✅ 已修：块内判定天然无长度上限                                                                                     |
+| **加** | 白名单注解泄漏进指纹（收尾复核发现，§7.9） | ✅ 已修：指纹输入剔除注解                                                                                           |
+| **P1** | 指纹策略无规范                             | ✅ 共享 lib + generated-dto 横向整改 + 补 id 稳定性 spec                                                            |
+| **P2** | `--update-baseline` 无审查                 | ✅ 两个门禁均加四分类摘要 + `--accept-new`                                                                          |
+| **P4** | 字符窗口                                   | ✅ 同 β                                                                                                             |
+| **P5** | 加注释消警                                 | ✅ 删 8 处误加注释、补 5 处真实缺失                                                                                 |
+| **P6** | 门禁缺测试                                 | ◐ 又发现 `codegen-coverage-gate.spec.ts` **长期红灯**（waiver 移除后断言没跟着改）并已修；18 个无 spec 的长尾仍未动 |
+| **P7** | scripts 不在 lint 作用域                   | ✅ 已纳入，**代价与本文明示不同**（见 7.7）                                                                         |
+| **P3** | 豁免无到期强制                             | ✅ 已开 `--strict-baseline`（原先预估的"会转红"未出现，见 7.6）                                                     |
+| **P8** | 红灯归因不可自证                           | ❌ 未做                                                                                                             |
+| **P9** | 沙箱内 eslint 不可重复执行                 | ❌ 未做（环境问题）                                                                                                 |
 
 ### 7.2 量化验证：修复前后与本文 §2 的独立统计逐项吻合
 
@@ -443,8 +449,9 @@ STRICT_EXIT=0
   这是**预先存在**的性能缺陷——该脚本本轮**未改动**，且与本次改动无关：本轮的 `src/` 改动全是注释，
   既不影响 `findStrongConsumers`（它找的是 `__generated__/route-table` 的 **import 说明符**），
   也不影响 `fileMakesHttpCalls`（正则匹配运行时调用）。
-  修法是把 O(模块 × 文件) 降到 O(模块 + 文件)（全量扫描一次、按模块归并）。**本轮未改**
-  （不在本文 §5 清单内，避免顺手扩大范围）。
+  修法是把 O(模块 × 文件) 降到 O(模块 + 文件)（全量扫描一次、按模块归并）。
+  → **已于 2026-10-07 修复**：改按 `srcRoot` 建「文件 → route-table 落点」导入索引，
+  **29 分 37 秒 → 18 秒**，输出与修复前**逐字节一致**（见 §7.11-1）。
 
 **已知检测边界**（已写入 `check-swallow-fallbacks.mjs` 文件头，避免后人误以为"门禁全绿 = 全仓无吞错"）：
 
@@ -497,10 +504,97 @@ eslint src spec perf scripts                   0 errors / 66 warnings
 eslint scripts                                 0 errors / 27 warnings
 ```
 
+**续修（2026-10-07）复跑**：`quality:manager-codegen` EXIT=0（**29 分 37 秒 → 18 秒**，stdout 与修复前逐字节一致）；
+`spec/unit/codegen-coverage-gate.spec.ts` **18 passed**（原 17 例，其中 1 例是长期红灯）；
+门禁相关 spec 共 **13 个文件 / 136 passed**（必须**串行**跑：并发跑会因 `spec/setupTests.ts` 的全局
+`beforeAll` 超时造成 9 个套件假红，见 §7.11-5）。
+
 其余门禁复跑（提交后）全部 EXIT=0：
 `debt-markers` / `no-default-key` / `real-backend-types` / `timer-pairing` / `gate-reachability` /
 `path-contract` / `waiver-expiry` / `contract-freshness` / `contract-drift` / `manager-extensions` /
 `manager-codegen`（≈27 分钟，见 7.8）。`git status` 洁净。
+
+---
+
+## 7.11 续修（2026-10-07）：门禁自身的三个坑
+
+出发点：§7.8 把 `manager-codegen` 记为"未做"，但**一个单项要跑 29 分钟的门禁等于不存在**——
+它已进了 `quality:contracts` 聚合，实际没人会等它出结果。本轮清掉三处。
+
+### 7.11-1 `manager-codegen`：O(模块 × 文件) → O(文件)
+
+- **根因**：`main()` 对**每个** ledger 模块调用一次 `findStrongConsumers()`，而它每次都
+  `listAllSources(src)` + 逐文件 `readFileSync` ⇒ **49 个模块 × 625 个文件 ≈ 3 万次读取**。
+  沙箱里每次读都走 file-broker IPC（实测 ≈75 ms）⇒ **≈28 s / 模块**。
+- **修法**：按 `srcRoot` 建一次「文件 → 解析后的 route-table 落点」索引，模块查询退化为查表。
+  **判定口径一字未改**（跨模块消费、own-`__generated__/` 排除、命中顺序全部保持）。
+- **证据（金标准对拍）**：先跑**未改动**的实现把 stdout 存成金标准，再改，再比对。
+
+|            | 旧实现                             | 新实现                                      |
+| ---------- | ---------------------------------- | ------------------------------------------- |
+| 耗时       | **29 分 37 秒**                    | **18 秒**（空闲态；带并发干扰时实测 64 秒） |
+| 退出码     | 0                                  | 0                                           |
+| stdout     | 18 行 / 2519 字节                  | 18 行 / 2519 字节                           |
+| stdout MD5 | `2d2f9fc6e7fa918a403f7dc246d9d236` | **同一个**                                  |
+
+`diff -q` 无差异 ⇒ **只改成本、不改判定**。这比"改完看着结果差不多"强得多：判定类重构
+应当用**逐字节对拍**证明，而不是肉眼扫一遍结论行。
+
+- **顺带实测**：`src/` 下 `__generated__` 的 **163 个** `.ts` **没有一个**导入 route-table（对判定零贡献）。
+  但**故意不做**"跳过全部生成文件"这一步优化——原实现的排除只针对**被查模块自己**的
+  `__generated__/`，一刀切就是**顺手改了判定口径**。3 万 → 625 已把主要成本消掉，
+  不值得为 20% 的边际收益动语义。
+
+### 7.11-2 `probe-contract-drift.mjs`：抓源码常量的死脚本
+
+- **症状**：`node scripts/quality/probe-contract-drift.mjs` → `TypeError: Cannot read properties of null (reading '0')`。
+  它用正则从 `check-manager-codegen-coverage.mjs` 的**源码**里抓 `LEDGER_MODULE_ALIASES` /
+  `LEDGER_MODULE_TO_SDK_DIR` 再 `new Function` 求值；两个常量后来搬进 `contract-module-map.mjs`，
+  正则**再也匹配不上**，`grab()` 对 null 取 `[0]`。
+- **为什么没人发现**：它自称"不是门禁，未接入 pnpm lint"，且**全仓零引用**（孤岛脚本）——
+  没有任何东西会执行它，所以坏了就一直坏着。
+- **修法**：改为 `import { findSdkDirForModule } from "../contract-module-map.mjs"`
+  （同一套映射的**唯一真相源**，从机制上不可能再漂移），并把 cwd 相对路径改为**脚本相对**
+  （原实现只在仓库根目录下才跑得起来）。
+  另修一处输出缺陷：无生成表的模块 `ledgerOnlySample` 是 `undefined`，打印成**空白行**，
+  会把 184 条差集读成"没有差异"。
+- **同一个病**：用正则/字符串去"咬"另一个文件的源码，与 §2.2 的 β（字符窗口跨块）同源——
+  **把"文本相邻"当成"语义关联"**。本仓的 β 是纵向（跨 `}`），这里是横向（跨文件）。
+- **修好 ≠ 不再腐朽**：它**仍未接入任何自动化**（自称"不是门禁"）。一个零引用脚本坏了半年也没人知道——
+  而**留着一个没人跑的脚本比没有更糟**，因为它会让人以为"有人在看这件事"。处置要么纳入可达性检查，
+  要么删掉；本轮只做了"让它能跑"，归属问题列入 §7.11-5。
+
+### 7.11-3 `codegen-coverage-gate.spec.ts`：门禁的 spec 自己红了
+
+- **事实**：`c1e304dc4`（2026-10-06，"移除纸面 waiver"）把 `push_notification` 移出 `WAIVED_MODULES`，
+  但 spec 里 `expect(classifyModuleCoverage("push_notification", …).status).toBe("waived")` **没跟着改**
+  ⇒ 该 spec 从那以后**一直失败**（本轮实测 17 例中 1 例红）。这与 §3.3 的观察互为印证：
+  **"有 spec"不等于"有人守"**。
+- **修法不是把断言改绿，而是抽掉断言里的业务硬编码**：
+    - 样本模块名**从真实 `WAIVED_MODULES` 里取**（为此把该表导出给 spec 用）——表变了断言自动跟着走；
+    - 到期日**不再写死** `"2026-12-31"` / `"2027-01-01"`，改为"晚于 today" / "由条目自身推导"。
+      写死的话每次续期都会假红，而**续期是例行操作**（§7.9 刚专门处理过它的指纹问题）；
+    - 新增一条只依赖表本身的不变量断言：每条 waiver 都必须带 `reason` 与**可解析**的 `expires`。
+- **结果**：**18 passed**（原 17 例，其中 1 例修复；+ 2 条索引守卫 + 1 条表完整性守卫）。
+
+### 7.11-4 本轮新增的守卫
+
+| 守卫                                    | 防什么                                                                                                     |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `同一进程内不同 srcRoot 的索引互不串味` | 索引若按模块名而非 `srcRoot` 分键，"没接线的模块"会被误判成 covered —— 正是本门禁历史上栽过的那类坑        |
+| `同一 srcRoot 重复查询不再读盘`         | **删掉源文件后结果不变**即证明走了索引；这是 O(模块 × 文件) → O(文件) 的行为化断言，不用计时（避免 flaky） |
+
+### 7.11-5 仍未做（不计入"已解决"）
+
+- **P6 长尾**：仍有 18 个 quality 脚本无 spec；本轮只多守住了 `codegen-coverage-gate`。
+- **孤岛脚本**：`probe-contract-drift.mjs` 已修好，但它仍然**零引用**。全仓 27+ 个 quality /
+  诊断脚本里有多少是"写完之后再没人跑过"的？这需要一轮"脚本可达性"盘点——**本轮只修了碰到的这一个**。
+- **P8**：`lastGreenCommit` / pass 快照仍未做。但本轮**手工跑了一遍它的替代动作**
+  （存旧实现金标准 → 改 → 对拍），恰好说明这个动作值得产品化。
+- **P9**：并发跑 13 个门禁 spec 时，**9 个套件**栽在 `spec/setupTests.ts:31` 的全局 `beforeAll` 超时
+  （`Hook timed out in 120000ms`），而**同一个 spec 单独跑是 18 passed**。
+  即"红灯归因不可自证"（P8）与"结论依赖执行方式"（P9）是同一个病的两面：
+  **一次红灯的归因成本高于修它本身，人就会开始忽略红灯。**
 
 ---
 
@@ -519,6 +613,16 @@ git log --format="%h %s" --numstat -- scripts/quality/swallow-fallback-baseline.
 #    src/store/memory.ts:331 / src/crypto/store/indexeddb-crypto-store-backend.ts:262,410
 # 门禁自身无测试
 grep -rl "check-swallow-fallbacks" spec/ || echo "no spec"
+
+# 判定类重构的等价性证明（§7.11-1 用的就是这一招）：改之前先存金标准，改完对拍 stdout
+node scripts/quality/check-manager-codegen-coverage.mjs > /tmp/old.out   # ← 改动之前跑
+# …改动脚本…
+node scripts/quality/check-manager-codegen-coverage.mjs > /tmp/new.out   # ← 改动之后跑
+diff -q /tmp/old.out /tmp/new.out   # 无输出 = 「只改成本、不改判定」
+# 注意要在仓库根目录跑：脚本用 process.cwd() 定位，不能把脚本 copy 到 /tmp 再执行
+
+# 门禁 spec 必须串行跑（并发会让 setupTests.ts 的全局 beforeAll 超时，造成假红，见 §7.11-5）
+npx vitest run --no-file-parallelism spec/unit/codegen-coverage-gate.spec.ts
 ```
 
 ## 附录 B：本文核验边界
@@ -530,4 +634,5 @@ grep -rl "check-swallow-fallbacks" spec/ || echo "no spec"
 ---
 
 **生成时间**: 2026-10-06
+**最后更新**: 2026-10-07（§7.11 续修：`manager-codegen` 性能、`probe-contract-drift` 死脚本、门禁 spec 长期红灯）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
