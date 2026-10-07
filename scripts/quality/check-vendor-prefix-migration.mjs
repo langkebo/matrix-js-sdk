@@ -47,30 +47,47 @@ function* walk(dir) {
     }
 }
 
-function main() {
+/**
+ * 逐行扫描：找出"用了 client 前缀、且附近没有标准 CS 路径"的行。
+ *
+ * 豁免窗口是**前后 4 行**（含自身）—— 端点定义与路径常量常常跨行，
+ * 窗口太小会把标准 API 误判成违规，太大则会把真正的私有端点也一并豁免掉。
+ * 返回的 `line` 是 1-based 行号。
+ */
+export function scanLinesForViolations(lines) {
     const violations = [];
     const prefixPattern = /prefix:\s*ClientPrefix\.(V1|V3|R0)\b/;
+
+    lines.forEach((line, index) => {
+        if (!prefixPattern.test(line)) return;
+        // 检查前后 4 行内是否有标准路径（豁免标准 CS API）
+        const start = Math.max(0, index - 4);
+        const end = Math.min(lines.length - 1, index + 4);
+        const isStandardPath = STANDARD_PATH_PATTERNS.some((pattern) => {
+            for (let i = start; i <= end; i++) {
+                if (pattern.test(lines[i])) return true;
+            }
+            return false;
+        });
+        if (!isStandardPath) {
+            violations.push({ line: index + 1, text: line.trim() });
+        }
+    });
+
+    return violations;
+}
+
+function main() {
+    const violations = [];
 
     for (const mod of PRIVATE_MODULES) {
         const dir = path.join(SRC_DIR, mod);
         if (!fs.existsSync(dir)) continue;
         for (const file of walk(dir)) {
             const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
-            lines.forEach((line, index) => {
-                if (!prefixPattern.test(line)) return;
-                // 检查前后 4 行内是否有标准路径（豁免标准 CS API）
-                const start = Math.max(0, index - 4);
-                const end = Math.min(lines.length - 1, index + 4);
-                const isStandardPath = STANDARD_PATH_PATTERNS.some((pattern) => {
-                    for (let i = start; i <= end; i++) {
-                        if (pattern.test(lines[i])) return true;
-                    }
-                    return false;
-                });
-                if (!isStandardPath) {
-                    violations.push(`${path.relative(projectRoot, file)}:${index + 1}: ${line.trim()}`);
-                }
-            });
+            for (const hit of scanLinesForViolations(lines)) {
+                violations.push(`${path.relative(projectRoot, file)}:${hit.line}: ${hit.text}`);
+            }
         }
     }
 
@@ -86,4 +103,7 @@ function main() {
     process.stdout.write("check-vendor-prefix-migration: OK，私有端点已迁 vendor 前缀。\n");
 }
 
-main();
+// 仅在被直接执行时跑 main（原为无条件 `main();`，import 会跑全仓扫描并可能 exit 1）
+if (import.meta.url === `file://${process.argv[1]}`) {
+    main();
+}

@@ -31,22 +31,14 @@ function hasMatch(body, pattern) {
     return pattern.test(body);
 }
 
-function main() {
-    const changedFiles = getChangedFiles();
-    const relevantChanged = changedFiles.some((file) => file.startsWith(generatedPrefix));
-    if (!relevantChanged) {
-        process.stdout.write(
-            "contract-provenance: skipping, docs/api-contract/generated/ did not change vs base ref.\n",
-        );
-        return 0;
-    }
-
-    const body = readPullRequestBody();
-    if (body === null) {
-        process.stdout.write("contract-provenance: skipping, no pull_request body is available for this event.\n");
-        return 0;
-    }
-
+/**
+ * PR body 里必须带齐的 provenance 字段（ledger-driven generated/ 变更的溯源块）。
+ *
+ * 抽成纯函数的原因：这些正则都是**多行锚定**（`^...$` + `m` flag），
+ * 手工改一处就很容易把"整块匹配"变成"子串匹配"，从而让随便一行注释也能
+ * 满足要求 —— 那样门禁就形同虚设了。
+ */
+export function missingProvenanceFields(body) {
     const requiredPatterns = [
         {
             label: "contract-prompt",
@@ -70,7 +62,26 @@ function main() {
         },
     ];
 
-    const missing = requiredPatterns.filter(({ pattern }) => !hasMatch(body, pattern)).map(({ label }) => label);
+    return requiredPatterns.filter(({ pattern }) => !hasMatch(body ?? "", pattern)).map(({ label }) => label);
+}
+
+function main() {
+    const changedFiles = getChangedFiles();
+    const relevantChanged = changedFiles.some((file) => file.startsWith(generatedPrefix));
+    if (!relevantChanged) {
+        process.stdout.write(
+            "contract-provenance: skipping, docs/api-contract/generated/ did not change vs base ref.\n",
+        );
+        return 0;
+    }
+
+    const body = readPullRequestBody();
+    if (body === null) {
+        process.stdout.write("contract-provenance: skipping, no pull_request body is available for this event.\n");
+        return 0;
+    }
+
+    const missing = missingProvenanceFields(body);
     if (missing.length > 0) {
         process.stderr.write(
             `contract-provenance: PR body is missing required provenance field(s): ${missing.join(", ")}.\n`,
@@ -92,12 +103,15 @@ function main() {
     return 0;
 }
 
-try {
-    process.exitCode = main();
-} catch (error) {
-    process.stderr.write(`contract-provenance: ${error.message}\n`);
-    if (process.env.CONTRACT_PROVENANCE_TRACE) {
-        process.stderr.write(`${error.stack}\n`);
+// 仅在被直接执行时跑 main（原为顶层无条件执行，import 会跑 git diff 并写 exitCode）
+if (import.meta.url === `file://${process.argv[1]}`) {
+    try {
+        process.exitCode = main();
+    } catch (error) {
+        process.stderr.write(`contract-provenance: ${error.message}\n`);
+        if (process.env.CONTRACT_PROVENANCE_TRACE) {
+            process.stderr.write(`${error.stack}\n`);
+        }
+        process.exitCode = 1;
     }
-    process.exitCode = 1;
 }
