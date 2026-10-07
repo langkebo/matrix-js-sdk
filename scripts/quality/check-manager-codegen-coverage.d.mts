@@ -20,6 +20,12 @@ export interface ModuleCoverageVerdict {
  */
 export function findSdkDirForModule(moduleName: string): string;
 
+/**
+ * 白名单模块 → `{ reason, expires }`。**导出是给 spec 用的**：断言从这张表里取样本，
+ * 表变了断言自动跟着走，不会再出现"waiver 已移除、spec 还硬写着模块名"的长期红灯。
+ */
+export const WAIVED_MODULES: Record<string, { reason: string; expires: string }>;
+
 export interface CodegenConsumers {
     /** src 下导入了本模块 `__generated__/route-table` 的文件（跨模块也算）。 */
     strong: string[];
@@ -30,6 +36,9 @@ export interface CodegenConsumers {
 /**
  * 强证据：src 下任何文件（不含该模块自己的 `__generated__/`）导入本模块的
  * `<sdkDir>/__generated__/route-table`，按 import 说明符**解析后的落点**比对。
+ *
+ * 内部按 `srcRoot` 缓存「文件 → 落点」索引：首次调用扫一次盘，此后每个模块只查表。
+ * 原先每次调用都重扫 `src/` 全量文件（49 模块 × 625 文件 ≈ 3 万次读取 ⇒ 单项门禁 ≈28 分钟）。
  */
 export function findStrongConsumers(sdkDir: string, srcRoot?: string): string[];
 

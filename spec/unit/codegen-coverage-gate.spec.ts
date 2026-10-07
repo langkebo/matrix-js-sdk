@@ -16,6 +16,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+    WAIVED_MODULES,
     classifyModuleCoverage,
     collectCodegenConsumers,
     countRouteTableEntries,
@@ -25,6 +26,14 @@ const TODAY = new Date("2026-09-13T00:00:00Z");
 const NO_CONSUMERS = { strong: [], weak: [] };
 const STRONG = { strong: ["room/RoomManager.ts"], weak: [] };
 const WEAK = { strong: [], weak: ["sync.ts"] };
+
+/**
+ * 白名单里任取一个模块名。**不要在这里硬写模块名**：断言一旦绑死业务事实，业务一变就是假红。
+ * 这个文件正是这么红的 —— `push_notification` 的 waiver 在 c1e304dc4 被移除后，
+ * `classifyModuleCoverage("push_notification", …)` 期望 `waived` 的断言没人跟着改，
+ * spec 从那之后一直失败（见审计文档 §7.11）。改为从真实表里取样本，表变了断言自动跟着走。
+ */
+const SAMPLE_WAIVED_MODULE = Object.keys(WAIVED_MODULES)[0] ?? "";
 
 function makeSrcTree(files: Record<string, string>): string {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-js-sdk-codegen-coverage-"));
@@ -52,26 +61,39 @@ describe("codegen coverage gate: module classification", () => {
     });
 
     it("有表没人读、但已白名单说明原因的模块 → waived，并标出证据强度", () => {
-        // push_notification 就是这种：表生成了（10 条），src 下无人 import
-        // （friend_room 曾在同类名单里，SDK-1b 接线后已升级为强证据）
-        const verdict = classifyModuleCoverage("push_notification", { hasCodegen: 9, consumers: WEAK, today: TODAY });
+        // push_notification 曾是这样，friend_room 也是（SDK-1b 接线后升级为强证据）。
+        // 样本取自真实白名单表，不硬写名字。
+        const verdict = classifyModuleCoverage(SAMPLE_WAIVED_MODULE, {
+            hasCodegen: 9,
+            consumers: WEAK,
+            today: TODAY,
+        });
 
         expect(verdict.status).toBe("waived");
         expect(verdict.evidence).toBe("table-without-consumer");
-        expect(verdict.waiver?.reason).toMatch(/子集|push/);
+        expect(verdict.waiver?.reason).toBe(WAIVED_MODULES[SAMPLE_WAIVED_MODULE]?.reason);
     });
 
     it("本来就没有表的白名单模块标为 no-table（与'有表没人读'区分开）", () => {
-        const verdict = classifyModuleCoverage("admin", { hasCodegen: 0, consumers: NO_CONSUMERS, today: TODAY });
+        const verdict = classifyModuleCoverage(SAMPLE_WAIVED_MODULE, {
+            hasCodegen: 0,
+            consumers: NO_CONSUMERS,
+            today: TODAY,
+        });
 
         expect(verdict.evidence).toBe("no-table");
     });
 
     it("waives a documented non-consumer while its waiver is live", () => {
-        const verdict = classifyModuleCoverage("admin", { hasCodegen: 0, consumers: NO_CONSUMERS, today: TODAY });
+        const verdict = classifyModuleCoverage(SAMPLE_WAIVED_MODULE, {
+            hasCodegen: 0,
+            consumers: NO_CONSUMERS,
+            today: TODAY,
+        });
 
         expect(verdict.status).toBe("waived");
-        expect(verdict.waiver?.expires).toBe("2026-12-31");
+        // 到期日只校验"晚于 today"，不写死日期：续期是例行操作，写死就每次续期假红。
+        expect(new Date(verdict.waiver?.expires ?? 0).getTime()).toBeGreaterThan(TODAY.getTime());
         expect(verdict.waiver?.reason).toBeTruthy();
     });
 
@@ -88,10 +110,16 @@ describe("codegen coverage gate: module classification", () => {
     });
 
     it("turns a waived module back into a failure once the waiver expires", () => {
-        const afterExpiry = new Date("2027-01-01T00:00:00Z");
+        // 过期点从条目自身推导，而不是写死 "2027-01-01"：写死的话每当白名单续期，这条就假红。
+        const expires = new Date(WAIVED_MODULES[SAMPLE_WAIVED_MODULE]?.expires ?? 0);
+        const afterExpiry = new Date(expires.getTime() + 24 * 60 * 60 * 1000);
 
         expect(
-            classifyModuleCoverage("admin", { hasCodegen: 0, consumers: NO_CONSUMERS, today: afterExpiry }),
+            classifyModuleCoverage(SAMPLE_WAIVED_MODULE, {
+                hasCodegen: 0,
+                consumers: NO_CONSUMERS,
+                today: afterExpiry,
+            }),
         ).toMatchObject({ status: "missing", reason: "EXPIRED_WAIVER" });
     });
 });
@@ -188,6 +216,40 @@ describe("codegen coverage gate: consumer evidence", () => {
         expect(collectCodegenConsumers("room", root)).toEqual({ strong: [], weak: [] });
     });
 
+    it("同一进程内不同 srcRoot 的索引互不串味（索引必须按 root 分键）", () => {
+        // 回归守卫：findStrongConsumers 现在建「文件 → route-table 落点」索引并按 srcRoot 缓存。
+        // 若有人把缓存键写错（例如只按模块名），下面第二个 root 会拿到第一个 root 的结果，
+        // 于是"没接线的模块"被误判成 covered —— 这正是本门禁历史上栽过的那个坑。
+        const withConsumer = makeSrcTree({
+            "room/__generated__/route-table.ts": 'export const routes = [{ method: "GET", path: "/x" }];',
+            "room/RoomManager.ts": 'import { routes } from "./__generated__/route-table";\nexport const x = routes;',
+        });
+        const withoutConsumer = makeSrcTree({
+            "room/__generated__/route-table.ts": 'export const routes = [{ method: "GET", path: "/x" }];',
+        });
+
+        expect(collectCodegenConsumers("room", withConsumer).strong).toEqual(["room/RoomManager.ts"]);
+        expect(collectCodegenConsumers("room", withoutConsumer).strong).toEqual([]);
+        // 回头再查第一个 root：后建的索引不得污染它。
+        expect(collectCodegenConsumers("room", withConsumer).strong).toEqual(["room/RoomManager.ts"]);
+    });
+
+    it("同一 srcRoot 重复查询不再读盘（索引复用，而非每模块重扫一次）", () => {
+        // 这是 O(模块 × 文件) → O(文件) 那条性能修复的行为化断言：
+        // 第一次查询建索引，此后同 root 的查询必须走索引。删掉源文件后结果不变即为证据
+        // （若仍在每次重扫盘，结果会变成空）。
+        const root = makeSrcTree({
+            "room/__generated__/route-table.ts": 'export const routes = [{ method: "GET", path: "/x" }];',
+            "room/RoomManager.ts": 'import { routes } from "./__generated__/route-table";\nexport const x = routes;',
+        });
+
+        expect(collectCodegenConsumers("room", root).strong).toEqual(["room/RoomManager.ts"]);
+
+        fs.rmSync(path.join(root, "room", "RoomManager.ts"));
+
+        expect(collectCodegenConsumers("room", root).strong).toEqual(["room/RoomManager.ts"]);
+    });
+
     it("counts route-table entries and reports 0 when no table was generated", () => {
         const root = makeSrcTree({
             "room/__generated__/route-table.ts": [
@@ -200,5 +262,20 @@ describe("codegen coverage gate: consumer evidence", () => {
 
         expect(countRouteTableEntries("room", root)).toBe(2);
         expect(countRouteTableEntries("absent", root)).toBe(0);
+    });
+});
+
+describe("codegen coverage gate: 白名单表自身的完整性", () => {
+    it("每一条 waiver 都带 reason 与可解析的 expires（不留纸面豁免）", () => {
+        // 这条断言只依赖真实白名单表本身，因此不会随业务接线而腐朽；
+        // 它替代了原先"把 admin / push_notification 写进断言"的那类硬编码。
+        const entries = Object.entries(WAIVED_MODULES);
+
+        expect(entries.length).toBeGreaterThan(0);
+
+        for (const [moduleName, waiver] of entries) {
+            expect(waiver.reason, `${moduleName} 缺 reason`).toBeTruthy();
+            expect(Number.isNaN(new Date(waiver.expires).getTime()), `${moduleName} 的 expires 无法解析`).toBe(false);
+        }
     });
 });

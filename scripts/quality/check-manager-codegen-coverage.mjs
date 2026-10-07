@@ -23,8 +23,12 @@ const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "gener
  * recorded here so the gate reports "known non-consumer" instead of silently inflating
  * the gap, and so an *unexpected* new gap still fails the build. Every entry needs a
  * reason and an expiry date.
+ *
+ * 导出给 spec 消费：断言跟着这张表走，就不会再出现"waiver 早已移除、spec 还硬写着模块名"
+ * 那种长期红灯（`push_notification` 就是这么把 `codegen-coverage-gate.spec.ts` 挂了几天的，
+ * 见审计文档 §7.11）。
  */
-const WAIVED_MODULES = {
+export const WAIVED_MODULES = {
     admin: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     app_service: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     dm: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
@@ -108,6 +112,50 @@ function listAllSources(srcRoot) {
     return walk(srcRoot, (filePath) => filePath.endsWith(".ts") && !filePath.endsWith(".d.ts"));
 }
 
+/** `from "<...>__generated__/route-table"`（可选 `.ts` 后缀）—— 只取说明符，落点稍后解析。 */
+const ROUTE_TABLE_IMPORT_RE = /from\s+"([^"]*__generated__\/route-table)(?:\.ts)?"/g;
+
+/**
+ * `srcRoot` → 「route-table 导入索引」：`Map<文件相对路径, 该文件解析后的落点[]>`，
+ * 插入顺序即 walk 顺序（保证命中顺序与逐模块扫描时一致）。
+ *
+ * **为什么要先建索引**：`main()` 会为**每一个** ledger 模块调用一次 `findStrongConsumers()`。
+ * 早先的实现每次都重走 `src/` 全量文件、逐个 `readFileSync` ⇒ **O(模块 × 文件)**
+ * （49 个模块 × 625 个 `.ts` ≈ **3 万次读取**）。在 file-broker 沙箱里每次读都是一次 IPC，
+ * 实测单项门禁要 **≈28 分钟**：前台直跑会被 SIGKILL（exit 137），后台挂到 15 分钟看不出进展，
+ * **极易被误判成 hang 或回归**（见审计文档 §7.8）。索引把读盘降到 **O(文件)**——
+ * 扫一次、按解析后的落点归并，判定口径一字未改。
+ *
+ * 缓存按 `srcRoot` 分键：spec 用临时目录建树，各 root 互不串味；`--json` 的下游
+ * （`quality-report.mjs`）是**另起进程**调用的，不共享本进程的索引。
+ *
+ * 实测（2026-10-07）：`src/` 下 `__generated__` 目录里的 **163 个** `.ts` 文件没有任何一个
+ * 导入 route-table，对判定零贡献；但**仍然照读**——原实现的"排除"只针对被查模块自己的
+ * `__generated__/`，若在这里一刀切掉全部生成文件，就是顺手改了判定口径。读盘量从 3 万降到 625
+ * 已经把主要成本消掉了，不再为 20% 的边际收益动语义。
+ */
+const routeTableImportIndex = new Map();
+
+function getRouteTableImportIndex(srcRoot) {
+    const cached = routeTableImportIndex.get(srcRoot);
+    if (cached) return cached;
+
+    const index = new Map();
+    for (const filePath of listAllSources(srcRoot)) {
+        const relativePath = normalizePath(path.relative(srcRoot, filePath));
+        const dir = path.posix.dirname(relativePath);
+        const targets = new Set();
+        for (const match of fs.readFileSync(filePath, "utf8").matchAll(ROUTE_TABLE_IMPORT_RE)) {
+            targets.add(path.posix.normalize(path.posix.join(dir, match[1])));
+        }
+        // 不含 route-table 导入的文件永远不可能是命中项，不必进索引。
+        if (targets.size > 0) index.set(relativePath, [...targets]);
+    }
+
+    routeTableImportIndex.set(srcRoot, index);
+    return index;
+}
+
 /**
  * 强证据（P3 / C-1 修正）：**src 下任何文件** import 了本模块的
  * `<sdkDir>/__generated__/route-table`。
@@ -119,24 +167,18 @@ function listAllSources(srcRoot) {
  *   - `sliding_sync` 的表被 `room/RoomManager.ts` 导入（用它约束 simplified_msc3575 的 /sync）。
  * 这些 import 都真的用于 `StripV3<XPathPattern>` 式的路径断言，不是装饰。判定改为按
  * **import 说明符解析后的落点**比对（而不是文件名相似），指向别处的导入不算。
+ *
+ * 判定口径本身不变；变的是**取数方式**——导入索引按 `srcRoot` 缓存，同一进程内重复查询不再读盘。
  */
 export function findStrongConsumers(sdkDir, srcRoot = srcDir) {
     const target = `${sdkDir}/__generated__/route-table`;
+    const ownGeneratedPrefix = `${sdkDir}/__generated__/`;
     const hits = [];
 
-    for (const filePath of listAllSources(srcRoot)) {
-        const relativePath = normalizePath(path.relative(srcRoot, filePath));
-        if (relativePath.startsWith(`${sdkDir}/__generated__/`)) continue;
-
-        const content = fs.readFileSync(filePath, "utf8");
-        const specifiers = content.matchAll(/from\s+"([^"]*__generated__\/route-table)(?:\.ts)?"/g);
-        for (const match of specifiers) {
-            const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(relativePath), match[1]));
-            if (resolved === target) {
-                hits.push(relativePath);
-                break;
-            }
-        }
+    for (const [relativePath, targets] of getRouteTableImportIndex(srcRoot)) {
+        // 本模块自己的生成文件不算消费者（它们就在 target 旁边）。
+        if (relativePath.startsWith(ownGeneratedPrefix)) continue;
+        if (targets.includes(target)) hits.push(relativePath);
     }
 
     return hits;

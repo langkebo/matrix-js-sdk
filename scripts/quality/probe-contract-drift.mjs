@@ -13,35 +13,37 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const gateSource = fs.readFileSync("scripts/quality/check-manager-codegen-coverage.mjs", "utf8");
-const grab = (name) => gateSource.match(new RegExp(`const ${name} = \\{[\\s\\S]*?\\n\\};`))[0];
-const { LEDGER_MODULE_ALIASES, LEDGER_MODULE_TO_SDK_DIR } = new Function(
-    `${grab("LEDGER_MODULE_ALIASES")}\n${grab("LEDGER_MODULE_TO_SDK_DIR")}\nreturn { LEDGER_MODULE_ALIASES, LEDGER_MODULE_TO_SDK_DIR };`,
-)();
+import { findSdkDirForModule } from "../contract-module-map.mjs";
 
-const sdkDirFor = (m) => {
-    if (LEDGER_MODULE_TO_SDK_DIR[m]) return LEDGER_MODULE_TO_SDK_DIR[m];
-    for (const [d, l] of Object.entries(LEDGER_MODULE_ALIASES)) if (l === m) return d;
-    return m;
-};
+/*
+ * 曾经这里用正则从 `check-manager-codegen-coverage.mjs` 的**源码**里抓
+ * `LEDGER_MODULE_ALIASES` / `LEDGER_MODULE_TO_SDK_DIR` 两个常量再用 `new Function` 求值。
+ * 那两个常量搬到 `contract-module-map.mjs` 之后正则再也匹配不上，`grab()` 对 null 取 `[0]`
+ * ⇒ 本脚本**崩在启动阶段**（因为它不在 `pnpm lint` 里，坏了很久没被发现）。
+ * 现改为正规 import：`findSdkDirForModule()` 就是同一套映射的唯一真相源，
+ * 从机制上不可能再与门禁漂移。
+ */
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const resolveFromRoot = (...parts) => path.join(projectRoot, ...parts);
 
 const tableEntries = (sdkDir) => {
-    const file = `src/${sdkDir}/__generated__/route-table.ts`;
+    const file = resolveFromRoot("src", sdkDir, "__generated__", "route-table.ts");
     if (!fs.existsSync(file)) return null;
     const content = fs.readFileSync(file, "utf8");
     return new Set([...content.matchAll(/\{ method: "([A-Z]+)", path: "([^"]+)" \}/g)].map((m) => `${m[1]} ${m[2]}`));
 };
 
-const index = JSON.parse(fs.readFileSync("docs/api-contract/generated/index.json", "utf8"));
+const index = JSON.parse(fs.readFileSync(resolveFromRoot("docs", "api-contract", "generated", "index.json"), "utf8"));
 const rows = [];
 for (const moduleName of Object.keys(index.modules)) {
     if (moduleName === "assembly") continue;
-    const manifestPath = `docs/api-contract/generated/modules/${moduleName}.json`;
+    const manifestPath = resolveFromRoot("docs", "api-contract", "generated", "modules", `${moduleName}.json`);
     if (!fs.existsSync(manifestPath)) continue;
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     const ledger = new Set(manifest.entries.map((e) => `${e.method} ${e.path}`));
-    const sdkDir = sdkDirFor(moduleName);
+    const sdkDir = findSdkDirForModule(moduleName);
     const table = tableEntries(sdkDir);
     if (table === null) {
         rows.push({ moduleName, sdkDir, table: "-", sdkOnly: 0, ledgerOnly: ledger.size, note: "无表" });
@@ -67,5 +69,10 @@ for (const r of interesting) {
         `## ${r.moduleName} -> src/${r.sdkDir}  (表 ${r.table} 条, SDK 多 ${r.sdkOnly}, ledger 多 ${r.ledgerOnly})`,
     );
     if (r.sdkOnly > 0) console.log(`   SDK 表有、ledger 无: ${(r.sdkOnlySample || []).join(" | ")}`);
-    if (r.ledgerOnly > 0) console.log(`   ledger 有、SDK 表无: ${(r.ledgerOnlySample || []).join(" | ")}`);
+    // 无表模块的整条 ledger 都算"差集"，逐条列出来没有信息量；但**留空行会读成"没有差异"**，
+    // 所以显式说明，别让 184 条的差集看起来像 0 条。
+    if (r.ledgerOnly > 0)
+        console.log(
+            `   ledger 有、SDK 表无: ${(r.ledgerOnlySample || []).join(" | ") || "（本模块没有生成表，无从逐条比对）"}`,
+        );
 }
