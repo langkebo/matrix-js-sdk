@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync, readdirSync, statSync } from "fs";
 import { join, relative } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import { format, resolveConfig } from "prettier";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,7 +57,7 @@ function extractMSCsFromSource() {
 function loadBaseline() {
     try {
         return JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
-    } catch (err) {
+    } catch {
         console.error(`❌ Cannot load baseline: ${BASELINE_PATH}`);
         process.exit(1);
     }
@@ -106,7 +107,7 @@ export function formatDiff(current, baseline) {
     return { added, removed, moved };
 }
 
-function main() {
+async function main() {
     const args = process.argv.slice(2);
     const mode = args.includes("--strict") ? "strict" : "normal";
     const updateBaseline = args.includes("--update-baseline");
@@ -146,7 +147,17 @@ function main() {
                     .map(([num, files]) => [num, [...files].sort()]),
             ),
         };
-        writeFileSync(BASELINE_PATH, JSON.stringify(newBaseline, null, 4) + "\n");
+        // 走 prettier 落盘。原先直接 `JSON.stringify(_, null, 4)`：它会把**单元素数组也展开成多行**，
+        // 而 prettier 会把能放下的数组折叠回一行 —— 于是 `--update-baseline`（本门禁自己印出来的
+        // 修复指令）每跑一次就把 msc-reference-baseline.json 写成 prettier 不认的格式，让
+        // `pnpm lint:js`（prettier --check .）变红。2026-10-07 实测确认后改为先格式化再写。
+        const prettierConfig = (await resolveConfig(BASELINE_PATH)) ?? {};
+        const formatted = await format(JSON.stringify(newBaseline, null, 4) + "\n", {
+            ...prettierConfig,
+            parser: "json",
+            filepath: BASELINE_PATH,
+        });
+        writeFileSync(BASELINE_PATH, formatted);
         console.log(`\n✅ Baseline updated: ${BASELINE_PATH}`);
         console.log(`   Total MSC entries: ${current.size}`);
         return;
@@ -204,5 +215,5 @@ function main() {
 // 都会顺带跑一遍全仓 MSC 扫描；更糟的是 main() 在文档未覆盖 / strict 模式下会
 // `process.exit(1)`，那时 spec 会以"莫名其妙的红"失败，而不是给出可读的断言错误。
 if (import.meta.url === `file://${process.argv[1]}`) {
-    main();
+    await main();
 }

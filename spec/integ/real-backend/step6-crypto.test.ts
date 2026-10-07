@@ -179,7 +179,7 @@ async function main(): Promise<void> {
 
     await runTest("getCrossSigningStatus", async () => {
         try {
-            const status = await client!.getCrossSigningStatus();
+            const status = await client!.getCrossSigningManager().checkCrossSigningStatus();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Cross-signing status not available");
@@ -245,7 +245,7 @@ async function main(): Promise<void> {
 
     await runTest("getDevices", async () => {
         try {
-            const devices = await client!.getDevices();
+            const devices = await client!.getDeviceManager().getDevices();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get devices not available");
@@ -254,7 +254,7 @@ async function main(): Promise<void> {
 
     await runTest("getDevice", async () => {
         try {
-            const device = await client!.getDevice("test-device");
+            const device = await client!.getDeviceManager().getDevice("test-device");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get device not available");
@@ -274,7 +274,7 @@ async function main(): Promise<void> {
 
     await runTest("deleteDevice", async () => {
         try {
-            await client!.deleteDevice("test-device");
+            await client!.getDeviceManager().deleteDevice("test-device");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Delete device not available");

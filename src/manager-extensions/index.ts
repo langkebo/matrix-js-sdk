@@ -140,6 +140,8 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeSyncAccumulator", module: "sync-accumulator" },
     { option: "includeUploads", module: "uploads" },
     { option: "includeWidgets", module: "widgets" },
+    { option: "includeDeviceKeys", module: "device-keys" },
+    { option: "includePushRules", module: "push-rules" },
 ];
 
 const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
@@ -240,6 +242,8 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeSyncAccumulator: true,
     includeUploads: true,
     includeWidgets: true,
+    includeDeviceKeys: true,
+    includePushRules: true,
 };
 
 let isInitialized = false;
@@ -780,6 +784,16 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeWidgets || all) {
                 promises.push(safeDynamicImport(import("../widgets/index.js").then((m) => m?.extendMatrixClient())));
+            }
+
+            if (currentOptions.includeDeviceKeys || all) {
+                promises.push(
+                    safeDynamicImport(import("../device-keys/index.js").then((m) => m?.extendMatrixClient())),
+                );
+            }
+
+            if (currentOptions.includePushRules || all) {
+                promises.push(safeDynamicImport(import("../push-rules/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             await Promise.all(promises);

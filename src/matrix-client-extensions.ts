@@ -138,27 +138,12 @@ export interface MatrixClientExtensionMethods {
     sendTyping(roomId: string, isTyping: boolean, timeoutMs?: number): Promise<import("./@types/common").EmptyObject>;
     getProfileInfo(userId: string): Promise<import("./profile/index").IProfile>;
     getUserProfile(userId: string): Promise<import("./profile/index").IProfile>;
-    getDisplayName(userId: string): Promise<string | null>;
     setDisplayName(name: string): Promise<void>;
     setAvatarUrl(url: string): Promise<void>;
     getProfileManager(): import("./profile/index").ProfileManager;
-    mxcUrlToHttp(
-        mxcUrl: string,
-        width?: number,
-        height?: number,
-        method?: string,
-        allowDirectLinks?: boolean,
-        allowRedirects?: boolean,
-        ignoreCertificateErrors?: boolean,
-    ): string | null;
     getAuthManager(): import("./auth/index").AuthManager;
 
     getDeviceManager(): import("./device/index").DeviceManager;
-    getDevices(): Promise<import("./device/index").IDevice[]>;
-    getDevice(deviceId: string): Promise<import("./device/index").IDevice>;
-    setDeviceName(deviceId: string, name: string): Promise<void>;
-    deleteDevice(deviceId: string, auth?: UiaAuthData): Promise<void>;
-    deleteMultipleDevices(deviceIds: string[], auth?: UiaAuthData): Promise<void>;
     getThreePidsManager(): import("./three-pids/index").ThreePidsManager;
     getIdentityServerManager(): import("./identity-server/index").IdentityServerManager;
     getPasswordResetManager(): import("./password-reset/index").PasswordResetManager;
@@ -193,9 +178,6 @@ export interface MatrixClientExtensionMethods {
     getAggregationsManager(): import("./aggregations/index").AggregationsManager;
     getTimelineManager(): import("./timeline/index").TimelineManager;
     getThreadingManager(): import("./threading/index").ThreadingManager;
-    getRoomEvent(roomId: string, eventId: string): Promise<import("./room/index").IRoomEvent>;
-    getRoomStateEvent(roomId: string, eventType: string, stateKey?: string): Promise<import("./models/event").IContent>;
-    redact(roomId: string, eventId: string, txnId?: string, opts?: IRedactOpts): Promise<ISendEventResponse>;
 
     // ============ Presence & Typing ============
     getPresenceManager(): import("./presence/index").PresenceManager;
@@ -238,7 +220,6 @@ export interface MatrixClientExtensionMethods {
     getDehydratedDeviceManager(): import("./dehydrated-device/index").DehydratedDeviceManager;
     getDelayedEventsManager(): import("./delayed-events/index").DelayedEventsManager;
     getAccountStatusManager(): import("./account-status/index").AccountStatusManager;
-    getVerificationRequestsToDevice(userId: string): import("./crypto-api/verification").VerificationRequest[];
     requestAdd3pidEmailToken(
         email: string,
         clientSecret: string,
@@ -319,12 +300,9 @@ export interface MatrixClientExtensionMethods {
 
     // ============ Content & Media ============
     getMediaManager(): import("./media/index").MediaManager;
-    getMediaApiUrl(path: string): string;
-    sendEmote(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
 
     // ============ Tags & Labels ============
     getTagsManager(): import("./tags-management/index").TagsManager;
-    removeRoomTag(roomId: string, tag: string): Promise<import("./@types/common").EmptyObject>;
 
     // ============ Thread ============
     getThreadManager(): import("./thread/index").ThreadManager;
@@ -343,14 +321,12 @@ export interface MatrixClientExtensionMethods {
     getRoomAliasManager(): import("./room-alias/index").RoomAliasManager;
 
     getLifecycleManager(): import("./lifecycle/index").LifecycleManager;
-    setUserPowerLevel(roomId: string, userId: string, powerLevel: number): Promise<void>;
     getMembershipManager(): import("./membership/index").MembershipManager;
     getReadReceiptsManager(): import("./read-receipts/index").ReadReceiptsManager;
     getKeyBackupManager(): import("./key-backup/index").KeyBackupManager;
     getKeyRotationManager(): import("./key-rotation/index").KeyRotationManager;
     getBurnAfterReadManager(): import("./burn-after-read/index").BurnAfterReadManager;
     getOidcManager(): import("./oidc/manager").OidcManager;
-    oidcUserInfo(): Promise<OidcUserInfo>;
     getTelemetryManager(
         config?: Partial<import("./telemetry/index").TelemetryConfig>,
     ): import("./telemetry/index").TelemetryManager;
@@ -373,8 +349,16 @@ export interface MatrixClientExtensionMethods {
  * MatrixClient 内部属性和方法声明
  *
  * 这些是 MatrixClient 类中已实现但未在主接口中声明的属性和方法。
- * 管理器通过 (this.client as any) 访问这些成员，
- * 通过在扩展接口中声明它们，可以消除大部分 as any 用法。
+ * 管理器通过 `BaseManager.internalClient`（`MatrixClient & MatrixClientInternalMethods`）
+ * 类型安全地访问它们，从而消除散落的 `as any` 断言。
+ *
+ * ⚠️ 本接口**会直接合并进 `MatrixClient`**（见文件末尾的 `declare module "./client"`），
+ * 因此这里的每一条声明都让「类型检查通过」成为**既定事实** —— 声明一个 MatrixClient
+ * 并不存在的方法，症状是调用即 TypeError、编译期毫无提示。
+ *
+ * 2026-10-07 清掉 53 条这样的残留声明（`getRoomName` / `getStateEvents` / `createDirectRoom` /
+ * `uploadFile` / `checkCrossSigningStatus` …）：MatrixClient 从未实现过它们，能力都在对应
+ * Manager 上。判据与守卫见 `spec/unit/manager-accessor-wiring.spec.ts`（缺失集合必须为空）。
  */
 export interface MatrixClientInternalMethods {
     // ============ Credentials & Identity ============
@@ -389,7 +373,6 @@ export interface MatrixClientInternalMethods {
     readonly identityServer?: IIdentityServerProvider;
 
     getAccessToken(): string | null;
-    getIdentityServerUrl(stripProto?: boolean): string | undefined;
     getSessionId(): string;
     getRoomByAlias(alias: string): Room | null;
     getCrypto(): CryptoApi | undefined;
@@ -399,12 +382,10 @@ export interface MatrixClientInternalMethods {
     isGuest(): boolean;
 
     // ============ Room Getters (implemented but not in interface) ============
-    getRoomName(roomId: string): string;
-    getRoomTopic(roomId: string): string;
-    getRoomAvatarUrl(roomId: string): string;
-    getRoomHistoryVisibility(roomId: string): string;
-    getRoomGuestAccess(roomId: string): string;
-    getRoomJoinRule(roomId: string): string;
+    // 注意：`getRoomName` / `getRoomTopic` / `getRoomAvatarUrl` / `getRoomHistoryVisibility` /
+    // `getRoomGuestAccess` / `getRoomJoinRule` 不在本段 —— 它们是 RoomSettingsManager 自己的
+    // 方法（底层读 `Room.currentState`），MatrixClient 从未实现过，2026-10-07 从类型表删除：
+    // 留着只会让 `client.getRoomName(roomId)` 类型检查通过、运行时 TypeError。
     getNotificationCount(roomId: string): number;
     getHighlightCount(roomId: string): number;
     hasUnreadNotifications(roomId: string): boolean;
@@ -468,19 +449,14 @@ export interface MatrixClientInternalMethods {
         opts?: IRedactOpts,
     ): Promise<ISendEventResponse>;
 
-    // ============ Room Settings (phantom methods used by RoomSettingsManager) ============
-    setRoomAvatar(roomId: string, avatarUrl: string): Promise<void>;
-    setRoomHistoryVisibility(roomId: string, visibility: string): Promise<void>;
-    setRoomGuestAccess(roomId: string, allow: boolean): Promise<void>;
-    setRoomJoinRule(roomId: string, joinRule: string): Promise<void>;
-    getRoomHistoryVisibility(roomId: string): string;
-    getRoomGuestAccess(roomId: string): string;
-    getRoomJoinRule(roomId: string): string;
-
-    // ============ Event Management (phantom methods used by EventManager) ============
-    getEvent(roomId: string, eventId: string): Promise<MatrixEvent>;
-    getRoomEvents(roomId: string, start: string, limit: number): Promise<MatrixEvent[]>;
-    fetchEvent(roomId: string, eventId: string): Promise<MatrixEvent>;
+    // ============ Room Settings / Event Management（原先的「phantom 方法」声明）============
+    // 这里曾声明 RoomSettingsManager / EventManager 借道调用的 10 个方法：
+    //   setRoomAvatar / setRoomHistoryVisibility / setRoomGuestAccess / setRoomJoinRule /
+    //   getRoomHistoryVisibility / getRoomGuestAccess / getRoomJoinRule（RoomSettingsManager）
+    //   getEvent / getRoomEvents / fetchEvent（EventManager）
+    // MatrixClient **从未实现过其中任何一个** —— 调用即 TypeError，而类型检查照样通过。
+    // 两个 Manager 现已各自落地（RoomSettingsManager 直接读写 `Room.currentState`，
+    // EventManager 走 `client.getRoomEventsManager()`），故 2026-10-07 从类型表删除。
 
     // ============ Server Time & Turn Servers ============
     getTurnServers(): ITurnServer[];
@@ -554,16 +530,6 @@ export interface MatrixClientInternalMethods {
     hasCrypto(): boolean;
     initCrypto(): Promise<void>;
     stopCrypto(): void;
-    checkCrossSigningStatus(): unknown;
-    getCrossSigningKeys(): Promise<unknown>;
-    isCrossSigningReady(): Promise<boolean>;
-    getUserCrossSigningKeys(userId: string): Promise<unknown>;
-    checkAndTrustCrossSigning(): Promise<void>;
-    isCryptoBackupEnabled(): Promise<boolean>;
-    enableCryptoBackup(passphrase: string): Promise<void>;
-    disableCryptoBackup(): Promise<void>;
-    getCryptoBackup(): Promise<unknown>;
-    restoreCryptoBackup(backup: string | object, passphrase?: string): Promise<void>;
     deleteCryptoStore(): Promise<void>;
     isCryptoStoreReady(): boolean;
     isSecretStorageReady(): Promise<boolean>;
@@ -573,7 +539,6 @@ export interface MatrixClientInternalMethods {
         results: Array<{ user_id: string; display_name?: string; avatar_url?: string }>;
         limited: boolean;
     }>;
-    getProfile(userId: string): Promise<{ displayname?: string; avatar_url?: string }>;
     getSecretStorageKey(keyId: string): Promise<[string, string] | null>;
     storeSecret(name: string, secret: string, keys: string[]): Promise<void>;
     getSecret(name: string): Promise<string | null>;
@@ -610,7 +575,9 @@ export interface MatrixClientInternalMethods {
     getUserStorageUsage(userId: string): Promise<{ size: number; ntFiles: number } | null>;
 
     // ============ Credentials (for credentials/index.ts) ============
-    getIdentityServerUrl(stripProto?: boolean): string | undefined;
+    // 本段曾重复声明 `getIdentityServerUrl()`（与上面「Credentials & Identity」段同名同签名）：
+    // MatrixClient 上并不存在，真实能力在
+    // `client.getIdentityServerManager().getIdentityServerUrl(stripProto?)`。2026-10-07 删除。
 
     // ============ Notification Callback ============
     notificationCallback: unknown;
@@ -620,37 +587,26 @@ export interface MatrixClientInternalMethods {
     // logger?: import("./logger/index").ILogger;
 
     // ============ Crypto internals (used by device-keys, crypto-api, etc.) ============
-    isCryptoReady(): boolean;
     deviceList?: unknown;
     getUserDevices(userId: string): Promise<UserDeviceMap>;
-    setDeviceVerified(userId: string, deviceId: string): Promise<void>;
-    markDeviceAsVerified(userId: string, deviceId: string): Promise<void>;
-    markAllDevicesAsVerified(userId: string): Promise<void>;
 
     // ============ Room Events (room-events/index.ts) ============
-    getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]>;
-    getStateEventsForRoom(roomId: string): Promise<MatrixEvent[]>;
-    getTimelineEvents(roomId: string): MatrixEvent[];
-    getEphemeralEvents(roomId: string): EphemeralEventData[];
-    hasTimelineEvent(roomId: string, eventId: string): boolean;
-    findEventById(roomId: string, eventId: string): MatrixEvent | null;
+    // 本段曾声明 getRoomEvents / getStateEventsForRoom / getTimelineEvents / getEphemeralEvents /
+    // hasTimelineEvent / findEventById —— 它们**全部**是 RoomEventsManager 自己的方法，
+    // MatrixClient 从未实现（`client.getRoomEvents(roomId)` 调用即 TypeError）。2026-10-07 删除。
 
     // ============ Room State Management internals ============
-    getRoomStateEvents(roomId: string, eventType: string, stateKey?: string): Promise<MatrixEvent[]>;
-    getStateEvents(eventType: string, stateKey: string): MatrixEvent[];
-    getRoomAccountData(roomId: string, eventType: string): IContent | null;
-    getRoomAccountDataSync(roomId: string, eventType: string): import("./models/event").IContent | null;
+    // 本段曾声明 getRoomStateEvents / getStateEvents / getRoomAccountData / getRoomAccountDataSync。
+    // 前两者现由 `client.getRoomStateManager().getStateEvents(roomId, eventType?, stateKey?)` 提供；
+    // `getRoomAccountData(roomId, eventType)` 由 `client.getRoomSummaryManager().getRoomAccountData()`
+    // 提供 —— 语义已变（走服务端 `GET /rooms/$roomId/account_data/$type` 返回 RoomAccountDataResult，
+    // 而非旧的同步读本地 `IContent | null`）；`getRoomAccountDataSync` 无等价能力。2026-10-07 删除。
 
     // ============ Sync Accumulator (sync-accumulator/index.ts) ============
     syncAccumulator?: import("./sync-accumulator").SyncAccumulator;
-    accumulateSyncData(data: import("./sync-accumulator").ISyncResponse): Promise<void>;
-    getAccumulatedData(): import("./sync-accumulator/index").ISyncAccumulatedData | null;
-    resetAccumulator(): void;
 
     // ============ Stores (stores/index.ts) ============
     store?: import("./store/index").IStore;
-    storeValue(key: string, value: unknown): Promise<void>;
-    getStoredValue(key: string): Promise<unknown>;
 
     // ============ Push Rules ============
     // `pushRules` 是 MatrixClient 上的**真实属性**（src/client.ts:733）。
@@ -685,28 +641,18 @@ export interface MatrixClientInternalMethods {
     // };
 
     // ============ Room Creation (room-creation/index.ts) ============
-    createDirectRoom(
-        userId: string,
-        options?: import("./room-creation/index").ICreateRoomOptions,
-    ): Promise<import("./room-creation/index").ICreateRoomResponse>;
-    findOrCreateDirectRoom(userId: string): Promise<import("./room-creation/index").ICreateRoomResponse>;
-    getCreateRoomOptions(): import("./room-creation/index").ICreateRoomOptionsConfig;
-    setCreateRoomOptions(options: import("./room-creation/index").ICreateRoomOptionsConfig): void;
+    // 本段曾声明 createDirectRoom / findOrCreateDirectRoom / getCreateRoomOptions /
+    // setCreateRoomOptions —— 四者都是 RoomCreationManager 自己的方法，MatrixClient 从未实现。
+    // 2026-10-07 删除。
 
     // ============ Device Keys (device-keys/index.ts) ============
-    getDeviceKeys(userId: string): Promise<Record<string, import("./device-keys/index").DeviceKeys>>;
-    uploadDeviceKeys(
-        keys: import("./device-keys/index").DeviceKeys,
-    ): Promise<import("./device-keys/index").UploadKeysResponse>;
-    hasDevice(deviceId: string): boolean;
+    // 本段曾声明 getDeviceKeys / uploadDeviceKeys / hasDevice —— 都是 DeviceKeysManager 自己的方法
+    // （`src/device-keys/index.ts` 的实现注释里早就写着「不要写成 this.client.getDeviceKeys(...)」）。
+    // 2026-10-07 删除。
 
     // ============ Uploads (uploads/index.ts) ============
-    uploadFile(
-        file: File | Blob,
-        opts?: import("./uploads/index").IUploadOptions,
-    ): Promise<import("./uploads/index").IUploadResponse>;
-    getUploadProgress(uploadId: string): import("./uploads/index").IUploadProgress | null;
-    abortAllUploads(): void;
+    // 本段曾声明 uploadFile / getUploadProgress / abortAllUploads —— 三者都是 UploadsManager
+    // 自己的方法，MatrixClient 从未实现。2026-10-07 删除。
 
     // ============ State Send / Sync Management / Timeline / Threading internals ============
     // Note: clientOpts, buildSyncApiOptions, syncApi are protected on MatrixClient

@@ -377,7 +377,7 @@ async function main(): Promise<void> {
     await runTest("getRoomAccountData", async () => {
         if (testRoomId) {
             try {
-                const data = client!.getRoomAccountData(testRoomId, "m.test");
+                const data = client!.getRoomSummaryManager().getRoomAccountData(testRoomId, "m.test");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get room account data not available");

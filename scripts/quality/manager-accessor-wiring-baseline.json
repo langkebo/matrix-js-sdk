@@ -1,46 +1,29 @@
 {
-    "note": "类型表 `src/matrix-client-extensions.ts` 的 `interface MatrixClientExtensionMethods` 声明了、但**运行时不存在**的方法台账。守卫: spec/unit/manager-accessor-wiring.spec.ts（真实初始化后逐个检查 MatrixClient.prototype）。**这是棘轮台账：只能减少**。",
-    "why": "类型表声明的方法必须在运行时真的挂在 MatrixClient.prototype 上，否则调用方「类型检查通过、运行时 TypeError」。判据来自 `knip.ts` 注释里记过的真实事故（worker / room-alias 曾因未接入 MODULE_DEFS 而让 client.getWorkerManager() 在运行时是 undefined）。",
+    "note": "类型表 src/matrix-client-extensions.ts 的「声明了但运行时不可用」缺口台账。守卫: spec/unit/manager-accessor-wiring.spec.ts。**这是棘轮台账：只能减少**；2026-10-07 已归零，此后**任何一组非空即红**，不接受新增 waiver。",
+    "why": "两个接口（MatrixClientExtensionMethods / MatrixClientInternalMethods）会被 `declare module` 合并进 MatrixClient，于是每一条声明都让「类型检查通过」成为既定事实 —— 声明一个运行时不存在的方法，症状是调用即 TypeError、编译期毫无提示。判据来自 knip.ts 注释里记过的真实事故（worker / room-alias 曾因未接入 MODULE_DEFS 而让 client.getWorkerManager() 在运行时是 undefined）。",
     "measuredAt": "2026-10-07",
-    "measuredBy": "真实执行 `extendMatrixClientWithManagers({ includeAll: true })` 后，逐个 `typeof MatrixClient.prototype[name] === 'function'`。**不是静态扫描** —— 静态能看到挂载代码，但看不到那些代码有没有被动态 import 执行到。",
+    "measuredBy": "两层判据。① 静态：类型表声明的每个方法，全仓至少有一处实现（MatrixClient 类成员或 MatrixClient.prototype.X = 挂载）。② 运行时：resetManagerExtensions() 后真实执行 extendMatrixClientWithManagers({ includeAll: true })，逐个 typeof MatrixClient.prototype[name] === 'function'。两层都必须为空。",
+    "targetState": "三组全空。",
     "groups": {
         "pendingWiring": {
-            "reason": "这 2 个模块**没有**登记进 MODULE_DEFS（不像其它 21 个已在 2026-10-07 补登记），所以它们的 get*Manager 在运行时是 undefined。**但它们即使接线也不可用** —— 真正的病在 emptyShellModules 组（内部转发给不存在的 client 方法），故先留在这里。",
-            "methods": [
-                "getDeviceKeysManager",
-                "getPushRulesManager"
-            ],
-            "wiredAt": "2026-10-07",
-            "wiredNote": "21 个 clean 模块（aggregations/captcha/crypto-store/directory/ephemeral/identity/invites/lifecycle/membership/pinned-messages/push-notifications/retention/room-creation/room-events/room-keys/room-member/session/sessions/sync-accumulator/uploads/widgets）已补进 MODULE_DEFS + types.ts，MODULE_DEFS 条目 76 → 97。"
+            "reason": "模块实现了 extendMatrixClient() 但没登记进 MODULE_DEFS ⇒ 即便 { includeAll: true } 也不加载。2026-10-07 分两批补登记完毕（第一批 21 个，第二批 device-keys / push-rules），MODULE_DEFS 条目 76 → 98。",
+            "methods": [],
+            "closedAt": "2026-10-07",
+            "closedNote": "device-keys / push-rules 此前被单独留在这里，理由是「即便接线也不可用 —— 真正的病是空壳转发（模块内部转发给不存在的 client 方法）」。那一批空壳（含这两个模块自己的）修完后接线即生效，pendingWiring 随之归零。"
         },
         "notOnMatrixClient": {
-            "reason": "上游 matrix-js-sdk 的 MatrixClient API 残留声明：本 fork 已把实现移到各 Manager（如 getDisplayName → ProfileManager.getDisplayName），但这些方法名仍留在类型表里。于是 `client.getDisplayName()` 类型合法、运行时 undefined。修法二选一：① 从类型表删除（让类型如实，推荐 —— 正确用法是经 Manager）；② 在模块的 extendMatrixClient 里补一层委托。注意其中 4 个已有真实调用点（见 spec 的 `internalCallers` 断言）。",
-            "methods": [
-                "deleteDevice",
-                "deleteMultipleDevices",
-                "getDevice",
-                "getDevices",
-                "getDisplayName",
-                "getMediaApiUrl",
-                "getRoomEvent",
-                "getRoomStateEvent",
-                "getVerificationRequestsToDevice",
-                "mxcUrlToHttp",
-                "oidcUserInfo",
-                "redact",
-                "removeRoomTag",
-                "sendEmote",
-                "setDeviceName",
-                "setUserPowerLevel"
-            ]
+            "reason": "上游 matrix-js-sdk 的 MatrixClient API 残留声明：本 fork 已把实现移到各 Manager，但方法名仍留在类型表里，于是 client.X() 类型合法、运行时 undefined。收口方式采用「从类型表删除」—— 让类型如实，正确用法是经 Manager。",
+            "methods": [],
+            "closedAt": "2026-10-07",
+            "closedNote": "16 条（deleteDevice / deleteMultipleDevices / getDevice / getDevices / getDisplayName / getMediaApiUrl / getRoomEvent / getRoomStateEvent / getVerificationRequestsToDevice / mxcUrlToHttp / oidcUserInfo / redact / removeRoomTag / sendEmote / setDeviceName / setUserPowerLevel）已从类型表删除。删除同时暴露并修掉了 8 处真实调用点（全部在 spec/integ/real-backend/ 的探索性用例里，原先「类型检查通过、跑起来 TypeError」），已改走 getDeviceManager / getTagsManager / getIdentityServerManager / getRoomStateManager / getRoomSummaryManager / getRoomEventsManager。"
         },
         "emptyShellModules": {
-            "reason": "**空壳模块**：模块自己的方法转发给「运行时不存在于 MatrixClient 的方法」。2026-10-07 已修 push-rules / room-events / invites / push-notifications / room-creation / uploads / device-keys / sync-accumulator（8 个），并删除 lifecycle 的 4 个无能力方法、删除整个 sessions 模块（Matrix 无 session 概念）。",
+            "reason": "**空壳模块**：模块自己的方法转发给「运行时不存在于 MatrixClient 的方法」。2026-10-07 修完 push-rules / room-events / invites / push-notifications / room-creation / uploads / device-keys / sync-accumulator（8 个），并删除 lifecycle 的 4 个无能力方法、删除整个 sessions 模块（Matrix 无 session 概念）。",
             "modules": [],
-            "independentOfWiring": "这 10 个里，invites / lifecycle / push-notifications / room-creation / room-events / sessions / sync-accumulator / uploads **已于 2026-10-07 接线**（它们的 get*Manager 运行时可用了），但内部转发仍然坏；device-keys / push-rules 则连接线都没做。",
-            "updatedAt": "2026-10-07"
+            "closedAt": "2026-10-07"
         }
     },
     "correctedAt": "2026-10-07",
-    "correctionNote": "本台账第一版把 getDirectMessageManager 也列为缺失 —— 那是**测量方法错了**：spec/setupTests.ts 的全局 beforeAll 已用 `{includeDm:false}` 初始化过一次，而 extendMatrixClientWithManagers 是幂等的（isInitialized 后直接 return），不先 resetManagerExtensions() 就调 {includeAll:true} 等于什么都没做。加 reset 后重测，dm 不再缺失（它在 MODULE_DEFS 里），其余 24 个仍缺失（确实不在 MODULE_DEFS）。 另外 getSamlAuthManager 也已修：MODULE_DEFS 里 saml 原先标了 standalone:false，生成器因而不产出它的 import 块，而它也不在任何 adminExtras 里 ⇒ saml 从不被加载。改成默认（standalone 省略）后生成 `import(\"../saml/index.js\")`。"
+    "correctionNote": "本台账第一版把 getDirectMessageManager 也列为缺失 —— 那是**测量方法错了**：spec/setupTests.ts 的全局 beforeAll 已用 {includeDm:false} 初始化过一次，而 extendMatrixClientWithManagers 是幂等的（isInitialized 后直接 return），不先 resetManagerExtensions() 就调 {includeAll:true} 等于什么都没做。加 reset 后重测，dm 不再缺失（它在 MODULE_DEFS 里）。 另外 getSamlAuthManager 也已修：MODULE_DEFS 里 saml 原先标了 standalone:false，生成器因而不产出它的 import 块，而它也不在任何 adminExtras 里 ⇒ saml 从不被加载。改成默认（standalone 省略）后生成 import(../saml/index.js)。",
+    "finalRoundNote": "最后 53 条来自 MatrixClientInternalMethods（getRoomName / getStateEvents / createDirectRoom / uploadFile / checkCrossSigningStatus / accumulateSyncData …）：注释自称「类中已实现」，实测全仓既非类成员、也无 prototype 挂载，且除 real-backend 探索性用例外无任何调用点 —— 一律从类型表删除。删除后两个接口合计 227 条声明，静态与运行时判据均为 0 缺失。"
 }

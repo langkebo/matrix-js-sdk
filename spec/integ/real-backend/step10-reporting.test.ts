@@ -132,7 +132,7 @@ async function main(): Promise<void> {
     await runTest("getStateEvents (power_levels)", async () => {
         try {
             if (testRoomId) {
-                await client!.getStateEvents(testRoomId, "m.room.power_levels");
+                await client!.getRoomStateManager().getStateEvents(testRoomId, "m.room.power_levels");
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -154,7 +154,8 @@ async function main(): Promise<void> {
     await runTest("getUserPowerLevel", async () => {
         try {
             if (testRoomId) {
-                await client!.getUserPowerLevel(testRoomId, client!.getUserId()!);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                await (client as any).getUserPowerLevel(testRoomId, client!.getUserId()!);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -204,7 +205,7 @@ async function main(): Promise<void> {
     await runTest("getPinnedEvents", async () => {
         try {
             if (testRoomId) {
-                await client!.getPinnedEvents(testRoomId);
+                await client!.getPinnedMessagesManager().getPinnedEventsFromServer(testRoomId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {

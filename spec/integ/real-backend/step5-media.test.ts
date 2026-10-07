@@ -7,6 +7,7 @@
  */
 
 import { createClient, type MatrixClient } from "../../../src/matrix";
+import { PushRuleKind, PushRuleActionName } from "../../../src/@types/PushRules.ts";
 import { TestConfig } from "./TestConfig";
 
 declare const process: { exit: (code?: number) => never };
@@ -136,7 +137,7 @@ async function main(): Promise<void> {
 
     await runTest("getPushers", async () => {
         try {
-            const pushers = await client!.getPushers();
+            const pushers = await client!.getPushManager().getPushers();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Pushers not supported");
@@ -145,7 +146,7 @@ async function main(): Promise<void> {
 
     await runTest("setPusher", async () => {
         try {
-            await client!.setPusher({
+            await client!.getPushManager().setPusher({
                 pushkey: "test-pushkey",
                 kind: "http",
                 app_id: "test-app",
@@ -165,7 +166,7 @@ async function main(): Promise<void> {
 
     await runTest("getPushRules", async () => {
         try {
-            const rules = await client!.getPushRules();
+            const rules = await client!.getPushRulesManager().getPushRules();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Push rules not supported");
@@ -174,7 +175,7 @@ async function main(): Promise<void> {
 
     await runTest("getPushRule", async () => {
         try {
-            const rule = await client!.getPushRule("global", "room", testRoomId || "");
+            const rule = await client!.getPushRulesManager().getPushRule(PushRuleKind.RoomSpecific, testRoomId || "");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get push rule not supported");
@@ -183,8 +184,8 @@ async function main(): Promise<void> {
 
     await runTest("setPushRule", async () => {
         try {
-            await client!.setPushRule("global", "room", testRoomId || "", {
-                actions: ["notify"],
+            await client!.getPushRulesManager().setPushRule(PushRuleKind.RoomSpecific, testRoomId || "", {
+                actions: [PushRuleActionName.Notify],
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
@@ -318,7 +319,7 @@ async function main(): Promise<void> {
     await runTest("removeRoomTag", async () => {
         if (testRoomId) {
             try {
-                await client!.removeRoomTag(testRoomId, "m.favorite");
+                await client!.getTagsManager().removeRoomTag(testRoomId, "m.favorite");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Remove room tag not supported");

@@ -253,7 +253,7 @@ async function main(): Promise<void> {
     console.log("\n11. Identity 模块测试...");
 
     await runTest("getIdentityServerUrl", async () => {
-        const url = client!.getIdentityServerUrl();
+        const url = client!.getIdentityServerManager().getIdentityServerUrl();
     });
 
     await runTest("getIdentityServerAccessToken", async () => {

@@ -255,7 +255,7 @@ async function main(): Promise<void> {
 
     await runTest("getPushRules", async () => {
         try {
-            await client!.getPushRules();
+            await client!.getPushRulesManager().getPushRules();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get push rules not available");
@@ -264,7 +264,7 @@ async function main(): Promise<void> {
 
     await runTest("getPushRule", async () => {
         try {
-            await client!.getPushRule("global", PushRuleKind.RoomSpecific, testRoomId || "");
+            await client!.getPushRulesManager().getPushRule(PushRuleKind.RoomSpecific, testRoomId || "");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
             console.log("    ⚠️ Get push rule not available");
@@ -273,7 +273,7 @@ async function main(): Promise<void> {
 
     await runTest("setPushRule", async () => {
         try {
-            await client!.setPushRule("global", PushRuleKind.RoomSpecific, testRoomId || "", {
+            await client!.getPushRulesManager().setPushRule(PushRuleKind.RoomSpecific, testRoomId || "", {
                 actions: [PushRuleActionName.Notify],
             });
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -288,7 +288,7 @@ async function main(): Promise<void> {
     await runTest("getEphemeralEvents", async () => {
         try {
             if (testRoomId) {
-                await client!.getEphemeralEvents(testRoomId);
+                await client!.getRoomEventsManager().getEphemeralEvents(testRoomId);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {

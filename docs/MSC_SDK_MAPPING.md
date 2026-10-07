@@ -130,23 +130,24 @@
 
 ### 其他实验性功能
 
-| MSC 编号    | 状态     | 前端文件                                          | 后端实现 | SDK 影响面                  | 备注                     |
-| ----------- | -------- | ------------------------------------------------- | -------- | --------------------------- | ------------------------ |
-| **MSC2746** | Draft    | `src/web-rtc/call.ts`                             | ❌       | Legacy call init            | 废弃，用 MSC4143 替代    |
-| **MSC2762** | Unstable | `src/embedded.ts`                                 | ✅       | Widget state updates        | `M_STICKY`               |
-| **MSC2966** | Stable   | `src/oidc/register.ts`                            | ✅       | OIDC client registration    | RFC8628 base URL         |
-| **MSC3088** | Stable   | `src/client-room-access.ts`, `src/models/room.ts` | ✅       | Space-room enabled flag     | `m.enabled`              |
-| **MSC3230** | Stable   | `src/@types/event.ts`                             | ✅       | Space order                 | `space_order`            |
-| **MSC3391** | Stable   | `src/store/memory.ts`                             | ✅       | Deleted events              | Empty content = deleted  |
-| **MSC3827** | Stable   | `src/client-api-types.ts`                         | ✅       | Room type field             | `room_type` in join info |
-| **MSC3874** | Draft    | `src/client-receipts.ts`                          | ❌       | Receipt threading           | 注释提及，未实现         |
-| **MSC4023** | Draft    | `src/client-receipts.ts`                          | ❌       | Homeless events fix         | 注释提及                 |
-| **MSC4115** | Unstable | `src/models/event.ts`                             | ✅       | Event relations aggregation | 已实现                   |
-| **MSC4140** | Unstable | `src/delayed-events/index.ts`, `src/embedded.ts`  | ✅       | Delayed events              | `org.matrix.msc4140`     |
-| **MSC4312** | Draft    | (未定位)                                          | ❌       | Unknown                     | 仅出现在注释             |
-| **MSC4354** | Unstable | `src/matrix-rtc/MatrixRTCSession.ts`              | ✅       | New membership event        | `m.rtc.member`           |
-| **MSC4407** | Unstable | `src/embedded.ts`                                 | ✅       | Sticky events               | 已实现                   |
-| **MSC4446** | Draft    | (未定位)                                          | ❌       | Unknown                     | 仅出现在注释             |
+| MSC 编号    | 状态     | 前端文件                                          | 后端实现 | SDK 影响面                  | 备注                                        |
+| ----------- | -------- | ------------------------------------------------- | -------- | --------------------------- | ------------------------------------------- |
+| **MSC2746** | Draft    | `src/web-rtc/call.ts`                             | ❌       | Legacy call init            | 废弃，用 MSC4143 替代                       |
+| **MSC2762** | Unstable | `src/embedded.ts`                                 | ✅       | Widget state updates        | `M_STICKY`                                  |
+| **MSC2966** | Stable   | `src/oidc/register.ts`                            | ✅       | OIDC client registration    | RFC8628 base URL                            |
+| **MSC3088** | Stable   | `src/client-room-access.ts`, `src/models/room.ts` | ✅       | Space-room enabled flag     | `m.enabled`                                 |
+| **MSC3230** | Stable   | `src/@types/event.ts`                             | ✅       | Space order                 | `space_order`                               |
+| **MSC3391** | Stable   | `src/store/memory.ts`                             | ✅       | Deleted events              | Empty content = deleted                     |
+| **MSC3827** | Stable   | `src/client-api-types.ts`                         | ✅       | Room type field             | `room_type` in join info                    |
+| **MSC3874** | Draft    | `src/client-receipts.ts`                          | ❌       | Receipt threading           | 注释提及，未实现                            |
+| **MSC3881** | Draft    | `src/push-notifications/index.ts`                 | ❌       | Remotely toggling push      | 注释提及；`enabled` 读写由 PushManager 覆盖 |
+| **MSC4023** | Draft    | `src/client-receipts.ts`                          | ❌       | Homeless events fix         | 注释提及                                    |
+| **MSC4115** | Unstable | `src/models/event.ts`                             | ✅       | Event relations aggregation | 已实现                                      |
+| **MSC4140** | Unstable | `src/delayed-events/index.ts`, `src/embedded.ts`  | ✅       | Delayed events              | `org.matrix.msc4140`                        |
+| **MSC4312** | Draft    | (未定位)                                          | ❌       | Unknown                     | 仅出现在注释                                |
+| **MSC4354** | Unstable | `src/matrix-rtc/MatrixRTCSession.ts`              | ✅       | New membership event        | `m.rtc.member`                              |
+| **MSC4407** | Unstable | `src/embedded.ts`                                 | ✅       | Sticky events               | 已实现                                      |
+| **MSC4446** | Draft    | (未定位)                                          | ❌       | Unknown                     | 仅出现在注释                                |
 
 ### 临时回退路径
 

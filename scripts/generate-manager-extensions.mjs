@@ -178,6 +178,18 @@ const MODULE_DEFS = [
     { option: "includeSyncAccumulator", module: "sync-accumulator" },
     { option: "includeUploads", module: "uploads" },
     { option: "includeWidgets", module: "widgets" },
+
+    // ── Group 5: 2026-10-07 第二批补登记（最后两个未接线模块）──────────
+    //
+    // 这两个模块的 `extendMatrixClient()` 也早已存在，但同样没进 MODULE_DEFS，
+    // 所以 `{ includeAll: true }` 也不加载：`client.getDeviceKeysManager()` /
+    // `client.getPushRulesManager()` 类型检查通过、运行时 undefined。
+    //
+    // 它们此前被单独留在台账的 `pendingWiring` 组，理由是「即便接线也不可用 ——
+    // 真正的病在空壳转发（模块内部转发给不存在的 client 方法）」。那一批空壳
+    // （含这两个模块自己的）已修完，于是接线即可用，`pendingWiring` 随之归零。
+    { option: "includeDeviceKeys", module: "device-keys" },
+    { option: "includePushRules", module: "push-rules" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────

@@ -41,7 +41,6 @@ export default {
         "src/room-member/index.ts",
         "src/saml/index.ts",
         "src/session/index.ts",
-        "src/sessions/index.ts",
         "src/sync-accumulator/index.ts",
         "src/uploads/index.ts",
         // Manager extension module index files (from MANAGER_EXTENSION_MODULES in

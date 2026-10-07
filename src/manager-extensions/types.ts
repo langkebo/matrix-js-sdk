@@ -113,6 +113,8 @@ export interface ManagerExtensionsOptions {
     includeSyncAccumulator?: boolean;
     includeUploads?: boolean;
     includeWidgets?: boolean;
+    includeDeviceKeys?: boolean;
+    includePushRules?: boolean;
     includeAll?: boolean;
 }
 

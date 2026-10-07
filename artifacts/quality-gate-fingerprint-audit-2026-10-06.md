@@ -1664,6 +1664,109 @@ src/sync-accumulator(3)  spec/test-utils/client.ts(2)
 **本节验证**：`tsc` 0 错；device-keys / sync-accumulator / 守卫 spec 全绿；
 `emptyShellModules` 归零；`public-api-docs` 的 R3（收窄）/ R4（台账里的类已不存在）均已按棘轮规则处理。
 
+#### 7.15-19 假声明清零：**删 69 条 + 接线最后 2 个模块 + 修 11 处真雷**（2026-10-07）
+
+§7.15-18 末尾记着「删 69 条声明的批量脚本失败」。本轮把它做完，并顺带修掉它暴露出来的真实调用点。
+
+**1. 先量后删**
+
+用括号配平解析两个 interface，得到「声明过但全仓没有任何实现」的**完整集合 = 69 个名字**
+（ExtensionMethods 16 + InternalMethods 53；其中 5 个被重复声明 ⇒ 实际 74 条声明）。
+删之前先做**调用点普查**：对 69 个名字全仓扫 `.name(` 并检查**接收者**，确认没有一处
+接收者是 `client` / `internalClient`（`this`、`room.currentState`、`olmMachine` 等同名对象不算）。
+这一步是「删声明安全」的前提，也是上轮直接开删的教训。
+
+**2. 批量删除（换写法）**
+
+上轮的正则跨块删除只删到 8 条并吃掉一个 `}`（`tsc` 报 `'}' expected`）。本轮：
+① 用 `interface` 的**括号配平**定位 body；② 在 body 内找「行首 4 空格缩进 + 名字 + `(` / `<`」的声明起点；
+③ 从起点按 `()[]{}` 配平找 **depth 0 的 `;`** 作终点（`Promise<{ … ; … }>` 里的 `;` 在深度内，不会误判）；
+④ **断言「命中名字数 == 69」且每条声明各命中一次**，不符即拒绝写盘。
+结果 74 条声明、-90 行（797 → 707），`tsc` 0 错。
+
+**3. 删声明暴露了 8 处真实调用点 —— 全在 `spec/integ/real-backend/`**
+
+`spec/integ/real-backend/**` 被主 `tsconfig.json` **排除**（另有 `tsconfig.real-backend.json`），
+所以「在 client 上调不存在的方法」既躲过 `tsc --noEmit`，也躲过运行时 —— 这些探索性用例
+一律包在 `try { … } catch { console.log("⚠️ not available") }` 里，**TypeError 被自己的 catch 吃掉**，
+于是长期"通过"。8 处已改走对应 Manager：`getDevices/getDevice/deleteDevice` → `DeviceManager`；
+`removeRoomTag` → `TagsManager`；`getIdentityServerUrl` → `IdentityServerManager`；
+`getStateEvents` → `RoomStateManager`；`getRoomAccountData` → `RoomSummaryManager`；
+`getEphemeralEvents` → `RoomEventsManager`。
+
+**4. 顺带发现：`quality:real-backend-types` 在 develop 上本来就是红的**
+
+修完 8 处后门禁仍报 11 条 new。用 `git stash` 回到**干净 HEAD** 重量：**88 条 vs 基线 85，
+9 new / 6 resolved** —— 基线自 2026-09-13 冻结后就没再更新，之后加进 spec 的用例把指纹带漂了
+（TS2551 的 "Did you mean 'X'?" 建议文本也在指纹里 ⇒ 类型面一动，无关报错就会重指纹）。
+把 11 处漂移点（`getPushRules` / `getPushRule` / `setPushRule` / `getPushers` / `setPusher` /
+`getPinnedEvents` / `getUserPowerLevel` / `getCrossSigningStatus`）同样改走 Manager
+（无等价能力的 `getUserPowerLevel` 改用该文件自身的 `(client as any)` 探测惯例）后：
+**current 78 / baseline 85 / new 0 / resolved 7** —— 门禁由红转绿，且**棘轮是收缩的（-7）**，
+没有重新冻结基线。
+
+**5. 接线最后 2 个模块，`pendingWiring` 归零**
+
+`device-keys` / `push-rules` 补进 MODULE_DEFS（76 → 98）。台账给它们留的理由
+（「即便接线也不可用，真正的病在空壳转发」）已随 §7.15-18 的空壳收口消失。
+`MODULE_DEFS` / `types.ts` / 生成物三者同步，`quality:manager-extensions --check` 绿。
+
+**6. 守卫 spec 判据反转：从「与台账一致」改为「必须为空」**
+
+三组台账（`pendingWiring` / `notOnMatrixClient` / `emptyShellModules`）全部清空，
+断言改为 `=== []`，并补对照防止判据失效后恒真：
+
+- **阴性对照**：`collectInterfaceMethods` 对合成输入只认 4 空格缩进的声明（注释里的、5 空格缩进的、
+  无括号的属性都不算；重载只记一次）；
+- **阳性对照**：新抽出的纯函数 `diffMissing` 对 `["getUserId","notARealMethod"]` 必须报出后者；
+- **新增运行时判据**：`{ includeAll: true }` 初始化后，类型表声明的**每个**方法都必须是
+  `MatrixClient.prototype` 上的函数（原 spec 只探了 ExtensionMethods 的 manager 访问器）。
+
+**变异自证（2 次，均按预期转红）**
+
+| 变异                                                                | 结果                                                            |
+| ------------------------------------------------------------------- | --------------------------------------------------------------- |
+| A：往 `MatrixClientInternalMethods` 塞 `getBogusCapability(): void` | **静态判据 + 运行时判据同时红**                                 |
+| B：把生成物里 device-keys 的 `import()` 块条件改成 `false && …`     | **静态判据仍绿、只有运行时判据红**（报 `getDeviceKeysManager`） |
+
+B 是关键：它复现的正是 §7.15-9 那类「源码里有挂载代码 ≠ 那段代码被执行到」——
+两层判据不可互相替代。
+
+**7. 另一个独立红灯：`quality:msc`（并修掉「门禁自己把 lint 弄红」）**
+
+`src/push-notifications/index.ts:43` 的注释提到 MSC3881，但它既不在 `msc-reference-baseline.json`（62 条），
+也不在 `docs/MSC_SDK_MAPPING.md` ⇒ 该门禁在 HEAD 上**同样是红的**（与本轮改动无关：类型表里的 MSC 引用
+前后都只有 MSC3089）。按门禁自己印出的流程补文档条目 + 更新基线（63 条）。
+
+顺带修掉一个真问题：`--update-baseline` 原先用 `JSON.stringify(…, null, 4)` 落盘，它会把**单元素数组
+也展开成多行**，而 prettier 会折叠回一行 ⇒ 这个门禁**每执行一次自己印出来的修复指令**，就把
+`msc-reference-baseline.json` 写成 `prettier --check .` 不认的格式，让 `pnpm lint:js` 变红。
+已改为先过 prettier 再写（`main()` 转 async，顶部 `await main()`）。
+
+**8. 顺手清理**：`knip.ts` 的 entry 列表里还留着已删除的 `src/sessions/index.ts`，
+knip 因而报 `Refine entry pattern (no matches)` 提示。删掉后 `lint:knip` 输出为空。
+
+**本节验证**（全部在冻结工作区上跑）
+
+| 门禁                                                                                                                                | 结果                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `tsc --noEmit`                                                                                                                      | 0 错                                        |
+| `quality:real-backend-types`                                                                                                        | ✅ **78 / 85，new 0，resolved 7**（原为红） |
+| `quality:msc`                                                                                                                       | ✅ 63 / 63，文档覆盖 100%（原为红）         |
+| `quality:manager-extensions --check`                                                                                                | ✅ 98 entries                               |
+| `lint:knip`                                                                                                                         | ✅ 无输出                                   |
+| `quality:contracts`（含 public-api-docs / docs-examples / path-contract / manager-codegen）                                         | ✅ 全绿                                     |
+| `quality:gate-reachability`                                                                                                         | ✅ 可达 49 / 豁免 4，孤岛 2（均已登记）     |
+| `quality:type-coverage` / `swallow-fallbacks` / `debt-markers` / `no-default-key` / `timer-pairing` / `contract-drift`              | ✅ 全绿                                     |
+| 相关单测（msc-changes-gate / matrix-manager-extensions / manager-accessor / create-client-core-managers / manager-accessor-wiring） | ✅ 35 例                                    |
+
+**仍未做（留给下轮）**
+
+`spec/integ/real-backend/` 仍有 ~78 条类型债（19 个文件），集中在「探索性用例调用本 fork 未实现的上游 API」，
+与本节第 3 点是同一类。它们现在由冻结基线兜着、只会减少；要不要**逐条改走 Manager 把基线压到 0**
+（约 40 处调用点）是下一轮可决策的事。另：`knip.ts` 不在 `eslint` 的 project 里
+（`tsconfig.json` 的 include 只有 src / spec / perf），对它的改动**没有 lint 覆盖**。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1810,4 +1913,15 @@ sync-accumulator 共 12 处属"语义映射 vs 删模块"的架构选择，留�
 上游 **类**，Manager 5 个方法零覆盖）与弱断言新形态（**只断言返回值、不断言入参形状**）；
 第二轮改名实验证明删声明的阻力只剩 test-utils 2 行（已修，且该工具零消费者）；
 **删 69 条声明的批量脚本本轮失败未提交**（只删掉 8 条并吃掉一个 `}`，已还原）
-**关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
+**§7.15-19 假声明清零（本节收尾）**：换「括号配平 + depth-0 分号 + 条数断言」的删法，
+一次删掉 **74 条声明**（69 个名字，其中 5 个重复声明）、797 → 707 行、`tsc` 0 错；
+删声明暴露 **8 处真实调用点**（全在 `spec/integ/real-backend/` —— 该目录被主 tsconfig 排除，
+且用例把 TypeError 包进自己的 `catch` 打印"⚠️ not available"，于是长期"通过"），已改走 Manager；
+用 `git stash` 在干净 HEAD 重量发现 **`quality:real-backend-types` 本来就是红的**
+（88 vs 基线 85，基线自 2026-09-13 起过期），把 11 处漂移点也改走 Manager 后 **78 / 85，new 0、resolved 7**
+—— 由红转绿且棘轮收缩，未重新冻结；接线最后 2 个模块（device-keys / push-rules，76 → 98）使
+`pendingWiring` 归零；守卫 spec 判据反转为「必须为空」+ 阴/阳对照 + 新增运行时判据，
+变异 A（塞假声明）双判据红、变异 B（禁用 import）**只运行时红**；另修两个独立问题：
+`quality:msc` 在 HEAD 上本就红（MSC3881 未登记）且其 `--update-baseline` **会把 lint 弄红**
+（`JSON.stringify(…, null, 4)` 与 prettier 的数组折叠不一致）已一并修掉；`knip.ts` 里 `src/sessions/index.ts` 的失效 entry 也已清
+**关联**:`docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
