@@ -1373,6 +1373,76 @@ await expect(pushManager.removeKeywordHighlight("")).rejects.toThrow("keyword is
 已在文件头写明"覆盖率只是副产品，一条测试该不该留看的是把实现改坏它会不会红" ——
 免得后人把它当"为凑数而写"的文件整包删掉。
 
+#### 7.15-14 全仓排查第五轮：**静态存在 ≠ 运行时可执行**（2026-10-07）
+
+前几轮的判据都在"源码里有没有这段东西"这一层。这轮往下走一步：**那段东西有没有被执行到**。
+
+##### 排查路径
+
+1. **全量实跑 quality:\***（第 4 轮）：只剩 2 个已知红（`coverage` 本地 lcov 旧、
+   `cross-repo-pin` 按设计）。`quality:report` 已从 240s → **10s**。
+2. **静态排查**：`.only/.skip` 仅 1 处（集成测试合法用法）、TODO/FIXME 仅 1 处（URL 占位符）、
+   `__generated__` 之外只有 2 处真 `any`，且 `@ts-ignore` 已全部升级为**带说明的
+   `@ts-expect-error`** —— 类型纪律是好的。
+3. **发现 knip 红**：CI 的 `static_analysis.yml` → `analyse_dead_code` job 只做
+   `pnpm install` + `pnpm lint:knip`，**是阻断性**的；而它当时 exit 1。修掉两处后转绿。
+
+##### 核心判据：类型表声明 vs 运行时挂载
+
+`matrix-client-extensions.ts` 的 `interface MatrixClientExtensionMethods` 会把方法**合并**进
+`MatrixClient` 接口 ⇒ 类型检查永远通过。但方法真正可用，取决于对应模块的
+`extendMatrixClient()` 有没有被 `manager-extensions/index.ts` **动态 import 执行到**。
+
+这两个集合不同步，就是本仓反复踩过的坑 —— `knip.ts` 里 worker / room-alias 条目下的原话：
+
+> 此前 client.getWorkerManager() / getRoomAliasManager() 在运行时是 undefined，调用即 TypeError
+
+**静态扫描查不出**：源码里 `MatrixClient.prototype.getXxxManager = ...` 那行**确实存在**，
+只是那份代码从没被执行到。所以写了个运行时探针：真实执行
+`extendMatrixClientWithManagers({ includeAll: true })`，再逐个 `typeof proto[name] === "function"`。
+
+实测（修复前）：
+
+| 组                                | 数量 | 含义                                                         |
+| --------------------------------- | ---- | ------------------------------------------------------------ |
+| `get*Manager` 声明                | 113  | 类型表承诺的 manager 访问器                                  |
+| └ 运行时缺失                      | 1    | `getAdminExternalServiceManager`（admin 忘了挂）             |
+| └ 未接线（`includeAll` 也不加载） | 25   | MODULE_DEFS 未登记的模块（knip.ts 注释为 pending migration） |
+| 非 manager 的历史残留声明         | 21   | 上游 API，实现已移到各 Manager ⇒ 全部运行时不存在            |
+
+**46 个方法：类型检查通过、调用即 TypeError。**
+
+##### 处理
+
+| 项                                                    | 动作                                                                   |
+| ----------------------------------------------------- | ---------------------------------------------------------------------- |
+| `getAdminExternalServiceManager`（单独的遗漏）        | **已修**（补挂载）→ 113/113 对齐                                       |
+| `StripAdminPath` 死导出 / `@octokit/rest` 过时 ignore | **已修** → `knip` exit 0（CI 那个 job 恢复绿）                         |
+| 25 + 21 处                                            | 登记台账 `manager-accessor-wiring-baseline.json` + **运行时守卫 spec** |
+
+守卫 `spec/unit/manager-accessor-wiring.spec.ts`（5 例，1.6s）：把两组缺失集合与台账做
+**集合相等**断言（多一个少一个都红），并单独守住「已知 4 处内部调用点」。
+变异自证 3/3 转红：删挂载（抓忘记接线）、台账塞假条目（抓注水）、改调用点（守删声明的前置条件）。
+
+##### 教训：与 §7.15-9「有 spec ≠ 有覆盖」同构
+
+| 轮次     | 形似                                  | 神不至                                    |
+| -------- | ------------------------------------- | ----------------------------------------- |
+| §7.15-9  | spec 文件存在                         | 它没 import 被测对象，抄了份副本自测      |
+| §7.15-14 | `MatrixClient.prototype.X = ...` 存在 | 那行代码从没被执行到 ⇒ 运行时仍 undefined |
+
+**判据**：凡"声明/登记/接线"这类**两处必须同步**的结构，都要问一句
+**「第二处是在运行时真的生效，还是只是写在源码里？」** 静态存在性检查对后者完全失明。
+
+##### 顺带记两条治理问题（未擅自改）
+
+- **`knip.ts` 的 entry 列表有 ~160 条**，其中大量条目注释着 "older modules pending migration"、
+  "knip can't trace external usage"。把文件标成 entry 就等于豁免它的全部导出 ——
+  **这是拿配置去迎合工具**，代价是这批模块的真实问题再也报不出来（本次 46 处正是藏在这里）。
+  与 §7.15-12 那个「为凑审计报告而生」的别名方法同源：**别让工具的需求反过来塑造产品代码**。
+- **`lint:knip` 不在本地 `pnpm lint` 的 14 步链里**，只挂在 CI 的独立 job。
+  于是这两条红在本地开发时不可见 —— 建议要么并入 `lint`，要么在贡献文档里显式标注。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1486,4 +1556,10 @@ CLI 行为逐字节一致；并定位修掉 `quality:report` 240s 超时
 **§7.15-13 事后审查**：以代码审查视角复核那 30 例，发现自己跳过了变异自证；补做 9 个变异
 有 1 个没转红 —— 记下**第四类失效**：断言强度不足（`rejects.toThrow(Type)` 在异常有多个
 来源时失效，必须断言消息），并给出判据「把这一层删掉，还有谁能抛同一种异常？」）
+**§7.15-14 全仓排查第五轮**：判据从"源码里有没有这段"推进到"那段有没有被执行到"。
+修 `getAdminExternalServiceManager` 的运行时 TypeError（类型声明了、admin 忘了挂）；
+清 knip 两处红（死导出 `StripAdminPath` + 过时 ignore）使 CI 的 `analyse_dead_code` 恢复绿；
+用**运行时探针**（真实执行初始化后逐个 `typeof`）量出 **46 个方法「类型检查通过、调用即
+TypeError」**（25 个模块未接线 + 21 个上游 API 残留声明），登记台账并新增运行时守卫 spec
+（5 例，变异自证 3/3）；记下教训「静态存在 ≠ 运行时可执行」，与 §7.15-9「有 spec ≠ 有覆盖」同构）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
