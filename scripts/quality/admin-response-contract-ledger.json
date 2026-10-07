@@ -1,0 +1,589 @@
+{
+    "schema_version": 1,
+    "generated_at": "2026-10-07T14:06:47.556Z",
+    "synapseRustCommit": "e17efb937a5cf800e22d246ca4846bc7328614b1",
+    "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
+    "entries": [
+        {
+            "route": "GET /_synapse/admin/info",
+            "sdkType": "AdminInfoResponse",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["implementation", "server_name", "server_version"]
+        },
+        {
+            "route": "GET /_synapse/admin/info",
+            "sdkType": "ServerInfo",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["implementation", "server_name", "server_version"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/account/{x}",
+            "sdkType": "AccountStatus",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": [
+                "admin",
+                "creation_ts",
+                "deactivated",
+                "device_count",
+                "displayname",
+                "name",
+                "room_count",
+                "user_id"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/audit/events",
+            "sdkType": "AuditEventPage",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["events", "next_batch", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/config",
+            "sdkType": "AdminServerConfig",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["max_upload_size", "public_baseurl", "registration_enabled", "server_name"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/experimental_features",
+            "sdkType": "AdminExperimentalFeatures",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["features", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/federation/cache",
+            "sdkType": "AdminFederationCache",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": ["cache", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/federation/destinations/{x}/rooms",
+            "sdkType": "AdminFederationDestinationRooms",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": ["rooms", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/federation/pending",
+            "sdkType": "PendingFederationList",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": ["limit", "next_batch", "servers", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/health",
+            "sdkType": "ServerHealth",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["database", "status"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/invite/allowlist",
+            "sdkType": "AdminInviteAllowlist",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["allowlist", "limit", "offset", "total_count"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/invite/blocklist",
+            "sdkType": "AdminInviteBlocklist",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["blocklist", "limit", "offset", "total_count"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/jitsi/config",
+            "sdkType": "AdminJitsiConfig",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["app_id", "domain", "jwt_asap_enabled", "jwt_auth_type", "jwt_enabled", "server_name"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/media/{x}",
+            "sdkType": "MediaInfo",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": [
+                "created_ts",
+                "last_access_ts",
+                "media_id",
+                "media_length",
+                "media_type",
+                "quarantined",
+                "upload_name",
+                "user_id"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/media/quota",
+            "sdkType": "MediaQuotaResponse",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["default_count_limit", "default_size_limit", "total_count", "total_size"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/notifications",
+            "sdkType": "SystemNotificationPage",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["next_batch", "notifications"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/registration_tokens/{x}",
+            "sdkType": "RegistrationToken",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["completed", "created_ts", "expiry_time", "pending", "token", "uses_allowed"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/registration_tokens",
+            "sdkType": "RegistrationTokenPage",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["next_batch", "registration_tokens"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/reports",
+            "sdkType": "AdminReportPage",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["reports", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/reports",
+            "sdkType": "AdminReportPage",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["reports", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/reports",
+            "sdkType": "ReportsListResponse",
+            "sdkFile": "src/admin/sub-managers/admin-report-manager.ts",
+            "fields": ["reports", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/retention/policy/{x}",
+            "sdkType": "RoomRetentionPolicy",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["is_expire_on_clients", "max_lifetime", "min_lifetime", "room_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/retention/policy",
+            "sdkType": "RetentionPolicy",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["is_expire_on_clients", "max_lifetime", "min_lifetime"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/retention/status",
+            "sdkType": "RetentionStatus",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": [
+                "audit_retention_days",
+                "last_run",
+                "lifecycle_cleanup_enabled",
+                "rooms_with_custom_policy",
+                "server_policy_enabled"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/block",
+            "sdkType": "AdminRoomBlockStatus",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["block", "blocked_at"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/forward_extremities",
+            "sdkType": "AdminRoomForwardExtremities",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["forward_extremities", "room_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/listings",
+            "sdkType": "AdminRoomListings",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["in_directory", "public", "room_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/reports",
+            "sdkType": "AdminReportPage",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["reports", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/reports",
+            "sdkType": "ReportsListResponse",
+            "sdkFile": "src/admin/sub-managers/admin-report-manager.ts",
+            "fields": ["reports", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/token_sync",
+            "sdkType": "AdminTokenSync",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["next_batch", "results", "room_id", "summary", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}/version",
+            "sdkType": "AdminRoomVersionResponse",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["room_id", "room_version"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/spaces/{x}/rooms",
+            "sdkType": "SpaceRoomsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["rooms", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/spaces/{x}/stats",
+            "sdkType": "SpaceStats",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["child_room_count", "member_count", "space_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/spaces/{x}/users",
+            "sdkType": "SpaceUsersResponse",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["total", "users"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/spaces/{x}",
+            "sdkType": "SpaceInfo",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["created_ts", "creator", "name", "room_id", "space_id", "topic"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/spaces",
+            "sdkType": "SpacePage",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["spaces", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/statistics",
+            "sdkType": "ServerStats",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": [
+                "active_rooms_7d",
+                "average_messages_per_room",
+                "daily_active_users",
+                "daily_messages",
+                "encrypted_rooms",
+                "monthly_active_users",
+                "non_deactivated_user_count",
+                "non_deactivated_user_count_by_app_service",
+                "r30_users",
+                "r30v2_users",
+                "total_members",
+                "total_messages",
+                "total_rooms",
+                "total_users"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/status",
+            "sdkType": "ServerStatus",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["db_ok", "server_ok", "up"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/user_sessions/{x}",
+            "sdkType": "UserSessionsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["sessions", "total", "user_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/user_stats",
+            "sdkType": "UserStatsListResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": [
+                "active_users",
+                "admin_users",
+                "average_rooms_per_user",
+                "deactivated_users",
+                "guest_users",
+                "total_users",
+                "user_registration_enabled"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/users/{x}/notification",
+            "sdkType": "UserNotificationResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["enabled"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/users/{x}/rate_limit",
+            "sdkType": "RateLimitConfig",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["burst_count", "messages_per_second"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/users/{x}/rooms",
+            "sdkType": "UserRoomsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["joined_rooms", "next_batch", "total"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/users/{x}/stats",
+            "sdkType": "UserStatsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": [
+                "creation_ts",
+                "dashboard",
+                "is_admin",
+                "last_seen_ts",
+                "messages_sent",
+                "rooms_joined",
+                "user_id"
+            ]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/whoami",
+            "sdkType": "WhoamiResponse",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["is_admin", "name", "role", "user_id"]
+        },
+        {
+            "route": "GET /_synapse/admin/v1/whois/{x}",
+            "sdkType": "WhoisResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["devices", "user_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/account/{x}",
+            "sdkType": "UpdateAccountDetailsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["updated", "user_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/confirm",
+            "sdkType": "FederationAdmissionResult",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": ["confirmed_by", "previous_status", "server_name", "status", "updated_ts"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/resolve",
+            "sdkType": "FederationResolveResponse",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": ["blacklisted", "in_destinations", "resolved", "resolved_by", "server_name"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/rewrite",
+            "sdkType": "FederationRewriteResponse",
+            "sdkFile": "src/admin/sub-managers/admin-federation-types.ts",
+            "fields": ["from", "rewritten", "rewritten_by", "rooms_affected", "to"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/purge_history",
+            "sdkType": "AdminPurgeHistoryResult",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["deleted_events", "dry_run", "success"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/purge_room",
+            "sdkType": "PurgeRoomResponse",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["purge_id", "success"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/registration_tokens/{x}",
+            "sdkType": "RegistrationToken",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["completed", "created_ts", "expiry_time", "pending", "token", "uses_allowed"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/registration_tokens",
+            "sdkType": "RegistrationToken",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["completed", "created_ts", "expiry_time", "pending", "token", "uses_allowed"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/restart",
+            "sdkType": "RestartServerResponse",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["message", "restart_pending"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/retention/policy/{x}",
+            "sdkType": "RoomRetentionPolicy",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["is_expire_on_clients", "max_lifetime", "min_lifetime", "room_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/retention/policy",
+            "sdkType": "RetentionPolicy",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["is_expire_on_clients", "max_lifetime", "min_lifetime"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/retention/run",
+            "sdkType": "RetentionRunResult",
+            "sdkFile": "src/admin/sub-managers/admin-config-types.ts",
+            "fields": ["completed_ts", "events_deleted", "room_id", "scope", "started", "status"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/search",
+            "sdkType": "AdminRoomEventSearchPage",
+            "sdkFile": "src/admin/sub-managers/admin-room-types.ts",
+            "fields": ["count", "results", "room_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/send_server_notice",
+            "sdkType": "SendServerNoticeResult",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["event_id", "notice_id", "room_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/shutdown_room",
+            "sdkType": "AdminShutdownRoomResult",
+            "sdkFile": "src/admin/sub-managers/admin-server-types.ts",
+            "fields": ["closed_room", "failed_to_kick_users", "kicked_users"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/user_sessions/{x}/invalidate",
+            "sdkType": "InvalidateUserSessionsResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["invalidated", "sessions_removed"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/evict",
+            "sdkType": "AdminEvictResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["failures", "rooms", "rooms_evicted", "user_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/login",
+            "sdkType": "AdminLoginAsUserResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["access_token", "device_id", "user_id"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/logout",
+            "sdkType": "AdminLogoutResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["devices_deleted"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/batch_deactivate",
+            "sdkType": "BatchDeactivateUsersResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["deactivated", "failed", "total"]
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/batch",
+            "sdkType": "BatchCreateUsersResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["created", "failed", "total"]
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/users/{x}/notification",
+            "sdkType": "UserNotificationUpdateResponse",
+            "sdkFile": "src/admin/sub-managers/admin-user-types.ts",
+            "fields": ["is_enabled"]
+        }
+    ],
+    "deviations": [
+        {
+            "route": "GET /_synapse/admin/v1/rooms/{x}",
+            "sdkType": "RoomInfo",
+            "kind": "response-shape",
+            "expires": "2026-12-31",
+            "reason": "RoomInfo 被 /rooms（列表）与 /rooms/{id}（详情）共用，两个端点字段集不同（只有列表返回 joined_members / joined_local_members）。需要拆出专用详情类型。"
+        },
+        {
+            "route": "GET /_synapse/admin/v2/users/{x}",
+            "sdkType": "AdminAccountDetails",
+            "kind": "response-shape",
+            "expires": "2026-12-31",
+            "reason": "v2 单用户端点额外返回 devices / threepids / external_ids（后端显式写空数组），且用 created_ts 而非 creation_ts；AdminAccountDetails 是四个用户端点的并集类型，需要拆出 v2 详情类型。"
+        },
+        {
+            "route": "GET /_synapse/admin/v1/users/{x}",
+            "sdkType": "AdminAccountDetails",
+            "kind": "response-shape",
+            "expires": "2026-12-31",
+            "reason": "v1 单用户回退路径只返回 name（无 user_id、无 creation_ts）；与 v2 列表/单项共用类型导致 SDK 多声明两个键。"
+        },
+        {
+            "route": "PUT /_synapse/admin/v2/users/{x}",
+            "sdkType": "AdminAccountDetails",
+            "kind": "response-shape",
+            "expires": "2026-12-31",
+            "reason": "create_or_update_user_v2 的写入响应与列表条目形状不同；activateUser() 复用 AdminAccountDetails 属类型误用，需要专用响应类型。"
+        },
+        {
+            "route": "GET /_synapse/admin/v1/account/{x}",
+            "sdkType": "AdminAccountDetails",
+            "kind": "response-shape",
+            "expires": "2026-12-31",
+            "reason": "getAccountDetails() 与 getAccountStatus() 打同一端点却用了两个类型；后者（AccountStatus）才是对的。应让前者也返回该形状并补 device_count / room_count。"
+        },
+        {
+            "route": "GET /_synapse/admin/v1/whois/{x}/{x}",
+            "sdkType": "WhoisResponse",
+            "kind": "response-shape",
+            "expires": "2026-12-31",
+            "reason": "按设备查询的 whois 返回 {user_id, device_id, display_name, ip, last_seen}，与按用户查询的 WhoisResponse（devices 映射）形状不同；需要拆出 device 版类型。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/login",
+            "sdkType": "AdminLoginAsUserResponse",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 login_as_user 签名无 Json 提取器，device_id 由后端生成；payload 参数保留仅为向后兼容（已补 JSDoc）。是否删除该参数属公开签名决策。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/logout",
+            "sdkType": "AdminLogoutResponse",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 logout_user_devices 调 logout_all 且不读请求体 —— 传 {devices} 会造成「只登出部分设备」的错觉，实际是全部登出（已补醒目 JSDoc）。强烈建议删除该参数以消除误导。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/evict",
+            "sdkType": "AdminEvictResponse",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 evict_user 签名无 Json 提取器，没有「逐出原因」链路；payload 参数保留仅为向后兼容。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/federation/blacklist/{x}",
+            "sdkType": "",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 add_to_blacklist 只有 Path<ServerName>、没有 Json 提取器 ⇒ 方法签名里的 reason 是死参数（源码注释已说明）。是否需要保留属公开签名决策。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/delete",
+            "sdkType": "",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 delete_room 只有 Path<RoomId> ⇒ SDK 传的 reason/请求体被静默忽略（房间仍会被删除，只是原因没记录）。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/unblock",
+            "sdkType": "",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 unblock_room 只有 Path<RoomId> ⇒ 请求体被忽略；响应是 {block:false}。"
+        },
+        {
+            "route": "PUT /_synapse/admin/v1/rooms/{x}/members/{x}",
+            "sdkType": "",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 join_room_member 用 Path((room_id, user_id))、无 Json 提取器 ⇒ SDK 传的空对象 body 无意义。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/rooms/{x}/unban/{x}",
+            "sdkType": "",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "后端 unban_user 只有 Path、无 Json 提取器 ⇒ 请求体被忽略。"
+        },
+        {
+            "route": "POST /_synapse/admin/v1/users/{x}/devices/delete",
+            "sdkType": "",
+            "kind": "body-sent-ignored",
+            "expires": "2026-12-31",
+            "reason": "该路由由 user.rs::logout_user_devices 处理（与 /logout 同一处理器！），后端不读请求体 ⇒ SDK 传的 devices 列表被静默忽略；注意这可能是**路由复用**导致的语义错配，需要单独核实。"
+        }
+    ],
+    "unresolved": {
+        "backend-shape-unknown": {
+            "count": 55
+        },
+        "route-not-resolved": {
+            "count": 18
+        },
+        "array-return": {
+            "count": 8
+        }
+    }
+}

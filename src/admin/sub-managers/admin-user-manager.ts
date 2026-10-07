@@ -518,16 +518,68 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
     }
 
+    /**
+     * 以某用户身份登录（管理端互登录）。
+     *
+     * ⚠️ **`payload` 后端不读**：`user.rs::login_as_user` 的签名里没有 `Json` 提取器，
+     * device_id 由后端随机生成、`is_admin` 取自目标用户。参数保留仅为向后兼容，
+     * 已在 `admin-response-contract-ledger.json` 登记为待决项。
+     *
+     * @param userId - 目标用户 id
+     * @param payload - **被后端忽略**；见上方说明
+     *
+     * @example
+     * ```typescript
+     * const { access_token, device_id } = await adminManager.loginAsUser("@alice:example.org");
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
     async loginAsUser(userId: string, payload?: AdminLoginAsUserRequest): Promise<AdminLoginAsUserResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/login`, {}, payload ?? {});
     }
 
+    /**
+     * 登出某用户的会话。
+     *
+     * ⚠️⚠️ **会登出该用户的「全部」设备**：后端 `user.rs::logout_user_devices` 调
+     * `token_auth.logout_all(user_id)`，**既不读请求体、也不支持按设备筛选**。
+     * 传 `{ devices: [...] }` 会造成"只登出了这些设备"的错觉，而实际是全部登出。
+     * 参数保留仅为向后兼容，已在 `admin-response-contract-ledger.json` 登记为待决项。
+     *
+     * @param userId - 用户 id
+     * @param payload - **被后端忽略，且不会缩小登出范围**；见上方说明
+     *
+     * @example
+     * ```typescript
+     * const { devices_deleted } = await adminManager.logoutUser("@alice:example.org");
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
     async logoutUser(userId: string, payload?: AdminLogoutRequest): Promise<AdminLogoutResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/logout`, {}, payload ?? {});
     }
 
+    /**
+     * 把用户从其加入的全部房间中逐出。
+     *
+     * ⚠️ **`payload` 后端不读**：`user.rs::evict_user` 的签名里没有 `Json` 提取器，
+     * 也就没有"逐出原因"这条链路。参数保留仅为向后兼容。
+     *
+     * @param userId - 用户 id
+     * @param payload - **被后端忽略**；见上方说明
+     *
+     * @example
+     * ```typescript
+     * const result = await adminManager.evictUser("@alice:example.org");
+     * console.log(result.rooms_evicted, result.failures);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
     async evictUser(userId: string, payload?: AdminEvictRequest): Promise<AdminEvictResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/evict`, {}, payload ?? {});

@@ -359,9 +359,15 @@ export interface UpdateAccountDetailsRequest {
     external_ids?: Array<{ auth_provider: string; external_id: string }>;
 }
 
+/**
+ * `POST /_synapse/admin/v1/account/{user_id}` 的响应。
+ *
+ * 2026-10-07 对照后端 `user.rs::update_account`：`{user_id, updated}` ——
+ * 原先只声明了 `updated`，把 `user_id` 丢了。
+ */
 export interface UpdateAccountDetailsResponse {
+    user_id: string;
     updated: boolean;
-    [key: string]: unknown;
 }
 
 // ===== Logout / evict response types =====

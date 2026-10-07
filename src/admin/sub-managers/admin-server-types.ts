@@ -197,18 +197,30 @@ export interface SystemNotificationInfo {
     [key: string]: unknown;
 }
 
+/**
+ * `GET /_synapse/admin/v1/notifications` 的响应。
+ *
+ * 游标键是 **`next_batch`**（原先声明 `next_token`，恒 `undefined`）。
+ */
 export interface SystemNotificationPage {
     notifications: SystemNotificationInfo[];
-    next_token?: string;
+    next_batch?: string | null;
 }
 
 // ===== Server operation result types =====
 
+/**
+ * `POST /_synapse/admin/v1/shutdown_room` 的响应。
+ *
+ * 2026-10-07 对照后端 `room/mod.rs::shutdown_room`：
+ * `{closed_room, kicked_users, failed_to_kick_users}` —— 原先声明里的
+ * `local_aliases` / `new_room_id` 后端**从不返回**（那是上游 Synapse 的字段），
+ * 而真实的 `closed_room` 缺失。
+ */
 export interface AdminShutdownRoomResult {
+    closed_room: boolean;
     kicked_users?: string[];
     failed_to_kick_users?: string[];
-    local_aliases?: string[];
-    new_room_id?: string;
 }
 
 export interface AdminBackupInfo {
@@ -247,13 +259,26 @@ export interface RestartServerPayload {
 }
 
 /** Response for POST /restart — restart server result */
+/**
+ * `POST /_synapse/admin/v1/restart` 的响应。
+ *
+ * 2026-10-07 对照后端 `server.rs::restart_server`：`{message, restart_pending}` ——
+ * 原先只有一个索引签名，两个真实字段都没声明。
+ */
 export interface RestartServerResponse {
-    [key: string]: unknown;
+    message: string;
+    restart_pending: boolean;
 }
 
-/** Response for POST /purge_room — purge room result */
+/**
+ * `POST /_synapse/admin/v1/purge_room` 的响应。
+ *
+ * ⚠️ 与 `purgeRoomHistory` 的 `{success, deleted_events, dry_run}` 是**两个不同端点**：
+ * 这里的 `purge_id` 只由本端点返回。原先两者曾共用一个类型（互相污染）。
+ */
 export interface PurgeRoomResponse {
-    [key: string]: unknown;
+    purge_id: string;
+    success: boolean;
 }
 
 // ===== Security / IP types =====

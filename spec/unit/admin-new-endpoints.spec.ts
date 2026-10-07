@@ -460,12 +460,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
 
     describe("notifications and pushers", () => {
         it("listNotifications uses GET /v1/notifications with pagination", async () => {
-            req.mockResolvedValueOnce({ notifications: [], next_token: "n1" });
+            // 回归守卫：游标键是 next_batch（后端 list_notifications），不是 next_token
+            req.mockResolvedValueOnce({ notifications: [], next_batch: "n1" });
             const result = await manager.listNotifications("10", 20);
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/notifications");
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "20" });
-            expect(result).toEqual({ notifications: [], next_token: "n1" });
+            expect(result).toEqual({ notifications: [], next_batch: "n1" });
+            expect(result).not.toHaveProperty("next_token");
         });
 
         it("create/get/update/deactivate/delete notification routes are correct", async () => {

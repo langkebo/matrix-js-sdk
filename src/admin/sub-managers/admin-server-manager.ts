@@ -252,7 +252,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         const response = await this.adminRequest<SystemNotificationPage>(Method.Get, "/notifications", queryParams);
         return {
             notifications: response.notifications || [],
-            next_token: response.next_token,
+            next_batch: response.next_batch ?? null,
         };
     }
 
@@ -478,8 +478,22 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @returns 清理结果
      */
-    async cleanupAll(): Promise<AdminCleanupResponse> {
-        return await this.adminRequest(Method.Post, "/cleanup/all", {}, undefined);
+    /**
+     * 清理所有数据。
+     *
+     * ⚠️ 后端 `cleanup.rs::cleanup_all` 用 `Json(body): Json<Value>` 读 `min_age_ms`；
+     * **不带请求体会被 axum 以 415 拒绝**（SDK 只在 body 是对象时才设
+     * `Content-Type: application/json`）。旧实现打的是无 body 的 POST。
+     *
+     * @param payload - 可选 `{ min_age_ms }`，省略表示不设最小年龄
+     *
+     * @example
+     * ```typescript
+     * await adminManager.cleanupAll({ min_age_ms: 86_400_000 });
+     * ```
+     */
+    async cleanupAll(payload?: { min_age_ms?: number }): Promise<AdminCleanupResponse> {
+        return await this.adminRequest(Method.Post, "/cleanup/all", {}, payload ?? {});
     }
 
     /**

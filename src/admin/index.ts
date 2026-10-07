@@ -129,7 +129,8 @@ import {
     type AdminRateLimitCallbackPage,
     type AdminAccountDataCallback,
     type AdminAccountDataCallbackPage,
-    type AdminInviteList,
+    type AdminInviteAllowlist,
+    type AdminInviteBlocklist,
     type AdminJitsiConfig,
     type AdminPurgeHistoryResult,
     type AdminShutdownRoomResult,
@@ -477,7 +478,7 @@ export interface AdminManager {
     purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse>;
     purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult>;
     shutdownRoom(payload: ShutdownRoomRequest): Promise<AdminShutdownRoomResult>;
-    cleanupAll(): Promise<AdminCleanupResponse>;
+    cleanupAll(payload?: { min_age_ms?: number }): Promise<AdminCleanupResponse>;
     cleanupRooms(payload?: CleanupRoomsRequest): Promise<AdminCleanupResponse>;
     cleanupTokens(): Promise<AdminCleanupResponse>;
 
@@ -592,8 +593,8 @@ export interface AdminManager {
     createRateLimitCallback(payload: DynamicConfig): Promise<AdminRateLimitCallback>;
     listAccountDataCallbacks(): Promise<AdminAccountDataCallbackPage>;
     createAccountDataCallback(payload: DynamicConfig): Promise<AdminAccountDataCallback>;
-    getInviteAllowlist(): Promise<AdminInviteList>;
-    getInviteBlocklist(): Promise<AdminInviteList>;
+    getInviteAllowlist(): Promise<AdminInviteAllowlist>;
+    getInviteBlocklist(): Promise<AdminInviteBlocklist>;
     addToInviteBlocklist(userId: string, reason?: string): Promise<void>;
     removeFromInviteBlocklist(userId: string): Promise<void>;
     addToInviteAllowlist(userId: string): Promise<void>;

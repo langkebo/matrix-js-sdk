@@ -46,7 +46,8 @@ import type {
     AdminRateLimitCallbackPage,
     AdminAccountDataCallback,
     AdminAccountDataCallbackPage,
-    AdminInviteList,
+    AdminInviteAllowlist,
+    AdminInviteBlocklist,
     AdminJitsiConfig,
     AdminReport,
     AdminReportPage,
@@ -554,11 +555,11 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Invite Lists =====
 
-    async getInviteAllowlist(): Promise<AdminInviteList> {
+    async getInviteAllowlist(): Promise<AdminInviteAllowlist> {
         return await this.adminRequest(Method.Get, "/invite/allowlist");
     }
 
-    async getInviteBlocklist(): Promise<AdminInviteList> {
+    async getInviteBlocklist(): Promise<AdminInviteBlocklist> {
         return await this.adminRequest(Method.Get, "/invite/blocklist");
     }
 

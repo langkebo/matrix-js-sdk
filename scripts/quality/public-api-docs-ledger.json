@@ -71,11 +71,11 @@
         },
         "AdminServerManager": {
             "missingJsDoc": 0,
-            "missingExample": 32,
+            "missingExample": 31,
             "throwsWithoutTag": 9
         },
         "AdminUserManager": {
-            "missingJsDoc": 22,
+            "missingJsDoc": 19,
             "missingExample": 18,
             "throwsWithoutTag": 7
         },

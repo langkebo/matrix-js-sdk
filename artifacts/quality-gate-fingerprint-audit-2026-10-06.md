@@ -2349,6 +2349,91 @@ expect(members).toHaveLength(2);
 
 ---
 
+### 7.15-27 把六轮人工核对固化成门禁：`quality:admin-response-contract`
+
+前六轮（§7.15-21 ~ -26）修掉的每一类缺陷，**当时都没有任何门禁能兜住**。本节把「读后端处理器
+↔ 对 SDK 类型」这件事本身做成门禁，并顺带用它又找出三类新缺陷。
+
+#### 1. 设计：两个半场（因为后端在 CI 里不存在）
+
+后端只存在于同级 checkout；而已提交的后端产物（`docs/api-contract/generated/route-manifest.*.json`）
+**只有路径、没有响应体**（实测 admin 的 295 条路由里只有 30 条带 `query_params`，且 `HashMap` 型
+`Query` 提取器一律为空 ⇒ 连"参数走 query 还是 body"都判不出来）。所以：
+
+| 半场           | 何时跑                                | 检查什么                                                                                                                            |
+| -------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **CI 半场**    | 任何环境                              | 台账 `entries` 冻结了「路由 ↔ SDK 类型 ↔ 核对当时的字段集」；重抽 SDK 字段集比对 ⇒ **改了 admin 响应类型而没重新核后端，CI 直接红** |
+| **工作区半场** | 后端在场时；`--strict` 可要求必须跑到 | 重抽后端响应键 / 请求结构再比一次 ⇒ 后端漂移与 SDK 漂移都能发现                                                                     |
+
+`deviations` 为**限时偏差**（每条带 `reason` + `expires`，过期即红）；
+`unresolved` 为**覆盖桶**（返回类型无法解析 / 后端形状不可知 / 路由未解析 / 数组返回），
+计数**只准降不准升**。
+
+#### 2. 抽取器自己先错了 9 次 —— 每一次都表现为「门禁说没问题」
+
+这是本节最值得记的部分。九处全部是**判据失效**（不是判据缺失），因此只会产出"看起来正常"的假结果：
+
+| #   | 坑                                              | 症状                                                                                                    |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | 键检测排在字符串跳过之后                        | **所有带引号的键全部丢失**，键集恒为空                                                                  |
+| 2   | 不区分嵌套层次                                  | `json!({ "results": [{...}] })` 的嵌套键被当成响应顶层键，凭空造差异                                    |
+| 3   | 扫整个函数体的 `json!`                          | `record_audit_event(..., json!({...}))` 的审计字段（`target_user`/`admin_role`）被当响应字段            |
+| 4   | `json!(notification)` 被当成空对象              | 把"后端不透明"读成"SDK 多编了 16 个字段"（方向相反的假阳性）                                            |
+| 5   | 只看整段签名判提取器                            | 返回类型里的 `Result<Json<Value>, …>` 让 `hasJson` **恒真**，两项请求体检查全部假绿                     |
+| 6   | 只归一化 SDK 侧路径                             | 134 个调用点被误报「后端没有这条路由」（假阳性淹没真问题）                                              |
+| 7   | 要求路径实参直接是字面量                        | **整个 `apu(...)` 家族从未进入检查**（`admin-config-manager` 全篇如此）                                 |
+| 8   | `interface X extends Y` 被正则连 `extends` 吃掉 | 父字段凭空消失 ⇒ `RoomRetentionPolicy` 看起来像 SDK 漏声明 3 个键                                       |
+| 9   | 用 `indexOf("{")` 找函数体                      | 参数类型里有花括号（`cleanupAll(payload?: {…})`）⇒ 签名被截断、**该整族方法完全不被抽取**（+23 个方法） |
+
+外加一处**门禁结构缺陷**：请求体检查最初写在「响应形状可比对」的同一个循环里，于是响应不透明的
+处理器（`Ok(Json(Value::Object(...)))`）**连请求体检查也一起被跳过** —— 而这正是"后端要 `Json`
+而 SDK 不传 ⇒ 415"最常发生的地方。
+
+九处坑里有 6 处是**变异自证发现的**（改坏实现确认门禁变红），另 3 处是复查假阳性时发现的。
+**纪律**：判据类代码的验收标准不是"能跑出结果"，而是"改坏输入必须变红"。
+
+#### 3. 门禁立即找出的新缺陷（前六轮人工核对面之外）
+
+| 问题                                        | 证据                                                                                                                                                  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AuditEventPage.next_token: number \| null` | 后端是 `next_batch`（**字符串**）—— 键名与类型两个维度都错                                                                                            |
+| `AdminInviteList.user_ids`                  | 后端 `{allowlist\|blocklist, limit, offset, total_count}`；两个端点列表键不同，已拆成两个类型                                                         |
+| `AdminJitsiConfig.config`                   | 后端是固定字面量 `{domain, app_id, jwt_enabled, jwt_asap_enabled, jwt_auth_type, server_name}`                                                        |
+| `AdminShutdownRoomResult`                   | 多了 `local_aliases`/`new_room_id`（上游字段）、缺 `closed_room`                                                                                      |
+| `RestartServerResponse` 只有索引签名        | 实为 `{message, restart_pending}`                                                                                                                     |
+| `UpdateAccountDetailsResponse`              | 缺 `user_id`                                                                                                                                          |
+| `PurgeRoomResponse` 只有索引签名            | 实为 `{purge_id, success}`                                                                                                                            |
+| **`cleanupAll()` 不带请求体**               | 后端 `cleanup_all` 用 `Json<Value>` ⇒ **必 415**（与 §7.15-26 同类）                                                                                  |
+| **7 处「请求体被静默忽略」**                | `/federation/blacklist/{x}`、`/rooms/{x}/delete`、`/rooms/{x}/unblock`、`/rooms/{x}/members/{x}`、`/rooms/{x}/unban/{x}`、`/users/{x}/devices/delete` |
+
+⚠️ 其中一条值得**单独核实**：`POST /users/{user_id}/devices/delete` 在后端由
+`user.rs::logout_user_devices` 处理 —— **与 `/logout` 是同一个处理器**。也就是说"删除指定设备"
+可能实际执行的是"登出全部设备"。这属后端路由复用问题，不是 SDK 能修的。
+
+#### 4. 结果
+
+- 门禁：`quality:admin-response-contract`（已并入 `quality:contracts` 链，故 CI 会跑 CI 半场）
+  —— ✅ **entries=68 / deviations=15 / 覆盖桶 backend-shape-unknown 55 · route-not-resolved 18 · array-return 8**；
+- 该门禁自己配套的守卫 spec `spec/unit/admin-response-contract.spec.ts`（**27 例**，覆盖上表 9 个坑）；
+- **变异自证 3 次**：① 给已冻结的 `RetentionPolicy` 加字段 ⇒ **无后端时也红**（证明 CI 半场有效）；
+  ② 去掉 `cleanupAll` 的 body ⇒ 红（并因此暴露上面那处结构缺陷）；③ 路径实参改成 `apu(...)` 形式
+  ⇒ 曾让整族方法隐身（修好后纳入覆盖）；
+- `tsc` 0 错；`quality:contracts` / `real-backend-types`(0/0) / `gate-reachability`（50 可达 / 4 豁免）
+  全绿；`public-api-docs` 台账下调（`missingExample` 32→31、`missingJsDoc` 22→19）。
+
+#### 5. 已知覆盖缺口（诚实记录）
+
+- `backend-shape-unknown` 55 处：后端用 `Ok(Json(struct))` 或先算 `serde_json::Map` 再返回，
+  本层拿不到字段名。要覆盖它得下沉到 **struct 定义**（`synapse-storage` / `synapse-services`），
+  属下一轮工作。
+- `route-not-resolved` 18 处：多为**已登记豁免**的路径（`presence_routes`、`rate_limit_callbacks`、
+  `invite/blocklist` 的写端点等），或只出现在 `derived_route_table_*.inc.rs`（`RouteEntry::new`）里、
+  没有 `.route()` 可解析。
+- `array-return` 8 处：SDK 有意只返回条目数组而丢弃包装对象（游标/总数）。修不修是**签名决策**，
+  已在报告里列为待决项。
+
+---
+
 ## 附录 A：核验命令（可复现）
 
 ```bash
@@ -2419,7 +2504,14 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-26：响应体契约核对第六轮（token / retention / security + `user.rs` 余下）——
+**最后更新**: 2026-10-07（§7.15-27：**把六轮人工核对固化成门禁** `quality:admin-response-contract`
+—— 两个半场（CI 半场靠台账冻结「路由↔SDK 类型↔字段集」发现 SDK 单方改动；工作区半场重抽后端再比），
+`deviations` 限时 + `unresolved` 覆盖桶只降不升；**抽取器自己先错了 9 次**（带引号的键全丢 /
+嵌套键当顶层 / 审计 `json!` 混入 / 非对象字面量当空对象 / 返回类型里的 `Json` 让提取器判据恒真 /
+只归一 SDK 侧路径 / `apu(...)` 家族从不被检查 / `extends` 父字段消失 / 参数里的花括号截断签名），
+外加一处「请求体检查被响应可比对性带出循环」的结构缺陷；借它又找出 9 处新缺陷
+（含 `cleanupAll()` 不带 body ⇒ 415、7 处请求体被静默忽略、`PurgeRoomResponse` 等空占位类型）；
+§7.15-26：响应体契约核对第六轮（token / retention / security + `user.rs` 余下）——
 `expiry_ts`→`expiry_time`、`expire_on_clients`→`is_expire_on_clients`（响应名错 **且** 请求体带
 `deny_unknown_fields` ⇒ 400）；`runRetention({scope})` 的 `scope` 是**只读响应字段** ⇒ 400；
 批量请求体 `user_ids`→`users`、条目 `user_id`→`username` ⇒ 422；

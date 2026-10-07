@@ -130,10 +130,17 @@ export interface AuditEvent {
     details?: import("../../models/event").IContent;
 }
 
+/**
+ * `GET /_synapse/admin/v1/audit/events` 的响应。
+ *
+ * 2026-10-07 对照后端 `audit.rs::list_audit_events`：游标键是 **`next_batch`**，
+ * 且它是**字符串**；原先声明的 `next_token: number | null` 两个维度都错
+ * （键名不对 + 类型不对），运行时恒为 `undefined`。
+ */
 export interface AuditEventPage {
     events: AuditEvent[];
     total: number;
-    next_token: number | null;
+    next_batch: string | null;
 }
 
 // ===== Feature flag types =====
@@ -301,12 +308,47 @@ export interface AdminAccountDataCallbackPage {
 
 // ===== Invite / Jitsi types =====
 
-export interface AdminInviteList {
-    user_ids: string[];
+/**
+ * `GET /_synapse/admin/v1/invite/allowlist` 的响应。
+ *
+ * 2026-10-07 对照后端 `server.rs::get_invite_allowlist_admin`：
+ * `{allowlist, limit, offset, total_count}` —— 列表键是**端点专属**的 `allowlist`；
+ * 原先与 blocklist 共用一个 `{user_ids}` 类型，`user_ids` 后端从不返回。
+ */
+export interface AdminInviteAllowlist {
+    allowlist: string[];
+    limit: number;
+    offset: number;
+    total_count: number;
 }
 
+/**
+ * `GET /_synapse/admin/v1/invite/blocklist` 的响应。
+ *
+ * 与 allowlist 同构，只有列表键不同（`blocklist`）。
+ */
+export interface AdminInviteBlocklist {
+    blocklist: string[];
+    limit: number;
+    offset: number;
+    total_count: number;
+}
+
+/**
+ * `GET /_synapse/admin/v1/jitsi/config` 的响应。
+ *
+ * 2026-10-07 对照后端 `server.rs::get_jitsi_config`：该处理器返回固定字面量
+ * `{domain: null, app_id: null, jwt_enabled: false, jwt_asap_enabled: false,
+ * jwt_auth_type: "none", server_name: <本服务器名>}` —— 原先声明的 `{config}` 是空的
+ * 占位形状，六个真实字段一个都没有。
+ */
 export interface AdminJitsiConfig {
-    config?: DynamicConfig;
+    domain: string | null;
+    app_id: string | null;
+    jwt_enabled: boolean;
+    jwt_asap_enabled: boolean;
+    jwt_auth_type: string;
+    server_name: string;
 }
 
 // ===== SAML types =====
