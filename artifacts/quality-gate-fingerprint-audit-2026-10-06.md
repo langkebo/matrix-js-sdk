@@ -1443,6 +1443,48 @@ await expect(pushManager.removeKeywordHighlight("")).rejects.toThrow("keyword is
 - **`lint:knip` 不在本地 `pnpm lint` 的 14 步链里**，只挂在 CI 的独立 job。
   于是这两条红在本地开发时不可见 —— 建议要么并入 `lint`，要么在贡献文档里显式标注。
 
+#### 7.15-15 测幂等函数前，先确认它真的执行了（2026-10-07）
+
+§7.15-14 的守卫 spec 第一版直接调 `extendMatrixClientWithManagers({ includeAll: true })`，
+据此报告「25 个模块未接线」。**这个结论是错的 —— 测量方法本身失效。**
+
+**机理**：`spec/setupTests.ts` 的全局 `beforeAll` 已经用 `{ includeDm: false }` 初始化过一次，
+而该函数是**幂等**的：
+
+```ts
+if (isInitialized) return; // ← 后续任何 options 都被静默忽略
+```
+
+于是在 spec 里再调 `{ includeAll: true }` **等于什么都没做** —— 测到的只是 setup 那次加载的
+默认集合，"不在默认集合里"被误读成"模块没接线"。
+
+**怎么发现的**：探针里 `onManagerExtensionsLifecycle` 注册的监听器**一个事件都没收到**。
+初始化根本没跑。这个静默忽略**没有任何报错**，只靠"我注册的回调为什么没被调用"
+这个异常信号才抓到。
+
+**判据**：调用带幂等短路的函数前，先确认**没被短路** —— 打印状态
+（`isManagerExtensionsInitialized()`）、注册可观测的副作用（lifecycle 回调）、
+或在需要时显式 `reset`。**「我调用了」≠「它执行了」。**
+
+**修正后**：
+
+- `getDirectMessageManager` 其实是接线的（台账误登记）⇒ 移除。
+- **`getSamlAuthManager` 是真 bug**：`MODULE_DEFS` 里 saml 标着 `standalone: false`，
+  生成器因而不产出它的 import 块，而它也不在任何 `adminExtras` 里 ⇒ **saml 模块从不被加载**，
+  `client.getSamlAuthManager()` 永远 undefined（类型表却声明了它）。改回默认后已生成
+  `import("../saml/index.js")`。
+
+**三连同构 —— 都是「形似而神不至」**：
+
+| 轮次         | 形似                                  | 神不至                           |
+| ------------ | ------------------------------------- | -------------------------------- |
+| §7.15-9      | spec 文件存在                         | 它没 import 被测对象，抄副本自测 |
+| §7.15-14     | `MatrixClient.prototype.X = ...` 存在 | 那行代码从没被执行到             |
+| **§7.15-15** | **调用语句存在**                      | **被幂等短路，静默不执行**       |
+
+**推广**：凡是"看起来做了"的检查动作，都要问一句 **「有可观测的证据证明它真的做了吗？」**
+—— 而不是"我写了这行代码，所以它做了"。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1561,5 +1603,11 @@ CLI 行为逐字节一致；并定位修掉 `quality:report` 240s 超时
 清 knip 两处红（死导出 `StripAdminPath` + 过时 ignore）使 CI 的 `analyse_dead_code` 恢复绿；
 用**运行时探针**（真实执行初始化后逐个 `typeof`）量出 **46 个方法「类型检查通过、调用即
 TypeError」**（25 个模块未接线 + 21 个上游 API 残留声明），登记台账并新增运行时守卫 spec
-（5 例，变异自证 3/3）；记下教训「静态存在 ≠ 运行时可执行」，与 §7.15-9「有 spec ≠ 有覆盖」同构）
+（5 例，变异自证 3/3）；记下教训「静态存在 ≠ 运行时可执行」，与 §7.15-9「有 spec ≠ 有覆盖」同构；
+**§7.15-15 修正上一轮的测量方法**：`setupTests.ts` 的全局 beforeAll 已初始化过，而
+`extendMatrixClientWithManagers` 幂等 ⇒ 守卫 spec 里 `{includeAll:true}` 被**静默忽略**，
+一度把「不在默认集合里」误判成「模块没接线」。加 `resetManagerExtensions()` 后重测：
+`getDirectMessageManager` 是误登记（已在 MODULE_DEFS），而 **`getSamlAuthManager` 是真 bug**
+（MODULE_DEFS 标了 `standalone:false` ⇒ 生成器不产出 import 块 ⇒ saml 从不被加载），已修。
+台账 pendingWiring 25 → **23**；三连同构：spec 存在/代码存在/**调用存在**，都可「形似而神不至」）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
