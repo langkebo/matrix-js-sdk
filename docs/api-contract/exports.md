@@ -35,7 +35,7 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./models/event`       | Event 模型白名单：事件实体与状态相关类型                          | `EventStatus`, `IEvent`, `IContent`                                           |
 | `./models/room`        | Room 模型白名单：房间实体与状态/计数相关类型                      | `RoomEvent`, `NotificationCountType`, `KNOWN_SAFE_ROOM_VERSION`               |
 | `./models/room-state`  | Room State 模型白名单：房间状态相关类型                           | `RoomStateEvent`                                                              |
-| `./notification`       | Notification 白名单：通知入口（当前仅校验子路径存在）             | `-`                                                                           |
+| `./notifications`      | Notification 白名单：通知入口（当前仅校验子路径存在）             | `-`                                                                           |
 | `./oidc`               | OIDC 白名单：OIDC 认证 manager 与认证类型                         | `OidcManager`                                                                 |
 | `./presence`           | Presence 白名单：在线状态 manager 与状态类型                      | `PresenceManager`, `PresenceEvent`                                            |
 | `./push`               | Push 白名单：推送 manager 与规则/通知类型                         | `PushManager`, `PushEvent`, `IPushRules`                                      |
