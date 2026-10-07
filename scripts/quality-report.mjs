@@ -24,6 +24,22 @@ const projectRoot = process.cwd();
 const reportDir = path.join(projectRoot, "docs", "governance", "quality-reports");
 const reportFile = path.join(reportDir, `quality-report-${new Date().toISOString().split("T")[0]}.json`);
 
+/**
+ * 是否允许报告脚本自己拉起全量测试。
+ *
+ * 默认关闭：本仓全量 vitest 单次约 5-6 分钟，而 coverage 那一轨还要再加一次
+ * （collectCoverageMetrics + collectTestStats 各一次）—— 实测一次报告 **11 分 14 秒**，
+ * 且输出被 `silent` 吞掉，看起来就是"卡住了"。更糟的是它跑完并不产出
+ * coverage/lcov.info（见 collectCoverageMetrics），于是下一次还是照样白跑。
+ *
+ * 需要测试的那一轨请用 CI/本地显式跑完，再让报告读产物：
+ *   pnpm test --coverage            # 产出 coverage/lcov.info
+ *   pnpm quality:report             # 秒级，只读产物
+ * 确实想让报告自己跑（例如一次性体检）：
+ *   pnpm quality:report --run-tests
+ */
+const AUTO_RUN_TESTS = process.argv.includes("--run-tests") || process.env.QUALITY_REPORT_RUN_TESTS === "1";
+
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -135,8 +151,16 @@ function extractJsonPayload(rawOutput) {
 function collectCoverageMetrics() {
     const lcovPath = path.join(projectRoot, "coverage", "lcov.info");
     if (!fs.existsSync(lcovPath)) {
+        if (!AUTO_RUN_TESTS) {
+            // 不静默重试，也不假装数据缺失是"未知错误"：把该跑的那条命令直接说清楚。
+            console.warn("[quality-report] coverage/lcov.info 不存在 —— 跳过覆盖率统计。");
+            console.warn("[quality-report] 先执行：pnpm test --coverage（全量约 5-6 分钟）");
+            console.warn("[quality-report] 或让本脚本自己跑：pnpm quality:report --run-tests");
+            return { error: "Coverage data not available (run pnpm test --coverage first)", skipped: true };
+        }
         console.log("[quality-report] Coverage file not found, running tests...");
-        runCommand("npx vitest run --coverage", true);
+        console.log("[quality-report] 这一步是全量 vitest --coverage，约 5-6 分钟，输出实时打印。");
+        runCommand("npx vitest run --coverage", false);
     }
 
     if (!fs.existsSync(lcovPath)) {
@@ -544,6 +568,15 @@ function collectAnyTypeUsage() {
 }
 
 function collectTestStats() {
+    if (!AUTO_RUN_TESTS) {
+        // 这一轨与 coverage 那次是**同一批全量测试跑第二遍**，纯属重复开销。
+        // 没有数据就不计入健康度（summary 里 undefined 会被过滤掉），
+        // 而不是用一份过期/缺失的数据假装检查过。
+        console.warn("[quality-report] 跳过测试统计（默认不再重复跑一遍全量 vitest）。");
+        console.warn("[quality-report] 需要时：pnpm quality:report --run-tests");
+        return { skipped: true };
+    }
+
     let output = "";
 
     try {

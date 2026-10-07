@@ -35,3 +35,6 @@ out
 #   而 generate-coverage-report.mjs 仍会把它重新写出来）
 /docs/SDK_COVERAGE_REPORT.md
 /docs/governance/debt-weekly-report-*.md
+
+# quality-report.mjs 产物（按日期命名，每次跑都会写回工作区）
+/docs/governance/quality-reports/
