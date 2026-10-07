@@ -1110,13 +1110,17 @@ CLI 行为均经 gate-golden 对拍**逐字节一致**。
 变异（放宽到 `export const a = 1;` 也匹配）才拿到 2 条红。
 **教训：变异后必须确认 spec 转红；没转红先怀疑变异无效，而不是假设断言有效。**
 
-**新的剩余（口径按 spec 文件名双向配对重算：52 个脚本 / 43 已覆盖 / 8 未覆盖）**：
+**剩余口径（按「spec 是否真 import / 真跑这个脚本」重算，见 §7.15-10）**：
+**判定类门禁 0 个未覆盖**；剩下 6 个全是报告生成器 / 查询器 / runner / 诊断工具
+（`generate-coverage-report`、`debt-weekly-report`、`find-lowest-coverage-files`、
+`find-lowest-coverage-modules`、`run-granular-coverage-gates`、`probe-contract-drift`），
+它们没有"红/绿"判定，价值在产物而非断言。
 
-- 判定类门禁 3 个：`verify-path-contract`（1096）、`check-manager-codegen-coverage`（399）、
-  `check-generated-dto-strictness`（201）；
-- 报告生成器 / runner / 查询器 5 个：`generate-coverage-report`、`debt-weekly-report`、
-  `find-lowest-coverage-files`、`find-lowest-coverage-modules`、`run-granular-coverage-gates`
-  （无"红/绿"判定，价值主要在产物而非断言）。
+⚠️ 上一版这里写"判定类仅剩 3 个"是**配对口径的误判**：按 spec 文件名配对会把
+`codegen-coverage-gate.spec.ts`（其实测的就是 `check-manager-codegen-coverage`）、
+`generated-dto-quality.spec.ts`（动态 `import()` 真模块）、
+`contract-freshness.spec.ts`（`execFileSync` 端到端跑真脚本）都算成"没覆盖"。
+**判"有没有覆盖"要看 spec 真不真跑这个脚本，不是看文件名像不像。** 见 §7.15-10。
 
 #### 7.15-8 `quality:report` 240s 超时：根因是「静默重跑两遍全量 vitest」
 
@@ -1140,7 +1144,42 @@ CLI 行为均经 gate-golden 对拍**逐字节一致**。
 "某条静默路径在替调用方做一件很贵的事"。判据：凡 `runCommand(..., silent=true)`
 且命令里带 `vitest`/`tsc`，都要问一句"它凭什么替我决定要跑这个"。
 
-#### 7.15-9 仍未做（其它）
+#### 7.15-9 纸面 spec：`verify-path-contract` 抄了一份常量副本自己测自己
+
+重算"哪些脚本真被 spec 覆盖"时才发现：**有 spec 不等于有覆盖**。
+`spec/unit/scripts/quality/verify-path-contract.spec.ts`（210 行）文件头就写着
+「独立实现，避免 import ESM 脚本导致加载慢」——它**连门禁都没 import**，
+把一个常量表抄进 spec 再测那个副本。副本一路漂移：
+
+| 项                  | spec 副本                              | 门禁真值               |
+| ------------------- | -------------------------------------- | ---------------------- |
+| `AdminPrefix.V1`    | `/_matrix/admin/v1`                    | `/_synapse/admin/v1`   |
+| `VendorPrefix`      | `/_matrix/vendor`                      | `/_matrix/vendor/v1`   |
+| `ClientPrefix` 成员 | 多出 `Media`/`MediaV3`/`MediaUnstable` | 无这三项               |
+| `PushRulePrefix`    | 有                                     | 门禁表里根本没有这个组 |
+
+于是它**绿着，但门禁改了它不红、抄错了它也不红**。更讽刺的是门禁文件头写着
+「改动 `prefix.ts` 时必须同步改这里 —— **单元测试会校验两者一致**」，
+而这份 spec 恰恰兑现不了这个承诺（它校验的是自己抄的那份）。
+
+**根因**：门禁顶层就去读兄弟仓 ledger（`../synapse-rust/...`），读不到直接
+`process.exit(2)` —— import 即退出，spec 除了抄副本别无他法。
+所以这不只是"写 spec 的人偷懒"，而是**门禁形态逼出来的**：
+凡是顶层有 `process.exit` 的门禁，都天然排斥被测试，只能养出副本 spec。
+
+**处置**：`ledger` 加载抽成 `loadBackendRoutes()`，顶层 ~390 行执行逻辑用脚本
+机械包进 `main()` + 双模式入口，导出 12 个纯函数；新 spec（28 例）改为 import 真模块，
+并把那条空头承诺兑现——**解析 `src/http-api/prefix.ts` 与门禁常量表双向比对**。
+变异自证 4 处全部转红（`AdminPrefix` 改成副本错值 / `wildcard` 放宽掉 `includes(".")` /
+三元只取一条腿 / 模板字面量要求反引号）。
+
+**判据（可复用的侦察法）**：查"这个脚本有没有被覆盖"要看 spec **真不真跑它**
+（`import "...x.mjs"`、`import()` 或 `execFileSync` 跑脚本），不是看文件名像不像。
+按文件名配对会把 `codegen-coverage-gate.spec.ts`（真测 `check-manager-codegen-coverage`）、
+`generated-dto-quality.spec.ts`（动态 `import()`）、`contract-freshness.spec.ts`
+（`execFileSync` 端到端跑真脚本）全部误判成"没覆盖"。
+
+#### 7.15-10 仍未做（其它）
 
 - **P9**：`npx eslint <多文件>` 在本机沙箱 SIGTERM(137)，只能后台跑；属环境问题。
 - **`check-cross-repo-pin`**、4 条豁免、2 条 keep-manual 孤岛：**按设计如此**，记录不修。
@@ -1234,9 +1273,15 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 `check-type-coverage` 并发化 **85.8s → ~40s**（gate-golden 对拍 stdout 逐字节一致），
 补 `.lintstagedrc` 覆盖 `.mjs`，P6 口径精算为"52 个脚本中 17 个非 granular 无 spec（13 个判定类）"
 并新守 `check-public-api-docs`（16 例 + 两次变异自证）；
-**§7.15 续修（P6 收尾）**：13 个判定类门禁**全部守住**，本轮新增
+**§7.15 续修（P6 收尾一轮）**：13 个判定类门禁**全部守住**，新增
 `check-exports-docs`(25) / `check-sdk-contract-alignment`(46) / `check-docs-examples`(18) /
-`check-entrypoint-layering`(21) 共 110 例，均走「capture → 抽纯函数 → verify 对拍 → 变异自证」，
-CLI 行为逐字节一致；口径重算为 **52 个脚本 / 43 已覆盖 / 8 未覆盖**（判定类仅剩 3 个）；
-并定位修掉 `quality:report` 240s 超时（根因：缺 lcov 时静默重跑两遍全量 vitest，11m14s，见 §7.15-8））
+`check-entrypoint-layering`(21) 共 110 例，均走「capture → 抽纯函数 → verify 对拍 → 变异自证」、
+CLI 行为逐字节一致；并定位修掉 `quality:report` 240s 超时
+（根因：缺 lcov 时静默重跑两遍全量 vitest，11m14s，见 §7.15-8）；
+**§7.15 续修（P6 收尾二轮）**：发现并换掉一处**纸面 spec** ——
+`verify-path-contract` 的 spec 抄了一份常量副本自己测自己（3 处已漂移），
+根因是门禁顶层 `process.exit(2)` 逼得 spec 只能抄副本；已改造门禁并改为 import 真模块
+（28 例，含与 `src/http-api/prefix.ts` 的一致性守卫，兑现门禁注释里的空头承诺，见 §7.15-9）。
+至此**判定类门禁 0 个未覆盖**，剩余 6 个全是报告生成器 / 查询器 / runner / 诊断工具；
+口径判据改为「spec 真不真跑这个脚本」而非文件名配对）
 **关联**: `docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）
