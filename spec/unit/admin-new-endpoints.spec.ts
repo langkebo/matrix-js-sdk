@@ -647,13 +647,14 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("user rooms/stats routes are correct", async () => {
             await manager.getUserRooms("@u:x", "3", 7);
             await manager.getUserStats("@u:x");
-            await manager.listUserStats("1", 9);
+            await manager.listUserStats();
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/rooms");
             expect(req.mock.calls[0][2]).toEqual({ from: "3", limit: "7" });
             expect(req.mock.calls[1][1]).toBe("/users/%40u%3Ax/stats");
             expect(req.mock.calls[2][1]).toBe("/user_stats");
-            expect(req.mock.calls[2][2]).toEqual({ from: "1", limit: "9" });
+            // 后端 get_user_stats 不接收任何 query 参数（旧实现硬塞 from/limit 会被静默忽略）
+            expect(req.mock.calls[2][2]).toBeUndefined();
         });
 
         it("validates user id for session/auth action methods", async () => {
@@ -1004,15 +1005,34 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[1][1]).toBe("/v2/users/%40u%3Ax");
         });
 
-        it("batchCreateUsers and batchDeactivateUsers use v1 batch routes", async () => {
-            await manager.batchCreateUsers({ users: [{ user_id: "@a:x" }] });
-            await manager.batchDeactivateUsers({ user_ids: ["@a:x"] });
+        it("batchCreateUsers and batchDeactivateUsers use v1 batch routes with the real field names", async () => {
+            // 回归守卫：两个请求体都由后端 deny_unknown_fields 的结构体解析 ——
+            // 批量创建条目字段是 username（不是 user_id）、批量停用是 users（不是 user_ids）。
+            await manager.batchCreateUsers({ users: [{ username: "a", password: "pw" }] });
+            await manager.batchDeactivateUsers({ users: ["@a:x"] });
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/users/batch");
-            expect(req.mock.calls[0][3]).toEqual({ users: [{ user_id: "@a:x" }] });
+            expect(req.mock.calls[0][3]).toEqual({ users: [{ username: "a", password: "pw" }] });
             expect(req.mock.calls[1][0]).toBe("POST");
             expect(req.mock.calls[1][1]).toBe("/users/batch_deactivate");
-            expect(req.mock.calls[1][3]).toEqual({ user_ids: ["@a:x"] });
+            expect(req.mock.calls[1][3]).toEqual({ users: ["@a:x"] });
+        });
+
+        it("batch responses use created/failed/total and deactivated/failed/total", async () => {
+            req.mockResolvedValueOnce({ created: ["a", "b"], failed: ["c"], total: 3 });
+            const created = await manager.batchCreateUsers({ users: [{ username: "a" }] });
+            expect(created.created).toEqual(["a", "b"]);
+            expect(created.failed).toEqual(["c"]);
+            expect(created.total).toBe(3);
+            // 旧声明里的 errors 后端从不返回
+            expect(created).not.toHaveProperty("errors");
+
+            req.mockResolvedValueOnce({ deactivated: ["@a:x"], failed: [], total: 1 });
+            const deactivated = await manager.batchDeactivateUsers({ users: ["@a:x"] });
+            expect(deactivated.deactivated).toEqual(["@a:x"]);
+            expect(deactivated.failed).toEqual([]);
+            expect(deactivated.total).toBe(1);
+            expect(deactivated).not.toHaveProperty("errors");
         });
 
         it("validates user id for deleteUser", async () => {
@@ -1361,6 +1381,156 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             const result = await manager.getUserPushers("@a:x");
             expect(result.pushers).toHaveLength(1);
             expect(result.total).toBe(1);
+        });
+    });
+
+    // --------- Token / Retention / Security / Session 形状（对照后端 token.rs / retention.rs / security.rs / user.rs）---------
+    describe("token / retention / security / session shapes (backend-verified)", () => {
+        it("getRetentionPolicy uses is_expire_on_clients (backend never returns expire_on_clients)", async () => {
+            req.mockResolvedValue({ max_lifetime: 100, min_lifetime: null, is_expire_on_clients: true });
+            const policy = await manager.getRetentionPolicy();
+            expect(policy.is_expire_on_clients).toBe(true);
+            expect(policy).not.toHaveProperty("expire_on_clients");
+        });
+
+        it("setRetentionPolicy sends is_expire_on_clients (deny_unknown_fields ⇒ expire_on_clients would 400)", async () => {
+            await manager.setRetentionPolicy({ max_lifetime: 3600, is_expire_on_clients: true });
+            expect(req.mock.calls[0][3]).toEqual({ max_lifetime: 3600, is_expire_on_clients: true });
+            expect(req.mock.calls[0][3]).not.toHaveProperty("expire_on_clients");
+        });
+
+        it("runRetention only ever sends room_id (the backend rejects a scope field)", async () => {
+            await manager.runRetention();
+            expect(req.mock.calls[0][3]).toEqual({});
+            await manager.runRetention({ room_id: "!r:x" });
+            expect(req.mock.calls[1][3]).toEqual({ room_id: "!r:x" });
+            expect(req.mock.calls[1][3]).not.toHaveProperty("scope");
+        });
+
+        it("getRetentionStatus last_run has failed_tasks and none of the phantom cleanup_queue_* fields", async () => {
+            req.mockResolvedValue({
+                server_policy_enabled: true,
+                rooms_with_custom_policy: 2,
+                lifecycle_cleanup_enabled: false,
+                audit_retention_days: 90,
+                last_run: {
+                    started_ts: 1,
+                    completed_ts: 2,
+                    duration_ms: 1,
+                    expired_events_deleted: 3,
+                    expired_beacons_deleted: 0,
+                    expired_uploads_deleted: 0,
+                    expired_audit_events_deleted: 0,
+                    failed_tasks: 0,
+                },
+            });
+            const status = await manager.getRetentionStatus();
+            expect(status.last_run!.failed_tasks).toBe(0);
+            expect(status).not.toHaveProperty("cleanup_batch_size");
+            expect(status).not.toHaveProperty("queue_retention_days");
+            expect(status.last_run).not.toHaveProperty("cleanup_queue_items_processed");
+            expect(status.last_run).not.toHaveProperty("cleanup_queue_rows_pruned");
+        });
+
+        it("getUserTokens returns tokens + total, with the real per-token keys", async () => {
+            req.mockResolvedValue({
+                tokens: [{ id: 7, device_id: "D", created_ts: 1, expires_at: null, is_revoked: false }],
+                total: 1,
+            });
+            const result = await manager.getUserTokens("@a:x");
+            expect(result.total).toBe(1);
+            expect(result.tokens[0]).toEqual({
+                id: 7,
+                device_id: "D",
+                created_ts: 1,
+                expires_at: null,
+                is_revoked: false,
+            });
+            expect(result.tokens[0]).not.toHaveProperty("user_id");
+            expect(result.tokens[0]).not.toHaveProperty("name");
+        });
+
+        it("getUserRefreshTokens returns refresh_tokens (its own list key) + total", async () => {
+            req.mockResolvedValue({
+                refresh_tokens: [{ id: 8, device_id: "D", created_ts: 1, expires_at: 2, is_revoked: true }],
+                total: 1,
+            });
+            const result = await manager.getUserRefreshTokens("@a:x");
+            expect(result.refresh_tokens[0]!.is_revoked).toBe(true);
+            expect(result.total).toBe(1);
+            expect(result.refresh_tokens[0]).not.toHaveProperty("token");
+        });
+
+        it("getUserSession returns the wrapper {user_id, sessions, total}, not a bare session", async () => {
+            req.mockResolvedValue({
+                user_id: "@a:x",
+                sessions: [
+                    { session_id: "D", device_id: "D", display_name: null, last_seen_ts: null, last_seen_ip: null },
+                ],
+                total: 1,
+            });
+            const page = await manager.getUserSession("@a:x");
+            expect(page.total).toBe(1);
+            expect(page.sessions[0]!.session_id).toBe("D");
+            expect(page.sessions[0]).not.toHaveProperty("user_agent");
+            expect(page).not.toHaveProperty("session_id");
+        });
+
+        it("invalidateUserSession returns {invalidated, sessions_removed}", async () => {
+            req.mockResolvedValue({ invalidated: true, sessions_removed: 3 });
+            const result = await manager.invalidateUserSession("@a:x");
+            expect(result.invalidated).toBe(true);
+            expect(result.sessions_removed).toBe(3);
+        });
+
+        it("getUserRooms reads joined_rooms (not rooms) and keeps total/next_batch", async () => {
+            req.mockResolvedValue({ joined_rooms: ["!a:x"], total: 1, next_batch: null });
+            const page = await manager.getUserRooms("@a:x");
+            expect(page.joined_rooms).toEqual(["!a:x"]);
+            expect(page.total).toBe(1);
+            expect(page).not.toHaveProperty("rooms");
+        });
+
+        it("logoutUser returns devices_deleted (backend never returns device_id)", async () => {
+            req.mockResolvedValue({ devices_deleted: 2 });
+            const result = await manager.logoutUser("@a:x", { devices: ["D1"] });
+            expect(result.devices_deleted).toBe(2);
+            expect(result).not.toHaveProperty("device_id");
+        });
+
+        it("evictUser returns {user_id, rooms_evicted, rooms, failures} (not evicted)", async () => {
+            req.mockResolvedValue({
+                user_id: "@a:x",
+                rooms_evicted: 2,
+                rooms: ["!a:x", "!b:x"],
+                failures: [{ room_id: "!c:x", error: "boom" }],
+            });
+            const result = await manager.evictUser("@a:x");
+            expect(result.rooms_evicted).toBe(2);
+            expect(result.failures[0]!.error).toBe("boom");
+            expect(result).not.toHaveProperty("evicted");
+        });
+
+        it("overrideRateLimit POSTs a JSON body (a bodyless POST is rejected with 415)", async () => {
+            req.mockResolvedValue({ messages_per_second: 2, burst_count: 5 });
+            const result = await manager.overrideRateLimit("@a:x", { messages_per_second: 2, burst_count: 5 });
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe("/users/%40a%3Ax/override_ratelimit");
+            expect(req.mock.calls[0][3]).toEqual({ messages_per_second: 2, burst_count: 5 });
+            expect(result.burst_count).toBe(5);
+        });
+
+        it("overrideRateLimit with no config still sends an object body", async () => {
+            req.mockResolvedValue({ messages_per_second: 5, burst_count: 10 });
+            await manager.overrideRateLimit("@a:x");
+            expect(req.mock.calls[0][3]).toEqual({});
+        });
+
+        it("getRateLimit reads {messages_per_second, burst_count}", async () => {
+            req.mockResolvedValue({ messages_per_second: 1.5, burst_count: 3 });
+            const limit = await manager.getRateLimit("@a:x");
+            expect(limit!.messages_per_second).toBe(1.5);
+            expect(limit!.burst_count).toBe(3);
         });
     });
 

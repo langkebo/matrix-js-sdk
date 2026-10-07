@@ -53,16 +53,36 @@ export interface AccountValidityRenewRequest {
 
 // ===== Retention policy types =====
 
+/**
+ * 服务器 / 房间保留策略。
+ *
+ * 2026-10-07 对照后端 `synapse-web/src/routes/admin/retention.rs` 核对：
+ * - 字段名是 **`is_expire_on_clients`**，原先声明的 `expire_on_clients` 后端从不返回
+ *   ⇒ 读取恒 `undefined`；而且 `POST` 的请求体带 `#[serde(deny_unknown_fields)]`，
+ *   发送 `{expire_on_clients}` 会被**直接 400**。
+ * - 后端在三字段全为空时返回 `{max_lifetime: null, min_lifetime: null, is_expire_on_clients: false}`。
+ */
 export interface RetentionPolicy {
     max_lifetime: number | null;
     min_lifetime: number | null;
-    expire_on_clients: boolean;
+    is_expire_on_clients: boolean;
 }
 
 export interface RoomRetentionPolicy extends RetentionPolicy {
     room_id: string;
 }
 
+/**
+ * `POST /_synapse/admin/v1/retention/run` 的响应。
+ *
+ * 后端有两条分支：
+ * - 带 `room_id`：`{started, room_id, events_deleted, status, completed_ts}`；
+ * - 不带（全库）：`{started, scope: "all_rooms", events_deleted}`。
+ *
+ * ⚠️ `scope` 的值是 **`"all_rooms"`**（不是 `"all"`），且它是**只读的响应字段** ——
+ * 请求体 `RunRetentionRequest` 只有 `room_id`（`deny_unknown_fields`），
+ * 发送 `{scope}` 会被直接 400。
+ */
 export interface RetentionRunResult {
     started: boolean;
     room_id?: string;
@@ -72,13 +92,18 @@ export interface RetentionRunResult {
     completed_ts?: number;
 }
 
+/**
+ * `GET /_synapse/admin/v1/retention/status` 的响应。
+ *
+ * 2026-10-07 对照后端 `retention.rs::get_retention_status` 核对：原先声明的
+ * `cleanup_batch_size` / `queue_retention_days` 以及 `last_run` 里的
+ * `cleanup_queue_items_processed` / `cleanup_queue_rows_pruned` 后端**都不返回**，已删除。
+ */
 export interface RetentionStatus {
     server_policy_enabled: boolean;
     rooms_with_custom_policy: number;
     lifecycle_cleanup_enabled: boolean;
-    cleanup_batch_size: number;
     audit_retention_days: number;
-    queue_retention_days: number;
     last_run: {
         started_ts: number;
         completed_ts: number;
@@ -87,8 +112,6 @@ export interface RetentionStatus {
         expired_beacons_deleted: number;
         expired_uploads_deleted: number;
         expired_audit_events_deleted: number;
-        cleanup_queue_items_processed: number;
-        cleanup_queue_rows_pruned: number;
         failed_tasks: number;
     } | null;
 }
@@ -140,13 +163,46 @@ export interface FeatureFlagPage {
 
 // ===== Registration token types =====
 
+/**
+ * 注册令牌条目。
+ *
+ * 2026-10-07 对照后端 `synapse-web/src/routes/admin/token.rs` 核对：
+ * - 过期字段名是 **`expiry_time`**（不是 `expiry_ts`）—— 后端
+ *   `get_registration_tokens` / `create_registration_token` / `get_registration_token` /
+ *   `update_registration_token` 四个处理器都返回该键。
+ * - `uses_allowed` / `expiry_time` 可为 `null`（后端把 `max_uses == 0` 映射为 `null`）。
+ */
 export interface RegistrationToken {
     token: string;
-    uses_allowed?: number;
+    uses_allowed?: number | null;
     pending?: number;
     completed?: number;
-    expiry_ts?: number;
+    expiry_time?: number | null;
     created_ts?: number;
+}
+
+/**
+ * `GET /_synapse/admin/v1/registration_tokens` 的响应。
+ *
+ * 游标键是 **`next_batch`**；原先只返回了数组、把游标丢掉了。
+ */
+export interface RegistrationTokenPage {
+    registration_tokens: RegistrationToken[];
+    next_batch?: string | null;
+}
+
+/**
+ * `POST /_synapse/admin/v1/registration_tokens` 的请求体。
+ *
+ * 后端 `token.rs::CreateTokenRequest` 带 `#[serde(deny_unknown_fields)]`，
+ * 字段仅 `{token, uses_allowed, expiry_time, length}` —— 发送 `expiry_ts` 会被直接 400。
+ * `token` 省略时由后端按 `length`（默认 16）随机生成。
+ */
+export interface RegistrationTokenRequest {
+    token?: string;
+    uses_allowed?: number | null;
+    expiry_time?: number | null;
+    length?: number;
 }
 
 // ===== Module and account validity types =====

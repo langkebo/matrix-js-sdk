@@ -2275,6 +2275,78 @@ expect(members).toHaveLength(2);
 **剩余**：`token.rs`(9) / `retention.rs`(6) / `security.rs`(8) 未核；
 `user.rs` 的会话/令牌/批量 handler 亦未核。
 
+### 7.15-26 响应体契约核对第六轮（token / retention / security + user 余下）：静态在"改错方向"
+
+**范围**：`token.rs`（9 handler）、`retention.rs`（6）、`security.rs`（8），
+外加 `user.rs` 此前未核的会话 / 令牌 / 批量 / 登出 / 驱逐 / 统计 handler。
+
+#### 1. 本轮的形态：**"必然 400"从请求体字段名扩散到"有没有请求体"**
+
+第五轮已确认「请求体字段名错 ⇒ 必然 400」。本轮新增两态：
+
+| 形态                                 | 例                                                                                                               | 后果                                                                                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **字段名错 + `deny_unknown_fields`** | `expiry_ts` → `expiry_time`（注册令牌创建/更新）；`expire_on_clients` → `is_expire_on_clients`（保留策略）       | 直接 400                                                                                                                            |
+| **字段名错 + 缺必填**                | `batchDeactivateUsers` 发 `{user_ids}`，后端要 `{users}`；`batchCreateUsers` 条目发 `user_id`，后端要 `username` | 422（缺字段）+ 未知字段                                                                                                             |
+| **请求体字段是只读响应字段**         | `runRetention({scope})` —— `scope` 只存在于**响应**里（值恒 `"all_rooms"`）                                      | 400                                                                                                                                 |
+| **完全没有请求体**                   | `overrideRateLimit(userId)` 打 `POST /users/{id}/override_ratelimit` 但**不带 body**                             | **415**（axum `Json` 提取器要求 `Content-Type: application/json`，而 SDK 只在 body 是对象时才设它，见 `src/http-api/fetch.ts:329`） |
+
+#### 2. "恒 `undefined` / 恒空"依旧占多数
+
+- `RegistrationToken.expiry_ts`（后端 `expiry_time`）⇒ 过期时间恒 `undefined`；
+- `RetentionPolicy.expire_on_clients` ⇒ 恒 `undefined`（**且为假**，于是"客户端过期"永远看着是关的）；
+- `AdminToken.user_id` / `name`、`AdminRefreshToken.user_id` / `token` ⇒ 四个键后端都不返回；
+- `UserRoomsResponse.rooms` ⇒ 恒 `undefined`（**遍历得到空数组，静默无结果**）；
+- `getUserSession()` 把包装对象 `{user_id, sessions, total}` 当 `UserSession` 返回 ⇒
+  `session_id` / `device_id` 恒 `undefined`；条目里的 `user_agent` 也不存在；
+- `AdminLogoutResponse.device_id`、`AdminEvictResponse.evicted` ⇒ 恒 `undefined`；
+- `getRegistrationTokens()` 丢弃 `next_batch`、`getUserTokens()`/`getUserRefreshTokens()` 丢弃 `total`、
+  `updateRegistrationToken()` 把返回的令牌对象整个丢掉（声明 `void`）。
+
+#### 3. 四个"声明了但后端不返回"的字段组
+
+`RetentionStatus` 的 `cleanup_batch_size` / `queue_retention_days`，
+以及 `last_run` 里的 `cleanup_queue_items_processed` / `cleanup_queue_rows_pruned` ——
+后端 `get_retention_status` 的 `json!` 里没有这四个键。
+
+#### 4. 一处刻意的**减参**（不是加判断）
+
+`listUserStats(from?, limit?)` → `listUserStats()`：后端 `get_user_stats(_admin, State(ctx))`
+**不接收任何 query**，旧签名硬塞的 `from` / `limit` 会被静默忽略。
+删掉参数比留着一个"看起来能分页"的假参数更诚实。
+
+#### 5. 纪律复述：waivers 先查
+
+`getShadowBanStatus`（`GET /users/{id}/shadow_ban` 未注册）、`isAdmin`（`GET /users/{id}/admin` 未注册）
+都在 `path-contract-waivers.json` 第 18/19 条 —— **不改行为**。
+`notifications.deactivate`（第 14 条）同理。
+
+#### 6. 单测第七次同源失效（形态：**请求体字段名与响应包装同时被固化**）
+
+`admin-extended.spec.ts` 的注册令牌用例把 `{token, uses_allowed}` 当请求体断言；
+`admin-new-endpoints.spec.ts` 的批量用例把 `{users: [{user_id}]}` / `{user_ids: []}` 写成期望值
+—— 三处期望值**就是那个 bug 本身**。已改为后端真实形状，并新增 **17 例**形状守卫
+（retention 字段/请求体/`scope`/`last_run`、用户令牌与刷新令牌的 `total`、会话包装、房间
+`joined_rooms`、登出 `devices_deleted`、驱逐 `rooms_evicted`、`overrideRateLimit` 的 body、
+`getRateLimit`、注册令牌分页与查询参数、批量两态）。
+
+#### 7. 变异自证 2 次
+
+- 变异 A（`setRetentionPolicy` 换回发 `expire_on_clients`）⇒ 守卫红
+  （`expected {max_lifetime: 3600, …(2)} to deeply equal {max_lifetime: 3600, …(1)}`）；
+- 变异 B（`overrideRateLimit` 退回无 body 的 POST）⇒ **2 条**红（`expected undefined to deeply equal …`）。
+
+#### 8. 结果
+
+`tsc` 0 错；`quality:contracts` / `real-backend-types`(0/0) / `lint:knip` / `gate-reachability` /
+`type-coverage` / `swallow-fallbacks` / `debt-markers` / `no-default-key` / `timer-pairing` /
+`contract-drift` 全绿；`prettier` / `eslint` 干净；admin 六个 spec **293 例**通过。
+`public-api-docs` 台账下调（`AdminConfigManager.missingJsDoc` 50→39、
+`AdminUserManager.missingJsDoc` 31→22、`missingExample` 19→18）。
+
+**至此后端 admin 的 120 个有 JSON 响应的 handler 全部核过一遍。**
+未核残余：`user.rs` 里几个此前轮次已随 user 模块核过的端点（`/v2/users`、`/account/*`、`/whois`）。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -2347,7 +2419,15 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-25：响应体契约核对第五轮（federation / notification）—— 15 个 handler × 2 模块；
+**最后更新**: 2026-10-07（§7.15-26：响应体契约核对第六轮（token / retention / security + `user.rs` 余下）——
+`expiry_ts`→`expiry_time`、`expire_on_clients`→`is_expire_on_clients`（响应名错 **且** 请求体带
+`deny_unknown_fields` ⇒ 400）；`runRetention({scope})` 的 `scope` 是**只读响应字段** ⇒ 400；
+批量请求体 `user_ids`→`users`、条目 `user_id`→`username` ⇒ 422；
+`overrideRateLimit` **无请求体** ⇒ 415（axum `Json` 提取器）；`getUserSession` 把包装对象当会话返回
+⇒ `session_id` 恒 `undefined`；`UserRoomsResponse.rooms` 实为 `joined_rooms` ⇒ 遍历恒空数组；
+**后端 admin 120 个有 JSON 响应的 handler 至此全部核过**；单测第七次同源失效 +
+新增 17 例形状守卫 + 变异自证 2 次；
+§7.15-25：响应体契约核对第五轮（federation / notification）—— 15 个 handler × 2 模块；
 **5 个「请求体形状不对 ⇒ 必然 400」**（`confirmFederation` / `notifications.create|update` /
 `setUserNotification` / `sendServerNotice` 字符串分支，后端都带 `deny_unknown_fields`）；
 `getFederationAdmissionList` 与 `notifications.get|create|update` **恒返回 `[]` / `undefined`**；

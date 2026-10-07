@@ -43,9 +43,12 @@ import type {
     UpdateAccountDetailsResponse,
     AdminLogoutResponse,
     AdminEvictResponse,
-    UserSession,
+    UserSessionsResponse,
+    InvalidateUserSessionsResponse,
     AdminToken,
     AdminRefreshToken,
+    UserTokensResponse,
+    UserRefreshTokensResponse,
     AdminLogoutRequest,
     AdminEvictRequest,
     UserStatsResponse,
@@ -319,15 +322,45 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         }
     }
 
-    async getUserTokens(userId: string): Promise<{ tokens: AdminToken[] }> {
+    /**
+     * 列出用户的 access token。
+     *
+     * 后端 `GET /_synapse/admin/v1/users/{user_id}/tokens` 返回
+     * `{tokens: [{id, device_id, created_ts, expires_at, is_revoked}], total}`。
+     *
+     * @param userId - 用户 id
+     *
+     * @example
+     * ```typescript
+     * const { tokens, total } = await adminManager.getUserTokens("@alice:example.org");
+     * console.log(total, tokens.map((t) => t.device_id));
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
+    async getUserTokens(userId: string): Promise<UserTokensResponse> {
         AdminValidators.validateUserId(userId);
-        const response = await this.adminRequest<{ tokens?: AdminToken[] }>(
+        const response = await this.adminRequest<{ tokens?: AdminToken[]; total?: number }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/tokens`,
         );
-        return { tokens: response.tokens || [] };
+        const tokens = response.tokens || [];
+        return { tokens, total: response.total ?? tokens.length };
     }
 
+    /**
+     * 删除用户的某个 access token。
+     *
+     * @param userId - 用户 id
+     * @param tokenId - token id（整数，后端 `Path<(UserId, i64)>`）
+     *
+     * @example
+     * ```typescript
+     * await adminManager.deleteUserToken("@alice:example.org", "12");
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 或 tokenId 为空
+     */
     async deleteUserToken(userId: string, tokenId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
         if (!tokenId) throw new ValidationError("Token ID is required");
@@ -337,15 +370,44 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
     }
 
-    async getUserRefreshTokens(userId: string): Promise<{ refresh_tokens: AdminRefreshToken[] }> {
+    /**
+     * 列出用户的 refresh token。
+     *
+     * 后端返回 `{refresh_tokens: [{id, device_id, created_ts, expires_at, is_revoked}], total}`。
+     *
+     * @param userId - 用户 id
+     *
+     * @example
+     * ```typescript
+     * const { refresh_tokens, total } = await adminManager.getUserRefreshTokens("@alice:example.org");
+     * console.log(total, refresh_tokens);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
+    async getUserRefreshTokens(userId: string): Promise<UserRefreshTokensResponse> {
         AdminValidators.validateUserId(userId);
-        const response = await this.adminRequest<{ refresh_tokens?: AdminRefreshToken[] }>(
+        const response = await this.adminRequest<{ refresh_tokens?: AdminRefreshToken[]; total?: number }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/refresh_tokens`,
         );
-        return { refresh_tokens: response.refresh_tokens || [] };
+        const refresh_tokens = response.refresh_tokens || [];
+        return { refresh_tokens, total: response.total ?? refresh_tokens.length };
     }
 
+    /**
+     * 删除用户的某个 refresh token。
+     *
+     * @param userId - 用户 id
+     * @param tokenId - token id
+     *
+     * @example
+     * ```typescript
+     * await adminManager.deleteUserRefreshToken("@alice:example.org", "12");
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 或 tokenId 为空
+     */
     async deleteUserRefreshToken(userId: string, tokenId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
         if (!tokenId) throw new ValidationError("Token ID is required");
@@ -355,30 +417,105 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
     }
 
-    async getUserSession(userId: string): Promise<UserSession> {
+    /**
+     * 获取用户的会话（设备）列表。
+     *
+     * ⚠️ 后端 `GET /_synapse/admin/v1/user_sessions/{user_id}` 返回**包装对象**
+     * `{user_id, sessions: [{session_id, device_id, display_name, last_seen_ts, last_seen_ip}], total}`；
+     * 旧实现把包装对象当成 `UserSession` 直接返回，于是 `session_id` / `device_id` 恒为 `undefined`。
+     *
+     * @param userId - 用户 id
+     *
+     * @example
+     * ```typescript
+     * const page = await adminManager.getUserSession("@alice:example.org");
+     * console.log(page.total, page.sessions.map((s) => s.session_id));
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
+    async getUserSession(userId: string): Promise<UserSessionsResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Get, `/user_sessions/${encodeURIComponent(userId)}`);
     }
 
+    /**
+     * 列出用户加入的房间（分页）。
+     *
+     * 后端返回 `{joined_rooms, total, next_batch}`。
+     *
+     * @param userId - 用户 id
+     * @param from - 分页游标
+     * @param limit - 每页条数
+     *
+     * @example
+     * ```typescript
+     * const page = await adminManager.getUserRooms("@alice:example.org", undefined, 50);
+     * console.log(page.total, page.joined_rooms);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
     async getUserRooms(userId: string, from?: string, limit?: number): Promise<UserRoomsResponse> {
         AdminValidators.validateUserId(userId);
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rooms`, query);
     }
 
+    /**
+     * 获取单个用户的统计。
+     *
+     * @param userId - 用户 id
+     *
+     * @example
+     * ```typescript
+     * const stats = await adminManager.getUserStats("@alice:example.org");
+     * console.log(stats.rooms_joined, stats.messages_sent);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
     async getUserStats(userId: string): Promise<UserStatsResponse> {
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/stats`);
     }
 
-    async listUserStats(from?: string, limit?: number): Promise<UserStatsListResponse> {
-        const query = buildPaginationParams(limit, from);
-        return await this.adminRequest(Method.Get, "/user_stats", query);
+    /**
+     * 获取全站用户统计汇总（不分页）。
+     *
+     * @example
+     * ```typescript
+     * const stats = await adminManager.listUserStats();
+     * console.log(stats.total_users, stats.active_users);
+     * ```
+     */
+    async listUserStats(): Promise<UserStatsListResponse> {
+        return await this.adminRequest(Method.Get, "/user_stats");
     }
 
-    async invalidateUserSession(userId: string): Promise<void> {
+    /**
+     * 使某用户的全部会话失效。
+     *
+     * 后端返回 `{invalidated, sessions_removed}`；旧实现声明 `void` 并丢弃。
+     *
+     * @param userId - 用户 id
+     *
+     * @example
+     * ```typescript
+     * const result = await adminManager.invalidateUserSession("@alice:example.org");
+     * console.log(result.sessions_removed);
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
+     */
+    async invalidateUserSession(userId: string): Promise<InvalidateUserSessionsResponse> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Post, `/user_sessions/${encodeURIComponent(userId)}/invalidate`, {}, undefined);
+        return await this.adminRequest(
+            Method.Post,
+            `/user_sessions/${encodeURIComponent(userId)}/invalidate`,
+            {},
+            undefined,
+        );
     }
 
     async loginAsUser(userId: string, payload?: AdminLoginAsUserRequest): Promise<AdminLoginAsUserResponse> {
@@ -436,10 +573,36 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     }
 
     /**
-     * 覆盖用户速率限制（完全禁用限制）
+     * 设置用户的速率限制覆盖（`POST /users/{user_id}/override_ratelimit`）。
+     *
+     * ⚠️ 后端 `security.rs::set_user_override_rate_limit` 走
+     * `Json<RateLimitRequest>`（字段 `{messages_per_second, burst_count}`，带
+     * `#[serde(deny_unknown_fields)]`）。**没有请求体时 axum 会以 415 拒绝**
+     * （SDK 只在 body 是对象时才设 `Content-Type: application/json`）——
+     * 旧实现就是这个形态，调用必失败。
+     *
+     * 覆盖是"另设一套限额"，**不是**禁用限制；省略字段时后端用默认值
+     * （`messages_per_second = 5.0`、`burst_count = 10`）。要移除覆盖请用
+     * {@link deleteRateLimitOverride}。
+     *
+     * @param userId - 用户 id
+     * @param config - 覆盖用的限额；省略时按后端默认值
+     *
+     * @example
+     * ```typescript
+     * await adminManager.overrideRateLimit("@alice:example.org", { messages_per_second: 2, burst_count: 5 });
+     * ```
+     *
+     * @throws {ValidationError} 如果 userId 为空
      */
-    async overrideRateLimit(userId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/override_ratelimit`);
+    async overrideRateLimit(userId: string, config?: RateLimitConfig): Promise<RateLimitConfig> {
+        AdminValidators.validateUserId(userId);
+        return await this.adminRequest<RateLimitConfig>(
+            Method.Post,
+            `/users/${encodeURIComponent(userId)}/override_ratelimit`,
+            {},
+            config ?? {},
+        );
     }
 
     /**

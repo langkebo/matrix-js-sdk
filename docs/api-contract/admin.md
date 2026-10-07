@@ -392,6 +392,7 @@ export interface AdminRegistrationTokenDto {
     pending?: number;
     completed?: number;
     expiry_time?: number;
+    created_ts?: number;
 }
 
 export interface AdminRegisterResultDto {
@@ -594,3 +595,98 @@ export interface AdminFederationDestinationDto {
 >
 > ⚠️ `DELETE /v1/notifications/deactivate` **在后端没有注册**（真实端点是上文带 `{id}` 的 PUT），
 > 该差异已登记在 `path-contract-waivers.json` 第 14 条，故 SDK 未改行为、仅补注释。
+
+### Registration tokens & user tokens
+
+对照 `synapse-web/src/routes/admin/token.rs`（2026-10-07）。
+
+| 端点                                             | 后端处理器                  | 实际返回                                                              |
+| ------------------------------------------------ | --------------------------- | --------------------------------------------------------------------- |
+| `GET /v1/registration_tokens`                    | `get_registration_tokens`   | `{registration_tokens: [<Token>], next_batch}`                        |
+| `POST /v1/registration_tokens`                   | `create_registration_token` | 裸 `<Token>`；请求体 `{token?, uses_allowed?, expiry_time?, length?}` |
+| `GET /v1/registration_tokens/{token}`            | `get_registration_token`    | 裸 `<Token>`（不存在则 404）                                          |
+| `POST /v1/registration_tokens/{token}`           | `update_registration_token` | 裸 `<Token>`；请求体 `{uses_allowed?, expiry_time?}`                  |
+| `DELETE /v1/registration_tokens/{token}`         | `delete_registration_token` | `{}`                                                                  |
+| `GET /v1/users/{user_id}/tokens`                 | `get_user_tokens`           | `{tokens: [<TokenRow>], total}`                                       |
+| `DELETE /v1/users/{user_id}/tokens/{token_id}`   | `delete_user_token`         | `{}`                                                                  |
+| `GET /v1/users/{user_id}/refresh_tokens`         | `get_user_refresh_tokens`   | `{refresh_tokens: [<TokenRow>], total}`                               |
+| `DELETE /v1/users/{user_id}/refresh_tokens/{id}` | `delete_refresh_token`      | `{}`                                                                  |
+
+**`<Token>`（注册令牌，6 键）**：`token` `uses_allowed` `pending` `completed` **`expiry_time`** `created_ts`
+
+**`<TokenRow>`（用户 token / refresh token，5 键）**：`id` `device_id` `created_ts` `expires_at` `is_revoked`
+
+> ⚠️ 过期键是 **`expiry_time`**，不是 `expiry_ts`。`CreateTokenRequest` / `UpdateTokenRequest` /
+> `RegistrationTokenListQuery` 三者都带 `#[serde(deny_unknown_fields)]` —— 发 `expiry_ts` 会被**直接 400**。
+> `uses_allowed` 由后端把 `max_uses == 0` 归一为 `null`。
+
+### Retention
+
+对照 `synapse-web/src/routes/admin/retention.rs`（2026-10-07）。
+
+| 端点                                  | 后端处理器                  | 实际返回                                                                                                                      |
+| ------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/retention/policy`            | `get_retention_policy`      | `{max_lifetime, min_lifetime, is_expire_on_clients}`（无策略时三字段为 `null/null/false`）                                    |
+| `POST /v1/retention/policy`           | `set_retention_policy`      | 同上；请求体 `{max_lifetime?, min_lifetime?, is_expire_on_clients?}`                                                          |
+| `GET /v1/retention/policy/{room_id}`  | `get_room_retention_policy` | 多一个 `room_id`（房间不存在则 404）                                                                                          |
+| `POST /v1/retention/policy/{room_id}` | `set_room_retention_policy` | 同上                                                                                                                          |
+| `POST /v1/retention/run`              | `run_retention`             | 带 `room_id`：`{started, room_id, events_deleted, status, completed_ts}`；否则 `{started, scope:"all_rooms", events_deleted}` |
+| `GET /v1/retention/status`            | `get_retention_status`      | `{server_policy_enabled, rooms_with_custom_policy, lifecycle_cleanup_enabled, audit_retention_days, last_run}`                |
+
+`last_run`（可空）的 8 个键：`started_ts` `completed_ts` `duration_ms` `expired_events_deleted`
+`expired_beacons_deleted` `expired_uploads_deleted` `expired_audit_events_deleted` `failed_tasks`
+
+> ⚠️ 字段名是 **`is_expire_on_clients`**（不是 `expire_on_clients`）；`RetentionPolicyRequest` 带
+> `deny_unknown_fields`，发错名字直接 400。
+> ⚠️ `RunRetentionRequest` **只有 `room_id`** ⇒ 传 `{scope}` 会 400；响应里的 `scope` 值恒为 `"all_rooms"`。
+> ⚠️ 原先声明的 `cleanup_batch_size` / `queue_retention_days` / `cleanup_queue_items_processed` /
+> `cleanup_queue_rows_pruned` 后端**都不返回**。
+
+### Security（限速与影子封禁）
+
+对照 `synapse-web/src/routes/admin/security.rs`（2026-10-07）。`RateLimitRequest` 带
+`deny_unknown_fields`，字段 `{messages_per_second, burst_count}`（省略时后端用 `5.0` / `10`）。
+
+| 端点                                       | 后端处理器                        | 实际返回                             |
+| ------------------------------------------ | --------------------------------- | ------------------------------------ |
+| `GET /v1/users/{id}/rate_limit`            | `get_user_rate_limit`             | `{messages_per_second, burst_count}` |
+| `PUT /v1/users/{id}/rate_limit`            | `set_user_rate_limit`             | 同上                                 |
+| `DELETE /v1/users/{id}/rate_limit`         | `delete_user_rate_limit`          | `{}`                                 |
+| `GET /v1/users/{id}/override_ratelimit`    | `get_user_override_rate_limit`    | 同 `rate_limit`（后端直接转发）      |
+| `POST /v1/users/{id}/override_ratelimit`   | `set_user_override_rate_limit`    | 同上                                 |
+| `DELETE /v1/users/{id}/override_ratelimit` | `delete_user_override_rate_limit` | `{}`                                 |
+| `POST /v1/users/{id}/shadow_ban`           | `shadow_ban_user`                 | `{}`                                 |
+| `DELETE /v1/users/{id}/shadow_ban`         | `unshadow_ban_user`               | `{}`                                 |
+
+> ⚠️ 三个 override 处理器与对应的 `rate_limit` 处理器是**同一实现**（后端直接转发），
+> 即"覆盖限速"与"限速"在本后端是**同一份数据**。
+> ⚠️ `POST .../override_ratelimit` 走 `Json<RateLimitRequest>` ⇒ **不带 body 会被 415 拒绝**
+> （SDK 只在 body 是对象时才设 `Content-Type: application/json`）。
+> ⚠️ **`GET /v1/users/{id}/shadow_ban` 未注册**（只有 POST/DELETE），已登记在
+> `path-contract-waivers.json` 第 19 条。
+
+### User：sessions / rooms / batch（`user.rs` 余下部分）
+
+对照 `synapse-web/src/routes/admin/user.rs`（2026-10-07）。
+
+| 端点                                          | 后端处理器                 | 实际返回                                                                                                        |
+| --------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/users/{user_id}/rooms`               | `get_user_rooms_admin`     | `{joined_rooms: string[], total, next_batch}`                                                                   |
+| `GET /v1/user_sessions/{user_id}`             | `get_user_sessions`        | `{user_id, sessions: [{session_id, device_id, display_name, last_seen_ts, last_seen_ip}], total}`               |
+| `POST /v1/user_sessions/{user_id}/invalidate` | `invalidate_user_sessions` | `{invalidated, sessions_removed}`                                                                               |
+| `GET /v1/user_stats`                          | `get_user_stats`           | 7 个汇总键（**不接收任何 query 参数**）                                                                         |
+| `GET /v1/users/{user_id}/stats`               | `get_single_user_stats`    | `{user_id, rooms_joined, messages_sent, last_seen_ts, creation_ts, is_admin, dashboard}`                        |
+| `POST /v1/users/batch`                        | `batch_create_users`       | `{created: string[], failed: string[], total}`；请求体 `{users: [{username, password?, displayname?, admin?}]}` |
+| `POST /v1/users/batch_deactivate`             | `batch_deactivate_users`   | `{deactivated: string[], failed: string[], total}`；请求体 `{users: string[], erase?}`                          |
+| `POST /v1/users/{user_id}/logout`             | `logout_user_devices`      | `{devices_deleted}`                                                                                             |
+| `POST /v1/users/{user_id}/evict`              | `evict_user`               | `{user_id, rooms_evicted, rooms: string[], failures: [{room_id, error}]}`                                       |
+| `POST /v1/users/{user_id}/login`              | `login_as_user`            | `{access_token, device_id, user_id}`                                                                            |
+| `PUT /v1/users/{user_id}/admin`               | `set_admin`                | `{success: true}`                                                                                               |
+| `POST /v1/users/{user_id}/deactivate`         | `deactivate_user`          | `{id_server_unbind_result}`                                                                                     |
+| `POST /v1/account/{user_id}`                  | `update_account`           | `{user_id, updated}`                                                                                            |
+
+> ⚠️ 批量两个请求体都由 `deny_unknown_fields` 结构体解析：批量创建的条目字段是 **`username`**
+> （不是 `user_id`）、批量停用是 **`users`**（不是 `user_ids`）—— 发旧名字会直接 422。
+> ⚠️ 批量响应里的失败项键是 **`failed`**（字符串数组），不是 `errors: [{user_id, error}]`。
+> ⚠️ 会话端点是**包装对象** `{user_id, sessions, total}`，不是裸 session；会话条目也没有 `user_agent`。
+> ⚠️ `GET /v1/users/{user_id}/admin` 未注册（只有 PUT），已登记在 waivers 第 18 条。

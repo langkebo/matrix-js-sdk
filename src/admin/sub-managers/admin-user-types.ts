@@ -59,20 +59,53 @@ export enum AdminEvent {
 
 // ===== User payloads =====
 
+/**
+ * `GET /_synapse/admin/v1/users/{user_id}/tokens` 的条目。
+ *
+ * 2026-10-07 对照后端 `synapse-web/src/routes/admin/token.rs::get_user_tokens`：
+ * 键是 `{id, device_id, created_ts, expires_at, is_revoked}`。
+ * 原先声明的 `user_id` / `name` 后端**从不返回**（用户 id 由请求路径决定），已删除；
+ * 同时删掉了 `[key: string]: unknown` 索引签名 —— 它会让任何拼错的字段都通过类型检查。
+ */
 export interface AdminToken {
     id: number;
     device_id: string;
-    user_id: string;
-    name?: string;
-    [key: string]: unknown;
+    created_ts: number;
+    expires_at: number | null;
+    is_revoked: boolean;
 }
 
+/**
+ * `GET /_synapse/admin/v1/users/{user_id}/refresh_tokens` 的条目。
+ *
+ * 键与 {@link AdminToken} 相同（后端 `token.rs::get_user_refresh_tokens` 复用同一行映射）。
+ */
 export interface AdminRefreshToken {
     id: number;
-    user_id: string;
     device_id: string;
-    token: string;
-    [key: string]: unknown;
+    created_ts: number;
+    expires_at: number | null;
+    is_revoked: boolean;
+}
+
+/**
+ * `GET /_synapse/admin/v1/users/{user_id}/tokens` 的响应。
+ *
+ * 后端在同一层返回 `total`（= 该页条数），旧实现把它丢掉了。
+ */
+export interface UserTokensResponse {
+    tokens: AdminToken[];
+    total: number;
+}
+
+/**
+ * `GET /_synapse/admin/v1/users/{user_id}/refresh_tokens` 的响应。
+ *
+ * 外层列表键是 `refresh_tokens`（与 `tokens` 不同），同样带 `total`。
+ */
+export interface UserRefreshTokensResponse {
+    refresh_tokens: AdminRefreshToken[];
+    total: number;
 }
 
 export interface AdminLogoutRequest {
@@ -102,12 +135,39 @@ export interface DeviceInfo {
     last_seen_ts?: number;
 }
 
+/**
+ * `GET /_synapse/admin/v1/user_sessions/{user_id}` 的条目。
+ *
+ * 后端 `user.rs::get_user_sessions` 从设备列表映射：
+ * `{device_id, display_name, last_seen_ts, last_seen_ip, session_id}`（`session_id` 即 `device_id`）。
+ * 原先声明的 `user_agent` 后端从不返回。
+ */
 export interface UserSession {
     session_id: string;
-    device_id?: string;
-    last_seen_ts?: number;
-    last_seen_ip?: string;
-    user_agent?: string;
+    device_id: string;
+    display_name?: string | null;
+    last_seen_ts?: number | null;
+    last_seen_ip?: string | null;
+}
+
+/**
+ * `GET /_synapse/admin/v1/user_sessions/{user_id}` 的响应。
+ *
+ * ⚠️ 后端返回的是**包装对象**，不是裸的 `UserSession` ——
+ * 旧实现把整个包装对象当成 `UserSession` 返回，于是 `session_id` / `device_id` 恒为 `undefined`。
+ */
+export interface UserSessionsResponse {
+    user_id: string;
+    sessions: UserSession[];
+    total: number;
+}
+
+/**
+ * `POST /_synapse/admin/v1/user_sessions/{user_id}/invalidate` 的响应。
+ */
+export interface InvalidateUserSessionsResponse {
+    invalidated: boolean;
+    sessions_removed: number;
 }
 
 // ===== Account types =====
@@ -227,37 +287,65 @@ export interface AdminLoginAsUserRequest {
     initial_device_display_name?: string;
 }
 
+/**
+ * `POST /_synapse/admin/v1/users/{user_id}/login` 的响应。
+ *
+ * 后端 `user.rs::login_as_user` 只返回 `{access_token, device_id, user_id}` ——
+ * 原先声明的 `well_known` 本后端从不返回（那是上游 Synapse 的字段）。
+ */
 export interface AdminLoginAsUserResponse {
     access_token: string;
     device_id: string;
     user_id: string;
-    well_known?: LoginWellKnown;
 }
 
 // ===== Batch user operations =====
 
 export interface BatchCreateUsersRequest {
     users: Array<{
-        user_id: string;
+        /** ⚠️ 后端字段名是 `username`（不是 `user_id`）；外层带 `deny_unknown_fields`。 */
+        username: string;
         password?: string;
         displayname?: string;
         admin?: boolean;
     }>;
 }
 
+/**
+ * `POST /_synapse/admin/v1/users/batch` 的响应。
+ *
+ * 后端 `user.rs::batch_create_users` 返回
+ * `{created: Vec<String>, failed: Vec<String>, total: number}` ——
+ * `created` / `failed` 都是**成功/失败的用户名数组**，不是条目对象；
+ * 原先声明的 `errors: [{user_id, error}]` 后端从不返回。
+ */
 export interface BatchCreateUsersResponse {
     created: string[];
-    errors?: Array<{ user_id: string; error: string }>;
+    failed: string[];
+    total: number;
 }
 
+/**
+ * `POST /_synapse/admin/v1/users/batch_deactivate` 的请求体。
+ *
+ * ⚠️ 外层 `BatchDeactivateRequest` 带 `#[serde(deny_unknown_fields)]`，字段是
+ * **`users`**（`string[]`）与 `erase` —— 原先发送的 `{user_ids}` 会因缺失 `users`
+ * 且含未知字段而**直接 422/400**。
+ */
 export interface BatchDeactivateUsersRequest {
-    user_ids: string[];
+    users: string[];
     erase?: boolean;
 }
 
+/**
+ * `POST /_synapse/admin/v1/users/batch_deactivate` 的响应。
+ *
+ * 与批量创建同构：`{deactivated: Vec<String>, failed: Vec<String>, total}`。
+ */
 export interface BatchDeactivateUsersResponse {
     deactivated: string[];
-    errors?: Array<{ user_id: string; error: string }>;
+    failed: string[];
+    total: number;
 }
 
 // ===== Update account types =====
@@ -278,14 +366,28 @@ export interface UpdateAccountDetailsResponse {
 
 // ===== Logout / evict response types =====
 
+/**
+ * `POST /_synapse/admin/v1/users/{user_id}/logout` 的响应。
+ *
+ * 后端 `user.rs::logout_user_devices` 返回 `{devices_deleted: number}` ——
+ * 原先声明的 `device_id` 后端**从不返回**（且索引签名让它编译期过关）。
+ */
 export interface AdminLogoutResponse {
-    device_id?: string;
-    [key: string]: unknown;
+    devices_deleted: number;
 }
 
+/**
+ * `POST /_synapse/admin/v1/users/{user_id}/evict` 的响应。
+ *
+ * 后端 `user.rs::evict_user` 返回
+ * `{user_id, rooms_evicted, rooms: string[], failures: [{room_id, error}]}` ——
+ * 原先声明的 `evicted: boolean` 后端**从不返回**，而真实字段一个都没声明。
+ */
 export interface AdminEvictResponse {
-    evicted: boolean;
-    [key: string]: unknown;
+    user_id: string;
+    rooms_evicted: number;
+    rooms: string[];
+    failures: Array<{ room_id: string; error: string }>;
 }
 
 // ===== User stats types =====
@@ -316,9 +418,18 @@ export interface UserStatsListResponse {
     user_registration_enabled: boolean;
 }
 
-/** Response for GET /users/{userId}/rooms — user's joined rooms */
+/**
+ * `GET /_synapse/admin/v1/users/{user_id}/rooms` 的响应。
+ *
+ * 后端 `user.rs::get_user_rooms_admin` 返回
+ * `{joined_rooms: string[], total: number, next_batch: string | null}` ——
+ * 列表键是 **`joined_rooms`**（不是 `rooms`），原先声明的 `rooms` 恒为 `undefined`
+ * （调用方遍历会静默得到空数组）；`total` / `next_batch` 此前被丢弃。
+ */
 export interface UserRoomsResponse {
-    rooms: string[];
+    joined_rooms: string[];
+    total: number;
+    next_batch?: string | null;
 }
 
 // ===== User notification types =====

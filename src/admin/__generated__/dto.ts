@@ -100,6 +100,7 @@ export interface AdminRegistrationTokenDto {
     pending?: number;
     completed?: number;
     expiry_time?: number;
+    created_ts?: number;
 }
 
 export interface AdminRegisterResultDto {

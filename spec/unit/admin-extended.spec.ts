@@ -371,15 +371,31 @@ describe("AdminManager - Extended Tests", () => {
         it("should get registration tokens successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValue({
                 registration_tokens: [
-                    { token: "token1", uses_allowed: 10, pending: 0, completed: 5 },
-                    { token: "token2", uses_allowed: null, pending: 0, completed: 2 },
+                    { token: "token1", uses_allowed: 10, pending: 0, completed: 5, expiry_time: null },
+                    { token: "token2", uses_allowed: null, pending: 0, completed: 2, expiry_time: 1_800_000_000_000 },
                 ],
+                next_batch: "token2",
             });
 
-            const tokens = await adminManager.getRegistrationTokens();
+            const page = await adminManager.getRegistrationTokens();
 
-            expect(tokens).toHaveLength(2);
-            expect(tokens[0].token).toBe("token1");
+            // 回归守卫：后端返回 {registration_tokens, next_batch}，游标键是 next_batch；
+            // 旧实现只返回数组，把游标丢掉了。
+            expect(page.registration_tokens).toHaveLength(2);
+            expect(page.registration_tokens[0].token).toBe("token1");
+            // 过期键是 expiry_time（不是 expiry_ts）
+            expect(page.registration_tokens[1].expiry_time).toBe(1_800_000_000_000);
+            expect(page).not.toHaveProperty("total");
+            expect(page.next_batch).toBe("token2");
+        });
+
+        it("passes limit/from as query params for registration tokens", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ registration_tokens: [], next_batch: null });
+
+            await adminManager.getRegistrationTokens({ limit: 25, from: "cursor" });
+
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            expect(call[2]).toEqual({ limit: "25", from: "cursor" });
         });
 
         it("should create registration token successfully", async () => {
@@ -395,18 +411,31 @@ describe("AdminManager - Extended Tests", () => {
             });
 
             expect(token.token).toBe("newtoken123");
+            // 回归守卫：请求体必须用 expiry_time（后端 CreateTokenRequest 带 deny_unknown_fields，
+            // 发 expiry_ts 会被直接 400）；且响应里没有 expiry_ts 这个键。
+            const call = mockClient.http.authedRequest.mock.calls[0];
+            expect(call[3]).toEqual({ token: "newtoken123", uses_allowed: 5 });
+            expect(call[3]).not.toHaveProperty("expiry_ts");
+            expect(token).not.toHaveProperty("expiry_ts");
         });
 
         it("should update registration token successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValue({});
+            mockClient.http.authedRequest.mockResolvedValue({
+                token: "token1",
+                uses_allowed: 20,
+                completed: 5,
+                expiry_time: null,
+            });
 
-            await adminManager.updateRegistrationToken("token1", {
+            const updated = await adminManager.updateRegistrationToken("token1", {
                 uses_allowed: 20,
             });
 
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
+            // 后端会返回更新后的令牌对象（旧实现声明 void 并丢弃）
+            expect(updated.uses_allowed).toBe(20);
             const call = mockClient.http.authedRequest.mock.calls[0];
             expect(call[3]).toHaveProperty("uses_allowed", 20);
+            expect(call[3]).not.toHaveProperty("expiry_ts");
         });
 
         it("should delete registration token successfully", async () => {

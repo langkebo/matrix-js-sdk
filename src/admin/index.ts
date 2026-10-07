@@ -71,10 +71,10 @@ import {
     type ServerNotice,
     type ServerNoticePage,
     type SendServerNoticeResult,
-    type FederationBlacklistEntry,
     type FederationBlacklistPage,
     type PendingFederationServer,
     type RegistrationToken,
+    type RegistrationTokenPage,
     type FederationDestination,
     type AdminFederationDestinationDetail,
     type FederationAdmissionResult,
@@ -149,7 +149,8 @@ import {
     type UpdateAccountDetailsResponse,
     type AdminLogoutResponse,
     type AdminEvictResponse,
-    type UserSession,
+    type UserSessionsResponse,
+    type InvalidateUserSessionsResponse,
     type DynamicConfig,
     type RoomSearchPayload,
     type RoomDeletePayload,
@@ -159,8 +160,8 @@ import {
     type AdminMakeRoomAdminPayload,
     type RoomEventSearchPayload,
     type SpaceStats,
-    type AdminToken,
-    type AdminRefreshToken,
+    type UserTokensResponse,
+    type UserRefreshTokensResponse,
     type AdminLogoutRequest,
     type AdminEvictRequest,
     type AdminRegisterRequest,
@@ -326,21 +327,21 @@ export interface AdminManager {
     getUserDevices(userId: string): Promise<DeviceInfo[]>;
     deleteUserDevices(userId: string, deviceIds: string[]): Promise<void>;
     deleteUserDevice(userId: string, deviceId: string): Promise<void>;
-    getUserTokens(userId: string): Promise<{ tokens: AdminToken[] }>;
+    getUserTokens(userId: string): Promise<UserTokensResponse>;
     deleteUserToken(userId: string, tokenId: string): Promise<void>;
-    getUserRefreshTokens(userId: string): Promise<{ refresh_tokens: AdminRefreshToken[] }>;
+    getUserRefreshTokens(userId: string): Promise<UserRefreshTokensResponse>;
     deleteUserRefreshToken(userId: string, tokenId: string): Promise<void>;
-    getUserSession(userId: string): Promise<UserSession>;
+    getUserSession(userId: string): Promise<UserSessionsResponse>;
     getUserRooms(userId: string, from?: string, limit?: number): Promise<UserRoomsResponse>;
     getUserStats(userId: string): Promise<UserStatsResponse>;
-    listUserStats(from?: string, limit?: number): Promise<UserStatsListResponse>;
-    invalidateUserSession(userId: string): Promise<void>;
+    listUserStats(): Promise<UserStatsListResponse>;
+    invalidateUserSession(userId: string): Promise<InvalidateUserSessionsResponse>;
     loginAsUser(userId: string, payload?: AdminLoginAsUserRequest): Promise<AdminLoginAsUserResponse>;
     logoutUser(userId: string, payload?: AdminLogoutRequest): Promise<AdminLogoutResponse>;
     evictUser(userId: string, payload?: AdminEvictRequest): Promise<AdminEvictResponse>;
     getAccountStatus(userId: string, throwOnError?: boolean): Promise<AccountStatus | null>;
     isAdmin(userId: string, throwOnError?: boolean): Promise<boolean>;
-    overrideRateLimit(userId: string): Promise<void>;
+    overrideRateLimit(userId: string, config?: RateLimitConfig): Promise<RateLimitConfig>;
     getRateLimitOverride(userId: string, throwOnError?: boolean): Promise<RateLimitConfig | null>;
     deleteRateLimitOverride(userId: string): Promise<void>;
     shadowBanUser(userId: string): Promise<void>;
@@ -528,7 +529,7 @@ export interface AdminManager {
     setRetentionPolicy(policy: {
         max_lifetime?: number | null;
         min_lifetime?: number | null;
-        expire_on_clients?: boolean;
+        is_expire_on_clients?: boolean;
     }): Promise<RetentionPolicy>;
     getRoomRetentionPolicy(roomId: string): Promise<RoomRetentionPolicy>;
     setRoomRetentionPolicy(
@@ -536,10 +537,10 @@ export interface AdminManager {
         policy: {
             max_lifetime?: number | null;
             min_lifetime?: number | null;
-            expire_on_clients?: boolean;
+            is_expire_on_clients?: boolean;
         },
     ): Promise<RoomRetentionPolicy>;
-    runRetention(options?: { room_id?: string; scope?: "all" | "room" }): Promise<RetentionRunResult>;
+    runRetention(options?: { room_id?: string }): Promise<RetentionRunResult>;
     getRetentionStatus(): Promise<RetentionStatus>;
     getFeatureFlags(): Promise<FeatureFlagPage>;
     getFeatureFlag(flagKey: string): Promise<FeatureFlag>;
@@ -563,14 +564,19 @@ export interface AdminManager {
     getModuleSpamCheckResult(eventId: string): Promise<SpamCheckResult>;
     listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<SpamCheckResult[]>;
     getModuleThirdPartyRuleResults(eventId: string): Promise<ThirdPartyRuleResult[]>;
-    getRegistrationTokens(): Promise<RegistrationToken[]>;
+    getRegistrationTokens(options?: { limit?: number; from?: string }): Promise<RegistrationTokenPage>;
     createRegistrationToken(
-        tokenOrPayload: string | { token: string; uses_allowed?: number; expiry_ts?: number },
+        tokenOrPayload:
+            | string
+            | { token?: string; uses_allowed?: number | null; expiry_time?: number | null; length?: number },
         usesAllowed?: number,
-        expiryTs?: number,
+        expiryTime?: number,
     ): Promise<RegistrationToken>;
     deleteRegistrationToken(token: string): Promise<void>;
-    updateRegistrationToken(token: string, payload: { uses_allowed?: number; expiry_ts?: number }): Promise<void>;
+    updateRegistrationToken(
+        token: string,
+        payload: { uses_allowed?: number | null; expiry_time?: number | null },
+    ): Promise<RegistrationToken>;
     getRegistrationToken(token: string): Promise<RegistrationToken>;
     createAccountValidity(payload: AccountValidityRequest): Promise<AdminAccountValidityInfo>;
     getAccountValidity(userId: string): Promise<AdminAccountValidityInfo>;

@@ -28,6 +28,8 @@ import type {
     FeatureFlag,
     FeatureFlagPage,
     RegistrationToken,
+    RegistrationTokenPage,
+    RegistrationTokenRequest,
     AuditEvent,
     AuditEventPage,
     AdminModuleInfo,
@@ -67,18 +69,50 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Retention Policy =====
 
+    /**
+     * 获取服务器保留策略。
+     *
+     * @example
+     * ```typescript
+     * const policy = await adminManager.getRetentionPolicy();
+     * console.log(policy.max_lifetime, policy.is_expire_on_clients);
+     * ```
+     */
     async getRetentionPolicy(): Promise<RetentionPolicy> {
         return await this.adminRequest<RetentionPolicy>(Method.Get, apu("/retention/policy"));
     }
 
+    /**
+     * 设置服务器保留策略。
+     *
+     * ⚠️ 线上字段名是 `is_expire_on_clients`；后端 `RetentionPolicyRequest` 带
+     * `#[serde(deny_unknown_fields)]`，发送 `expire_on_clients` 会被直接 400。
+     *
+     * @example
+     * ```typescript
+     * const policy = await adminManager.setRetentionPolicy({
+     *     max_lifetime: 86_400_000,
+     *     is_expire_on_clients: true,
+     * });
+     * ```
+     */
     async setRetentionPolicy(policy: {
         max_lifetime?: number | null;
         min_lifetime?: number | null;
-        expire_on_clients?: boolean;
+        is_expire_on_clients?: boolean;
     }): Promise<RetentionPolicy> {
         return await this.adminRequest<RetentionPolicy>(Method.Post, apu("/retention/policy"), undefined, policy);
     }
 
+    /**
+     * 获取指定房间的保留策略。
+     *
+     * @example
+     * ```typescript
+     * const policy = await adminManager.getRoomRetentionPolicy("!room:example.org");
+     * console.log(policy.room_id, policy.min_lifetime);
+     * ```
+     */
     async getRoomRetentionPolicy(roomId: string): Promise<RoomRetentionPolicy> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomRetentionPolicy>(
@@ -87,12 +121,24 @@ export class AdminConfigManager extends AdminBaseManager {
         );
     }
 
+    /**
+     * 设置指定房间的保留策略。
+     *
+     * ⚠️ 同 {@link setRetentionPolicy}，字段名是 `is_expire_on_clients`。
+     *
+     * @example
+     * ```typescript
+     * const policy = await adminManager.setRoomRetentionPolicy("!room:example.org", {
+     *     min_lifetime: 3_600_000,
+     * });
+     * ```
+     */
     async setRoomRetentionPolicy(
         roomId: string,
         policy: {
             max_lifetime?: number | null;
             min_lifetime?: number | null;
-            expire_on_clients?: boolean;
+            is_expire_on_clients?: boolean;
         },
     ): Promise<RoomRetentionPolicy> {
         AdminValidators.validateRoomId(roomId);
@@ -104,7 +150,20 @@ export class AdminConfigManager extends AdminBaseManager {
         );
     }
 
-    async runRetention(options?: { room_id?: string; scope?: "all" | "room" }): Promise<RetentionRunResult> {
+    /**
+     * 触发一次保留期清理。
+     *
+     * ⚠️ 请求体 `RunRetentionRequest` 只有 `room_id`（且带 `deny_unknown_fields`）——
+     * 原先支持的 `{ scope }` 参数会被后端**直接 400**，已移除；
+     * 响应里的 `scope`（值恒为 `"all_rooms"`）是只读字段。
+     *
+     * @example
+     * ```typescript
+     * await adminManager.runRetention();                    // 全库
+     * await adminManager.runRetention({ room_id: "!r:x" }); // 单房间
+     * ```
+     */
+    async runRetention(options?: { room_id?: string }): Promise<RetentionRunResult> {
         return await this.adminRequest<RetentionRunResult>(
             Method.Post,
             apu("/retention/run"),
@@ -113,6 +172,15 @@ export class AdminConfigManager extends AdminBaseManager {
         );
     }
 
+    /**
+     * 获取保留期清理状态汇总。
+     *
+     * @example
+     * ```typescript
+     * const status = await adminManager.getRetentionStatus();
+     * console.log(status.server_policy_enabled, status.last_run?.expired_events_deleted);
+     * ```
+     */
     async getRetentionStatus(): Promise<RetentionStatus> {
         return await this.adminRequest<RetentionStatus>(Method.Get, apu("/retention/status"));
     }
@@ -276,26 +344,77 @@ export class AdminConfigManager extends AdminBaseManager {
 
     // ===== Registration Tokens =====
 
-    async getRegistrationTokens(): Promise<RegistrationToken[]> {
-        const response = await this.adminRequest<{ registration_tokens: RegistrationToken[] }>(
+    /**
+     * 列出注册令牌（分页）。
+     *
+     * 后端 `GET /_synapse/admin/v1/registration_tokens` 返回
+     * `{registration_tokens, next_batch}` —— 旧实现只返回数组，把游标丢掉了。
+     *
+     * @param options - 可选分页参数
+     * @param options.limit - 每页条数
+     * @param options.from - 游标（上一页返回的 `next_batch`）
+     *
+     * @example
+     * ```typescript
+     * const page = await adminManager.getRegistrationTokens({ limit: 50 });
+     * console.log(page.registration_tokens.length, page.next_batch);
+     * ```
+     */
+    async getRegistrationTokens(options?: { limit?: number; from?: string }): Promise<RegistrationTokenPage> {
+        const query = buildPaginationParams(options?.limit, options?.from);
+        const response = await this.adminRequest<RegistrationTokenPage>(
             Method.Get,
             "/registration_tokens",
+            Object.keys(query).length > 0 ? query : undefined,
         );
-        return response.registration_tokens || [];
+        return {
+            registration_tokens: response.registration_tokens || [],
+            next_batch: response.next_batch ?? null,
+        };
     }
 
+    /**
+     * 创建注册令牌。
+     *
+     * ⚠️ 过期字段名是 **`expiry_time`**（不是 `expiry_ts`）。后端 `CreateTokenRequest`
+     * 带 `#[serde(deny_unknown_fields)]`，发送 `expiry_ts` 会被**直接 400**。
+     *
+     * @param tokenOrPayload - 令牌字符串，或完整载荷（含可选 `length`）
+     * @param usesAllowed - 可注册次数（省略 = 不限）
+     * @param expiryTime - 过期时间（毫秒时间戳）
+     *
+     * @example
+     * ```typescript
+     * const token = await adminManager.createRegistrationToken("my-token", 10, Date.now() + 86_400_000);
+     * console.log(token.token, token.expiry_time);
+     * ```
+     */
     async createRegistrationToken(
-        tokenOrPayload: string | { token: string; uses_allowed?: number; expiry_ts?: number },
+        tokenOrPayload:
+            | string
+            | { token?: string; uses_allowed?: number | null; expiry_time?: number | null; length?: number },
         usesAllowed?: number,
-        expiryTs?: number,
+        expiryTime?: number,
     ): Promise<RegistrationToken> {
-        const body: { token: string; uses_allowed?: number; expiry_ts?: number } =
+        const body: RegistrationTokenRequest =
             typeof tokenOrPayload === "string"
-                ? { token: tokenOrPayload, uses_allowed: usesAllowed, expiry_ts: expiryTs }
+                ? { token: tokenOrPayload, uses_allowed: usesAllowed, expiry_time: expiryTime }
                 : { ...tokenOrPayload };
         return await this.adminRequest<RegistrationToken>(Method.Post, "/registration_tokens", undefined, body);
     }
 
+    /**
+     * 删除注册令牌。
+     *
+     * @param token - 令牌字符串
+     *
+     * @example
+     * ```typescript
+     * await adminManager.deleteRegistrationToken("my-token");
+     * ```
+     *
+     * @throws {ValidationError} 如果 token 为空
+     */
     async deleteRegistrationToken(token: string): Promise<void> {
         if (!token) {
             throw new ValidationError("Token is required");
@@ -303,19 +422,58 @@ export class AdminConfigManager extends AdminBaseManager {
         await this.adminRequest(Method.Delete, `/registration_tokens/${encodeURIComponent(token)}`);
     }
 
+    /**
+     * 更新注册令牌。
+     *
+     * 后端只注册 `POST /registration_tokens/{token}`（以及 DELETE/GET）。
+     * 旧实现在 404 时回退到 `PUT` 同一路径，而后端从未注册 PUT —— 死分支，已移除。
+     *
+     * ⚠️ 字段名是 `expiry_time`（`UpdateTokenRequest` 同样带 `deny_unknown_fields`）。
+     * 后端会返回更新后的令牌对象（旧实现声明 `void`，把返回值丢了）。
+     *
+     * @param token - 令牌字符串
+     * @param payload - 待更新字段
+     *
+     * @example
+     * ```typescript
+     * const updated = await adminManager.updateRegistrationToken("my-token", { uses_allowed: 20 });
+     * console.log(updated.completed, updated.uses_allowed);
+     * ```
+     *
+     * @throws {ValidationError} 如果 token 为空
+     */
     async updateRegistrationToken(
         token: string,
-        payload: { uses_allowed?: number; expiry_ts?: number },
-    ): Promise<void> {
+        payload: { uses_allowed?: number | null; expiry_time?: number | null },
+    ): Promise<RegistrationToken> {
         if (!token) throw new ValidationError("Token is required");
-        // 后端只注册 `POST /registration_tokens/{token}`（以及 DELETE/GET）。
-        // 旧实现在 404 时回退到 `PUT` 同一路径，而后端从未注册 PUT —— 死分支，已移除。
-        await this.adminRequest(Method.Post, `/registration_tokens/${encodeURIComponent(token)}`, {}, payload);
+        return await this.adminRequest<RegistrationToken>(
+            Method.Post,
+            `/registration_tokens/${encodeURIComponent(token)}`,
+            undefined,
+            payload,
+        );
     }
 
+    /**
+     * 获取单个注册令牌。
+     *
+     * @param token - 令牌字符串
+     *
+     * @example
+     * ```typescript
+     * const token = await adminManager.getRegistrationToken("my-token");
+     * console.log(token.completed, token.uses_allowed);
+     * ```
+     *
+     * @throws {ValidationError} 如果 token 为空
+     */
     async getRegistrationToken(token: string): Promise<RegistrationToken> {
         if (!token) throw new ValidationError("Token is required");
-        return await this.adminRequest(Method.Get, `/registration_tokens/${encodeURIComponent(token)}`);
+        return await this.adminRequest<RegistrationToken>(
+            Method.Get,
+            `/registration_tokens/${encodeURIComponent(token)}`,
+        );
     }
 
     // ===== Account Validity =====
