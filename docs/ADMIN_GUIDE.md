@@ -299,25 +299,25 @@ await adminManager.kickUser("!room:example.com", "@alice:example.com", "违反�
 ### 服务器状态
 
 ```typescript
-// 获取服务器状态
+// 获取服务器状态（GET /_synapse/admin/v1/status → {db_ok, server_ok, up}）
 const status = await adminManager.getServerStatus();
-if (status?.status === "online") {
-    console.log(`服务器在线，运行时间: ${status.uptime}秒`);
+if (status.server_ok) {
+    console.log(`服务器在线（数据库: ${status.db_ok ? "正常" : "异常"}）`);
 }
 
-// 获取服务器健康状态
+// 获取服务器健康状态（GET /_synapse/admin/v1/health → {status, database}）
 const health = await adminManager.getServerHealth();
-if (health?.healthy) {
+if (health.status === "ok") {
     console.log("服务器健康");
 } else {
-    console.log("服务器异常:", health?.checks);
+    console.log(`服务器异常：status=${health.status}, database=${health.database}`);
 }
 
-// 获取服务器信息
+// 获取服务器信息（GET /_synapse/admin/info → {server_name, server_version, implementation}）
 const info = await adminManager.getServerInfo();
 console.log(`服务器: ${info?.server_name}`);
-console.log(`版本: ${info?.version}`);
-console.log(`联邦: ${info?.federation_enabled ? "启用" : "禁用"}`);
+console.log(`版本: ${info?.server_version}`);
+console.log(`实现: ${info?.implementation}`);
 ```
 
 ### 服务器统计
@@ -330,8 +330,8 @@ console.log(`总房间数: ${stats.total_rooms}`);
 console.log(`日活跃用户: ${stats.daily_active_users}`);
 console.log(`月活跃用户: ${stats.monthly_active_users}`);
 
-// 获取缓存的统计（避免重复请求）
-const cachedStats = adminManager.getCachedServerStats();
+// 获取缓存的统计（避免重复请求）—— 注意方法名是 getServerStatsCached()
+const cachedStats = adminManager.getServerStatsCached();
 ```
 
 ### 服务器配置
@@ -341,9 +341,10 @@ const cachedStats = adminManager.getCachedServerStats();
 const config = await adminManager.getServerConfig();
 console.log("服务器配置:", config);
 
-// 获取服务器版本
+// 获取服务器版本（GET /_synapse/admin/v1/server_version）
 const version = await adminManager.getServerVersion();
 console.log(`服务器版本: ${version.server_version}`);
+// 本后端是 Rust 实现，但为兼容 Synapse 客户端仍返回该字段，值恒为 "Rust"
 console.log(`Python 版本: ${version.python_version}`);
 ```
 

@@ -68,24 +68,32 @@ describe("AdminManager", () => {
 
     describe("服务器状态监控", () => {
         it("应该获取服务器状态", async () => {
-            transport.respondWith({ status: "online", uptime: 12345 });
+            // 后端 `…::get_status` 的真实形状是这三个布尔量（不是上游 Synapse 的 status/uptime）。
+            transport.respondWith({ db_ok: true, server_ok: true, up: true });
 
             const status = await adminManager.getServerStatus();
-            expect(status).toEqual({ status: "online", uptime: 12345 });
+            expect(status).toEqual({ db_ok: true, server_ok: true, up: true });
             transport.expectCalledWithArgs(Method.Get, "/status", undefined, undefined, {
                 prefix: "/_synapse/admin/v1",
             });
         });
 
         it("应该获取服务器健康状态", async () => {
-            transport.respondWith({ healthy: true, checks: { database: { status: "ok" } } });
+            // 后端 `…::get_health` 返回 `{status, database}`（不是 `{healthy, checks}`）。
+            transport.respondWith({ status: "ok", database: "ok" });
 
             const health = await adminManager.getServerHealth();
-            expect(health?.healthy).toBe(true);
+            expect(health?.status).toBe("ok");
+            expect(health?.database).toBe("ok");
         });
 
         it("应该获取服务器信息", async () => {
-            transport.respondWith({ server_name: "example.com", version: "1.0.0" });
+            // 后端 `…::get_admin_info` 返回 `{server_name, server_version, implementation}`。
+            transport.respondWith({
+                server_name: "example.com",
+                server_version: "1.0.0",
+                implementation: "synapse-rust",
+            });
 
             const info = await adminManager.getServerInfo();
             expect(info?.server_name).toBe("example.com");

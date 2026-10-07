@@ -11,30 +11,36 @@
 
 export interface AdminServerInfoDto {
     server_name?: string;
-    version?: string;
-    python_version?: string;
-    uptime?: number;
-    federation_enabled?: boolean;
-    registration_enabled?: boolean;
+    server_version?: string;
+    implementation?: string;
 }
 
 export interface AdminServerStatsDto {
     total_users?: number;
+    non_deactivated_user_count?: number;
+    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_rooms?: number;
-    user_count?: number;
-    room_count?: number;
     daily_active_users?: number;
     monthly_active_users?: number;
-    total_nonlocal_users?: number;
-    total_room_events?: number;
-    server_start_time?: number;
     r30_users?: number;
     r30v2_users?: number;
+    total_messages?: number;
+    daily_messages?: number;
+    active_rooms_7d?: number;
+    total_members?: number;
+    encrypted_rooms?: number;
+    average_messages_per_room?: number;
 }
 
 export interface AdminServerHealthDto {
-    healthy: boolean;
-    checks?: Record<string, { status: string; message?: string }>;
+    status: "ok" | "error";
+    database: "ok" | "error";
+}
+
+export interface AdminServerStatusDto {
+    db_ok: boolean;
+    server_ok: boolean;
+    up: boolean;
 }
 
 export interface AdminUserAccountDto {

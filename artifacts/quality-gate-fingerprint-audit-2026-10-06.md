@@ -1862,6 +1862,72 @@ space 那处暴露的坑值得记下来：**同一处报错可能有多个病因
 | `prettier --check spec/integ/real-backend/**` | ✅ 干净                           |
 | `eslint spec/integ/real-backend`              | ✅ 0 error / 0 warning            |
 
+#### 7.15-21 admin 响应体契约核对：**7 个类型与后端完全不符**（2026-10-07）
+
+**起因**：§7.15-20 在 `spec/integ/real-backend/admin-manager.spec.ts` 遇到「用例断言 `server_ok`，而 SDK 的
+`ServerStatus` 声明的是 `status`」。当时**刻意没有把用例改成迁就 SDK 类型**（那等于删证据），只做窄读取 + 留注释。
+本轮用**后端源码**结案（`../synapse-rust` 与 SDK 同级，可直接读）。
+
+| 端点                                                | 后端处理器                                           | 实际返回                                                                           | SDK 原声明                                                                                                                |
+| --------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `GET /_synapse/admin/v1/status`                     | `synapse-web/src/routes/admin/server.rs::get_status` | `{db_ok, server_ok, up}`                                                           | `{status: "online"\|"offline"\|"degraded", uptime?, version?, timestamp?}` ❌                                             |
+| `GET /_synapse/admin/v1/health`                     | `…::get_health`                                      | `{status: "ok"\|"error", database: "ok"\|"error"}`                                 | `{healthy, checks?}` ❌                                                                                                   |
+| `GET /_synapse/admin/info`（`/v1/server` 同处理器） | `…::get_admin_info`                                  | `{server_name, server_version, implementation}`                                    | `{server_name?, version?, python_version?, uptime?, federation_enabled?, registration_enabled?}` ❌                       |
+| `GET /_synapse/admin/v1/statistics`                 | `…::get_statistics`                                  | 14 个字段（`non_deactivated_user_count` / `total_messages` / `active_rooms_7d` …） | 缺一半；且 `user_count` / `room_count` / `total_nonlocal_users` / `total_room_events` / `server_start_time` **不存在** ❌ |
+| `GET /_synapse/admin/v1/config`                     | `…::get_config`                                      | `{server_name, public_baseurl, registration_enabled, max_upload_size}`             | 多声明了 `federation_enabled` / `default_identity_server` ❌                                                              |
+| `GET /_synapse/admin/v1/experimental_features`      | `…::get_experimental_features`                       | `{features: Record<flagKey, boolean>, total}`                                      | `{enabled: string[], disabled: string[], total, total_flags}` ❌                                                          |
+
+**为什么长期没人发现**（三条互相加固）
+
+1. `quality:path-contract` 只核对**请求路径**（ledger + 19 条豁免台账），**完全不管响应体**；
+2. 单测把错误形状**当成期望值固化**：`admin.spec.ts` mock `{healthy: true, checks: {...}}` 再断言
+   `health.healthy`；`admin-new-endpoints.spec.ts` mock `{enabled: [], disabled: [], total_flags: 3}`
+   再断言 `toHaveProperty("enabled")` —— 与 §7.15-9「纸面 spec」、§7.15-18「只断言返回值不断言入参形状」同源：
+   **mock 自己造的形状，把错误固化成绿**；
+3. `docs/ADMIN_GUIDE.md` 的示例按同一错误形状写，而它**不在**文档示例门禁的扫描集里（见下）。
+
+**修法（真源 → codegen → 手写类型 → 用例 → 文档，一条链）**
+
+1. `docs/api-contract/admin.md` 的 `## DTO Definitions` 段是 codegen 真源：修正 `AdminServerInfoDto` /
+   `AdminServerStatsDto` / `AdminServerHealthDto`，并**新增 `AdminServerStatusDto`**；
+2. `pnpm contract:codegen` 重新生成 `src/admin/__generated__/dto.ts`（`contract:codegen:check` 绿）；
+3. 手写且**实际被使用**的 `src/admin/sub-managers/admin-server-types.ts` 同步（并逐条写清后端出处）；
+4. 两处单测 mock + 断言改成真实形状；
+5. `docs/ADMIN_GUIDE.md` 服务器段示例改正 —— 顺带发现它调了一个**不存在的方法** `getCachedServerStats()`
+   （真名 `getServerStatsCached()`）。
+
+**新发现 1：`python_version` 那条「待验证」可以证伪**
+
+`spec/sdk-comprehensive-audit/sdk-accuracy-audit-report.json` 记着
+「`getServerVersion` 返回字段包含 `python_version`，但后端是 Rust 实现 ⚠️ 待验证」。
+后端 `…::get_server_version` **确实返回该字段**，值恒为字符串 `"Rust"`（为兼容 Synapse 客户端）⇒ **证伪，结案**。
+教训：把「字段名看起来不该存在」当缺陷之前，先读后端处理器 —— 否则会去"修"一个本来正确的东西。
+
+**新发现 2：`quality:docs-examples` 只覆盖 `docs/guide`**
+
+门禁的 `SCOPE_DIR` 硬编码为 `docs/guide`（5 个 md / 6 个示例），而：
+
+- `docs/ADMIN_GUIDE.md` 有 **30 个** typescript 块，是全仓最多的文档，**一个都没被检查**；
+- 且它的围栏**没有 `title="..."` 标注**，而门禁的抽取器只认带 title 的围栏 ⇒ 即便改 `SCOPE_DIR`
+  也抽到 0 个（已实测：报「只抽到 0 个可编译示例，低于下限 6」）；
+- 已实测其腐烂：`getCachedServerStats()` 不存在、3 处响应形状早已过时。
+
+⇒ 想把它纳入门禁，需要先给 30 个块补 title 并逐个修到可编译，属独立任务。
+
+**本节验证**
+
+| 项                                                                                              | 结果      |
+| ----------------------------------------------------------------------------------------------- | --------- |
+| `tsc --noEmit`                                                                                  | 0 错      |
+| `quality:contracts`（含 codegen:check / path-contract / public-api-docs / docs-examples / msc） | ✅ 全绿   |
+| `quality:real-backend-types`                                                                    | ✅ 0 / 0  |
+| `lint:knip` / `eslint` / `prettier`（改动文件）                                                 | ✅ 干净   |
+| `spec/unit/admin.spec.ts` + `admin-new-endpoints.spec.ts` + `generated-dto-quality.spec.ts`     | ✅ 190 例 |
+
+**仍待办**：手写 `admin-server-types.ts` 与 codegen 的 `__generated__/dto.ts` 仍是**两份同形状类型**，
+只有后者被 `contract:codegen:check` 守（前者是手写的、无门禁）。建议让前者改为单向依赖生成物
+（`export type { AdminServerInfoDto as ServerInfo, … }`），从根上消灭这份重复。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -1934,7 +2000,8 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-19/20：类型表 69 条假声明清零 + 最后 2 个模块接线 + `spec/integ/real-backend/` 类型债 **85 → 0**；
+**最后更新**: 2026-10-07（§7.15-21：拿后端源码核对 admin 响应体契约，修 7 个与后端完全不符的类型；
+§7.15-19/20：类型表 69 条假声明清零 + 最后 2 个模块接线 + `spec/integ/real-backend/` 类型债 **85 → 0**；
 §7.11 续修：`manager-codegen` 性能、`probe-contract-drift` 死脚本、门禁 spec 长期红灯；
 §7.12 **P8 落地**：`scripts/audit/gate-golden.mjs` 把「存金标准 → 改 → 对拍」与红灯归因产品化；
 §7.13 **孤岛脚本盘点 + P6 长尾一轮**：可达性门禁补三条"假绿"通道、新增孤岛台账 ratchet，
@@ -2032,4 +2099,15 @@ key-rotation 历史只有 `{ device_id, rotations: { key_id, rotated_ts }[] }`�
 **同一处报错可能有多个病因，机械改掉"看得见的那个"会把真病因顶回来**（space 的
 `visibility` 换成枚举后 `tsc` 立刻顶回，真正的病是缺必填 `room_id`）。
 结果 `current 0 / baseline 0 / new 0`，基线与棘轮**收缩到零**（不再有 waiver 兜底）
+**§7.15-21 admin 响应体契约核对（7 个类型与后端完全不符）**：拿同级 `../synapse-rust` 的处理器源码结案 ——
+`/status` 实为 `{db_ok, server_ok, up}`、`/health` 实为 `{status, database}`、`/info` 实为
+`{server_name, server_version, implementation}`、`/statistics` 有 14 个字段（SDK 缺一半且声明了 5 个不存在的）、
+`/experimental_features` 实为 `{features: {flag: bool}, total}`；根因是**三条互相加固**：
+`path-contract` 只核对请求路径不管响应体、单测把错误形状当期望值固化（mock 自造形状 ⇒ 恒绿）、
+`docs/ADMIN_GUIDE.md` 的示例不在文档示例门禁扫描集内；修法走完整链
+（契约文档 DTO → `contract:codegen` → 手写类型 → 两处单测 mock → 文档示例）；
+顺带**证伪**了旧审计报告那条「`python_version` 不该存在（⚠️ 待验证）」（后端确实返回，值恒为 `"Rust"`），
+并量化了新缺口：`quality:docs-examples` 的 `SCOPE_DIR` 只覆盖 `docs/guide`，
+而 `docs/ADMIN_GUIDE.md` 的 **30 个** 未标注 `title=` 的示例块**一个都没被检查**（已实测其腐烂：
+调了不存在的 `getCachedServerStats()`）
 **关联**:`docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）

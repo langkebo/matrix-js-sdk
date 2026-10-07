@@ -68,56 +68,77 @@ export interface CleanupRoomsRequest {
 
 // ===== Server info/stats/status types =====
 
+/**
+ * `GET /_synapse/admin/v1/statistics` 的响应。
+ *
+ * 字段逐个对照后端处理器 `synapse-web/src/routes/admin/server.rs::get_statistics`
+ * （2026-10-07 核对；此前是照上游 Synapse Python 的形状猜的，`user_count` /
+ * `room_count` / `total_nonlocal_users` / `total_room_events` / `server_start_time`
+ * 在本后端**根本不存在**，而真实字段缺了一大半）。
+ */
 export interface ServerStats {
     total_users?: number;
+    non_deactivated_user_count?: number;
+    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_rooms?: number;
-    user_count?: number;
-    room_count?: number;
     daily_active_users?: number;
     monthly_active_users?: number;
-    total_nonlocal_users?: number;
-    total_room_events?: number;
-    server_start_time?: number;
     r30_users?: number;
     r30v2_users?: number;
+    total_messages?: number;
+    daily_messages?: number;
+    active_rooms_7d?: number;
+    total_members?: number;
+    encrypted_rooms?: number;
+    average_messages_per_room?: number;
 }
 
+/**
+ * `GET /_synapse/admin/v1/status` 的响应。
+ *
+ * 后端 `…::get_status` 返回的就是这三个布尔量；此前声明的
+ * `status: "online" | "offline" | "degraded"` / `uptime` / `version` / `timestamp`
+ * 是本 SDK **凭空的形状**（上游 Synapse 连 `/_synapse/admin/v1/status` 都没有这个端点）。
+ */
 export interface ServerStatus {
-    status: "online" | "offline" | "degraded";
-    uptime?: number;
-    version?: string;
-    timestamp?: number;
+    db_ok: boolean;
+    server_ok: boolean;
+    up: boolean;
 }
 
+/** `GET /_synapse/admin/v1/health` 的响应 —— 后端 `…::get_health` 返回 `{status, database}`。 */
 export interface ServerHealth {
-    healthy: boolean;
-    checks?: Record<string, { status: string; message?: string }>;
+    status: "ok" | "error";
+    database: "ok" | "error";
 }
 
+/**
+ * `GET /_synapse/admin/info` 的响应（`/v1/server` 走同一处理器 `…::get_admin_info`）。
+ *
+ * 注意这里的 `server_version` 与 `GET /v1/server_version` 的响应不同：后者返回
+ * `{server_version, python_version: "Rust", server_name}`（`python_version` 是本后端
+ * 为兼容 Synapse 客户端而保留的字段，值恒为字符串 `"Rust"`）。
+ */
 export interface ServerInfo {
     server_name?: string;
-    version?: string;
-    python_version?: string;
-    uptime?: number;
-    federation_enabled?: boolean;
-    registration_enabled?: boolean;
+    server_version?: string;
+    implementation?: string;
 }
 
+/** `GET /_synapse/admin/v1/config` 的响应 —— 后端 `…::get_config` 只返回这 4 个字段。 */
 export interface AdminServerConfig {
     server_name: string;
     public_baseurl?: string;
     registration_enabled?: boolean;
-    federation_enabled?: boolean;
-    default_identity_server?: string;
+    max_upload_size?: number;
     [key: string]: unknown;
 }
 
+/** `GET /_synapse/admin/info` 的响应（与 {@link ServerInfo} 同端点、同形状）。 */
 export interface AdminInfoResponse {
+    server_name: string;
     server_version: string;
-    python_version: string;
-    uptime_seconds?: number;
-    total_users?: number;
-    total_rooms?: number;
+    implementation?: string;
     [key: string]: unknown;
 }
 
@@ -176,11 +197,15 @@ export interface AdminBackupPage {
     offset: number;
 }
 
+/**
+ * `GET /_synapse/admin/v1/experimental_features` 的响应。
+ *
+ * 后端 `…::get_experimental_features` 返回的是 **flagKey → 是否生效** 的映射对象
+ * （`{features: {...}, total: n}`），而不是两个字符串数组；`total_flags` 不存在。
+ */
 export interface AdminExperimentalFeatures {
-    enabled: string[];
-    disabled: string[];
+    features: Record<string, boolean>;
     total: number;
-    total_flags: number;
 }
 
 // ===== Restart / purge server types =====

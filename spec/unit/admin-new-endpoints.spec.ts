@@ -1146,12 +1146,13 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     // --------- getExperimentalFeatures (backend newly implemented) ---------
     describe("getExperimentalFeatures", () => {
         it("GETs /v1/experimental_features", async () => {
-            req.mockResolvedValue({ enabled: [], disabled: [], total: 0, total_flags: 3 });
+            // 后端 `…::get_experimental_features` 返回的是 flagKey → 生效与否 的映射，不是两个数组。
+            req.mockResolvedValue({ features: { "experimental.foo": true, "msc1234.bar": false }, total: 2 });
             const result = await manager.getExperimentalFeatures();
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/experimental_features");
-            expect(result).toHaveProperty("enabled");
-            expect(result).toHaveProperty("disabled");
+            expect(result.features).toEqual({ "experimental.foo": true, "msc1234.bar": false });
+            expect(result.total).toBe(2);
         });
     });
 

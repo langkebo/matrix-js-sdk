@@ -190,24 +190,24 @@ last_reviewed: 2026-05-11
 
 ### 修正（breaking）
 
-| SDK 方法                                                     | 变更                                                                                                                                        |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setAdmin`                                                   | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                                                         |
-| `addToFederationBlacklist`                                   | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}`                                     |
-| `removeFromFederationBlacklist`                              | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**                                                |
-| `getRoomStats(roomId)`                                       | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                                                     |
-| `getAccountStatus`                                           | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                                                          |
-| `getServerInfo`                                              | 主路径 **`GET /v1/info`**，对旧部署保留 `404 -> /v1/server_info` 兼容回退                                                                   |
-| `getServerHealth`                                            | 主路径 **`GET /v1/health`**，对旧部署保留 `404 -> /v1/server_health` 兼容回退                                                               |
-| `getServerStats`                                             | 主路径 **`GET /v1/statistics`**，对旧部署保留 `404 -> /v1/server_stats` 兼容回退                                                            |
-| `getRateLimit` / `setRateLimit` / `deleteRateLimit`          | 主路径统一为 **`/v1/users/{user_id}/rate_limit`**，兼容旧路径 `/override_ratelimit` 回退                                                    |
-| `deleteUserDevice`                                           | 主路径 **`DELETE /v1/users/{user_id}/devices/{device_id}`**，兼容旧路径 `POST .../devices/{device_id}/delete` 回退                          |
-| `getUserDevices`                                             | 主路径 **`GET /v1/users/{user_id}/devices`**，兼容旧路径 `GET /v2/users/{user_id}/devices` 回退                                             |
-| `getUsersPaginated` / `getUser`                              | 主路径 **`/v2/users...`**，对仅暴露 v1 的部署保留 `404 -> /v1/users...` 兼容回退                                                            |
-| `resetPassword(userId, pw)`                                  | 移除 `logout_devices` 参数（后端忽略）                                                                                                      |
-| `deactivateUser(userId)`                                     | 移除 `erase` body 参数（后端无 body extractor）                                                                                             |
-| `disconnectFederation`                                       | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）                                              |
-| `getFederationAdmissionList` / `getPendingFederationServers` | 统一主路径到 **`GET /v1/federation/pending`**，并保留对旧路径 `/v1/federation/admissions`、`/v1/federation/pending_servers` 的 404 兼容回退 |
+| SDK 方法                                                     | 变更                                                                                                                                                                  |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setAdmin`                                                   | `PUT /v2/users/{id}` body `{admin}` → **`PUT /v1/users/{id}/admin`** body `{admin}`                                                                                   |
+| `addToFederationBlacklist`                                   | `POST /v1/federation/blacklist/add` → **`POST /v1/federation/blacklist/{server_name}`** body `{reason}`                                                               |
+| `removeFromFederationBlacklist`                              | `POST /v1/federation/blacklist/remove` → **`DELETE /v1/federation/blacklist/{server_name}`**                                                                          |
+| `getRoomStats(roomId)`                                       | `/v1/rooms/{id}/statistics` → **`/v1/room_stats/{id}`**                                                                                                               |
+| `getAccountStatus`                                           | `/v1/account_status/{id}` → **`/v1/account/{id}`**                                                                                                                    |
+| `getServerInfo`                                              | **`GET /_synapse/admin/info`**（**无 `/v1` 段**，必须走 `v2Request` 前缀 `/_synapse/admin`）。原 `/v1/info` + `404 -> /v1/server_info` 已删除：后端两个路径都从未注册 |
+| `getServerHealth`                                            | 主路径 **`GET /v1/health`**；原 `404 -> /v1/server_health` 回退已删除（后端从未注册 `/server_health`）                                                                |
+| `getServerStats`                                             | 主路径 **`GET /v1/statistics`**；原 `404 -> /v1/server_stats` 回退已删除（后端从未注册 `/server_stats`）                                                              |
+| `getRateLimit` / `setRateLimit` / `deleteRateLimit`          | 主路径统一为 **`/v1/users/{user_id}/rate_limit`**，兼容旧路径 `/override_ratelimit` 回退                                                                              |
+| `deleteUserDevice`                                           | 主路径 **`DELETE /v1/users/{user_id}/devices/{device_id}`**，兼容旧路径 `POST .../devices/{device_id}/delete` 回退                                                    |
+| `getUserDevices`                                             | 主路径 **`GET /v1/users/{user_id}/devices`**，兼容旧路径 `GET /v2/users/{user_id}/devices` 回退                                                                       |
+| `getUsersPaginated` / `getUser`                              | 主路径 **`/v2/users...`**，对仅暴露 v1 的部署保留 `404 -> /v1/users...` 兼容回退                                                                                      |
+| `resetPassword(userId, pw)`                                  | 移除 `logout_devices` 参数（后端忽略）                                                                                                                                |
+| `deactivateUser(userId)`                                     | 移除 `erase` body 参数（后端无 body extractor）                                                                                                                       |
+| `disconnectFederation`                                       | `@deprecated`，代理到 `resetFederationConnection`（原路径 `/v1/federation/disconnect` 不存在）                                                                        |
+| `getFederationAdmissionList` / `getPendingFederationServers` | 统一主路径到 **`GET /v1/federation/pending`**，并保留对旧路径 `/v1/federation/admissions`、`/v1/federation/pending_servers` 的 404 兼容回退                           |
 
 ### 新增封装
 
@@ -257,32 +257,58 @@ Worker admin（独立前缀 `/_synapse/worker/v1`）参见 [`worker-admin.md`](.
 ```typescript
 export interface AdminServerInfoDto {
     server_name?: string;
-    version?: string;
-    python_version?: string;
-    uptime?: number;
-    federation_enabled?: boolean;
-    registration_enabled?: boolean;
+    server_version?: string;
+    implementation?: string;
 }
 
 export interface AdminServerStatsDto {
     total_users?: number;
+    non_deactivated_user_count?: number;
+    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_rooms?: number;
-    user_count?: number;
-    room_count?: number;
     daily_active_users?: number;
     monthly_active_users?: number;
-    total_nonlocal_users?: number;
-    total_room_events?: number;
-    server_start_time?: number;
     r30_users?: number;
     r30v2_users?: number;
+    total_messages?: number;
+    daily_messages?: number;
+    active_rooms_7d?: number;
+    total_members?: number;
+    encrypted_rooms?: number;
+    average_messages_per_room?: number;
 }
 
 export interface AdminServerHealthDto {
-    healthy: boolean;
-    checks?: Record<string, { status: string; message?: string }>;
+    status: "ok" | "error";
+    database: "ok" | "error";
+}
+
+export interface AdminServerStatusDto {
+    db_ok: boolean;
+    server_ok: boolean;
+    up: boolean;
 }
 ```
+
+#### 响应体来源（2026-10-07 逐条核对）
+
+上面这几个 DTO 此前是**照上游 Synapse（Python）的响应形状推测**的，从未与 synapse-rust 的实际返回核过；
+`quality:path-contract` 只核对**请求路径**，不核对响应字段，所以这类错误没有任何门禁兜着
+（本轮是靠 `spec/integ/real-backend/` 的用例断言 `server_ok` 才发现的）。现已逐个对照后端处理器改正：
+
+| 端点                                                      | 后端处理器                                               | 实际返回                                                               |
+| --------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `GET /_synapse/admin/info`（及 `/v1/server`，同一处理器） | `synapse-web/src/routes/admin/server.rs::get_admin_info` | `{server_name, server_version, implementation}`                        |
+| `GET /_synapse/admin/v1/status`                           | `…/admin/server.rs::get_status`                          | `{db_ok, server_ok, up}`                                               |
+| `GET /_synapse/admin/v1/health`                           | `…/admin/server.rs::get_health`                          | `{status: "ok"\|"error", database: "ok"\|"error"}`                     |
+| `GET /_synapse/admin/v1/statistics`                       | `…/admin/server.rs::get_statistics`                      | 见 `AdminServerStatsDto`（14 个字段）                                  |
+| `GET /_synapse/admin/v1/server_version`                   | `…/admin/server.rs::get_server_version`                  | `{server_version, python_version: "Rust", server_name}`                |
+| `GET /_synapse/admin/v1/config`                           | `…/admin/server.rs::get_config`                          | `{server_name, public_baseurl, registration_enabled, max_upload_size}` |
+| `GET /_synapse/admin/v1/experimental_features`            | `…/admin/server.rs::get_experimental_features`           | `{features: Record<flagKey, boolean>, total}`                          |
+
+> 注：`/server_version` 的 `python_version` 在 Rust 实现里**是存在的**（固定返回字符串 `"Rust"`，为兼容 Synapse 客户端）。
+> `spec/sdk-comprehensive-audit/sdk-accuracy-audit-report.json` 里那条「返回字段包含 python_version，但后端是 Rust 实现 ⚠️ 待验证」
+> 由此**证伪**，可结案。
 
 ### User & account
 
