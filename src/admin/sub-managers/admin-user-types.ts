@@ -335,11 +335,58 @@ export interface UserNotificationPayload {
 
 // ===== Shared media info (used by both user and media managers) =====
 
+/**
+ * 媒体条目
+ *
+ * 字段集合取自后端处理器 `synapse-web/src/routes/admin/media.rs`（2026-10-07 逐条核对）：
+ * - `get_all_media` / `get_media_info` 返回 8 个键：
+ *   `media_id` `media_type` `upload_name` `created_ts` `last_access_ts` `media_length` `user_id` `quarantined`；
+ * - `get_user_media` / `get_room_media` 只返回 5 个：
+ *   `media_id` `media_type` `upload_name` `created_ts` `media_length`。
+ *
+ * 故除 `media_id` 外一律声明为可选。
+ *
+ * ⚠️ 原先声明的 `quarantined_by`（string）后端**从不返回**；真实的隔离标记是布尔 `quarantined`。
+ * 以 `quarantined_by` 判断隔离状态会恒为 `undefined`。
+ */
 export interface MediaInfo {
-    created_ts?: number;
-    last_access_ts?: number;
     media_id: string;
     media_type?: string;
     upload_name?: string;
-    quarantined_by?: string;
+    created_ts?: number;
+    last_access_ts?: number;
+    /** 字节数（后端 `media_length`，来自 `admin_media.size`） */
+    media_length?: number;
+    /** 上传者 user id（仅 `get_all_media` / `get_media_info` 返回） */
+    user_id?: string;
+    /** 是否已被隔离（布尔；仅 `get_all_media` / `get_media_info` 返回） */
+    quarantined?: boolean;
+}
+
+/**
+ * 分页媒体列表响应 —— `GET /_synapse/admin/v1/media` 与
+ * `GET /_synapse/admin/v1/rooms/{room_id}/media`
+ *
+ * ⚠️ 后端的分页游标键是 **`next_batch`**（不是 `next_token`）；`next_batch` 为 `null` 表示没有下一页
+ * （后端 `AdminMediaPage.next_batch: Option<String>`）。
+ * ⚠️ 后端返回的 `total` 实际是 **本页条数**（处理器里写的是 `json!({ "total": media_list.len() })`），
+ * **不是全局总数** —— 把它当总数用会得到「总数 == 每页 100」的假象。
+ */
+export interface MediaPage {
+    media: MediaInfo[];
+    /** 本页条数（后端语义；非全局总数） */
+    total: number;
+    /** 下一页游标；`null` 表示已到末页 */
+    next_batch: string | null;
+}
+
+/**
+ * 用户媒体列表响应 —— `GET /_synapse/admin/v1/users/{user_id}/media`
+ *
+ * ⚠️ 后端处理器**既不读 `limit` / `from`，也不返回游标**，只返回 `{media, total}`；
+ * `total` 同样是本页（即全部）条数。
+ */
+export interface UserMediaList {
+    media: MediaInfo[];
+    total: number;
 }

@@ -18,7 +18,14 @@ import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
 import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
-import type { MediaInfo, MediaQuotaResponse, MediaQuarantineChangesResponse } from "../types";
+import type {
+    MediaInfo,
+    MediaPage,
+    MediaQuotaResponse,
+    MediaQuarantineChange,
+    MediaQuarantineChangesResponse,
+    UserMediaList,
+} from "../types";
 import { MatrixClient } from "../../client";
 
 export class AdminMediaManager extends AdminBaseManager {
@@ -29,14 +36,14 @@ export class AdminMediaManager extends AdminBaseManager {
     /**
      * 获取媒体列表
      *
+     * 对应 `GET /_synapse/admin/v1/media`。后端返回 `{media, total, next_batch}`：
+     * 分页游标键是 **`next_batch`**（`null` 表示末页），而 `total` 是**本页条数**。
+     *
      * @param fromOrLimit - 分页起点 (string) 或数量限制 (number)
      * @param limitOrFrom - 数量限制 (number) 或分页起点 (string)
-     * @returns 媒体列表
+     * @returns 媒体列表（含 `next_batch` 游标）
      */
-    async getMedia(
-        fromOrLimit?: string | number,
-        limitOrFrom?: number | string,
-    ): Promise<{ media: MediaInfo[]; next_token?: string }> {
+    async getMedia(fromOrLimit?: string | number, limitOrFrom?: number | string): Promise<MediaPage> {
         let from: string | undefined;
         let limit: number | undefined;
         if (typeof fromOrLimit === "number") {
@@ -51,12 +58,13 @@ export class AdminMediaManager extends AdminBaseManager {
             }
         }
         const queryParams = buildPaginationParams(limit, from);
-        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(
+        const response = await this.adminRequest<{ media?: MediaInfo[]; total?: number; next_batch?: string | null }>(
             Method.Get,
             "/media",
             queryParams,
         );
-        return { media: response.media || [], next_token: response.next_token };
+        const media = response.media ?? [];
+        return { media, total: response.total ?? media.length, next_batch: response.next_batch ?? null };
     }
 
     /**
@@ -146,7 +154,14 @@ export class AdminMediaManager extends AdminBaseManager {
     /**
      * 清除媒体缓存
      *
-     * @param beforeTs - 清除此时间戳之前的媒体（必须为正整数）
+     * 对应 `POST /_synapse/admin/v1/purge_media_cache`。
+     *
+     * ⚠️ **`before_ts` 是 query 参数，不是请求体字段**：后端处理器用
+     * `axum::extract::Query` 读它（`admin/media.rs::purge_media_cache`），
+     * 读不到时默认 `0`。此前实现把它放在 JSON body 里 ⇒ 参数从未到达服务端，
+     * 调用退化成 `before_ts = 0`（即「清理早于 epoch 的媒体」＝**什么都不删**）。
+     *
+     * @param beforeTs - 清除此时间戳（毫秒）之前访问过的媒体（必须为正整数）
      * @returns 删除的媒体数量
      */
     async purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }> {
@@ -155,8 +170,8 @@ export class AdminMediaManager extends AdminBaseManager {
                 throw new ValidationError("beforeTs must be a positive integer");
             }
         }
-        const body = beforeTs !== undefined ? { before_ts: beforeTs } : {};
-        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/purge_media_cache", {}, body);
+        const queryParams = beforeTs !== undefined ? { before_ts: String(beforeTs) } : undefined;
+        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/purge_media_cache", queryParams);
         return { deleted: result.deleted ?? 0 };
     }
 
@@ -166,9 +181,14 @@ export class AdminMediaManager extends AdminBaseManager {
      * 调用 `GET /_synapse/admin/v1/quarantine_media/{media_id}/changes` 端点，
      * 返回指定媒体的隔离（quarantine / unquarantine）变更记录列表。
      *
+     * 后端返回 `{changes, total}`；每个变更条目是
+     * `{stream_id, media_id, server_name, change_type, changed_by, created_ts}`。
+     * ⚠️ 响应顶层**没有** `media_id`（`mediaId` 由请求路径决定），也**没有**游标
+     * （后端只接受 `since` / `limit`，`changes` 之后需自行用最后一条的 `stream_id` 作 `since`）。
+     *
      * @param mediaId - 媒体 ID
      * @param options - 可选分页参数
-     * @param options.from - 分页起点 token
+     * @param options.from - 当作 `since` 传给后端的起点 stream_id
      * @param options.limit - 返回条数上限
      * @returns 媒体隔离变更历史
      *
@@ -190,17 +210,13 @@ export class AdminMediaManager extends AdminBaseManager {
             throw new ValidationError("Media ID is required");
         }
         const queryParams = buildPaginationParams(options?.limit, options?.from);
-        const response = await this.adminRequest<MediaQuarantineChangesResponse>(
+        const response = await this.adminRequest<{ changes?: MediaQuarantineChange[]; total?: number }>(
             Method.Get,
             `/quarantine_media/${encodeURIComponent(mediaId)}/changes`,
             queryParams,
         );
-        return {
-            media_id: response.media_id ?? mediaId,
-            changes: response.changes ?? [],
-            total: response.total,
-            next_token: response.next_token,
-        };
+        const changes = response.changes ?? [];
+        return { changes, total: response.total ?? changes.length };
     }
 
     /**
@@ -209,10 +225,13 @@ export class AdminMediaManager extends AdminBaseManager {
      * 调用 `GET /_synapse/admin/v1/users/{user_id}/media` 端点，
      * 返回指定用户上传的全部媒体列表。
      *
+     * ⚠️ 后端处理器（`admin/media.rs::get_user_media`）**不读 `limit` / `from`，也不返回游标**，
+     * 只返回 `{media, total}`。参数保留是为了与上游 Synapse 的签名对齐，但当前后端会忽略它们。
+     *
      * @param userId - 用户 MXC ID（如 `@user:example.org`）
-     * @param options - 可选分页参数
-     * @param options.from - 分页起点 token
-     * @param options.limit - 返回条数上限
+     * @param options - 可选分页参数（当前后端忽略）
+     * @param options.from - 分页起点 token（后端忽略）
+     * @param options.limit - 返回条数上限（后端忽略）
      * @returns 用户媒体列表
      *
      * @example
@@ -223,20 +242,18 @@ export class AdminMediaManager extends AdminBaseManager {
      *
      * @throws {ValidationError} 如果 userId 为空
      */
-    async getUserMedia(
-        userId: string,
-        options?: { from?: string; limit?: number },
-    ): Promise<{ media: MediaInfo[]; next_token?: string }> {
+    async getUserMedia(userId: string, options?: { from?: string; limit?: number }): Promise<UserMediaList> {
         if (!userId) {
             throw new ValidationError("User ID is required");
         }
         const queryParams = buildPaginationParams(options?.limit, options?.from);
-        const response = await this.adminRequest<{ media: MediaInfo[]; next_token?: string }>(
+        const response = await this.adminRequest<{ media?: MediaInfo[]; total?: number }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/media`,
             queryParams,
         );
-        return { media: response.media || [], next_token: response.next_token };
+        const media = response.media ?? [];
+        return { media, total: response.total ?? media.length };
     }
 
     /**

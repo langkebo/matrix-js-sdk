@@ -555,13 +555,16 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     });
 
     describe("user media routes", () => {
-        it("getUserMedia uses GET /v1/users/{user_id}/media with pagination", async () => {
-            req.mockResolvedValueOnce({ media: [{ media_id: "m1" }], next_token: "n1" });
+        it("getUserMedia uses GET /v1/users/{user_id}/media", async () => {
+            req.mockResolvedValueOnce({ media: [{ media_id: "m1" }], total: 1 });
             const result = await manager.getUserMedia("@u:x", "3", 9);
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/users/%40u%3Ax/media");
             expect(req.mock.calls[0][2]).toEqual({ from: "3", limit: "9" });
-            expect(result).toEqual({ media: [{ media_id: "m1" }], next_token: "n1" });
+            // 后端 admin/media.rs::get_user_media 只返回 {media, total}：既不读 limit/from，
+            // 也不返回游标（原声明的 next_token 恒为 undefined）。
+            expect(result).toEqual({ media: [{ media_id: "m1" }], total: 1 });
+            expect(result).not.toHaveProperty("next_token");
         });
 
         it("deleteUserMedia uses DELETE /v1/users/{user_id}/media", async () => {
@@ -1075,20 +1078,21 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
 
     // --------- purgeMediaCache (backend now implements) ---------
     describe("purgeMediaCache", () => {
-        it("POSTs /v1/purge_media_cache with empty body when no arg", async () => {
+        it("POSTs /v1/purge_media_cache without query params when no arg", async () => {
             req.mockResolvedValue({ deleted: 0 });
             const result = await manager.purgeMediaCache();
             expect(req.mock.calls[0][0]).toBe("POST");
             expect(req.mock.calls[0][1]).toBe("/purge_media_cache");
-            expect(req.mock.calls[0][3]).toEqual({});
+            expect(req.mock.calls[0][2]).toBeUndefined();
             expect(result).toEqual({ deleted: 0 });
         });
 
-        it("passes before_ts body when provided", async () => {
+        it("passes before_ts as a **query** param (backend reads it with axum Query, not from the body)", async () => {
             req.mockResolvedValue({ deleted: 42 });
             const ts = 1_700_000_000_000;
             const result = await manager.purgeMediaCache(ts);
-            expect(req.mock.calls[0][3]).toEqual({ before_ts: ts });
+            // 原实现把这个值放进 JSON body ⇒ 后端读不到 ⇒ 退化成 before_ts = 0（静默不生效）。
+            expect(req.mock.calls[0][2]).toEqual({ before_ts: String(ts) });
             expect(result.deleted).toBe(42);
         });
 
@@ -1159,22 +1163,80 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
     // --------- getUserMedia / deleteUserMedia ---------
     describe("getUserMedia", () => {
         it("GETs /v1/users/{user_id}/media", async () => {
-            req.mockResolvedValue({ media: [], next_token: undefined });
+            req.mockResolvedValue({ media: [], total: 0 });
             const result = await manager.media.getUserMedia("@alice:example.org");
             expect(req.mock.calls[0][0]).toBe("GET");
             expect(req.mock.calls[0][1]).toBe("/users/%40alice%3Aexample.org/media");
             expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
             expect(result.media).toEqual([]);
+            expect(result.total).toBe(0);
+            expect(result).not.toHaveProperty("next_token");
         });
 
-        it("passes limit/from as query params", async () => {
-            req.mockResolvedValue({ media: [], next_token: "token123" });
+        it("still forwards limit/from as query params (backend currently ignores them)", async () => {
+            req.mockResolvedValue({ media: [], total: 0 });
             await manager.media.getUserMedia("@alice:example.org", { limit: 50, from: "token123" });
             expect(req.mock.calls[0][2]).toEqual({ limit: "50", from: "token123" });
         });
 
         it("rejects empty userId", async () => {
             await expect(manager.media.getUserMedia("")).rejects.toThrow(ValidationError);
+        });
+    });
+
+    describe("getMediaQuarantineChanges", () => {
+        it("maps the real backend shape {stream_id, media_id, server_name, change_type, changed_by, created_ts}", async () => {
+            // 形状取自后端 admin/media.rs::get_media_quarantine_changes：
+            // Ok(Json(json!({ "changes": changes_json, "total": changes_json.len() })))
+            req.mockResolvedValue({
+                changes: [
+                    {
+                        stream_id: 7,
+                        media_id: "abc123",
+                        server_name: "example.org",
+                        change_type: "quarantine",
+                        changed_by: "@admin:example.org",
+                        created_ts: 1_700_000_000_000,
+                    },
+                ],
+                total: 1,
+            });
+            const result = await manager.media.getMediaQuarantineChanges("abc123", { limit: 50 });
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe("/quarantine_media/abc123/changes");
+            expect(result.total).toBe(1);
+            expect(result.changes[0]).toEqual({
+                stream_id: 7,
+                media_id: "abc123",
+                server_name: "example.org",
+                change_type: "quarantine",
+                changed_by: "@admin:example.org",
+                created_ts: 1_700_000_000_000,
+            });
+            // 顶层没有 media_id（由路径决定）、也没有分页游标
+            expect(result).not.toHaveProperty("media_id");
+            expect(result).not.toHaveProperty("next_token");
+        });
+
+        it("defaults total to changes.length when the backend omits it", async () => {
+            req.mockResolvedValue({
+                changes: [
+                    {
+                        stream_id: 1,
+                        media_id: "m",
+                        server_name: "s",
+                        change_type: "unquarantine",
+                        changed_by: "u",
+                        created_ts: 1,
+                    },
+                ],
+            });
+            const result = await manager.media.getMediaQuarantineChanges("m");
+            expect(result.total).toBe(1);
+        });
+
+        it("rejects empty mediaId", async () => {
+            await expect(manager.media.getMediaQuarantineChanges("")).rejects.toThrow(ValidationError);
         });
     });
 

@@ -75,7 +75,7 @@
             "throwsWithoutTag": 9
         },
         "AdminUserManager": {
-            "missingJsDoc": 34,
+            "missingJsDoc": 33,
             "missingExample": 19,
             "throwsWithoutTag": 7
         },

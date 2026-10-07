@@ -2001,6 +2001,108 @@ space 那处暴露的坑值得记下来：**同一处报错可能有多个病因
 「哪些是 SDK 的错、哪些是后端 profile / 历史包袱」（本轮就遇到两例：profile 差异、
 以及已登记的豁免项）。草率建账会变成又一笔**注水台账** —— 宁可先留一份可复现的配方与清单。
 
+### 7.15-23 响应体契约核对第三轮（media 模块）：连请求参数位置也错了
+
+承接 §7.15-21 / §7.15-22 的配方（抽后端 `json!` 顶层键 ↔ 对 SDK `interface`），本轮打 `media.rs`。
+后端该文件共 **21 个路由 / 10 个有 JSON 响应的 handler**，SDK 侧 `AdminMediaManager` 共 10 个方法；
+逐个对照后，**5 类不符、涉及 6 个签名**，其中一条不是「字段名错」而是**参数位置错**。
+
+#### 1. `purgeMediaCache(beforeTs)`：参数从未到达服务端（最严重）
+
+```ts
+// 改前
+const body = beforeTs !== undefined ? { before_ts: beforeTs } : {};
+await this.adminRequest(Method.Post, "/purge_media_cache", {}, body);
+```
+
+后端 `purge_media_cache` 用 `axum::extract::Query` 读 `before_ts`，读不到就 `unwrap_or(0)`：
+
+```rust
+let before_ts = params.get("before_ts").and_then(|v| v.parse::<i64>().ok()).unwrap_or(0).max(0);
+```
+
+⇒ 参数放在 JSON body 里**被静默丢弃**，调用退化成 `before_ts = 0`，即「清理早于 epoch 的媒体」——
+**什么都不删，但不报错**。这类「静默 no-op」比抛错难查得多：调用方拿到 `{deleted: 0}` 会以为「本来就没有可清理的」。
+
+#### 2. 分页游标键 `next_token` → 实际是 `next_batch`
+
+`getMedia()` 与 `getUserMedia()` 都返回 `{media, next_token?}`，而后端：
+
+- `GET /v1/media` 返回 `{media, total, next_batch}`（`AdminMediaPage.next_batch: Option<String>`）；
+- `GET /v1/users/{user_id}/media` 只返回 `{media, total}` —— **连游标都没有**，且处理器
+  **既不读 `limit` 也不读 `from`**。
+
+⇒ `do { … from = result.next_token } while (from)` 这种写法会**在第一页就退出**，而类型检查完全通过。
+
+#### 3. `MediaInfo` 少了 3 个真实键、多了 1 个不存在的键
+
+| 键                        | 真相                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `quarantined_by?: string` | 后端**从不返回**；真实键是布尔 `quarantined` ⇒ 用它判断隔离状态恒 `undefined` |
+| `media_length`            | 后端每个列表/详情都返回（字节数），SDK 漏了                                   |
+| `user_id`                 | `get_all_media` / `get_media_info` 返回（上传者），SDK 漏了                   |
+| `quarantined`             | 同上，SDK 漏了                                                                |
+
+而且条目字段集**按端点不同**：`get_all_media` / `get_media_info` 是 8 键，
+`get_user_media` / `get_room_media` 只有 5 键（无 `last_access_ts` / `user_id` / `quarantined`）。
+
+#### 4. `MediaQuarantineChangesResponse`：顶层与条目双双失真
+
+后端 `get_media_quarantine_changes` 返回 `{changes, total}`，条目是
+`{stream_id, media_id, server_name, change_type, changed_by, created_ts}`。SDK 原先声明顶层
+`media_id`（后端没有，只能用请求参数兜）、`next_token`（后端没有），条目里
+`action` / `changed_ts` / `reason` **三个键都不存在**，同时漏掉 `stream_id` / `server_name` / `change_type`。
+（翻页得拿末条的 `stream_id` 当 `since`，后端只认 `since` / `limit`。）
+
+#### 5. `total` 是「本页条数」，不是全局总数
+
+后端处理器写的是 `json!({ "total": media_list.len() })` —— 命名具有误导性。
+SDK 侧已在类型注释里把它固定住（`MediaPage.total` 注明「后端语义：本页条数」），
+避免调用方把它当成总数用于「是否还有下一页」的判断。
+
+#### 单测为什么全程没拦住：这次连请求参数位置都被写进了期望值
+
+`spec/unit/admin-new-endpoints.spec.ts` 原文：
+
+```ts
+it("passes before_ts body when provided", async () => {
+    ...
+    expect(req.mock.calls[0][3]).toEqual({ before_ts: ts }); // ← 把 bug 固化成契约
+});
+```
+
+这是 §7.15-9 / §7.15-18 / §7.15-21 那套「**mock 自造形状 + 断言该形状**」的**第四次**出现，
+而且升级了形态：之前固化的只是**响应体**形状，这次连**请求参数放在哪个位置**都被断言成期望值。
+∴ 结论加强一档：**「有测试覆盖」不能作为契约正确的证据** —— 只要测试是照实现写的，
+它就会把错误一并固化，并且此后任何修正都会「弄红测试」，形成反向阻力。
+
+#### 本轮修法与验证
+
+- 新增 `MediaPage` / `UserMediaList` 两个具名类型，`getMedia` / `getUserMedia` 改用之；
+  `MediaQuarantineChange` 按后端 6 键重写，`MediaQuarantineChangesResponse` 收敛为 `{changes, total}`。
+- `purgeMediaCache` 改为 `queryParams = { before_ts: String(beforeTs) }`。
+- 单测：3 处 mock 改成后端真实形状并断言真实游标键；新增
+  `getMediaQuarantineChanges` 一条**形状守卫**（此前该方法零覆盖）+ 2 条边角（缺 `total` 时回落、空 `mediaId`）。
+- **变异自证 2 次**：
+    - 变异 A（`before_ts` 放回 body）⇒ 3 条测试红（含 `expected {} to be undefined`）；
+    - 变异 B（`getMedia` 读 `next_token`）⇒ 1 条红（`expected null to be 'next'`）。
+- ⚠️ 改手写类型的 JSDoc 会触发 `public-api-docs` 的**棘轮换位**：
+  给 `AdminUserManager.getUserMedia` 加 JSDoc 后，它从 `missingJsDoc` 挪进 `missingExample`（+1 违规），
+  补上 `@example` 才真正把 `missingJsDoc` 34 → 33 降下来（台账已 `--write-ledger` 下调）。
+  **只写摘要不写示例 = 没有改善，只是把缺口换了格子。**
+
+#### 契约文档：本节刻意不新增 DTO 代码块
+
+`docs/api-contract/admin.md` 新增「### Media」小节，用**表格**固化真实响应（端点 → 后端处理器 → 实际返回）。
+**没有**写 ` ```typescript ` DTO 块：那样会经 codegen 在 `src/admin/__generated__/dto.ts` 里再生成一份，
+而实际被使用的是手写的 `admin-*-types.ts` —— 等于把「同形状两份类型、只有一份有门禁」的问题（§7.15-21 已记）
+再复制一遍。手写类型无 codegen 覆盖这件事本身，也已在文档里显式写出。
+
+**剩余**：后端 admin 尚余 `room/*`(30) / `federation.rs`(9) / `notification.rs`(7) / `token.rs`(6) /
+`retention.rs`(6) / `security.rs`(4) 等模块未核；media 侧还有 4 个已挂载但 SDK 未封装的端点
+（`GET /rooms/{room_id}/media`、`GET /media/quarantine_changes`、`POST /media/protect/...`、
+`POST /media/delete`），属「是否新增能力」的决策，不在本轮。
+
 ---
 
 ## 附录 A：核验命令（可复现）
@@ -2073,7 +2175,10 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-07（§7.15-22：响应体契约核对第二轮（user 模块）+ 量化剩余范围与门禁方案；
+**最后更新**: 2026-10-07（§7.15-23：响应体契约核对第三轮（media 模块）—— 5 类不符 / 6 个签名，
+其中 `purgeMediaCache` 的 `before_ts` **参数位置错**（body → 后端只读 query）导致静默 no-op，
+且单测把该错误位置写进了期望值（「mock 自造形状」第四次，形态升级到请求侧）；
+§7.15-22：响应体契约核对第二轮（user 模块）+ 量化剩余范围与门禁方案；
 §7.15-21：拿后端源码核对 admin 响应体契约，修 7 个与后端完全不符的类型；
 §7.15-19/20：类型表 69 条假声明清零 + 最后 2 个模块接线 + `spec/integ/real-backend/` 类型债 **85 → 0**；
 §7.11 续修：`manager-codegen` 性能、`probe-contract-drift` 死脚本、门禁 spec 长期红灯；

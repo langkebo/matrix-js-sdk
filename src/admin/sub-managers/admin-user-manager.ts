@@ -25,6 +25,7 @@ import { toPaginatedResult } from "../../common/pagination";
 import type {
     DeviceInfo,
     MediaInfo,
+    UserMediaList,
     AccountStatus,
     WhoisResponse,
     UserPusher,
@@ -584,22 +585,34 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         );
     }
 
-    async getUserMedia(
-        userId: string,
-        from?: string,
-        limit?: number,
-    ): Promise<{ media: MediaInfo[]; next_token?: string }> {
+    /**
+     * 获取用户上传的媒体列表
+     *
+     * ⚠️ 后端（`admin/media.rs::get_user_media`）只返回 `{media, total}`：既不读 `limit` / `from`，
+     * 也不返回分页游标（原先声明的 `next_token` 后端从不返回，恒为 `undefined`）。
+     * 与 `AdminMediaManager.getUserMedia` 是同一端点的两条入口。
+     *
+     * @param userId - 用户 MXC ID（如 `@alice:example.org`）
+     * @param from - 分页起点（当前后端忽略）
+     * @param limit - 返回条数上限（当前后端忽略）
+     * @returns 用户的媒体列表与条数
+     *
+     * @example
+     * ```typescript
+     * const { media, total } = await adminManager.getUserMedia("@alice:example.org");
+     * console.log(`${total} 个媒体`, media.map((m) => m.media_id));
+     * ```
+     */
+    async getUserMedia(userId: string, from?: string, limit?: number): Promise<UserMediaList> {
         AdminValidators.validateUserId(userId);
         const queryParams = buildPaginationParams(limit, from);
-        const response = await this.adminRequest<{ media?: MediaInfo[]; next_token?: string }>(
+        const response = await this.adminRequest<{ media?: MediaInfo[]; total?: number }>(
             Method.Get,
             `/users/${encodeURIComponent(userId)}/media`,
             queryParams,
         );
-        return {
-            media: response.media || [],
-            next_token: response.next_token,
-        };
+        const media = response.media ?? [];
+        return { media, total: response.total ?? media.length };
     }
 
     async deleteUserMedia(userId: string): Promise<void> {

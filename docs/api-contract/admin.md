@@ -424,3 +424,51 @@ export interface AdminFederationDestinationDto {
     updated_ts?: number;
 }
 ```
+
+### Media
+
+⚠️ **本节的响应类型没有 DTO 代码块，因而没有 codegen 覆盖**：`MediaInfo` /
+`MediaQuarantineChange` 等是手写在 `src/admin/sub-managers/admin-*-types.ts` 里的，
+`quality:path-contract` 只核对请求路径、不核对响应字段。故在此以表格形式固化真实响应
+（2026-10-07 逐条对照 `synapse-web/src/routes/admin/media.rs`），作为人工核对依据；
+**未新增 DTO 块是有意为之** —— 手写类型才是实际被使用的那份，再造一份生成物等于多一份副本。
+
+**响应体来源（2026-10-07 逐条核对，后端源码为准）**
+
+| 端点                                                   | 后端处理器                                      | 实际返回                                                                                                                                          |
+| ------------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/media`                                        | `media.rs::get_all_media`                       | `{media: [...8 键], total, next_batch}`；**游标键是 `next_batch`**（可空），`total` 是**本页条数**（处理器写的是 `media_list.len()`），非全局总数 |
+| `GET /v1/media/{media_id}`                             | `media.rs::get_media_info`                      | 单个媒体条目（8 键）                                                                                                                              |
+| `GET /v1/media/quota`                                  | `media.rs::get_media_quota`                     | `{total_size, total_count, default_size_limit, default_count_limit}`                                                                              |
+| `GET /v1/users/{user_id}/media`                        | `media.rs::get_user_media`                      | `{media: [...5 键], total}`；**既不读 `limit` / `from`，也不返回游标**                                                                            |
+| `DELETE /v1/users/{user_id}/media`                     | `media.rs::delete_user_media`                   | `{deleted}`                                                                                                                                       |
+| `GET /v1/rooms/{room_id}/media`                        | `media.rs::get_room_media`                      | `{media: [...5 键], total, next_batch}`（SDK 尚未封装）                                                                                           |
+| `POST /v1/purge_media_cache`                           | `media.rs::purge_media_cache`                   | `{deleted}`；⚠️ **`before_ts` 是 query 参数**（后端用 `axum::extract::Query` 读，缺省 `0`），放进请求体会被静默忽略                               |
+| `GET /v1/quarantine_media/{media_id}/changes`          | `media.rs::get_media_quarantine_changes`        | `{changes: [...6 键], total}`；顶层**无** `media_id`（由路径决定）、**无**游标（翻页用末条 `stream_id` 作 `since`）                               |
+| `GET /v1/media/quarantine_changes`                     | `media.rs::get_global_media_quarantine_changes` | `{next_batch, changes: [{origin, media_id, quarantined}]}`（SDK 尚未封装）                                                                        |
+| `POST /v1/media/quarantine/{server_name}/{media_id}`   | `media.rs::quarantine_media`                    | `{changed_by, media_id, quarantined, server_name, stream_id}`                                                                                     |
+| `POST /v1/media/unquarantine/{server_name}/{media_id}` | `media.rs::unquarantine_media`                  | `{changed_by, media_id, quarantined, server_name, stream_id}`                                                                                     |
+| `POST /v1/media/protect/{server_name}/{media_id}`      | `media.rs::protect_media`                       | `{changed_by, media_id, protected, server_name, stream_id}`                                                                                       |
+| `DELETE /v1/media/{media_id}`                          | `media.rs::delete_media`                        | `{}`                                                                                                                                              |
+
+**媒体条目字段（`MediaInfo`）**
+
+| 键               | 出现于                                            |
+| ---------------- | ------------------------------------------------- |
+| `media_id`       | 所有列表 / 详情                                   |
+| `media_type`     | 所有                                              |
+| `upload_name`    | 所有                                              |
+| `created_ts`     | 所有                                              |
+| `last_access_ts` | 仅 `get_all_media` / `get_media_info`             |
+| `media_length`   | 所有（字节数）                                    |
+| `user_id`        | 仅 `get_all_media` / `get_media_info`（上传者）   |
+| `quarantined`    | 仅 `get_all_media` / `get_media_info`（**布尔**） |
+
+> 此前 SDK 声明的 `quarantined_by`（string）后端**从不返回** —— 用它判断隔离状态恒为 `undefined`；
+> 真实键是布尔 `quarantined`。`getMedia()` / `getUserMedia()` 原先返回的 `next_token` 同样是
+> **不存在的键**（后端用 `next_batch`，用户媒体端点连游标都没有），会造成「翻页永远拿到
+> `undefined`、循环在第一页就退出」的静默行为。
+>
+> **隔离变更条目字段（`MediaQuarantineChange`）**：`stream_id` `media_id` `server_name`
+> `change_type`（`"quarantine"` \| `"unquarantine"`）`changed_by` `created_ts`。
+> 原先声明的 `action` / `changed_ts` / `reason` 后端都不返回。

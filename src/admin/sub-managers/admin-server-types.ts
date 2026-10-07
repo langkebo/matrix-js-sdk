@@ -262,28 +262,38 @@ export interface MediaQuotaResponse {
     default_count_limit: number;
 }
 
-/** Response item for GET /quarantine_media/{media_id}/changes — single quarantine change record */
+/**
+ * Response item for `GET /quarantine_media/{media_id}/changes` — single quarantine change record.
+ *
+ * 字段与后端处理器 `synapse-web/src/routes/admin/media.rs::get_media_quarantine_changes`
+ * 逐条对齐（2026-10-07）。此前声明的 `action` / `changed_ts` / `reason` 后端**都不返回**
+ * （真实键是 `change_type` / `created_ts`，且没有 `reason`），而 `stream_id` / `server_name`
+ * 被漏掉了。
+ */
 export interface MediaQuarantineChange {
+    /** 单调递增的流位置；可用作下一次请求的 `since` */
+    stream_id: number;
     /** The media ID the change applies to */
     media_id: string;
-    /** The quarantine action taken: "quarantine" or "unquarantine" */
-    action: "quarantine" | "unquarantine";
+    /** 媒体所属服务器名 */
+    server_name: string;
+    /** The quarantine action taken: `"quarantine"` or `"unquarantine"` */
+    change_type: "quarantine" | "unquarantine";
     /** The user who performed the change */
-    changed_by?: string;
+    changed_by: string;
     /** Timestamp (in milliseconds) when the change occurred */
-    changed_ts?: number;
-    /** Optional reason for the change */
-    reason?: string;
+    created_ts: number;
 }
 
-/** Response for GET /quarantine_media/{media_id}/changes — quarantine change history */
+/**
+ * Response for `GET /quarantine_media/{media_id}/changes` — quarantine change history.
+ *
+ * ⚠️ 顶层**没有** `media_id`（由请求路径决定）、也**没有**游标 —— 后端只返回 `{changes, total}`；
+ * 翻页需把最后一条的 `stream_id` 作为下一次请求的 `since`。
+ */
 export interface MediaQuarantineChangesResponse {
-    /** The media ID the changes belong to */
-    media_id: string;
-    /** List of quarantine change records, oldest-first */
+    /** List of quarantine change records */
     changes: MediaQuarantineChange[];
-    /** Total number of change records (may exceed `changes.length` when paginated) */
-    total?: number;
-    /** Pagination token for the next page, if more results are available */
-    next_token?: string;
+    /** Number of records in this response (后端 `total` = `changes.len()`) */
+    total: number;
 }

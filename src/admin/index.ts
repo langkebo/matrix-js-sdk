@@ -58,6 +58,8 @@ import {
     AdminEvent,
     type DeviceInfo,
     type MediaInfo,
+    type MediaPage,
+    type UserMediaList,
     type RoomStateEvent,
     type RoomMessage,
     type RoomInfo,
@@ -345,7 +347,7 @@ export interface AdminManager {
     whois(userId: string): Promise<WhoisResponse>;
     whoisByDevice(userId: string, deviceId: string): Promise<WhoisResponse>;
     getUserById(userId: string, throwOnError?: boolean): Promise<AdminAccountDetails | null>;
-    getUserMedia(userId: string, from?: string, limit?: number): Promise<{ media: MediaInfo[]; next_token?: string }>;
+    getUserMedia(userId: string, from?: string, limit?: number): Promise<UserMediaList>;
     deleteUserMedia(userId: string): Promise<void>;
     getUserNotification(userId: string): Promise<UserNotificationResponse>;
     setUserNotification(userId: string, payload: UserNotificationPayload): Promise<UserNotificationResponse>;
@@ -507,10 +509,7 @@ export interface AdminManager {
     }): Promise<FederationAdmissionResult>;
 
     // ----- 媒体管理（→ media） -----
-    getMedia(
-        fromOrLimit?: string | number,
-        limitOrFrom?: number | string,
-    ): Promise<{ media: MediaInfo[]; next_token?: string }>;
+    getMedia(fromOrLimit?: string | number, limitOrFrom?: number | string): Promise<MediaPage>;
     getMediaInfo(mediaId: string): Promise<MediaInfo>;
     deleteMedia(mediaId: string): Promise<void>;
     getMediaQuota(): Promise<MediaQuotaResponse>;

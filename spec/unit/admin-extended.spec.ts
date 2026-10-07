@@ -457,13 +457,17 @@ describe("AdminManager - Extended Tests", () => {
                     { media_id: "media1", media_type: "image/png" },
                     { media_id: "media2", media_type: "image/jpeg" },
                 ],
-                next_token: "next",
+                total: 2,
+                next_batch: "next",
             });
 
             const result = await adminManager.getMedia(10, "from");
 
             expect(result.media).toHaveLength(2);
-            expect(result.next_token).toBe("next");
+            // 回归守卫：后端（admin/media.rs::get_all_media）的分页游标键是 next_batch，
+            // 不是 next_token；total 是本页条数（处理器写的是 media_list.len()）。
+            expect(result.next_batch).toBe("next");
+            expect(result.total).toBe(2);
         });
 
         it("should delete media successfully", async () => {
@@ -516,6 +520,16 @@ describe("AdminManager - Extended Tests", () => {
 
             const result = await adminManager.purgeMediaCache(1234567890);
 
+            // 回归守卫：before_ts 必须走 **query**。后端 admin/media.rs::purge_media_cache
+            // 用 axum::extract::Query 读它，读不到就默认 0 —— 放进 body 会被静默忽略，
+            // 调用退化成「清理早于 epoch 的媒体」（＝什么都不删）。
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/purge_media_cache",
+                { before_ts: "1234567890" },
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
             expect(result.deleted).toBe(42);
         });
     });
