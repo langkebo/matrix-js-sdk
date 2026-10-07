@@ -815,6 +815,9 @@ export function extendMatrixClient(): void {
     MatrixClient.prototype.getAdminConfigManager = function (): AdminConfigManager {
         return this.getAdminManager().config;
     };
+    MatrixClient.prototype.getAdminExternalServiceManager = function (): AdminExternalServiceManager {
+        return this.getAdminManager().externalService;
+    };
 
     // 新的 Admin Sub-Managers 便捷访问方法
     MatrixClient.prototype.getAdminCleanupManager = function (): AdminCleanupManager {
