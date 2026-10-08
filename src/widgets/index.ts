@@ -29,7 +29,7 @@ limitations under the License.
  * @see {@link ../widget/index.ts} 新版 WidgetManager
  */
 
-import { ClientPrefix } from "../http-api/prefix";
+import { VendorPrefix } from "../http-api/prefix";
 import { Method } from "../http-api/method";
 import { type Body } from "../http-api/interface";
 import { MatrixClient } from "../client";
@@ -85,7 +85,7 @@ export interface UpdateWidgetBody {
     data?: WidgetMessageData;
 }
 
-/** Response for GET /_matrix/client/v1/widgets/{widgetId}/config */
+/** Response for GET /_matrix/vendor/v1/widgets/{widgetId}/config */
 export interface WidgetConfigResponse {
     widget_id: string;
     room_id: string | null;
@@ -96,7 +96,7 @@ export interface WidgetConfigResponse {
     type: string;
 }
 
-/** Response for GET /_matrix/client/v1/rooms/{roomId}/widgets/jitsi/config */
+/** Response for GET /_matrix/vendor/v1/rooms/{roomId}/widgets/jitsi/config */
 export interface WidgetJitsiConfigResponse {
     conf_id: string;
     name: string;
@@ -105,13 +105,13 @@ export interface WidgetJitsiConfigResponse {
     jwt: string | null;
 }
 
-/** Response for POST /_matrix/client/v1/widgets/{widgetId}/permissions */
+/** Response for POST /_matrix/vendor/v1/widgets/{widgetId}/permissions */
 export interface SetWidgetPermissionResponse {
     success: boolean;
     permission_id: number;
 }
 
-/** Response for GET /_matrix/client/v1/widgets/{widgetId}/permissions */
+/** Response for GET /_matrix/vendor/v1/widgets/{widgetId}/permissions */
 export interface GetWidgetPermissionsResponse {
     permissions: WidgetPermissionItem[];
 }
@@ -140,7 +140,7 @@ export interface WidgetSessionResponse {
     session: WidgetSession;
 }
 
-/** Response for GET /_matrix/client/v1/widgets/{widgetId}/sessions */
+/** Response for GET /_matrix/vendor/v1/widgets/{widgetId}/sessions */
 export interface WidgetSessionsListResponse {
     sessions: WidgetSession[];
     total: number;
@@ -201,30 +201,39 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Widget, false);
     }
 
+    /**
+     * Widget 端点全部是私有扩展，唯一规范位置是 `/_matrix/vendor/v1`（ISSUE-13）。
+     *
+     * 2026-10-09 修正：此前走 `/_matrix/client/v1`，而后端在 Batch 1–3 已把整个 widget
+     * 面迁到 vendor 且**不留 client 别名** ⇒ 这些调用点此前全部 404。
+     * `check-vendor-prefix-migration.mjs` 只看 `PRIVATE_MODULES` 清单里目录的**前缀常
+     * 量**，而这里的路径是内联字面量、模块名也不在清单内，所以长期没有门禁报出来
+     * ——`verify-path-contract.mjs`（本轮已能报出）才是这条链路的有效判据。
+     */
     private doRequest<T>(method: Method, path: string, body?: unknown): Promise<T> {
         return this.request({
             method: method,
             path: path,
             body: body as Body | undefined,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         }) as Promise<T>;
     }
 
-    private doRequestV3<T>(method: Method, path: string, body?: unknown): Promise<T> {
+    private doRequestVendor<T>(method: Method, path: string, body?: unknown): Promise<T> {
         return this.request({
             method: method,
             path: path,
             body: body as Body | undefined,
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         }) as Promise<T>;
     }
 
-    /** POST /_matrix/client/v1/widgets */
+    /** POST /_matrix/vendor/v1/widgets */
     public async createWidget(body: CreateWidgetBody): Promise<WidgetResponse> {
         return this.withRetry(() => this.doRequest<WidgetResponse>(Method.Post, "/widgets", body), "createWidget");
     }
 
-    /** GET /_matrix/client/v1/widgets/{widget_id} */
+    /** GET /_matrix/vendor/v1/widgets/{widget_id} */
     public async getWidgetById(widgetId: string): Promise<WidgetResponse> {
         return this.withRetry(
             () => this.doRequest<WidgetResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}`),
@@ -232,7 +241,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** PUT /_matrix/client/v1/widgets/{widget_id} */
+    /** PUT /_matrix/vendor/v1/widgets/{widget_id} */
     public async updateWidget(widgetId: string, body: UpdateWidgetBody): Promise<WidgetResponse> {
         return this.withRetry(
             () => this.doRequest<WidgetResponse>(Method.Put, `/widgets/${encodeURIComponent(widgetId)}`, body),
@@ -240,7 +249,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** DELETE /_matrix/client/v1/widgets/{widget_id} */
+    /** DELETE /_matrix/vendor/v1/widgets/{widget_id} */
     public async deleteWidget(widgetId: string): Promise<void> {
         await this.withRetry(
             () => this.doRequest<void>(Method.Delete, `/widgets/${encodeURIComponent(widgetId)}`),
@@ -248,7 +257,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v1/widgets/{widget_id}/config */
+    /** GET /_matrix/vendor/v1/widgets/{widget_id}/config */
     public async getWidgetConfig(widgetId: string): Promise<WidgetConfigResponse> {
         return this.withRetry(
             () => this.doRequest<WidgetConfigResponse>(Method.Get, `/widgets/${encodeURIComponent(widgetId)}/config`),
@@ -256,7 +265,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v1/rooms/{room_id}/widgets */
+    /** GET /_matrix/vendor/v1/rooms/{room_id}/widgets */
     public async listRoomWidgets(roomId: string): Promise<{ widgets: Widget[] }> {
         return this.withRetry(
             () => this.doRequest<{ widgets: Widget[] }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/widgets`),
@@ -264,7 +273,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config */
+    /** GET /_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config */
     public async getJitsiConfig(roomId: string): Promise<WidgetJitsiConfigResponse> {
         return this.withRetry(
             () =>
@@ -276,7 +285,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** POST /_matrix/client/v1/widgets/{widget_id}/permissions */
+    /** POST /_matrix/vendor/v1/widgets/{widget_id}/permissions */
     public async setWidgetPermission(
         widgetId: string,
         body: { user_id: string; permissions: string[] },
@@ -292,7 +301,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v1/widgets/{widget_id}/permissions */
+    /** GET /_matrix/vendor/v1/widgets/{widget_id}/permissions */
     public async getWidgetPermissions(widgetId: string): Promise<GetWidgetPermissionsResponse> {
         return this.withRetry(
             () =>
@@ -304,7 +313,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** DELETE /_matrix/client/v1/widgets/{widget_id}/permissions/{user_id} */
+    /** DELETE /_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id} */
     public async deleteWidgetPermission(widgetId: string, userId: string): Promise<void> {
         await this.withRetry(
             () =>
@@ -316,7 +325,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** POST /_matrix/client/v1/widgets/{widget_id}/sessions */
+    /** POST /_matrix/vendor/v1/widgets/{widget_id}/sessions */
     public async createWidgetSession(
         widgetId: string,
         body: { widget_id?: string; device_id?: string; expires_in_ms?: number } = {},
@@ -332,7 +341,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v1/widgets/{widget_id}/sessions */
+    /** GET /_matrix/vendor/v1/widgets/{widget_id}/sessions */
     public async listWidgetSessions(widgetId: string): Promise<WidgetSessionsListResponse> {
         return this.withRetry(
             () =>
@@ -344,7 +353,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v1/widgets/sessions/{session_id} */
+    /** GET /_matrix/vendor/v1/widgets/sessions/{session_id} */
     public async getWidgetSession(sessionId: string): Promise<WidgetSessionResponse> {
         return this.withRetry(
             () =>
@@ -353,7 +362,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** DELETE /_matrix/client/v1/widgets/sessions/{session_id} */
+    /** DELETE /_matrix/vendor/v1/widgets/sessions/{session_id} */
     public async terminateWidgetSession(sessionId: string): Promise<void> {
         await this.withRetry(
             () => this.doRequest<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
@@ -361,7 +370,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** DELETE /_matrix/client/v1/widgets/sessions/{session_id} (alias for terminateWidgetSession) */
+    /** DELETE /_matrix/vendor/v1/widgets/sessions/{session_id} (alias for terminateWidgetSession) */
     public async deleteWidgetSession(sessionId: string): Promise<void> {
         await this.withRetry(
             () => this.doRequest<void>(Method.Delete, `/widgets/sessions/${encodeURIComponent(sessionId)}`),
@@ -369,13 +378,13 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** GET /_matrix/client/v3/rooms/{roomId}/widgets/{widgetId}/capabilities */
+    /** GET /_matrix/vendor/v1/rooms/{roomId}/widgets/{widgetId}/capabilities */
     public async getWidgetCapabilities(roomId: string, widgetId: string): Promise<WidgetCapabilitiesResponse> {
         this.requireNonEmptyString(roomId, "roomId");
         this.requireNonEmptyString(widgetId, "widgetId");
         return this.withRetry(
             () =>
-                this.doRequestV3<WidgetCapabilitiesResponse>(
+                this.doRequestVendor<WidgetCapabilitiesResponse>(
                     Method.Get,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
                 ),
@@ -383,7 +392,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** PUT /_matrix/client/v3/rooms/{roomId}/widgets/{widgetId}/capabilities */
+    /** PUT /_matrix/vendor/v1/rooms/{roomId}/widgets/{widgetId}/capabilities */
     public async updateWidgetCapabilities(
         roomId: string,
         widgetId: string,
@@ -393,7 +402,7 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         this.requireNonEmptyString(widgetId, "widgetId");
         return this.withRetry(
             () =>
-                this.doRequestV3<WidgetCapabilitiesResponse>(
+                this.doRequestVendor<WidgetCapabilitiesResponse>(
                     Method.Put,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`,
                     capabilities,
@@ -402,13 +411,13 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** POST /_matrix/client/v3/rooms/{roomId}/widgets/{widgetId}/send */
+    /** POST /_matrix/vendor/v1/rooms/{roomId}/widgets/{widgetId}/send */
     public async sendWidgetMessage(roomId: string, widgetId: string, message: unknown): Promise<WidgetMessageResponse> {
         this.requireNonEmptyString(roomId, "roomId");
         this.requireNonEmptyString(widgetId, "widgetId");
         return this.withRetry(
             () =>
-                this.doRequestV3<WidgetMessageResponse>(
+                this.doRequestVendor<WidgetMessageResponse>(
                     Method.Post,
                     `/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`,
                     message,
@@ -417,10 +426,16 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** POST /_matrix/client/v3/widgets/create */
+    /**
+     * ⚠️ 后端 ledger 中**不存在** `/_matrix/vendor/v1/widgets/create` 这个端点。
+     *
+     * `createWidget()` 已覆盖 vendor 的 `POST /_matrix/vendor/v1/widgets`；本方法保留是
+     * 为了不改公开 API。该调用点已登记在 `scripts/quality/path-contract-waivers.json`
+     * （category: `backend-missing`），在产品决定合并或移除前不要依赖它。
+     */
     public async createWidgetV3(body: CreateWidgetV3Body): Promise<CreateWidgetV3Response> {
         return this.withRetry(
-            () => this.doRequestV3<CreateWidgetV3Response>(Method.Post, "/widgets/create", body),
+            () => this.doRequestVendor<CreateWidgetV3Response>(Method.Post, "/widgets/create", body),
             "createWidgetV3",
         );
     }

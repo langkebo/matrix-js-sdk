@@ -1,7 +1,7 @@
 ---
 module: thirdparty
 generated_from: docs/api-contract/generated/modules/thirdparty.json
-generated_hash: sha256-bb48f9bf6dd520471ed32b91dfde9ea0b0b12a97289665175772ffd209505525
+generated_hash: sha256-2ae670f95d8fc0705df554d5522ca7cbf57afb06840194fd57182d09caac6698
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

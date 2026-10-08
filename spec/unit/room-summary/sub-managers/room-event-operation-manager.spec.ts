@@ -24,6 +24,7 @@ import type { RoomSummary } from "../../../../src/room-summary/types";
 const ROOM_ID = "!room:test";
 const ENCODED_ROOM_ID = "!room%3Atest";
 const V3_PREFIX = { prefix: "/_matrix/client/v3" };
+const MSC4354_PREFIX = { prefix: "/_matrix/client/unstable/org.matrix.msc4354" };
 const INTERNAL_PREFIX = { prefix: "/_synapse/room_summary/v1" };
 
 describe("RoomSummaryEventOperationManager", () => {
@@ -184,12 +185,16 @@ describe("RoomSummaryEventOperationManager", () => {
 
                 await invoke();
 
+                // sticky events 自 2026-10 起归位 MSC4354 unstable 前缀（后端 5a8e44534），
+                // 其余同族端点仍是 client v3。
+                const expectedPrefix = path.endsWith("/sticky_events") ? MSC4354_PREFIX : V3_PREFIX;
+
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                     "GET",
                     path,
                     undefined,
                     undefined,
-                    V3_PREFIX,
+                    expectedPrefix,
                 );
             });
         }
@@ -531,7 +536,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/sticky_events`,
                 undefined,
                 { event_type: "m.sticky", content: { a: 1 } },
-                V3_PREFIX,
+                MSC4354_PREFIX,
             );
             expect(onCacheInvalidation).toHaveBeenCalledWith(ROOM_ID);
         });
@@ -546,7 +551,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/sticky_events/m.sticky`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                MSC4354_PREFIX,
             );
             expect(onCacheInvalidation).toHaveBeenCalledWith(ROOM_ID);
         });

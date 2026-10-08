@@ -31,16 +31,25 @@ import { InvalidParamError } from "../common/errors";
 import { validateUserId, validateRoomId } from "../common/validators";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import type { WidgetPath } from "./__generated__/route-table";
-import type { PathAssert, StripV1, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripVendor } from "../http-api/strip-prefix";
+import { VendorPrefix } from "../http-api/prefix";
 
-const WIDGET_PREFIX_V1 = "/_matrix/client/v1";
-const WIDGET_PREFIX_V3 = "/_matrix/client/v3";
+/**
+ * Widget 面在 Batch 1–3 已整体归位 `/_matrix/vendor/v1`，后端**不留 client 别名**。
+ * 2026-10-09 修正：本模块此前用 `WIDGET_PREFIX_VENDOR` / `WIDGET_PREFIX_VENDOR`（client 前缀），
+ * 因此其全部调用点在真实后端上都会 404。之所以长期没被 `verify-path-contract.mjs`
+ * 报出来：前缀是**模块内常量**、路径经 `wpv()` 恒等助手包装，两者都不在门禁的
+ * 前缀声明表里 —— 与 `src/widgets/`（旧层）、`src/thread{,ing}/` 属同一类盲区。
+ */
+const WIDGET_PREFIX_VENDOR = VendorPrefix;
 
-function wp<const P extends string>(path: P & PathAssert<P, StripV1<WidgetPath>>): P {
-    return path;
-}
-
-function wpV3<const P extends string>(path: P & PathAssert<P, StripV3<WidgetPath>>): P {
+/**
+ * vendor（`/_matrix/vendor/v1`）前缀下的路径断言。
+ *
+ * 不能用 `StripV1<WidgetPath>`：`WidgetPath` 是**只增不减**的并集（codegen 的
+ * "既有条目 ∪ ledger"），残留的 v1 条目会让断言静默通过一个后端已不注册的路径。
+ */
+function wpv<const P extends string>(path: P & PathAssert<P, StripVendor<WidgetPath>>): P {
     return path;
 }
 
@@ -151,17 +160,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取房间内所有小组件
-     * GET /_matrix/client/v1/rooms/{room_id}/widgets
+     * GET /_matrix/vendor/v1/rooms/{room_id}/widgets
      */
     async getRoomWidgets(roomId: string): Promise<IWidgetsListResponse> {
         validateRoomId(roomId);
-        const path = wp(`/rooms/${encodeURIComponent(roomId)}/widgets`);
+        const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets`);
         return this.withRetry(
             () =>
                 this.request<IWidgetsListResponse>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getRoomWidgets",
         );
@@ -169,17 +178,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取房间 Jitsi 配置
-     * GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config
+     * GET /_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config
      */
     async getJitsiConfig(roomId: string): Promise<IJitsiConfig> {
         validateRoomId(roomId);
-        const path = wp(`/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`);
+        const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`);
         return this.withRetry(
             () =>
                 this.request<IJitsiConfig>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getJitsiConfig",
         );
@@ -189,7 +198,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 创建小组件
-     * POST /_matrix/client/v1/widgets
+     * POST /_matrix/vendor/v1/widgets
      */
     async createWidget(body: {
         room_id?: string;
@@ -201,14 +210,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         if (!body.widget_type) throw new InvalidParamError("widget_type is required");
         if (!body.url) throw new InvalidParamError("url is required");
         if (!body.name) throw new InvalidParamError("name is required");
-        const path = wp("/widgets");
+        const path = wpv("/widgets");
         return this.withRetry(
             () =>
                 this.request<IWidgetResponse>({
                     method: Method.Post,
                     path,
                     body,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "createWidget",
         );
@@ -216,17 +225,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取小组件详情
-     * GET /_matrix/client/v1/widgets/{widget_id}
+     * GET /_matrix/vendor/v1/widgets/{widget_id}
      */
     async getWidget(widgetId: string): Promise<IWidgetResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}`);
         return this.withRetry(
             () =>
                 this.request<IWidgetResponse>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getWidget",
         );
@@ -234,21 +243,21 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 更新小组件
-     * PUT /_matrix/client/v1/widgets/{widget_id}
+     * PUT /_matrix/vendor/v1/widgets/{widget_id}
      */
     async updateWidget(
         widgetId: string,
         body: { url?: string; name?: string; data?: Record<string, unknown> },
     ): Promise<IWidgetResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}`);
         return this.withRetry(
             () =>
                 this.request<IWidgetResponse>({
                     method: Method.Put,
                     path,
                     body,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "updateWidget",
         );
@@ -256,17 +265,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 删除小组件
-     * DELETE /_matrix/client/v1/widgets/{widget_id}
+     * DELETE /_matrix/vendor/v1/widgets/{widget_id}
      */
     async deleteWidget(widgetId: string): Promise<void> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}`);
         await this.withRetry(
             () =>
                 this.request<void>({
                     method: Method.Delete,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "deleteWidget",
         );
@@ -276,17 +285,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取小组件配置
-     * GET /_matrix/client/v1/widgets/{widget_id}/config
+     * GET /_matrix/vendor/v1/widgets/{widget_id}/config
      */
     async getWidgetConfig(widgetId: string): Promise<IWidgetConfig> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/config`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/config`);
         return this.withRetry(
             () =>
                 this.request<IWidgetConfig>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getWidgetConfig",
         );
@@ -296,17 +305,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取小组件权限列表
-     * GET /_matrix/client/v1/widgets/{widget_id}/permissions
+     * GET /_matrix/vendor/v1/widgets/{widget_id}/permissions
      */
     async getWidgetPermissions(widgetId: string): Promise<IWidgetPermissionListResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/permissions`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/permissions`);
         return this.withRetry(
             () =>
                 this.request<IWidgetPermissionListResponse>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getWidgetPermissions",
         );
@@ -314,7 +323,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 设置小组件权限
-     * POST /_matrix/client/v1/widgets/{widget_id}/permissions
+     * POST /_matrix/vendor/v1/widgets/{widget_id}/permissions
      */
     async setWidgetPermissions(
         widgetId: string,
@@ -325,14 +334,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         if (!body.permissions || body.permissions.length === 0) {
             throw new InvalidParamError("permissions must be a non-empty array");
         }
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/permissions`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/permissions`);
         return this.withRetry(
             () =>
                 this.request<{ success: boolean; permission_id: number }>({
                     method: Method.Post,
                     path,
                     body,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "setWidgetPermissions",
         );
@@ -340,19 +349,19 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 移除用户的小组件权限
-     * DELETE /_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}
+     * DELETE /_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}
      */
     async removeWidgetPermission(widgetId: string, userId: string): Promise<void> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
         if (!userId) throw new InvalidParamError("user_id is required");
         validateUserId(userId);
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`);
         await this.withRetry(
             () =>
                 this.request<void>({
                     method: Method.Delete,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "removeWidgetPermission",
         );
@@ -362,17 +371,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取小组件的所有会话
-     * GET /_matrix/client/v1/widgets/{widget_id}/sessions
+     * GET /_matrix/vendor/v1/widgets/{widget_id}/sessions
      */
     async getWidgetSessions(widgetId: string): Promise<IWidgetSessionsListResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/sessions`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/sessions`);
         return this.withRetry(
             () =>
                 this.request<IWidgetSessionsListResponse>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getWidgetSessions",
         );
@@ -380,21 +389,21 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 创建小组件会话
-     * POST /_matrix/client/v1/widgets/{widget_id}/sessions
+     * POST /_matrix/vendor/v1/widgets/{widget_id}/sessions
      */
     async createWidgetSession(
         widgetId: string,
         body?: { device_id?: string; expires_in_ms?: number },
     ): Promise<IWidgetSessionResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wp(`/widgets/${encodeURIComponent(widgetId)}/sessions`);
+        const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/sessions`);
         return this.withRetry(
             () =>
                 this.request<IWidgetSessionResponse>({
                     method: Method.Post,
                     path,
                     body: body ?? {},
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "createWidgetSession",
         );
@@ -402,17 +411,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取小组件会话详情
-     * GET /_matrix/client/v1/widgets/sessions/{session_id}
+     * GET /_matrix/vendor/v1/widgets/sessions/{session_id}
      */
     async getWidgetSession(sessionId: string): Promise<IWidgetSessionResponse> {
         if (!sessionId) throw new InvalidParamError("session_id is required");
-        const path = wp(`/widgets/sessions/${encodeURIComponent(sessionId)}`);
+        const path = wpv(`/widgets/sessions/${encodeURIComponent(sessionId)}`);
         return this.withRetry(
             () =>
                 this.request<IWidgetSessionResponse>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getWidgetSession",
         );
@@ -420,17 +429,17 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 删除小组件会话
-     * DELETE /_matrix/client/v1/widgets/sessions/{session_id}
+     * DELETE /_matrix/vendor/v1/widgets/sessions/{session_id}
      */
     async deleteWidgetSession(sessionId: string): Promise<void> {
         if (!sessionId) throw new InvalidParamError("session_id is required");
-        const path = wp(`/widgets/sessions/${encodeURIComponent(sessionId)}`);
+        const path = wpv(`/widgets/sessions/${encodeURIComponent(sessionId)}`);
         await this.withRetry(
             () =>
                 this.request<void>({
                     method: Method.Delete,
                     path,
-                    prefix: WIDGET_PREFIX_V1,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "deleteWidgetSession",
         );
@@ -440,18 +449,18 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 获取小组件能力
-     * GET /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities
+     * GET /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities
      */
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
         validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wpV3(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);
+        const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);
         return this.withRetry(
             () =>
                 this.request<IWidgetCapabilities>({
                     method: Method.Get,
                     path,
-                    prefix: WIDGET_PREFIX_V3,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "getWidgetCapabilities",
         );
@@ -459,7 +468,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 设置小组件能力
-     * PUT /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities
+     * PUT /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities
      */
     async setWidgetCapabilities(
         roomId: string,
@@ -471,14 +480,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         if (!capabilities || capabilities.length === 0) {
             throw new InvalidParamError("capabilities must be a non-empty array");
         }
-        const path = wpV3(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);
+        const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);
         return this.withRetry(
             () =>
                 this.request<IWidgetCapabilities>({
                     method: Method.Put,
                     path,
                     body: { capabilities },
-                    prefix: WIDGET_PREFIX_V3,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "setWidgetCapabilities",
         );
@@ -486,7 +495,7 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 发送小组件事件
-     * POST /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send
+     * POST /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send
      */
     async sendWidgetEvent(
         roomId: string,
@@ -495,14 +504,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     ): Promise<IWidgetSendResponse> {
         validateRoomId(roomId);
         if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wpV3(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`);
+        const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`);
         return this.withRetry(
             () =>
                 this.request<IWidgetSendResponse>({
                     method: Method.Post,
                     path,
                     body: message,
-                    prefix: WIDGET_PREFIX_V3,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "sendWidgetEvent",
         );
@@ -510,7 +519,10 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
 
     /**
      * 创建小组件（v3 端点）
-     * POST /_matrix/client/v3/widgets/create
+     *
+     * ⚠️ 后端 ledger 中**不存在** `/_matrix/vendor/v1/widgets/create`。与
+     * `src/widgets/index.ts` 的同名方法一样属于后端未实现的超前封装，已登记在
+     * `scripts/quality/path-contract-waivers.json`（category: `backend-missing`）。
      */
     async createWidgetV3(body: {
         room_id?: string;
@@ -521,14 +533,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     }): Promise<IWidgetResponse> {
         if (!body.widget_type) throw new InvalidParamError("widget_type is required");
         if (!body.url) throw new InvalidParamError("url is required");
-        const path = wpV3("/widgets/create");
+        const path = wpv("/widgets/create");
         return this.withRetry(
             () =>
                 this.request<IWidgetResponse>({
                     method: Method.Post,
                     path,
                     body,
-                    prefix: WIDGET_PREFIX_V3,
+                    prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "createWidgetV3",
         );

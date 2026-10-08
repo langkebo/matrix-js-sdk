@@ -1,14 +1,14 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
+  "synapse_rust_commit": "5a8e44534d5bfec86196ba82e9bcb676679bdd0c",
   "state_profile": "all",
   "profile_flags": {
     "oidc_enabled": true,
     "worker_enabled": true,
     "saml_enabled": true
   },
-  "entry_count": 1159,
+  "entry_count": 1034,
   "entries": [
     {
       "method": "GET",
@@ -57,47 +57,6 @@
       "path": "/_health",
       "registered_by": "assembly::create_router",
       "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/admin/v1/external_services",
-      "registered_by": "external_service",
-      "path_params": [],
-      "query_params": [
-        "service_type"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/admin/v1/external_services",
-      "registered_by": "external_service",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/admin/v1/external_services/health",
-      "registered_by": "external_service",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/admin/v1/external_services/{as_id}",
-      "registered_by": "external_service",
-      "path_params": [
-        "as_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/admin/v1/external_services/{as_id}",
-      "registered_by": "external_service",
-      "path_params": [
-        "as_id"
-      ],
       "query_params": []
     },
     {
@@ -362,6 +321,34 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events/{event_type}",
+      "registered_by": "room",
+      "path_params": [
+        "room_id",
+        "event_type"
+      ],
+      "query_params": []
+    },
+    {
       "method": "POST",
       "path": "/_matrix/client/unstable/org.matrix.simplified_msc3575/sync",
       "registered_by": "sliding_sync",
@@ -525,289 +512,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/external_services/health",
-      "registered_by": "external_service",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/external_services/{service_id}",
-      "registered_by": "external_service",
-      "path_params": [
-        "service_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/external_services/{service_id}",
-      "registered_by": "external_service",
-      "path_params": [
-        "service_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "from",
-        "limit",
-        "offset",
-        "sort_by"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/check/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/dm/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/dm/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/groups",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/groups",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/friends/groups/{group_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "group_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/groups/{group_id}/add/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "group_id",
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/groups/{group_id}/friends",
-      "registered_by": "friend_room",
-      "path_params": [
-        "group_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/friends/groups/{group_id}/name",
-      "registered_by": "friend_room",
-      "path_params": [
-        "group_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/friends/groups/{group_id}/remove/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "group_id",
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/request",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/request/received",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/request/{user_id}/accept",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/request/{user_id}/cancel",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/request/{user_id}/reject",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/requests/incoming",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/requests/outgoing",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/search",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "limit",
-        "mode",
-        "q",
-        "query"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/friends/search",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "limit",
-        "mode",
-        "q",
-        "query"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/suggestions",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "limit"
-      ]
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/friends/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/friends/{user_id}/displayname",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/{user_id}/groups",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/{user_id}/info",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/friends/{user_id}/note",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/friends/{user_id}/status",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/friends/{user_id}/status",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v1/keys/changes",
       "registered_by": "e2ee",
       "path_params": [],
@@ -837,78 +541,6 @@
     {
       "method": "POST",
       "path": "/_matrix/client/v1/keys/query",
-      "registered_by": "e2ee",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/keys/rotation/check",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/keys/rotation/check",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/keys/rotation/config",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/keys/rotation/config",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/keys/rotation/history/{device_id}",
-      "registered_by": "key_rotation",
-      "path_params": [
-        "device_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/keys/rotation/revoke",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/keys/rotation/rotate",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/keys/rotation/status",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/keys/rotation/status",
-      "registered_by": "key_rotation",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/keys/signatures",
       "registered_by": "e2ee",
       "path_params": [],
       "query_params": []
@@ -1524,13 +1156,6 @@
       "query_params": []
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/create_private",
-      "registered_by": "room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}",
       "registered_by": "relations",
@@ -1538,53 +1163,6 @@
         "room_id",
         "event_id",
         "rel_type"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/burn",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/rooms/{room_id}/burn",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/burn/pending",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/rooms/{room_id}/burn/{event_id}",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/burn/{event_id}",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id",
-        "event_id"
       ],
       "query_params": []
     },
@@ -1672,37 +1250,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
       "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}",
-      "registered_by": "moderation",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info",
-      "registered_by": "moderation",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/rooms/{room_id}/report/{event_id}/score",
       "registered_by": "moderation",
       "path_params": [
         "room_id",
@@ -1751,46 +1299,6 @@
       ]
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/search",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": [
-        "limit",
-        "q"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/unread",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "thread_id"
-      ],
-      "query_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}",
       "registered_by": "thread",
@@ -1802,36 +1310,6 @@
         "include_replies",
         "reply_limit"
       ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/freeze",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "thread_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/mute",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "thread_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/read",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "thread_id"
-      ],
-      "query_params": []
     },
     {
       "method": "GET",
@@ -1858,28 +1336,8 @@
       "query_params": []
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/stats",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "thread_id"
-      ],
-      "query_params": []
-    },
-    {
       "method": "POST",
       "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe",
-      "registered_by": "thread",
-      "path_params": [
-        "room_id",
-        "thread_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unfreeze",
       "registered_by": "thread",
       "path_params": [
         "room_id",
@@ -1907,24 +1365,6 @@
       "query_params": []
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/widgets",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
       "method": "POST",
       "path": "/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}",
       "registered_by": "e2ee",
@@ -1941,123 +1381,6 @@
       "path_params": [
         "event_type",
         "transaction_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/spaces",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/public",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/room/{room_id}",
-      "registered_by": "space",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/room/{room_id}/parents",
-      "registered_by": "space",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/search",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": [
-        "limit",
-        "query",
-        "search_term"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/statistics",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": [
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/user",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/spaces/{space_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/spaces/{space_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/children",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/spaces/{space_id}/children",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/spaces/{space_id}/children/{room_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id",
-        "room_id"
       ],
       "query_params": []
     },
@@ -2088,93 +1411,6 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v1/spaces/{space_id}/invite",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/spaces/{space_id}/join",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/spaces/{space_id}/leave",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/members",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/rooms",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/state",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/summary",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/summary/with_children",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/spaces/{space_id}/tree_path",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
       "path": "/_matrix/client/v1/sync",
       "registered_by": "sliding_sync",
       "path_params": [],
@@ -2186,220 +1422,10 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/threads",
-      "registered_by": "thread",
-      "path_params": [],
-      "query_params": [
-        "from",
-        "include_all",
-        "limit"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/threads",
-      "registered_by": "thread",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/threads/subscribed",
-      "registered_by": "thread",
-      "path_params": [],
-      "query_params": [
-        "from",
-        "include_all",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/threads/unread",
-      "registered_by": "thread",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/user/burn/config",
-      "registered_by": "burn_after_read",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/user/burn/stats",
-      "registered_by": "burn_after_read",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/user/mutual_rooms",
-      "registered_by": "room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v1/user/{user_id}/appservice",
       "registered_by": "app_service",
       "path_params": [
         "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/voice/config",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/voice/register",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/voice/room/{room_id}/stats",
-      "registered_by": "voice",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/voice/stats",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/voice/upload",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/voice/user/{user_id}/stats",
-      "registered_by": "voice",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/widgets",
-      "registered_by": "widget",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/widgets/sessions/{session_id}",
-      "registered_by": "widget",
-      "path_params": [
-        "session_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/widgets/sessions/{session_id}",
-      "registered_by": "widget",
-      "path_params": [
-        "session_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/widgets/{widget_id}",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v1/widgets/{widget_id}",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/config",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/permissions",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/permissions",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id",
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/sessions",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/sessions",
-      "registered_by": "widget",
-      "path_params": [
-        "widget_id"
       ],
       "query_params": []
     },
@@ -2560,13 +1586,6 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/create_dm",
-      "registered_by": "dm",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
       "path": "/_matrix/client/v3/delete_devices",
       "registered_by": "device",
       "path_params": [],
@@ -2603,22 +1622,6 @@
       "registered_by": "device",
       "path_params": [
         "device_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/direct",
-      "registered_by": "dm",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/direct/{room_id}",
-      "registered_by": "dm",
-      "path_params": [
-        "room_id"
       ],
       "query_params": []
     },
@@ -2702,72 +1705,6 @@
       "registered_by": "sync",
       "path_params": [],
       "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/friends",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "from",
-        "limit",
-        "offset",
-        "sort_by"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/friends",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/friends/check/{user_id}",
-      "registered_by": "friend_room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/friends/requests/incoming",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/friends/requests/outgoing",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/friends/search",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "limit",
-        "mode",
-        "q",
-        "query"
-      ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/friends/search",
-      "registered_by": "friend_room",
-      "path_params": [],
-      "query_params": [
-        "limit",
-        "mode",
-        "q",
-        "query"
-      ]
     },
     {
       "method": "POST",
@@ -2901,13 +1838,6 @@
     {
       "method": "POST",
       "path": "/_matrix/client/v3/keys/query",
-      "registered_by": "e2ee",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/keys/signatures",
       "registered_by": "e2ee",
       "path_params": [],
       "query_params": []
@@ -3061,13 +1991,6 @@
       "method": "GET",
       "path": "/_matrix/client/v3/media/config",
       "registered_by": "assembly::media_config",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/my_rooms",
-      "registered_by": "sync",
       "path_params": [],
       "query_params": []
     },
@@ -3277,36 +2200,6 @@
       "method": "POST",
       "path": "/_matrix/client/v3/publicRooms",
       "registered_by": "assembly::directory_compat",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/push/devices",
-      "registered_by": "push_notification",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/push/devices",
-      "registered_by": "push_notification",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/push/devices/{device_id}",
-      "registered_by": "push_notification",
-      "path_params": [
-        "device_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/push/send",
-      "registered_by": "push_notification",
       "path_params": [],
       "query_params": []
     },
@@ -3974,53 +2867,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/burn",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/burn",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/burn/pending",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/burn/{event_id}",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/burn/{event_id}",
-      "registered_by": "burn_after_read",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/rooms/{room_id}/call/{call_id}",
       "registered_by": "assembly::voip_tracking",
       "path_params": [
@@ -4065,24 +2911,6 @@
       "path_params": [
         "room_id",
         "device_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/dm",
-      "registered_by": "dm",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/dm/partner",
-      "registered_by": "dm",
-      "path_params": [
-        "room_id"
       ],
       "query_params": []
     },
@@ -4373,34 +3201,6 @@
       "query_params": []
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/pinned_events",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/pinned_events",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/pinned_events/{event_id}",
-      "registered_by": "room",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
       "method": "POST",
       "path": "/_matrix/client/v3/rooms/{room_id}/read_markers",
       "registered_by": "room",
@@ -4546,16 +3346,6 @@
     {
       "method": "POST",
       "path": "/_matrix/client/v3/rooms/{room_id}/report/{event_id}",
-      "registered_by": "moderation",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/report/{event_id}/score",
       "registered_by": "moderation",
       "path_params": [
         "room_id",
@@ -4800,184 +3590,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events",
-      "registered_by": "room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}",
-      "registered_by": "room",
-      "path_params": [
-        "room_id",
-        "event_type"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id",
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id",
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id",
-        "event_type",
-        "state_key"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id",
-        "event_type",
-        "state_key"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/stats",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/sync",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/unread/clear",
-      "registered_by": "room_summary",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/rooms/{room_id}/sync",
       "registered_by": "room",
       "path_params": [
@@ -4988,16 +3600,6 @@
         "since",
         "timeout"
       ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/thread/{event_id}",
-      "registered_by": "room",
-      "path_params": [
-        "room_id",
-        "event_id"
-      ],
-      "query_params": []
     },
     {
       "method": "GET",
@@ -5160,36 +3762,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id",
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id",
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id",
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/saml/metadata",
       "registered_by": "saml",
       "path_params": [],
@@ -5211,20 +3783,6 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/search_recipients",
-      "registered_by": "search",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/search_rooms",
-      "registered_by": "search",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
       "path": "/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}",
       "registered_by": "e2ee",
       "path_params": [
@@ -5240,123 +3798,6 @@
       "path_params": [
         "event_type",
         "transaction_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/spaces",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/public",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/room/{room_id}",
-      "registered_by": "space",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/room/{room_id}/parents",
-      "registered_by": "space",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/search",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": [
-        "limit",
-        "query",
-        "search_term"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/statistics",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": [
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/user",
-      "registered_by": "space",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/spaces/{space_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/spaces/{space_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/children",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/spaces/{space_id}/children",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/v3/spaces/{space_id}/children/{room_id}",
-      "registered_by": "space",
-      "path_params": [
-        "space_id",
-        "room_id"
       ],
       "query_params": []
     },
@@ -5384,93 +3825,6 @@
         "max_depth",
         "suggested_only"
       ]
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/spaces/{space_id}/invite",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/spaces/{space_id}/join",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/spaces/{space_id}/leave",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/members",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/rooms",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/state",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/summary",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/summary/with_children",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/spaces/{space_id}/tree_path",
-      "registered_by": "space",
-      "path_params": [
-        "space_id"
-      ],
-      "query_params": []
     },
     {
       "method": "GET",
@@ -5548,13 +3902,6 @@
       ]
     },
     {
-      "method": "POST",
-      "path": "/_matrix/client/v3/translate",
-      "registered_by": "room",
-      "path_params": [],
-      "query_params": []
-    },
-    {
       "method": "GET",
       "path": "/_matrix/client/v3/upload/provider",
       "registered_by": "assembly::upload_provider",
@@ -5565,20 +3912,6 @@
       "method": "POST",
       "path": "/_matrix/client/v3/upload/token",
       "registered_by": "assembly::upload_provider",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/user/burn/config",
-      "registered_by": "burn_after_read",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/user/burn/stats",
-      "registered_by": "burn_after_read",
       "path_params": [],
       "query_params": []
     },
@@ -5688,15 +4021,6 @@
       "query_params": []
     },
     {
-      "method": "GET",
-      "path": "/_matrix/client/v3/user/{user_id}/rooms",
-      "registered_by": "room",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
       "method": "DELETE",
       "path": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}",
       "registered_by": "account_data",
@@ -5774,20 +4098,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads",
-      "registered_by": "thread",
-      "path_params": [
-        "user_id",
-        "room_id"
-      ],
-      "query_params": [
-        "from",
-        "include_all",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/user/{user_id}/tags",
       "registered_by": "tags",
       "path_params": [
@@ -5836,112 +4146,6 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/voice/config",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/voice/register",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/voice/room/{room_id}",
-      "registered_by": "voice",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/voice/room/{room_id}/stats",
-      "registered_by": "voice",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/voice/stats",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/voice/upload",
-      "registered_by": "voice",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/voice/user/{user_id}",
-      "registered_by": "voice",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": [
-        "from",
-        "limit"
-      ]
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/voice/user/{user_id}/stats",
-      "registered_by": "voice",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/voice/{media_id}",
-      "registered_by": "voice",
-      "path_params": [
-        "media_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/voice/{media_id}/convert",
-      "registered_by": "voice",
-      "path_params": [
-        "media_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/voice/{media_id}/optimize",
-      "registered_by": "voice",
-      "path_params": [
-        "media_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/voice/{media_id}/transcription",
-      "registered_by": "voice",
-      "path_params": [
-        "media_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_matrix/client/v3/voip/config",
       "registered_by": "assembly::voip_compat",
       "path_params": [],
@@ -5965,13 +4169,6 @@
       "method": "GET",
       "path": "/_matrix/client/v3/voip/turnServer/guest",
       "registered_by": "assembly::voip_compat",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/widgets/create",
-      "registered_by": "widget",
       "path_params": [],
       "query_params": []
     },
@@ -6709,6 +4906,29 @@
       "query_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/create_dm",
+      "registered_by": "dm",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/direct",
+      "registered_by": "dm",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/direct/{room_id}",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_matrix/vendor/v1/external_services/health",
       "registered_by": "external_service",
@@ -7065,6 +5285,36 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/vendor/v1/push/devices",
+      "registered_by": "push_notification",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/push/devices",
+      "registered_by": "push_notification",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/push/devices/{device_id}",
+      "registered_by": "push_notification",
+      "path_params": [
+        "device_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/push/send",
+      "registered_by": "push_notification",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/burn",
       "registered_by": "burn_after_read",
       "path_params": [
@@ -7112,6 +5362,24 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/dm",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/dm/partner",
+      "registered_by": "dm",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist",
       "registered_by": "invite_blocklist",
       "path_params": [
@@ -7147,6 +5415,34 @@
       "query_params": []
     },
     {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/pinned_events",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/pinned_events",
+      "registered_by": "room",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/pinned_events/{event_id}",
+      "registered_by": "room",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/vendor/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{txn_id}",
       "registered_by": "relations",
@@ -7155,6 +5451,334 @@
         "event_id",
         "rel_type",
         "txn_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/replies/{event_id}/redact",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/score",
+      "registered_by": "moderation",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/heroes/recalculate",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/state",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "state_key"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "state_key"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/stats",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/stats/recalculate",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/sync",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/unread/clear",
+      "registered_by": "room_summary",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/thread/{event_id}",
+      "registered_by": "room",
+      "path_params": [
+        "room_id",
+        "event_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/search",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": [
+        "limit",
+        "q"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/unread",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "thread_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "thread_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "thread_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "thread_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/stats",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "thread_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze",
+      "registered_by": "thread",
+      "path_params": [
+        "room_id",
+        "thread_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id",
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id",
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id",
+        "widget_id"
       ],
       "query_params": []
     },
@@ -7173,6 +5797,253 @@
       "query_params": []
     },
     {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/spaces",
+      "registered_by": "space",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/public",
+      "registered_by": "space",
+      "path_params": [],
+      "query_params": [
+        "from",
+        "limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/room/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/room/{room_id}/parents",
+      "registered_by": "space",
+      "path_params": [
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/search",
+      "registered_by": "space",
+      "path_params": [],
+      "query_params": [
+        "limit",
+        "query",
+        "search_term"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/statistics",
+      "registered_by": "space",
+      "path_params": [],
+      "query_params": [
+        "limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/user",
+      "registered_by": "space",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/children/{room_id}",
+      "registered_by": "space",
+      "path_params": [
+        "space_id",
+        "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/invite",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/join",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/leave",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/members",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": [
+        "from",
+        "limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/rooms",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": [
+        "from",
+        "limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/state",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/summary",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/summary/with_children",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/spaces/{space_id}/tree_path",
+      "registered_by": "space",
+      "path_params": [
+        "space_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/threads",
+      "registered_by": "thread",
+      "path_params": [],
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/threads",
+      "registered_by": "thread",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/threads/subscribed",
+      "registered_by": "thread",
+      "path_params": [],
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/threads/unread",
+      "registered_by": "thread",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/translate",
+      "registered_by": "room",
+      "path_params": [],
+      "query_params": []
+    },
+    {
       "method": "PUT",
       "path": "/_matrix/vendor/v1/user/burn/config",
       "registered_by": "burn_after_read",
@@ -7185,6 +6056,36 @@
       "registered_by": "burn_after_read",
       "path_params": [],
       "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/user/mutual_rooms",
+      "registered_by": "room",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/user/{user_id}/rooms",
+      "registered_by": "room",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/user/{user_id}/rooms/{room_id}/threads",
+      "registered_by": "thread",
+      "path_params": [
+        "user_id",
+        "room_id"
+      ],
+      "query_params": [
+        "from",
+        "include_all",
+        "limit"
+      ]
     },
     {
       "method": "GET",
@@ -7289,6 +6190,113 @@
       "registered_by": "voice",
       "path_params": [
         "media_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/widgets",
+      "registered_by": "widget",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/widgets/sessions/{session_id}",
+      "registered_by": "widget",
+      "path_params": [
+        "session_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/widgets/sessions/{session_id}",
+      "registered_by": "widget",
+      "path_params": [
+        "session_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/config",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/permissions",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/permissions",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id",
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/sessions",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/sessions",
+      "registered_by": "widget",
+      "path_params": [
+        "widget_id"
       ],
       "query_params": []
     },
@@ -8139,15 +7147,6 @@
     },
     {
       "method": "POST",
-      "path": "/_synapse/admin/v1/federation/destinations/{destination}/reset",
-      "registered_by": "admin::federation",
-      "path_params": [
-        "destination"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
       "path": "/_synapse/admin/v1/federation/destinations/{destination}/reset_connection",
       "registered_by": "admin::federation",
       "path_params": [
@@ -8785,24 +7784,6 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/room/{room_id}/media",
-      "registered_by": "admin::media",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/room/{room_id}/media/quarantine",
-      "registered_by": "admin::media",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_synapse/admin/v1/room_stats",
       "registered_by": "admin::room",
       "path_params": [],
@@ -8929,15 +7910,6 @@
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/rooms/{room_id}/cascade_redact",
-      "registered_by": "admin::room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/rooms/{room_id}/delete",
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
@@ -9535,15 +8507,6 @@
       "query_params": []
     },
     {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/users/{user_id}/devices/delete",
-      "registered_by": "admin::user",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
       "method": "DELETE",
       "path": "/_synapse/admin/v1/users/{user_id}/devices/{device_id}",
       "registered_by": "admin::user",
@@ -9847,42 +8810,65 @@
       "path": "/_synapse/cas/login",
       "registered_by": "cas",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "gateway",
+        "renew",
+        "service"
+      ]
     },
     {
       "method": "GET",
       "path": "/_synapse/cas/logout",
       "registered_by": "cas",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "service"
+      ]
     },
     {
       "method": "GET",
       "path": "/_synapse/cas/p3/serviceValidate",
       "registered_by": "cas",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "pgt_url",
+        "renew",
+        "service",
+        "ticket"
+      ]
     },
     {
       "method": "GET",
       "path": "/_synapse/cas/proxy",
       "registered_by": "cas",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "pgt",
+        "target_service"
+      ]
     },
     {
       "method": "GET",
       "path": "/_synapse/cas/proxyValidate",
       "registered_by": "cas",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "pgt_url",
+        "service",
+        "ticket"
+      ]
     },
     {
       "method": "GET",
       "path": "/_synapse/cas/serviceValidate",
       "registered_by": "cas",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "pgt_url",
+        "renew",
+        "service",
+        "ticket"
+      ]
     },
     {
       "method": "POST",
@@ -10210,47 +9196,6 @@
       "registered_by": "worker_body",
       "path_params": [
         "worker_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/admin/services",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/admin/services",
-      "registered_by": "cas",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/admin/services/{service_id}",
-      "registered_by": "cas",
-      "path_params": [
-        "service_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/admin/users/{user_id}/attributes",
-      "registered_by": "cas",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/admin/users/{user_id}/attributes",
-      "registered_by": "cas",
-      "path_params": [
-        "user_id"
       ],
       "query_params": []
     },

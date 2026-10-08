@@ -1,7 +1,7 @@
 ---
 module: moderation
 generated_from: docs/api-contract/generated/modules/moderation.json
-generated_hash: sha256-bf79bfd5d189fa60b60b153731feffe9975a0d516101c24fbb0648e43f2fa5f3
+generated_hash: sha256-06f146eb4c8b0bcc396d8024b8f6cc6e0e86e213775291db1275fd3bc2e6cafc
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -10,8 +10,8 @@ last_reviewed: 2026-05-03
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/moderation.rs`  
 > 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
-> 更新日期: 2026-04-27  
-> 挂载版本: `r0`, `v1`, `v3`
+> 更新日期: 2026-10-09  
+> 挂载版本: `v1`, `v3`, `vendor`（`/_matrix/vendor/v1`）
 
 ## 一、模块概述
 
@@ -21,13 +21,17 @@ Moderation API 提供内容审核功能，用于：
 
 - 举报不当内容或行为
 - 对举报内容进行评分
-- 查询扫描器信息（v1 专属）
+- 查询扫描器信息（私有扩展，`/_matrix/vendor/v1`）
 - 房间级举报（v3 专属）
+- 用户级举报（v3 专属，MSC4260）
 
 ### 1.2 路由前缀
 
-- `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}`
-- `/_matrix/client/v3/rooms/{room_id}/report`
+- `/_matrix/client/{v1,v3}/rooms/{room_id}/report/{event_id}`（标准 CS 端点）
+- `/_matrix/client/v3/rooms/{room_id}/report`（标准 CS 端点）
+- `/_matrix/client/v3/users/{user_id}/report`（标准 CS 端点，MSC4260）
+- `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/score`（私有扩展）
+- `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info`（私有扩展）
 
 ### 1.3 认证要求
 
@@ -71,9 +75,9 @@ Moderation API 提供内容审核功能，用于：
 
 ### 2.2 对举报评分
 
-**路径**: `PUT /_matrix/client/{v1,v3}/rooms/{room_id}/report/{event_id}/score`  
+**路径**: `PUT /_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/score`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `v1`, `v3`
+**挂载版本**: `vendor`
 
 **请求体**:
 
@@ -89,11 +93,11 @@ Moderation API 提供内容审核功能，用于：
 {}
 ```
 
-### 2.3 查询扫描器信息（v1 专属）
+### 2.3 查询扫描器信息（私有扩展）
 
-**路径**: `GET /_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info`  
+**路径**: `GET /_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info`  
 **认证**: `AuthenticatedUser` + 房间成员  
-**挂载版本**: `v1`
+**挂载版本**: `vendor`
 
 **响应**: `200 OK`
 
@@ -129,6 +133,31 @@ interface ScannerInfo {
 }
 ```
 
+### 2.5 举报用户（v3 专属，MSC4260）
+
+**路径**: `POST /_matrix/client/v3/users/{user_id}/report`  
+**认证**: `AuthenticatedUser`  
+**挂载版本**: `v3`
+
+**请求体**:
+
+```json
+{
+    "reason": "spam"
+}
+```
+
+**字段说明**:
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `reason` | string | **是** | 举报原因；键必须存在，值可为空串（缺失 ⇒ `M_BAD_JSON`） |
+
+**响应**: `200 OK`
+
+```json
+{}
+```
+
 ## 三、SDK 对齐状态
 
 ### 3.1 SDK Manager 对应关系
@@ -139,21 +168,22 @@ interface ScannerInfo {
 | `PUT /report/{event_id}/score`        | `ReportingManager.scoreReport()`     | ✅ 已封装 |
 | `GET /report/{event_id}/scanner_info` | `ModerationManager.getScannerInfo()` | ✅ 已封装 |
 | `POST /rooms/{room_id}/report`        | `ModerationManager.reportRoom()`     | ✅ 已封装 |
+| `POST /users/{user_id}/report`        | `ModerationManager.reportUser()`     | ✅ 已封装 |
 
 ### 3.2 封装覆盖率
 
-- **总端点数**: 4
-- **已封装**: 4
+- **总端点数**: 5
+- **已封装**: 5
 - **覆盖率**: 100%
 
 ### 3.3 已知差异
 
-- 文档曾遗漏 `reportRoom()`，当前代码已覆盖全部 4 个端点。
+- 文档曾遗漏 `reportRoom()` 与 `reportUser()`（MSC4260），当前代码已覆盖全部 5 个端点。
 
 ### 3.4 人工 Review 对齐
 
-- `src/moderation/index.ts` 已覆盖事件举报、房间举报、扫描器信息三类端点。
-- `src/reporting/index.ts` 覆盖评分更新（`scoreReport`）以及 `reportEvent`/`reportRoom` 便捷方法。
+- `src/moderation/index.ts` 已覆盖事件举报、房间举报、用户举报、扫描器信息四类端点。
+- `src/reporting/index.ts` 覆盖评分更新（`scoreReport`）以及 `reportEvent`/`reportRoom`/`reportUser` 便捷方法。
 - 当前差异主要在文档口径，非实现缺失。
 
 ## 四、常见错误码
@@ -168,7 +198,8 @@ interface ScannerInfo {
 
 ## 五、变更历史
 
-| 日期       | 变更                               | 影响                     |
-| ---------- | ---------------------------------- | ------------------------ |
-| 2026-04-27 | 初版                               | -                        |
-| 2026-05-11 | 修正文档中遗漏的房间级举报封装状态 | 覆盖率从 75% 更新为 100% |
+| 日期       | 变更                                                                                           | 影响                         |
+| ---------- | ---------------------------------------------------------------------------------------------- | ---------------------------- |
+| 2026-04-27 | 初版                                                                                           | -                            |
+| 2026-05-11 | 修正文档中遗漏的房间级举报封装状态                                                             | 覆盖率从 75% 更新为 100%     |
+| 2026-10-09 | 修正 `score` / `scanner_info` 的挂载前缀（后端已迁 `/_matrix/vendor/v1`），并补记 `reportUser` | 前缀与后端一致；端点数 4 → 5 |

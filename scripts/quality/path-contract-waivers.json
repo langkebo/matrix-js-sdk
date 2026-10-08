@@ -1,6 +1,6 @@
 {
     "note": "SDK 声明了但后端 ledger 里查不到的路径。每条必须写清「为什么后端没有」和「什么条件下可以删掉这条豁免」。expires 到期即门禁失败——这是为了让豁免不会变成永久性的静态白噪音（参见 check-manager-codegen-coverage.mjs 里 WAIVED_MODULES 的同款思路：豁免要有主人和期限）。",
-    "verifiedAgainst": "synapse-rust commit 71ab0980, ledger 1159 entries",
+    "verifiedAgainst": "synapse-rust commit 5a8e44534, ledger 1034 entries",
     "verifiedAt": "2026-10-06",
     "categories": {
         "backend-missing": "后端确实没有这个端点（SDK 超前封装或能力未实现）。删掉条件：后端补上该路由。",
@@ -167,6 +167,14 @@
             "owner": "langkebo",
             "category": "backend-missing",
             "reason": "deleteFeatureFlag()。后端 feature_flags.rs 只注册 POST|GET /_synapse/admin/v1/feature-flags 与 GET|PATCH /feature-flags/{flag_key}，没有 DELETE（全仓搜索 delete_flag 无服务方法）。SDK 侧保留了该方法（不删是为了不破坏公开 API），但路径 2026-10-08 已从下划线 /feature_flags 改正为连字符。删掉条件：后端补上 DELETE 路由（届时本条豁免会因为「未被引用」而让门禁报红，强制删除），或产品决定移除该方法。停用 flag 请用 updateFeatureFlag(status=disabled)。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/vendor/v1/widgets/create",
+            "file": "src/widgets/index.ts",
+            "owner": "langkebo",
+            "category": "backend-missing",
+            "reason": "createWidgetV3()。后端 ledger 全部 widget 路由共 17 条，其中创建只有 `POST /_matrix/vendor/v1/widgets`，**没有** `/widgets/create`。createWidget() 已覆盖该 vendor 端点，本方法疑为重复封装。删掉条件：产品决定合并到 createWidget() 或移除 createWidgetV3()。",
             "expires": "2026-12-31"
         }
     ]

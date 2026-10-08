@@ -9,7 +9,7 @@
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
@@ -149,7 +149,7 @@ export class ModerationManager extends BaseManager {
 
     /**
      * 获取扫描器信息
-     * 对应 GET /_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info
+     * 对应 GET /_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info
      *
      * @example
      * ```typescript
@@ -168,7 +168,7 @@ export class ModerationManager extends BaseManager {
                 return await this.request<ScannerInfo>({
                     method: Method.Get,
                     path: path,
-                    prefix: ClientPrefix.V1,
+                    prefix: VendorPrefix,
                 });
             }, "getScannerInfo");
         } catch (error) {

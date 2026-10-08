@@ -46,7 +46,7 @@ describe("WidgetManager", () => {
                 "/rooms/!room%3Aexample.com/widgets",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.widgets).toHaveLength(1);
             expect(result.widgets[0].widget_id).toBe("w1");
@@ -68,7 +68,7 @@ describe("WidgetManager", () => {
                 "/rooms/!room%3Aexample.com/widgets/jitsi/config",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.conf_id).toBe("conf1");
         });
@@ -101,7 +101,7 @@ describe("WidgetManager", () => {
                 "/widgets",
                 undefined,
                 { widget_type: "custom", url: "https://example.com", name: "Test" },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.widget.widget_id).toBe("w1");
         });
@@ -136,7 +136,7 @@ describe("WidgetManager", () => {
             });
             const result = await widgetManager.getWidget("w1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/w1", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
             expect(result.widget.widget_id).toBe("w1");
         });
@@ -167,7 +167,7 @@ describe("WidgetManager", () => {
                 "/widgets/w1",
                 undefined,
                 { name: "Updated" },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.widget.name).toBe("Updated");
         });
@@ -182,7 +182,7 @@ describe("WidgetManager", () => {
             mockAuthedRequest.mockResolvedValueOnce(undefined);
             await widgetManager.deleteWidget("w1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Delete, "/widgets/w1", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
     });
@@ -201,7 +201,7 @@ describe("WidgetManager", () => {
             });
             const result = await widgetManager.getWidgetConfig("w1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/w1/config", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
             expect(result.widget_id).toBe("w1");
         });
@@ -229,7 +229,7 @@ describe("WidgetManager", () => {
                 "/widgets/w1/permissions",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.permissions).toHaveLength(1);
         });
@@ -247,7 +247,7 @@ describe("WidgetManager", () => {
                 "/widgets/w1/permissions",
                 undefined,
                 { user_id: "@user:example.com", permissions: ["read", "write"] },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.success).toBe(true);
         });
@@ -274,7 +274,7 @@ describe("WidgetManager", () => {
                 "/widgets/w1/permissions/%40user%3Aexample.com",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -289,7 +289,7 @@ describe("WidgetManager", () => {
             });
             const result = await widgetManager.getWidgetSessions("w1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/w1/sessions", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
             expect(result.sessions).toHaveLength(1);
         });
@@ -306,7 +306,7 @@ describe("WidgetManager", () => {
                 "/widgets/w1/sessions",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.session.session_id).toBe("s1");
         });
@@ -319,7 +319,7 @@ describe("WidgetManager", () => {
             });
             const result = await widgetManager.getWidgetSession("s1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/widgets/sessions/s1", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
             expect(result.session.session_id).toBe("s1");
         });
@@ -334,7 +334,7 @@ describe("WidgetManager", () => {
                 "/widgets/sessions/s1",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -354,7 +354,7 @@ describe("WidgetManager", () => {
                 "/rooms/!room%3Aexample.com/widgets/w1/capabilities",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.capabilities).toEqual(["read", "write"]);
         });
@@ -373,7 +373,7 @@ describe("WidgetManager", () => {
                 "/rooms/!room%3Aexample.com/widgets/w1/capabilities",
                 undefined,
                 { capabilities: ["read"] },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.capabilities).toEqual(["read"]);
         });
@@ -388,7 +388,7 @@ describe("WidgetManager", () => {
                 "/rooms/!room%3Aexample.com/widgets/w1/send",
                 undefined,
                 { action: "click" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.event_id).toBe("$ev1");
         });
@@ -419,7 +419,9 @@ describe("WidgetManager", () => {
                 "/widgets/create",
                 undefined,
                 { widget_type: "custom", url: "https://example.com", name: "Test" },
-                { prefix: "/_matrix/client/v3" },
+                // ⚠️ 后端无 `/_matrix/vendor/v1/widgets/create` 该端点（已在
+                // path-contract-waivers.json 登记为 backend-missing）；这里只锁 SDK 发什么前缀。
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.widget.widget_id).toBe("w1");
         });

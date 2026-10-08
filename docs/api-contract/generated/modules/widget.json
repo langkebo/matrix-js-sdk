@@ -2,14 +2,14 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "widget",
-  "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
+  "synapse_rust_commit": "5a8e44534d5bfec86196ba82e9bcb676679bdd0c",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 18,
+  "entry_count": 17,
   "entries": [
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/widgets",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets",
       "registered_by": "widget",
       "path_params": [
         "room_id"
@@ -18,23 +18,53 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config",
       "registered_by": "widget",
       "path_params": [
         "room_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id",
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id",
+        "widget_id"
       ],
       "query_params": []
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v1/widgets",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send",
+      "registered_by": "widget",
+      "path_params": [
+        "room_id",
+        "widget_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/vendor/v1/widgets",
       "registered_by": "widget",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/v1/widgets/sessions/{session_id}",
+      "path": "/_matrix/vendor/v1/widgets/sessions/{session_id}",
       "registered_by": "widget",
       "path_params": [
         "session_id"
@@ -43,7 +73,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/widgets/sessions/{session_id}",
+      "path": "/_matrix/vendor/v1/widgets/sessions/{session_id}",
       "registered_by": "widget",
       "path_params": [
         "session_id"
@@ -52,7 +82,7 @@
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/v1/widgets/{widget_id}",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -61,7 +91,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -70,7 +100,7 @@
     },
     {
       "method": "PUT",
-      "path": "/_matrix/client/v1/widgets/{widget_id}",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -79,7 +109,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/config",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/config",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -88,7 +118,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/permissions",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/permissions",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -97,7 +127,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/permissions",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/permissions",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -106,7 +136,7 @@
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}",
       "registered_by": "widget",
       "path_params": [
         "widget_id",
@@ -116,7 +146,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/sessions",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/sessions",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
@@ -125,48 +155,11 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v1/widgets/{widget_id}/sessions",
+      "path": "/_matrix/vendor/v1/widgets/{widget_id}/sessions",
       "registered_by": "widget",
       "path_params": [
         "widget_id"
       ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id",
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id",
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send",
-      "registered_by": "widget",
-      "path_params": [
-        "room_id",
-        "widget_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_matrix/client/v3/widgets/create",
-      "registered_by": "widget",
-      "path_params": [],
       "query_params": []
     }
   ]

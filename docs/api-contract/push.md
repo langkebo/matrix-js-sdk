@@ -1,7 +1,7 @@
 ---
 module: push
 generated_from: docs/api-contract/generated/modules/push.json
-generated_hash: sha256-aa8f74b10c59baf6929bd12af284559ecaafc211c53a435c9408a3bdc3d0bebe
+generated_hash: sha256-7145554ca014f3cc26a442d0e9bc21448480d4de25aec7d62422e8d7720336fe
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

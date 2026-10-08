@@ -73,7 +73,7 @@ describe("ThreadingManager", () => {
             expect(result.threads).toHaveLength(1);
             expect(result.total).toBe(1);
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/threads", { limit: 10 }, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
 
@@ -88,7 +88,7 @@ describe("ThreadingManager", () => {
 
             expect(result.threads).toHaveLength(0);
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/threads", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
     });
@@ -184,7 +184,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!room%3Aexample.com/threads",
                 undefined,
                 { root_event_id: "$event1", content: {}, origin_server_ts: undefined },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -313,7 +313,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!room%3Aexample.com/threads/thread1",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -329,7 +329,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!room%3Aexample.com/threads/thread1/freeze",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });

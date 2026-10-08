@@ -31,3 +31,9 @@ export interface ModerationV3RequestDto {
 export interface ModerationV3ResponseDto {
     report_id: string;
 }
+
+export interface ModerationV3MSC4260RequestDto {
+    reason: string;
+}
+
+export type ModerationV3MSC4260ResponseDto = Record<string, never>;

@@ -2,28 +2,28 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "push_notification",
-  "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
+  "synapse_rust_commit": "5a8e44534d5bfec86196ba82e9bcb676679bdd0c",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 8,
   "entries": [
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/push/devices",
+      "path": "/_matrix/vendor/v1/push/devices",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/push/devices",
+      "path": "/_matrix/vendor/v1/push/devices",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/v3/push/devices/{device_id}",
+      "path": "/_matrix/vendor/v1/push/devices/{device_id}",
       "registered_by": "push_notification",
       "path_params": [
         "device_id"
@@ -32,7 +32,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/push/send",
+      "path": "/_matrix/vendor/v1/push/send",
       "registered_by": "push_notification",
       "path_params": [],
       "query_params": []

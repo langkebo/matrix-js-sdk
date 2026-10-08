@@ -22,7 +22,7 @@ limitations under the License.
 
 import { MatrixClient } from "../client";
 import { Method } from "../http-api/index";
-import { ClientPrefix } from "../http-api/prefix";
+import { VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -98,7 +98,7 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
             method: Method.Put,
             path,
             body: { score },
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     }
 
@@ -116,7 +116,7 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
         return this.request({
             method: Method.Get,
             path,
-            prefix: ClientPrefix.V1,
+            prefix: VendorPrefix,
         });
     }
 }

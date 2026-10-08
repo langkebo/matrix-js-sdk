@@ -4,7 +4,7 @@
  *
  * Module:        Space 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       48 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       70 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `space` module (mirrored from the backend contract). */
@@ -57,6 +57,28 @@ export const SPACE_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/spaces/{space_id}/summary" },
     { method: "GET", path: "/_matrix/client/v3/spaces/{space_id}/summary/with_children" },
     { method: "GET", path: "/_matrix/client/v3/spaces/{space_id}/tree_path" },
+    { method: "POST", path: "/_matrix/vendor/v1/spaces" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/public" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/room/{room_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/room/{room_id}/parents" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/search" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/statistics" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/user" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/spaces/{space_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}" },
+    { method: "PUT", path: "/_matrix/vendor/v1/spaces/{space_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/children" },
+    { method: "POST", path: "/_matrix/vendor/v1/spaces/{space_id}/children" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/spaces/{space_id}/children/{room_id}" },
+    { method: "POST", path: "/_matrix/vendor/v1/spaces/{space_id}/invite" },
+    { method: "POST", path: "/_matrix/vendor/v1/spaces/{space_id}/join" },
+    { method: "POST", path: "/_matrix/vendor/v1/spaces/{space_id}/leave" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/members" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/rooms" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/state" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/summary" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/summary/with_children" },
+    { method: "GET", path: "/_matrix/vendor/v1/spaces/{space_id}/tree_path" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `SPACE_ROUTES`. */

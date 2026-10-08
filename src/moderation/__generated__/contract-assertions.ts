@@ -6,10 +6,10 @@
 
 import { MODERATION_ROUTES } from "./route-table";
 
-export const MODERATION_ROUTES_ENTRY_COUNT = 7 as const;
+export const MODERATION_ROUTES_ENTRY_COUNT = 9 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _ModerationEntryCountAssertion: 7 = MODERATION_ROUTES.length;
+const _ModerationEntryCountAssertion: 9 = MODERATION_ROUTES.length;
 void _ModerationEntryCountAssertion;
 
 export const MODERATION_ROUTES_STATUS_SCENARIOS = [
@@ -20,6 +20,7 @@ export const MODERATION_ROUTES_STATUS_SCENARIOS = [
     { status: 429, note: "M_LIMIT_EXCEEDED | 举报频率过高" },
     { status: 202, note: "初版 | -" },
     { status: 202, note: "修正文档中遗漏的房间级举报封装状态 | 覆盖率从 75% 更新为 100%" },
+    { status: 202, note: "修正 score / scanner_info 的挂载前缀（后端已迁 /_matrix/vendor/v1），并补记 reportUser | 前缀与后端一致；端点数 4 → 5" },
 ] as const;
 
 export type ModerationStatusScenario = (typeof MODERATION_ROUTES_STATUS_SCENARIOS)[number];

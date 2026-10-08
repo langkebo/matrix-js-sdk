@@ -30,7 +30,7 @@ limitations under the License.
  */
 
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { VendorPrefix } from "../http-api/prefix";
 import { MatrixClient } from "../client";
 import { LRUCache } from "../utils/lru-cache";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
@@ -128,7 +128,7 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
                 const response = (await this.request({
                     method: Method.Get,
                     path: `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 })) as IServerPinnedEventsResponse;
 
                 // FT-103: 后端返回 { pinned_events: string[] }，映射为 IPinnedEventInfo[]
@@ -154,7 +154,7 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
                     method: Method.Post,
                     path: `/rooms/${encodeURIComponent(roomId)}/pinned_events`,
                     body: { event_id: eventId },
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
                 this.emit(PinnedEvent.Pinned, roomId, eventId);
                 const cached = this.pinnedEventsCache.get(roomId) || [];
@@ -174,7 +174,7 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
                 await this.request({
                     method: Method.Delete,
                     path: `/rooms/${encodeURIComponent(roomId)}/pinned_events/${encodeURIComponent(eventId)}`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
                 this.emit(PinnedEvent.Unpinned, roomId, eventId);
                 const cached = this.pinnedEventsCache.get(roomId) || [];

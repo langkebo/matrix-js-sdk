@@ -744,7 +744,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getStickyEvents(roomId: string): Promise<StickyEvent[]> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/sticky_events", roomId));
+            return await this.requestMsc4354(Method.Get, this.roomPathMsc4354("/rooms/$roomId/sticky_events", roomId));
         }, "getStickyEvents");
     }
 
@@ -759,9 +759,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
         this.validateEventType(eventType);
         return await this.withRetry(async () => {
-            const result = await this.requestV3<StickyEvent>(
+            const result = await this.requestMsc4354<StickyEvent>(
                 Method.Post,
-                this.roomPath("/rooms/$roomId/sticky_events", roomId),
+                this.roomPathMsc4354("/rooms/$roomId/sticky_events", roomId),
                 undefined,
                 { event_type: eventType, content } as Body,
             );
@@ -780,7 +780,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
         this.validateEventType(eventType);
         return await this.withRetry(async () => {
-            await this.requestV3(
+            await this.requestMsc4354(
                 Method.Delete,
                 encodeUri("/rooms/$roomId/sticky_events/$eventType", { $roomId: roomId, $eventType: eventType }),
             );

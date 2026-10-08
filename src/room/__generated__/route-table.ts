@@ -4,7 +4,7 @@
  *
  * Module:        Room 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       99 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       110 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
@@ -108,6 +108,17 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}" },
     { method: "GET", path: "/_matrix/vendor/v1/my_rooms" },
+    { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events" },
+    { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events" },
+    { method: "DELETE", path: "/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events/{event_type}" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/pinned_events" },
+    { method: "POST", path: "/_matrix/vendor/v1/rooms/{room_id}/pinned_events" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/rooms/{room_id}/pinned_events/{event_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/thread/{event_id}" },
+    { method: "POST", path: "/_matrix/vendor/v1/translate" },
+    { method: "GET", path: "/_matrix/vendor/v1/user/mutual_rooms" },
+    { method: "GET", path: "/_matrix/vendor/v1/user/{user_id}/rooms" },
+    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_ROUTES`. */

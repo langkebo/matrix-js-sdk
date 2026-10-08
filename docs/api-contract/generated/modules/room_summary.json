@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "room_summary",
-  "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
+  "synapse_rust_commit": "5a8e44534d5bfec86196ba82e9bcb676679bdd0c",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 21,
@@ -18,7 +18,7 @@
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -27,7 +27,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -36,7 +36,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -45,7 +45,7 @@
     },
     {
       "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -54,7 +54,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/heroes/recalculate",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -63,7 +63,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -72,7 +72,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -81,7 +81,7 @@
     },
     {
       "method": "DELETE",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}",
       "registered_by": "room_summary",
       "path_params": [
         "room_id",
@@ -91,7 +91,7 @@
     },
     {
       "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}",
       "registered_by": "room_summary",
       "path_params": [
         "room_id",
@@ -101,7 +101,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/state",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -110,7 +110,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}",
       "registered_by": "room_summary",
       "path_params": [
         "room_id",
@@ -121,7 +121,7 @@
     },
     {
       "method": "PUT",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}",
       "registered_by": "room_summary",
       "path_params": [
         "room_id",
@@ -132,7 +132,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/stats",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/stats",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -141,7 +141,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/stats/recalculate",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -150,7 +150,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/sync",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/sync",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"
@@ -159,7 +159,7 @@
     },
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/rooms/{room_id}/summary/unread/clear",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/summary/unread/clear",
       "registered_by": "room_summary",
       "path_params": [
         "room_id"

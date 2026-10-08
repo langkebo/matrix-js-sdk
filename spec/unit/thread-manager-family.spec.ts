@@ -153,10 +153,12 @@ describe("thread manager family / 源码端点抽取", () => {
         expect(newEndpoints.get("getRoomThreads")?.paths).toContain("/rooms/{}/threads");
     });
 
-    it("走包装器的方法没有显式动词，但路径仍被抽到", () => {
+    it("走包装器的方法：路径与显式动词都被抽到", () => {
         const legacy = extractMethodEndpoints(OLD_FILE).get("getLegacyRoomThreadList");
         expect(legacy?.paths).toContain("/user/{}/rooms/{}/threads");
-        expect(legacy?.verbs.size).toBe(0);
+        // 2026-10-09：该调用点从 `requestThreadV3`（包装器内部硬编码 GET，因此抽取器看不到动词）
+        // 改为 `requestThreadVendor("...", Method.Get, ...)` —— 动词变成显式参数，抽取器能取到。
+        expect(legacy?.verbs.has("GET")).toBe(true);
     });
 
     it("对照表解析支持用 / 分隔的同义行", () => {

@@ -27,7 +27,7 @@ describe("ThreadingManager", () => {
             await manager.getGlobalThreadList();
 
             expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/threads", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
 
@@ -41,7 +41,7 @@ describe("ThreadingManager", () => {
                 "/threads",
                 { limit: 10, from: "cursor" },
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -95,7 +95,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!r%3Ae/threads",
                 undefined,
                 { root_event_id: "$r", content: { body: "hi" }, origin_server_ts: undefined },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -182,7 +182,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!r%3Ae/threads/%24t/read",
                 undefined,
                 { event_id: "$e", origin_server_ts: 123 },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -198,7 +198,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!r%3Ae/threads/%24t",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -237,7 +237,7 @@ describe("ThreadingManager", () => {
                 "/rooms/!r%3Ae/threads/%24t/stats",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });

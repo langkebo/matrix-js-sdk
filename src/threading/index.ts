@@ -30,17 +30,23 @@ import type { IRelationsResponse, IContextResponse } from "../@types/requests";
 import { getRelationsThreadFilter } from "../thread-utils";
 import { ServerSupport, Feature } from "../feature";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
-import { ClientPrefix, Method } from "../http-api";
+import { ClientPrefix, Method, VendorPrefix } from "../http-api";
 import type { Body } from "../http-api/interface";
 import type { ThreadPath, ThreadPathPattern } from "../thread/__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { PathAssert, StripV1, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV1, StripVendor } from "../http-api/strip-prefix";
 
 function tv1<const P extends string>(path: P & PathAssert<P, StripV1<ThreadPath>>): P {
     return path;
 }
 
-function tv3<const P extends string>(path: P & PathAssert<P, StripV3<ThreadPath>>): P {
+/**
+ * vendor（`/_matrix/vendor/v1`）前缀下的路径断言。
+ *
+ * 见 `src/thread/index.ts` 的 `tpv`：话题私有扩展已归位 vendor，用 `tv1` 会被契约表
+ * 里残留的 v1 条目静默满足（表只增不减），从而掩盖"打了后端已不注册的路径"。
+ */
+function tv<const P extends string>(path: P & PathAssert<P, StripVendor<ThreadPath>>): P {
     return path;
 }
 
@@ -314,20 +320,30 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         }
     }
 
-    private async requestThreadV3<T>(
+    /**
+     * 发送 vendor 前缀（`/_matrix/vendor/v1`）的话题请求。
+     *
+     * 话题的私有扩展（`freeze` / `unfreeze` / `mute` / `read` / 全局列表 / `search` …）
+     * 已统一归位 vendor（后端 Batch 1–3 与本轮 M2），因此这些调用点**不能**再走
+     * `requestThreadV1` —— 那会打到后端已不注册的 `/_matrix/client/v1/...` 并 404。
+     */
+    private async requestThreadVendor<T>(
         methodName: string,
-        path: StripV3<ThreadPathPattern>,
+        method: Method,
+        path: StripVendor<ThreadPathPattern>,
         queryParams?: Record<string, string | number | boolean>,
+        body?: Body,
     ): Promise<T> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<T>({
-                    method: Method.Get,
+                    method: method,
                     path: path,
                     queryParams: queryParams,
-                    prefix: ClientPrefix.V3,
+                    body: body,
+                    prefix: VendorPrefix,
                 });
-            }, "requestThreadV3");
+            }, "requestThreadVendor");
         } catch (e) {
             throw this.normalizeError(e, methodName);
         }
@@ -361,10 +377,10 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 
     public async getGlobalThreadList(query: ThreadListQuery = {}): Promise<ThreadListResponse> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "getGlobalThreadList",
             Method.Get,
-            tv1("/threads"),
+            tv("/threads"),
             this.buildQuery({ limit: query.limit, from: query.from }),
         );
     }
@@ -372,16 +388,16 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     public async getSubscribedThreads(
         query: { limit?: number; from?: string } = {},
     ): Promise<SubscribedThreadsResponse> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "getSubscribedThreads",
             Method.Get,
-            tv1("/threads/subscribed"),
+            tv("/threads/subscribed"),
             this.buildQuery({ limit: query.limit, from: query.from }),
         );
     }
 
     public async getGlobalUnreadThreads(): Promise<ThreadUnreadResponse> {
-        return await this.requestThreadV1("getGlobalUnreadThreads", Method.Get, tv1("/threads/unread"));
+        return await this.requestThreadVendor("getGlobalUnreadThreads", Method.Get, tv("/threads/unread"));
     }
 
     public async getRoomThreadList(roomId: string, query: ThreadListQuery = {}): Promise<ThreadListResponse> {
@@ -394,10 +410,10 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 
     public async searchRoomThreads(roomId: string, query: ThreadSearchQuery): Promise<ThreadSummaryResponse[]> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "searchRoomThreads",
             Method.Get,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/search`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/search`),
             this.buildQuery({ q: query.q, limit: query.limit }),
         );
     }
@@ -407,18 +423,19 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         roomId: string,
         query: ThreadListQuery = {},
     ): Promise<ThreadLegacySearchResponse> {
-        return await this.requestThreadV3(
+        return await this.requestThreadVendor(
             "getLegacyRoomThreadList",
-            tv3(`/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`),
+            Method.Get,
+            tv(`/user/${encodeURIComponent(userId)}/rooms/${encodeURIComponent(roomId)}/threads`),
             this.buildQuery({ limit: query.limit, from: query.from, include_all: query.includeAll }),
         );
     }
 
     public async getRoomUnreadThreads(roomId: string): Promise<ThreadUnreadResponse> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "getRoomUnreadThreads",
             Method.Get,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/unread`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/unread`),
         );
     }
 
@@ -436,7 +453,7 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 
     public async createGlobalThread(params: ThreadCreateParams): Promise<ThreadCreateResponse> {
-        return await this.requestThreadV1("createGlobalThread", Method.Post, tv1("/threads"), undefined, {
+        return await this.requestThreadVendor("createGlobalThread", Method.Post, tv("/threads"), undefined, {
             room_id: params.roomId,
             root_event_id: params.rootEventId,
             content: params.content ?? {},
@@ -449,10 +466,10 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         rootEventId: string,
         options: Pick<ThreadCreateParams, "content" | "originServerTs"> = {},
     ): Promise<ThreadCreateResponse> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "createRoomThread",
             Method.Post,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads`),
             undefined,
             {
                 root_event_id: rootEventId,
@@ -463,26 +480,26 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 
     public async deleteRoomThread(roomId: string, threadId: string): Promise<void> {
-        await this.requestThreadV1(
+        await this.requestThreadVendor(
             "deleteRoomThread",
             Method.Delete,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`),
         );
     }
 
     public async freezeThread(roomId: string, threadId: string): Promise<void> {
-        await this.requestThreadV1(
+        await this.requestThreadVendor(
             "freezeThread",
             Method.Post,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`),
         );
     }
 
     public async unfreezeThread(roomId: string, threadId: string): Promise<void> {
-        await this.requestThreadV1(
+        await this.requestThreadVendor(
             "unfreezeThread",
             Method.Post,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`),
         );
     }
 
@@ -542,10 +559,10 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
     }
 
     public async muteThread(roomId: string, threadId: string): Promise<ThreadSubscriptionResponse> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "muteThread",
             Method.Post,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`),
         );
     }
 
@@ -555,28 +572,28 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         eventId: string,
         originServerTs = Date.now(),
     ): Promise<ThreadReadReceiptResponse> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "markThreadRead",
             Method.Post,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`),
             undefined,
             { event_id: eventId, origin_server_ts: originServerTs },
         );
     }
 
     public async getThreadStats(roomId: string, threadId: string): Promise<ThreadStatisticsResponse | null> {
-        return await this.requestThreadV1(
+        return await this.requestThreadVendor(
             "getThreadStats",
             Method.Get,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/stats`),
         );
     }
 
     public async redactThreadReply(roomId: string, eventId: string): Promise<void> {
-        await this.requestThreadV1(
+        await this.requestThreadVendor(
             "redactThreadReply",
             Method.Post,
-            tv1(`/rooms/${encodeURIComponent(roomId)}/replies/${encodeURIComponent(eventId)}/redact`),
+            tv(`/rooms/${encodeURIComponent(roomId)}/replies/${encodeURIComponent(eventId)}/redact`),
         );
     }
 

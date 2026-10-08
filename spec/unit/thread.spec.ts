@@ -68,7 +68,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads",
                 undefined,
                 { event_id: "$ev1" },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.thread.thread_id).toBe("t1");
         });
@@ -89,7 +89,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/search",
                 { term: "hello" },
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -109,7 +109,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/unread",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -153,7 +153,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -177,7 +177,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1/freeze",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -201,7 +201,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1/unfreeze",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -225,7 +225,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1/mute",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -239,7 +239,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1/read",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -251,7 +251,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1/read",
                 undefined,
                 { read_up_to: "$ev99" },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -372,7 +372,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/replies/%24reply1/redact",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -384,7 +384,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/replies/%24reply1/redact",
                 undefined,
                 { reason: "spam" },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -400,7 +400,7 @@ describe("ThreadManager", () => {
                 "/rooms/!room%3Aexample.com/threads/t1/stats",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.reply_count).toBe(10);
         });
@@ -413,7 +413,7 @@ describe("ThreadManager", () => {
             mockAuthedRequest.mockResolvedValueOnce({ threads: [] });
             await threadManager.getAllThreads();
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/threads", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
     });
@@ -436,7 +436,7 @@ describe("ThreadManager", () => {
                 "/threads",
                 undefined,
                 { room_id: "!room:example.com", event_id: "$ev1" },
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.thread.thread_id).toBe("t1");
         });
@@ -453,7 +453,7 @@ describe("ThreadManager", () => {
             mockAuthedRequest.mockResolvedValueOnce({ threads: [] });
             await threadManager.getSubscribedThreads();
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/threads/subscribed", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
     });
@@ -463,7 +463,7 @@ describe("ThreadManager", () => {
             mockAuthedRequest.mockResolvedValueOnce({ threads: [] });
             await threadManager.getAllUnreadThreads();
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/threads/unread", undefined, undefined, {
-                prefix: "/_matrix/client/v1",
+                prefix: "/_matrix/vendor/v1",
             });
         });
     });
@@ -479,7 +479,7 @@ describe("ThreadManager", () => {
                 "/user/%40user%3Aexample.com/rooms/!room%3Aexample.com/threads",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });

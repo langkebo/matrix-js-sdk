@@ -49,6 +49,15 @@ export function findTopLevel(src: string, pred: (char: string, index: number) =>
 /** 从 `{` 起找配对的 `}`；无则 -1。 */
 export function matchBrace(src: string, openIndex: number): number;
 
+/**
+ * 剥掉路径实参**顶层**的 TS 断言（`as T` / `satisfies T`）；认不出则原样返回。
+ *
+ * 2026-10-09 补：实现自 `d367d1518` 起就 export 了它（并被
+ * `spec/unit/path-ts-assertion.spec.ts` 直接单测），但 `.d.mts` 漏了声明 ⇒
+ * `tsc --noEmit`（`pnpm lint:types`）在该 spec 上恒报 TS2305。
+ */
+export function stripTsAssertion(expr: string): string;
+
 /** 抽取形态 A（对象字面量）的调用点：method / path / prefix / line。 */
 export function extractObjectCalls(source: string): Array<{
     method: string;

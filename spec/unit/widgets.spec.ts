@@ -104,7 +104,7 @@ describe("WidgetsManager", () => {
             mockClient.http = { authedRequest: mockAuthedRequest };
         });
 
-        it("createWidget posts to /widgets under V1 prefix", async () => {
+        it("createWidget posts to /widgets under vendor prefix", async () => {
             await widgetsManager.createWidget({
                 room_id: "!r:x",
                 widget_type: "jitsi",
@@ -115,7 +115,7 @@ describe("WidgetsManager", () => {
             expect(call[0]).toBe("POST");
             expect(call[1]).toBe("/widgets");
             expect(call[3]).toMatchObject({ widget_type: "jitsi", name: "Call" });
-            expect(call[4]).toMatchObject({ prefix: "/_matrix/client/v1" });
+            expect(call[4]).toMatchObject({ prefix: "/_matrix/vendor/v1" });
         });
 
         it("getWidgetById encodes path and uses GET", async () => {

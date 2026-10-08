@@ -2,28 +2,28 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "dm",
-  "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
+  "synapse_rust_commit": "5a8e44534d5bfec86196ba82e9bcb676679bdd0c",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 5,
   "entries": [
     {
       "method": "POST",
-      "path": "/_matrix/client/v3/create_dm",
+      "path": "/_matrix/vendor/v1/create_dm",
       "registered_by": "dm",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/direct",
+      "path": "/_matrix/vendor/v1/direct",
       "registered_by": "dm",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "PUT",
-      "path": "/_matrix/client/v3/direct/{room_id}",
+      "path": "/_matrix/vendor/v1/direct/{room_id}",
       "registered_by": "dm",
       "path_params": [
         "room_id"
@@ -32,7 +32,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/dm",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/dm",
       "registered_by": "dm",
       "path_params": [
         "room_id"
@@ -41,7 +41,7 @@
     },
     {
       "method": "GET",
-      "path": "/_matrix/client/v3/rooms/{room_id}/dm/partner",
+      "path": "/_matrix/vendor/v1/rooms/{room_id}/dm/partner",
       "registered_by": "dm",
       "path_params": [
         "room_id"

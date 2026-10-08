@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "admin",
-  "synapse_rust_commit": "71ab09801c34023fe877d0f78bc0b04185c40261",
+  "synapse_rust_commit": "5a8e44534d5bfec86196ba82e9bcb676679bdd0c",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 184,
+  "entry_count": 179,
   "entries": [
     {
       "method": "POST",
@@ -188,15 +188,6 @@
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/federation/destinations/{destination}",
-      "registered_by": "admin::federation",
-      "path_params": [
-        "destination"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/federation/destinations/{destination}/reset",
       "registered_by": "admin::federation",
       "path_params": [
         "destination"
@@ -657,24 +648,6 @@
     },
     {
       "method": "GET",
-      "path": "/_synapse/admin/v1/room/{room_id}/media",
-      "registered_by": "admin::media",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/room/{room_id}/media/quarantine",
-      "registered_by": "admin::media",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "GET",
       "path": "/_synapse/admin/v1/room_stats",
       "registered_by": "admin::room",
       "path_params": [],
@@ -801,15 +774,6 @@
     {
       "method": "POST",
       "path": "/_synapse/admin/v1/rooms/{room_id}/cascade_redact",
-      "registered_by": "admin::room",
-      "path_params": [
-        "room_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/rooms/{room_id}/delete",
       "registered_by": "admin::room",
       "path_params": [
         "room_id"
@@ -1287,15 +1251,6 @@
     {
       "method": "GET",
       "path": "/_synapse/admin/v1/users/{user_id}/devices",
-      "registered_by": "admin::user",
-      "path_params": [
-        "user_id"
-      ],
-      "query_params": []
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/admin/v1/users/{user_id}/devices/delete",
       "registered_by": "admin::user",
       "path_params": [
         "user_id"

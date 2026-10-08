@@ -62,7 +62,14 @@ import type { SlidingSyncPath } from "../sliding-sync/__generated__/route-table"
 import type { SearchPath } from "../search/__generated__/route-table";
 import type { ModerationPath } from "../moderation/__generated__/route-table";
 import type { MSC3575SlidingSyncRequest, MSC3575SlidingSyncResponse } from "../sliding-sync";
-import type { PathAssert, StripR0, StripSimplifiedSlidingSync, StripV1, StripV3 } from "../http-api/strip-prefix";
+import type {
+    PathAssert,
+    StripMsc4354,
+    StripR0,
+    StripSimplifiedSlidingSync,
+    StripV1,
+    StripV3,
+} from "../http-api/strip-prefix";
 
 export enum RoomEvent {
     RoomCreated = "RoomCreated",
@@ -204,6 +211,22 @@ type RoomManagerPath =
     | StripSimplifiedSlidingSync<SlidingSyncPath>;
 
 function rp<const P extends string>(path: P & PathAssert<P, RoomManagerPath>): P {
+    return path;
+}
+
+/** MSC4354（sticky events）的 unstable 前缀。 */
+const MSC4354_PREFIX = "/_matrix/client/unstable/org.matrix.msc4354";
+
+/**
+ * MSC4354（sticky events）unstable 前缀下的路径断言。
+ *
+ * 为什么不复用 `rp`：`rp` 断言的是 `RoomManagerPath`（client v3/v1/r0 与 simplified
+ * sliding sync）。而 sticky events 已归位 `/_matrix/client/unstable/org.matrix.msc4354`
+ * （后端 `5a8e44534`）—— 契约表是**只增不减**的并集（codegen 的既有条目 ∪ ledger），
+ * 旧 v3 条目仍在表里，因此 `rp` 会**静默通过**一个后端已不再注册的路径。
+ * 这个助手把断言锁到 msc4354 空间，避免"路径正确"变成假绿。
+ */
+function r4354<const P extends string>(path: P & PathAssert<P, StripMsc4354<RoomPath>>): P {
     return path;
 }
 
@@ -876,32 +899,32 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     }
 
     /**
-     * 获取房间 sticky events（synapse-rust 私有端点）。
-     * GET /_matrix/client/v3/rooms/{room_id}/sticky_events
+     * 获取房间 sticky events（synapse-rust 私有端点，MSC4354）。
+     * GET /_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events
      */
     public async getStickyEvents(roomId: string): Promise<Record<string, unknown>> {
         validateRoomId(roomId);
         return await this.withRetry(async () => {
             return await this.request<Record<string, unknown>>({
                 method: Method.Get,
-                path: rp(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
-                prefix: ClientPrefix.V3,
+                path: r4354(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
+                prefix: MSC4354_PREFIX,
             });
         }, "getStickyEvents");
     }
 
     /**
-     * 设置房间 sticky events（synapse-rust 私有端点）。
-     * POST /_matrix/client/v3/rooms/{room_id}/sticky_events
+     * 设置房间 sticky events（synapse-rust 私有端点，MSC4354）。
+     * POST /_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events
      */
     public async setStickyEvents(roomId: string, events: Record<string, unknown>): Promise<void> {
         validateRoomId(roomId);
         await this.withRetry(async () => {
             await this.request<void>({
                 method: Method.Post,
-                path: rp(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
+                path: r4354(`/rooms/${encodeURIComponent(roomId)}/sticky_events`),
                 body: events,
-                prefix: ClientPrefix.V3,
+                prefix: MSC4354_PREFIX,
             });
         }, "setStickyEvents");
     }

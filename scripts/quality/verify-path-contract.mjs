@@ -298,10 +298,14 @@ const POSITIONAL_WRAPPERS = {
     requestInternal: { fixed: ["/_synapse/room_summary/v1"] }, // room-summary-base-manager.ts
     requestV3: { fixed: ["/_matrix/client/v3"] },
     // ── 其他固定前缀包装器 ──
-    doRequestV3: { fixed: ["/_matrix/client/v3"] }, // widgets/index.ts（仅 capabilities / send / create）
+    // widgets 面在 Batch 1–3 已整体归位 vendor（后端不再留 client 别名），
+    // 2026-10-09 同步本表：`doRequestV3` 正名为 `doRequestVendor`，两者前缀都是 vendor。
+    // ⚠️ 这张表是**前缀声明**：包装器前缀改了而这里没改，门禁就会按过期声明判路径
+    //    —— 表现为"代码已正确却仍报不匹配"（实测：改名后 15 个调用点仍被按 client v1 判）。
+    doRequestVendor: { fixed: ["/_matrix/vendor/v1"] }, // widgets/index.ts（capabilities / send / create）
     doRequest: {
         byDir: [
-            ["src/widgets/", ["/_matrix/client/v1"]], // widgets/index.ts:doRequest → ClientPrefix.V1
+            ["src/widgets/", ["/_matrix/vendor/v1"]], // widgets/index.ts:doRequest → VendorPrefix（2026-10-09 归位）
             ["src/space/", ["/_matrix/client/v3"]], // space/sub-managers/*.ts → ClientPrefix.V3
             ["src/client/worker/", ["/_synapse/worker"]], // client/worker/worker.ts → WORKER_PREFIX
         ],

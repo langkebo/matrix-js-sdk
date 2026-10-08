@@ -4,7 +4,7 @@
  *
  * Module:        Widget 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       18 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       35 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `widget` module (mirrored from the backend contract). */
@@ -27,6 +27,23 @@ export const WIDGET_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send" },
     { method: "POST", path: "/_matrix/client/v3/widgets/create" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config" },
+    { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities" },
+    { method: "PUT", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities" },
+    { method: "POST", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send" },
+    { method: "POST", path: "/_matrix/vendor/v1/widgets" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/widgets/sessions/{session_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/widgets/sessions/{session_id}" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/widgets/{widget_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/widgets/{widget_id}" },
+    { method: "PUT", path: "/_matrix/vendor/v1/widgets/{widget_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/widgets/{widget_id}/config" },
+    { method: "GET", path: "/_matrix/vendor/v1/widgets/{widget_id}/permissions" },
+    { method: "POST", path: "/_matrix/vendor/v1/widgets/{widget_id}/permissions" },
+    { method: "DELETE", path: "/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}" },
+    { method: "GET", path: "/_matrix/vendor/v1/widgets/{widget_id}/sessions" },
+    { method: "POST", path: "/_matrix/vendor/v1/widgets/{widget_id}/sessions" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `WIDGET_ROUTES`. */

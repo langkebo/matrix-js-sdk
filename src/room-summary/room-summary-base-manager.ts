@@ -26,14 +26,27 @@ limitations under the License.
  */
 
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 
 import { validateRoomId, validateUserId, validateEventType } from "../common/validators";
 import { type QueryDict, encodeUri } from "../http-api/utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
-import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripMsc4354, StripV3, StripVendor } from "../http-api/strip-prefix";
 import type { RoomPath } from "../room/__generated__/route-table";
+import type { RoomSummaryPath } from "./__generated__/route-table";
+
+/** MSC4354（sticky events）的 unstable 前缀。 */
+const MSC4354_PREFIX = "/_matrix/client/unstable/org.matrix.msc4354";
+
+/**
+ * 本基类可断言的契约路径集合。
+ *
+ * `room-summary` 目录历史上一部分端点其实归 `room` 模块（见
+ * `docs/sdk-encapsulation-audit.md` §13.9），另一部分确归 `room-summary` 模块；
+ * 按前缀归位后（vendor / MSC4354 unstable）两者都会出现，故断言取并集。
+ */
+type RoomScopedContractPath = RoomPath | RoomSummaryPath;
 
 export type RoomSummaryErrorCallback = (error: Error) => void;
 
@@ -118,10 +131,48 @@ export abstract class RoomSummaryBaseManager<
     }
 
     /**
+     * 构建「前缀为 `/_matrix/vendor/v1`」的相对路径（带 `$roomId` 替换）。
+     *
+     * 与 `roomPath` 的区别只在**断言的前缀空间**：私有扩展已统一归位 vendor
+     * （后端 Batch 1–3 与本轮 M2），若继续用 `roomPath`（断言 v3 空间），断言会被
+     * 契约表里**只增不减的旧 v3 条目**满足 —— 那正是"路径正确"变成假绿的成因。
+     */
+    protected roomPathVendor<const P extends string>(
+        pathTemplate: P & PathAssert<P, StripVendor<RoomScopedContractPath>>,
+        roomId: string,
+    ): string {
+        return this.buildRoomScopedPath(pathTemplate, roomId);
+    }
+
+    /**
+     * 构建「MSC4354（sticky events）unstable 前缀」下的相对路径（带 `$roomId` 替换）。
+     */
+    protected roomPathMsc4354<const P extends string>(
+        pathTemplate: P & PathAssert<P, StripMsc4354<RoomScopedContractPath>>,
+        roomId: string,
+    ): string {
+        return this.buildRoomScopedPath(pathTemplate, roomId);
+    }
+
+    /**
      * 发送 v3 前缀请求
      */
     protected requestV3<T>(method: Method, path: string, queryParams?: QueryDict, body?: unknown): Promise<T> {
         return this.request<T>({ method, path, queryParams, body, prefix: ClientPrefix.V3 });
+    }
+
+    /**
+     * 发送 vendor 前缀请求（`/_matrix/vendor/v1`，私有扩展的唯一规范位置）
+     */
+    protected requestVendor<T>(method: Method, path: string, queryParams?: QueryDict, body?: unknown): Promise<T> {
+        return this.request<T>({ method, path, queryParams, body, prefix: VendorPrefix });
+    }
+
+    /**
+     * 发送 MSC4354（sticky events）unstable 前缀请求
+     */
+    protected requestMsc4354<T>(method: Method, path: string, queryParams?: QueryDict, body?: unknown): Promise<T> {
+        return this.request<T>({ method, path, queryParams, body, prefix: MSC4354_PREFIX });
     }
 
     /**
