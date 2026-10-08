@@ -17,7 +17,7 @@
         "build:types": "tsc -p tsconfig-build.json --emitDeclarationOnly",
         "build:compile": "babel -d lib --verbose --extensions \".ts,.js\" src && node scripts/fix-esm-specifiers.mjs",
         "gendoc": "typedoc",
-        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key && pnpm quality:real-backend-types && pnpm quality:timer-pairing && pnpm quality:contract-drift && pnpm quality:coverage:critical-files && pnpm quality:gate-reachability && pnpm quality:manager-extensions",
+        "lint": "pnpm lint:types && pnpm test:types && pnpm quality:type-coverage && pnpm lint:js && pnpm lint:workflows && pnpm quality:swallow-fallbacks && pnpm quality:debt-markers && pnpm quality:no-default-key && pnpm quality:real-backend-types && pnpm quality:timer-pairing && pnpm quality:contract-drift && pnpm quality:docs-counts && pnpm quality:coverage:critical-files && pnpm quality:gate-reachability && pnpm quality:manager-extensions",
         "lint:js": "eslint src spec perf scripts && node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --check .",
         "lint:js-fix": "node --max-old-space-size=8192 ./node_modules/prettier/bin/prettier.cjs --log-level=warn --write . && eslint --fix src spec perf scripts",
         "lint:types": "tsc --noEmit",
@@ -46,6 +46,7 @@
         "quality:coverage": "pnpm quality:coverage:repo && pnpm quality:coverage:critical",
         "quality:exports": "node scripts/quality/check-exports-docs.mjs",
         "quality:entrypoints": "node scripts/quality/check-entrypoint-layering.mjs",
+        "quality:contract-entrypoint": "node scripts/quality/check-contract-entrypoint.mjs",
         "quality:sdk-contracts": "node scripts/quality/check-sdk-contract-alignment.mjs",
         "quality:manager-codegen": "node scripts/quality/check-manager-codegen-coverage.mjs",
         "quality:room-space-search": "node scripts/quality/check-room-space-search-granular-coverage.mjs",
@@ -72,6 +73,7 @@
         "quality:docs-examples": "node scripts/quality/check-docs-examples.mjs",
         "quality:contract-freshness": "node scripts/quality/check-contract-freshness.mjs",
         "quality:contract-provenance": "node scripts/quality/check-contract-provenance.mjs",
+        "quality:docs-counts": "node scripts/quality/check-docs-counts.mjs",
         "quality:coverage-report": "node scripts/quality/generate-coverage-report.mjs",
         "quality:coverage:weak-files": "node scripts/quality/find-lowest-coverage-files.mjs",
         "quality:coverage:critical-files": "node scripts/quality/check-coverage-critical-files.mjs",
@@ -106,7 +108,7 @@
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",
         "generate:manager-extensions": "node scripts/generate-manager-extensions.mjs",
         "quality:manager-extensions": "node scripts/generate-manager-extensions.mjs --check",
-        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:contract-freshness && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:public-api-docs && pnpm quality:docs-examples && pnpm quality:path-contract && pnpm quality:admin-response-contract && pnpm quality:msc && pnpm quality:waiver-expiry",
+        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:contract-entrypoint && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:contract-freshness && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:public-api-docs && pnpm quality:docs-examples && pnpm quality:path-contract && pnpm quality:admin-response-contract && pnpm quality:msc && pnpm quality:waiver-expiry",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
         "audit:high": "pnpm audit --audit-level=high",
@@ -140,6 +142,10 @@
         "./legacy": {
             "import": "./lib/legacy.js",
             "types": "./lib/legacy.d.ts"
+        },
+        "./contract": {
+            "import": "./lib/contract/index.js",
+            "types": "./lib/contract/index.d.ts"
         },
         "./crypto": {
             "import": "./lib/crypto-api/index.js",

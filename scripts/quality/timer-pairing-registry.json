@@ -7,10 +7,6 @@
             "disposition": "paired"
         },
         {
-            "key": "src/ai/index.ts#stored-timeout#timeoutId#1",
-            "disposition": "paired"
-        },
-        {
             "key": "src/burn-after-read/index.ts#stored-timeout#timer#1",
             "disposition": "paired"
         },

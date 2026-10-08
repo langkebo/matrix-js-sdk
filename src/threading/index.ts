@@ -238,6 +238,43 @@ type ClientInternals = {
     processAggregatedTimelineEvents(room?: unknown, events?: unknown[]): void;
 };
 
+/**
+ * 线程管理（含本地模型桥接）。
+ *
+ * @deprecated 本类**只有 REST 那一半**被 `ThreadManager`（`src/thread/index.ts`）取代，
+ * 且新旧两套方法名已经漂移 —— 调用方容易以为在用一个规范化接口，其实两边的命名并不一致。
+ * 新增代码请优先使用 `client.getThreadManager()`；本类保留以兼容既有调用方
+ * （至少 2 个 minor 版本，见 CLAUDE.md「Code Conventions」）。
+ *
+ * 方法级对照（同一后端端点，左旧右新）：
+ *
+ * | ThreadingManager（本类，旧） | ThreadManager（新） |        端点         |
+ * | ---------------------------- | ------------------- | ------------------- |
+ * | `getRoomThreadList`          | `getRoomThreads`    | `GET /rooms/{r}/threads` |
+ * | `createRoomThread`           | `createThread`      | `POST /rooms/{r}/threads` |
+ * | `searchRoomThreads`          | `searchThreads`     | `/rooms/{r}/threads/search` |
+ * | `getRoomUnreadThreads`       | `getUnreadRoomThreads` | `/rooms/{r}/threads/unread` |
+ * | `getRoomThread`              | `getThread`         | `/rooms/{r}/threads/{t}` |
+ * | `deleteRoomThread`           | `deleteThread`      | `DELETE /rooms/{r}/threads/{t}` |
+ * | `subscribeToThread`          | `subscribeThread`   | `/threads/{t}/subscribe` |
+ * | `unsubscribeFromThread`      | `unsubscribeThread` | `/threads/{t}/unsubscribe` |
+ * | `addThreadReply`             | `createThreadReply` | `POST /threads/{t}/replies` |
+ * | `redactThreadReply`          | `redactReply`       | `/replies/{e}/redact` |
+ * | `getLegacyRoomThreadList`    | `getUserThreads`    | `/user/{u}/rooms/{r}/threads` |
+ * | `getGlobalThreadList`        | `getAllThreads`     | 全局线程列表        |
+ * | `getGlobalUnreadThreads`     | `getAllUnreadThreads` | 全局未读          |
+ * | `freezeThread` / `unfreezeThread` / `muteThread` / `markThreadRead` / `getThreadReplies` / `getThreadStats` / `getSubscribedThreads` / `createGlobalThread` | 同名 | 新增代码仍建议走 `ThreadManager` |
+ *
+ * **没有对应实现、必须继续用本类的**：`getThread` / `getThreads` / `getThreadList` /
+ * `hasThread` / `getThreadTimeline` / `processAggregatedTimelineEvents` / `supportsThreads` /
+ * `getEventContext` / `getEventMapper` / `fetchRelations` / `fetchRoomEvent`
+ * （本地 `Thread` 模型桥接，`ThreadManager` 不提供）。
+ *
+ * 对照表由 `spec/unit/thread-manager-family.spec.ts` 从两边源码的 HTTP 路径自动核对 ——
+ * 若任一侧新增同名端点而没登记在这里，该 spec 会失败。
+ *
+ * @see {@link ../thread/index.ts} 新版 ThreadManager
+ */
 export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, ThreadingManagerEvents> {
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);

@@ -1,5 +1,25 @@
 # SDK-Frontend Export Usage Matrix
 
+> **⚠️ 历史快照，非当前事实（2026-07-21 生成）。**
+> 下方表格记录的是当时一次性的 D.3 / F.1 审计结果，**未被重新生成**。
+> 其中的「usage」列依赖扫描前端仓库，自那以后前端已改名（`hula/` → `Tjg/`，2026-08）
+> 并大量重构，因此**不要用本文件的 usage/zero-usage 结论做决策**。
+> 需要当前结论时重新跑一次审计，或直接看 `docs/api-contract/exports.md` 与
+> `src/contract/index.ts`（后者的模块清单由 `quality:contract-entrypoint` 强制正确）。
+>
+> 已确认的漂移（2026-10-08 校核）：
+>
+> | 本文件写的                                           | 当前实际                                     |
+> | ---------------------------------------------------- | -------------------------------------------- |
+> | `52 export entries`                                  | 51（新增 `./contract` 前为 50）              |
+> | `114 registered managers`                            | 100（`ManagerName` 联合类型）                |
+> | `hula/src/`                                          | `Tjg/src/`                                   |
+> | `matrix-js-sdk-augmentations.d.ts` (1921 lines)      | 1484 行                                      |
+> | `./notification` 列为零使用入口                      | 该子路径**不存在**，实际是 `./notifications` |
+> | `./manager-extensions`、`./voice`、`./friend` 零使用 | 三者均已被前端使用                           |
+>
+> 头部保留原始数值仅为忠实记录快照状态；CI 数值由 `quality:docs-counts` 从代码实时计算并比对。
+
 > Generated: 2026-07-21
 > Audits: D.3 Manager Usage Matrix + F.1 Frontend API Usage Table
 > Sources: `matrix-js-sdk/package.json` (52 export entries, 114 registered managers) vs `hula/src/` (197 SDK import statements)

@@ -18,7 +18,10 @@ last_reviewed: 2026-05-11
 
 - `generated/modules/module.json` 当前记录 **27** 条 admin 路由，不是旧文档中的 `13` 条。
 - 这些路由并不只包含 `/modules/*`，还包括模块系统挂出的 `account_validity`、`password_auth_providers`、`presence_routes`、`media_callbacks`、`rate_limit_callbacks`、`account_data_callbacks`。
-- SDK 并没有单独的 `ModuleManager`；真实封装落在 `AdminManager`。
+- 存在独立的 `ModuleManager`：`src/module/index.ts` 定义 `MatrixClient.prototype.getModuleManager()`。
+  **但它不在 `src/manager-extensions/` 的扩展清单里**，因此不会随 `initializeManagerExtensions()`
+  自动挂载 —— 必须显式 `import "matrix-js-sdk/src/module"`（或经 `AdminManager`）才可用。
+  `AdminManager` 亦通过 `getAdminModules()` 复用同一 manager，故调用方通常走 admin 入口。
 - 本轮已补齐 `AdminManager` 对全部 27 条后端路由的手写 wrapper，并绑定 `ModulePathPattern`。
 - 已修正两个真实 SDK 漂移：
     - `updateModuleConfig()` 使用 `PUT /modules/{module_name}/config`，body 为 `{ config }`

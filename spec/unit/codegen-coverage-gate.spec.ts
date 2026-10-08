@@ -216,6 +216,32 @@ describe("codegen coverage gate: consumer evidence", () => {
         expect(collectCodegenConsumers("room", root)).toEqual({ strong: [], weak: [] });
     });
 
+    it("聚合契约出口不算消费者（否则会洗白全部豁免）", () => {
+        // 回归守卫：`src/contract/index.ts` 把 39 张表统一再导出，供 matrix-js-sdk/contract 使用。
+        // 它对「某个模块是否被真正使用」**零证据** —— 若被算作强证据，
+        // 每个有表的模块都会凭空变成 covered，把 `cas` 这类
+        // 「有表没人读」的豁免静默洗白（正是 cas 豁免注释里明令禁止的做法）。
+        const root = makeSrcTree({
+            "cas/__generated__/route-table.ts": 'export const routes = [{ method: "GET", path: "/x" }];',
+            "contract/index.ts":
+                'import { routes } from "../cas/__generated__/route-table";\nexport const SDK_CONTRACT = { cas: routes };',
+        });
+
+        expect(collectCodegenConsumers("cas", root)).toEqual({ strong: [], weak: [] });
+    });
+
+    it("聚合出口被排除，但同目录下真实消费者仍被认出", () => {
+        const root = makeSrcTree({
+            "cas/__generated__/route-table.ts": 'export const routes = [{ method: "GET", path: "/x" }];',
+            "contract/index.ts":
+                'import { routes } from "../cas/__generated__/route-table";\nexport const SDK_CONTRACT = { cas: routes };',
+            "cas/index.ts":
+                'import type { routes } from "./__generated__/route-table";\nexport type R = typeof routes;',
+        });
+
+        expect(collectCodegenConsumers("cas", root).strong).toEqual(["cas/index.ts"]);
+    });
+
     it("同一进程内不同 srcRoot 的索引互不串味（索引必须按 root 分键）", () => {
         // 回归守卫：findStrongConsumers 现在建「文件 → route-table 落点」索引并按 srcRoot 缓存。
         // 若有人把缓存键写错（例如只按模块名），下面第二个 root 会拿到第一个 root 的结果，

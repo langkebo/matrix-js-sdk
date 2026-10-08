@@ -10,6 +10,7 @@ This document is the canonical inventory of `package.json#exports` subpaths. It 
 | `./core`               | Core 白名单：基础客户端能力 + HTTP/API 类型 + 核心模型类型        | `createClient`, `MatrixClient`, `ClientEvent`                                 |
 | `./advanced`           | Advanced 白名单：manager 扩展能力（admin/dm/friend/push/space）   | `AdminManager`, `DirectMessageManager`, `SpaceManager`                        |
 | `./legacy`             | Legacy 白名单：filter 历史兼容类型与别名                          | `FilterManager`                                                               |
+| `./contract`           | Contract 白名单：全部 `__generated__/route-table` 的聚合出口      | `SDK_CONTRACT_ROUTE_TABLES`, `SDK_CONTRACT_ROUTES`, `SDK_CONTRACT_MODULES`    |
 | `./manager-extensions` | Manager Extensions 白名单：管理器扩展生命周期                     | `extendMatrixClientWithManagers`                                              |
 | `./admin`              | Admin 白名单：管理端 manager 与领域类型                           | `AdminManager`, `UserInfo`, `RoomInfo`                                        |
 | `./app-service`        | App Service 白名单：应用服务 manager 与服务类型                   | `AppServiceEvent`, `ApplicationService`                                       |

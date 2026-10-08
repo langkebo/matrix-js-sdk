@@ -19,6 +19,16 @@ limitations under the License.
  *
  * 提供 Matrix thread（话题/子线程）的创建、查询、管理功能
  * 对应后端: synapse-rust thread 模块
+ *
+ * 这是 thread 域 REST 面的**规范入口**（`client.getThreadManager()`）。
+ * 旧版 `ThreadingManager`（`src/threading/index.ts`）覆盖同一批端点但方法名不一致，
+ * 已标注 `@deprecated`；两者的方法级对照表写在旧类上，并由
+ * `spec/unit/thread-manager-family.spec.ts` 从源码自动核对。
+ *
+ * 注意：本地 `Thread` 模型桥接（`getThreads` / `hasThread` / `getThreadTimeline` 等）
+ * 仍只在 `ThreadingManager` 上，本类不提供。
+ *
+ * @see {@link ../threading/index.ts} 旧版 ThreadingManager（已废弃）
  */
 
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";

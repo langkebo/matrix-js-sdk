@@ -112,17 +112,6 @@
             }
         },
         {
-            "id": "src/ai/index.ts#50fd7c77b240b09d",
-            "file": "src/ai/index.ts",
-            "line": 225,
-            "ordinal": 1,
-            "snippet": "catch (e) { logger.warn(\"AIModule.healthCheck failed:\", e); this._isConnected = false; return false; }",
-            "whitelist": {
-                "owner": "ai",
-                "expires": "2026-12-31"
-            }
-        },
-        {
             "id": "src/app-service/index.ts#162418b0ee7c845e",
             "file": "src/app-service/index.ts",
             "line": 350,

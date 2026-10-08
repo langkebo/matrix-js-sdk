@@ -170,6 +170,24 @@ function getRouteTableImportIndex(srcRoot) {
  *
  * 判定口径本身不变；变的是**取数方式**——导入索引按 `srcRoot` 缓存，同一进程内重复查询不再读盘。
  */
+/**
+ * 聚合契约出口：**对「本模块有没有真实消费者」零证据**，必须排除在强证据之外。
+ *
+ * `src/contract/index.ts` 把全部 39 张 route-table 统一再导出，供 `matrix-js-sdk/contract`
+ * 这个公开入口使用。它的 import 与任何单个模块是否被真正使用**无关** ——
+ * 若把它算作强证据，等于给**每一个**有表的模块凭空发一张 covered 通行证，
+ * 把 `cas` 这类「有表没人读」的豁免静默洗白成 covered。
+ *
+ * 而 `cas` 的豁免注释明确写着「勿用『凑一个别名导入』的方式洗白成 covered」
+ * （见本文件 WAIVED_MODULES.cas 上方的说明）—— 聚合出口正是那种别名导入的极端形式
+ * （一个文件导入了全部表）。所以这里必须显式排除，否则新增公开入口会悄悄
+ * 让整张豁免清单失效。
+ *
+ * 判定口径不变：真正消费某张表的 manager 仍会被 `findStrongConsumers` 认出来；
+ * 变的只是「统一再导出全部表的文件不算消费者」。
+ */
+const AGGREGATE_CONTRACT_SOURCES = new Set(["contract/index.ts"]);
+
 export function findStrongConsumers(sdkDir, srcRoot = srcDir) {
     const target = `${sdkDir}/__generated__/route-table`;
     const ownGeneratedPrefix = `${sdkDir}/__generated__/`;
@@ -178,6 +196,8 @@ export function findStrongConsumers(sdkDir, srcRoot = srcDir) {
     for (const [relativePath, targets] of getRouteTableImportIndex(srcRoot)) {
         // 本模块自己的生成文件不算消费者（它们就在 target 旁边）。
         if (relativePath.startsWith(ownGeneratedPrefix)) continue;
+        // 聚合再导出文件不算消费者（对「本模块是否被使用」零证据）。
+        if (AGGREGATE_CONTRACT_SOURCES.has(relativePath)) continue;
         if (targets.includes(target)) hits.push(relativePath);
     }
 
