@@ -34,21 +34,40 @@
  *   包装器显式登记（EXCLUDED_WRAPPERS）并打印在报告里 —— 覆盖率必须是可审计的，
  *   不能靠"没写就是没覆盖"这种沉默。
  *
+ * 增强（2026-10-08）—— 把「表面覆盖」补成「真实覆盖」:
+ *   上一版虽然把 `adminRequest` 登记进了表，但 `extractWrapperCalls` 里有一条
+ *     `if (!/^(`…`|"…"|'…')$/.test(args[1])) continue;   // 路径必须是字面量`
+ *   —— **非字面量路径的调用点被整个丢掉、连 skip 计数都不进**。实测：
+ *     已校验 317 处 / 被静默丢弃 246 处（占 31 处包装器调用点的 44%）。
+ *   于是报告里"提取请求调用 432、不匹配 0"读起来像"全覆盖"，而 `admin-config-manager.ts`
+ *   整族 `apu("/x")` 调用**一个都没参与校验** —— 本轮就抓着它找出了
+ *   `deleteFeatureFlag` 打 `DELETE /_synapse/admin/v1/feature_flags/{key}`（下划线 +
+ *   后端根本没有 DELETE 路由）这个必然 404 的缺陷。
+ *
+ *   本轮做两件事：
+ *     ① `apu` 是**恒等函数**（`return path;`），把它当作「恒等路径包装器」解开即可精确
+ *        得到字面量。这类包装器登记在 PATH_IDENTITY_HELPERS，并且**启动时读源码校验
+ *        它确实是恒等**（不是恒等就 exit 2）—— 否则一旦有人给它加上前缀，路径前缀会算错，
+ *        "假匹配"与"假不匹配"会同时出现，而报告依然全绿。
+ *     ② 仍然解不出来的调用点落进 `uncheckedPathArg` 桶并在报告里计数，外加棘轮
+ *        `path-contract-coverage.json`（总数与**逐文件**计数只降不升）——
+ *        覆盖率是一次声明，不是一个口号。
+ *
  * 用法:
- *   node scripts/quality/verify-path-contract.mjs [--json] [--verbose]
+ *   node scripts/quality/verify-path-contract.mjs [--json] [--verbose] [--refresh-coverage]
  *
  * 退出码:
  *   0 = 全部匹配
- *   1 = 存在不匹配（CI 应红）
- *   2 = 门禁自身无法运行（ledger 缺失 / 源码无法解析）—— 刻意与 1 区分，
- *       避免把"环境问题"误报成"代码缺陷"。
+ *   1 = 存在不匹配（CI 应红），或未校验调用点超出覆盖率基线
+ *   2 = 门禁自身无法运行（ledger 缺失 / 源码无法解析 / 恒等包装器与源码不符）——
+ *       刻意与 1 区分，避免把"环境问题"误报成"代码缺陷"。
  *
  * 环境变量:
  *   LEDGER_PATH  覆盖 ledger 路径
  *   SCAN_ROOTS   覆盖要扫描的目录（逗号分隔，默认 src）
  */
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -64,6 +83,52 @@ const VERBOSE = process.argv.includes("--verbose");
 
 const LEDGER_PATH = process.env.LEDGER_PATH ?? "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
 const ledgerFile = resolve(PROJECT_ROOT, LEDGER_PATH);
+
+/**
+ * 覆盖率基线文件（棘轮）：未参与校验的调用点计数，只准降不准升。
+ * 由 `--refresh-coverage` 写入 —— 见 `main()` 里「6b. 覆盖率棘轮」。
+ */
+const COVERAGE_FILE = join(__dirname, "path-contract-coverage.json");
+/** 剥离别名（`StripAdminV1` → `/_synapse/admin/v1` 等）的定义文件。 */
+const STRIP_PREFIX_FILE = "src/http-api/strip-prefix.ts";
+const COVERAGE_NOTE =
+    "未参与路径校验的调用点计数（路径实参不是字面量，也不是已校验的恒等包装器调用）。" +
+    "这是覆盖率声明：`uncheckedPathArg` 与 `byFile` 里的每一项都**只准降不准升**——" +
+    "涨了说明有调用点从「已校验」滑到「未校验」，要么把它改回字面量，要么跑 " +
+    "`node scripts/quality/verify-path-contract.mjs --refresh-coverage` 显式接受。" +
+    "`byFile` 用**仓库相对路径**做键：一个文件被删/改名会让键消失（这是好事，不需要处理），" +
+    "新增文件默认基线 0 ⇒ 它只要出现未校验调用点就会失败。";
+
+/**
+ * 覆盖率棘轮的核心判据（纯函数，spec 直接测）：观测值相对基线有没有「变多」。
+ *
+ * 两个维度都只准降：
+ *   - `uncheckedPathArg` 总量；
+ *   - `byFile` 里**每个文件**的计数（缺键视作 0 ⇒ 新文件只要出现未校验调用点就失败）。
+ *
+ * 只看总量是不够的：把一个字面量改成 `this.xxxPath(id)`、同时在别处把动态路径改回字面量，
+ * 总量不变而覆盖面其实已经漂了。逐文件计数把这种"换位"卡住。
+ *
+ * @param {{ uncheckedPathArg: number, byFile?: Record<string, number> }} baseline
+ * @param {{ uncheckedPathArg: number, byFile: Record<string, number> }} observed
+ * @returns {Array<{ kind: string, detail: string }>}
+ */
+export function diffCoverage(baseline, observed) {
+    const issues = [];
+    if (observed.uncheckedPathArg > baseline.uncheckedPathArg) {
+        issues.push({
+            kind: "coverage-total-grown",
+            detail: `未校验调用点 ${baseline.uncheckedPathArg} → ${observed.uncheckedPathArg}（+${observed.uncheckedPathArg - baseline.uncheckedPathArg}）`,
+        });
+    }
+    for (const [file, n] of Object.entries(observed.byFile)) {
+        const base = baseline.byFile?.[file] ?? 0;
+        if (n > base) {
+            issues.push({ kind: "coverage-file-grown", detail: `${file}: ${base} → ${n}（+${n - base}）` });
+        }
+    }
+    return issues;
+}
 
 /**
  * 读后端 ledger 并建成「`METHOD /归一化路径` → 原始路径」索引。
@@ -181,6 +246,278 @@ const EXCLUDED_WRAPPERS = {
         "rust-crypto 的 to-device 特化入口，内部把 path 拼成完整字面量后交给 requestWithRetry；" +
         "其字面量由 msg 运行时决定，静态不可求值。",
 };
+
+/**
+ * 解析 `src/http-api/strip-prefix.ts` 里**单前缀**形态的剥离别名 → 真实前缀。
+ *
+ * 只认最简单的形态（本仓 8 个）：
+ * ```ts
+ * export type StripAdminV1<P extends string> = StripPrefix<P, "/_synapse/admin/v1">;
+ * ```
+ * 多前缀形态（`StripAuthPrefix` = v3→r0→v1 逐级、`StripMediaPrefix`、`StripClientV3OrVendorV1`…）
+ * 是有条件的嵌套条件类型，**不解析**（解析它们就要写一个类型求值器）—— 那类模块退回
+ * `POSITIONAL_WRAPPERS` 的声明。
+ *
+ * 为什么要这张表：`bu` / `wa` / `wb` 这些类型化路径包装器的参数类型里**已经写明了前缀**
+ * （`PathAssert<P, StripAdminV1<BackgroundUpdatePath>>` 的语义就是"剥掉这个前缀后必须命中
+ * 模块契约里的某条路由"）⇒ 前缀不需要门禁去猜、也不需要 `byDir` 手工登记。
+ * 之前 `doRequest` 只有 widgets/space/worker 三条 `byDir`，于是 `background-update` 与
+ * `worker-admin|worker-body` 整片被当成 `/_matrix/client/v3` 前缀 —— 45 条假不匹配。
+ */
+export function parseStripPrefixAliases(source) {
+    const out = new Map();
+    const re =
+        /export\s+type\s+([A-Za-z_$][\w$]*)\s*<\s*P\s+extends\s+string\s*>\s*=\s*StripPrefix\s*<\s*P\s*,\s*"([^"]+)"\s*>\s*;/g;
+    for (const m of source.matchAll(re)) out.set(m[1], m[2]);
+    return out;
+}
+
+/**
+ * 从参数类型文本里取出「唯一」的剥离别名（多于一个就判不了 —— 不猜）。
+ *
+ * @param {string | null} typeText
+ * @param {Map<string, string>} stripAliases
+ * @returns {string | null}
+ */
+export function resolveStripPrefixFromType(typeText, stripAliases) {
+    if (!typeText || !stripAliases) return null;
+    const names = new Set();
+    for (const m of typeText.matchAll(/\b([A-Za-z_$][\w$]*)\s*</g)) names.add(m[1]);
+    const hits = [...names].filter((n) => stripAliases.has(n));
+    if (hits.length !== 1) return null;
+    return stripAliases.get(hits[0]);
+}
+
+/**
+ * 路径位置上的「恒等包装器」是**自动**识别并校验的，不需要手工登记表。
+ *
+ * 这类包装器长这样（本仓有 50 个带类型断言的，外加 `apu` 这种裸恒等）：
+ * ```ts
+ * function bu<const P extends string>(path: P & PathAssert<P, StripAdminV1<BackgroundUpdatePath>>): P {
+ *     return path;
+ * }
+ * ```
+ * 它的唯一效果是让路径实参不再是字面量 —— 于是调用点被踢出静态校验。
+ * 要把它拉回校验，只要确认两件事：
+ *   1. **函数体确实是 `return <参数>;`**（`verifyIdentityHelperShape`）——
+ *      一旦有人给它加上前缀（哪怕"顺手"改成 `${Prefix}${path}`），解开就会算错路径，
+ *      假匹配与假不匹配同时出现而报告全绿。这类判据错一次比门禁拒绝启动严重得多，
+ *      所以认不出的形态一律判"不符"。
+ *   2. **同名函数在**全仓范围内**要么只有恒等定义、要么干脆不用**（见下方 `indexIdentityPathHelpers`
+ *      的"任一非恒等即整名作废"规则）—— 否则同名不同义会让解包变成猜。
+ *
+ * 识别出的恒等包装器还要按**参数类型**分两类，因为它们的覆盖来源不同：
+ *   - `guarded`：参数类型带 `PathAssert<…>` ⇒ 路径已由 **tsc** 按模块契约逐段断言
+ *     （`src/http-api/strip-prefix.ts`，segment 级比较），门禁只是**第二道**防线；
+ *   - `plain`：参数类型就是 `string`（本仓只有 `apu`）⇒ **没有任何类型校验**，
+ *     门禁是唯一防线。`admin-config-manager.ts` 里 `feature_flags`（下划线）这类
+ *     拼写错误能在 tsc 全绿的情况下长期存活，靠的就是这一类。
+ *
+ * 分桶不是装饰：`guarded` 的调用点算「已被类型系统覆盖」，`plain` 的必须由本门禁核对。
+ */
+
+/** 在一个函数的 `(` 之后扫完参数表并跨过返回类型注解，返回函数体 `{` 的下标；失败返回 -1。 */
+function findFunctionBodyStart(source, openParen) {
+    const closeParen = matchParen(source, openParen);
+    if (closeParen < 0) return -1;
+    let i = closeParen + 1;
+    while (i < source.length && /\s/.test(source[i])) i++;
+    // 返回类型注解：`): string {` —— 不能假设 `)` 之后紧跟 `{`
+    if (source[i] === ":") {
+        i++;
+        let typeDepth = 0;
+        while (i < source.length) {
+            const c = source[i];
+            if (c === "(" || c === "[" || c === "<") typeDepth++;
+            else if (c === ")" || c === "]" || c === ">") typeDepth--;
+            else if (c === "{" && typeDepth === 0) break;
+            i++;
+        }
+    }
+    return source[i] === "{" ? i : -1;
+}
+
+/**
+ * 扫描**一个** `function <name>(…) { … }` 声明，判断它是不是恒等函数。
+ *
+ * 用词法配平而不是正则取函数体：函数体里可能有嵌套花括号 / 字符串里的 `}`。
+ * 参数表要能跨过**泛型参数**（`function bu<const P extends string>(path: …)`）与
+ * 返回类型注解（`): P {`）—— 第一版直接写 `function\s+name\s*\(`，于是本仓 50 个
+ * 带泛型的类型化路径包装器**一个都没被识别**，报告里"已校验的恒等包装器: 1"，
+ * 而真正的原因被"看起来只有 apu 是这种写法"掩盖掉了。
+ *
+ * 不解析重载取首处、不解析箭头函数、不解析多参数 —— 认不出的形态一律**判为不符**
+ * （fail-closed）：这里判错的代价是"路径算错却全绿"，比"门禁拒绝启动"严重得多。
+ *
+ * @param {string} source 已剥注释的源码
+ * @param {number} nameEnd 函数名之后的下标
+ * @returns {{ ok: true, param: string, typeText: string | null } | { ok: false, reason: string }}
+ */
+export function analyzeIdentityFunction(source, nameEnd) {
+    let i = nameEnd;
+    while (i < source.length && /\s/.test(source[i])) i++;
+    if (source[i] === "<") {
+        const after = skipGenerics(source, i);
+        if (after < 0) return { ok: false, reason: "泛型参数不配平" };
+        i = after;
+        while (i < source.length && /\s/.test(source[i])) i++;
+    }
+    if (source[i] !== "(") return { ok: false, reason: "名字后面不是参数表" };
+    const openParen = i;
+    const bodyStart = findFunctionBodyStart(source, openParen);
+    if (bodyStart < 0) return { ok: false, reason: "找不到函数体" };
+
+    const paramList = (splitTopLevelArgs(source, openParen) ?? []).map((p) => p.trim()).filter(Boolean);
+    if (paramList.length !== 1) {
+        return { ok: false, reason: `有 ${paramList.length} 个参数，恒等包装器必须恰好 1 个` };
+    }
+    // 参数形如 `path: string` / `path: P & PathAssert<P, …>` / `path?: string` → 名字 + 类型文本
+    const pm = /^([A-Za-z_$][\w$]*)\s*\??\s*(?::([\s\S]*))?$/.exec(paramList[0]);
+    if (!pm) return { ok: false, reason: `参数写法认不出：${paramList[0]}` };
+
+    const closeBrace = matchBrace(source, bodyStart);
+    if (closeBrace < 0) return { ok: false, reason: "函数体不配平" };
+    const body = source
+        .slice(bodyStart + 1, closeBrace)
+        // 函数体里允许有注释：`return path; // 无类型断言`
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/[^\n]*/g, "")
+        .trim()
+        .replace(/;$/, "")
+        .trim();
+
+    if (body !== `return ${pm[1]}`) return { ok: false, reason: `函数体不是恒等：\`${body}\`` };
+    return { ok: true, param: pm[1], typeText: pm[2]?.trim() ?? null };
+}
+
+/**
+ * 扫出源码里**所有** `function <name>(…)` 声明并逐条判定。
+ *
+ * 逐条而不是"按名字取首处"：同名重载里只要有**一处**不是恒等，整个名字就必须作废
+ * （否则解包就是在同名不同义之间猜）。
+ *
+ * @param {string} source 已剥注释的源码
+ * @returns {Array<{ name: string, ok: boolean, param?: string, typeText?: string | null, reason?: string }>}
+ */
+export function analyzeFunctionDeclarations(source) {
+    const out = [];
+    const declRe = /\b(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g;
+    for (const m of source.matchAll(declRe)) {
+        const name = m[1];
+        const verdict = analyzeIdentityFunction(source, m.index + m[0].length);
+        out.push(
+            verdict.ok
+                ? { name, ok: true, param: verdict.param, typeText: verdict.typeText }
+                : { name, ok: false, reason: verdict.reason },
+        );
+    }
+    return out;
+}
+
+/**
+ * 校验 `name` 在 `source` 里的**全部**定义都是恒等函数（函数体只有 `return <第一个参数>;`）。
+ *
+ * @param {{ source: string, name: string }} input
+ * @returns {{ ok: true, param: string, typeText: string | null } | { ok: false, reason: string }}
+ */
+export function verifyIdentityHelperShape({ source, name }) {
+    const decls = analyzeFunctionDeclarations(source).filter((d) => d.name === name);
+    if (decls.length === 0) return { ok: false, reason: `找不到 \`function ${name}(…)\` 的定义` };
+    const bad = decls.find((d) => !d.ok);
+    if (bad) return { ok: false, reason: `\`${name}\` ${bad.reason}` };
+    return { ok: true, param: decls[0].param, typeText: decls[0].typeText ?? null };
+}
+
+/**
+ * 全仓扫描 `function <name>(…)` 声明，建「名字 → 恒等包装器种类」索引。
+ *
+ * 规则（**宁可漏解也不猜**）：
+ *   - 一个名字只要有**任意一处**定义不是恒等 ⇒ 整个名字作废（同名不同义时解包就是猜）；
+ *   - 所有定义都是恒等时：全部带 `PathAssert<…>` ⇒ `guarded`；否则算 `plain`
+ *     （保守：只要有一处裸恒等，就不能声称"已被类型系统覆盖"）。
+ *
+ * ⚠️ 已知局限：不做作用域分析，因此**参数遮蔽**同名恒等函数时会被误解
+ * （如某方法签名里有形参 `bu`）。本仓不存在这种写法；若将来出现，门禁会把
+ * 该文件的未校验计数打到基线之上并报红，届时再加形参遮蔽检查即可。
+ *
+ * @param {Map<string, string>} sourcesByFile 仓库相对路径 → 已剥注释的源码
+ * @param {{ stripAliases?: Map<string, string> }} [options] 剥离别名表（见 `parseStripPrefixAliases`）
+ * @returns {{ helpers: Map<string, { kind: "plain" | "guarded", files: string[], stripPrefix: string | null }> }}
+ */
+export function indexIdentityPathHelpers(sourcesByFile, options = {}) {
+    const stripAliases = options.stripAliases ?? new Map();
+    /** @type {Map<string, { identity: boolean, guarded: boolean, files: Set<string>, prefixes: Set<string> }>} */
+    const raw = new Map();
+    for (const [file, source] of sourcesByFile) {
+        for (const decl of analyzeFunctionDeclarations(source)) {
+            const entry = raw.get(decl.name) ?? {
+                identity: true,
+                guarded: true,
+                files: new Set(),
+                prefixes: new Set(),
+            };
+            entry.files.add(file);
+            if (!decl.ok) {
+                entry.identity = false;
+            } else {
+                const strip = resolveStripPrefixFromType(decl.typeText, stripAliases);
+                if (!/PathAssert\s*</.test(decl.typeText ?? "")) entry.guarded = false;
+                if (strip) entry.prefixes.add(strip);
+                else entry.prefixes.add("\u0000unknown");
+            }
+            raw.set(decl.name, entry);
+        }
+    }
+    const helpers = new Map();
+    for (const [name, e] of raw) {
+        if (!e.identity) continue; // 同名有非恒等定义 ⇒ 整名作废
+        // 同名多处定义的前缀必须一致（否则"这个调用点该按哪个前缀算"取决于遍历顺序）
+        const prefixes = [...e.prefixes];
+        helpers.set(name, {
+            kind: e.guarded ? "guarded" : "plain",
+            files: [...e.files].sort(),
+            stripPrefix: prefixes.length === 1 && prefixes[0] !== "\u0000unknown" ? prefixes[0] : null,
+        });
+    }
+    return { helpers };
+}
+
+/**
+ * 把 `helper(<字面量>)` 展开成 `<字面量>`；不是恒等包装器调用就返回 `null`。
+ *
+ * 只解「整段就是一个调用」的形态：`apu("x") + y`、`apu("x").slice(1)` 一律不解
+ * （展开一半会让路径变成错的，比不解更糟）。
+ * `helpers` 必须是 `indexIdentityPathHelpers()` 的产物（已校验）。
+ *
+ * @param {string} raw
+ * @param {{ has(name: string): boolean }} helpers
+ * @returns {string | null} 展开后的表达式（未判是否为字面量）
+ */
+export function unwrapIdentityPath(raw, helpers) {
+    if (!helpers || typeof helpers.has !== "function") return null;
+    let expr = String(raw ?? "").trim();
+    for (let hop = 0; hop < 5; hop++) {
+        const m = /^([A-Za-z_$][\w$]*)\s*\(/.exec(expr);
+        // 不再是函数调用（`"x"` / `path` / `this.a.b()`）⇒ 展开到此结束。
+        // ⚠️ 这里必须**返回已展开的表达式**而不是 null：第一版写成 `return null`，
+        // 于是 `apu("x")` 展开成 `"x"` 之后又被第二圈判成"不是恒等调用"而整条作废
+        // —— 解包看起来"实现了"，13 处调用点却仍全部落在未校验桶里，且不报错。
+        if (!m) return hop === 0 ? null : expr;
+        if (!helpers.has(m[1])) return hop === 0 ? null : expr;
+        const openParen = m[0].length - 1;
+        const closeParen = matchParen(expr, openParen);
+        if (closeParen < 0) return null;
+        const args = splitTopLevelArgs(expr, openParen);
+        if (!args || args.length !== 1) return null;
+        // 闭括号之后必须什么都没有（否则是 `apu("x") + y` / `.trim()` 之类）
+        if (expr.slice(closeParen + 1).trim() !== "") return null;
+        expr = args[0].trim();
+    }
+    return null;
+}
+
+/** 路径实参必须长这样（含 `${…}` 插值的模板字面量也算 —— 归一化会处理成 `{X}`）。 */
+const PATH_LITERAL_RE = /^(`[^`]*`|"[^"]*"|'[^']*')$/;
 
 /**
  * 不属于「homeserver ledger」校验范畴的路径命名空间 —— 单独成桶，**不计入 mismatch**。
@@ -459,13 +796,26 @@ function skipGenerics(src, i) {
     return -1;
 }
 
-/** 从 `(` 起按顶层逗号切分实参（自动忽略字符串/括号内部的逗号） */
+/**
+ * 从 `(` 起按顶层逗号切分实参（自动忽略字符串/括号/**泛型实参**内部的逗号）。
+ *
+ * ⚠️ 泛型深度必须单独跟踪：本仓的类型化路径包装器写成
+ * `bu<const P extends string>(path: P & PathAssert<P, StripAdminV1<BackgroundUpdatePath>>)`
+ * —— 参数表里有 `PathAssert<P, …>` 这个**带逗号的泛型**。只按 `()[]{}` 计深度时
+ * 那个逗号落在 depth 0 ⇒ 一个参数被切成两个 ⇒ "恒等包装器必须恰好 1 个参数"判据
+ * 失败 ⇒ 50 个包装器一个都识别不出来（而报告只会说"已校验的恒等包装器: 1"）。
+ *
+ * `<` 的开合是**启发式**：紧跟标识符/`>` 的 `<` 才算泛型开口（`a < b` 有空格 ⇒ 不算），
+ * 避免把比较运算符当成泛型。宁可少切（少一切一刀 ⇒ 实参变长 ⇒ 下游判据 fail-closed），
+ * 也不要多切（多一刀 ⇒ 实参错位 ⇒ 静默取错参数）。
+ */
 function splitTopLevelArgs(src, openIdx) {
     const closeParen = matchParen(src, openIdx);
     if (closeParen < 0) return null;
     const inner = src.slice(openIdx + 1, closeParen);
     const args = [];
     let depth = 0;
+    let generic = 0;
     let inStr = null;
     let start = 0;
     for (let i = 0; i < inner.length; i++) {
@@ -479,9 +829,11 @@ function splitTopLevelArgs(src, openIdx) {
             inStr = c;
             continue;
         }
-        if (c === "(" || c === "[" || c === "{") depth++;
+        if (c === "<" && /[\w>$]/.test(inner[i - 1] ?? "")) generic++;
+        else if (c === ">" && generic > 0) generic--;
+        else if (c === "(" || c === "[" || c === "{") depth++;
         else if (c === ")" || c === "]" || c === "}") depth--;
-        else if (c === "," && depth === 0) {
+        else if (c === "," && depth === 0 && generic === 0) {
             args.push(inner.slice(start, i));
             start = i + 1;
         }
@@ -490,8 +842,28 @@ function splitTopLevelArgs(src, openIdx) {
     return args.map((a) => a.trim());
 }
 
-function extractWrapperCalls(source, relFile) {
+/**
+ * 抽取形态 C 的调用点。
+ *
+ * 返回 `{ calls, unchecked }` 两个桶 —— **不允许再出现第三种去向**：
+ *   - `calls`     路径实参是字面量（可直接与 ledger 比对）；
+ *   - `unchecked` 路径实参是表达式且解不开（`this.fooPath(id)` / `path` / `mp(...)` …）。
+ *
+ * ⚠️ 上一版这里写的是 `if (!LITERAL.test(args[1])) continue;` —— 静默 `continue`。
+ * 后果不是"少校验几条"，而是**这 246 处调用点在报告里完全不存在**：分母只统计
+ * `calls`，于是"提取请求调用 432 / 不匹配 0"读起来像全覆盖。任何"无法校验"的
+ * 调用点都必须**显式计数**，这是本文件已经写在 EXCLUDED_WRAPPERS 上的同一条原则。
+ *
+ * @param {string} source 已剥注释的源码
+ * @param {string} relFile 仓库相对路径（用于 byDir 前缀分流与报告）
+ * @param {{ identityHelpers?: { has(name: string): boolean } }} [options]
+ *        `identityHelpers` 是**已校验**的恒等包装器名字集合（见 PATH_IDENTITY_HELPERS）。
+ *        不传 ⇒ 不解包（保守：宁可算不出来的进 unchecked 桶，也不拿未校验的表去展开）。
+ */
+export function extractWrapperCalls(source, relFile, options = {}) {
     const calls = [];
+    const unchecked = [];
+    const identityHelpers = options.identityHelpers ?? null;
     const names = Object.keys(POSITIONAL_WRAPPERS);
     // 名字前的 `this.` / `api.` / `this.client.http.` 等链式前缀由 \b 天然丢弃。
     // 方法**定义处**（`protected async adminRequest<T>(method: Method, ...)`）也会被本正则命中，
@@ -509,19 +881,47 @@ function extractWrapperCalls(source, relFile) {
 
         const methodM = /^Method\.(\w+)$/.exec(args[0]);
         if (!methodM) continue;
-        if (!/^(`[^`]*`|"[^"]*"|'[^']*')$/.test(args[1])) continue; // 路径必须是字面量
 
-        const { candidates, known } = candidatesForWrapper(POSITIONAL_WRAPPERS[m[1]], args, relFile);
+        const line = source.slice(0, m.index).split("\n").length;
+        const rawPathArg = args[1];
+        // 恒等包装器（`apu("x")` / `bu("/…")`）先解开，再判是不是字面量
+        const helperName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(rawPathArg.trim())?.[1];
+        const unwrapped = unwrapIdentityPath(rawPathArg, identityHelpers);
+        const pathArg = unwrapped ?? rawPathArg;
+        if (!PATH_LITERAL_RE.test(pathArg)) {
+            unchecked.push({
+                file: relFile,
+                line,
+                wrapper: m[1],
+                // 表达式原文（截断）——报告里按「前导标识符」聚合，便于看出是哪一类写法
+                expr: rawPathArg.replace(/\s+/g, " ").slice(0, 120),
+            });
+            continue;
+        }
+
+        const helperInfo = unwrapped ? identityHelpers.get(helperName) : null;
+        // 类型化包装器的参数类型里**已经写明了前缀**（`PathAssert<P, StripAdminV1<…>>`）
+        // ⇒ 优先用它，必要时才退回 POSITIONAL_WRAPPERS 的 byDir/fixed 声明。
+        // 这消掉了整片"按目录猜前缀"的错配：`background-update` / `worker-admin` /
+        // `worker-body` 都走 `doRequest`，但前缀分别是 admin v1 与 /_synapse/worker。
+        const resolved = helperInfo?.stripPrefix
+            ? { candidates: [helperInfo.stripPrefix], known: true }
+            : candidatesForWrapper(POSITIONAL_WRAPPERS[m[1]], args, relFile);
+        const { candidates, known } = resolved;
         calls.push({
             method: methodM[1].toUpperCase(),
-            pathRaw: args[1],
+            pathRaw: pathArg,
             prefixCandidates: candidates,
             prefixKnown: known,
             wrapper: m[1],
-            line: source.slice(0, m.index).split("\n").length,
+            // `guarded` = 路径原本裹在带 `PathAssert<…>` 的恒等包装器里（tsc 已逐段断言过）；
+            // `plain` = 裹在裸恒等包装器里（只有本门禁能核对）；`null` = 本来就是字面量。
+            guard: unwrapped ? (helperInfo?.kind ?? "plain") : null,
+            prefixFromHelper: Boolean(helperInfo?.stripPrefix),
+            line,
         });
     }
-    return calls;
+    return { calls, unchecked };
 }
 
 /** 从 openIdx 处的 `(` 开始做圆括号配平，返回闭合 `)` 的下标 */
@@ -722,19 +1122,35 @@ function main() {
     const scanRoots = (process.env.SCAN_ROOTS ?? "src").split(",").map((r) => resolve(PROJECT_ROOT, r.trim()));
     const srcFiles = scanRoots.flatMap((r) => (existsSync(r) ? walkSrc(r) : []));
 
+    // 先把全仓源码读一遍（剥注释）：
+    //   ① 建「恒等包装器」索引需要**全仓**视野（`sp` 在 `src/space/utils.ts` 定义、
+    //      在 `space/sub-managers/*` 使用；只看单文件会漏掉并把它算成"未校验"）；
+    //   ② 索引必须**先于**抽取完成，否则解包与不解包的结果会依赖遍历顺序。
+    const sourcesByFile = new Map();
+    for (const file of srcFiles) {
+        sourcesByFile.set(file.slice(PROJECT_ROOT.length + 1), stripComments(readFileSync(file, "utf8")));
+    }
+    const stripSource = sourcesByFile.get(STRIP_PREFIX_FILE);
+    if (!stripSource) {
+        console.error(`❌ 找不到 ${STRIP_PREFIX_FILE} —— 类型化路径包装器的前缀表读不出来。`);
+        console.error("   若该文件被移动/改名，请同步更新 STRIP_PREFIX_FILE（否则前缀会退回 byDir 猜测，");
+        console.error("   表现为一大片假不匹配）。");
+        process.exit(2);
+    }
+    const stripAliases = parseStripPrefixAliases(stripSource);
+    const { helpers: identityHelpers } = indexIdentityPathHelpers(sourcesByFile, { stripAliases });
+
     const findings = [];
     const skipped = [];
+    const uncheckedCalls = [];
     const outOfScopeCalls = [];
 
-    for (const file of srcFiles) {
-        const raw = readFileSync(file, "utf8");
-        // 注释里的示例代码不是真实调用，先剥掉再提取
-        const source = stripComments(raw);
-        const relFile = file.slice(PROJECT_ROOT.length + 1);
-
+    for (const [relFile, source] of sourcesByFile) {
         // 同一调用可能被两种提取器各命中一次，按 method+path+候选前缀 去重
         const seen = new Set();
-        const calls = [...extractObjectCalls(source), ...extractWrapperCalls(source, relFile)];
+        const wrapperResult = extractWrapperCalls(source, relFile, { identityHelpers });
+        uncheckedCalls.push(...wrapperResult.unchecked);
+        const calls = [...extractObjectCalls(source), ...wrapperResult.calls];
 
         for (const call of calls) {
             // 统一成「前缀候选集」：
@@ -933,6 +1349,60 @@ function main() {
     // 没被任何不匹配命中到的豁免 = 后端已补齐但豁免没删
     unusedWaivers = [...waivers.entries()].map(([key, w]) => ({ key, ...w }));
 
+    // ---------------------------------------------------------------------------
+    // 6b. 覆盖率棘轮（2026-10-08 新增）
+    //
+    // `unchecked` 桶把"静默丢检"变成了"显式计数"，但计数本身会漂：只要有人写一个
+    // `this.xxxPath(id)`，调用点就从"已校验"变成"未校验"而总数看不出变化。
+    // 所以把观测值冻结成基线：**总量与逐文件计数都只准降**。
+    // 想让它涨就必须跑 `--refresh-coverage` —— 那是一次显式声明，不是一个副作用。
+    // ---------------------------------------------------------------------------
+    const REFRESH_COVERAGE = process.argv.includes("--refresh-coverage");
+    const countBy = (items, keyOf) => {
+        const out = {};
+        for (const it of items) {
+            const k = keyOf(it);
+            out[k] = (out[k] ?? 0) + 1;
+        }
+        return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
+    };
+    const coverage = {
+        uncheckedPathArg: uncheckedCalls.length,
+        checkedPathArg: findings.length,
+        byFile: countBy(uncheckedCalls, (u) => u.file),
+        byWrapper: countBy(uncheckedCalls, (u) => u.wrapper),
+    };
+    const coverageIssues = [];
+
+    if (REFRESH_COVERAGE) {
+        writeFileSync(
+            COVERAGE_FILE,
+            JSON.stringify(
+                { schema_version: 1, note: COVERAGE_NOTE, generatedAt: new Date().toISOString(), ...coverage },
+                null,
+                4,
+            ) + "\n",
+        );
+    } else {
+        if (!existsSync(COVERAGE_FILE)) {
+            console.error(`❌ 覆盖率基线不存在: ${COVERAGE_FILE}`);
+            console.error("   首次使用或基线被删时，跑 `--refresh-coverage` 生成（这等于声明「当前覆盖现状」）。");
+            process.exit(2);
+        }
+        let baseline;
+        try {
+            baseline = JSON.parse(readFileSync(COVERAGE_FILE, "utf8"));
+        } catch (e) {
+            console.error(`❌ 覆盖率基线解析失败: ${COVERAGE_FILE}\n   ${e.message}`);
+            process.exit(2);
+        }
+        if (typeof baseline.uncheckedPathArg !== "number") {
+            console.error(`❌ 覆盖率基线格式不认识（缺 uncheckedPathArg）: ${COVERAGE_FILE}`);
+            process.exit(2);
+        }
+        coverageIssues.push(...diffCoverage(baseline, coverage));
+    }
+
     const payload = {
         generatedAt: new Date().toISOString(),
         ledger: LEDGER_PATH,
@@ -945,6 +1415,20 @@ function main() {
         expiredWaivers: expiredWaivers.length,
         unusedWaivers: unusedWaivers.length,
         skippedDynamic: skipped.length,
+        // 「路径实参不是字面量」的调用点：上一版它们被 `continue` 静默丢掉，
+        // 于是分母只含能校验的那些，报告读起来像全覆盖。现在必须显式出现。
+        uncheckedPathArg: uncheckedCalls.length,
+        coverage,
+        coverageIssues,
+        uncheckedSamples: uncheckedCalls.slice(0, 40).map((u) => ({
+            file: u.file,
+            line: u.line,
+            wrapper: u.wrapper,
+            expr: u.expr,
+        })),
+        coveredIdentityHelpers: [...identityHelpers.entries()]
+            .map(([name, v]) => ({ name, kind: v.kind }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
         outOfScope: outOfScopeCalls.length,
         outOfScopeCalls: outOfScopeCalls.map((c) => ({
             file: c.file,
@@ -986,8 +1470,17 @@ function main() {
         console.log(`  豁免已过期   : ${payload.expiredWaivers}`);
         console.log(`  豁免未被引用 : ${payload.unusedWaivers}（后端已补齐？应删除条目）`);
         console.log(`  动态跳过     : ${skipped.length}`);
+        console.log(
+            `  未校验调用点 : ${payload.uncheckedPathArg}` +
+                `（路径实参非字面量；基线 ${REFRESH_COVERAGE ? "已刷新" : "见 path-contract-coverage.json"}）`,
+        );
         console.log(`  域外命名空间 : ${payload.outOfScope}（不属于本 ledger 的服务，如 identity server）`);
         console.log(`  覆盖的包装器 : ${payload.coveredWrappers.length}（${payload.coveredWrappers.join(", ")}）`);
+        console.log(
+            `  已校验的恒等包装器: ${payload.coveredIdentityHelpers.length}` +
+                `（guarded ${payload.coveredIdentityHelpers.filter((h) => h.kind === "guarded").length}` +
+                ` / plain ${payload.coveredIdentityHelpers.filter((h) => h.kind === "plain").length}）`,
+        );
         console.log(`  未覆盖的包装器: ${payload.excludedWrappers.length}（${payload.excludedWrappers.join(", ")}）`);
         console.log("");
 
@@ -1033,6 +1526,25 @@ function main() {
             console.log(`❌ ${mismatches.length} 处路径契约不符 —— 门禁失败。`);
         } else {
             console.log(`✅ 全部静态请求路径均与后端 ledger 一致（豁免 ${payload.waived} 处已登记）。`);
+        }
+
+        // 覆盖率：把"未校验"摆到台面上，而不是让报告的分母替它掩盖
+        if (coverageIssues.length > 0) {
+            console.log("");
+            console.log("─".repeat(84));
+            console.log("📉 覆盖率基线被突破（未校验调用点变多了）：");
+            console.log("─".repeat(84));
+            for (const v of coverageIssues) console.log(`  [${v.kind}] ${v.detail}`);
+            console.log("");
+            console.log("  这说明有调用点从「已校验」滑到「未校验」（如把字面量换成 `this.xxxPath(id)`）。");
+            console.log("  两条出路：① 把路径改回字面量（或登记成恒等包装器）；");
+            console.log("            ② 跑 `--refresh-coverage` 显式接受 —— 那等于声明「这些调用点不再被路径校验」。");
+        }
+        if (VERBOSE && uncheckedCalls.length > 0) {
+            console.log("");
+            console.log(`未校验的调用点（路径实参非字面量，共 ${uncheckedCalls.length} 处；按包装器聚合）：`);
+            for (const [w, n] of Object.entries(coverage.byWrapper)) console.log(`  ${w}: ${n} 处`);
+            console.log(`  —— 按文件聚合见 path-contract-coverage.json 的 byFile`);
         }
 
         // MSC 编号格式校验报告
@@ -1106,8 +1618,9 @@ function main() {
         console.log("");
     }
 
-    // 门禁失败条件：有不匹配、有过期豁免、有未被引用的豁免
-    const failed = mismatches.length > 0 || expiredWaivers.length > 0 || unusedWaivers.length > 0;
+    // 门禁失败条件：有不匹配、有过期豁免、有未被引用的豁免、或覆盖率基线被突破
+    const failed =
+        mismatches.length > 0 || expiredWaivers.length > 0 || unusedWaivers.length > 0 || coverageIssues.length > 0;
     process.exit(failed ? 1 : 0);
 }
 

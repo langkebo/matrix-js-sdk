@@ -28,20 +28,37 @@ import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import type { IdentityHelperInfo } from "../../scripts/quality/verify-path-contract.mjs";
 
 import {
     DEFAULT_PREFIX,
     PREFIX_CONSTANTS,
+    analyzeFunctionDeclarations,
+    analyzeIdentityFunction,
+    diffCoverage,
+    extractWrapperCalls,
     findTopLevel,
+    indexIdentityPathHelpers,
     matchAgainstLedger,
     matchBrace,
     normalizePath,
+    parseStripPrefixAliases,
     resolvePrefix,
     resolvePrefixExpression,
+    resolveStripPrefixFromType,
     resolveTemplateLiteral,
     splitTopLevelPlus,
     splitTopLevelTernary,
+    unwrapIdentityPath,
+    verifyIdentityHelperShape,
 } from "../../scripts/quality/verify-path-contract.mjs";
+
+/** `resolveStripPrefixFromType` 的测试用别名表（只放 spec 需要的三项）。 */
+const ALIASES_FOR_TYPE = new Map([
+    ["StripV3", "/_matrix/client/v3"],
+    ["StripV1", "/_matrix/client/v1"],
+    ["StripAdminV1", "/_synapse/admin/v1"],
+]);
 
 const GATE_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../scripts/quality/verify-path-contract.mjs");
 
@@ -83,7 +100,8 @@ describe("verify-path-contract: 前缀常量与源码一致", () => {
         // prefix.ts 没有的成员」—— 老 spec 的副本正是这样凭空多出
         // ClientPrefix.Media / MediaV3 / MediaUnstable 与 PushRulePrefix 的。
         const truth = parsePrefixSource();
-        for (const [group, members] of Object.entries(truth)) {
+        // 只遍历组名（原来是 `Object.entries` 解构出 `members` 却没用 —— eslint 报 unused-vars）
+        for (const group of Object.keys(truth)) {
             for (const key of Object.keys(PREFIX_CONSTANTS[group] ?? {})) {
                 expect(truth[group][key], `${group}.${key} 在 prefix.ts 里不存在`).toBeDefined();
             }
@@ -250,5 +268,224 @@ describe("verify-path-contract: 模块入口", () => {
         // ledger 加载必须已移出顶层：import 就 exit 的话 spec 连加载都做不到
         expect(source).toMatch(/export function loadBackendRoutes\(/);
         expect(source).not.toMatch(/^if \(!existsSync\(ledgerFile\)\)/m);
+    });
+});
+
+describe("verify-path-contract: 恒等路径包装器（2026-10-08）", () => {
+    // 本仓真实的形态：泛型参数 + `PathAssert` + 返回类型注解
+    const GUARDED = `function bu<const P extends string>(path: P & PathAssert<P, StripAdminV1<BackgroundUpdatePath>>): P {
+    return path;
+}`;
+    const PLAIN = `export function apu(path: string): string {
+    return path;
+}`;
+
+    describe("analyzeFunctionDeclarations —— 识别 `return <参数>;`", () => {
+        it("泛型参数 + 返回类型注解的恒等函数必须识别（第一版漏在这里）", () => {
+            const decls = analyzeFunctionDeclarations(GUARDED);
+            expect(decls).toHaveLength(1);
+            expect(decls[0]).toMatchObject({ name: "bu", ok: true, param: "path" });
+            expect(decls[0].typeText).toContain("PathAssert");
+        });
+
+        it("阴性对照：参数表里的泛型逗号不能被切成两个参数（`PathAssert<P, StripAdminV1<X>>`）", () => {
+            // 少了泛型深度跟踪 ⇒ 2 个参数 ⇒ "恒等包装器必须恰好 1 个参数" 判据失败 ⇒
+            // 50 个类型化包装器一个都识别不出来（报告只会说"已校验的恒等包装器: 1"）。
+            const v = analyzeIdentityFunction(GUARDED, GUARDED.indexOf("bu") + 2);
+            expect(v.ok).toBe(true);
+            if (v.ok) expect(v.param).toBe("path");
+        });
+
+        it("函数体不是恒等 / 多参数 / 无函数体 / 名字后不是参数表 ⇒ 一律判不符", () => {
+            expect(analyzeFunctionDeclarations('function f(x: string): string {\n    return x + "!";\n}')[0].ok).toBe(
+                false,
+            );
+            expect(
+                analyzeFunctionDeclarations("function f(a: string, b: string): string {\n    return a;\n}")[0].ok,
+            ).toBe(false);
+            expect(analyzeFunctionDeclarations("declare function f(x: string): string;")[0].ok).toBe(false);
+            expect(
+                analyzeFunctionDeclarations("const f = 1; function g(x: string) { return x; }").map((d) => d.name),
+            ).toEqual(["g"]);
+        });
+
+        it("同名多处定义：只要有**一处**不是恒等，整名作废（不能在同名不同义之间猜）", () => {
+            const src = `${PLAIN}\nfunction apu(path: string): string {\n    return path + "?";\n}`;
+            expect(verifyIdentityHelperShape({ source: src, name: "apu" }).ok).toBe(false);
+            expect(analyzeFunctionDeclarations(src).filter((d) => d.name === "apu")).toHaveLength(2);
+        });
+
+        it("函数体里的注释不影响判定", () => {
+            const src = `function apu(path: string): string {
+    // 无类型断言的 admin 路径函数
+    return path; /* 恒等 */
+}`;
+            expect(verifyIdentityHelperShape({ source: src, name: "apu" })).toMatchObject({ ok: true, param: "path" });
+        });
+    });
+
+    describe("indexIdentityPathHelpers —— 分类与前缀", () => {
+        const ALIASES = new Map([
+            ["StripV3", "/_matrix/client/v3"],
+            ["StripV1", "/_matrix/client/v1"],
+            ["StripAdminV1", "/_synapse/admin/v1"],
+        ]);
+
+        it("`PathAssert` ⇒ guarded；裸 `string` ⇒ plain", () => {
+            const { helpers } = indexIdentityPathHelpers(
+                new Map([
+                    ["a.ts", GUARDED],
+                    ["b.ts", PLAIN],
+                ]),
+                { stripAliases: ALIASES },
+            );
+            expect(helpers.get("bu")).toMatchObject({ kind: "guarded", stripPrefix: "/_synapse/admin/v1" });
+            expect(helpers.get("apu")).toMatchObject({ kind: "plain", stripPrefix: null });
+        });
+
+        it("阴性对照：同名定义里有一处非恒等 ⇒ 整名不进索引（否则解包就是猜）", () => {
+            const { helpers } = indexIdentityPathHelpers(
+                new Map([
+                    ["a.ts", `function bu(p: string): string {\n    return p;\n}`],
+                    ["b.ts", `function bu(p: string): string {\n    return p.toUpperCase();\n}`],
+                ]),
+                { stripAliases: ALIASES },
+            );
+            expect(helpers.has("bu")).toBe(false);
+        });
+
+        it("阴性对照：同名定义前缀不一致 / 前缀判不出来 ⇒ stripPrefix 为 null（退回 byDir）", () => {
+            const mixed = indexIdentityPathHelpers(
+                new Map([
+                    ["a.ts", `function x(p: P & PathAssert<P, StripV3<A>>): P {\n    return p;\n}`],
+                    ["b.ts", `function x(p: P & PathAssert<P, StripV1<B>>): P {\n    return p;\n}`],
+                ]),
+                { stripAliases: ALIASES },
+            );
+            expect(mixed.helpers.get("x")?.stripPrefix).toBeNull();
+            const unknown = indexIdentityPathHelpers(
+                new Map([["a.ts", `function y(p: P & PathAssert<P, NoSuchAlias<A>>): P {\n    return p;\n}`]]),
+                { stripAliases: ALIASES },
+            );
+            expect(unknown.helpers.get("y")?.stripPrefix).toBeNull();
+        });
+    });
+
+    describe("parseStripPrefixAliases / resolveStripPrefixFromType", () => {
+        it("只认单前缀形态；多前缀的条件类型别名不进来（解析它们要写类型求值器）", () => {
+            const src = `export type StripV3<P extends string> = StripPrefix<P, "/_matrix/client/v3">;
+export type StripAuthPrefix<P extends string> = StripPrefix<
+    P,
+    "/_matrix/client/v3",
+    StripPrefix<P, "/_matrix/client/r0", P>
+>;`;
+            const aliases = parseStripPrefixAliases(src);
+            expect(aliases.get("StripV3")).toBe("/_matrix/client/v3");
+            expect(aliases.has("StripAuthPrefix")).toBe(false);
+        });
+
+        it("类型里出现**两个**已知别名 ⇒ 判不出来（不取第一个）", () => {
+            expect(
+                resolveStripPrefixFromType("P & PathAssert<P, StripV3<A> | StripV1<B>>", ALIASES_FOR_TYPE),
+            ).toBeNull();
+            expect(resolveStripPrefixFromType("P & PathAssert<P, StripV3<A>>", ALIASES_FOR_TYPE)).toBe(
+                "/_matrix/client/v3",
+            );
+            expect(resolveStripPrefixFromType("string", ALIASES_FOR_TYPE)).toBeNull();
+        });
+    });
+
+    describe("unwrapIdentityPath —— 只解整段就是一个调用的形态", () => {
+        const helpers: Map<string, IdentityHelperInfo> = new Map([
+            ["apu", { kind: "plain", files: ["a.ts"], stripPrefix: null }],
+            ["bu", { kind: "guarded", files: ["b.ts"], stripPrefix: "/_synapse/admin/v1" }],
+        ]);
+
+        it("解到字面量：单层与嵌套多跳", () => {
+            expect(unwrapIdentityPath('apu("/x")', helpers)).toBe('"/x"');
+            expect(unwrapIdentityPath("bu(`/a/${id}`)", helpers)).toBe("`/a/${id}`");
+            expect(unwrapIdentityPath('apu(bu("/x"))', helpers)).toBe('"/x"');
+        });
+
+        it("阴性对照：拼接/方法链/非恒等名/多参数 ⇒ null（展开一半比不解更糟）", () => {
+            expect(unwrapIdentityPath('apu("/x") + y', helpers)).toBeNull();
+            expect(unwrapIdentityPath('apu("/x").trim()', helpers)).toBeNull();
+            expect(unwrapIdentityPath('other("/x")', helpers)).toBeNull();
+            expect(unwrapIdentityPath('apu("a", "b")', helpers)).toBeNull();
+            expect(unwrapIdentityPath("path", helpers)).toBeNull();
+            expect(unwrapIdentityPath('apu("x")', null)).toBeNull();
+        });
+
+        it("解出来不是字面量时返回原表达式（`apu(path)` ⇒ `path`），由调用方判未校验", () => {
+            expect(unwrapIdentityPath("apu(path)", helpers)).toBe("path");
+        });
+    });
+
+    describe("extractWrapperCalls —— 未校验桶与包装器自带前缀", () => {
+        const helpers: Map<string, IdentityHelperInfo> = new Map([
+            ["bu", { kind: "guarded", files: ["b.ts"], stripPrefix: "/_synapse/admin/v1" }],
+        ]);
+
+        it("非字面量路径必须落进 unchecked（上一版是静默 `continue`，调用点在报告里根本不存在）", () => {
+            const { calls, unchecked } = extractWrapperCalls(
+                "const a = this.doRequest(Method.Get, jobPath(id));",
+                "src/x.ts",
+                { identityHelpers: helpers },
+            );
+            expect(calls).toHaveLength(0);
+            expect(unchecked).toHaveLength(1);
+            expect(unchecked[0]).toMatchObject({ file: "src/x.ts", wrapper: "doRequest" });
+        });
+
+        it("guarded 包装器的前缀来自参数类型（不是 byDir）——否则 background-update 整片假不匹配", () => {
+            const { calls } = extractWrapperCalls(
+                'const a = this.doRequest(Method.Get, bu("/background_updates/count"));',
+                "src/background-update/index.ts",
+                { identityHelpers: helpers },
+            );
+            expect(calls).toHaveLength(1);
+            expect(calls[0]).toMatchObject({
+                pathRaw: '"/background_updates/count"',
+                prefixCandidates: ["/_synapse/admin/v1"],
+                guard: "guarded",
+                prefixFromHelper: true,
+            });
+        });
+
+        it("阴性对照：解不出来的包装器调用（内层仍是表达式）照样是未校验", () => {
+            const { calls, unchecked } = extractWrapperCalls(
+                "const a = this.doRequest(Method.Get, bu(computePath(id)));",
+                "src/x.ts",
+                { identityHelpers: helpers },
+            );
+            expect(calls).toHaveLength(0);
+            expect(unchecked).toHaveLength(1);
+        });
+    });
+
+    describe("diffCoverage —— 覆盖率棘轮只准降", () => {
+        const base = { uncheckedPathArg: 10, byFile: { "a.ts": 6, "b.ts": 4 } };
+
+        it("持平/下降 ⇒ 无 issue", () => {
+            expect(diffCoverage(base, { uncheckedPathArg: 10, byFile: { "a.ts": 6, "b.ts": 4 } })).toEqual([]);
+            expect(diffCoverage(base, { uncheckedPathArg: 7, byFile: { "a.ts": 3, "b.ts": 4 } })).toEqual([]);
+        });
+
+        it("总量变多 / 某文件变多 / 新文件出现未校验 ⇒ 各报一条", () => {
+            expect(
+                diffCoverage(base, { uncheckedPathArg: 11, byFile: { "a.ts": 6, "b.ts": 4 } }).map((i) => i.kind),
+            ).toEqual(["coverage-total-grown"]);
+            const issues = diffCoverage(base, { uncheckedPathArg: 11, byFile: { "a.ts": 7, "b.ts": 4 } });
+            expect(issues.map((i) => i.kind)).toEqual(["coverage-total-grown", "coverage-file-grown"]);
+            expect(diffCoverage(base, { uncheckedPathArg: 11, byFile: { "c.ts": 1 } }).map((i) => i.kind)).toContain(
+                "coverage-file-grown",
+            );
+        });
+
+        it("阴性对照：总量不变但**换位**（一个文件减、另一个增）也要报", () => {
+            const issues = diffCoverage(base, { uncheckedPathArg: 10, byFile: { "a.ts": 5, "b.ts": 5 } });
+            expect(issues.map((i) => i.kind)).toEqual(["coverage-file-grown"]);
+            expect(issues[0].detail).toContain("b.ts");
+        });
     });
 });

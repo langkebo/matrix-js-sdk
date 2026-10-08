@@ -57,6 +57,72 @@ export function extractObjectCalls(source: string): Array<{
     line: number;
 }>;
 
+/** 位置参数包装器形态的调用点，以及**解不出来**的调用点（路径实参非字面量）。 */
+export function extractWrapperCalls(
+    source: string,
+    relFile: string,
+    options?: { identityHelpers?: Map<string, IdentityHelperInfo> | null },
+): {
+    calls: Array<{
+        method: string;
+        pathRaw: string;
+        prefixCandidates: string[];
+        prefixKnown: boolean;
+        wrapper: string;
+        guard: "plain" | "guarded" | null;
+        prefixFromHelper: boolean;
+        line: number;
+    }>;
+    unchecked: Array<{ file: string; line: number; wrapper: string; expr: string }>;
+};
+
+/** 被识别出来的恒等路径包装器。 */
+export interface IdentityHelperInfo {
+    /** `guarded` = 参数类型带 `PathAssert<…>`（tsc 已逐段断言）；`plain` = 裸恒等，只有本门禁核对。 */
+    kind: "plain" | "guarded";
+    files: string[];
+    /** 从参数类型里的 `StripXxx<…>` 推出来的真实前缀；推不出来为 null。 */
+    stripPrefix: string | null;
+}
+
+/** 判断一个 `function <name>(…)` 声明是否为恒等函数（全仓同名多处定义必须一致）。 */
+export function verifyIdentityHelperShape(input: {
+    source: string;
+    name: string;
+}): { ok: true; param: string; typeText: string | null } | { ok: false; reason: string };
+
+/** 判定**一个**函数声明（`nameEnd` 是函数名之后的下标）；支持泛型参数与返回类型注解。 */
+export function analyzeIdentityFunction(
+    source: string,
+    nameEnd: number,
+): { ok: true; param: string; typeText: string | null } | { ok: false; reason: string };
+
+/** 扫出源码里所有 `function <name>(…)` 声明并逐条判定。 */
+export function analyzeFunctionDeclarations(
+    source: string,
+): Array<{ name: string; ok: boolean; param?: string; typeText?: string | null; reason?: string }>;
+
+/** 全仓扫描，建「恒等包装器名 → 种类 / 前缀 / 定义文件」索引（同名有非恒等定义 ⇒ 整名作废）。 */
+export function indexIdentityPathHelpers(
+    sourcesByFile: Map<string, string>,
+    options?: { stripAliases?: Map<string, string> },
+): { helpers: Map<string, IdentityHelperInfo> };
+
+/** 把 `helper(<字面量>)` 展开成 `<字面量>`；不是恒等包装器调用返回 null。 */
+export function unwrapIdentityPath(raw: string, helpers: { has(name: string): boolean } | null): string | null;
+
+/** 覆盖率棘轮判据：观测值相对基线「变多」的项（总量 + 逐文件）。 */
+export function diffCoverage(
+    baseline: { uncheckedPathArg: number; byFile?: Record<string, number> },
+    observed: { uncheckedPathArg: number; byFile: Record<string, number> },
+): Array<{ kind: string; detail: string }>;
+
+/** 解析 `strip-prefix.ts` 里单前缀形态的别名 → 真实前缀。 */
+export function parseStripPrefixAliases(source: string): Map<string, string>;
+
+/** 从参数类型文本里取出唯一的剥离别名对应的前缀；判不出来返回 null。 */
+export function resolveStripPrefixFromType(typeText: string | null, stripAliases: Map<string, string>): string | null;
+
 /**
  * 与后端注册面比对：`exact` / `wildcard`（语义存疑，需人工复核）/ null。
  * `routes` 默认用门禁加载的 ledger；spec 可自行传入构造用例。

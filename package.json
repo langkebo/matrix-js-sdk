@@ -80,6 +80,8 @@
         "quality:gate-reachability": "node scripts/quality/check-gate-reachability.mjs",
         "quality:golden": "node scripts/audit/gate-golden.mjs",
         "quality:path-contract": "node scripts/quality/verify-path-contract.mjs",
+        "quality:path-contract:verbose": "node scripts/quality/verify-path-contract.mjs --verbose",
+        "quality:path-contract:refresh-coverage": "node scripts/quality/verify-path-contract.mjs --refresh-coverage",
         "quality:admin-response-contract": "node scripts/quality/check-admin-response-contract.mjs",
         "quality:admin-response-contract:strict": "node scripts/quality/check-admin-response-contract.mjs --strict",
         "quality:admin-response-contract:refresh": "node scripts/quality/check-admin-response-contract.mjs --refresh",

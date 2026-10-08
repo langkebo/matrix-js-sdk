@@ -265,11 +265,34 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest<FeatureFlag>(Method.Post, apu("/feature-flags"), undefined, body);
     }
 
+    /**
+     * 删除 feature flag。
+     *
+     * ⚠️ **后端没有这个端点**：`synapse-web/src/routes/feature_flags.rs` 只注册
+     * `POST|GET /_synapse/admin/v1/feature-flags` 与
+     * `GET|PATCH /_synapse/admin/v1/feature-flags/{flag_key}` —— **没有 DELETE**。
+     * 因此本方法在真实后端上**必然 404**，属超前封装；已在
+     * `scripts/quality/path-contract-waivers.json` 登记（`backend-missing`，带期限）。
+     *
+     * 想停用一个 flag 请用 {@link updateFeatureFlag}（`PATCH`，`status = "disabled"`）——
+     * 语义是"停用但保留审计记录"，与删除不同。
+     *
+     * 2026-10-08 同时修掉路径拼写：原来写成 `/feature_flags/…`（**下划线**），
+     * 后端只有连字符形态；即使后端将来补上 DELETE，下划线路径也依然打不中。
+     *
+     * @param flagKey - flag 键
+     * @throws {ValidationError} `flagKey` 为空时（不会发出请求）
+     * @example
+     * ```typescript
+     * // 后端未实现 ⇒ 会 404；停用请改用：
+     * await adminManager.updateFeatureFlag("beta.ui", { status: "disabled", reason: "rollback" });
+     * ```
+     */
     async deleteFeatureFlag(flagKey: string): Promise<void> {
         if (!flagKey) {
             throw new ValidationError("Flag key is required");
         }
-        await this.adminRequest(Method.Delete, apu(`/feature_flags/${encodeURIComponent(flagKey)}`));
+        await this.adminRequest(Method.Delete, apu(`/feature-flags/${encodeURIComponent(flagKey)}`));
     }
 
     async listFeatureFlags(options?: Record<string, string | number | undefined>): Promise<FeatureFlagPage> {

@@ -2807,6 +2807,136 @@ missingExample 31→30）；admin 六个 spec **338 例**。`deviations` 15 条�
 
 ---
 
+### §7.15-31 路径契约门禁：把「表面覆盖」补成「真实覆盖」
+
+承接 §7.15-30 §8 的续接点第 2 条（`quality:path-contract` 的 `apu(...)` 盲区）。
+一查之下，盲区比记录的更大，而**修法比"给包装器列表补个 `apu`"更根本**。
+
+#### 1. 真正的缺口：抽取器在**静默丢弃**调用点
+
+`extractWrapperCalls` 里有一行：
+
+```js
+if (!/^(`[^`]*`|"[^"]*"|'[^']*')$/.test(args[1])) continue;   // 路径必须是字面量
+```
+
+非字面量的路径实参**既不进 `calls` 也不进 `skipped`**——直接从分母里消失。实测：
+
+| | 修复前 |
+| --- | --- |
+| 抽出来的请求调用（报告分母） | 432 |
+| 包装器形态调用点里**被静默丢掉**的 | **246**（占 44%） |
+| 未校验调用点（连 `--verbose` 里都看不到） | 报告里根本没有这一项 |
+
+于是报告 "提取请求调用 432 / 匹配成功 413 / 不匹配 0" 读起来像"全覆盖"，
+而 `admin-config-manager.ts` 整族 `apu("/x")`（13 处）**一次都没参与校验** ——
+`feature_flags`（下划线）那个必然 404 的拼写错误就是这么活下来的。
+**这与 §7.15-28 的 `EXCLUDED_WRAPPERS` 是同一条原则：覆盖率必须可审计，"无法校验"必须显式计数。**
+
+#### 2. 做法：恒等包装器**自动识别 + 源码校验**（不再手工登记）
+
+本仓路径位置上的包装器全是**恒等函数**（`return <参数>`），只是让路径不再是字面量：
+
+```ts
+function bu<const P extends string>(path: P & PathAssert<P, StripAdminV1<BackgroundUpdatePath>>): P {
+    return path;
+}
+export function apu(path: string): string { return path; }
+```
+
+新增 `analyzeFunctionDeclarations` / `indexIdentityPathHelpers`：全仓扫描 `function <name>(…)`，
+函数体恰好是 `return <第一个参数>` 的才算，并按**参数类型**分两类：
+
+| 类别 | 判据 | 路径谁在守 |
+| --- | --- | --- |
+| `guarded`（37 个） | 参数类型带 `PathAssert<…>` | **tsc** 按模块契约逐段断言（`strip-prefix.ts`），门禁是第二道防线 |
+| `plain`（1 个 = `apu`） | 参数类型就是 `string` | **只有本门禁** |
+
+⚠️ `plain` 这一类正是缺口所在：`apu(path: string)` 没有任何类型约束，所以
+`apu("/feature_flags/x")` 能让 tsc 全绿。
+
+守卫：**同名只要有任意一处定义不是恒等，整个名字作废**（解包就是猜）；
+同名多处的剥离前缀必须一致，否则 `stripPrefix = null` 退回 `byDir` 声明。
+
+#### 3. 变异自证：`PathAssert` 到底守不守
+
+对"类型化包装器已由 tsc 覆盖"这句**声明**做了三次实测（每次都先确认文件在 tsc program 里，
+`--listFiles` 命中；对照组注入 `const __probe: number = "x"` ⇒ **exit 2 / TS2322** ⇒ 确认 tsc 真在检查）：
+
+| 变异 | 结果 | 结论 |
+| --- | --- | --- |
+| `bu("/zzz/not-a-route")` | **exit 2 / TS2345**，错误信息带 `__invalidPath` 与 `__hint` | `PathAssert` **真的生效** |
+| `bu("/background_updates/coun")`（少一个 `t`） | **exit 0**（tsc 全绿） | ⚠️ **类型断言的固有边界**：契约里有 `/background_updates/{job_name}` 这类占位路由，占位段接受任意值 ⇒ 拼错一个字母照样合规。这正是 ledger 门禁的补充价值 |
+
+#### 4. 前缀**从包装器的参数类型推**，不按目录猜
+
+`doRequest` 原来只有 `byDir` 三条（widgets / space / client-worker），于是
+`background-update`、`worker-admin`、`worker-body` 整片被当成 `/_matrix/client/v3` 前缀
+—— 解包一开就是 **45 条假不匹配**。
+
+但前缀其实**已经写在包装器的参数类型里**：`PathAssert<P, StripAdminV1<…>>` 的语义就是
+"剥掉 `/_synapse/admin/v1` 后必须命中模块契约"。新增 `parseStripPrefixAliases` 直接解析
+`src/http-api/strip-prefix.ts`（只认单前缀形态 9 个；`StripAuthPrefix` / `StripMediaPrefix`
+这类多前缀条件类型**不解析** ⇒ 退回声明表），于是前缀是**读出来的**而不是维护出来的。
+
+#### 5. 覆盖率棘轮
+
+`path-contract-coverage.json`：`uncheckedPathArg` 总量 + `byFile` 逐文件计数，**只降不升**；
+`--refresh-coverage`（`pnpm quality:path-contract:refresh-coverage`）显式接受新基线。
+逐文件计数是必要的：总量不变而"一个文件减、另一个增"的**换位**同样会被报出来（`diffCoverage`）。
+
+#### 6. 抽取器第 22~24 坑（累计 24 次，仍全是"静默给错答案"）
+
+22. `function\s+name\s*\(` **不认泛型参数** ⇒ 50 个类型化包装器一个都没识别出来，
+    而报告写的是「已校验的恒等包装器: **1**」—— 数字小得像"本仓就这一种写法"，把真实原因藏住了；
+23. `splitTopLevelArgs` **不跟踪泛型深度** ⇒ `PathAssert<P, StripAdminV1<X>>` 里的逗号被当成
+    参数分隔符 ⇒ 1 个参数被切成 2 个 ⇒ "恒等包装器必须恰好 1 个参数"判据失败 ⇒ 同上，全部漏识别；
+    （`<` 的开合用启发式：紧跟标识符/`>` 才算泛型开口，避免把 `a < b` 当泛型）
+24. `unwrapIdentityPath` 展开出 `"x"` 之后，下一圈"不再是函数调用"却 `return null`
+    ⇒ **13 处 `apu(...)` 原地作废**：解包"看起来实现了"，实际一次都没生效，且不报错。
+    （发现方式：写了个最小可执行探针 `unwrapIdentityPath('apu("/x")', new Set(["apu"]))` ⇒ `null`。）
+
+**13 条新判据做了 13/13 变异自证**（M1 不跳泛型 / M2 不跟踪泛型深度 / M3 展开后返回 null /
+M4 不校验闭括号之后 / M5 非恒等仍进索引 / M6 前缀不一致取第一个 / M7 未校验不再计数 /
+M8 忽略自带前缀 / M9 棘轮放宽成 `>=` / M10 放宽别名正则 / M11 多别名取第一个 /
+M12 参数个数放宽 / M13 `PathAssert` 不参与分类 ⇒ **全部变红**）。
+
+#### 7. 修掉的缺陷
+
+- `deleteFeatureFlag` 打 `DELETE /_synapse/admin/v1/feature_flags/{key}`：**下划线**路径
+  （后端只有连字符）**且后端根本没有 DELETE 路由** ⇒ 必然 404。已改正路径、补 ⚠️ JSDoc
+  （写明"停用请用 `updateFeatureFlag(status=disabled)`"），并按既有 `backend-missing` 惯例
+  登记豁免（`expires 2026-12-31`；后端补上路由后该条会因"未被引用"而让门禁报红，强制删除）。
+- 顺带修 `src/background-update/index.ts` 等模块被误判的 45 条（属门禁误配，不是 SDK 缺陷）。
+
+#### 8. 结果
+
+| 指标 | §7.15-30 | 本节 |
+| --- | --- | --- |
+| 提取请求调用（受校验的调用点） | 432 | **539**（+107） |
+| 匹配成功 | 413 | **519** |
+| 已豁免 | 19 | **20** |
+| 未校验调用点 | 不可见 | **139**（显式计数 + 棘轮） |
+| 恒等包装器识别 | — | **38**（guarded 37 / plain 1） |
+
+守卫 spec 由 30 例增至 **47 例**。`tsc` 0；`quality:contracts`（含新棘轮）/ `real-backend-types`(0/0) /
+`lint:knip` / `gate-reachability`(50 可达·4 豁免) 全绿；`public-api-docs` 台账下调。
+
+#### 9. 下一轮续接点
+
+1. **剩余 139 处未校验的构成**：`authedRequest(path)` 53、`requestV3(this.roomPath(id))` 60、
+   `doRequest(...)` 20、`requestInternal` 3 … —— 形态是"路径由**局部变量**或**方法调用返回值**决定"。
+   要覆盖它们需要像 `admin-contract.mjs` 的 `findLetBinding` 那样做局部变量追踪 + 有限的方法返回值推断，
+   且必须保持 fail-closed。这是同一套手法（§7.15-29）在 TS 侧的移植。
+2. `POST /invite/blocklist` 的**语义不匹配**（后端是整体替换 `{user_ids}`，SDK 按逐个增删封装）——
+   需产品决策：改 API 或删方法（仍挂在 `path-contract-waivers.json` 的 `semantic-mismatch`）。
+3. `deleteFeatureFlag` 同上（后端补 DELETE 或删方法）。
+4. **`PathAssert` 的占位段边界**（§3 实测）：`/background_updates/coun` 这类"占位路由下的拼错"
+   类型系统抓不住，只能靠本门禁；反过来也提示：契约类型若与 ledger 漂移，两边都看不出来 ——
+   值得加一个"契约路由集合 ↔ ledger 路由集合"的对账门禁。
+
+---
+
 ## 附录 A：核验命令（可复现）
 
 ```bash
@@ -2877,7 +3007,19 @@ done   # 每个都是 1（同一份 hasMethod 被复制了 18 次）
 ---
 
 **生成时间**: 2026-10-06
-**最后更新**: 2026-10-08（§7.15-30：**请求体字段名比对** —— 给后端请求 struct 补「可选性 / `skip` / `flatten`」，
+**最后更新**: 2026-10-08（§7.15-31：**路径契约门禁从「表面覆盖」补成「真实覆盖」** ——
+`extractWrapperCalls` 原来对非字面量路径实参**静默 `continue`**，246 处（占 44%）调用点既不在分母里
+也不在任何桶里，报告却在说"提取 432 / 不匹配 0"；改成把恒等包装器（`apu` / `bu` / `wa` …）
+**自动识别 + 源码校验**（`return <参数>` 才算、同名有一处非恒等即整名作废），并按参数类型分
+`guarded`（带 `PathAssert<…>`，tsc 已逐段断言）与 `plain`（裸 `string`，只有门禁能守 —— `apu` 就是这类），
+剩下解不出来的进 `uncheckedPathArg` 桶并**棘轮化**（`path-contract-coverage.json`，总量 + 逐文件只降不升）；
+另把前缀改成**从包装器参数类型推**（解析 `strip-prefix.ts` 的单前缀别名），顺手消掉 45 条假不匹配；
+受校验调用点 432 → **539**、未校验从"不可见"变成 139、挖出并修掉 `deleteFeatureFlag` 的
+**下划线路径 + 后端无 DELETE**（必然 404）；三次实测确认 `PathAssert` 真生效，同时暴露它的边界
+—— 占位路由下拼错一个字母 tsc 依然全绿（`/background_updates/coun`）；抽取器又错 3 次
+（不认泛型参数 ⇒ 50 个包装器一个都没识别 / 泛型逗号把参数切成两个 / 展开后返回 null 让 13 处解包原地作废），
+13 条新判据 13/13 变异自证，spec 30 → 47 例。
+§7.15-30：**请求体字段名比对** —— 给后端请求 struct 补「可选性 / `skip` / `flatten`」，
 再让 SDK 侧把请求体形状**表达出来**（内联字面量 / 参数类型 / 局部变量 / `Partial<T>`；含 `Json<Value>`
 处理器手工 `body.get("k")` 的键集），门禁新增四档判定（`rejected`=必然 400 / `ignored`=静默忽略 /
 `missing-required` / `optional-vs-required`）与 CI 侧的请求体漂移判据；可比对请求体 **0 → 58**，
@@ -3076,4 +3218,27 @@ spec 51 → **73 例**；`tsc` 0，`quality:contracts` /
 续接点：`route-not-resolved` 剩余 12 条未豁免项（`invite/blocklist` 是"整体替换"语义、SDK 却按逐个增删封装）、
 `quality:path-contract` 的 **`apu(...)` 盲区**（它报"0 不匹配"，但整族 `apu("/x")` 落在"动态跳过"里，
 那三个错误路径一个都没拦住）、嵌套形状、`get_all_health_status` 的值级类型推断
+**§7.15-31 路径契约门禁：把「表面覆盖」补成「真实覆盖」（受校验调用点 432 → 539，未校验 246 从"不可见"变显式计数）**：
+承接上一节续接点的 `apu(...)` 盲区。真正的缺口是 `extractWrapperCalls` 里那行
+`if (!literal.test(args[1])) continue;` —— 非字面量路径实参**既不进 `calls` 也不进 `skipped`**，
+246 处（44%）调用点从分母里消失，而报告写的是"提取 432 / 不匹配 0"，读起来像全覆盖；
+`admin-config-manager.ts` 整族 `apu("/x")` 就是这么躲过校验的。
+改法：恒等包装器（`apu`/`bu`/`wa`/`sp`…）**自动识别 + 源码校验**（函数体恰好 `return <参数>` 才算，
+同名有一处非恒等即整名作废），按参数类型分成 `guarded`（带 `PathAssert<…>` ⇒ tsc 已在守）与
+`plain`（裸 `string` ⇒ **只有门禁能守**，`apu` 正是这类，也因此 `feature_flags` 拼写错误能在 tsc 全绿下存活）；
+解不出来的进 `uncheckedPathArg` 桶并写入棘轮 `path-contract-coverage.json`（总量 + 逐文件只降不升，
+`--refresh-coverage` 显式接受），顺带把前缀改成**从包装器参数类型推**（解析 `strip-prefix.ts` 单前缀别名，
+而不是按目录猜），一次消掉 45 条假不匹配。修掉 `deleteFeatureFlag` 的
+**下划线路径 + 后端根本没有 DELETE 路由**（必然 404；已登记 `backend-missing` 豁免）。
+三次实测确认 `PathAssert` 真生效（`/zzz/not-a-route` ⇒ TS2345 带 `__invalidPath`），同时测出它的边界：
+占位路由（`/background_updates/{job_name}`）下把 `count` 拼成 `coun`，**tsc 依然全绿** ——
+这正是 ledger 门禁的补充价值。抽取器又错 3 次（`function\s+name\s*\(` 不认泛型参数 ⇒
+50 个类型化包装器一个都没识别、报告只说"已校验的恒等包装器: 1"；`splitTopLevelArgs` 不跟踪泛型深度
+⇒ `PathAssert<P, X>` 的逗号把 1 个参数切成 2 个；`unwrapIdentityPath` 展开后下一圈"不再是调用"
+却 `return null` ⇒ 13 处解包原地作废且不报错，靠最小探针才发现）。
+13 条新判据 **13/13 变异自证**；spec 30 → **47 例**；`tsc` 0；`quality:contracts` /
+`real-backend-types`(0/0) / `lint:knip` / `gate-reachability`(50/4) 全绿。
+续接点：剩余 139 处未校验（`authedRequest(path)` 53、`requestV3(this.roomPath(id))` 60 …）需要
+局部变量 / 方法返回值级的路径推断；`invite/blocklist` 与 `deleteFeatureFlag` 的产品决策；
+外加"契约路由集合 ↔ ledger 路由集合"的对账门禁。
 **关联**:`docs/sdk-encapsulation-audit.md` §13.15.8（本问题上一次以"重记基线"收尾，本文给出根因与根治方案）

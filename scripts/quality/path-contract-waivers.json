@@ -141,6 +141,13 @@
             "category": "backend-missing",
             "reason": "后端只注册 `POST`（shadow ban）与 `DELETE`（解除）`/_synapse/admin/v1/users/{user_id}/shadow_ban`，没有 GET。SDK 的 getShadowBanStatus() 无法后端查询。删掉条件：后端补 GET，或产品决定改由调用方自行记录状态。",
             "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "DELETE /_synapse/admin/v1/feature-flags/{X}",
+            "file": "src/admin/sub-managers/admin-config-manager.ts",
+            "category": "backend-missing",
+            "reason": "deleteFeatureFlag()。后端 feature_flags.rs 只注册 POST|GET /_synapse/admin/v1/feature-flags 与 GET|PATCH /feature-flags/{flag_key}，没有 DELETE（全仓搜索 delete_flag 无服务方法）。SDK 侧保留了该方法（不删是为了不破坏公开 API），但路径 2026-10-08 已从下划线 /feature_flags 改正为连字符。删掉条件：后端补上 DELETE 路由（届时本条豁免会因为「未被引用」而让门禁报红，强制删除），或产品决定移除该方法。停用 flag 请用 updateFeatureFlag(status=disabled)。",
+            "expires": "2026-12-31"
         }
     ]
 }
