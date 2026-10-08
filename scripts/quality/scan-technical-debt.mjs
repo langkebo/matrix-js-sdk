@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const rootDir = process.cwd();
 const srcDir = path.resolve(rootDir, "src");
@@ -101,7 +102,7 @@ function writeBaseline(items) {
         generatedAt: new Date().toISOString(),
         ids: items.map((item) => item.id),
     };
-    fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
+    writeJsonFormatted(baselinePath, payload);
 }
 
 /** 从注释文本里提取 owner / 日期 / jira / 状态；取不到就用空串或 "Open"。 */
@@ -212,7 +213,7 @@ function writeInventory(items) {
         summary,
         items,
     };
-    fs.writeFileSync(outputJsonPath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
+    writeJsonFormatted(outputJsonPath, payload);
 
     const headers = [
         "filePath",

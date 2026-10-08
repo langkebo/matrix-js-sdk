@@ -60,7 +60,9 @@ import {
     diffRequestShape,
     diffResponse,
     diffFields,
+    summarizeUnresolved,
 } from "./lib/admin-contract.mjs";
+import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SDK_ROOT = path.resolve(__dirname, "..", "..");
@@ -371,13 +373,17 @@ async function main() {
                 "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。" +
                 "`entries` / `requestEntries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；" +
                 "`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；" +
-                "`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
+                "`unresolved` 为抽取器覆盖不到的桶，**逐条带 reason**（只留数字的桶会被读成噪声，" +
+                "而它实际是抽取器看不见的地面），计数只准降不准升。",
             entries,
             requestEntries,
             deviations: previous?.deviations ?? [],
-            unresolved: Object.fromEntries(Object.entries(countByKind(unresolved)).map(([k, v]) => [k, { count: v }])),
+            unresolved: summarizeUnresolved(unresolved),
         };
-        fs.writeFileSync(LEDGER_PATH, JSON.stringify(ledger, null, 4) + "\n");
+        // 落盘必须过 prettier —— 直接 `JSON.stringify(_, null, 4)` 会把放得下的数组展开成多行，
+        // 而 prettier 会折叠回一行，于是 **门禁自己印出来的修复指令每跑一次就把 `pnpm lint:js` 弄红**。
+        // 2026-10-08 实测踩中（`--refresh` 之后 prettier 直接报这个台账）。见 lib/write-json.mjs。
+        writeJsonFormatted(LEDGER_PATH, ledger);
         console.log(`✅ 已写入台账 ${path.relative(SDK_ROOT, LEDGER_PATH)}`);
         console.log(
             `   entries=${entries.length} requestEntries=${requestEntries.length} deviations=${ledger.deviations.length}`,
@@ -555,6 +561,31 @@ async function main() {
                     kind: "unresolved-grown",
                     route: "—",
                     detail: `${kind}: ${recorded} → ${n}（覆盖桶只准降不准升；新增端点请先核对后端再 --refresh）`,
+                });
+            }
+        }
+    }
+
+    // ─── 覆盖桶必须「逐条自解释」 ───
+    //
+    // 只留 `{ count }` 的桶会被读成"已知的少量噪声"，而它实际是**抽取器看不见的地面**：
+    // 15 条 `route-not-resolved` 是哪 15 个方法、卡在哪一步，从台账里根本看不出来。
+    // 所以台账里每个桶都必须带 `entries`（长度等于 count）且每条 reason 非空。
+    for (const [kind, bucket] of Object.entries(ledger.unresolved ?? {})) {
+        if (!Array.isArray(bucket?.entries) || bucket.entries.length !== bucket.count) {
+            violations.push({
+                kind: "unresolved-bucket-not-self-describing",
+                route: "—",
+                detail: `${kind}: 台账只有计数、没有逐条 entries ⇒ 在有后端的环境跑 \`pnpm quality:admin-response-contract:refresh\``,
+            });
+            continue;
+        }
+        for (const entry of bucket.entries) {
+            if (typeof entry.reason !== "string" || entry.reason.trim() === "") {
+                violations.push({
+                    kind: "unresolved-entry-missing-reason",
+                    route: entry.route ?? "—",
+                    detail: `${kind}: 条目缺 reason（覆盖桶里每条都要能说清为什么进桶）`,
                 });
             }
         }

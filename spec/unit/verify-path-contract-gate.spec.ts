@@ -45,6 +45,7 @@ import {
     parseStripPrefixAliases,
     resolvePrefix,
     resolvePrefixExpression,
+    resolveLedgerPath,
     resolveStripPrefixFromType,
     resolveTemplateLiteral,
     splitTopLevelPlus,
@@ -487,5 +488,39 @@ export type StripAuthPrefix<P extends string> = StripPrefix<
             expect(issues.map((i) => i.kind)).toEqual(["coverage-file-grown"]);
             expect(issues[0].detail).toContain("b.ts");
         });
+    });
+});
+
+describe("resolveLedgerPath（ledger 来源解析）", () => {
+    /*
+     * 背景：门禁原来只认兄弟仓 `../synapse-rust/...`，读不到就 `process.exit(2)`；
+     * 而 CI 的 `systemic_refactor_quality_gate.yml` 只 checkout 本仓 ⇒
+     * `quality:contracts` 在 CI 上必然卡在这一步。
+     * 回退到仓内镜像（`docs/api-contract/generated/route-manifest.all.json`）后，
+     * 实测两者判定逐项一致，所以**回退必须是保判定的**。
+     */
+    it("显式 LEDGER_PATH 优先（连兄弟仓存在也要让位）", () => {
+        expect(resolveLedgerPath({ explicitPath: "/tmp/x.json", siblingExists: true, mirrorExists: true })).toEqual({
+            path: "/tmp/x.json",
+            source: "env",
+        });
+    });
+
+    it("兄弟仓在场 ⇒ 用实时导出", () => {
+        const r = resolveLedgerPath({ explicitPath: null, siblingExists: true, mirrorExists: true });
+        expect(r.source).toBe("sibling");
+        expect(r.path).toContain("synapse-rust");
+    });
+
+    it("兄弟仓不在场但镜像在 ⇒ 回退到仓内镜像（CI 的情形）", () => {
+        const r = resolveLedgerPath({ explicitPath: null, siblingExists: false, mirrorExists: true });
+        expect(r.source).toBe("mirror");
+        expect(r.path).toBe("docs/api-contract/generated/route-manifest.all.json");
+    });
+
+    it("两者都没有 ⇒ 仍返回兄弟仓路径，让下游打出「请先拉取」而不是静默用空表", () => {
+        const r = resolveLedgerPath({ explicitPath: null, siblingExists: false, mirrorExists: false });
+        expect(r.source).toBe("none");
+        expect(r.path).toContain("synapse-rust");
     });
 });

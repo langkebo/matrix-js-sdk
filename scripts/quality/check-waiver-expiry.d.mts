@@ -17,6 +17,28 @@ export const EXPIRY: {
 /** "即将到期"窗口天数。 */
 export const EXPIRING_SOON_DAYS: number;
 
+/** 归本门禁管的台账清单（name 必须在 `collectExpirables` 里有形状解析）。 */
+export const LEDGER_SOURCES: readonly { name: string; file: string }[];
+
+/** 拍平后的一条"带 expires 的白名单条目"。 */
+export interface ExpirableEntry {
+    /** 台账名（`path-contract` / `swallow-fallback`）。 */
+    ledger: string;
+    /** 条目标识（path-contract 用 sdkCall/path；swallow 用 `file:line`）。 */
+    id: string;
+    file: string | null;
+    expires: unknown;
+    reason: string;
+}
+
+/**
+ * 把各台账里「带 `expires` 的条目」拍平成统一形状。
+ *
+ * 遇到 `LEDGER_SOURCES` 里未登记形状的 `name` 会**抛错**（不是静默跳过）：
+ * 静默跳过 = 某本台账悄悄脱离到期纪律，正是本门禁要防的病。
+ */
+export function collectExpirables(ledgerDocs: Array<{ name: string; doc: unknown }>): ExpirableEntry[];
+
 /** 距离到期还有几天（自然日；不可解析返回 NaN）。 */
 export function daysLeftUntil(expires: string, today: Date): number;
 

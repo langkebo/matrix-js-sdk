@@ -62,8 +62,12 @@ jobs:
             - name: Swallow fallback guard (strict mode)
               run: node scripts/quality/check-swallow-fallbacks.mjs --strict-baseline
 
-            - name: P3 waiver expiry guard
-              run: node scripts/quality/check-waiver-expiry.mjs
+            # P3 豁免到期守卫。此前两步都跑的是**非 strict** 模式 ⇒ 到期只 warn、从不阻断；
+            # 2026-10-08 起改 strict，并把范围从 path-contract 一本扩到
+            # swallow-fallback-baseline.json（它的 @swallow-error 白名单也有 expires，
+            # 但此前没有任何东西读它）。
+            - name: P3 waiver expiry guard (strict, multi-ledger)
+              run: pnpm quality:waiver-expiry:strict
 
             - name: Sensitive log scan (warning only)
               run: pnpm quality:log-sensitive

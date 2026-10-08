@@ -56,6 +56,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const PROJECT_ROOT = process.cwd();
 const SRC_ROOT = path.join(PROJECT_ROOT, "src");
@@ -503,7 +504,7 @@ function writeLedger(actual, previous) {
         }
     }
     fs.mkdirSync(path.dirname(LEDGER_PATH), { recursive: true });
-    fs.writeFileSync(LEDGER_PATH, `${JSON.stringify(buildLedger(actual, previous), null, 4)}\n`);
+    writeJsonFormatted(LEDGER_PATH, buildLedger(actual, previous));
     console.log(`[public-api-docs] 台账已写入 ${path.relative(PROJECT_ROOT, LEDGER_PATH)}`);
 }
 

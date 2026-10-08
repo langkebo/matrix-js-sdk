@@ -55,6 +55,7 @@ import {
     stripRustComments,
     stripTsComments,
     structLiteralShape,
+    summarizeUnresolved,
     tailExpression,
     typeOfRustReturn,
     unwrapRustTraitType,
@@ -1161,5 +1162,58 @@ export type Unioned = { a: string } | { b: string };`;
                 ).toBeNull();
             });
         });
+    });
+});
+
+describe("summarizeUnresolved（覆盖桶必须逐条自解释）", () => {
+    /*
+     * 背景：`unresolved` 原先在台账里只留 `{ count: n }` —— 15 条 `route-not-resolved`
+     * 到底是哪 15 个方法、卡在哪一步，从台账里看不出来。一个只报数字的覆盖桶会被读成
+     * "已知的少量噪声"，而它实际是**抽取器看不见的地面**。
+     * 所以现在每个桶都必须 `entries.length === count`，且每条 reason 非空。
+     */
+    it("按 kind 分桶，count 与 entries 长度恒等", () => {
+        const out = summarizeUnresolved([
+            { kind: "route-not-resolved", managerMethod: "a", route: "GET /x" },
+            { kind: "route-not-resolved", managerMethod: "b", route: "DELETE /y" },
+            { kind: "array-return", managerMethod: "c", route: "GET /z" },
+        ]);
+        expect(out["route-not-resolved"].count).toBe(2);
+        expect(out["route-not-resolved"].entries).toHaveLength(2);
+        expect(out["array-return"].count).toBe(1);
+    });
+
+    it("每条 reason 都是非空字符串（未登记的 kind 也要有兜底文案）", () => {
+        const out = summarizeUnresolved([{ kind: "brand-new-kind", route: "GET /x" }]);
+        expect(out["brand-new-kind"].entries[0].reason).toBe("brand-new-kind");
+    });
+
+    it("条目自带的细分 reason（backend/sdk…）会被并入，不覆盖掉桶级解释", () => {
+        const out = summarizeUnresolved([
+            { kind: "request-shape-unknown", route: "POST /x", reason: "backend-opaque" },
+        ]);
+        const reason = out["request-shape-unknown"].entries[0].reason;
+        expect(reason).toContain("请求体形状有一侧不可知");
+        expect(reason).toContain("backend-opaque");
+    });
+
+    it("排序稳定：按 route|managerMethod（否则每次 --refresh 都产生随机 diff）", () => {
+        const a = summarizeUnresolved([
+            { kind: "k", route: "GET /b", managerMethod: "m1" },
+            { kind: "k", route: "GET /a", managerMethod: "m2" },
+        ]);
+        const b = summarizeUnresolved([
+            { kind: "k", route: "GET /a", managerMethod: "m2" },
+            { kind: "k", route: "GET /b", managerMethod: "m1" },
+        ]);
+        expect(a.k.entries.map((e) => e.route)).toEqual(["GET /a", "GET /b"]);
+        expect(a.k.entries).toEqual(b.k.entries);
+    });
+
+    it("缺 managerMethod / route 时落成 null，不丢条目（计数才是可信的）", () => {
+        const out = summarizeUnresolved([{ kind: "k" }]);
+        expect(out.k.count).toBe(1);
+        expect(out.k.entries[0].managerMethod).toBeNull();
+        expect(out.k.entries[0].route).toBeNull();
     });
 });

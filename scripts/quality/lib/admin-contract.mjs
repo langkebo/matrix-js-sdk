@@ -2732,6 +2732,66 @@ export function diffResponse({ sdkFields, variants }) {
 }
 
 // ---------------------------------------------------------------------------
+// 覆盖桶（unresolved）的自解释汇总
+// ---------------------------------------------------------------------------
+
+/**
+ * 「覆盖桶」每一类的**含义**。
+ *
+ * 为什么要有这张表：`unresolved` 原先在台账里只留 `{ count: n }` —— 15 条
+ * `route-not-resolved` 到底是哪 15 个方法、各自卡在哪一步，**从台账里看不出来**。
+ * 一个只报数字的覆盖桶会被读成"已知的少量噪声"，而它实际是"抽取器看不见的地面"。
+ * 逐条带 reason 之后，"桶里是什么"和"为什么进桶"都能被审阅（并且能被 spec 钉住）。
+ */
+export const UNRESOLVED_KIND_REASONS = Object.freeze({
+    "route-not-resolved":
+        "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核",
+    "array-return": "后端返回裸数组，而 SDK 声明的是另一种响应种类 ⇒ 该形状不参与逐字段比对（但仍计覆盖桶）",
+    "inline-type-arg": "SDK 在泛型实参里写了内联对象字面量类型 ⇒ 判不出「线格式」（见 wireClaim ①）",
+    "request-shape-unknown":
+        "请求体形状有一侧不可知：reason=backend（后端 struct 没解析出来）/ backend-opaque（键集不闭合）/ sdk（SDK 第 4 实参解析不出来）",
+    "backend-shape-unknown":
+        "后端响应形状解析不出来（既不是 json! / struct 字面量 / Map::insert，也不是纯委派或已知辅助函数）",
+    "return-type-not-named": "SDK 声明的返回类型不是具名类型 ⇒ 没有键集可比",
+    "interface-not-found": "wireClaim 解出的具名类型在 src/admin 里找不到（改名或删除后未重新核对后端）",
+    "backend-shape-mixed": "后端同一路由在不同分支返回多种形状 ⇒ 无法与单一 SDK 声明比对",
+});
+
+/**
+ * 把 `classify()` 吐出的 `unresolved` 拍平成「逐条带 reason」的台账形状。
+ *
+ * 纯函数（spec 直接测）。三个性质是有意为之：
+ *   ① **每条都有非空 reason**：条目自带的 `reason`（如 `backend` / `sdk`）会用括号补充细分，
+ *      否则回退到 `UNRESOLVED_KIND_REASONS`；未登记的新 kind 直接拿 kind 名兜底（仍是非空）；
+ *   ② **entries 长度恒等于 count**：CI 半场据此判"台账是否被降级成只有数字"；
+ *   ③ **排序稳定**：按 `route|managerMethod` 排，否则每次 `--refresh` 都会产生随机 diff。
+ *
+ * @param {Array<object>} unresolved `classify()` 的覆盖桶条目
+ * @returns {Record<string, { count: number, entries: Array<object> }>}
+ */
+export function summarizeUnresolved(unresolved) {
+    const out = {};
+    for (const u of unresolved) {
+        const kind = u.kind ?? "(unknown)";
+        const bucket = (out[kind] ??= { count: 0, entries: [] });
+        bucket.count += 1;
+        const why = UNRESOLVED_KIND_REASONS[kind] ?? kind;
+        bucket.entries.push({
+            managerMethod: u.managerMethod ?? null,
+            route: u.route ?? null,
+            declaredReturn: u.declaredReturn ?? null,
+            handler: u.handler ?? null,
+            sdkType: u.sdkType ?? null,
+            reason: u.reason ? `${why}（细分：${u.reason}）` : why,
+        });
+    }
+    for (const bucket of Object.values(out)) {
+        bucket.entries.sort((a, b) => `${a.route}|${a.managerMethod}`.localeCompare(`${b.route}|${b.managerMethod}`));
+    }
+    return out;
+}
+
+// ---------------------------------------------------------------------------
 // 诊断入口
 // ---------------------------------------------------------------------------
 

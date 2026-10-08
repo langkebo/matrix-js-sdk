@@ -21,6 +21,7 @@ import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const rootDir = process.cwd();
 const baselinePath = path.resolve(rootDir, "scripts/quality/real-backend-types-baseline.json");
@@ -111,7 +112,7 @@ function writeBaseline(diagnostics, ids, filePath = baselinePath) {
         total: diagnostics.length,
         ids: [...ids].sort(),
     };
-    fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
+    writeJsonFormatted(filePath, payload);
 }
 
 /**

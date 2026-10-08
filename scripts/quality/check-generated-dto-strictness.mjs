@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { stableId, nextOrdinal } from "./lib/stable-id.mjs";
+import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const rootDir = process.cwd();
 const baselinePath = path.resolve(rootDir, "scripts/quality/generated-dto-strictness-baseline.json");
@@ -125,7 +126,7 @@ function writeBaseline(items, filePath = baselinePath) {
         generatedAt: new Date().toISOString(),
         ids: items.map((item) => item.id),
     };
-    fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
+    writeJsonFormatted(filePath, payload);
 }
 
 /**

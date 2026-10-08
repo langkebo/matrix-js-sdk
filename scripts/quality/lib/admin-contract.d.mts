@@ -351,3 +351,26 @@ export function diffResponse(input: { sdkFields: string[]; variants: string[][] 
     ok: boolean;
     unknown: boolean;
 };
+
+/** 「覆盖桶」每一类的含义（台账里每条 reason 的模板）。 */
+export const UNRESOLVED_KIND_REASONS: Readonly<Record<string, string>>;
+
+/**
+ * 把 `classify()` 的覆盖桶拍平成「逐条带 reason」的台账形状。
+ *
+ * 不变量：entries 长度恒等于 count；每条 reason 非空；排序稳定（按 `route|managerMethod`）。
+ */
+export function summarizeUnresolved(unresolved: Array<Record<string, unknown>>): Record<
+    string,
+    {
+        count: number;
+        entries: Array<{
+            managerMethod: string | null;
+            route: string | null;
+            declaredReturn: string | null;
+            handler: string | null;
+            sdkType: string | null;
+            reason: string;
+        }>;
+    }
+>;

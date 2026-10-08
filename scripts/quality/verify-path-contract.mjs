@@ -81,7 +81,41 @@ const VERBOSE = process.argv.includes("--verbose");
 // 1. 加载后端 ledger
 // ---------------------------------------------------------------------------
 
-const LEDGER_PATH = process.env.LEDGER_PATH ?? "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
+/** 兄弟仓的**实时**导出（首选）。 */
+const SIBLING_LEDGER_PATH = "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
+/**
+ * 仓内镜像（回退）。`synapse-ledger-sync.yaml` 把后端 ledger 导出同步进来的**纯后端副本**，
+ * `docs/api-contract/contract-artifacts.md` 明确它就是「后端 ledger 声明的全部路由」。
+ *
+ * 为什么需要回退：本门禁原来**只认兄弟仓**，读不到就 `process.exit(2)`；而
+ * `.github/workflows/systemic_refactor_quality_gate.yml` 只 checkout 本仓 ⇒
+ * CI 上 `quality:contracts` 必然卡在这一步（实测 `LEDGER_PATH=/nonexistent` ⇒ exit 2）。
+ * 实测两者在 2026-10-08 的判定逐项一致（539 / 519 / 20 / 0 / 139 全同）⇒ 回退是**保判定**的。
+ */
+const MIRROR_LEDGER_PATH = "docs/api-contract/generated/route-manifest.all.json";
+
+/**
+ * 解析 ledger 来源（纯函数，spec 直接测）。
+ *
+ * 优先级：显式 `LEDGER_PATH` > 兄弟仓实时导出 > 仓内镜像。
+ * 三者都没有时仍返回兄弟仓路径 —— 让 `loadBackendRoutes` 打出原本那句「请先拉取」。
+ *
+ * @param {{ explicitPath: string | null; siblingExists: boolean; mirrorExists: boolean }} input
+ * @returns {{ path: string; source: "env" | "sibling" | "mirror" | "none" }}
+ */
+export function resolveLedgerPath({ explicitPath, siblingExists, mirrorExists }) {
+    if (explicitPath) return { path: explicitPath, source: "env" };
+    if (siblingExists) return { path: SIBLING_LEDGER_PATH, source: "sibling" };
+    if (mirrorExists) return { path: MIRROR_LEDGER_PATH, source: "mirror" };
+    return { path: SIBLING_LEDGER_PATH, source: "none" };
+}
+
+const ledgerResolution = resolveLedgerPath({
+    explicitPath: process.env.LEDGER_PATH ?? null,
+    siblingExists: existsSync(resolve(PROJECT_ROOT, SIBLING_LEDGER_PATH)),
+    mirrorExists: existsSync(resolve(PROJECT_ROOT, MIRROR_LEDGER_PATH)),
+});
+const LEDGER_PATH = ledgerResolution.path;
 const ledgerFile = resolve(PROJECT_ROOT, LEDGER_PATH);
 
 /**
@@ -1406,6 +1440,8 @@ function main() {
     const payload = {
         generatedAt: new Date().toISOString(),
         ledger: LEDGER_PATH,
+        // 兄弟仓 / 仓内镜像 / 显式 LEDGER_PATH —— 结论要能追溯到来源（CI 上必然是 mirror）。
+        ledgerSource: ledgerResolution.source,
         scannedFiles: srcFiles.length,
         totalCalls: findings.length,
         matched: findings.length - rawMismatches.length,
@@ -1461,7 +1497,9 @@ function main() {
         console.log("║        SDK ↔ 后端路径契约交叉校验（P2-a 门禁）                   ║");
         console.log("╚══════════════════════════════════════════════════════════════════╝");
         console.log("");
-        console.log(`  ledger       : ${LEDGER_PATH}`);
+        console.log(
+            `  ledger       : ${LEDGER_PATH}${ledgerResolution.source === "mirror" ? "  ⚠️ 兄弟仓不在场，回退到仓内镜像" : ""}`,
+        );
         console.log(`  扫描源文件   : ${srcFiles.length}`);
         console.log(`  提取请求调用 : ${findings.length}`);
         console.log(`  匹配成功     : ${payload.matched}（其中 ${payload.wildcardMatched} 处为通配符匹配，见下）`);

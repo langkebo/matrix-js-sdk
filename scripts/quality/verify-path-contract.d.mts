@@ -132,3 +132,13 @@ export function matchAgainstLedger(
     fullPath: string,
     routes?: Map<string, string>,
 ): "exact" | "wildcard" | null;
+
+/**
+ * 解析 ledger 来源。优先级：显式 `LEDGER_PATH` > 兄弟仓实时导出 > 仓内镜像
+ * （`docs/api-contract/generated/route-manifest.all.json`，CI 上只可能有这个）。
+ */
+export function resolveLedgerPath(input: {
+    explicitPath: string | null;
+    siblingExists: boolean;
+    mirrorExists: boolean;
+}): { path: string; source: "env" | "sibling" | "mirror" | "none" };

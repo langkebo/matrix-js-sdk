@@ -1,8 +1,8 @@
 {
     "schema_version": 1,
-    "generated_at": "2026-10-07T23:11:47.030Z",
-    "synapseRustCommit": "e17efb937a5cf800e22d246ca4846bc7328614b1",
-    "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` / `requestEntries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，计数只准降不准升。",
+    "generated_at": "2026-10-08T02:47:01.590Z",
+    "synapseRustCommit": "ea72fc75b560628e4ece80639e1288d47b0009be",
+    "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` / `requestEntries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，**逐条带 reason**（只留数字的桶会被读成噪声，而它实际是抽取器看不见的地面），计数只准降不准升。",
     "entries": [
         {
             "route": "GET /_synapse/admin/info",
@@ -1907,19 +1907,197 @@
     ],
     "unresolved": {
         "route-not-resolved": {
-            "count": 15
+            "count": 15,
+            "entries": [
+                {
+                    "managerMethod": "deleteFeatureFlag",
+                    "route": "DELETE /_synapse/admin/v1/feature-flags/{x}",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "removeFromInviteAllowlist",
+                    "route": "DELETE /_synapse/admin/v1/invite/allowlist/{x}",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "removeFromInviteBlocklist",
+                    "route": "DELETE /_synapse/admin/v1/invite/blocklist/{x}",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "deactivate",
+                    "route": "DELETE /_synapse/admin/v1/notifications/deactivate",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "deleteRoomMessage",
+                    "route": "DELETE /_synapse/admin/v1/rooms/{x}/messages/{x}",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "listBackups",
+                    "route": "GET /_synapse/admin/v1/backups",
+                    "declaredReturn": "AdminBackupPage",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "listPresenceRoutes",
+                    "route": "GET /_synapse/admin/v1/presence_routes",
+                    "declaredReturn": "AdminPresenceRoutePage",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "listRateLimitCallbacks",
+                    "route": "GET /_synapse/admin/v1/rate_limit_callbacks",
+                    "declaredReturn": "AdminRateLimitCallbackPage",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "isAdmin",
+                    "route": "GET /_synapse/admin/v1/users/{x}/admin",
+                    "declaredReturn": "boolean",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "getShadowBanStatus",
+                    "route": "GET /_synapse/admin/v1/users/{x}/shadow_ban",
+                    "declaredReturn": "ShadowBanStatus | null",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "addToInviteAllowlist",
+                    "route": "POST /_synapse/admin/v1/invite/allowlist/{x}",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "addToInviteBlocklist",
+                    "route": "POST /_synapse/admin/v1/invite/blocklist/{x}",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "createPresenceRoute",
+                    "route": "POST /_synapse/admin/v1/presence_routes",
+                    "declaredReturn": "AdminPresenceRoute",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "createRateLimitCallback",
+                    "route": "POST /_synapse/admin/v1/rate_limit_callbacks",
+                    "declaredReturn": "AdminRateLimitCallback",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "joinRoom",
+                    "route": "POST /_synapse/admin/v1/rooms/{x}/join",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                }
+            ]
         },
         "array-return": {
-            "count": 1
+            "count": 1,
+            "entries": [
+                {
+                    "managerMethod": "getAllHealth",
+                    "route": "GET /_synapse/admin/v1/external_services/health",
+                    "declaredReturn": "BackendExternalServiceHealth[]",
+                    "handler": "get_all_health_status",
+                    "sdkType": "BackendExternalServiceHealth",
+                    "reason": "后端返回裸数组，而 SDK 声明的是另一种响应种类 ⇒ 该形状不参与逐字段比对（但仍计覆盖桶）"
+                }
+            ]
         },
         "inline-type-arg": {
-            "count": 3
+            "count": 3,
+            "entries": [
+                {
+                    "managerMethod": "getFederationDestinations",
+                    "route": "GET /_synapse/admin/v1/federation/destinations",
+                    "declaredReturn": "FederationDestination[]",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 在泛型实参里写了内联对象字面量类型 ⇒ 判不出「线格式」（见 wireClaim ①）"
+                },
+                {
+                    "managerMethod": "getFederationAdmissionList",
+                    "route": "GET /_synapse/admin/v1/federation/pending",
+                    "declaredReturn": "PendingFederationServer[]",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 在泛型实参里写了内联对象字面量类型 ⇒ 判不出「线格式」（见 wireClaim ①）"
+                },
+                {
+                    "managerMethod": "getUserDevices",
+                    "route": "GET /_synapse/admin/v1/users/{x}/devices",
+                    "declaredReturn": "DeviceInfo[]",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 在泛型实参里写了内联对象字面量类型 ⇒ 判不出「线格式」（见 wireClaim ①）"
+                }
+            ]
         },
         "request-shape-unknown": {
-            "count": 1
+            "count": 1,
+            "entries": [
+                {
+                    "managerMethod": "purgeRoomHistory",
+                    "route": "POST /_synapse/admin/v1/rooms/{x}/purge_history",
+                    "declaredReturn": "AdminPurgeHistoryResult",
+                    "handler": "purge_history_by_room",
+                    "sdkType": null,
+                    "reason": "请求体形状有一侧不可知：reason=backend（后端 struct 没解析出来）/ backend-opaque（键集不闭合）/ sdk（SDK 第 4 实参解析不出来）（细分：backend）"
+                }
+            ]
         },
         "backend-shape-unknown": {
-            "count": 1
+            "count": 1,
+            "entries": [
+                {
+                    "managerMethod": "getServerNotice",
+                    "route": "GET /_synapse/admin/v1/server_notices/{x}",
+                    "declaredReturn": "ServerNotice",
+                    "handler": "get_server_notice",
+                    "sdkType": "ServerNotice",
+                    "reason": "后端响应形状解析不出来（既不是 json! / struct 字面量 / Map::insert，也不是纯委派或已知辅助函数）"
+                }
+            ]
         }
     }
 }

@@ -1,5 +1,6 @@
 {
     "*.(ts|tsx)": ["eslint --fix", "prettier --write"],
-    "*.(py|md|yaml)": ["prettier --write"],
+    "*.(mts|cts)": ["prettier --write"],
+    "*.(py|md|yaml|yml)": ["prettier --write"],
     "*.(mjs|cjs|js)": ["prettier --write"]
 }

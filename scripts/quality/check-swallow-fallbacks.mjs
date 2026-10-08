@@ -51,6 +51,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { stableId, nextOrdinal, normalizeSnippet } from "./lib/stable-id.mjs";
+import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const rootDir = process.cwd();
 const targetDir = path.resolve(rootDir, "src");
@@ -318,7 +319,7 @@ function writeBaseline(findings) {
         generatedAt: new Date().toISOString(),
         findings,
     };
-    fs.writeFileSync(baselinePath, `${JSON.stringify(payload, null, 4)}\n`, "utf8");
+    writeJsonFormatted(baselinePath, payload);
 }
 
 function printLine(text) {
