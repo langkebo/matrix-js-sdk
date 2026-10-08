@@ -27,6 +27,10 @@
 ① 门禁的**执行入口**（本地钩子）是断的；② 门禁的**台账**会腐烂且没有自动发现机制；
 ③ 判据"看得见的范围"仍有边界（139 / 3 / 7 三类盲区）。
 
+> **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，C1 / C4 未做；
+> 批次 D 完成 D1，并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；
+> 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
+
 ---
 
 ## 1. 核查范围与基线
@@ -199,12 +203,15 @@ ls .git/hooks/pre-commit       # → 不存在
   ⇒ 10-07 已改正为连字符路径 + 补 ⚠️ JSDoc + 登记 `backend-missing` 豁免（expires 2026-12-31）。
   本条保留为"后端补 DELETE 或删方法"的决策项。
 
-### 3.7 P1-3 豁免与基线纪律不一致（P2 / P3 遗留，均**未修**）
+### 3.7 P1-3 豁免与基线纪律不一致（本轮已部分修复，详见 §7.1）
 
-- **基线更新粗放（旧编号 P2）**：`grep -rn 'accept-new|acceptNew' scripts/quality/*.mjs` **0 命中**。
-  `swallow` / `generated-dto` / `technical-debt` / `real-backend-types` 四个 baseline 型门禁的
-  `--update-baseline` 仍是**无条件全量重写**：既没有 diff 分类（drift / new / removed），
-  也没有"只接受 N 条新增"，"重记行号"与"静默放行新缺陷"共用同一个动作。
+- **基线更新粗放（旧编号 P2）**：~~`grep -rn 'accept-new|acceptNew' scripts/quality/*.mjs` **0 命中**~~
+  —— **⚠️ 这条判断已作废**：那次 grep 用了 `'a\|b'` 这种 BRE 扩展写法，在本机 CLI 的 shim
+  `grep`（toybox）下**静默返回空**，被误读成"确实没有"。用检索工具重查后事实是：
+  `check-swallow-fallbacks.mjs` 与 `check-generated-dto-strictness.mjs` **已有** `--accept-new`
+  （`--update-baseline` 在出现新指纹时**默认拒绝写入**）。真正还是无条件重写的只剩
+  `scan-technical-debt.mjs` 与 `check-real-backend-types.mjs`。
+  ⇒ **这条更正本身是方法论教训**：判"有没有"之前，先确认检索工具没在骗你。
 - **到期纪律双标（旧编号 P3）**：`path-contract-waivers.json` 有硬阻断
   （`quality:waiver-expiry`，当前 20 条全部在期）；而 `swallow-fallback-baseline.json` 的
   `@swallow-error { owner, expires }` 白名单**过期只 warn**
@@ -326,7 +333,50 @@ ls .git/hooks/pre-commit       # → 不存在
 
 ---
 
-## 7. 明确不建议做的事
+## 7. 执行状态（2026-10-08 本轮）
+
+基线：批次 A 之前的 `develop @ e84016df8`。每一项都列**验收证据**，未做的显式标注为未做。
+
+### 7.1 已完成
+
+| 批次     | 项    | 落地内容                                                                                                                                                                                                                                                                         | 验收证据                                                                                                                                                  |
+| -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A**    | A1–A4 | 7 个文件过 prettier（6 代码 + 审计文档）；删 2 条失效覆盖率台账条目                                                                                                                                                                                                              | `pnpm lint` / `pnpm quality:contracts` 双 exit 0；提交 `15eefb285`                                                                                        |
+| **B**    | B1    | `prepare`: `pnpm build` → `husky && pnpm build`（husky v9 靠它装钩子；实测非 git 目录下 `husky` 打印 `.git can't be found` 并 exit 0，打包/CI 不受影响）                                                                                                                         | `pnpm exec husky` 后 `core.hooksPath=.husky/_`、`.husky/_/` 生成且被 git 忽略                                                                             |
+| **B**    | B2    | `.lintstagedrc` 补 `*.(mts\|cts)` 与 `yml`（`*.(ts\|tsx)` **不匹配 `.d.mts`** —— 正是 P0-1 里唯一漏网的后缀）                                                                                                                                                                    | spec 用 lint-staged 自己的 picomatch 判定 `.d.mts` 被覆盖                                                                                                 |
+| **B**    | B3    | 新增 `scripts/quality/check-git-hooks.mjs` + `.d.mts` + spec（10 例），挂进 `lint`；`CI` 非空时自动跳过，`--strict` 可强制                                                                                                                                                       | 四种状态实跑：已装 exit 0／未装 exit 1／`CI=true` 跳过 exit 0／`CI+strict` exit 1                                                                         |
+| **B**    | B4    | 变异自证                                                                                                                                                                                                                                                                         | ① 暂存未格式化的 `.mjs` → 钩子跑 `prettier --write` 改正；② 暂存带 eslint error 的 `.ts` → 钩子 **exit 1 并回滚**，提交被否决                             |
+| **C**    | C0    | `quality:path-contract` 的 ledger 来源加**仓内镜像回退**（`docs/api-contract/generated/route-manifest.all.json`）。原来只认兄弟仓、读不到就 `exit 2`，而 CI 只 checkout 本仓 ⇒ CI 上必红（实测 `LEDGER_PATH=/nonexistent` ⇒ exit 2）                                             | 用镜像跑与用兄弟仓跑**逐项一致**（539/519/20/0/139 全同），exit 0；新增 4 例 spec                                                                         |
+| **C**    | C0b   | 新增 `quality:route-set-parity`：**`route-table.ts` 的每条 `(method,path)` 必须在后端 ledger 里**（补 `PathAssert` 的占位段边界）。与 `contract:codegen` **同源**（读 `docs/.../generated/modules/*.json`，不读兄弟仓）                                                          | 853 条契约 / 1159 条 ledger，6 条 auth QR 路由登记豁免；变异自证 4/4（删豁免→uncovered／改过期→expired／改路径→unused／改抽取器→**exit 2 而非静默恒绿**） |
+| **C**    | C2    | **复核为"无需改动"**：3 个未覆盖包装器（`requestOtherUrl`/`rawJsonRequest`/`sendToDeviceRequest`）**早已**在 `EXCLUDED_WRAPPERS` 里逐条登记理由，且在报告与 `--json` 里打印                                                                                                      | 读源码确认（`verify-path-contract.mjs:272-282`）                                                                                                          |
+| **C**    | C5    | `unresolved` 覆盖桶从「只留 `{count}`」改为**逐条 `entries`（带 reason）**；新增违规 `unresolved-bucket-not-self-describing` / `unresolved-entry-missing-reason`。重冻结后台账首次把 15 条 `route-not-resolved` 逐条点名                                                         | 旧台账 → 5 条违规（先红）；`--refresh` 后 21 条覆盖桶条目全部带 reason；`entries/requestEntries/deviations` 计数不变（129/58/16）                         |
+| **D**    | D1    | `quality:waiver-expiry` 从「只读 path-contract 一本」扩成**多台账**（+ `swallow-fallback-baseline.json` 的 `@swallow-error` 白名单，它也有 `expires` 却**没有任何东西读过**）；并把 **strict 模式接进 `lint` 与 CI 工作流**（此前两处跑的都是非 strict ⇒ 到期只 warn、从不阻断） | 台账覆盖 20 → **91** 条（path-contract 20 + swallow 71），全部在期；`--strict` exit 0                                                                     |
+| **新增** | —     | 共享落盘约定 `scripts/quality/lib/write-json.mjs`：**先过 prettier 再写**。7 处裸 `writeFileSync(_, JSON.stringify(_, null, 4))`（6 处迁移 + 1 处属 prettier 忽略目录故豁免）；新增静态守卫 spec（65 例，逐文件断言"没有裸 JSON 写盘"）                                          | 触发场景：`--refresh` 后 `admin-response-contract-ledger.json` 被 prettier 判红（实测）；迁移后同命令不再红                                               |
+
+### 7.2 未做（明确指出）
+
+| 批次   | 项                                                                                 | 为什么没做                                                                                                                                           |
+| ------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C1** | 139 处未校验路径调用点（TS 侧局部变量追踪）                                        | 这是**移植 `admin-contract.mjs` 解析器**级别的工程（fail-closed + 变异自证 + 逐条复核），不是一次可安全收尾的增量。应按 §7.1 的 C0b 方式单独开一轮。 |
+| **C4** | 嵌套形状（值级递归）                                                               | 需要后端在场 + 抽取器改动 + 新覆盖桶的变异自证，同上。                                                                                               |
+| **D2** | `scan-technical-debt` / `check-real-backend-types` 的 `--accept-new`（另两个已有） | 见 §3.7 更正：这一项的实际剩余量比原方案小得多。                                                                                                     |
+| **D3** | 统一"所有白名单必须有 owner + expires"                                             | D1 已把**到期**这一半统一；`owner` 这一半未做。                                                                                                      |
+| **E1** | 两个聚合/生成脚本补 spec                                                           | 低价值（`generate-coverage-report.mjs` 与判定无关，`run-granular-coverage-gates.mjs` 是发现器）。                                                    |
+| **E3** | 推送提交                                                                           | **需要用户决策**（会触发 CI）。                                                                                                                      |
+| **E4** | 给 SDK `exports` 补 `require` 条件                                                 | 当前没有 CJS 消费者，属"有需要再做"。                                                                                                                |
+
+### 7.3 本轮新增的两条方法论教训
+
+1. **`grep 'a\|b'` 在本机 CLI 下会静默返回空**，看起来像"确实没有"。本轮因此把 P2（`--accept-new`）
+   误判为"完全未修"，实际 4 个里已有 2 个。**判"有没有"之前先确认检索工具没在骗你** ——
+   用检索工具（Grep）或 `grep -E`，不要用裸 `grep` + `\|`。
+2. **「门禁自己印出来的修复指令」必须自己也过一遍 lint**：`--refresh` / `--update-baseline` 用
+   `JSON.stringify(_, null, 4)` 落盘与 prettier 的数组折叠规则不一致，用户照做反而得到红工作区。
+   已抽成 `lib/write-json.mjs` 并用静态守卫钉住。
+
+---
+
+## 8. 明确不建议做的事
 
 | 不做                                                  | 为什么                                                                      |
 | ----------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -392,5 +442,6 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 ---
 
 **生成时间**: 2026-10-08
-**基线**: `develop @ e84016df8`
-**最后更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案）
+**基线**: `develop @ e84016df8`（批次 A 之前）
+**最后更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
+续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
