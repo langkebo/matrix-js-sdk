@@ -142,3 +142,25 @@ export function resolveLedgerPath(input: {
     siblingExists: boolean;
     mirrorExists: boolean;
 }): { path: string; source: "env" | "sibling" | "mirror" | "none" };
+
+/**
+ * 给「未校验的路径实参」分形态。**只是报表口径，不参与任何判定**。
+ */
+export function classifyPathArgShape(
+    expr: string,
+):
+    | "this-method"
+    | "member-call"
+    | "bare-call"
+    | "cast"
+    | "template"
+    | "concat"
+    | "ternary"
+    | "paren"
+    | "identifier"
+    | "empty"
+    | "literal"
+    | "other";
+
+/** 把若干「未校验调用点」按形态汇总（按计数降序）。 */
+export function summarizeUncheckedShapes(unchecked: Array<{ expr: string }>): Record<string, number>;

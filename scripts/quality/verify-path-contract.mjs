@@ -165,6 +165,58 @@ export function diffCoverage(baseline, observed) {
 }
 
 /**
+ * 给「未校验的路径实参」**分形态**（纯函数，spec 直接测）。
+ *
+ * 为什么要有它：这份报告长期只有一句「未校验调用点 : 139（路径实参非字面量）」——
+ * 139 是个巨大的数字，但**看不出下一步该做什么**。实测（2026-10-08）把它拆开后形态高度集中：
+ *
+ *   · `this-method`：`this.roomPath("/rooms/$roomId/sync", roomId)` —— 仓内最主流的写法，
+ *     路径模板就在第一个实参里（`roomPath` 的定义体是
+ *     `return this.buildRoomScopedPath(pathTemplate, roomId)` → `encodeUri(pathTemplate, …)`，
+ *     即**对第一个参数恒等**），属于"再扩一层解析器就能收"的部分；
+ *   · `identifier`：`path` / `endpoint` —— 指函数形参或局部 `const`，要**跨函数/跨作用域**追；
+ *   · `cast`：`` `/v1/workers/${x}` as `/v1/workers/${string}` `` —— TS 断言，剥掉 `as` 就是模板。
+ *
+ * ⚠️ 这只是**报表口径**，不参与任何判定（判定仍是"能不能解成可比对的路径"）。
+ * 分类器写错只会让报表分组难看，不会让门禁放行/拦住任何东西 —— 这是它与 `diffCoverage`
+ * 那类判据的根本区别，也是它可以先落地、不必等解析器改造的原因。
+ *
+ * @param {string} expr 路径实参的源码文本
+ * @returns {"this-method"|"member-call"|"bare-call"|"cast"|"template"|"concat"|"ternary"|"paren"|"identifier"|"empty"|"other"}
+ */
+export function classifyPathArgShape(expr) {
+    const e = String(expr ?? "").trim();
+    if (e === "") return "empty";
+    if (/^[A-Za-z_$][\w$]*$/.test(e)) return "identifier";
+    if (/^this\.[\w$]+\s*\(/.test(e)) return "this-method";
+    if (/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)+\s*\(/.test(e)) return "member-call";
+    if (/^[A-Za-z_$][\w$]*\s*\(/.test(e)) return "bare-call";
+    // `as` 断言优先于模板判定：断言的操作数才是真值（`` `...` as `/x/${string}` ``）
+    if (/\sas\s/.test(e)) return "cast";
+    if (e.startsWith("`")) return "template";
+    if (e.startsWith("(")) return "paren";
+    if (/\?.*:/.test(e)) return "ternary";
+    if (/\+/.test(e)) return "concat";
+    if (/^["']/.test(e)) return "literal"; // 理论上不该出现（字面量已进 calls），出现即抽取器有漏
+    return "other";
+}
+
+/**
+ * 把若干「未校验调用点」按形态汇总（纯函数）。
+ *
+ * @param {Array<{ expr: string }>} unchecked
+ * @returns {Record<string, number>} 形态 → 计数（按计数降序，便于直接读）
+ */
+export function summarizeUncheckedShapes(unchecked) {
+    const counts = {};
+    for (const u of unchecked) {
+        const k = classifyPathArgShape(u.expr);
+        counts[k] = (counts[k] ?? 0) + 1;
+    }
+    return Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]));
+}
+
+/**
  * 读后端 ledger 并建成「`METHOD /归一化路径` → 原始路径」索引。
  *
  * 这一段原先写在顶层：`ledger` 不存在时直接 `process.exit(2)`，于是**只要 import
@@ -1405,6 +1457,8 @@ function main() {
         checkedPathArg: findings.length,
         byFile: countBy(uncheckedCalls, (u) => u.file),
         byWrapper: countBy(uncheckedCalls, (u) => u.wrapper),
+        // 形态拆解也落进棘轮文件：它给出的是"下一步该扩哪一层解析器"的工作清单
+        byShape: summarizeUncheckedShapes(uncheckedCalls),
     };
     const coverageIssues = [];
 
@@ -1454,6 +1508,8 @@ function main() {
         // 「路径实参不是字面量」的调用点：上一版它们被 `continue` 静默丢掉，
         // 于是分母只含能校验的那些，报告读起来像全覆盖。现在必须显式出现。
         uncheckedPathArg: uncheckedCalls.length,
+        // 139 是个看不出下一步的大数字 —— 按形态拆开，"该扩哪一层解析器"才是可读的。
+        uncheckedByShape: summarizeUncheckedShapes(uncheckedCalls),
         coverage,
         coverageIssues,
         uncheckedSamples: uncheckedCalls.slice(0, 40).map((u) => ({
@@ -1512,6 +1568,10 @@ function main() {
             `  未校验调用点 : ${payload.uncheckedPathArg}` +
                 `（路径实参非字面量；基线 ${REFRESH_COVERAGE ? "已刷新" : "见 path-contract-coverage.json"}）`,
         );
+        const shapes = Object.entries(payload.uncheckedByShape ?? {});
+        if (shapes.length > 0) {
+            console.log(`      形态拆解 : ${shapes.map(([k, v]) => `${k} ${v}`).join(" / ")}`);
+        }
         console.log(`  域外命名空间 : ${payload.outOfScope}（不属于本 ledger 的服务，如 identity server）`);
         console.log(`  覆盖的包装器 : ${payload.coveredWrappers.length}（${payload.coveredWrappers.join(", ")}）`);
         console.log(
