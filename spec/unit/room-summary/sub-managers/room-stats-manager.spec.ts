@@ -75,7 +75,7 @@ describe("RoomSummaryStatsManager", () => {
                 "/rooms/!room%3Atest/summary/stats",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -153,7 +153,7 @@ describe("RoomSummaryStatsManager", () => {
                 "/rooms/!room%3Atest/summary/stats/recalculate",
                 undefined,
                 { force: true },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(emitSpy).toHaveBeenCalledWith(RoomSummaryStatsEvent.StatsUpdated, "!room:test", mockStats);
         });
@@ -187,7 +187,7 @@ describe("RoomSummaryStatsManager", () => {
                 "/rooms/!room%3Atest/summary/heroes/recalculate",
                 undefined,
                 { force: true },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(onCacheInvalidation).toHaveBeenCalledWith("!room:test");
         });
@@ -221,7 +221,7 @@ describe("RoomSummaryStatsManager", () => {
                 "/rooms/!room%3Atest/summary/unread/clear",
                 undefined,
                 { reason: "read" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(onCacheInvalidation).toHaveBeenCalledWith("!room:test");
         });

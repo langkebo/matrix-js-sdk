@@ -157,7 +157,7 @@ describe("SpaceHierarchyManager", () => {
                 "/spaces/!space%3Atest/summary",
                 {},
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -191,7 +191,7 @@ describe("SpaceHierarchyManager", () => {
                 "/spaces/!space%3Atest/summary/with_children",
                 {},
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -223,7 +223,7 @@ describe("SpaceHierarchyManager", () => {
                 "/spaces/!space%3Atest/tree_path",
                 {},
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

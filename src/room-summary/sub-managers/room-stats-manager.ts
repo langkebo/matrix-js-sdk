@@ -22,9 +22,19 @@ import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-s
 import { LRUCache } from "../../utils/lru-cache";
 import { logger } from "../../logger";
 import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { PathAssert, StripV3 } from "../../http-api/strip-prefix";
+import type { PathAssert, StripVendor } from "../../http-api/strip-prefix";
 
-function rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
+/**
+ * vendor（`/_matrix/vendor/v1`）前缀空间下的路径断言。
+ *
+ * 本文件所有端点（`summary/stats` 读 + `stats|heroes/recalculate` + `unread/clear`）都已归位
+ * vendor（后端 Batch 1–3），因此这里只保留 vendor 断言。
+ *
+ * 为什么不写成 v3 断言（`StripV3<RoomSummaryPath>`）：`RoomSummaryPath` 是**只增不减**的并集
+ * （codegen 的"既有条目 ∪ ledger"），同时含 v3 与 vendor 两份条目 —— 用 v3 断言写 vendor
+ * 端点会被那些旧 v3 条目**静默通过**，于是"路径对"是假绿（类型绿 ≠ 真实路径对）。
+ */
+function rsvVendor<const P extends string>(path: P & PathAssert<P, StripVendor<RoomSummaryPath>>): P {
     return path;
 }
 
@@ -51,8 +61,8 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         this.onCacheInvalidation = onCacheInvalidation;
     }
 
-    private summaryStatsPath(roomId: string): StripV3<RoomSummaryPathPattern> {
-        return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/stats`);
+    private summaryStatsPath(roomId: string): StripVendor<RoomSummaryPathPattern> {
+        return rsvVendor(`/rooms/${encodeURIComponent(roomId)}/summary/stats`);
     }
 
     public async getRoomSummaryStats(
@@ -69,7 +79,7 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
 
         try {
             const stats = await this.withRetry(async () => {
-                return await this.requestV3<RoomStats>(Method.Get, this.summaryStatsPath(roomId));
+                return await this.requestVendor<RoomStats>(Method.Get, this.summaryStatsPath(roomId));
             }, "getRoomSummaryStats");
 
             if (stats) {
@@ -92,9 +102,9 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
 
         try {
             const stats = await this.withRetry(async () => {
-                return await this.requestV3<RoomStats>(
+                return await this.requestVendor<RoomStats>(
                     Method.Post,
-                    rsv(`/rooms/${encodeURIComponent(roomId)}/summary/stats/recalculate`),
+                    rsvVendor(`/rooms/${encodeURIComponent(roomId)}/summary/stats/recalculate`),
                     undefined,
                     body,
                 );
@@ -114,9 +124,9 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            const result = await this.requestV3<HeroesRecalcResult>(
+            const result = await this.requestVendor<HeroesRecalcResult>(
                 Method.Post,
-                rsv(`/rooms/${encodeURIComponent(roomId)}/summary/heroes/recalculate`),
+                rsvVendor(`/rooms/${encodeURIComponent(roomId)}/summary/heroes/recalculate`),
                 undefined,
                 body,
             );
@@ -129,9 +139,9 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            const result = await this.requestV3<UnreadClearResult>(
+            const result = await this.requestVendor<UnreadClearResult>(
                 Method.Post,
-                rsv(`/rooms/${encodeURIComponent(roomId)}/summary/unread/clear`),
+                rsvVendor(`/rooms/${encodeURIComponent(roomId)}/summary/unread/clear`),
                 undefined,
                 body,
             );

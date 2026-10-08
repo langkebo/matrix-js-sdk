@@ -176,6 +176,22 @@
             "category": "backend-missing",
             "reason": "createWidgetV3()。后端 ledger 全部 widget 路由共 17 条，其中创建只有 `POST /_matrix/vendor/v1/widgets`，**没有** `/widgets/create`。createWidget() 已覆盖该 vendor 端点，本方法疑为重复封装。删掉条件：产品决定合并到 createWidget() 或移除 createWidgetV3()。",
             "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_synapse/admin/v1/federation/destinations/{X}/reset",
+            "file": "src/admin/sub-managers/admin-federation-manager.ts",
+            "owner": "langkebo",
+            "category": "other-homeserver",
+            "reason": "resetFederationDestination() 的**有意双路径回退**：先打 `/reset`，收到 404 再回退到 `/reset_connection`（后端只注册后者：POST /_synapse/admin/v1/federation/destinations/{destination}/reset_connection）。保留首跳是为了兼容仅认 `/reset` 的部署。删掉条件：确认无需该兼容 —— 届时把首跳直接指向 `/reset_connection`，可顺带省掉每次一次必然 404 的往返。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_synapse/admin/v1/users/{X}/devices/delete",
+            "file": "src/admin/sub-managers/admin-user-manager.ts",
+            "owner": "langkebo",
+            "category": "backend-missing",
+            "reason": "deleteUserDevices() 是**批量**删设备（body `{ devices: [...] }`），而后端只有单设备端点 POST /_synapse/admin/v1/users/{user_id}/devices/{device_id}/delete 与 DELETE .../devices/{device_id}，**没有**批量端点。删掉条件：后端补批量端点（如 `/delete_devices`），或产品决定改为逐设备循环调用单设备端点（注意会变成 N 次请求）。",
+            "expires": "2026-12-31"
         }
     ]
 }

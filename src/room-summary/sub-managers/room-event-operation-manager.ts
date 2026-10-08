@@ -88,9 +88,17 @@ import type {
     ProcessUpdatesResult,
 } from "../types";
 import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { PathAssert, StripInternalSummary, StripV3 } from "../../http-api/strip-prefix";
+import type { PathAssert, StripInternalSummary, StripV3, StripVendor } from "../../http-api/strip-prefix";
 
 function _rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
+    return path;
+}
+
+/**
+ * vendor（`/_matrix/vendor/v1`）前缀空间下的路径断言（见 `room-stats-manager.ts` 的同名说明：
+ * `RoomSummaryPath` 是只增不减的并集，用 `_rsv` 写 vendor 端点会被旧 v3 条目静默通过）。
+ */
+function _rsvVendor<const P extends string>(path: P & PathAssert<P, StripVendor<RoomSummaryPath>>): P {
     return path;
 }
 
@@ -803,7 +811,8 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async translate(content: string, sourceLang?: string, targetLang?: string): Promise<TranslateResult> {
         this.requireNonEmptyString(content, "content");
         return await this.withRetry(async () => {
-            return await this.requestV3<TranslateResult>(Method.Post, "/translate", undefined, {
+            // 私有扩展：`POST /_matrix/vendor/v1/translate`（后端 Batch 1–3 已迁，不留 client 别名）
+            return await this.requestVendor<TranslateResult>(Method.Post, "/translate", undefined, {
                 content,
                 source_lang: sourceLang,
                 target_lang: targetLang,
@@ -890,9 +899,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            return await this.requestV3<SyncSummaryResult>(
+            return await this.requestVendor<SyncSummaryResult>(
                 Method.Post,
-                _rsv(`/rooms/${encodeURIComponent(roomId)}/summary/sync`),
+                _rsvVendor(`/rooms/${encodeURIComponent(roomId)}/summary/sync`),
                 undefined,
                 body,
             );

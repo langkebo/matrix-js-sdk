@@ -20,7 +20,7 @@ limitations under the License.
 
 import { Method } from "../../http-api/method";
 import { logger } from "../../logger";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import type { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../http-api/utils";
 import { NotFoundError } from "../../errors";
@@ -434,7 +434,7 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
             path: path,
             queryParams: queryParams as Record<string, string | string[]>,
             body: body,
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     }
 }

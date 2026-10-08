@@ -19,7 +19,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../../http-api/prefix";
 import type { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../http-api/utils";
 import { BaseManager, type ManagerOpts } from "../../managers/base-manager";
@@ -170,7 +170,7 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
     async getSpaceSummary(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
-                return await this.doRequest<JsonObject>(
+                return await this.doRequestVendor<JsonObject>(
                     Method.Get,
                     spacePath("/spaces/$spaceId/summary", spaceId),
                     options,
@@ -185,7 +185,7 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
     async getSpaceSummaryWithChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
-                return await this.doRequest<JsonObject>(
+                return await this.doRequestVendor<JsonObject>(
                     Method.Get,
                     spacePath("/spaces/$spaceId/summary/with_children", spaceId),
                     options,
@@ -200,7 +200,7 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
     async getSpaceTreePath(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
-                return await this.doRequest<JsonObject>(
+                return await this.doRequestVendor<JsonObject>(
                     Method.Get,
                     spacePath("/spaces/$spaceId/tree_path", spaceId),
                     options,
@@ -212,6 +212,9 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * `/_matrix/client/v3` 前缀（`hierarchy` / `hierarchy/v1` —— 后端 v1/v3 双份注册，v3 合法）。
+     */
     private async doRequest<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
         return await this.request<T>({
             method: method,
@@ -219,6 +222,23 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
             queryParams: queryParams as Record<string, string | string[]>,
             body: body,
             prefix: ClientPrefix.V3,
+        });
+    }
+
+    /**
+     * `/_matrix/vendor/v1` 前缀 —— space 的私有扩展（`summary` / `summary/with_children` /
+     * `tree_path`）已归位 vendor（后端 Batch 1–3），不能再走 `doRequest`（那会打 client v3 并 404）。
+     *
+     * ⚠️ 本文件是 `src/space/` 下**唯一混用两个前缀**的文件（其余 4 个 sub-manager 整族 vendor）；
+     * `verify-path-contract.mjs` 的 `doRequest` byDir 因此对本文件单独声明。
+     */
+    private async doRequestVendor<T>(method: Method, path: string, queryParams?: QueryDict, body?: Body): Promise<T> {
+        return await this.request<T>({
+            method: method,
+            path: path,
+            queryParams: queryParams as Record<string, string | string[]>,
+            body: body,
+            prefix: VendorPrefix,
         });
     }
 }

@@ -66,7 +66,7 @@ describe("SpaceMemberManager", () => {
                 "/spaces/!space%3Atest/members",
                 { limit: 20 },
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -105,7 +105,7 @@ describe("SpaceMemberManager", () => {
                 "/spaces/!space%3Atest/invite",
                 undefined,
                 { user_id: "@user:test", reason: "Welcome" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -134,7 +134,7 @@ describe("SpaceMemberManager", () => {
                 "/spaces/!space%3Atest/join",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -172,7 +172,7 @@ describe("SpaceMemberManager", () => {
                 "/spaces/!space%3Atest/leave",
                 undefined,
                 {},
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

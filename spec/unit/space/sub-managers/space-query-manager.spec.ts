@@ -52,7 +52,7 @@ describe("SpaceQueryManager", () => {
                 "/spaces/public",
                 { limit: 10 },
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -83,7 +83,7 @@ describe("SpaceQueryManager", () => {
                 "/spaces/search",
                 { search_term: "test", limit: 5 },
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -112,7 +112,7 @@ describe("SpaceQueryManager", () => {
                 "/spaces/statistics",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -139,7 +139,7 @@ describe("SpaceQueryManager", () => {
                 expect.arrayContaining([expect.objectContaining({ room_id: "!user1:test", name: "User Space" })]),
             );
             expect(mockClient.http.authedRequest).toHaveBeenCalledWith("GET", "/spaces/user", undefined, undefined, {
-                prefix: "/_matrix/client/v3",
+                prefix: "/_matrix/vendor/v1",
             });
         });
 
@@ -183,7 +183,7 @@ describe("SpaceQueryManager", () => {
                 "/spaces/room/!room%3Atest",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -214,7 +214,7 @@ describe("SpaceQueryManager", () => {
                 "/spaces/room/!room%3Atest/parents",
                 {},
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

@@ -77,7 +77,7 @@ describe("SpaceChildManager", () => {
                 "/spaces/!space%3Atest/children",
                 { limit: 10 },
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -123,7 +123,7 @@ describe("SpaceChildManager", () => {
                     via_servers: ["server1"],
                     suggested: undefined,
                 },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             // 验证缓存已失效，使用统一缓存策略
             expect((manager as any).childrenCache.has("children:!space:test")).toBe(false);
@@ -152,7 +152,7 @@ describe("SpaceChildManager", () => {
                 "/spaces/!space%3Atest/children/!room%3Atest",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             // 验证缓存已失效，使用统一缓存策略
             expect((manager as any).childrenCache.has("children:!space:test")).toBe(false);
@@ -195,7 +195,7 @@ describe("SpaceChildManager", () => {
                 "/spaces/!space%3Atest/rooms",
                 { limit: 5 },
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -227,7 +227,7 @@ describe("SpaceChildManager", () => {
                 "/spaces/!space%3Atest/state",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

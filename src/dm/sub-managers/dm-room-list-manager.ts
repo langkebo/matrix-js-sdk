@@ -36,7 +36,7 @@ import type { Room } from "../../models/room";
 import type { RoomMember } from "../../models/room-member";
 import type { MatrixEvent } from "../../models/event";
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../../managers/base-manager";
 import { LRUCache } from "../../utils/lru-cache";
 import { MatrixError } from "../../http-api/errors";
@@ -492,7 +492,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
                 return await this.request<DirectRoomsResponse>({
                     method: Method.Get,
                     path: "/direct",
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             });
 
@@ -528,7 +528,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
             return await this.request<DmRoomCheckResponse>({
                 method: Method.Get,
                 path: `/rooms/${encodeURIComponent(roomId)}/dm`,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "getRoomDm");
     }
@@ -580,7 +580,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
                 return await this.request<DmPartnerResponse>({
                     method: Method.Get,
                     path: `/rooms/${encodeURIComponent(roomId)}/dm/partner`,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             });
 
@@ -612,7 +612,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
             await this.request<void>({
                 method: Method.Put,
                 path: `/direct/${encodeURIComponent(roomId)}`,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "setDirect");
     }

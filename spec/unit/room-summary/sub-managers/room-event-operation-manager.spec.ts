@@ -24,6 +24,7 @@ import type { RoomSummary } from "../../../../src/room-summary/types";
 const ROOM_ID = "!room:test";
 const ENCODED_ROOM_ID = "!room%3Atest";
 const V3_PREFIX = { prefix: "/_matrix/client/v3" };
+const VENDOR_PREFIX = { prefix: "/_matrix/vendor/v1" };
 const MSC4354_PREFIX = { prefix: "/_matrix/client/unstable/org.matrix.msc4354" };
 const INTERNAL_PREFIX = { prefix: "/_synapse/room_summary/v1" };
 
@@ -569,7 +570,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 "/translate",
                 undefined,
                 { content: "hello", source_lang: "en", target_lang: "es" },
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -655,7 +656,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/summary/sync`,
                 undefined,
                 { full: true },
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 

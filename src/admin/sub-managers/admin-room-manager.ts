@@ -202,17 +202,20 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     /**
-     * 删除房间（v1 兼容端点 `POST /rooms/{room_id}/delete`）。
+     * 删除房间（`payload` 被后端忽略）。
      *
-     * ⚠️ 与 {@link deleteRoom} 是**同一个后端处理器**（`delete_room`，无 `Json` 提取器）
+     * ⚠️ 2026-10-09 修正：此前打 `POST /_synapse/admin/v1/rooms/{room_id}/delete`
+     * （自称 "v1 兼容端点"），但后端 ledger 里**从来没有**这个路径 ⇒ 每次调用必然 404。
+     * 后端注册的是 RESTful 的 `DELETE /_synapse/admin/v1/rooms/{room_id}`（与
+     * {@link deleteRoom} 同一个处理器 `delete_room`，无 `Json` 提取器）
      * ⇒ `payload` 里的 `purge` / `force_purge` / `block` / `reason` 一律被忽略。
      *
      * @param roomId - 房间 ID
-     * @param payload - 后端忽略
+     * @param payload - 后端忽略（仅为不破坏公开 API 而保留）
      */
     async deleteRoomAdmin(roomId: string, payload?: RoomDeletePayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/delete`, {}, payload ?? {});
+        await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}`, {}, payload ?? {});
     }
 
     async purgeRoomHistory(roomId: string, payload?: PurgeHistoryPayload): Promise<AdminPurgeHistoryResult> {

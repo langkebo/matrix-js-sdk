@@ -302,11 +302,15 @@ const POSITIONAL_WRAPPERS = {
     // 2026-10-09 同步本表：`doRequestV3` 正名为 `doRequestVendor`，两者前缀都是 vendor。
     // ⚠️ 这张表是**前缀声明**：包装器前缀改了而这里没改，门禁就会按过期声明判路径
     //    —— 表现为"代码已正确却仍报不匹配"（实测：改名后 15 个调用点仍被按 client v1 判）。
-    doRequestVendor: { fixed: ["/_matrix/vendor/v1"] }, // widgets/index.ts（capabilities / send / create）
+    doRequestVendor: { fixed: ["/_matrix/vendor/v1"] }, // widgets/index.ts + space/sub-managers/space-hierarchy-manager.ts
     doRequest: {
         byDir: [
+            // ⚠️ 顺序即优先级（`find` 取**第一个** startsWith 命中）⇒ 更长的 key 必须在前。
+            // space-hierarchy-manager 是 `src/space/` 下唯一混用前缀的文件：hierarchy /
+            // hierarchy/v1 仍是 client v3（后端 v1/v3 双份注册），其余 3 条归位 vendor。
+            ["src/space/sub-managers/space-hierarchy-manager.ts", ["/_matrix/client/v3"]],
             ["src/widgets/", ["/_matrix/vendor/v1"]], // widgets/index.ts:doRequest → VendorPrefix（2026-10-09 归位）
-            ["src/space/", ["/_matrix/client/v3"]], // space/sub-managers/*.ts → ClientPrefix.V3
+            ["src/space/", ["/_matrix/vendor/v1"]], // 其余 space sub-manager 整族 vendor（2026-10-09 归位）
             ["src/client/worker/", ["/_synapse/worker"]], // client/worker/worker.ts → WORKER_PREFIX
         ],
         fallback: ["/_matrix/client/v3"],

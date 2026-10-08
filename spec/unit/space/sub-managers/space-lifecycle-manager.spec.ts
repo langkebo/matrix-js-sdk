@@ -78,7 +78,7 @@ describe("SpaceLifecycleManager", () => {
                     room_id: "!newspace:test",
                     name: "New Space",
                 }),
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(mockParent.query.clearCache).toHaveBeenCalled();
         });
@@ -133,7 +133,7 @@ describe("SpaceLifecycleManager", () => {
                 "/spaces/!space%3Atest",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(mockParent.query.setCachedSpace).toHaveBeenCalledWith("!space:test", expect.any(Object));
         });
@@ -174,7 +174,7 @@ describe("SpaceLifecycleManager", () => {
                 "/spaces/!space%3Atest",
                 undefined,
                 { name: "Updated" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(mockParent.query.clearCache).toHaveBeenCalled();
         });
@@ -213,7 +213,7 @@ describe("SpaceLifecycleManager", () => {
                 "/spaces/!space%3Atest",
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(mockParent.query.clearCache).toHaveBeenCalled();
         });

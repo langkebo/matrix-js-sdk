@@ -35,7 +35,7 @@ import { MatrixClient } from "../../client";
 import type { ICreateRoomOpts } from "../../@types/requests";
 import { Preset } from "../../@types/partials";
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../../managers/base-manager";
 import { validateUserId } from "../../common/validators";
 import { InvalidParamError } from "../../common/errors";
@@ -272,7 +272,7 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
                         topic: options?.topic,
                         visibility: options?.visibility,
                     },
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             });
         } catch (error) {
@@ -337,7 +337,7 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
                     method: Method.Put,
                     path: `/direct/${encodeURIComponent(roomId)}`,
                     body: body,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             });
 

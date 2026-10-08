@@ -17,7 +17,7 @@ limitations under the License.
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { SpaceManager } from "../../src/space/index";
-import { ClientPrefix, MatrixError, Method } from "../../src/http-api";
+import { ClientPrefix, MatrixError, Method, VendorPrefix } from "../../src/http-api";
 import { NotFoundError } from "../../src/errors";
 
 describe("SpaceManager - Extended Tests", () => {
@@ -56,7 +56,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}`,
                 undefined,
                 { name: "Updated Space", topic: "New topic" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(result.name).toBe("Updated Space");
         });
@@ -71,7 +71,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -88,7 +88,7 @@ describe("SpaceManager - Extended Tests", () => {
             const result = await spaceManager.getPublicSpaces({ limit: 10 });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/public", { limit: 10 }, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
             expect(result.chunk).toHaveLength(2);
             expect(result.next_batch).toBe("next_token");
@@ -104,7 +104,7 @@ describe("SpaceManager - Extended Tests", () => {
             const stats = await spaceManager.getSpaceStatistics();
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/statistics", undefined, undefined, {
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
             expect(stats.total_spaces).toBe(50);
         });
@@ -126,7 +126,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/children`,
                 { limit: 20 },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(children).toHaveLength(2);
         });
@@ -141,7 +141,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/children/${encodeURIComponent("!child:test")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
     });
@@ -162,7 +162,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/members`,
                 {},
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(members).toHaveLength(2);
         });
@@ -177,7 +177,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/invite`,
                 undefined,
                 { user_id: "@user:test", reason: "Welcome!" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -191,7 +191,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/join`,
                 undefined,
                 { via: ["test"] },
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(result.room_id).toBe("!space:test");
         });
@@ -206,7 +206,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/leave`,
                 undefined,
                 {},
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
     });
@@ -280,7 +280,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/summary/with_children`,
                 {},
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(summary.children).toHaveLength(1);
         });
@@ -300,7 +300,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/${encodeURIComponent("!space:test")}/state`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(state).toHaveLength(2);
         });
@@ -319,7 +319,7 @@ describe("SpaceManager - Extended Tests", () => {
                 `/spaces/room/${encodeURIComponent("!room:test")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
             expect(space.space_id).toBe("!space:test");
         });

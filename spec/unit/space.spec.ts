@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { SpaceEvent, SpaceManager } from "../../src/space/index";
-import { ClientPrefix, MatrixError, Method } from "../../src/http-api";
+import { ClientPrefix, MatrixError, Method, VendorPrefix } from "../../src/http-api";
 import { NotFoundError } from "../../src/errors";
 
 function makeManager(authedRequest = vi.fn(), extraClient: Record<string, unknown> = {}): SpaceManager {
@@ -25,7 +25,7 @@ describe("SpaceManager", () => {
             `/spaces/${encodeURIComponent("!space:test")}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
         expect(result.space_id).toBe("!space:test");
         expect(result.room_id).toBe("!space:test");
@@ -42,7 +42,7 @@ describe("SpaceManager", () => {
             "/spaces",
             undefined,
             { room_id: "!space:test", name: "Docs", topic: "Root", visibility: "public" },
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 
@@ -55,7 +55,7 @@ describe("SpaceManager", () => {
         const spaces = await manager.getUserSpaces();
 
         expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/user", undefined, undefined, {
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
         expect(spaces).toEqual([
             expect.objectContaining({
@@ -79,7 +79,7 @@ describe("SpaceManager", () => {
             "/spaces/search",
             { search_term: "Search", limit: 25 },
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
         expect(spaces[0].space_id).toBe("!space:test");
     });
@@ -103,7 +103,7 @@ describe("SpaceManager", () => {
                 via_servers: ["test"],
                 suggested: true,
             },
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 
@@ -120,7 +120,7 @@ describe("SpaceManager", () => {
             `/spaces/${encodeURIComponent("!space:test")}/rooms`,
             { limit: 20 },
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
         expect(rooms[0].room_id).toBe("!room:test");
     });
@@ -136,7 +136,7 @@ describe("SpaceManager", () => {
             `/spaces/${encodeURIComponent("!space:test")}/summary`,
             {},
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 
@@ -151,7 +151,7 @@ describe("SpaceManager", () => {
             `/spaces/${encodeURIComponent("!space:test")}/tree_path`,
             { from: "abc" },
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 
@@ -168,7 +168,7 @@ describe("SpaceManager", () => {
             `/spaces/room/${encodeURIComponent("!room:test")}/parents`,
             {},
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
         expect(parents[0].space_id).toBe("!space:test");
     });

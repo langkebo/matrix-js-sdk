@@ -19,7 +19,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import type { Body } from "../../http-api/interface";
 import type { QueryDict } from "../../http-api/utils";
 import { ValidationError } from "../../errors";
@@ -250,7 +250,7 @@ export class SpaceLifecycleManager extends BaseManager<SpaceEvent, SpaceManagerE
             path: path,
             queryParams: queryParams as Record<string, string | string[]>,
             body: body,
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     }
 }
