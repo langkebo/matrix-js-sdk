@@ -619,6 +619,33 @@ const OUT_OF_SCOPE_PREFIXES = {
         "SDK 打的是配置里指定的身份服务器地址。",
 };
 
+/**
+ * 剥掉**顶层**的 TS 断言：`` `/x/${y}` as `/x/${string}` `` → `` `/x/${y}` ``。
+ *
+ * 为什么这是安全的：`as` / `satisfies` 是纯类型层的语法，**运行时值就是左侧那个表达式**。
+ * 路径实参上带断言（本仓 4 处，都在 `doRequest` 家族且是反引号模板）不改变真正发出去的路径，
+ * 所以剥掉它是把"本来就能解的字面量"从 `unchecked` 桶里救回来，而不是放宽判据。
+ *
+ * 但**只能在顶层剥**，这正是它必须用 `findTopLevel` 而不是 `indexOf` 的原因：
+ *   · `f(x as T)` 里的断言不在顶层；
+ *   · `"a as b"` 是在字符串里（`findTopLevel` 会跳过字符串/模板内部）。
+ * 任何一处判错都会让"路径算错却全绿"，所以认不出就原样返回（fail-closed）。
+ *
+ * @param {string} expr 路径实参原文
+ * @returns {string} 剥掉顶层断言后的表达式；没有断言则原样返回
+ */
+export function stripTsAssertion(expr) {
+    const src = String(expr ?? "").trim();
+    if (!src) return src;
+    for (const kw of [" as ", " satisfies "]) {
+        const idx = findTopLevel(src, (c, i) => c === " " && src.startsWith(kw, i));
+        if (idx < 0) continue;
+        const left = src.slice(0, idx).trim();
+        if (left) return left; // 左侧为空说明写法不合法 ⇒ 不剥
+    }
+    return src;
+}
+
 export function resolvePrefix(expr) {
     // 无 prefix 字段 → 用默认前缀（不是"无法判断"）
     if (!expr) return { prefix: DEFAULT_PREFIX, known: true };
@@ -973,7 +1000,8 @@ export function extractWrapperCalls(source, relFile, options = {}) {
         // 恒等包装器（`apu("x")` / `bu("/…")`）先解开，再判是不是字面量
         const helperName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(rawPathArg.trim())?.[1];
         const unwrapped = unwrapIdentityPath(rawPathArg, identityHelpers);
-        const pathArg = unwrapped ?? rawPathArg;
+        // TS 断言是纯类型层的东西，运行时值就是左侧表达式 —— 剥掉后可能就是个模板字面量。
+        const pathArg = stripTsAssertion(unwrapped ?? rawPathArg);
         if (!PATH_LITERAL_RE.test(pathArg)) {
             unchecked.push({
                 file: relFile,
