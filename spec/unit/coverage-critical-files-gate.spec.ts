@@ -62,7 +62,10 @@ describe("R2：台账条目必须字段完整且 deadline 可解析", () => {
                 entries: [{ ...entry(), [missing]: undefined }],
                 today: TODAY,
             });
-            expect(violations.some((v) => v.rule === "R2"), `缺 ${missing} 应报 R2`).toBe(true);
+            expect(
+                violations.some((v) => v.rule === "R2"),
+                `缺 ${missing} 应报 R2`,
+            ).toBe(true);
         }
     });
 

@@ -112,9 +112,7 @@ describe("resolveSourceFile（package.json 的导出映射 → 真实源文件�
     it("目录形态落到 index.ts", () => {
         const root = makeTmp();
         writeFile(path.join(root, "src", "room", "index.ts"), "");
-        expect(resolveSourceFile(root, "./lib/room/index.js")).toBe(
-            path.join(root, "src", "room", "index.ts"),
-        );
+        expect(resolveSourceFile(root, "./lib/room/index.js")).toBe(path.join(root, "src", "room", "index.ts"));
     });
 });
 
@@ -189,7 +187,12 @@ describe("evaluateExportsDocs（六类问题各自可见）", () => {
         const f = cleanFixture();
         const result = evaluateExportsDocs({
             ...f,
-            docRows: parseExportRows(makeDoc([["`.`", "internal", "`MatrixClient`"], ["`./notification`", "x", "y"]])),
+            docRows: parseExportRows(
+                makeDoc([
+                    ["`.`", "internal", "`MatrixClient`"],
+                    ["`./notification`", "x", "y"],
+                ]),
+            ),
         });
         expect(result.extraInDocs).toEqual(["./notification"]);
     });
@@ -198,7 +201,12 @@ describe("evaluateExportsDocs（六类问题各自可见）", () => {
         const f = cleanFixture();
         const result = evaluateExportsDocs({
             ...f,
-            docRows: parseExportRows(makeDoc([["`.`", "a", "b"], ["`.`", "c", "d"]])),
+            docRows: parseExportRows(
+                makeDoc([
+                    ["`.`", "a", "b"],
+                    ["`.`", "c", "d"],
+                ]),
+            ),
         });
         expect(result.duplicateDocKeys).toEqual(["."]);
     });
@@ -254,7 +262,11 @@ describe("evaluateExportsDocs（六类问题各自可见）", () => {
         const result = evaluateExportsDocs({
             ...f,
             docRows: parseExportRows(
-                makeDoc([["`./zzz`", "a", "b"], ["`./aaa`", "a", "b"], ["`.`", "a", "`MatrixClient`"]]),
+                makeDoc([
+                    ["`./zzz`", "a", "b"],
+                    ["`./aaa`", "a", "b"],
+                    ["`.`", "a", "`MatrixClient`"],
+                ]),
             ),
         });
         expect(result.extraInDocs).toEqual(["./aaa", "./zzz"]);

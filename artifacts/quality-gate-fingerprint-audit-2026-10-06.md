@@ -2442,16 +2442,16 @@ expect(members).toHaveLength(2);
 
 #### 1. 新增的解析规则（每条都配「判不出来 ⇒ null」）
 
-| 规则                                              | 例子                                                                               |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `serde_json::json!` 限定写法                      | `Ok(Json(serde_json::json!({…})))`（旧正则只认裸 `json!`）                          |
-| **元组响应**                                      | `Ok((StatusCode::CREATED, Json(T::from(x))))`                                       |
-| struct 字面量取一层键（含简写 `flags,`）          | `Ok(Json(FeatureFlagListResponse { flags, total, next_batch }))`                    |
-| `T::from(x)` / `T::try_from(x)`                   | `Ok(Json(ModuleResponse::from(module)))`                                            |
-| `serde_json::Map` 的 `.insert("k", …)` 键集       | `cleanup_all` / `cleanup_tokens` / `cleanup_abnormal_data`                          |
-| `let x: T = …` / `let x = T { … }` 的绑定追踪     | `let responses: Vec<ModuleResponse> = …` ⇒ 得到**数组**形状（含元素 struct 字段）    |
-| 纯委派（体内无 `Ok(Json(..))`，尾表达式是函数调用） | `purge_history_by_room` → `purge_history`；`{set,get}_user_override_rate_limit`     |
-| 同步辅助函数（`fn report_to_json(..) -> Value`）  | `get_report` / `get_room_report`                                                    |
+| 规则                                                | 例子                                                                              |
+| --------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `serde_json::json!` 限定写法                        | `Ok(Json(serde_json::json!({…})))`（旧正则只认裸 `json!`）                        |
+| **元组响应**                                        | `Ok((StatusCode::CREATED, Json(T::from(x))))`                                     |
+| struct 字面量取一层键（含简写 `flags,`）            | `Ok(Json(FeatureFlagListResponse { flags, total, next_batch }))`                  |
+| `T::from(x)` / `T::try_from(x)`                     | `Ok(Json(ModuleResponse::from(module)))`                                          |
+| `serde_json::Map` 的 `.insert("k", …)` 键集         | `cleanup_all` / `cleanup_tokens` / `cleanup_abnormal_data`                        |
+| `let x: T = …` / `let x = T { … }` 的绑定追踪       | `let responses: Vec<ModuleResponse> = …` ⇒ 得到**数组**形状（含元素 struct 字段） |
+| 纯委派（体内无 `Ok(Json(..))`，尾表达式是函数调用） | `purge_history_by_room` → `purge_history`；`{set,get}_user_override_rate_limit`   |
+| 同步辅助函数（`fn report_to_json(..) -> Value`）    | `get_report` / `get_room_report`                                                  |
 
 配套的 struct 索引也从 `routesDir`（`synapse-web/src`）扩到 `synapse-storage/src` /
 `synapse-common/src` / `synapse-services/src` —— 响应 struct 本来就定义在那里
@@ -2465,11 +2465,11 @@ expect(members).toHaveLength(2);
 
 #### 2. 抽取器又错了 3 次（累计 12 次），全部是「静默给错答案」
 
-| #   | 坑                                                                 | 症状                                                                                              |
-| --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| 10  | struct 字面量把**值里的裸标识符**当简写字段                        | `expires_in: r.expires_in.max(0) as u64,` 凭空多出一个键 `u64` ⇒ `register` 被报成"SDK 多声明 nonce" |
-| 11  | 修 #10 时把**空白**也写进「上一个 token」                          | 字段起始位判据永不成立 ⇒ 键集**恒为空**，`feature-flags`/`modules`/`register` 集体隐身             |
-| 12  | 元组响应整体是**一个**以 `(` 开头的实参                             | 只按 `,` 切会整段跳过 ⇒ 所有"带状态码的创建类"处理器（十几处）落进未知桶                           |
+| #   | 坑                                          | 症状                                                                                                 |
+| --- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 10  | struct 字面量把**值里的裸标识符**当简写字段 | `expires_in: r.expires_in.max(0) as u64,` 凭空多出一个键 `u64` ⇒ `register` 被报成"SDK 多声明 nonce" |
+| 11  | 修 #10 时把**空白**也写进「上一个 token」   | 字段起始位判据永不成立 ⇒ 键集**恒为空**，`feature-flags`/`modules`/`register` 集体隐身               |
+| 12  | 元组响应整体是**一个**以 `(` 开头的实参     | 只按 `,` 切会整段跳过 ⇒ 所有"带状态码的创建类"处理器（十几处）落进未知桶                             |
 
 #11 尤其值得记：它是**修 bug 引入的 bug**，而症状（空键集）与"确实没有字段"无法区分 ——
 正是 §7.15-27 那条"沉默不等于通过"的同类。6 条新规则全部做了**变异自证**（删掉字段起始位判据 /
@@ -2483,6 +2483,7 @@ expect(members).toHaveLength(2);
 实测 `getFederationDestinations` 因此被误报成"SDK 声明数组、后端返回对象"。
 
 改为三级判据：
+
 1. 显式泛型实参 `adminRequest<T>(…)` ⇒ **T 是线格式**；T 是内联对象字面量类型
    （`{ destinations: … }`）时它只是"这个方法消费的字段"的窄视图 ⇒ 判不了，落回未知桶；
 2. 无泛型实参且调用点**原样 `return`**（新增 `directReturn` 判据）⇒ 声明返回类型即线格式；
@@ -2493,32 +2494,32 @@ expect(members).toHaveLength(2);
 
 #### 4. 门禁立即找出的 21 处真缺陷（全部已修）
 
-| # | 端点 / 类型 | 事实 |
-| --- | --- | --- |
-| 1 | `POST /register` → `AdminRegisterResult` | 多声明 `nonce`（nonce 是**请求侧**参数，后端从不回显）—— 同步修 `docs/api-contract/admin.md` 的 DTO 块并重跑 codegen |
-| 2 | `GET /feature-flags` → `FeatureFlagPage` | 缺游标 `next_batch` |
-| 3 | `GET /modules` → `AdminModulePage` | 游标实为 `next_batch`（原 `next_token`），且**不返回** `total` |
-| 4-5 | `PUT /modules/{x}/config`、`POST /modules/{x}/enable` → `AdminModuleInfo` | 主键写成 `module_id`（后端全仓**没有这个键**，主键叫 `id`、名字叫 `module_name`），另漏 10 个真实字段（`version`/`priority`/4 个时间戳/执行统计） |
-| 6 | `GET /modules/type/{x}` | 后端返回**裸数组**，SDK 声明 `AdminModulePage` |
-| 7-9 | `POST/GET /account_validity…` ×3 → `AdminAccountValidityInfo` | 缺 `last_check_at`/`renewal_token`/`created_ts`/`updated_ts` |
-| 10-11 | `POST /password_auth_providers` → `AdminPasswordAuthProvider` | 缺 `id`/`is_enabled`/`priority`/2 个时间戳 |
-| 12 | `GET /password_auth_providers` | 裸数组（原 `AdminPasswordAuthProviderPage`）—— 类型已删 |
-| 13-15 | `GET /media_callbacks`、`GET /media_callbacks/{type}` | 裸数组；且 `AdminMediaCallback` 整体是**错的概念**：后端返回的是"回调**任务执行记录**"（`media_id`/`user_id`/`status`/`result`/`completed_ts`），SDK 声明的是"注册项"（`callback_name`/`url`/`config`） |
-| 16 | `GET /account_data_callbacks` | 裸数组 + 缺 `id`/`is_enabled`/`data_types`/`created_ts`、多 `callback_type` |
-| 17-19 | `POST /cleanup/all`、`POST /cleanup/tokens`、`CleanupRoomsResponse` | `AdminCleanupResponse`（`{cleaned, cleaned_count, message}`）**三个键后端一个都不返回**；`CleanupAllResponse.rooms` 也编错（实为 `{deleted_events_in_empty_rooms, deleted_empty_rooms}`）；`CleanupRoomsResponse` 的 `{rooms: number}` 同样错。**正确的 `CleanupTokensResponse` 本就在同文件里**，只是没人用它 |
-| 20 | `POST /register` 的 DTO 与手写类型 | 同 1（契约文档 → codegen 链） |
-| 21 | `spec/unit/admin/sub-managers/admin-cleanup-manager.spec.ts` | **第 8 次**「mock 自造形状 + 断言该形状」：mock 返回 `{rooms: {rooms_deleted, events_deleted}}` 并断言 `result.rooms.rooms_deleted`，而这两个键后端都不存在 |
+| #     | 端点 / 类型                                                               | 事实                                                                                                                                                                                                                                                                                                           |
+| ----- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `POST /register` → `AdminRegisterResult`                                  | 多声明 `nonce`（nonce 是**请求侧**参数，后端从不回显）—— 同步修 `docs/api-contract/admin.md` 的 DTO 块并重跑 codegen                                                                                                                                                                                           |
+| 2     | `GET /feature-flags` → `FeatureFlagPage`                                  | 缺游标 `next_batch`                                                                                                                                                                                                                                                                                            |
+| 3     | `GET /modules` → `AdminModulePage`                                        | 游标实为 `next_batch`（原 `next_token`），且**不返回** `total`                                                                                                                                                                                                                                                 |
+| 4-5   | `PUT /modules/{x}/config`、`POST /modules/{x}/enable` → `AdminModuleInfo` | 主键写成 `module_id`（后端全仓**没有这个键**，主键叫 `id`、名字叫 `module_name`），另漏 10 个真实字段（`version`/`priority`/4 个时间戳/执行统计）                                                                                                                                                              |
+| 6     | `GET /modules/type/{x}`                                                   | 后端返回**裸数组**，SDK 声明 `AdminModulePage`                                                                                                                                                                                                                                                                 |
+| 7-9   | `POST/GET /account_validity…` ×3 → `AdminAccountValidityInfo`             | 缺 `last_check_at`/`renewal_token`/`created_ts`/`updated_ts`                                                                                                                                                                                                                                                   |
+| 10-11 | `POST /password_auth_providers` → `AdminPasswordAuthProvider`             | 缺 `id`/`is_enabled`/`priority`/2 个时间戳                                                                                                                                                                                                                                                                     |
+| 12    | `GET /password_auth_providers`                                            | 裸数组（原 `AdminPasswordAuthProviderPage`）—— 类型已删                                                                                                                                                                                                                                                        |
+| 13-15 | `GET /media_callbacks`、`GET /media_callbacks/{type}`                     | 裸数组；且 `AdminMediaCallback` 整体是**错的概念**：后端返回的是"回调**任务执行记录**"（`media_id`/`user_id`/`status`/`result`/`completed_ts`），SDK 声明的是"注册项"（`callback_name`/`url`/`config`）                                                                                                        |
+| 16    | `GET /account_data_callbacks`                                             | 裸数组 + 缺 `id`/`is_enabled`/`data_types`/`created_ts`、多 `callback_type`                                                                                                                                                                                                                                    |
+| 17-19 | `POST /cleanup/all`、`POST /cleanup/tokens`、`CleanupRoomsResponse`       | `AdminCleanupResponse`（`{cleaned, cleaned_count, message}`）**三个键后端一个都不返回**；`CleanupAllResponse.rooms` 也编错（实为 `{deleted_events_in_empty_rooms, deleted_empty_rooms}`）；`CleanupRoomsResponse` 的 `{rooms: number}` 同样错。**正确的 `CleanupTokensResponse` 本就在同文件里**，只是没人用它 |
+| 20    | `POST /register` 的 DTO 与手写类型                                        | 同 1（契约文档 → codegen 链）                                                                                                                                                                                                                                                                                  |
+| 21    | `spec/unit/admin/sub-managers/admin-cleanup-manager.spec.ts`              | **第 8 次**「mock 自造形状 + 断言该形状」：mock 返回 `{rooms: {rooms_deleted, events_deleted}}` 并断言 `result.rooms.rooms_deleted`，而这两个键后端都不存在                                                                                                                                                    |
 
 #### 5. 结果
 
-| 指标 | §7.15-27 | 本节 |
-| --- | --- | --- |
-| 可比对行 | 75 | **114** |
-| `entries`（已核对一致） | 68 | **107**（含 8 行数组元素） |
-| `backend-shape-unknown` | 55 | **19** |
-| `array-return` | 8 | **1** |
-| 覆盖桶合计 | 81 | **42** |
-| `route-not-resolved` | 18 | 18（不变） |
+| 指标                    | §7.15-27 | 本节                       |
+| ----------------------- | -------- | -------------------------- |
+| 可比对行                | 75       | **114**                    |
+| `entries`（已核对一致） | 68       | **107**（含 8 行数组元素） |
+| `backend-shape-unknown` | 55       | **19**                     |
+| `array-return`          | 8        | **1**                      |
+| 覆盖桶合计              | 81       | **42**                     |
+| `route-not-resolved`    | 18       | 18（不变）                 |
 
 新增覆盖桶 `inline-type-arg` **4**（内联对象字面量泛型实参，见 §3 判据 1）—— 属**新暴露**的
 "判不了"类别，不是从别处搬来的；同理原 `backend-shape-unknown` 里有 5 处（`get_room_stats`/
@@ -2553,15 +2554,15 @@ expect(members).toHaveLength(2);
 
 #### 1. 新增的类型索引与链解析
 
-| 组件 | 作用 |
-| --- | --- |
-| `parseRustStructFieldTypes` | `struct → (字段 → 类型文本)`；同名 struct 字段集不同则整条作废 |
-| `extractStateContext` | 从处理器签名取 `State(ctx): State<AdminContext>` 的**变量名与类型**（链的根） |
-| `parseRustImplMethods` | `impl` 块 → `类型 → 方法 → [{ret, body, selfType, traitName}]` |
+| 组件                                          | 作用                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `parseRustStructFieldTypes`                   | `struct → (字段 → 类型文本)`；同名 struct 字段集不同则整条作废                                                     |
+| `extractStateContext`                         | 从处理器签名取 `State(ctx): State<AdminContext>` 的**变量名与类型**（链的根）                                      |
+| `parseRustImplMethods`                        | `impl` 块 → `类型 → 方法 → [{ret, body, selfType, traitName}]`                                                     |
 | `parseRustTraitImpls` + `unwrapRustTraitType` | `impl Trait for Type` 关系；`Arc<dyn Trait>` ⇒ **唯一「非测试」实现**（`test_mocks/`、`tests/`、`test_*.rs` 不计） |
-| `unwrapRustType` / `typeOfRustReturn` | 脱 `&` / `Arc` / `Option` / `Vec` / `Box`，再脱 `Result` / `ApiResult`；**取末段路径名** |
-| `resolveChain` | 沿 `ctx.a.b(..).c()` 走；**fail-closed**：任一段判不出来即整体 `null` |
-| 下沉 | 末段返回类型是 `Value` 时，**下沉进被调方法的函数体**并以 `self` 为新的链根（递归，深度上限 12） |
+| `unwrapRustType` / `typeOfRustReturn`         | 脱 `&` / `Arc` / `Option` / `Vec` / `Box`，再脱 `Result` / `ApiResult`；**取末段路径名**                           |
+| `resolveChain`                                | 沿 `ctx.a.b(..).c()` 走；**fail-closed**：任一段判不出来即整体 `null`                                              |
+| 下沉                                          | 末段返回类型是 `Value` 时，**下沉进被调方法的函数体**并以 `self` 为新的链根（递归，深度上限 12）                   |
 
 两条是 **Rust 的语言规则而不是启发式**：① 同名方法优先**固有实现**（`impl Type`）而不是特征实现
 —— 本仓的特征实现常常只是薄委派（`self.cleanup_abnormal_data(..).await`），抓错就会绕回自己；
@@ -2573,13 +2574,13 @@ expect(members).toHaveLength(2);
 
 #### 2. 抽取器又错了 4 次（累计 16 次，仍然全是「静默给错答案」）
 
-| # | 坑 | 症状 |
-| --- | --- | --- |
-| 13 | **`stripRustComments` 把生命周期当字符字面量** | `&'static str` 之后一路吞到下一个 `'`，中间的花括号全被吃掉 ⇒ `balancedSlice` 在**整块 `impl`** 上返回 `null`：`room/messaging/events.rs` 的 `impl MessagingService` 整块隐身（60 个方法只索引到 9 个）。修法是把生命周期**原地换成等宽空格**（长度不变 ⇒ 下游所有下标都不受影响） |
-| 14 | `impl` 头带前导换行 | `^impl` 永不匹配 ⇒ **所有类型都没有方法**，`methods` 表里 264 个类型全是空 Map |
-| 15 | 递归深度上限 5 | 一条真实链（handler → `Ok` 解包 → 变量 → 服务方法 → 又一条链 → storage 方法 → `Value::Object`）**刚好差一层**返回 `null` —— 表现为"这条链就是解析不出来"，没有任何报错 |
-| 16 | 只认裸 `Value::Object(..)` | storage 层写的是 `Ok(serde_json::Value::Object(results))`，限定写法整类不匹配 |
-| 17 | `scanStructFields` 的 `\s*:` 会吃掉 `::` | `pub target_user_ids: serde_json::Value` 凭空多出一个叫 `serde_json` 的**键** ⇒ `ServerNotification` 被报成"SDK 少一个字段"（方向错误的假阳性） |
+| #   | 坑                                             | 症状                                                                                                                                                                                                                                                                               |
+| --- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13  | **`stripRustComments` 把生命周期当字符字面量** | `&'static str` 之后一路吞到下一个 `'`，中间的花括号全被吃掉 ⇒ `balancedSlice` 在**整块 `impl`** 上返回 `null`：`room/messaging/events.rs` 的 `impl MessagingService` 整块隐身（60 个方法只索引到 9 个）。修法是把生命周期**原地换成等宽空格**（长度不变 ⇒ 下游所有下标都不受影响） |
+| 14  | `impl` 头带前导换行                            | `^impl` 永不匹配 ⇒ **所有类型都没有方法**，`methods` 表里 264 个类型全是空 Map                                                                                                                                                                                                     |
+| 15  | 递归深度上限 5                                 | 一条真实链（handler → `Ok` 解包 → 变量 → 服务方法 → 又一条链 → storage 方法 → `Value::Object`）**刚好差一层**返回 `null` —— 表现为"这条链就是解析不出来"，没有任何报错                                                                                                             |
+| 16  | 只认裸 `Value::Object(..)`                     | storage 层写的是 `Ok(serde_json::Value::Object(results))`，限定写法整类不匹配                                                                                                                                                                                                      |
+| 17  | `scanStructFields` 的 `\s*:` 会吃掉 `::`       | `pub target_user_ids: serde_json::Value` 凭空多出一个叫 `serde_json` 的**键** ⇒ `ServerNotification` 被报成"SDK 少一个字段"（方向错误的假阳性）                                                                                                                                    |
 
 #13 与 #15 尤其值得记：#13 是**判据失效的根因级缺陷**（一整块 `impl` 消失，而"没有方法"与
 "这个方法不存在"同形）；#15 是"差一层就静默放弃"，两者都不会报错。
@@ -2589,26 +2590,26 @@ expect(members).toHaveLength(2);
 
 #### 3. 门禁立即找出并修掉的 6 处真缺陷
 
-| #   | 端点 / 类型                                            | 事实                                                                                                                                                                                            |
-| --- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1-2 | `GET/POST /audit/events` → `AuditEvent`                | 时间戳键是 **`created_ts`**，原声明写作 `ts` ⇒ 取值恒 `undefined`                                                                                                                               |
-| 3   | `POST /modules/check_third_party_rule` → `ThirdPartyRuleCheckResult` | 缺 `modified_content`（规则改写后的内容）                                                                                                                         |
-| 4   | `GET /modules/logs/{x}`                                | 后端 `get_execution_logs` 返回 **`Vec<ModuleExecutionLog>`**（裸数组）；SDK 原声明的 5 个键（`log_id`/`module_id`/`level`/`message`/`ts`）后端**一个都没有** ⇒ 按真实 10 字段重写 `AdminModuleLog`，`AdminModuleLogPage` 删除 |
-| 5   | `POST/GET/PUT /notifications…` → `SystemNotificationInfo` | 自造形状（`notification_id`/`type`/`target_users`），真身是 `ServerNotification`（16 字段）⇒ 类型删除，改为复用同目录里**本就正确**的 `ServerNotification` |
-| 6   | `AdminServerManager.listActiveNotifications()`         | 后端 `list_active_notifications` 是 `Ok(Json(json!(notifications)))` —— 顶层就是**数组**；SDK 按 `{notifications: [...]}` 解包 ⇒ `response.notifications` 恒 `undefined`，**永远返回空数组**（而且"合法地返回空"，调用方看不出异常） |
-| 7   | `spec/unit/admin-new-endpoints.spec.ts`                | **第 9 次**「mock 自造形状 + 断言该形状」（mock 造了 `{notifications: [...]}` 并断言解包结果）                                                                                                   |
+| #   | 端点 / 类型                                                          | 事实                                                                                                                                                                                                                                 |
+| --- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1-2 | `GET/POST /audit/events` → `AuditEvent`                              | 时间戳键是 **`created_ts`**，原声明写作 `ts` ⇒ 取值恒 `undefined`                                                                                                                                                                    |
+| 3   | `POST /modules/check_third_party_rule` → `ThirdPartyRuleCheckResult` | 缺 `modified_content`（规则改写后的内容）                                                                                                                                                                                            |
+| 4   | `GET /modules/logs/{x}`                                              | 后端 `get_execution_logs` 返回 **`Vec<ModuleExecutionLog>`**（裸数组）；SDK 原声明的 5 个键（`log_id`/`module_id`/`level`/`message`/`ts`）后端**一个都没有** ⇒ 按真实 10 字段重写 `AdminModuleLog`，`AdminModuleLogPage` 删除        |
+| 5   | `POST/GET/PUT /notifications…` → `SystemNotificationInfo`            | 自造形状（`notification_id`/`type`/`target_users`），真身是 `ServerNotification`（16 字段）⇒ 类型删除，改为复用同目录里**本就正确**的 `ServerNotification`                                                                           |
+| 6   | `AdminServerManager.listActiveNotifications()`                       | 后端 `list_active_notifications` 是 `Ok(Json(json!(notifications)))` —— 顶层就是**数组**；SDK 按 `{notifications: [...]}` 解包 ⇒ `response.notifications` 恒 `undefined`，**永远返回空数组**（而且"合法地返回空"，调用方看不出异常） |
+| 7   | `spec/unit/admin-new-endpoints.spec.ts`                              | **第 9 次**「mock 自造形状 + 断言该形状」（mock 造了 `{notifications: [...]}` 并断言解包结果）                                                                                                                                       |
 
 #### 4. 结果
 
-| 指标                     | §7.15-28 | 本节     |
-| ------------------------ | -------- | -------- |
-| 可比对                   | 114      | **133**  |
-| `entries`（已核对一致）  | 107      | **126**  |
-| `backend-shape-unknown`  | 19       | **1**    |
-| `array-return`           | 1        | 1        |
-| `inline-type-arg`        | 4        | **3**    |
-| `route-not-resolved`     | 18       | 18（不变） |
-| 覆盖桶合计               | 42       | **23**   |
+| 指标                    | §7.15-28 | 本节       |
+| ----------------------- | -------- | ---------- |
+| 可比对                  | 114      | **133**    |
+| `entries`（已核对一致） | 107      | **126**    |
+| `backend-shape-unknown` | 19       | **1**      |
+| `array-return`          | 1        | 1          |
+| `inline-type-arg`       | 4        | **3**      |
+| `route-not-resolved`    | 18       | 18（不变） |
+| 覆盖桶合计              | 42       | **23**     |
 
 守卫 spec 39 → **51 例**；`tsc` 0；`quality:contracts`（含 `contract:codegen:check`）/
 `real-backend-types`(0/0) / `lint:knip` / `gate-reachability`（50 可达 / 4 豁免）全绿；
@@ -2640,11 +2641,11 @@ missingExample 31→30）；admin 六个 spec **338 例**。`deviations` 15 条�
 原来只有 `fields` + `denyUnknownFields` 两个信息，判不出**必填**与**可选**，于是只能比"字段名集合"，
 而"后端必填、SDK 标成可选"这类（调用方合法地不传 ⇒ 422）根本无从发现。本轮补三样：
 
-| 新增信息 | 判据 | 用在哪 |
-| --- | --- | --- |
-| `optional` | 字段类型 `Option<…>`，或 `#[serde(default)]`，或容器级 `#[serde(default)]` | 后端必填 / 可选 |
-| `ignored` | `#[serde(skip)]` / `skip_serializing` / `skip_deserializing` ⇒ **不是线上键**，从键集剔除 | 防止假"SDK 多声明" |
-| `flatten` | `#[serde(flatten)]` ⇒ 键集不闭合 | 与 `opaque` 一样落回"未知" |
+| 新增信息   | 判据                                                                                      | 用在哪                     |
+| ---------- | ----------------------------------------------------------------------------------------- | -------------------------- |
+| `optional` | 字段类型 `Option<…>`，或 `#[serde(default)]`，或容器级 `#[serde(default)]`                | 后端必填 / 可选            |
+| `ignored`  | `#[serde(skip)]` / `skip_serializing` / `skip_deserializing` ⇒ **不是线上键**，从键集剔除 | 防止假"SDK 多声明"         |
+| `flatten`  | `#[serde(flatten)]` ⇒ 键集不闭合                                                          | 与 `opaque` 一样落回"未知" |
 
 ⚠️ **`skip_serializing_if` 不是 `skip`**：它是条件序列化（键照样存在）。第一版用 `/\bskip\b/` 判断，
 会把这类字段从键集里剔掉 ⇒ 凭空造出"SDK 多声明字段"。已改成 `/\bskip(?:_(?:serializing|deserializing))?(?![_\w])/`。
@@ -2680,12 +2681,12 @@ missingExample 31→30）；admin 六个 spec **338 例**。`deviations` 15 条�
 
 `diffRequestShape`（放在 `lib/` 里，spec 可直接测）：
 
-| 违规 kind | 条件 | 后果 |
-| --- | --- | --- |
+| 违规 kind                        | 条件                                           | 后果                            |
+| -------------------------------- | ---------------------------------------------- | ------------------------------- |
 | `request-unknown-field-rejected` | SDK 多声明键 **且** 后端 `deny_unknown_fields` | **必然 400**（`unknown field`） |
-| `request-unknown-field-ignored` | SDK 多声明键而后端不 deny（含 `Json<Value>`） | 请求体被**静默忽略** |
-| `request-missing-required-field` | 后端必填而 SDK 未声明 | 调用方可以合法地不传 ⇒ 422 |
-| `request-optional-vs-required` | 后端必填而 SDK 标成可选 | 同上 |
+| `request-unknown-field-ignored`  | SDK 多声明键而后端不 deny（含 `Json<Value>`）  | 请求体被**静默忽略**            |
+| `request-missing-required-field` | 后端必填而 SDK 未声明                          | 调用方可以合法地不传 ⇒ 422      |
+| `request-optional-vs-required`   | 后端必填而 SDK 标成可选                        | 同上                            |
 
 请求体**也要进台账**（`requestEntries`）：与响应侧不同的是，请求体形状的判定**完全在 SDK 侧**，
 所以 CI 半场不需要后端就能重算 ⇒ 新增 `sdk-request-drift` / `sdk-request-gone` / `sdk-request-unresolvable`
@@ -2770,16 +2771,16 @@ missingExample 31→30）；admin 六个 spec **338 例**。`deviations` 15 条�
 
 #### 7. 结果
 
-| 指标 | §7.15-29 | 本节 |
-| --- | --- | --- |
-| 可比对（响应） | 133 | **136** |
-| `entries` | 126 | **129** |
-| **可比对请求体** | 0（未做） | **58** |
-| `requestEntries` | — | **58** |
-| `route-not-resolved` | 18 | **15** |
-| `backend-shape-unknown` | 1 | 1 |
-| 覆盖桶合计 | 23 | **21**（新增 `request-shape-unknown` 1，其余下降） |
-| `deviations` | 15 | **16**（新增 `DELETE /rooms/{x}` 的 `body-sent-ignored`） |
+| 指标                    | §7.15-29  | 本节                                                      |
+| ----------------------- | --------- | --------------------------------------------------------- |
+| 可比对（响应）          | 133       | **136**                                                   |
+| `entries`               | 126       | **129**                                                   |
+| **可比对请求体**        | 0（未做） | **58**                                                    |
+| `requestEntries`        | —         | **58**                                                    |
+| `route-not-resolved`    | 18        | **15**                                                    |
+| `backend-shape-unknown` | 1         | 1                                                         |
+| 覆盖桶合计              | 23        | **21**（新增 `request-shape-unknown` 1，其余下降）        |
+| `deviations`            | 15        | **16**（新增 `DELETE /rooms/{x}` 的 `body-sent-ignored`） |
 
 守卫 spec 51 → **73 例**；16 条新判据做**变异自证**：首轮 15 次里 11 次有效变红，
 另外 3 次的变异串**其实是无效变异**（`/\bskip\b/` 对 `skip_serializing_if` 本来就不匹配；
@@ -2822,10 +2823,10 @@ if (!/^(`[^`]*`|"[^"]*"|'[^']*')$/.test(args[1])) continue;   // 路径必须是
 
 非字面量的路径实参**既不进 `calls` 也不进 `skipped`**——直接从分母里消失。实测：
 
-| | 修复前 |
-| --- | --- |
-| 抽出来的请求调用（报告分母） | 432 |
-| 包装器形态调用点里**被静默丢掉**的 | **246**（占 44%） |
+|                                           | 修复前               |
+| ----------------------------------------- | -------------------- |
+| 抽出来的请求调用（报告分母）              | 432                  |
+| 包装器形态调用点里**被静默丢掉**的        | **246**（占 44%）    |
 | 未校验调用点（连 `--verbose` 里都看不到） | 报告里根本没有这一项 |
 
 于是报告 "提取请求调用 432 / 匹配成功 413 / 不匹配 0" 读起来像"全覆盖"，
@@ -2841,16 +2842,18 @@ if (!/^(`[^`]*`|"[^"]*"|'[^']*')$/.test(args[1])) continue;   // 路径必须是
 function bu<const P extends string>(path: P & PathAssert<P, StripAdminV1<BackgroundUpdatePath>>): P {
     return path;
 }
-export function apu(path: string): string { return path; }
+export function apu(path: string): string {
+    return path;
+}
 ```
 
 新增 `analyzeFunctionDeclarations` / `indexIdentityPathHelpers`：全仓扫描 `function <name>(…)`，
 函数体恰好是 `return <第一个参数>` 的才算，并按**参数类型**分两类：
 
-| 类别 | 判据 | 路径谁在守 |
-| --- | --- | --- |
-| `guarded`（37 个） | 参数类型带 `PathAssert<…>` | **tsc** 按模块契约逐段断言（`strip-prefix.ts`），门禁是第二道防线 |
-| `plain`（1 个 = `apu`） | 参数类型就是 `string` | **只有本门禁** |
+| 类别                    | 判据                       | 路径谁在守                                                        |
+| ----------------------- | -------------------------- | ----------------------------------------------------------------- |
+| `guarded`（37 个）      | 参数类型带 `PathAssert<…>` | **tsc** 按模块契约逐段断言（`strip-prefix.ts`），门禁是第二道防线 |
+| `plain`（1 个 = `apu`） | 参数类型就是 `string`      | **只有本门禁**                                                    |
 
 ⚠️ `plain` 这一类正是缺口所在：`apu(path: string)` 没有任何类型约束，所以
 `apu("/feature_flags/x")` 能让 tsc 全绿。
@@ -2863,10 +2866,10 @@ export function apu(path: string): string { return path; }
 对"类型化包装器已由 tsc 覆盖"这句**声明**做了三次实测（每次都先确认文件在 tsc program 里，
 `--listFiles` 命中；对照组注入 `const __probe: number = "x"` ⇒ **exit 2 / TS2322** ⇒ 确认 tsc 真在检查）：
 
-| 变异 | 结果 | 结论 |
-| --- | --- | --- |
-| `bu("/zzz/not-a-route")` | **exit 2 / TS2345**，错误信息带 `__invalidPath` 与 `__hint` | `PathAssert` **真的生效** |
-| `bu("/background_updates/coun")`（少一个 `t`） | **exit 0**（tsc 全绿） | ⚠️ **类型断言的固有边界**：契约里有 `/background_updates/{job_name}` 这类占位路由，占位段接受任意值 ⇒ 拼错一个字母照样合规。这正是 ledger 门禁的补充价值 |
+| 变异                                           | 结果                                                        | 结论                                                                                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bu("/zzz/not-a-route")`                       | **exit 2 / TS2345**，错误信息带 `__invalidPath` 与 `__hint` | `PathAssert` **真的生效**                                                                                                                                |
+| `bu("/background_updates/coun")`（少一个 `t`） | **exit 0**（tsc 全绿）                                      | ⚠️ **类型断言的固有边界**：契约里有 `/background_updates/{job_name}` 这类占位路由，占位段接受任意值 ⇒ 拼错一个字母照样合规。这正是 ledger 门禁的补充价值 |
 
 #### 4. 前缀**从包装器的参数类型推**，不按目录猜
 
@@ -2911,13 +2914,13 @@ M12 参数个数放宽 / M13 `PathAssert` 不参与分类 ⇒ **全部变红**�
 
 #### 8. 结果
 
-| 指标 | §7.15-30 | 本节 |
-| --- | --- | --- |
-| 提取请求调用（受校验的调用点） | 432 | **539**（+107） |
-| 匹配成功 | 413 | **519** |
-| 已豁免 | 19 | **20** |
-| 未校验调用点 | 不可见 | **139**（显式计数 + 棘轮） |
-| 恒等包装器识别 | — | **38**（guarded 37 / plain 1） |
+| 指标                           | §7.15-30 | 本节                           |
+| ------------------------------ | -------- | ------------------------------ |
+| 提取请求调用（受校验的调用点） | 432      | **539**（+107）                |
+| 匹配成功                       | 413      | **519**                        |
+| 已豁免                         | 19       | **20**                         |
+| 未校验调用点                   | 不可见   | **139**（显式计数 + 棘轮）     |
+| 恒等包装器识别                 | —        | **38**（guarded 37 / plain 1） |
 
 守卫 spec 由 30 例增至 **47 例**。`tsc` 0；`quality:contracts`（含新棘轮）/ `real-backend-types`(0/0) /
 `lint:knip` / `gate-reachability`(50 可达·4 豁免) 全绿；`public-api-docs` 台账下调。

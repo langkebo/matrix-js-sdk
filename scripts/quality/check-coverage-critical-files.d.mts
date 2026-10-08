@@ -42,8 +42,7 @@ export interface TrackedEntry extends LedgerEntry {
  * `today` 显式入参：R3 随日期变化，不参数化的用例会自己腐烂。
  * 同一条台账记录最多报一条违规（缺字段后即 continue）。
  */
-export function evaluateLedger(input: {
-    critical: CriticalFile[];
-    entries: LedgerEntry[];
-    today: Date;
-}): { violations: LedgerViolation[]; tracked: TrackedEntry[] };
+export function evaluateLedger(input: { critical: CriticalFile[]; entries: LedgerEntry[]; today: Date }): {
+    violations: LedgerViolation[];
+    tracked: TrackedEntry[];
+};

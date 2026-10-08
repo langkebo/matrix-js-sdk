@@ -21,10 +21,7 @@ export function evaluateExportsDocs({ exportKeys, docRows, pkgExports, root }) {
     const duplicateDocKeys = findDuplicates(docRows.map((row) => row.exportKey));
     const rowsMissingScope = docRows.filter((row) => !row.whitelistScope.trim()).map((row) => row.exportKey);
     const rowsMissingMandatoryKeyExports = docRows
-        .filter(
-            (row) =>
-                MANDATORY_KEY_EXPORTS.has(row.exportKey) && parseRequiredSymbols(row.keyExports).length === 0,
-        )
+        .filter((row) => MANDATORY_KEY_EXPORTS.has(row.exportKey) && parseRequiredSymbols(row.keyExports).length === 0)
         .map((row) => row.exportKey);
 
     const docByKey = new Map(docRows.map((row) => [row.exportKey, row]));

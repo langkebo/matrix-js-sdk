@@ -48,9 +48,7 @@ describe("formatDiff（MSC 变更三分类）", () => {
         const { moved } = formatDiff(current({ "4267": ["src/a.ts", "src/new.ts"] }), {
             entries: { "4267": ["src/a.ts"] },
         });
-        expect(moved).toEqual([
-            { num: "4267", oldFiles: ["src/a.ts"], newFiles: ["src/a.ts", "src/new.ts"] },
-        ]);
+        expect(moved).toEqual([{ num: "4267", oldFiles: ["src/a.ts"], newFiles: ["src/a.ts", "src/new.ts"] }]);
     });
 
     it("引用文件减少 → 同样记为 moved", () => {

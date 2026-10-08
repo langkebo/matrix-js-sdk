@@ -48,9 +48,9 @@ describe("filterOversized（只管 .ts，阈值是严格大于）", () => {
     });
 
     it("非 .ts 文件不参与", () => {
-        expect(filterOversized(["src/a.js", "README.md"], opts({ files: { "src/a.js": 9999, "README.md": 9999 } }))).toEqual(
-            [],
-        );
+        expect(
+            filterOversized(["src/a.js", "README.md"], opts({ files: { "src/a.js": 9999, "README.md": 9999 } })),
+        ).toEqual([]);
     });
 
     it("已删除的文件（exists 为假）跳过，不去读它的行数", () => {
