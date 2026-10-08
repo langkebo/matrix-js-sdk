@@ -117,7 +117,7 @@ describe("collectExpirables（多台账拍平）", () => {
      * `check-swallow-fallbacks.mjs` 对"已登记基线里过期"只打一行 warning。
      * 同一仓库两套到期纪律、其中一套无人执行，就是这里要修的。
      */
-    it("path-contract 台账：逐条取出 sdkCall/expires/reason", () => {
+    it("path-contract 台账：逐条取出 sdkCall/owner/expires/reason", () => {
         const out = collectExpirables([
             {
                 name: "path-contract",
@@ -126,6 +126,7 @@ describe("collectExpirables（多台账拍平）", () => {
                         {
                             sdkCall: "activateUser",
                             file: "src/admin/index.ts",
+                            owner: "langkebo",
                             expires: "2026-12-31",
                             reason: "后端未实现",
                         },
@@ -138,13 +139,42 @@ describe("collectExpirables（多台账拍平）", () => {
                 ledger: "path-contract",
                 id: "activateUser",
                 file: "src/admin/index.ts",
+                owner: "langkebo",
                 expires: "2026-12-31",
                 reason: "后端未实现",
             },
         ]);
     });
 
-    it("swallow 台账：从 whitelist 里取 expires，id 用 file:line", () => {
+    it("route-set-parity 台账：id 用 `METHOD path`", () => {
+        const out = collectExpirables([
+            {
+                name: "route-set-parity",
+                doc: {
+                    waivers: [
+                        {
+                            method: "GET",
+                            path: "/_matrix/client/v1/login/get_qr_code",
+                            owner: "langkebo",
+                            expires: "2026-12-31",
+                        },
+                    ],
+                },
+            },
+        ]);
+        expect(out[0].id).toBe("GET /_matrix/client/v1/login/get_qr_code");
+        expect(out[0].ledger).toBe("route-set-parity");
+        expect(out[0].owner).toBe("langkebo");
+    });
+
+    it("缺 owner 时落成空串（schema 判据据此报「缺 owner」）", () => {
+        const out = collectExpirables([
+            { name: "path-contract", doc: { waivers: [{ sdkCall: "x", expires: "2026-12-31" }] } },
+        ]);
+        expect(out[0].owner).toBe("");
+    });
+
+    it("swallow 台账：从 whitelist 里取 owner/expires，id 用 file:line", () => {
         const out = collectExpirables([
             {
                 name: "swallow-fallback",
@@ -155,6 +185,7 @@ describe("collectExpirables（多台账拍平）", () => {
         ]);
         expect(out).toHaveLength(1);
         expect(out[0].id).toBe("src/a.ts:188");
+        expect(out[0].owner).toBe("x");
         expect(out[0].expires).toBe("2026-12-31");
         expect(out[0].reason).toContain("owner=x");
     });
@@ -183,8 +214,12 @@ describe("collectExpirables（多台账拍平）", () => {
 });
 
 describe("LEDGER_SOURCES", () => {
-    it("至少覆盖 path-contract 与 swallow-fallback 两本", () => {
-        expect(LEDGER_SOURCES.map((s) => s.name).sort()).toEqual(["path-contract", "swallow-fallback"]);
+    it("覆盖 path-contract / swallow-fallback / route-set-parity 三本", () => {
+        expect(LEDGER_SOURCES.map((s) => s.name).sort()).toEqual([
+            "path-contract",
+            "route-set-parity",
+            "swallow-fallback",
+        ]);
     });
 
     it("每本台账文件都真实存在（缺文件 = 纪律断链）", () => {

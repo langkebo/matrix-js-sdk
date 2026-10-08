@@ -52,6 +52,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { stableId, nextOrdinal, normalizeSnippet } from "./lib/stable-id.mjs";
 import { writeJsonFormatted } from "./lib/write-json.mjs";
+import { planBaselineWrite } from "./lib/baseline-update.mjs";
 
 const rootDir = process.cwd();
 const targetDir = path.resolve(rootDir, "src");
@@ -336,10 +337,16 @@ function printLine(text) {
 function runUpdateBaseline(findings) {
     const previous = readBaseline().findings ?? [];
     const prevById = new Map(previous.map((item) => [item.id, item]));
-    const currentIds = new Set(findings.map((item) => item.id));
-
-    const added = findings.filter((item) => !prevById.has(item.id));
-    const removed = previous.filter((item) => !currentIds.has(item.id));
+    const curById = new Map(findings.map((item) => [item.id, item]));
+    // 新增/退役的判据与另外三个 baseline 型门禁**共用同一份实现**（lib/baseline-update.mjs）：
+    // 这条判据是"让债务可以永久不还"的唯一闸门，不该有 4 份各自漂移的副本。
+    const plan = planBaselineWrite({
+        previousIds: [...prevById.keys()],
+        currentIds: [...curById.keys()],
+        acceptNew,
+    });
+    const added = plan.added.map((id) => curById.get(id));
+    const removed = plan.removed.map((id) => prevById.get(id));
     const moved = findings.filter((item) => {
         const prev = prevById.get(item.id);
         return prev !== undefined && prev.line !== item.line;
@@ -373,7 +380,7 @@ function runUpdateBaseline(findings) {
         }
     }
 
-    if (added.length > 0 && !acceptNew) {
+    if (plan.refuse) {
         process.stderr.write(
             `\n[swallow-fallback] --update-baseline 拒绝写入：有 ${added.length} 条指纹不在 baseline 中。\n` +
                 `  「重记行号」与「赦免新站点」必须分开——前者可以安全重记，后者要人看过。\n` +

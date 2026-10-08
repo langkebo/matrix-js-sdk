@@ -22,11 +22,19 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { writeJsonFormatted } from "./lib/write-json.mjs";
+import { planBaselineWrite } from "./lib/baseline-update.mjs";
 
 const rootDir = process.cwd();
 const baselinePath = path.resolve(rootDir, "scripts/quality/real-backend-types-baseline.json");
 const tsconfigPath = "tsconfig.real-backend.json";
 const shouldUpdateBaseline = process.argv.includes("--update-baseline");
+/**
+ * `--update-baseline` 在出现**新**诊断时默认拒绝写入，要显式加这个开关。
+ * 「重记」（诊断集没变）与「赦免新类型错误」必须分开 —— 后者不该由一条命令默默完成。
+ */
+const acceptNew = process.argv.includes("--accept-new");
+/** 一次 `--update-baseline` 最多逐条打印多少条 [ADDED]，避免刷屏。 */
+const ADDED_PRINT_LIMIT = 40;
 
 /** `src/foo.ts(12,34): error TS2339: Property 'x' does not exist on type 'Y'.` */
 const DIAGNOSTIC_RE = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/;
@@ -165,8 +173,25 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const ids = diagnostics.map(diagnosticId);
 
     if (shouldUpdateBaseline) {
+        const plan = planBaselineWrite({ previousIds: readBaseline().ids, currentIds: ids, acceptNew });
+        if (plan.refuse) {
+            writeStderr(
+                `[real-backend-types] --update-baseline 拒绝写入：有 ${plan.added.length} 条诊断不在 baseline 中。` +
+                    "「重记」与「赦免新类型错误」必须分开 —— 后者要人看过。",
+            );
+            for (const id of plan.added.slice(0, ADDED_PRINT_LIMIT)) writeStderr(`  [ADDED] ${id}`);
+            if (plan.added.length > ADDED_PRINT_LIMIT) {
+                writeStderr(`  …还有 ${plan.added.length - ADDED_PRINT_LIMIT} 条`);
+            }
+            writeStderr("  确认上面无误后加 --accept-new 重跑：");
+            writeStderr("    node scripts/quality/check-real-backend-types.mjs --update-baseline --accept-new");
+            process.exit(1);
+        }
         writeBaseline(diagnostics, ids);
-        writeStdout(`[real-backend-types] baseline updated with ${diagnostics.length} diagnostics`);
+        writeStdout(
+            `[real-backend-types] baseline updated with ${diagnostics.length} diagnostics` +
+                (plan.added.length > 0 ? ` (含 ${plan.added.length} 条新吸收)` : ""),
+        );
         process.exit(0);
     }
 

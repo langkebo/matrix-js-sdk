@@ -7,42 +7,48 @@
             "path": "/_matrix/client/v1/login/get_qr_code",
             "module": "auth",
             "reason": "MSC4108 二维码登录：上游 Matrix 规范路由，本后端未实现（SDK 亦无调用点）。它进入 route-table 是生成器「ROUTE_CONTRACT.md ∪ 既有条目」的并集行为所致。",
-            "expires": "2026-12-31"
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         },
         {
             "method": "GET",
             "path": "/_matrix/client/v1/login/qr/{transaction_id}/status",
             "module": "auth",
             "reason": "MSC4108 二维码登录：上游 Matrix 规范路由，本后端未实现（SDK 亦无调用点）。",
-            "expires": "2026-12-31"
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         },
         {
             "method": "POST",
             "path": "/_matrix/client/v1/login/qr/start",
             "module": "auth",
             "reason": "MSC4108 二维码登录：上游 Matrix 规范路由，本后端未实现（SDK 亦无调用点）。",
-            "expires": "2026-12-31"
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         },
         {
             "method": "POST",
             "path": "/_matrix/client/v1/login/qr/confirm",
             "module": "auth",
             "reason": "MSC4108 二维码登录：上游 Matrix 规范路由，本后端未实现（SDK 亦无调用点）。",
-            "expires": "2026-12-31"
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         },
         {
             "method": "POST",
             "path": "/_matrix/client/v1/login/qr/invalidate",
             "module": "auth",
             "reason": "MSC4108 二维码登录：上游 Matrix 规范路由，本后端未实现（SDK 亦无调用点）。",
-            "expires": "2026-12-31"
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         },
         {
             "method": "POST",
             "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
             "module": "auth",
             "reason": "MSC3814 dehydrated device：unstable 命名空间路由，本后端 ledger 未注册（SDK 亦无调用点）。",
-            "expires": "2026-12-31"
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         }
     ]
 }

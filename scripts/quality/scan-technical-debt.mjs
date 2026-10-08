@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { writeJsonFormatted } from "./lib/write-json.mjs";
+import { planBaselineWrite } from "./lib/baseline-update.mjs";
 
 const rootDir = process.cwd();
 const srcDir = path.resolve(rootDir, "src");
@@ -14,6 +15,13 @@ const outputCsvPath = path.resolve(rootDir, "scripts/quality/technical-debt-inve
 
 const shouldUpdateBaseline = process.argv.includes("--update-baseline");
 const strictMode = process.argv.includes("--strict");
+/**
+ * `--update-baseline` 在出现**新**债务标记时默认拒绝写入，要显式加这个开关。
+ * 「重记」与「赦免新增债务」必须分开 —— 后者不该由一条命令默默完成。
+ */
+const acceptNew = process.argv.includes("--accept-new");
+/** 一次 `--update-baseline` 最多逐条打印多少条 [ADDED]，避免刷屏。 */
+const ADDED_PRINT_LIMIT = 40;
 
 const markerPattern = /\b(TODO|FIXME|HACK|XXX)\b[:]?\s*(.*)$/;
 const isoDatePattern = /\b(20\d{2}-\d{2}-\d{2})\b/;
@@ -242,8 +250,29 @@ function main() {
     writeInventory(items);
 
     if (shouldUpdateBaseline) {
+        const plan = planBaselineWrite({
+            previousIds: readBaseline().ids,
+            currentIds: items.map((item) => item.id),
+            acceptNew,
+        });
+        if (plan.refuse) {
+            console.error(
+                `[technical-debt] --update-baseline 拒绝写入：有 ${plan.added.length} 条债务标记不在 baseline 中。` +
+                    "「重记」与「赦免新增债务」必须分开 —— 后者要人看过。",
+            );
+            for (const id of plan.added.slice(0, ADDED_PRINT_LIMIT)) console.error(`  [ADDED] ${id}`);
+            if (plan.added.length > ADDED_PRINT_LIMIT) {
+                console.error(`  …还有 ${plan.added.length - ADDED_PRINT_LIMIT} 条`);
+            }
+            console.error("  确认上面无误后加 --accept-new 重跑：");
+            console.error("    node scripts/quality/scan-technical-debt.mjs --update-baseline --accept-new");
+            process.exit(1);
+        }
         writeBaseline(items);
-        console.log(`[technical-debt] baseline updated with ${items.length} entries`);
+        console.log(
+            `[technical-debt] baseline updated with ${items.length} entries` +
+                (plan.added.length > 0 ? ` (含 ${plan.added.length} 条新吸收)` : ""),
+        );
         process.exit(0);
     }
 

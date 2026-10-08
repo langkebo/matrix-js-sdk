@@ -22,11 +22,13 @@ export const LEDGER_SOURCES: readonly { name: string; file: string }[];
 
 /** 拍平后的一条"带 expires 的白名单条目"。 */
 export interface ExpirableEntry {
-    /** 台账名（`path-contract` / `swallow-fallback`）。 */
+    /** 台账名（`path-contract` / `swallow-fallback` / `route-set-parity`）。 */
     ledger: string;
-    /** 条目标识（path-contract 用 sdkCall/path；swallow 用 `file:line`）。 */
+    /** 条目标识（path-contract 用 sdkCall/path；swallow 用 `file:line`；route-set-parity 用 `METHOD path`）。 */
     id: string;
     file: string | null;
+    /** 负责人；缺字段时为空串（门禁据此报「缺 owner」）。 */
+    owner: string;
     expires: unknown;
     reason: string;
 }

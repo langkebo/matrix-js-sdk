@@ -41,6 +41,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const LEDGER_SOURCES = Object.freeze([
     { name: "path-contract", file: "path-contract-waivers.json" },
     { name: "swallow-fallback", file: "swallow-fallback-baseline.json" },
+    { name: "route-set-parity", file: "route-set-parity-waivers.json" },
 ]);
 
 /** 豁免到期状态。 */
@@ -100,7 +101,7 @@ function formatLocalDate(d) {
  * 把各台账里「带 `expires` 的条目」拍平成统一形状（纯函数，spec 直接测）。
  *
  * @param {Array<{ name: string; doc: unknown }>} ledgerDocs
- * @returns {Array<{ ledger: string; id: string; file: string | null; expires: unknown; reason: string }>}
+ * @returns {Array<{ ledger: string; id: string; file: string | null; owner: string; expires: unknown; reason: string }>}
  */
 function collectExpirables(ledgerDocs) {
     const out = [];
@@ -111,6 +112,18 @@ function collectExpirables(ledgerDocs) {
                     ledger: name,
                     id: w.sdkCall ?? w.path ?? "(unnamed)",
                     file: w.file ?? null,
+                    owner: w.owner ?? "",
+                    expires: w.expires,
+                    reason: w.reason ?? "",
+                });
+            }
+        } else if (name === "route-set-parity") {
+            for (const w of doc.waivers ?? []) {
+                out.push({
+                    ledger: name,
+                    id: `${w.method} ${w.path}`,
+                    file: null,
+                    owner: w.owner ?? "",
                     expires: w.expires,
                     reason: w.reason ?? "",
                 });
@@ -124,6 +137,7 @@ function collectExpirables(ledgerDocs) {
                     ledger: name,
                     id: `${f.file}:${f.line}`,
                     file: f.file,
+                    owner: wl.owner ?? "",
                     expires: wl.expires,
                     reason: `@swallow-error（owner=${wl.owner ?? "?"}）`,
                 });
@@ -164,6 +178,19 @@ function main() {
     if (entries.length === 0) {
         console.log("[waiver-expiry] No waivers registered. Nothing to check.");
         return;
+    }
+
+    // ─── schema：每条豁免都必须有 owner（「谁负责」是豁免能被审阅的前提） ───
+    // 与 `expires` 不同，缺 owner 不是"到期"问题而是**结构缺陷** ⇒ 两种模式都直接失败，
+    // 免得"没有负责人"的豁免在 warn 模式下无限期活下去。
+    const missingOwner = entries.filter((e) => !String(e.owner ?? "").trim());
+    if (missingOwner.length > 0) {
+        console.error(`[waiver-expiry] ❌ ${missingOwner.length} 条豁免缺 owner（owner + expires 是登记的最低要求）：`);
+        for (const e of missingOwner.slice(0, 20)) {
+            console.error(`  - [${e.ledger}] ${e.id}`);
+        }
+        if (missingOwner.length > 20) console.error(`  …还有 ${missingOwner.length - 20} 条`);
+        process.exit(1);
     }
 
     const now = new Date();
