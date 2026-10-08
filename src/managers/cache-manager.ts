@@ -435,4 +435,5 @@ export class CacheMonitor {
 }
 
 // 导出类型
-export { LRUCache, CacheConfig, CacheStats, CacheRegistry } from "../utils/lru-cache";
+export { LRUCache, CacheRegistry } from "../utils/lru-cache";
+export type { CacheConfig, CacheStats } from "../utils/lru-cache";
