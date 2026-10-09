@@ -1201,6 +1201,10 @@ prettier / eslint 干净、`quality:msc` 正常模式 exit 0。
   （`admin-response-contract` 只覆盖 admin 的"该不该有请求体"）⇒ §9.4 给出
   `quality:wire-format` 门禁设计（含 fail-closed 与变异自证口径），**待用户决策**。
 - 本轮**未改任何 `src/` 代码**（缺陷修复涉及 4 批、20+ 调用点，按用户惯例先评审再实施）。
+- 📌 复核结束时 `git status` 显示**并行会话已在改 `src/thread/index.ts`**（+71/−20），修的正是
+  §9 的 A/B 类 thread 族（`include_all` / `createThread` body / `searchThreads` 的 `q` /
+  `getThread` 扁平化 / `markThreadRead` 必填 / replies 去包裹）—— 属**他人未提交改动**，
+  我的提交未含它。详见 §9.7。
 
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
@@ -1333,6 +1337,29 @@ sed -n '<a>,<b>p' src/<module>/index.ts
 
 > **注意**：后端附录 B 自述其扫描器存在 T3 构造面盲区（key_backup 的 `room_keys/keys` 族
 > **实际已实现**却出现在"仅声明面命中"里）⇒ **凡 T3/T2 桶的条目一律人工回源，不得直接当缺口**。
+
+### 9.7 📌 并行修复状态（2026-10-09 21:35 观测，**未提交**）
+
+复核结束时 `git status` 显示**工作区已有他人（并行会话）对 `src/thread/index.ts` 的改动**
+（+71/−20），修的正是本节 A/B 类的 thread 族 —— **不在本人的提交范围内**，此处仅记录事实：
+
+| 已改                                                                                                             | 对应缺陷     |
+| ---------------------------------------------------------------------------------------------------------------- | ------------ |
+| `getRoomThreads` 的 `include` → **`include_all: boolean`**                                                       | M-04         |
+| `createThread` body → **`{ root_event_id: body.event_id, content: body.name ?? {} }`**，返回类型改 `IThreadRoot` | P-02         |
+| `searchThreads` query → **`{ q: params.term, limit, from }`**                                                    | M-05         |
+| `getThread` 返回类型 `IThreadResponse{thread}` → **扁平 `IThreadDetail`**                                        | R-02         |
+| `IThreadRepliesResponse{replies,next_batch}` **已删除**（改为裸数组形状）                                        | R-01         |
+| `markThreadRead` 的 `readUpTo` 改为**必填**、返回 `IThreadReadReceipt`                                           | P-05（部分） |
+| `freezeThread`/`unfreezeThread` 返回 `void`；`muteThread` 返回 `IThreadSubscription`                             | 顺带修正     |
+
+**尚未见改动**（截至该时点）：`createThreadReply`（P-04）、`subscribeThread`（P-06）、
+`room-summary` 与 `friend-request-manager` 的两处**同文件内不一致**（P-01/P-12）、
+cas 全族（M-02/P-07/P-09/P-08/R-03）、media 全族（M-01/R-04）、e2ee 全族（M-06/P-10/R-05/R-06/P-11）。
+
+> **对本节结论的影响**：§9.2 的清单描述的是**复核时点的 HEAD 状态**（`58e85bdd1` 之前）。
+> 并行改动落库后，thread 那 7 条应逐条**重新核对**再关闭 —— 且这正是 §9.4 所述问题的现场复现：
+> **没有机器判据时，修复进展只能靠 `git status` 偶然发现**。
 
 ---
 
