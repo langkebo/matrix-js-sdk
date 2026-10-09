@@ -858,6 +858,24 @@ reason 指向"生成器并集行为" + 与 `path-contract-waivers.json` 的 by-d
 **验收**：`pnpm lint` **exit 0**（16 段）与 `pnpm quality:contracts` **exit 0**（17 段）**整链双绿**；
 另**逐段**跑过 lint 16 段以排除 `&&` 短路掩盖。
 
+#### (10) 第六处：新增 registry 条目破坏了 `contract-drift-gate.spec.ts`
+
+CI 的 `Unit + integration tests with coverage`（`pnpm test --coverage`）报：
+
+```
+AssertionError: expected 'widget:sdk-only:POST …' to be 'undefined:undefined:undefined'
+ ❯ spec/unit/contract-drift-gate.spec.ts:160:31
+```
+
+该用例断言 `entry.key === driftKey(entry.dir, entry.kind, entry.entry)`；我最初的 registry 条目**只写了 `key`**，
+缺 `dir`/`kind`/`entry` ⇒ `driftKey(undefined, undefined, undefined)` 得 `"undefined:undefined:undefined"`。
+
+**修**：补齐 `dir`(`widget`) / `kind`(`sdk-only`) / `entry`(`POST …`) 三字段
+（该 spec **12 例**、`quality:contract-drift`、`quality:granular-coverage` 18 门禁均绿）。
+
+**教训（已写入 MEMORY）**：CI 的 Gate 会跑 `pnpm test --coverage`，而**本地 `pnpm lint` 链不跑单元测试** ——
+故本地预演除两条链外**必须再跑被改动波及的 spec**，否则"本地全绿"仍会在 CI 的 tests step 翻车。
+
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
