@@ -1178,6 +1178,8 @@ codegen 重生成 `src/auth/__generated__/route-table.ts`：**96 → 110 条**�
 
 #### 0. 背景与输入
 
+> ⚠️ **本节基准已过期（2026-10-09 复核）**：1159 条是 2026-10-06 的路由面；后端 M2/M3/M4 后已收敛到 **1030 条**（`/_matrix/admin/v1/*` 整组消失、线程族与 46 条私有端点迁 vendor）。本节及 `artifacts/sdk-encapsulation-completion-plan-2026-10-06.md` 的绝对条数**请勿直接引用**；最新对账见 `artifacts/route-contract-encapsulation-report-2026-10-06.md`（2026-10-09 重写版：客户端面未封装 65 条、真缺口 28 条）。历史执行记录本身不改写。
+
 承接 `artifacts/route-contract-encapsulation-report-2026-10-06.md`：以 `synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md` 的 **1159 条**路由为全集，逐条做三级证据（路由表类型引用 T1 → 字符串字面量 T2 → 调用点 T3）核查，识别 **165 条「未封装」**。
 
 但报告是基于**静态路径字面量匹配**的，对「别名 / 已废弃旧路径 / helper 中转 / 运行时插值 / 泛型」天然不敏感。因此本轮把这 165 条**逐条回源码取证**，判定口径与分类账见 `artifacts/sdk-encapsulation-completion-plan-2026-10-06.md`，落地计划为 B1–B4。

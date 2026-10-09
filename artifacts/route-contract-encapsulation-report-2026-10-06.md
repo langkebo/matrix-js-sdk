@@ -260,7 +260,8 @@
 3. **尾斜杠孪生 5 对**（1030 → 1025，见 §3.4）：文档头部只声明了 always/oidc 双档 2 对，**建议补一句**，避免下游把 1030 当作 1030 个独立能力。
 4. **M3 的 vendor 迁移改变了本报告口径**：`/_matrix/admin/v1/*` 整组（含 `external_services` 5 条）已随后端删除；`friends/request/received` 只剩 `/_matrix/vendor/v1` 租约；线程族 27 条迁 `/_matrix/vendor/v1`。首版报告里凡以 client/v1、client/v3 或 admin/v1 记的条目，本版按新前缀重算。
 5. **工具盲区仍需人工兜底（29 条）**：假阳性 10 + 解析器盲区 3（MSC4108）+ 运行时族 15 + 孪生 1。重跑生成器**不会**自动修正它们，`sdk-contract-gap-report.md` §7.1 列出四类盲区与兜底方式。
-6. **两处口径冲突待定向复核**：`sdk-contract-gap-report.md` §7 的人工记录判定 `/client/unstable/org.matrix.msc2965/*`（人工记录写 `auth_issuer`，当前 fixture 是 `auth_metadata`）与 `POST /_matrix/client/v3/admin/room/{room_id}/redact` 为**真缺口**（`src` 中 0 命中），而机器把它们算进了已封装（T1/T2）。二者必有一错：要么解析器把通用 `redact`/`auth_*` 模式误配，要么人工 grep 范围不足。**复核**：`grep -rn 'admin/room' src` 与 `grep -rn 'msc2965' src --include='*.ts'` 剔除 `__generated__`，确认为 0 后应把这两条并入 §3.1 并修工具规则。
+6. **两处「人工判真缺口 / 机器判已封装」的口径冲突已复核关闭（机器判定正确）**：① `/_matrix/client/unstable/org.matrix.msc2965/auth_metadata`（人工记录写作 `auth_issuer`）—— `src/client-auth.ts:54-61` 明确请求 `/auth_metadata`（稳定版 `ClientPrefix.V1`，不稳定版 `ClientPrefix.Unstable + "/org.matrix.msc2965"`）与 `/auth_issuer`；② `POST /_matrix/client/v3/admin/room/{room_id}/redact` —— `src/admin/sub-managers/admin-room-manager.ts:482` 构造 `/admin/room/${encodeURIComponent(roomId)}/redact`，前缀由 `adminRequest` 注入。两条都是**人工 grep 范围不足**（前者关键字对不上，后者漏了 `sub-managers/` 子目录），不是解析器误配。`artifacts/sdk-contract-gap-report.md` §7 的这两行已按本结论更正。
+
 7. **T1 明细未落盘**：`sdk-contract-gap.json` 只给 T1 总数（331），没有逐条清单，故 §7 的「已封装」= 总条数 −（GAP + T3），即 T1∪T2（与首版口径一致，可直接对比）。
 8. **本报告定稿时 `develop` 工作树有另一写者的在飞改动**（`src/cas/index.ts`、`src/friend/sub-managers/friend-request-manager.ts`、`src/room-keys/index.ts`、`src/room-summary*` 及其 spec），正好命中 §3.2 假阳性条目与 §3.1 的 room_keys 真缺口 ⇒ **该批次落地后必须重跑本报告**（复现命令见文末）；本版数字对应 `779f17d8f` 提交态。
 
