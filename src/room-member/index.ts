@@ -21,7 +21,8 @@ limitations under the License.
  */
 
 import { MatrixClient } from "../client";
-import { Method, ClientPrefix } from "../http-api/index";
+import { Method } from "../http-api/index";
+import { VendorPrefix } from "../http-api/prefix";
 import * as utils from "../utils";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
@@ -142,7 +143,7 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
 
     /**
      * Get membership event history for a room.
-     * POST /_matrix/client/v3/rooms/{room_id}/get_membership_events
+     * POST /_matrix/vendor/v1/rooms/{room_id}/get_membership_events
      *
      * @param roomId - The room ID.
      * @param params - Optional parameters.
@@ -156,7 +157,7 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
                 method: Method.Post,
                 path,
                 body: params,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "getMembershipEvents");
     }
