@@ -34,7 +34,8 @@
 > 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；  
 > 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
 > （最新基线：`develop @ c148da631` + 本轮 CI 修复，**E3 已推送**（`116631352..c148da631`）；
-> CI 首跑接连暴露 **3 处 CI-only 缺口**（SDK-only checkout / 双世界 ledger / 并集债），均已修，见 §7.9；
+> CI 首跑接连暴露 **5 处 CI-only 缺口**（SDK-only checkout / 双世界 ledger / 并集债 /
+> `contract-drift` 登记 / `docs-counts` 数字），均已修，见 §7.9；
 > `Tests` 的 `startup_failure` 为 fork 既有，待定。）
 
 ---
@@ -839,6 +840,24 @@ reason 指向"生成器并集行为" + 与 `path-contract-waivers.json` 的 by-d
 | `docs/api-contract/*.md`                        | 45 个模块文档 frontmatter pin 刷新                                                               |
 | `scripts/quality/route-set-parity-waivers.json` | +1 条（widget send），6 → 7                                                                      |
 
+#### (9) 第四/五处：刷新镜像的另两处连锁（`lint` 链里的 `contract-drift` 与 `docs-counts`）
+
+`Lint and Typecheck`（`pnpm lint`）在 CI 上是**另一条独立链**，刷新镜像同样波及它（我第一次预演只跑了
+`quality:contracts` ⇒ 漏了这两处）：
+
+- **`quality:contract-drift`**（**不在** `quality:contracts` 链里）：要求「SDK 表有、ledger 无」的差集
+  **登记进 `contract-drift-registry.json`** —— 同一 widget send 事实的**第 4 个门禁视角**
+  ⇒ +1 条（`widget:sdk-only:POST …/widgets/{widget_id}/send`，reason + expires + owner；该表原先为空）。
+- **`quality:docs-counts`**：`docs/api-contract/contract-artifacts.md` 把「后端 ledger 全量路由数」
+  写成 **1031**（刷新后为 1030）⇒ 该文档 **6 处** `1031 → 1030`（含小节标题与"记忆锚点"句）。
+  门禁 RULES 只锚定**表格行**（`…|\s*(\d+)\s*|`），故**只改数字、不动句子结构**，pattern 仍匹配。
+
+**教训（已写入 MEMORY）**：预演必须**覆盖 `lint` 与 `quality:contracts` 两条链** ——
+只跑后者会漏掉 `contract-drift` 这类挂在 `lint` 里的门禁，这正是"修一处、推一次、再红一处"循环的成因。
+
+**验收**：`pnpm lint` **exit 0**（16 段）与 `pnpm quality:contracts` **exit 0**（17 段）**整链双绿**；
+另**逐段**跑过 lint 16 段以排除 `&&` 短路掩盖。
+
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
@@ -911,9 +930,10 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第七轮：E3 推送（`116631352..c148da631`）+ CI 首跑接连暴露并修复 **3 处 CI-only 缺口**
+**最后更新**: 2026-10-09（第七轮：E3 推送（`116631352..c148da631`）+ CI 首跑接连暴露并修复 **5 处 CI-only 缺口**
 —— ① `contract:check` 硬依赖兄弟仓（skip + `--strict`）；② `path-contract` 双世界 ledger（刷新过时镜像，
-**不删豁免**）；③ 刷新后浮出的 route-table ∪ 既有条目并集债（route-set-parity waiver 6→7）—— 见 §7.9；
+**不删豁免**）；③ 并集债 `route-set-parity` waiver 6→7；④ `contract-drift-registry` +1；⑤ `docs-counts`
+数字 1031→1030 —— 见 §7.9；**教训：预演必须覆盖 `lint` 与 `contracts` 两条链**；
 第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；
 D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
