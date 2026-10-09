@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "typing",
-  "synapse_rust_commit": "973475620029f6e12084956e070e5528091920f2",
+  "synapse_rust_commit": "09074226611c8efb648052e9ae0a0429ad823301",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 5,

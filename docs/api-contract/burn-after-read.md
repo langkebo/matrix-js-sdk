@@ -1,7 +1,7 @@
 ---
 module: burn_after_read
 generated_from: docs/api-contract/generated/modules/burn_after_read.json
-generated_hash: sha256-af7f19f067b15059b7a0104de14f992ed565ee2d7c51825b098268166672f449
+generated_hash: sha256-ec0ef7a90235f6af2881565839fe03a43e0a93f29ffbd9e6c90d6fb0082bdda7
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
