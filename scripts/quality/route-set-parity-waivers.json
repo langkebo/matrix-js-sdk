@@ -49,6 +49,14 @@
             "reason": "MSC3814 dehydrated device：unstable 命名空间路由，本后端 ledger 未注册（SDK 亦无调用点）。",
             "expires": "2026-12-31",
             "owner": "langkebo"
+        },
+        {
+            "method": "POST",
+            "path": "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send",
+            "module": "widget",
+            "reason": "sendWidgetMessage()。后端已于 ebe4a3db6 从 ledger 与 ROUTE_CONTRACT.md 双双移除该路由（原实现为拒绝型，恒返 400）。route-table 仍含它，是生成器「ROUTE_CONTRACT.md ∪ 既有条目」的并集行为所致 —— 与上面 MSC4108 各条同因。SDK 侧保留该方法仅为不破坏公开 API（Tjg 无消费者，全仓仅 1 处调用点）；path-contract-waivers.json 有同源的 by-design 条目（POST /_matrix/vendor/v1/rooms/{X}/widgets/{X}/send）。删掉条件：产品移除 sendWidgetMessage() 或把它改接标准 send API。",
+            "expires": "2026-12-31",
+            "owner": "langkebo"
         }
     ]
 }

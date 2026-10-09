@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "room",
-  "synapse_rust_commit": "c28f99ef3e2370ad34828cfabd783361b8400ada",
+  "synapse_rust_commit": "973475620029f6e12084956e070e5528091920f2",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 95,
@@ -778,7 +778,11 @@
       "path_params": [
         "room_id"
       ],
-      "query_params": []
+      "query_params": [
+        "full_state",
+        "since",
+        "timeout"
+      ]
     },
     {
       "method": "GET",

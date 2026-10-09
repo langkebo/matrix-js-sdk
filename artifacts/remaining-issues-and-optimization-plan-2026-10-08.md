@@ -33,8 +33,9 @@
 > 真形参/成员访问 5、逃逸阀 4、other 1、concat 1）/ C4 未做；  
 > 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；  
 > 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
-> （最新基线：`develop @ c148da631`，**E3 已推送**（`116631352..c148da631`，ahead/behind **0/0**）；
-> CI 首跑暴露并修复了一处「SDK-only checkout」缺口，见 §7.9；`Tests` 的 `startup_failure` 为 fork 既有，待定。）
+> （最新基线：`develop @ c148da631` + 本轮 CI 修复，**E3 已推送**（`116631352..c148da631`）；
+> CI 首跑接连暴露 **3 处 CI-only 缺口**（SDK-only checkout / 双世界 ledger / 并集债），均已修，见 §7.9；
+> `Tests` 的 `startup_failure` 为 fork 既有，待定。）
 
 ---
 
@@ -778,6 +779,66 @@ ELIFECYCLE  Command failed with exit code 2.
 | `scripts/sdk-contract-codegen.d.mts`     | +`parseArgs` / `missingBackendBehavior` 声明                                                               |
 | `spec/unit/sdk-contract-codegen.spec.ts` | +3 例（CLI 契约：`--strict` 解析 / 默认 skip / strict fail）                                               |
 
+#### (5) 第二处：`path-contract` 的「双世界 ledger」（本地兄弟仓 vs CI 镜像）
+
+第一处修完后 CI 重跑，失败点**后移**到 `quality:path-contract`：CI（用**仓内镜像**）判出
+「豁免未被引用 1 条」(`POST /_matrix/vendor/v1/rooms/{X}/widgets/{X}/send`) ⇒ **exit 1**；
+本地（用**兄弟仓**）判为 29 豁免 / 0 未引用 ⇒ 绿。**同一份代码、两个 ledger、两个结论。**
+
+根因在 `verify-path-contract.mjs` 的 `resolveLedgerPath`（L106-110）——
+优先级 **`env > 兄弟仓 > 镜像`**：本地有兄弟仓就永远不读镜像，CI 无兄弟仓才回退镜像。
+
+两份 ledger 实测差异：
+
+| ledger                                                                  | 条目 | 含该 widget send 路由 |
+| ----------------------------------------------------------------------- | ---- | --------------------- |
+| 仓内镜像 `docs/api-contract/generated/route-manifest.all.json`          | 1031 | **有**                |
+| 兄弟仓 `../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json` | 1030 | **无**（后端已删）    |
+
+`contract-sync --check --source=<backend>`（语义比对，忽略 stamp）直接判「镜像落后后端」：
+`room (+0 ~1 -0)` 的 sync 条目 payload 变化、`widget (+0 ~0 -1)` 的 send 路由
+「mirror has, backend removed」。
+
+**处置（关键取舍）**：**绝不删那条 waiver** —— 它的语义（"后端已于 `ebe4a3db6` 删除该路由"）是
+**对的**，删它等于把真缺口藏起来（正是本仓最反对的）。正确动作是**刷新过时镜像**让两端与后端对齐：
+`pnpm contract:sync` ⇒ 98 文件变更，`all` profile **1031 → 1030**，`synapse_rust_commit` → `97347562…`。
+刷新后**两世界一致**：本地与镜像均 **29 豁免 / 未引用 0 / 不匹配 0**。
+
+#### (6) 第三处：刷新镜像后浮出「route-table ∪ 既有条目」并集债
+
+刷新打通 `path-contract` 后，失败点再后移到 **`quality:route-set-parity`**：
+
+```
+[route-set-parity] ❌ 契约有、后端没有：POST /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send
+                   （src/widget/__generated__/route-table.ts）
+```
+
+根因：后端已从 **ledger 与 `ROUTE_CONTRACT.md` 双双移除**该路由，但 `route-table.ts:16` 仍含它 ——
+生成器「`ROUTE_CONTRACT.md` ∪ **既有条目**」的**并集行为**（**与既有 6 条 waiver 里的 MSC4108 各条同因**）。
+此前该门禁为绿，是因为它读的是**未刷新的旧镜像**（同样含该路由）⇒ 两边"一致地错"。
+
+**处置**：按该门禁既有惯例登记 waiver（`route-set-parity-waivers.json` **6 → 7** 条，
+reason 指向"生成器并集行为" + 与 `path-contract-waivers.json` 的 by-design 条目同源，expires 2026-12-31）。
+
+#### (7) 全链验收（刷新镜像 + 加 waiver 后）
+
+- `pnpm quality:contracts` **exit 0**；为避免 `&&` 短路掩盖，另**逐段跑 17 段**确认 —— 仅
+  `route-set-parity` 一处曾红，加 waiver 后全绿。
+- `quality:route-set-parity` exit 0（豁免 7 条，均在期且在引用中）；`quality:waiver-expiry` exit 0（107 条台账）。
+- **两世界一致**：`path-contract` 在「本地兄弟仓」与「镜像」两种 ledger 下均 `29 豁免 / 未引用 0 / 不匹配 0`。
+- `contract-sync --check` exit 0（自洽）；`contract-sync --check --source=<backend>` exit 0（已与后端同步）。
+- prettier 干净（98 个改动文件含 49 module json + 3 manifest + 45 doc pin）。
+- **天然变异证据**：未刷新镜像时 `path-contract`（镜像世界）**exit 1** 并点名该 waiver「未被引用」⇒
+  「改坏输入必红」在该门禁上真实成立（无需另造变异）。
+
+#### (8) 第二/三处改动清单
+
+| 文件                                            | 改动                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `docs/api-contract/generated/**`                | `pnpm contract:sync` 刷新（49 module json + 3 profile manifest + index.json；`all` 1031 → 1030） |
+| `docs/api-contract/*.md`                        | 45 个模块文档 frontmatter pin 刷新                                                               |
+| `scripts/quality/route-set-parity-waivers.json` | +1 条（widget send），6 → 7                                                                      |
+
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
@@ -850,9 +911,10 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第七轮：E3 推送执行（`116631352..c148da631`）+ CI 首跑暴露「SDK-only checkout」
-缺口（`contract:check` 硬依赖兄弟仓 ⇒ CI 必红）并修复（skip + `--strict`），见 §7.9；第六轮全文对齐复核、
-第五轮 `identifier`（见 §7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；
+**最后更新**: 2026-10-09（第七轮：E3 推送（`116631352..c148da631`）+ CI 首跑接连暴露并修复 **3 处 CI-only 缺口**
+—— ① `contract:check` 硬依赖兄弟仓（skip + `--strict`）；② `path-contract` 双世界 ledger（刷新过时镜像，
+**不删豁免**）；③ 刷新后浮出的 route-table ∪ 既有条目并集债（route-set-parity waiver 6→7）—— 见 §7.9；
+第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；
 D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
