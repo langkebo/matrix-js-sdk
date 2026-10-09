@@ -19,7 +19,7 @@
 | ├ 已封装（T1 ∪ T2）               | 678                       | **579**                                          | 同上                                                                                                                                   |
 | ├ 机械封装率                      | 89.4%                     | **89.9%**                                        | 579 / 644                                                                                                                              |
 | └ 人工修正后封装率                | 92.9%                     | **97.7%**                                        | 计入假阳性 13 + 运行时族 15 + 孪生 1 + 别名覆盖 21 = 629 / 644（若把 AS 代理 7 条移出客户端面，则 629 / 637 = 98.7%）                  |
-| 客户端面未封装                    | 80                        | **62**                                           | T3 55 + GAP 7；其中真缺口 **0**（§3.1 逐条回源），别名覆盖 18（room_keys）、AS 代理 7、假阳性/盲区 13、运行时族 15、孪生 1、浏览器流 8 |
+| 客户端面未封装                    | 80                        | **58**                                           | T3 51 + GAP 7；其中真缺口 **0**（§3.1 逐条回源），别名覆盖 18（room_keys）、AS 代理 7、假阳性/盲区 13、运行时族 15、孪生 1、浏览器流 4 |
 | admin 运维面（路径前缀口径）      | 300（已封 265 / 未封 35） | **290（已封 265 / 未封 25）**                    | M4 D1 删重复挂载 + M3 移出 vendor                                                                                                      |
 
 > 客户端面 = `CLIENT_FACING`（`/_matrix/client/*`、`/_synapse` 非 admin、`/_matrix/vendor/*`、`/.well-known/*` 中 SDK 相关），口径由 `compare-routes.mjs` 的 `scopeOf` 给出。
@@ -35,13 +35,13 @@
 | AS→HS 回调（`/_matrix/app/v1/*`）                                     | 12               | appservice 实现侧回调（§5.2）                                                                                                         |
 | 根级探活/无前缀                                                       | 3                | 文档「前缀之外」节：有意的根级探活端点（§5.3）                                                                                        |
 | admin 运维面                                                          | （25 条单列 §4） | 本 fork 的 AdminManager **有意**封装 admin，不能按上游口径排除                                                                        |
-| 客户端面 T3 仅声明                                                    |                  | 58（§3）                                                                                                                              | 声明面命中但源码无构造/调用点 |
+| 客户端面 T3 仅声明                                                    |                  | 51（§3）                                                                                                                              | 声明面命中但源码无构造/调用点 |
 | 客户端面 GAP                                                          | 7（§3.1）        | appservice 代理透传含 `{*path}` 通配符，codegen 无法生成 route-table                                                                  |
 | **AppService 代理透传**（`/_matrix/client/v1/proxy/{as_id}/{*path}`） | 7                | **AS 侧协议**：application service 代用户调用 C-S API 的入口，非客户端能力；含 `{*path}` 通配符，codegen 无法生成 route-table（§3.1） |
 
-> 合计校验：排除类 45 + admin 25 + 客户端 T3 58 + 客户端 GAP 7 = **135** 条 = T3 70 + GAP 65 ✅
+> 合计校验：排除类 45 + admin 22 + 客户端 T3 51 + 客户端 GAP 7 = **125** 条 = T3 63 + GAP 62 ✅
 
-## 3. 客户端面未封装明细（62 条 = T3 55 + GAP 7，重分类后）
+## 3. 客户端面未封装明细（58 条 = T3 51 + GAP 7，重分类后）
 
 ### 3.1 真缺口（0 条：28 条候选经逐条回源全部证伪）
 
@@ -107,20 +107,16 @@
 > `GET|PUT /_matrix/client/v3/rooms/{room_id}/state/{event_type}/`，故语义 distinct = 1025。
 > 文档头部只声明了 always/oidc 双档 2 对，**未覆盖这 5 对**（§6 建议补）。
 
-### 3.5 浏览器/邮件/IdP 流端点（8 条，人工判定无需 SDK 直接封装）
+### 3.5 浏览器/邮件/IdP 流端点（4 条，人工判定无需 SDK 直接封装）
 
-| Method | Path                                                    | 判定依据                                   |
-| ------ | ------------------------------------------------------- | ------------------------------------------ |
-| `GET`  | `/.well-known/jwks.json`                                | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `GET`  | `/.well-known/openid-configuration`                     | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `POST` | `/_matrix/client/v1/account/3pid/email/submitToken`     | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `POST` | `/_matrix/client/v1/account/password/email/submitToken` | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `POST` | `/_matrix/client/v3/account/3pid/email/submitToken`     | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `POST` | `/_matrix/client/v3/account/password/email/submitToken` | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `GET`  | `/_matrix/client/v3/login/sso/redirect/cas`             | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
-| `GET`  | `/_matrix/static/client/login/`                         | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| Method | Path                                        | 判定依据                                   |
+| ------ | ------------------------------------------- | ------------------------------------------ |
+| `GET`  | `/.well-known/jwks.json`                    | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `GET`  | `/.well-known/openid-configuration`         | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect/cas` | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `GET`  | `/_matrix/static/client/login/`             | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
 
-## 4. admin 运维面未封装（25 条）
+## 4. admin 运维面未封装（22 条）
 
 本 fork 的 AdminManager **有意**封装 admin API。admin 前缀（`/_synapse/admin/*` + `/_matrix/admin/*`）共 **290** 条，已封 **265** 条（91.4%），未封 **25** 条，全部落在 `SERVER_ONLY` 范围（工具判定为服务端运维面）。
 
@@ -141,10 +137,7 @@
 **admin/media（12 条）**
 
 - `POST` `/_synapse/admin/v1/media/delete`（SERVER_ONLY）
-- `POST` `/_synapse/admin/v1/media/protect/{media_id}`（SERVER_ONLY）
-- `POST` `/_synapse/admin/v1/media/protect/{server_name}/{media_id}`（SERVER_ONLY）
 - `GET` `/_synapse/admin/v1/media/quarantine_changes`（SERVER_ONLY）
-- `POST` `/_synapse/admin/v1/media/unprotect/{media_id}`（SERVER_ONLY）
 - `DELETE` `/_synapse/admin/v1/media/{server_name}/{media_id}`（SERVER_ONLY）
 - `GET` `/_synapse/admin/v1/media/{server_name}/{media_id}`（SERVER_ONLY）
 - `GET` `/_synapse/admin/v1/rooms/{room_id}/media`（SERVER_ONLY）
@@ -241,23 +234,25 @@
 9. **别名一类已按裁定删除（2026-10-09）**：`msc4155`/`msc4156` 线程桩与 `friends/request/received` 已于后端 `998d2ad2b` 删除（同批清 `MSC_KEEP`、`ledger_annotations.txt`、`extract_registered.py` 人工注解，重刷两条 fixture lane 与两份 ledger snapshot，`ROUTE_CONTRACT.md` 1,030 → **1,027**），SDK 镜像与 Tjg pin 同步跟随；`room_keys` 18 条按裁定**不新增包装**（例外登记见上表）。
 10. **本报告定稿时 `develop` 工作树有另一写者的在飞改动**（`src/cas/index.ts`、`src/friend/sub-managers/friend-request-manager.ts`、`src/room-keys/index.ts`、`src/room-summary*` 及其 spec），正好命中 §3.2 假阳性条目与 §3.1 的 room_keys 真缺口 ⇒ **该批次落地后必须重跑本报告**（复现命令见文末）；本版数字对应 `779f17d8f` 提交态。
 
+11. **D 类真缺口已补（2026-10-09）**：`AdminMediaManager.protectMedia`/`protectMediaById`/`unprotectMedia` 与 `AccountManager.submitEmailToken(..., scope)`（register/password/threepid）已在 SDK `d231f3b4c` 落地（同批跟随契约底座到后端 `14f892e35`）。机器复算：客户端面实现证据 579 → **583**（机械封装率 91.0%）、仅声明 58 → **51**、admin 路径前缀未封 25 → **22**、浏览器/邮件流端点 8 → **4**。补封装过程中 `quality:admin-response-contract` 抓到一处真差异：**unprotect 的响应形状与 protect 不同**（`unprotected` 键、无 `server_name`），已拆成独立类型。
+
 ## 7. 逐模块封装总表
 
 | 模块（`registered_by` 根） | 条目数 | 已封装(T1∪T2) | 未封装(T3∪GAP) |
 | -------------------------- | ------ | ------------- | -------------- |
 | federation                 | 55     | 25            | 30             |
 | app_service                | 39     | 19            | 20             |
-| admin                      | 179    | 164           | 15             |
+| admin                      | 179    | 167           | 12             |
 | assembly                   | 104    | 104           | 0              |
 | room                       | 95     | 95            | 0              |
 | key_backup                 | 66     | 66            | 0              |
 | e2ee                       | 36     | 36            | 0              |
 | media                      | 36     | 36            | 0              |
-| friend_room                | 29     | 29            | 0              |
+| friend_room                | 28     | 28            | 0              |
 | space                      | 26     | 26            | 0              |
 | module                     | 23     | 23            | 0              |
-| thread                     | 23     | 23            | 0              |
 | room_summary               | 21     | 21            | 0              |
+| thread                     | 21     | 21            | 0              |
 | background_update          | 19     | 19            | 0              |
 | event_report               | 18     | 18            | 0              |
 | push                       | 17     | 17            | 0              |
