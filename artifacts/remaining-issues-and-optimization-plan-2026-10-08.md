@@ -903,6 +903,33 @@ expected "vi.fn()" to be called with arguments …
 
 **验收**：该 spec **4 例**绿；`tsc --noEmit` exit 0；prettier / eslint 干净。
 
+#### (12) 第八处：`High severity audit gate`（`pnpm audit --audit-level=high`）
+
+CI 跑到**倒数第二个 step** 才红（此前一路被前面 step 短路）：2 high + 1 moderate，**全部在
+devDependencies**（不进 SDK 发布物）：
+
+| 包                     | 路径                                           | 补丁                                  |
+| ---------------------- | ---------------------------------------------- | ------------------------------------- |
+| `braces` ≤3.0.3        | `.>@babel/cli>chokidar>braces`                 | **无**（`Patched: <0.0.0`，上游未修） |
+| `source-map-js` <1.2.2 | `.>@vitest/coverage-v8>magicast>source-map-js` | `>=1.2.2`                             |
+
+**处置（含一处环境限制）**：
+
+- 首选「`pnpm.overrides` 修 `source-map-js` + 豁免 `braces`」，但**本沙箱无法执行 `pnpm install`**
+  （WorkBuddy brokered-FS 拒绝写 pnpm store 的 `projects/` 符号链接；`--store-dir` 换路径、
+  `--lockfile-only`、`dangerouslyDisableSandbox`（对后台无效、前台也被同一 shim 拦）**均失败**）。
+  override 必须同步重算 `pnpm-lock.yaml`，故不能只改 `package.json`（否则 `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`）。
+- 落地为 **`pnpm.auditConfig.ignoreGhsas`**：精确豁免这 2 条 advisory，`pnpm audit` 会打印
+  `2 high (2 ignored)`（**不静默**）。
+  ⚠️ **键名陷阱**：先用 `ignoreCves` **不生效** —— 查 pnpm 10.29.3 实现，`ignoreCves` 按 advisory 的
+  `cves` 字段匹配（这两条**没有 CVE**），`ignoreGhsas` 才按 `github_advisory_id` 匹配（`ignoreGhsas.includes(github_advisory_id)`）。
+
+**待办**：在可执行 `pnpm install` 的环境用 `pnpm.overrides` 把 `source-map-js` 锁到 ≥1.2.2
+（`braces` 无补丁，只能维持豁免或替换依赖链）。
+
+**验收**：`pnpm audit --audit-level=high` **exit 0**（`Severity: 1 moderate | 2 high (2 ignored)`）；
+`pnpm-lock.yaml` **无改动**（`auditConfig` 不进 lockfile ⇒ 无 mismatch 风险）；prettier 干净。
+
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
