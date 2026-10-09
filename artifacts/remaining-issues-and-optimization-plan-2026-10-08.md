@@ -13,27 +13,28 @@
 
 ## 0. 结论速览
 
-| 级别            | 问题                                                            | 一句话                                                                                                       | 是否阻断 CI              |
-| --------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| **P0-1**        | `pnpm lint` 红：prettier 报 7 个文件未格式化                    | 6 个代码文件 + 1 个审计文档                                                                                  | **是**（拦所有 PR）      |
-| **P0-2**        | 同一链第二条红：`quality:coverage:critical-files` 台账腐烂 2 条 | 条目已失效，门禁要求删除                                                                                     | **是**（被 P0-1 短路）   |
-| **P0-3**        | 本地提交钩子**从未安装**                                        | husky 靠 `prepare` 装，而 `prepare` 是 `pnpm build`                                                          | 根因                     |
-| **P1-1**        | 覆盖率/契约盲区                                                 | 139 未校验路径调用点 + 3 未覆盖包装器 + 无路由集合对账                                                       | 否（棘轮已钉住）         |
-| **P1-2**        | 契约语义不匹配 / 后端缺路由                                     | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                   | 否（已登记 waiver）      |
-| **P1-3**        | 豁免与基线纪律不一致                                            | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                       | 否（策略债）             |
-| **P2**          | 长尾与工程卫生                                                  | 3 个聚合/生成脚本无 spec；2 个已登记孤岛；101 提交未推                                                       | 否                       |
-| **🔴 P1（新）** | **SDK↔后端 wire-format 缺陷 27 条**（19 P1 + 8 P2）             | body/query/响应形状与后端 handler 不符；**全新发现的门禁盲区**。**A 类 11 条已修**（见 §7.15 / §9.2 状态块） | **否（当前无门禁覆盖）** |
+| 级别              | 问题                                                                                           | 一句话                                                                                                                          | 是否阻断 CI              |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **✅ 已闭环**     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）       | 否（不再拦）             |
+| **🔴 P1（最高）** | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类剩余 9 条 + P-13 仍存在**。**门禁盲区**（`path-contract` 只校验路径、不校验报文）。清单见 §9.10.2 | **否（当前无门禁覆盖）** |
+| **🎯 N-02（新）** | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 258 成员用例满负载 30s 超时；**单独跑 113/113 通过** ⇒ CI 间歇红、真缺陷被噪声淹没                           | **间歇（噪声）**         |
+| **🟡 P1-1**       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                  | 否（棘轮已钉住）         |
+| **🟡 P1-2**       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                      | 否（已登记 waiver）      |
+| **P1-3**          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                          | 否（策略债）             |
+| **P2**            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                  | 否                       |
 
 > **⚠️ 新增最高优先事项**：2026-10-09 与后端 `ROUTE_CONTRACT.md` 附录 B 的**联审**发现
-> **27 条 wire-format 缺陷**（其中 19 条会导致 400 或静默返回空数据），本轮**双侧复核 22 条、全部复现**。
+> **27 条 wire-format 缺陷**（其中 19 条会导致 400 或静默返回空数据）；2026-10-10 又在当前 HEAD 上
+> **逐条双侧复核**，确认 **5 条已修 / 9 条仍在 / 1 条需精确化**（见 §9.10）。
 > 它们**全部落在现有门禁的盲区**（`path-contract` 只校验路径，不校验 body/query/响应形状）。
 > **完整清单、双侧 `file:line` 证据、4 批修复方案与防复发门禁设计见 §9。**
 
 **整体判断**：门禁体系本身已经相当成熟（56 个受管辖门禁、52 可达、4 豁免、0 死门禁；判定类门禁  
-普遍有 spec + 变异自证）。**剩余问题不在"缺门禁"，而在三件事**：  
-① 门禁的**执行入口**（本地钩子）是断的；② 门禁的**台账**会腐烂且没有自动发现机制；  
-③ 判据"看得见的范围"仍有边界（139 / 3 / 7 三类盲区）。  
-**④（本轮新增）门禁覆盖的是"路径"，没覆盖"报文"** —— 见 §9，这是当前**收益最高**的一处。
+普遍有 spec + 变异自证）。**剩余问题不在"缺门禁"，而在四件事**：  
+① 门禁的**执行入口**（本地钩子）曾断过（**已修**）；② 门禁的**台账**会腐烂且没有自动发现机制；  
+③ 判据"看得见的范围"仍有边界（未校验 8 / 3 未覆盖包装器）；  
+**④ 门禁覆盖的是"路径"，没覆盖"报文"** —— 见 §9，这是当前**收益最高**的一处。  
+**⑤（本轮新增）"改报文后该验证什么"也纯靠人手枚举** —— N-01 的现场复现（§9.10.4）。
 
 > **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，**C1 主体已完成**（139 → 8：
 > cast 4→0、`this-method` 49→4、`bare-call` 37→0、`identifier` 38→2、`concat` → 1（第十一轮解出 3 处），
@@ -42,8 +43,9 @@
 > E2 后半**已完成**（审计文档章节完整性哨兵，见 §7.11）；  
 > 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）——**D2 已于第十轮收尾**（第 5 个 baseline 型门禁接入审查门，见 §7.12）；  
 > 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
-> （最新基线：`develop @ c148da631` + 本轮 CI 修复，**E3 已推送**（`116631352..c148da631`）；
-> CI 首跑接连暴露 **5 处 CI-only 缺口**（SDK-only checkout / 双世界 ledger / 并集债 /
+> （最新基线：SDK `develop @ 09d55a321`、后端 `14f892e35`；CI 已连续绿过多次，
+> 十四轮（§7.16）修掉批 1 引入的 spec 回归后重新推送；
+> CI 首跑曾连续暴露 **5 处 CI-only 缺口**（SDK-only checkout / 双世界 ledger / 并集债 /
 > `contract-drift` 登记 / `docs-counts` 数字），均已修，见 §7.9；
 > `Tests` 的 `startup_failure` 为 fork 既有，待定。）
 
@@ -1253,6 +1255,59 @@ prettier / eslint 干净、`quality:msc` 正常模式 exit 0。
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
+### 7.16 2026-10-10 第十四轮：批 1 的 CI 回归定位与修复 + B/C/D 类剩余条目双侧复核
+
+**起点**：批 1（`09c7c57ca`）推送后 CI 红（run `37942625990`，head `82dddbac5`），
+而**本地 `pnpm lint` / `quality:contracts` 两条链全绿** ⇒ 红点在"本机跑不到的地方"。
+
+**(1) 定位（不是猜，取失败日志）**
+
+```bash
+gh run view 37942625990 -R langkebo/matrix-js-sdk --json jobs \
+  --jq '.jobs[] | .name as $j | .steps[] | select(.conclusion=="failure") | "\($j) :: \(.name)"'
+# → Refactor Gate :: Unit + integration tests with coverage
+gh run view 37942625990 -R langkebo/matrix-js-sdk --log-failed > /tmp/ci-fail-b1.log   # 224k 行
+```
+
+CI 汇总：`Test Files 1 failed | 442 passed (443)`、`Tests 1 failed | 6955 passed`。唯一红点：
+
+```
+FAIL spec/unit/room-summary/room-summary-facade.spec.ts:442
+AssertionError: expected { rooms: ['!r:example.com'], …(1) } to match object …
+- "is_suggested_only": true          ← 断言仍在校验旧键名
+```
+
+**(2) 根因 = 我在批 1 里自己引入的回归**
+
+批 1 把线上键 `is_suggested_only` → `suggested_only`（P-01），但**漏改了子目录 spec 的断言**。
+本地验证时我跑的是 `spec/unit/room-summary.spec.ts`（**顶层同名文件**），
+**没有覆盖 `spec/unit/room-summary/` 子目录** —— 该目录下还有 3 个 spec
+（`room-summary-facade.spec.ts`、`sub-managers/room-event-operation-manager.spec.ts`、`sub-managers/room-stats-manager.spec.ts`）。
+
+> **教训**：改"线上键名"这件事**没有任何机器判据**（正是 §9.4 的论点），
+> 而"该跑哪些 spec"同样靠人手枚举 ⇒ **两层人工叠加**必然出现漏网。
+> 纪律（已写入 §7.4 同级的操作约定）：① 改 wire key 时按**目录**（不是按同名文件）枚举 spec；
+> ② 或用 CI 口径 `pnpm test`，不要挑选文件。
+
+**(3) 修复与验收**：`09d55a321`（1 文件，2 行）。
+`spec/unit/room-summary/` + `room-summary.spec.ts` + `cas` / `friend` / `room-keys` 共 **7 spec / 305 例全绿**。
+
+**(4) 全量复跑另抓到一条 flaky（与本次改动无关，单列登记）**
+
+`pnpm test` 全量：`Test Files 1 failed | 442 passed`，唯一失败为
+
+```
+FAIL spec/unit/matrix-rtc/MatrixRTCSession.spec.ts > … > wraps key index around to 0 …
+Error: Test timed out in 30000ms.
+```
+
+该用例造 **258 个成员**逐个触发密钥轮换，**单独跑 113/113 通过**，满负载下撞 30s 上限 ⇒
+**测试基建的负载敏感假红**（fake timers 只冻结逻辑时间，唤醒次数 250+ 次的真实 CPU 开销不受控）。
+影响面：`pnpm test` / CI 会**间歇性红**，使真缺陷被噪声淹没（本仓 §7.9 已因 CI 首跑吃过一次同类苦）。
+
+**(5) 并行复核**：B/C/D 类剩余条目按当前 HEAD 逐条双侧回源（结论表见 **§9.10**）——
+**5 条已被并行会话修掉**、**11 条确认仍存在**（9 条在 §9.10.2 表内 + M-07 顺带确认 + R-05 见 §9.10.3）。
+
 ---
 
 ## 8. 明确不建议做的事
@@ -1338,12 +1393,12 @@ prettier / eslint 干净、`quality:msc` 正常模式 exit 0。
 
 ### 9.3 解决方案（4 批，每批可独立验收）
 
-| 批次                 | 范围                                | 改法                                                                                                                                                                                                                                                | 验收                                             |
-| -------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| **批 1**（最高优先） | A 类 **11 条**（400） **✅ 已完成** | **只改 SDK 的键名/补必填**：`is_suggested_only`→`suggested_only`（并统一到 `:469` 的写法）、`reason`→`message`、thread 五处 body/query 按后端结构补齐、cas 三处、e2ee 补 `algorithm`。**后端零改动**。thread 族由 `a35496e59` 完成，另 5 条见 §7.15 | 每条补单测断言"发出的键集 ⊇ 后端 serde 必填集"   |
-| **批 2**             | B 类 **8 条**（形状）               | 改 SDK 类型与解析：cas 改 `CasService[]`、thread replies 改裸数组（或 SDK 侧解包）、thread detail 去包裹、media 分块字段名对齐、`state`→`status` **并校正值域**、cas 校验改按 `text/plain`/XML 解析                                                 | 每条补响应形状回归测试（含"后端返回裸数组"用例） |
-| **批 3**             | C 类 **5 条**（静默）               | media：`getDownloadUrl` 在带 `signature` 时改走 `/download_signed/...` 且参数名用 **`expires`**；`include`→`include_all`；`pgtUrl`→`pgt_url`；`limit` 真正下发；`auth_issuer` 回退分支要么删除、要么按后端实际路由改写                              | 断言"URL/参数构造"的纯函数单测                   |
-| **批 4**             | D 类 **3 条**（遗漏）               | 新增 `protectMedia`/`unprotectMedia`；`submitEmailToken` 增加 scope 参数（register / password / 3pid）；G-01 已裁定（AS 侧协议，不封装）                                                                                                            | 新方法带 `@example`（公开 API 文档棘轮要求）     |
+| 批次                 | 范围                                   | 改法                                                                                                                                                                                                                                                                                                                                                             | 验收                                             |
+| -------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **批 1**（最高优先） | A 类 **11 条**（400） **✅ 已完成**    | **只改 SDK 的键名/补必填**：`is_suggested_only`→`suggested_only`（并统一到 `:469` 的写法）、`reason`→`message`、thread 五处 body/query 按后端结构补齐、cas 三处、e2ee 补 `algorithm`。**后端零改动**。thread 族由 `a35496e59` 完成，另 5 条见 §7.15                                                                                                              | 每条补单测断言"发出的键集 ⊇ 后端 serde 必填集"   |
+| **批 2**             | B 类 **8 条 → 剩 6 条**（形状）        | 改 SDK 类型与解析：cas 改 `CasService[]`、thread replies 改裸数组（**已由并行会话完成**）、thread detail 去包裹（**已完成**）、media 分块字段名对齐、`state`→`status` **并校正值域**、cas 校验改按 `text/plain`/XML 解析、`RoomKeyRequestResponse` 对齐 create 端点的单字段。**剩余 = M-02 / R-03 / R-04 / M-06 / R-06 / R-05**（见 §9.10.2 / §9.10.3）          | 每条补响应形状回归测试（含"后端返回裸数组"用例） |
+| **批 3**             | C 类 **5 条 → 剩 4 条 + P-13**（静默） | media：`getDownloadUrl` 在带 `signature` 时改走 `/download_signed/...` 且参数名用 **`expires`**；`pgtUrl`→`pgt_url`；`limit` 真正下发；`auth_issuer` 回退分支要么删除、要么按后端实际路由改写；**P-13**：`cas` 前缀的服务管理面（待产品裁定：后端补别名 vs SDK 删选项）。**剩余 = M-01 / M-07 / P-08 / P-11 / P-13**（`include`→`include_all` 已由并行会话完成） | 断言"URL/参数构造"的纯函数单测                   |
+| **批 4**             | D 类 **3 条 → ✅ 0 条**（遗漏）        | **已完成**：`protectMedia` / `protectMediaById` / `unprotectMedia`、`submitEmailToken(scope)` 均已由并行会话新增；G-01 已裁定（AS 侧协议，不封装）                                                                                                                                                                                                               | 新方法带 `@example`（公开 API 文档棘轮要求）     |
 
 ### 9.4 根本原因与防复发（比逐条修更重要）
 
@@ -1443,6 +1498,71 @@ SDK `d51c56dda`、Tjg `5e9c4b99` 已跟随。
 还是 SDK 删掉服务管理面的 `cas` 选项（协议面仍需 `cas` 前缀）。**两条路都不该由审计方单方面选**，
 故只登记、不改。默认前缀 `synapse_admin` 不受影响（P-09 的键名修复对默认路径有效）。
 
+### 9.10 2026-10-10 复核：§9.2 全部条目在**当前 HEAD** 上的状态（逐条双侧回源）
+
+用户要求"根据项目代码更新本文档、列出实际存在的问题"⇒ 本节把 §9.2 的每一条**重新打开两侧源码**核对一遍
+（不引用历史结论）。核验时点：SDK `09d55a321`、后端 `14f892e35`。
+
+#### 9.10.1 已修（5 条，均为并行会话落地，非本审计方）
+
+| #       | 类别 | 现在的事实（双侧证据）                                                                                                                                           |
+| ------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🟡 M-04 | C    | SDK `src/thread/index.ts:189` 参数已为 **`include_all?: boolean`** ↔ 后端 `handlers/thread.rs:59-64` `ListQuery` 读 `include_all` ✅                             |
+| 🔴 R-01 | B    | SDK `getThreadReplies(): Promise<IThreadReply[]>`（`src/thread/index.ts:437-456`，**裸数组**）↔ 后端 `Json<Vec<ReplyResponse>>` ✅                               |
+| 🔴 R-02 | B    | SDK `IThreadDetail`（`src/thread/index.ts:157`）**扁平、无 `{thread}` 包裹**；`getThread(): Promise<IThreadDetail>` ✅                                           |
+| 🟡 G-02 | D    | SDK 已新增 `protectMedia`(`admin-media-manager.ts:170`)、`protectMediaById`(`:192`)、`unprotectMedia` ↔ 后端 `admin/media.rs` protect/protect-by-id/unprotect ✅ |
+| 🟡 G-03 | D    | SDK 已新增 `submitEmailToken(scope)`（`src/account/index.ts:275`）+ `EMAIL_TOKEN_PATHS` 三条路由 ↔ 后端 `assembly.rs` 三条 submitToken ✅                        |
+
+#### 9.10.2 仍存在（**11 条**：下表 9 条 + M-07 + R-05，本轮双侧实测确认，可直接进批 2 / 批 3）
+
+| #       | 类别 | SDK（发出/期望）                                                                                                            | 后端（实际）                                                                                                                                       | 后果                                      |
+| ------- | ---- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| 🔴 M-02 | B    | `src/cas/index.ts:57-59` `CasServiceListResponse { services: CasService[] }`                                                | `cas.rs:307-311` `Ok(Json(Vec<ServiceResponse>))` —— **裸数组**                                                                                    | `services` 恒 `undefined` ⇒ 服务列表恒空  |
+| 🔴 R-03 | B    | `src/cas/index.ts:266-330` 三个 validate 方法按 **JSON** 解析                                                               | `cas.rs:203`/`:205` **`text/plain`**（`yes\n{user}\n` / `no\n\n`）；`:225`/`:232`/`:246`/`:263` **`application/xml`**                              | JSON 解析抛错 ⇒ CAS 校验链不可用          |
+| 🟡 P-08 | C    | `src/cas/index.ts:276`/`:297`/`:318` 逐条赋值 **`queryParams.pgtUrl`**                                                      | `cas.rs:51`/`:67`/`:75` `#[serde(rename = "pgt_url")]`                                                                                             | 参数被静默丢弃，`pgt_url` 恒 `None`       |
+| 🔴 P-13 | C    | `src/cas/index.ts:142-150` `resolvePath("cas", …)` → `/_synapse/cas/{services,users/…}`                                     | `cas.rs:160-164` 服务/用户属性**只**注册在 `/_synapse/admin/v1/cas/…`；`/_synapse/cas` 仅 nest 协议面（`:143-148`）                                | 5 个带 `"cas"` 前缀的方法全部 **404**     |
+| 🔴 M-01 | C    | `src/media/index.ts:464-466` 把 `signature` + **`ts`** 挂到**普通** download 路由                                           | 签名端点是 `media/mod.rs:113-115` `/download_signed/{server_name}/{media_id}`，读 `signature` + **`expires`**（`download.rs:325-332`）             | 签名不生效；SDK **从不**构造签名端点      |
+| 🔴 R-04 | B    | `src/media/index.ts:141`/`:160-162` 期望 `received_bytes` / `received_chunks` / `bytes_received` / `total_bytes`            | `media/upload.rs:271-274` `uploaded_chunks`/`uploaded_size`/`status`；`:292-293` `content_uri`/`media_id`；`:338-339` `total_size`/`uploaded_size` | 分块进度与完成结果字段系统性 `undefined`  |
+| 🔴 M-06 | B    | `src/room-keys/index.ts:40` `state: "pending" \| "approved" \| "rejected"`                                                  | `devices.rs:414` 输出 **`status`**，值域 `pending`/**`cancelled`**/**`fulfilled`**（`:397-403`）                                                   | **字段名 + 值域双不符**                   |
+| 🔴 R-06 | B    | `src/room-keys/index.ts:45` 与 `src/device-keys/index.ts:161` `RoomKeyRequestsResponse { requests }`（**无 `next_batch`**） | `devices.rs:340-343` 明确定义并返回 `next_batch`                                                                                                   | 游标被丢弃 ⇒ **无法翻页**（静默数据截断） |
+| 🟡 P-11 | C    | `src/device-keys/index.ts:402` 声明 `limit?: number`，但装配时**只放** `status`/`room_id`/`session_id`（`:406-408`）        | `devices.rs:324` `params.limit.unwrap_or(100).clamp(1, 1000)` —— 后端**支持** `limit` 与 `from`                                                    | 分页能力失效（静默）                      |
+
+**顺带确认仍存在**：🟡 **M-07** —— `src/client-auth.ts:60` 的 `GET /auth_issuer` 回退分支，
+后端 `assembly.rs` **无该路由**（grep 零命中，只有 `auth_metadata`）⇒ 一旦落入回退即 **404**。
+
+#### 9.10.3 R-05 **结论成立，但需精确化**（原描述把两个端点混为一谈）
+
+| 端点                                    | 后端实际返回                                                                  | SDK 侧类型                                                                                                      | 结论                                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **create**（`POST /room_keys/request`） | `devices.rs:295-299` `json!({ "request_id": … })` —— **确实只有 1 个字段**    | `e2ee/index.ts:135` `RoomKeyRequestResponse`（5 字段：`request_id`/`room_id`/`session_id`/`algorithm`/`state`） | ✅ **R-05 成立**：`createRoomKeyRequest`（`:308`）返回的 4 个字段恒 `undefined`     |
+| **list**（`GET /room_keys/request`）    | `devices.rs:395-418` `serialize_room_key_request` → 13+ 字段，含 **`status`** | 同上（因此 `state` 键名与 list 端点也不符）                                                                     | 与 **M-06** 同类：`state` 应为 `status`，值域应为 `pending`/`cancelled`/`fulfilled` |
+
+#### 9.10.4 本轮**新发现**（2 条，均已有现场证据）
+
+**N-01 🔴 「改线上键名」与「跑哪些 spec」两层纯人工 ⇒ 漏网必然（已修，`09d55a321`）**
+批 1 改了 wire key 却漏改 `spec/unit/room-summary/room-summary-facade.spec.ts`（**子目录**）的断言，
+而本地验证只跑顶层同名 spec ⇒ **本地全绿、CI 红**（`37942625990`，唯一失败即此条）。
+这正是 §9.4 论点（"没有机器判据"）的第二个实证面：**连"本次要验证什么"也靠人手枚举**。
+⇒ 加固建议：把 `quality:wire-format`（§9.4）与"spec 断言键名同步"纳入同一门禁；
+过渡期纪律 = 改 wire key 时**按目录**枚举 spec，或直接跑 CI 口径的 `pnpm test`。
+
+**N-02 🟡 测试基建存在负载敏感假红（未修，本审计方给出定性）**
+`spec/unit/matrix-rtc/MatrixRTCSession.spec.ts` 的 `wraps key index around to 0 …`（`:1267`，`{ timeout: 30000 }`）
+循环 **258 个成员**逐个触发密钥轮换；**单独跑 113/113 通过**，满负载（全量 `pnpm test`）下 `Error: Test timed out in 30000ms`。
+`vi.useFakeTimers()` 只冻结**逻辑时间**，250+ 次唤醒的真实 CPU 开销不受控 ⇒ 上限是**墙钟**而非逻辑时间。
+⇒ 影响：CI / 本地全量跑会**间歇性红**，真缺陷被噪声淹没。修法候选：降低 `membersToTest`（是否真需 258？）、
+把 30000 提到足以覆盖最坏负载、或对该用例注入可控时钟。
+
+#### 9.10.5 负结论（有边界价值，避免重复扫描）
+
+为找 §9 之外的**同类新缺陷**，本轮对 `src/**` 做了两类针对性扫描：
+
+- 内联 `queryParams: { … }` 字面量中含 **camelCase** 键的调用点：**0 处**（按括号配平解析，非正则粗筛）。
+- 逐条赋值形态 `X.<camelCase> = …`（`X` 为 `query/param/q` 类）：**3 处，全部是 P-08 的 `pgtUrl`**。
+
+⇒ **"camelCase 查询键"这一缺陷类的面很窄（仅 P-08）**，说明 §9.2 的覆盖面基本完整；
+后续若实现 `quality:wire-format`，该子检出的收益上限可提前估算（≈3 处）。
+
 ---
 
 ## 附录 A：本轮核验命令
@@ -1500,6 +1620,6 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
+**最后更新**: 2026-10-10（第十四轮：**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
