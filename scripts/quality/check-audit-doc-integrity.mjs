@@ -22,6 +22,19 @@
  * · 台账里每份文档的**章节标题集合**必须仍是当前文档章节标题集合的**子集**（丢失即逐条列出）；
  * · 台账里列出的文件**必须存在**（被删/改名 ⇒ 也要显式 `--refresh`，不许静默消失）；
  * · **新增**章节不算违规（正常演进），但要 `--refresh` 才写进台账。
+ * · 比对前两侧都过 `normalizeHeading`（见下）—— 抹掉标题里的**生成计数**与**日期**。
+ *
+ * ## 为什么标题要归一化（2026-10-09 实测的误报）
+ *
+ * 有些长期维护的审计文档是**脚本生成的**（`scripts/audit/compare-routes.mjs` 重写
+ * `artifacts/sdk-contract-gap-report.md`），章节标题里嵌了生成出来的计数与复核日期：
+ * `## 3. 仅构造证据（T2，无精确调用点）— 客户端面 584 条`、`## 7. 人工复核记录（本轮，2026-10-07）`。
+ * 依赖刷新（镜像更新）后这些数字**必然变**（584 → 475、2026-10-07 → 2026-10-09），
+ * 于是哨兵在每次刷新后误报"章节丢失"—— 章节其实一条不少。**狼来了比不报更糟。**
+ *
+ * 归一化**只抹**：① 完整日期 `YYYY-MM-DD`；② **最后一个 `—`/`–` 之后**的整数。
+ * 段号（`## 7.7`）与标题正文**一律精确比对** —— 否则 `§7.6`/`§7.7` 会归并成一个键，
+ * 真删了一节也看不出来（那才是本门禁要防的事）。
  *
  * ## 取标题时为什么必须跳过围栏代码块
  *
@@ -65,19 +78,53 @@ export function extractHeadings(markdown) {
 }
 
 /**
+ * 标题归一化：抹掉标题里的**易变字段**（生成计数、复核日期），供集合比对使用。
+ *
+ * 只抹两处（理由见文件头「为什么标题要归一化」）：
+ *   ① 完整日期 `YYYY-MM-DD` → `{DATE}`；
+ *   ② **最后一个 `—`/`–` 之后**的整数 → `{N}`（生成报告把条数写在破折号后）。
+ * 段号与标题正文不动 ⇒ 真删章节仍能被抓到。
+ *
+ * @param {string} heading `"## 标题"` 形式
+ * @returns {string}
+ */
+export function normalizeHeading(heading) {
+    const text = String(heading ?? "")
+        .trim()
+        .replace(/\d{4}-\d{2}-\d{2}/g, "{DATE}");
+    const cut = Math.max(text.lastIndexOf("—"), text.lastIndexOf("–"));
+    if (cut < 0) return text;
+    return text.slice(0, cut + 1) + text.slice(cut + 1).replace(/\d+/g, "{N}");
+}
+
+/**
  * 比较台账与当前文档的标题集合。
  *
- * 纯函数（spec 直接测）。`missing` 用**台账的元素**列出（保持台账顺序、去重），
- * 这样报错信息与台账可逐条对照。
+ * 纯函数（spec 直接测）。两侧都过 `normalizeHeading` 后比对；`missing` / `added` 用
+ * **原文**列出（便于与台账逐条对照）。同一归一化键只报一次。
  *
  * @param {{ baseline: string[], current: string[] }} input
  * @returns {{ missing: string[], added: string[], ok: boolean }}
  */
 export function diffHeadingSets({ baseline, current }) {
-    const cur = new Set(current);
-    const base = new Set(baseline);
-    const missing = [...new Set(baseline)].filter((h) => !cur.has(h));
-    const added = [...new Set(current)].filter((h) => !base.has(h));
+    const curKeys = new Set(current.map(normalizeHeading));
+    const baseKeys = new Set(baseline.map(normalizeHeading));
+    const reported = new Set();
+    const missing = [];
+    for (const h of baseline) {
+        const key = normalizeHeading(h);
+        if (curKeys.has(key) || reported.has(key)) continue;
+        reported.add(key);
+        missing.push(h);
+    }
+    const seenAdded = new Set();
+    const added = [];
+    for (const h of current) {
+        const key = normalizeHeading(h);
+        if (baseKeys.has(key) || seenAdded.has(key)) continue;
+        seenAdded.add(key);
+        added.push(h);
+    }
     return { missing, added, ok: missing.length === 0 };
 }
 

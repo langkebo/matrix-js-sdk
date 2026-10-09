@@ -16,7 +16,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { diffHeadingSets, extractHeadings, listAuditDocs } from "../../scripts/quality/check-audit-doc-integrity.mjs";
+import {
+    diffHeadingSets,
+    extractHeadings,
+    listAuditDocs,
+    normalizeHeading,
+} from "../../scripts/quality/check-audit-doc-integrity.mjs";
 
 describe("audit-doc-integrity：章节抽取", () => {
     it("认 ## / ### / ####，保留层级前缀", () => {
@@ -86,6 +91,60 @@ describe("audit-doc-integrity：集合比对（只增不减）", () => {
         const r = diffHeadingSets({ baseline: ["## a", "## b"], current: [] });
         expect(r.ok).toBe(false);
         expect(r.missing).toEqual(["## a", "## b"]);
+    });
+});
+
+/*
+ * 2026-10-09 实测：`artifacts/sdk-contract-gap-report.md` 由 `scripts/audit/compare-routes.mjs`
+ * 重新生成后，**章节一条不少**，但标题尾巴里的生成计数与复核日期变了
+ * （`— 客户端面 584 条` → `— 475 条`、`（本轮，2026-10-07）` → `2026-10-09`）
+ * ⇒ 哨兵误报"章节丢失" 4 条。下面钉住"易变字段归一化"，同时钉住
+ * **不许把段号也抹掉**（否则真删一节会被掩盖 —— 那才是本门禁要防的事）。
+ */
+describe("audit-doc-integrity：标题归一化（只抹易变字段）", () => {
+    it("破折号之后的生成计数被抹平（破折号之前原样）", () => {
+        expect(normalizeHeading("## 3. 仅构造证据（T2，无精确调用点）— 客户端面 584 条")).toBe(
+            "## 3. 仅构造证据（T2，无精确调用点）— 客户端面 {N} 条",
+        );
+    });
+
+    it("完整日期被抹平（复核日期每轮都会变）", () => {
+        expect(normalizeHeading("## 7. 人工复核记录（本轮，2026-10-07）")).toBe("## 7. 人工复核记录（本轮，{DATE}）");
+    });
+
+    it("⚠️ 段号不抹：`### 7.6` 与 `### 7.7` 必须是两个不同的键", () => {
+        expect(normalizeHeading("### 7.6 第三轮")).not.toBe(normalizeHeading("### 7.7 第四轮"));
+    });
+
+    it("破折号之前的数字不抹（`—` 前是正文，改动即真改动）", () => {
+        expect(normalizeHeading("## 2. 客户端面缺口（三级证据全无）— 7 条")).not.toBe(
+            normalizeHeading("## 9. 客户端面缺口（三级证据全无）— 7 条"),
+        );
+    });
+
+    it("无破折号 / 无日期的标题原样返回", () => {
+        expect(normalizeHeading("## 附录 B：核验边界")).toBe("## 附录 B：核验边界");
+    });
+
+    it("端到端：只有计数变了 ⇒ 不算丢失；段号变了 ⇒ 算丢失", () => {
+        const baseline = [
+            "## 3. 仅构造证据（T2，无精确计算点）— 客户端面 584 条",
+            "## 7. 人工复核记录（本轮，2026-10-07）",
+        ];
+        // 计数与日期变化（脚本重新生成）—— 章节其实都在
+        expect(
+            diffHeadingSets({
+                baseline,
+                current: [
+                    "## 3. 仅构造证据（T2，无精确计算点）— 客户端面 475 条",
+                    "## 7. 人工复核记录（本轮，2026-10-09）",
+                ],
+            }).ok,
+        ).toBe(true);
+        // 标题正文真的变了（不是计数）—— 必须报丢失
+        const r = diffHeadingSets({ baseline, current: ["## 3. 仅构造证据（T2，无精确计算点）— 客户端面 475 条"] });
+        expect(r.ok).toBe(false);
+        expect(r.missing).toEqual(["## 7. 人工复核记录（本轮，2026-10-07）"]);
     });
 });
 
