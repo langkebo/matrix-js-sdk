@@ -4,12 +4,11 @@
  *
  * Module:        Room 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       110 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       98 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room` module (mirrored from the backend contract). */
 export const ROOM_ROUTES = [
-    { method: "POST", path: "/_matrix/client/v1/rooms/create_private" },
     { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/" },
     { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/" },
     { method: "POST", path: "/_matrix/client/v3/createRoom" },
@@ -52,9 +51,6 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/metadata" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/notifications" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/permissions" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/pinned_events" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/pinned_events" },
-    { method: "DELETE", path: "/_matrix/client/v3/rooms/{room_id}/pinned_events/{event_id}" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/read_markers" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/read_markers" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/receipt/{receipt_type}/{event_id}" },
@@ -81,11 +77,7 @@ export const ROOM_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/state/{event_type}/" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/state/{event_type}/{state_key}" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/state/{event_type}/{state_key}" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/sticky_events" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/sticky_events" },
-    { method: "DELETE", path: "/_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/sync" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/thread/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/timeline" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/translate/{event_id}" },
@@ -99,11 +91,8 @@ export const ROOM_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/version" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/visibility" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/visibility" },
-    { method: "POST", path: "/_matrix/client/v3/translate" },
-    { method: "GET", path: "/_matrix/client/v3/user/{user_id}/rooms" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
     { method: "GET", path: "/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms" },
-    { method: "GET", path: "/_matrix/client/v1/user/mutual_rooms" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/get_membership_events" },
     { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/anti_screenshot" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}" },
@@ -118,7 +107,6 @@ export const ROOM_ROUTES = [
     { method: "POST", path: "/_matrix/vendor/v1/translate" },
     { method: "GET", path: "/_matrix/vendor/v1/user/mutual_rooms" },
     { method: "GET", path: "/_matrix/vendor/v1/user/{user_id}/rooms" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ROOM_ROUTES`. */

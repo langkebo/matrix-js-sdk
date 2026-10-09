@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../client";
 import { EventTimelineSet } from "../models/event-timeline-set";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { type LocalNotificationSettings } from "../@types/local_notifications";
 import { LOCAL_NOTIFICATION_SETTINGS_PREFIX } from "../@types/event";
 import { type EmptyObject } from "../@types/common";
@@ -28,7 +28,7 @@ import type { PushPath } from "../push/__generated__/route-table";
 import type { NotificationsPath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { ValidationError } from "../errors";
-import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV3, StripVendor } from "../http-api/strip-prefix";
 
 /**
  * 校验并返回通知/推送路径。
@@ -40,7 +40,9 @@ import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
  * 因此约束取两张契约表的并集 —— 与本仓 `RoomManager` 并集多表（room|search|moderation…）
  * 的写法一致。并把上游 `PushPath` 与本地 `NotificationsPath` 都纳入断言，杜绝路径拼错。
  */
-function np<const P extends string>(path: P & PathAssert<P, StripV3<PushPath | NotificationsPath>>): P {
+function np<const P extends string>(
+    path: P & PathAssert<P, StripV3<PushPath | NotificationsPath> | StripVendor<PushPath | NotificationsPath>>,
+): P {
     return path;
 }
 
@@ -224,7 +226,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
                 this.request<IPushDevice[] | { devices?: IPushDevice[] }>({
                     method: Method.Get,
                     path: np("/push/devices"),
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 }),
             "getPushDevices",
         );
@@ -261,7 +263,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
                     method: Method.Post,
                     path: np("/push/devices"),
                     body,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 }),
             "registerPushDevice",
         );
@@ -288,7 +290,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
                 this.request<IPushAckResponse>({
                     method: Method.Delete,
                     path: np(`/push/devices/${encodeURIComponent(deviceId)}`),
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 }),
             "unregisterPushDevice",
         );
@@ -321,7 +323,7 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
                     method: Method.Post,
                     path: np("/push/send"),
                     body,
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 }),
             "sendPushNotification",
         );

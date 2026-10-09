@@ -936,8 +936,8 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             // `delete_local_events` 会被静默忽略（旧夹具在断言一个无效参数）。
             await manager.purgeRoomHistory("!room:example.com", { dry_run: true });
             await manager.unblockRoom("!room:example.com", { reason: "manual-review" });
-            expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/delete`);
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}`);
             expect(req.mock.calls[0][3]).toEqual({ purge: true, reason: "cleanup" });
             expect(req.mock.calls[1][0]).toBe("POST");
             expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!room:example.com")}/purge_history`);

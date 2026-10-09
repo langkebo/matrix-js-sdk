@@ -63,7 +63,7 @@ describe("RoomSummaryManager", () => {
             expect(summary?.room_id).toBe("!room:example.com");
         });
 
-        it("should call the v3 room summary endpoint", async () => {
+        it("should call the vendor room summary endpoint", async () => {
             await summaryManager.getRoomSummary("!room:example.com", undefined, true);
 
             expect(authedRequest).toHaveBeenCalledWith(
@@ -71,7 +71,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -923,7 +923,7 @@ describe("RoomSummaryManager", () => {
             expect(result.users_default).toBe(0);
         });
 
-        it("should sync room summary via v3 endpoint", async () => {
+        it("should sync room summary via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ ok: true });
 
             await summaryManager.syncSummary("!room:example.com", { since: "s1" });
@@ -933,7 +933,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/sync`,
                 undefined,
                 { since: "s1" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -953,7 +953,7 @@ describe("RoomSummaryManager", () => {
             );
         });
 
-        it("should recalculate summary stats via v3 endpoint", async () => {
+        it("should recalculate summary stats via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 room_id: "!room:example.com",
                 total_events: 100,
@@ -970,11 +970,11 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/stats/recalculate`,
                 undefined,
                 {},
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
-        it("should clear unread summary via v3 endpoint", async () => {
+        it("should clear unread summary via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ ok: true });
 
             await summaryManager.clearSummaryUnread("!room:example.com");
@@ -984,7 +984,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/unread/clear`,
                 undefined,
                 {},
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1071,7 +1071,7 @@ describe("RoomSummaryManager", () => {
             );
         });
 
-        it("should write summary members via v3 endpoint", async () => {
+        it("should write summary members via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 members: [{ user_id: "@alice:example.com", membership: "join", is_hero: false }],
             });
@@ -1085,11 +1085,11 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/members`,
                 undefined,
                 { members: [{ user_id: "@alice:example.com", membership: "join", is_hero: false }] },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
-        it("should update summary member via v3 endpoint", async () => {
+        it("should update summary member via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ user_id: "@alice:example.com", display_name: "Alice" });
 
             await summaryManager.updateSummaryMember("!room:example.com", "@alice:example.com", {
@@ -1101,11 +1101,11 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/members/${encodeURIComponent("@alice:example.com")}`,
                 undefined,
                 { display_name: "Alice" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
-        it("should delete summary member via v3 endpoint", async () => {
+        it("should delete summary member via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce(undefined);
 
             await summaryManager.deleteSummaryMember("!room:example.com", "@alice:example.com");
@@ -1115,11 +1115,11 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/members/${encodeURIComponent("@alice:example.com")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
-        it("should recalculate summary heroes via v3 endpoint", async () => {
+        it("should recalculate summary heroes via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ heroes: ["@alice:example.com", "@bob:example.com"] });
 
             await summaryManager.recalculateSummaryHeroes("!room:example.com");
@@ -1129,7 +1129,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/heroes/recalculate`,
                 undefined,
                 {},
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

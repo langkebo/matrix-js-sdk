@@ -1735,7 +1735,7 @@ describe("MatrixClient", function () {
             "im.nheko.summary.encryption": "algo",
         };
 
-        const prefix = "/_matrix/client/v3/";
+        const prefix = "/_matrix/vendor/v1/";
         const suffix = `rooms/${encodedRoomId}/summary`;
         const deprecatedPrefix = "/_matrix/client/unstable/im.nheko.summary/";
         const deprecatedSuffix = `summary/${encodedRoomId}`;

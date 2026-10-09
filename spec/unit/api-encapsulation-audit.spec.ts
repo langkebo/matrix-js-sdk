@@ -311,7 +311,7 @@ describe("API encapsulation audit", () => {
         );
     });
 
-    it("uses the v1 global and room thread creation endpoints", async () => {
+    it("uses the vendor global and room thread creation endpoints", async () => {
         const authedRequest = vi
             .fn()
             .mockResolvedValueOnce({
@@ -392,7 +392,7 @@ describe("API encapsulation audit", () => {
                 content: { body: "global thread" },
                 origin_server_ts: 123,
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -404,7 +404,7 @@ describe("API encapsulation audit", () => {
                 content: { body: "room thread" },
                 origin_server_ts: 456,
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
     });
 
@@ -440,7 +440,7 @@ describe("API encapsulation audit", () => {
                 content: {},
                 origin_server_ts: undefined,
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -452,11 +452,11 @@ describe("API encapsulation audit", () => {
                 content: {},
                 origin_server_ts: undefined,
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
     });
 
-    it("uses the v1 thread search and replies endpoints", async () => {
+    it("uses the vendor thread search and the v1 thread replies endpoints", async () => {
         const authedRequest = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
@@ -473,7 +473,7 @@ describe("API encapsulation audit", () => {
                 limit: 5,
             },
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -513,7 +513,7 @@ describe("API encapsulation audit", () => {
         );
     });
 
-    it("uses the v1 thread lifecycle endpoints for delete freeze unfreeze and redact", async () => {
+    it("uses the vendor thread lifecycle endpoints for delete freeze unfreeze and redact", async () => {
         const authedRequest = vi.fn().mockResolvedValue(undefined);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
@@ -529,7 +529,7 @@ describe("API encapsulation audit", () => {
             `/rooms/${encodeURIComponent("!room:test")}/threads/${encodeURIComponent("$thread")}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(authedRequest).toHaveBeenNthCalledWith(
             2,
@@ -537,7 +537,7 @@ describe("API encapsulation audit", () => {
             `/rooms/${encodeURIComponent("!room:test")}/threads/${encodeURIComponent("$thread")}/freeze`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(authedRequest).toHaveBeenNthCalledWith(
             3,
@@ -545,7 +545,7 @@ describe("API encapsulation audit", () => {
             `/rooms/${encodeURIComponent("!room:test")}/threads/${encodeURIComponent("$thread")}/unfreeze`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
         expect(authedRequest).toHaveBeenNthCalledWith(
             4,
@@ -553,11 +553,11 @@ describe("API encapsulation audit", () => {
             `/rooms/${encodeURIComponent("!room:test")}/replies/${encodeURIComponent("$reply")}/redact`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
     });
 
-    it("uses the v1 thread reply and read endpoints with contract bodies", async () => {
+    it("uses the v1 thread reply and the vendor thread read endpoints with contract bodies", async () => {
         const authedRequest = vi.fn().mockResolvedValueOnce({ event_id: "$reply" }).mockResolvedValueOnce({
             id: 1,
             room_id: "!room:test",
@@ -603,11 +603,11 @@ describe("API encapsulation audit", () => {
                 event_id: "$event",
                 origin_server_ts: 123,
             },
-            { prefix: ClientPrefix.V1 },
+            { prefix: VendorPrefix },
         );
     });
 
-    it("uses the v3 legacy thread search endpoint", async () => {
+    it("uses the vendor legacy thread search endpoint", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ chunk: [], next_batch: null });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new ThreadingManager({ http: { authedRequest } } as any);
@@ -627,11 +627,11 @@ describe("API encapsulation audit", () => {
                 include_all: true,
             },
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 
-    it("uses relative spaces endpoints with the v3 client prefix", async () => {
+    it("uses relative spaces endpoints with the vendor prefix", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ spaces: [] });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SpaceManager({ http: { authedRequest } } as any);
@@ -639,11 +639,11 @@ describe("API encapsulation audit", () => {
         await manager.getUserSpaces(true);
 
         expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/user", undefined, undefined, {
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     });
 
-    it("uses relative room summary sync paths with the v3 client prefix", async () => {
+    it("uses relative room summary sync paths with the vendor prefix", async () => {
         const authedRequest = vi.fn().mockResolvedValue({ ok: true });
         const manager = new RoomSummaryManager({
             http: { authedRequest },
@@ -663,7 +663,7 @@ describe("API encapsulation audit", () => {
             `/rooms/${encodeURIComponent("!room:test")}/summary/sync`,
             undefined,
             {},
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 

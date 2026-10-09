@@ -4,29 +4,11 @@
  *
  * Module:        Voice 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       30 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       12 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `voice` module (mirrored from the backend contract). */
 export const VOICE_ROUTES = [
-    { method: "GET", path: "/_matrix/client/v1/voice/config" },
-    { method: "POST", path: "/_matrix/client/v1/voice/register" },
-    { method: "GET", path: "/_matrix/client/v1/voice/room/{room_id}/stats" },
-    { method: "GET", path: "/_matrix/client/v1/voice/stats" },
-    { method: "POST", path: "/_matrix/client/v1/voice/upload" },
-    { method: "GET", path: "/_matrix/client/v1/voice/user/{user_id}/stats" },
-    { method: "GET", path: "/_matrix/client/v3/voice/config" },
-    { method: "POST", path: "/_matrix/client/v3/voice/register" },
-    { method: "GET", path: "/_matrix/client/v3/voice/room/{room_id}" },
-    { method: "GET", path: "/_matrix/client/v3/voice/room/{room_id}/stats" },
-    { method: "GET", path: "/_matrix/client/v3/voice/stats" },
-    { method: "POST", path: "/_matrix/client/v3/voice/upload" },
-    { method: "GET", path: "/_matrix/client/v3/voice/user/{user_id}" },
-    { method: "GET", path: "/_matrix/client/v3/voice/user/{user_id}/stats" },
-    { method: "GET", path: "/_matrix/client/v3/voice/{media_id}" },
-    { method: "POST", path: "/_matrix/client/v3/voice/{media_id}/convert" },
-    { method: "POST", path: "/_matrix/client/v3/voice/{media_id}/optimize" },
-    { method: "POST", path: "/_matrix/client/v3/voice/{media_id}/transcription" },
     { method: "GET", path: "/_matrix/vendor/v1/voice/config" },
     { method: "POST", path: "/_matrix/vendor/v1/voice/register" },
     { method: "GET", path: "/_matrix/vendor/v1/voice/room/{room_id}" },

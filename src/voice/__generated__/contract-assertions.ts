@@ -6,10 +6,10 @@
 
 import { VOICE_ROUTES } from "./route-table";
 
-export const VOICE_ROUTES_ENTRY_COUNT = 30 as const;
+export const VOICE_ROUTES_ENTRY_COUNT = 12 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _VoiceEntryCountAssertion: 30 = VOICE_ROUTES.length;
+const _VoiceEntryCountAssertion: 12 = VOICE_ROUTES.length;
 void _VoiceEntryCountAssertion;
 
 export const VOICE_ROUTES_STATUS_SCENARIOS = [

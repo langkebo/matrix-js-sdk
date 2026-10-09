@@ -69,6 +69,7 @@ import type {
     StripSimplifiedSlidingSync,
     StripV1,
     StripV3,
+    StripVendor,
 } from "../http-api/strip-prefix";
 
 export enum RoomEvent {
@@ -208,7 +209,8 @@ type RoomManagerPath =
     | StripR0<RoomPath | TagsPath>
     | StripV1<RoomPath | SearchPath>
     | StripV3<RoomPath | TagsPath | AuthPath | SearchPath | ModerationPath>
-    | StripSimplifiedSlidingSync<SlidingSyncPath>;
+    | StripSimplifiedSlidingSync<SlidingSyncPath>
+    | StripVendor<RoomPath>;
 
 function rp<const P extends string>(path: P & PathAssert<P, RoomManagerPath>): P {
     return path;
@@ -893,7 +895,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                 method: Method.Post,
                 path: rp("/translate"),
                 body,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "translateText");
     }
@@ -1078,7 +1080,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return await this.request<IUserRoomsResponse>({
                 method: Method.Get,
                 path: rp(`/user/${encodeURIComponent(userId)}/rooms`),
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         }, "getUserRooms");
     }
@@ -1121,7 +1123,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                 method: Method.Get,
                 path: rp("/user/mutual_rooms"),
                 queryParams,
-                prefix: ClientPrefix.V1,
+                prefix: VendorPrefix,
             });
         }, "getMutualRooms");
     }

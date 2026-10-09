@@ -4,27 +4,11 @@
  *
  * Module:        Room Summary 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       37 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       21 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `room-summary` module (mirrored from the backend contract). */
 export const ROOM_SUMMARY_ROUTES = [
-    { method: "DELETE", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
-    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/summary" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary/members" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary/members" },
-    { method: "DELETE", path: "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}" },
-    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary/state" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}" },
-    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}" },
-    { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/summary/stats" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary/sync" },
-    { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/summary/unread/clear" },
     { method: "GET", path: "/_synapse/room_summary/v1/summaries" },
     { method: "POST", path: "/_synapse/room_summary/v1/summaries" },
     { method: "POST", path: "/_synapse/room_summary/v1/summaries/batch" },

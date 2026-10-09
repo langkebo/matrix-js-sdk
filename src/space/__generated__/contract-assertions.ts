@@ -6,10 +6,10 @@
 
 import { SPACE_ROUTES } from "./route-table";
 
-export const SPACE_ROUTES_ENTRY_COUNT = 70 as const;
+export const SPACE_ROUTES_ENTRY_COUNT = 26 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _SpaceEntryCountAssertion: 70 = SPACE_ROUTES.length;
+const _SpaceEntryCountAssertion: 26 = SPACE_ROUTES.length;
 void _SpaceEntryCountAssertion;
 
 export const SPACE_ROUTES_STATUS_SCENARIOS = [

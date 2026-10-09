@@ -6,10 +6,10 @@
 
 import { SEARCH_ROUTES } from "./route-table";
 
-export const SEARCH_ROUTES_ENTRY_COUNT = 10 as const;
+export const SEARCH_ROUTES_ENTRY_COUNT = 8 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _SearchEntryCountAssertion: 10 = SEARCH_ROUTES.length;
+const _SearchEntryCountAssertion: 8 = SEARCH_ROUTES.length;
 void _SearchEntryCountAssertion;
 
 export const SEARCH_ROUTES_STATUS_SCENARIOS = [

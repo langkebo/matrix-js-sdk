@@ -4,19 +4,11 @@
  *
  * Module:        External Service
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       20 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       12 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `external-service` module (mirrored from the backend contract). */
 export const EXTERNAL_SERVICE_ROUTES = [
-    { method: "GET", path: "/_matrix/admin/v1/external_services" },
-    { method: "POST", path: "/_matrix/admin/v1/external_services" },
-    { method: "GET", path: "/_matrix/admin/v1/external_services/health" },
-    { method: "DELETE", path: "/_matrix/admin/v1/external_services/{as_id}" },
-    { method: "PUT", path: "/_matrix/admin/v1/external_services/{as_id}" },
-    { method: "GET", path: "/_matrix/client/v1/external_services/health" },
-    { method: "DELETE", path: "/_matrix/client/v1/external_services/{service_id}" },
-    { method: "PUT", path: "/_matrix/client/v1/external_services/{service_id}" },
     { method: "GET", path: "/_synapse/admin/v1/external_services" },
     { method: "POST", path: "/_synapse/admin/v1/external_services" },
     { method: "GET", path: "/_synapse/admin/v1/external_services/health" },

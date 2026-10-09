@@ -6,10 +6,10 @@
 
 import { NOTIFICATIONS_ROUTES } from "./route-table";
 
-export const NOTIFICATIONS_ROUTES_ENTRY_COUNT = 12 as const;
+export const NOTIFICATIONS_ROUTES_ENTRY_COUNT = 8 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _NotificationsEntryCountAssertion: 12 = NOTIFICATIONS_ROUTES.length;
+const _NotificationsEntryCountAssertion: 8 = NOTIFICATIONS_ROUTES.length;
 void _NotificationsEntryCountAssertion;
 
 export const NOTIFICATIONS_ROUTES_STATUS_SCENARIOS = [

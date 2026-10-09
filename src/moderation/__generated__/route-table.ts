@@ -4,17 +4,14 @@
  *
  * Module:        Moderation
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       9 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       6 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `moderation` module (mirrored from the backend contract). */
 export const MODERATION_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/rooms/{room_id}/report/{event_id}" },
-    { method: "GET", path: "/_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info" },
-    { method: "PUT", path: "/_matrix/client/v1/rooms/{room_id}/report/{event_id}/score" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/report" },
     { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/report/{event_id}" },
-    { method: "PUT", path: "/_matrix/client/v3/rooms/{room_id}/report/{event_id}/score" },
     { method: "POST", path: "/_matrix/client/v3/users/{user_id}/report" },
     { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info" },
     { method: "PUT", path: "/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/score" },

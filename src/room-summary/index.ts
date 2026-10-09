@@ -119,7 +119,7 @@ export { RoomSummaryEventOperationManager } from "./sub-managers/room-event-oper
 import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { Method } from "../http-api/method";
-import { ClientPrefix } from "../http-api/prefix";
+import { ClientPrefix, VendorPrefix } from "../http-api/prefix";
 import { Body } from "../http-api/interface";
 import { InvalidParamError } from "../common/errors";
 import { type QueryDict } from "../http-api/utils";
@@ -208,9 +208,11 @@ import {
     type SignEventBody,
     type VerifyEventBody,
 } from "./sub-managers/room-event-operation-manager";
-import type { PathAssert, StripInternalSummary, StripR0, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripInternalSummary, StripR0, StripV3, StripVendor } from "../http-api/strip-prefix";
 
-function rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
+function rsv<const P extends string>(
+    path: P & PathAssert<P, StripV3<RoomSummaryPath> | StripVendor<RoomSummaryPath>>,
+): P {
     return path;
 }
 
@@ -331,7 +333,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
     // ===== 核心摘要方法（保留在主 Manager，涉及 summaryCache） =====
 
-    private summaryReadPath(roomId: string): StripV3<RoomSummaryPathPattern> {
+    private summaryReadPath(roomId: string): StripV3<RoomSummaryPathPattern> | StripVendor<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
     }
 
@@ -357,14 +359,17 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
 
         try {
             const clientSummary = await this.withRetry(async () => {
-                const _paramOpts = {
-                    prefix: ClientPrefix.V3,
-                };
                 try {
                     return await this.request({
                         method: Method.Get,
                         path: this.summaryReadPath(roomIdOrAlias),
                         queryParams: via ? { via } : undefined,
+                        /**
+                         * 后端只在 `/_matrix/vendor/v1` 与 `/_matrix/client/v1` 注册
+                         * `rooms/{room_id}/summary`（**没有 v3**）。此前这里有个从未被使用的
+                         * `_paramOpts`，实际落回 `request()` 的默认 v3 ⇒ 该读路径恒 404。
+                         */
+                        prefix: VendorPrefix,
                     });
                 } catch {
                     return await this.request({

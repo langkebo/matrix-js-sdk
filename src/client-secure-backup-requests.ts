@@ -5,7 +5,8 @@ import type { QueryDict } from "./utils";
 import type { EmptyObject } from "./@types/common";
 import type { SyncPath } from "./sync/__generated__/route-table";
 import type { SearchPath } from "./search/__generated__/route-table";
-import type { PathAssert, StripClientV3OrVendorV1 } from "./http-api/strip-prefix";
+import type { RoomPath } from "./room/__generated__/route-table";
+import type { PathAssert, StripClientV3OrVendorV1, StripVendor } from "./http-api/strip-prefix";
 
 type AuthedRequestFn = <T>(
     method: Method,
@@ -15,7 +16,10 @@ type AuthedRequestFn = <T>(
     requestOpts?: IRequestOpts,
 ) => Promise<T>;
 
-function sp<const P extends string>(path: P & PathAssert<P, StripClientV3OrVendorV1<SyncPath>>): P {
+// `my_rooms` 属 room 模块表（`/_matrix/vendor/v1/my_rooms`），故断言空间是 SyncPath ∪ RoomPath(vendor)。
+function sp<const P extends string>(
+    path: P & PathAssert<P, StripClientV3OrVendorV1<SyncPath> | StripVendor<RoomPath>>,
+): P {
     return path;
 }
 

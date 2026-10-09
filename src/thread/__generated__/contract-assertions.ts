@@ -6,10 +6,10 @@
 
 import { THREAD_ROUTES } from "./route-table";
 
-export const THREAD_ROUTES_ENTRY_COUNT = 38 as const;
+export const THREAD_ROUTES_ENTRY_COUNT = 23 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _ThreadEntryCountAssertion: 38 = THREAD_ROUTES.length;
+const _ThreadEntryCountAssertion: 23 = THREAD_ROUTES.length;
 void _ThreadEntryCountAssertion;
 
 export const THREAD_ROUTES_STATUS_SCENARIOS = [

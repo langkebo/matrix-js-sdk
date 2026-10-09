@@ -6,10 +6,10 @@
 
 import { WIDGET_ROUTES } from "./route-table";
 
-export const WIDGET_ROUTES_ENTRY_COUNT = 35 as const;
+export const WIDGET_ROUTES_ENTRY_COUNT = 17 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _WidgetEntryCountAssertion: 35 = WIDGET_ROUTES.length;
+const _WidgetEntryCountAssertion: 17 = WIDGET_ROUTES.length;
 void _WidgetEntryCountAssertion;
 
 export const WIDGET_ROUTES_STATUS_SCENARIOS = [

@@ -108,8 +108,12 @@ describe("real-backend types gate: baseline comparison", () => {
     it("keeps the committed baseline in the shape the gate expects", () => {
         const baseline = readBaseline();
 
-        expect(baseline.total).toBeGreaterThan(0);
-        expect(baseline.ids).toHaveLength(baseline.total);
+        // `7c7ccf91d` 把 78 条 real-backend 类型债逐条清完后，baseline **合法地**变为空
+        // （`total: 0`）—— 原先这里断言 `total > 0`，与"清完"直接矛盾（既有红）。
+        // 改为断言**结构与排序**；「baseline 文件缺失不得通过」由 `generatedAt !== null`
+        // 兜住（`readBaseline(不存在的路径)` 返回 `{ generatedAt: null, total: 0, ids: [] }`）。
+        expect(baseline.generatedAt).not.toBeNull();
+        expect(baseline.total).toBe(baseline.ids.length);
         expect([...baseline.ids].sort()).toEqual(baseline.ids);
     });
 });

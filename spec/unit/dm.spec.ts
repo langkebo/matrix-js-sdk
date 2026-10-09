@@ -627,7 +627,7 @@ describe("DirectMessageManager", () => {
                     "/direct/!dm%3Aexample.com",
                     undefined,
                     { users: ["@alice:example.com"] },
-                    { prefix: "/_matrix/client/v3" },
+                    { prefix: "/_matrix/vendor/v1" },
                 );
             });
 
@@ -655,7 +655,7 @@ describe("DirectMessageManager", () => {
                     "/direct/!dm%3Aexample.com",
                     undefined,
                     { content: { users: ["@alice:example.com", "@bob:example.com"] } },
-                    { prefix: "/_matrix/client/v3" },
+                    { prefix: "/_matrix/vendor/v1" },
                 );
             });
 
@@ -756,7 +756,7 @@ describe("DirectMessageManager", () => {
                     "/rooms/!dm%3Aexample.com/dm/partner",
                     undefined,
                     undefined,
-                    { prefix: "/_matrix/client/v3" },
+                    { prefix: "/_matrix/vendor/v1" },
                 );
             });
 

@@ -22,9 +22,11 @@ import { LRUCache } from "../../utils/lru-cache";
 import { RoomSummaryBaseManager, type RoomSummaryErrorCallback } from "../room-summary-base-manager";
 import type { RoomSummaryMember, RoomMembersRecentResult } from "../types";
 import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
-import type { PathAssert, StripV3 } from "../../http-api/strip-prefix";
+import type { PathAssert, StripV3, StripVendor } from "../../http-api/strip-prefix";
 
-function rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
+function rsv<const P extends string>(
+    path: P & PathAssert<P, StripV3<RoomSummaryPath> | StripVendor<RoomSummaryPath>>,
+): P {
     return path;
 }
 
@@ -49,11 +51,14 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
 
     // ─── Path helpers ──────────────────────────────────────────────────────
 
-    private summaryMembersPath(roomId: string): StripV3<RoomSummaryPathPattern> {
+    private summaryMembersPath(roomId: string): StripV3<RoomSummaryPathPattern> | StripVendor<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/members`);
     }
 
-    private summaryMemberPath(roomId: string, userId: string): StripV3<RoomSummaryPathPattern> {
+    private summaryMemberPath(
+        roomId: string,
+        userId: string,
+    ): StripV3<RoomSummaryPathPattern> | StripVendor<RoomSummaryPathPattern> {
         return rsv(`/rooms/${encodeURIComponent(roomId)}/summary/members/${encodeURIComponent(userId)}`);
     }
 
@@ -82,7 +87,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
         }
 
         return this.withRetry(async () => {
-            return await this.requestV3<RoomSummaryMember[]>(Method.Get, this.summaryMembersPath(roomId));
+            return await this.requestVendor<RoomSummaryMember[]>(Method.Get, this.summaryMembersPath(roomId));
         }, "getRoomSummaryMembers").then(
             (members) => {
                 this.memberCache.set(roomId, members);
@@ -114,7 +119,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
 
         try {
             const response = await this.withRetry(async () => {
-                return await this.requestV3<{ members?: RoomSummaryMember[] } | RoomSummaryMember[]>(
+                return await this.requestVendor<{ members?: RoomSummaryMember[] } | RoomSummaryMember[]>(
                     Method.Post,
                     this.summaryMembersPath(roomId),
                     undefined,
@@ -148,7 +153,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
         this.validateUserId(userId);
 
         return this.withRetry(async () => {
-            const updatedMember = await this.requestV3<RoomSummaryMember>(
+            const updatedMember = await this.requestVendor<RoomSummaryMember>(
                 Method.Put,
                 this.summaryMemberPath(roomId, userId),
                 undefined,
@@ -170,7 +175,7 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
         this.validateUserId(userId);
 
         return this.withRetry(async () => {
-            await this.requestV3(Method.Delete, this.summaryMemberPath(roomId, userId));
+            await this.requestVendor(Method.Delete, this.summaryMemberPath(roomId, userId));
             this.memberCache.delete(roomId);
         }, "deleteSummaryMember");
     }

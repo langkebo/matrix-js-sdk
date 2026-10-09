@@ -4,14 +4,13 @@
  *
  * Module:        Sync 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       4 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       3 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `sync` module (mirrored from the backend contract). */
 export const SYNC_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/events" },
     { method: "GET", path: "/_matrix/client/v3/joined_rooms" },
-    { method: "GET", path: "/_matrix/client/v3/my_rooms" },
     { method: "GET", path: "/_matrix/client/v3/sync" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 

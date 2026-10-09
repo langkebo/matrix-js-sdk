@@ -237,12 +237,13 @@ export class E2EEManager extends BaseManager {
     public async uploadSignatures(
         body: Record<string, Record<string, Record<string, string>>>,
     ): Promise<SignaturesUploadResponse> {
-        return this.post(ep("/keys/signatures"), body, "uploadSignatures");
+        return this.post(ep("/keys/signatures/upload"), body, "uploadSignatures");
     }
 
     /**
-     * `/keys/signatures/upload` 与 `/keys/signatures` 是同一 handler 的别名，
-     * 后端两条路径都会被路由到 `upload_signatures`，按 SDK 习惯保留两个入口。
+     * `/keys/signatures` 是历史别名；后端 ledger 只注册 `/keys/signatures/upload`
+     * （`POST /_matrix/client/{v1,v3}/keys/signatures/upload`），旧路径恒 404，
+     * 故两个入口统一指向规范路径。
      */
     public async uploadSignaturesAlt(
         body: Record<string, Record<string, Record<string, string>>>,

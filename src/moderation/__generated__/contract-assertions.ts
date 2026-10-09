@@ -6,10 +6,10 @@
 
 import { MODERATION_ROUTES } from "./route-table";
 
-export const MODERATION_ROUTES_ENTRY_COUNT = 9 as const;
+export const MODERATION_ROUTES_ENTRY_COUNT = 6 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _ModerationEntryCountAssertion: 9 = MODERATION_ROUTES.length;
+const _ModerationEntryCountAssertion: 6 = MODERATION_ROUTES.length;
 void _ModerationEntryCountAssertion;
 
 export const MODERATION_ROUTES_STATUS_SCENARIOS = [

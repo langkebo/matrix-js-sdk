@@ -28,15 +28,6 @@ describe("ExternalServiceManager", () => {
         });
     });
 
-    it("listServices should work with matrix_admin prefix", async () => {
-        expect.assertions(0);
-        transport.respondWith({ services: [] });
-        await manager.listServices("matrix_admin");
-        transport.expectCalledWithArgs(Method.Get, "/external_services", undefined, undefined, {
-            prefix: "/_matrix/admin/v1",
-        });
-    });
-
     it("listServices should throw when using client prefix", async () => {
         await expect(manager.listServices("client")).rejects.toThrow("Client prefix does not support listing services");
     });
@@ -51,21 +42,6 @@ describe("ExternalServiceManager", () => {
         transport.expectCalledWithArgs(Method.Post, "/external_services", undefined, data, {
             prefix: AdminPrefix.V1,
         });
-    });
-
-    it("createService should work with matrix_admin prefix", async () => {
-        expect.assertions(0);
-        transport.respondWith({ id: "svc2" });
-        await manager.createService({ type: "webhook", url: "https://hook.example.com" }, "matrix_admin");
-        transport.expectCalledWithArgs(
-            Method.Post,
-            "/external_services",
-            undefined,
-            { type: "webhook", url: "https://hook.example.com" },
-            {
-                prefix: "/_matrix/admin/v1",
-            },
-        );
     });
 
     // ─── getService ─────────────────────────────────────────────────
@@ -132,15 +108,6 @@ describe("ExternalServiceManager", () => {
         expect(result.services).toHaveLength(1);
         transport.expectCalledWithArgs(Method.Get, "/external_services/health", undefined, undefined, {
             prefix: AdminPrefix.V1,
-        });
-    });
-
-    it("getHealth should work with matrix_admin prefix", async () => {
-        expect.assertions(0);
-        transport.respondWith({ status: "healthy" });
-        await manager.getHealth("matrix_admin");
-        transport.expectCalledWithArgs(Method.Get, "/external_services/health", undefined, undefined, {
-            prefix: "/_matrix/admin/v1",
         });
     });
 

@@ -28,7 +28,7 @@ import { registerManagerClass, getOrCreateManager } from "../client-infra/manage
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import { ValidationError } from "../errors";
 import type { VoicePath } from "./__generated__/route-table";
-import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripVendor } from "../http-api/strip-prefix";
 
 /**
  * 路径前缀剥离：把契约表里的绝对路径（`/_matrix/client/v3/…`）化成管理器内部
@@ -44,7 +44,7 @@ import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
  * 方法，见 `scripts/quality/path-contract-waivers.json`）与 MSC4143 的
  * `/org.matrix.msc4143/rtc/transports`（不属 voice 契约），二者显式保留裸字符串。
  */
-function vp<const P extends string>(path: P & PathAssert<P, StripV3<VoicePath>>): P {
+function vp<const P extends string>(path: P & PathAssert<P, StripVendor<VoicePath>>): P {
     return path;
 }
 

@@ -4,7 +4,7 @@
  *
  * Module:        搜索契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       10 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       8 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `search` module (mirrored from the backend contract). */
@@ -15,8 +15,6 @@ export const SEARCH_ROUTES = [
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/context/{event_id}" },
     { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/hierarchy" },
     { method: "POST", path: "/_matrix/client/v3/search" },
-    { method: "POST", path: "/_matrix/client/v3/search_recipients" },
-    { method: "POST", path: "/_matrix/client/v3/search_rooms" },
     { method: "POST", path: "/_matrix/vendor/v1/search_recipients" },
     { method: "POST", path: "/_matrix/vendor/v1/search_rooms" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];

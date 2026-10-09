@@ -4,7 +4,7 @@
  *
  * Module:        E2EE
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       38 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       36 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `e2ee` module (mirrored from the backend contract). */
@@ -14,7 +14,6 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/keys/device_list/update" },
     { method: "POST", path: "/_matrix/client/v1/keys/device_signing/upload" },
     { method: "POST", path: "/_matrix/client/v1/keys/query" },
-    { method: "POST", path: "/_matrix/client/v1/keys/signatures" },
     { method: "POST", path: "/_matrix/client/v1/keys/signatures/upload" },
     { method: "POST", path: "/_matrix/client/v1/keys/upload" },
     { method: "GET", path: "/_matrix/client/v1/room_keys/request" },
@@ -35,7 +34,6 @@ export const E2EE_ROUTES = [
     { method: "POST", path: "/_matrix/client/v3/keys/device_list/update" },
     { method: "POST", path: "/_matrix/client/v3/keys/device_signing/upload" },
     { method: "POST", path: "/_matrix/client/v3/keys/query" },
-    { method: "POST", path: "/_matrix/client/v3/keys/signatures" },
     { method: "POST", path: "/_matrix/client/v3/keys/signatures/upload" },
     { method: "POST", path: "/_matrix/client/v3/keys/upload" },
     { method: "GET", path: "/_matrix/client/v3/room_keys/request" },

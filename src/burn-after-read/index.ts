@@ -50,11 +50,11 @@ import type { IContent } from "../models/event";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 import type { BurnAfterReadPath } from "./__generated__/route-table";
 import type { BurnSettings, BurnStats, PendingBurnEvent } from "./__generated__/dto";
-import type { PathAssert, StripV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripVendor } from "../http-api/strip-prefix";
 
 type BurnAfterReadApiVersion = "v1" | "v3";
 
-function bp<const P extends string>(path: P & PathAssert<P, StripV1<BurnAfterReadPath>>): P {
+function bp<const P extends string>(path: P & PathAssert<P, StripVendor<BurnAfterReadPath>>): P {
     return path;
 }
 

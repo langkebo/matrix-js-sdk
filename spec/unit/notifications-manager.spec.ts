@@ -18,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MatrixClient } from "../../src/client.ts";
 import { NotificationsManager } from "../../src/notifications/index.ts";
 import { Method } from "../../src/http-api/method.ts";
-import { ClientPrefix } from "../../src/http-api/prefix.ts";
+import { ClientPrefix, VendorPrefix } from "../../src/http-api/prefix.ts";
 
 describe("NotificationsManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,7 +93,7 @@ describe("NotificationsManager", () => {
 
         expect(result).toEqual([sampleDevice]);
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Get, "/push/devices", undefined, undefined, {
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     });
 
@@ -111,7 +111,7 @@ describe("NotificationsManager", () => {
 
         expect(result).toEqual(sampleDevice);
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/push/devices", undefined, body, {
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     });
 
@@ -137,7 +137,7 @@ describe("NotificationsManager", () => {
             `/push/devices/${encodeURIComponent("D/1")}`,
             undefined,
             undefined,
-            { prefix: ClientPrefix.V3 },
+            { prefix: VendorPrefix },
         );
     });
 
@@ -153,7 +153,7 @@ describe("NotificationsManager", () => {
 
         expect(result).toEqual({ message: "Notification queued" });
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(Method.Post, "/push/send", undefined, body, {
-            prefix: ClientPrefix.V3,
+            prefix: VendorPrefix,
         });
     });
 

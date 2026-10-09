@@ -897,7 +897,7 @@ describe("RoomManager", () => {
                 "/translate",
                 undefined,
                 { text: "hello", target_lang: "es", source_lang: "en" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -911,7 +911,7 @@ describe("RoomManager", () => {
                 "/translate",
                 undefined,
                 { text: "hello", target_lang: "es" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -928,7 +928,7 @@ describe("RoomManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/sticky_events`,
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/client/unstable/org.matrix.msc4354" },
             );
         });
 
@@ -942,7 +942,7 @@ describe("RoomManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/sticky_events`,
                 undefined,
                 { "m.room.topic": true },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/client/unstable/org.matrix.msc4354" },
             );
         });
     });
@@ -997,7 +997,7 @@ describe("RoomManager", () => {
                 `/user/${encodeURIComponent("@test:example.com")}/rooms`,
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1018,7 +1018,7 @@ describe("RoomManager", () => {
                 "/user/mutual_rooms",
                 { user_id: "@other:example.com", limit: "5", batch_token: "t1" },
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1032,7 +1032,7 @@ describe("RoomManager", () => {
                 "/user/mutual_rooms",
                 { user_id: "@other:example.com" },
                 undefined,
-                { prefix: "/_matrix/client/v1" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 

@@ -18,7 +18,7 @@ limitations under the License.
  * External Service Manager - 外部服务管理
  *
  * 提供外部服务的 CRUD、健康检查、Webhook 触发等功能
- * 支持三种 API 前缀: synapse_admin (/_synapse/admin/v1)、matrix_admin (/_matrix/admin/v1)、client (/_matrix/client/v1)
+ * 支持两种 API 前缀: synapse_admin (/_synapse/admin/v1)、client (/_matrix/vendor/v1)
  * 以及 Webhook 路由前缀: /_synapse/external
  * 对应后端: synapse-rust/src/web/routes/external_service.rs
  */
@@ -29,25 +29,20 @@ import { Method } from "../http-api/method";
 import { AdminPrefix, VendorPrefix } from "../http-api/prefix";
 import type { ExternalServicePath } from "./__generated__/route-table";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { PathAssert, StripAdminV1, StripMatrixAdminV1, StripV1 } from "../http-api/strip-prefix";
+import type { PathAssert, StripAdminV1, StripVendor } from "../http-api/strip-prefix";
 
 function sap<const P extends string>(path: P & PathAssert<P, StripAdminV1<ExternalServicePath>>): P {
     return path;
 }
 
-function map<const P extends string>(path: P & PathAssert<P, StripMatrixAdminV1<ExternalServicePath>>): P {
+function cp<const P extends string>(path: P & PathAssert<P, StripVendor<ExternalServicePath>>): P {
     return path;
 }
 
-function cp<const P extends string>(path: P & PathAssert<P, StripV1<ExternalServicePath>>): P {
-    return path;
-}
-
-export type ExternalServiceApiPrefix = "synapse_admin" | "matrix_admin" | "client";
+export type ExternalServiceApiPrefix = "synapse_admin" | "client";
 
 const EXTERNAL_SERVICE_PREFIX: Record<ExternalServiceApiPrefix, string> = {
     synapse_admin: AdminPrefix.V1,
-    matrix_admin: "/_matrix/admin/v1",
     // ISSUE-13: 私有端点迁 vendor 前缀（client 别名后端仍兼容）
     client: VendorPrefix,
 };
@@ -147,8 +142,6 @@ export class ExternalServiceManager extends BaseManager {
         switch (prefix) {
             case "synapse_admin":
                 return sap("/external_services");
-            case "matrix_admin":
-                return map("/external_services");
             case "client":
                 throw new Error("Client prefix does not support listing services");
         }
@@ -159,8 +152,6 @@ export class ExternalServiceManager extends BaseManager {
         switch (prefix) {
             case "synapse_admin":
                 return sap(`/external_services/${encoded}`);
-            case "matrix_admin":
-                return map(`/external_services/${encoded}`);
             case "client":
                 return cp(`/external_services/${encoded}`);
         }
@@ -170,8 +161,6 @@ export class ExternalServiceManager extends BaseManager {
         switch (prefix) {
             case "synapse_admin":
                 return sap("/external_services/health");
-            case "matrix_admin":
-                return map("/external_services/health");
             case "client":
                 return cp("/external_services/health");
         }

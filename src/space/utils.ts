@@ -22,16 +22,23 @@ limitations under the License.
 
 import type { SpacePath } from "./__generated__/route-table";
 import type { Space } from "./types";
-import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+import type { PathAssert, StripV1, StripV3, StripVendor } from "../http-api/strip-prefix";
 
 type JsonObject = Record<string, unknown>; // Dynamic: arbitrary space child state content
 
-export function sp<const P extends string>(path: P & PathAssert<P, StripV3<SpacePath>>): P {
+export function sp<const P extends string>(
+    path: P & PathAssert<P, StripV3<SpacePath> | StripV1<SpacePath> | StripVendor<SpacePath>>,
+): P {
     return path;
 }
 
 export function spacePath(pathTemplate: string, spaceId: string): string {
-    return sp(pathTemplate.replace("$spaceId", encodeURIComponent(spaceId)) as StripV3<SpacePath>);
+    return sp(
+        pathTemplate.replace("$spaceId", encodeURIComponent(spaceId)) as
+            | StripV3<SpacePath>
+            | StripV1<SpacePath>
+            | StripVendor<SpacePath>,
+    );
 }
 
 export function asString(value: unknown): string | undefined {

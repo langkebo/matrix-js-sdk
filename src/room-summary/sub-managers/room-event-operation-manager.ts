@@ -90,7 +90,9 @@ import type {
 import type { RoomSummaryPath, RoomSummaryPathPattern } from "../__generated__/route-table";
 import type { PathAssert, StripInternalSummary, StripV3, StripVendor } from "../../http-api/strip-prefix";
 
-function _rsv<const P extends string>(path: P & PathAssert<P, StripV3<RoomSummaryPath>>): P {
+function _rsv<const P extends string>(
+    path: P & PathAssert<P, StripV3<RoomSummaryPath> | StripVendor<RoomSummaryPath>>,
+): P {
     return path;
 }
 
@@ -927,7 +929,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
 
     // ─── 路径辅助（从 index.ts 迁移） ─────────────────────────────────────
 
-    private summaryReadPath(roomId: string): StripV3<RoomSummaryPathPattern> {
+    private summaryReadPath(roomId: string): StripV3<RoomSummaryPathPattern> | StripVendor<RoomSummaryPathPattern> {
         return _rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);
     }
 
