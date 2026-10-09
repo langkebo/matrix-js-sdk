@@ -1330,11 +1330,11 @@ prettier / eslint 干净、`quality:msc` 正常模式 exit 0。
 
 #### D 类 —— **功能遗漏**（后端已实现、SDK 无封装）
 
-| #       | 缺口                                                                                                                    | 后端位置                                                                              | 影响                                     | 复核      |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------- | --------- |
-| 🟡 G-02 | `src/admin/sub-managers/admin-media-manager.ts` **只有 quarantine/unquarantine**（`:117`/`:141`），无 protect/unprotect | `admin/media.rs:57`/`:59`/`:66`（protect / protect-by-id / unprotect）                | 媒体保护功能缺失                         | ✅ 双侧   |
-| 🟡 G-03 | `src/account/index.ts:253-257` 硬编码 `/register/email/submitToken`                                                     | `assembly.rs:348`/`:384`/`:390`（三条 submitToken 路由）                              | 密码重置 / 3PID 邮箱验证码提交流程无封装 | ✅ 双侧   |
-| 🟡 G-01 | —                                                                                                                       | `app_service.rs:722-723` 通配代理 `/_matrix/{app/v1,client/v1}/proxy/{as_id}/{*path}` | 是否需 SDK 封装待定                      | 🟡 待复核 |
+| #       | 缺口                                                                                                                    | 后端位置                                                                              | 影响                                                                                                                            | 复核                                                                           |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 🟡 G-02 | `src/admin/sub-managers/admin-media-manager.ts` **只有 quarantine/unquarantine**（`:117`/`:141`），无 protect/unprotect | `admin/media.rs:57`/`:59`/`:66`（protect / protect-by-id / unprotect）                | 媒体保护功能缺失                                                                                                                | ✅ 双侧                                                                        |
+| 🟡 G-03 | `src/account/index.ts:253-257` 硬编码 `/register/email/submitToken`                                                     | `assembly.rs:348`/`:384`/`:390`（三条 submitToken 路由）                              | 密码重置 / 3PID 邮箱验证码提交流程无封装                                                                                        | ✅ 双侧                                                                        |
+| 🟡 G-01 | —                                                                                                                       | `app_service.rs:722-723` 通配代理 `/_matrix/{app/v1,client/v1}/proxy/{as_id}/{*path}` | AS 侧协议（application service 代用户调用 C-S API 的入口），**非客户端能力**；含 `{*path}` 通配符，codegen 无法生成 route-table | ✅ 已回源（2026-10-09，见封装对账报告 §3.1）：**不封装**，归入 AS/服务端排除组 |
 
 ### 9.3 解决方案（4 批，每批可独立验收）
 
@@ -1343,7 +1343,7 @@ prettier / eslint 干净、`quality:msc` 正常模式 exit 0。
 | **批 1**（最高优先） | A 类 **11 条**（400） **✅ 已完成** | **只改 SDK 的键名/补必填**：`is_suggested_only`→`suggested_only`（并统一到 `:469` 的写法）、`reason`→`message`、thread 五处 body/query 按后端结构补齐、cas 三处、e2ee 补 `algorithm`。**后端零改动**。thread 族由 `a35496e59` 完成，另 5 条见 §7.15 | 每条补单测断言"发出的键集 ⊇ 后端 serde 必填集"   |
 | **批 2**             | B 类 **8 条**（形状）               | 改 SDK 类型与解析：cas 改 `CasService[]`、thread replies 改裸数组（或 SDK 侧解包）、thread detail 去包裹、media 分块字段名对齐、`state`→`status` **并校正值域**、cas 校验改按 `text/plain`/XML 解析                                                 | 每条补响应形状回归测试（含"后端返回裸数组"用例） |
 | **批 3**             | C 类 **5 条**（静默）               | media：`getDownloadUrl` 在带 `signature` 时改走 `/download_signed/...` 且参数名用 **`expires`**；`include`→`include_all`；`pgtUrl`→`pgt_url`；`limit` 真正下发；`auth_issuer` 回退分支要么删除、要么按后端实际路由改写                              | 断言"URL/参数构造"的纯函数单测                   |
-| **批 4**             | D 类 **3 条**（遗漏）               | 新增 `protectMedia`/`unprotectMedia`；`submitEmailToken` 增加 scope 参数（register / password / 3pid）；G-01 待产品定                                                                                                                               | 新方法带 `@example`（公开 API 文档棘轮要求）     |
+| **批 4**             | D 类 **3 条**（遗漏）               | 新增 `protectMedia`/`unprotectMedia`；`submitEmailToken` 增加 scope 参数（register / password / 3pid）；G-01 已裁定（AS 侧协议，不封装）                                                                                                            | 新方法带 `@example`（公开 API 文档棘轮要求）     |
 
 ### 9.4 根本原因与防复发（比逐条修更重要）
 

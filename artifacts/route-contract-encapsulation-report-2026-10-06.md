@@ -8,19 +8,19 @@
 
 ## 1. 汇总统计
 
-| 指标                              | 2026-10-06 首版           | 2026-10-09 复核                                  | 变化原因                                         |
-| --------------------------------- | ------------------------- | ------------------------------------------------ | ------------------------------------------------ |
-| 后端注册路由（绝对去重）          | 1159                      | **1030**                                         | M2/M3 迁 vendor + M4 D1 删 2 组重复              |
-| 语义 distinct（去尾斜杠孪生）     | 1154                      | **1025**                                         | 5 对孪生（见 §3.4）                              |
-| SDK 镜像漂移（missing / extra）   | 0 / 0 ✅                  | **0 / 0 ✅**                                     | `contract:sync` 与 ledger 完全一致               |
-| 证据分布                          | 已封 993 / 未封 165       | T1 331 / T2 563 / T3 70 / GAP 65 / CONDITIONAL 1 | 四级证据分开落盘                                 |
-| 声明面覆盖（declaredCoverage）    | —                         | **732 / 1025 = 71.4%**                           | T3 声明面单独计量                                |
-| 客户端面（scope = CLIENT_FACING） | 758                       | **644**                                          | M3 迁 vendor 后按新前缀重算                      |
-| ├ 已封装（T1 ∪ T2）               | 678                       | **579**                                          | 同上                                             |
-| ├ 机械封装率                      | 89.4%                     | **89.9%**                                        | 579 / 644                                        |
-| └ 人工修正后封装率                | 92.9%                     | **94.4%**                                        | 计入假阳性 13 + 运行时族 15 + 孪生 1 = 608 / 644 |
-| 客户端面未封装                    | 80                        | **65**                                           | T3 58 + GAP 7                                    |
-| admin 运维面（路径前缀口径）      | 300（已封 265 / 未封 35） | **290（已封 265 / 未封 25）**                    | M4 D1 删重复挂载 + M3 移出 vendor                |
+| 指标                              | 2026-10-06 首版           | 2026-10-09 复核                                  | 变化原因                                                                                                                  |
+| --------------------------------- | ------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| 后端注册路由（绝对去重）          | 1159                      | **1030**                                         | M2/M3 迁 vendor + M4 D1 删 2 组重复                                                                                       |
+| 语义 distinct（去尾斜杠孪生）     | 1154                      | **1025**                                         | 5 对孪生（见 §3.4）                                                                                                       |
+| SDK 镜像漂移（missing / extra）   | 0 / 0 ✅                  | **0 / 0 ✅**                                     | `contract:sync` 与 ledger 完全一致                                                                                        |
+| 证据分布                          | 已封 993 / 未封 165       | T1 331 / T2 563 / T3 70 / GAP 65 / CONDITIONAL 1 | 四级证据分开落盘                                                                                                          |
+| 声明面覆盖（declaredCoverage）    | —                         | **732 / 1025 = 71.4%**                           | T3 声明面单独计量                                                                                                         |
+| 客户端面（scope = CLIENT_FACING） | 758                       | **644**                                          | M3 迁 vendor 后按新前缀重算                                                                                               |
+| ├ 已封装（T1 ∪ T2）               | 678                       | **579**                                          | 同上                                                                                                                      |
+| ├ 机械封装率                      | 89.4%                     | **89.9%**                                        | 579 / 644                                                                                                                 |
+| └ 人工修正后封装率                | 92.9%                     | **97.7%**                                        | 计入假阳性 13 + 运行时族 15 + 孪生 1 + 别名覆盖 21 = 629 / 644（若把 AS 代理 7 条移出客户端面，则 629 / 637 = 98.7%）     |
+| 客户端面未封装                    | 80                        | **65**                                           | T3 58 + GAP 7；其中真缺口 **0**（§3.1 逐条回源），别名覆盖 21、AS 代理 7、假阳性/盲区 13、运行时族 15、孪生 1、浏览器流 8 |
+| admin 运维面（路径前缀口径）      | 300（已封 265 / 未封 35） | **290（已封 265 / 未封 25）**                    | M4 D1 删重复挂载 + M3 移出 vendor                                                                                         |
 
 > 客户端面 = `CLIENT_FACING`（`/_matrix/client/*`、`/_synapse` 非 admin、`/_matrix/vendor/*`、`/.well-known/*` 中 SDK 相关），口径由 `compare-routes.mjs` 的 `scopeOf` 给出。
 
@@ -28,63 +28,37 @@
 
 `ROUTE_CONTRACT.md` 中**不存在**任何字面的「无需封装」标注。本报告的「不该封/不必封」判定全部来自架构位置与人工复核，出处如下：
 
-| 分类                                    | 条数             | 出处 / 依据                                                          |
-| --------------------------------------- | ---------------- | -------------------------------------------------------------------- |
-| S2S 联邦协议（`/_matrix/federation/*`） | 26               | 服务器间协议，客户端 SDK 无调用方（§5.1）                            |
-| 服务端密钥查询（`/_matrix/key/v2/*`）   | 4                | 服务器间密钥交换（§5.4）                                             |
-| AS→HS 回调（`/_matrix/app/v1/*`）       | 12               | appservice 实现侧回调（§5.2）                                        |
-| 根级探活/无前缀                         | 3                | 文档「前缀之外」节：有意的根级探活端点（§5.3）                       |
-| admin 运维面                            | （25 条单列 §4） | 本 fork 的 AdminManager **有意**封装 admin，不能按上游口径排除       |
-| 客户端面 T3 仅声明                      | 58（§3）         | 声明面命中但源码无构造/调用点                                        |
-| 客户端面 GAP                            | 7（§3.1）        | appservice 代理透传含 `{*path}` 通配符，codegen 无法生成 route-table |
+| 分类                                                                  | 条数             | 出处 / 依据                                                                                                                           |
+| --------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| S2S 联邦协议（`/_matrix/federation/*`）                               | 26               | 服务器间协议，客户端 SDK 无调用方（§5.1）                                                                                             |
+| 服务端密钥查询（`/_matrix/key/v2/*`）                                 | 4                | 服务器间密钥交换（§5.4）                                                                                                              |
+| AS→HS 回调（`/_matrix/app/v1/*`）                                     | 12               | appservice 实现侧回调（§5.2）                                                                                                         |
+| 根级探活/无前缀                                                       | 3                | 文档「前缀之外」节：有意的根级探活端点（§5.3）                                                                                        |
+| admin 运维面                                                          | （25 条单列 §4） | 本 fork 的 AdminManager **有意**封装 admin，不能按上游口径排除                                                                        |
+| 客户端面 T3 仅声明                                                    | 58（§3）         | 声明面命中但源码无构造/调用点                                                                                                         |
+| 客户端面 GAP                                                          | 7（§3.1）        | appservice 代理透传含 `{*path}` 通配符，codegen 无法生成 route-table                                                                  |
+| **AppService 代理透传**（`/_matrix/client/v1/proxy/{as_id}/{*path}`） | 7                | **AS 侧协议**：application service 代用户调用 C-S API 的入口，非客户端能力；含 `{*path}` 通配符，codegen 无法生成 route-table（§3.1） |
 
 > 合计校验：排除类 45 + admin 25 + 客户端 T3 58 + 客户端 GAP 7 = **135** 条 = T3 70 + GAP 65 ✅
 
 ## 3. 客户端面未封装明细（65 条 = T3 58 + GAP 7，重分类后）
 
-### 3.1 真缺口（28 条，需产品决策是否补封装）
+### 3.1 真缺口（0 条：28 条候选经逐条回源全部证伪）
 
-**密钥备份 `{version}` 规范路径（18 条）** — Matrix 规范要求带 `{version}` 段；本 fork 的 SDK 走**无版本**变体（`/_matrix/client/{v1,v3}/room_keys/keys`，有 T2 证据）。若要与其它 homeserver 互通需补。
+2026-10-09 逐条回源（后端 handler + SDK 调用点 + Tjg 消费者 + 生成表）后，原列的 28 条
+**没有一条是「后端有能力、SDK 完全没封装」**。它们分成三类：
 
-- `DELETE` `/_matrix/client/v1/room_keys/{version}/keys`
-- `GET` `/_matrix/client/v1/room_keys/{version}/keys`
-- `PUT` `/_matrix/client/v1/room_keys/{version}/keys`
-- `DELETE` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`
-- `GET` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`
-- `PUT` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`
-- `DELETE` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}`
-- `GET` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}`
-- `PUT` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}`
-- `DELETE` `/_matrix/client/v3/room_keys/{version}/keys`
-- `GET` `/_matrix/client/v3/room_keys/{version}/keys`
-- `PUT` `/_matrix/client/v3/room_keys/{version}/keys`
-- `DELETE` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`
-- `GET` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`
-- `PUT` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`
-- `DELETE` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}`
-- `GET` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}`
-- `PUT` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}`
+| 类别                                                    | 条数 | 性质                                | 证据                                                                                                                                                                                                                                                                                                                                                                                         | 处置                                                                                                                                                                          |
+| ------------------------------------------------------- | ---- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `room_keys` 版本化路径 `/{version}/keys*`               | 18   | **同一能力的第二形态**              | SDK 的 TS 侧与 WASM 密码机统一走**无版本形态 + `?version=`**：`src/rust-crypto/backup.ts:756/772`（`authedRequest(Method.Get, "/room_keys/keys", { version: backupVersion }, …, { prefix: ClientPrefix.V3 })`）与 `src/rust-crypto/OutgoingRequestProcessor.ts:74-80`（`PUT /_matrix/client/v3/room_keys/keys` + `{ version: msg.version }`）；版本化形态在 `src/`、`Tjg/src` 中**零消费者** | **非缺口**。两种形态都保留：无版本形态是**外部预编译 WASM 密码机**固定的 URI 形状，SDK 无法改它；版本化形态是 Matrix 规范形状。这是一处**有记录的例外**（不是可删的重复实现） |
+| MSC4155 `.../threads`、MSC4156 `.../threads/subscribed` | 2    | **unstable 命名空间的同能力别名**   | v1/vendor 主路径已封装（`/_matrix/client/v1/rooms/{room_id}/threads`、`/_matrix/vendor/v1/threads/subscribed`）；后端 `handlers/thread.rs:191-196` 自述该 unstable 桩由**同一批 handler** 提供且「仅为已发布客户端的向后兼容」；`src/` 与 `Tjg/src` 中 0 命中；`scripts/contract/standard_prefix_policy.py` 的 `MSC_KEEP` 目前把它登记为「刻意的兼容位」                                     | **候选删除**（铁律 1：不留兼容层）。需先裁定与 `MSC_KEEP` 的冲突                                                                                                              |
+| `GET /_matrix/vendor/v1/friends/request/received`       | 1    | **后端自声明的 predecessor 死别名** | 规范路径 `friends/requests/incoming` 已封装（`src/friend/sub-managers/friend-request-manager.ts:250`，注释记载两路径曾都返回 200）；该别名由 `friend_room.rs:541-566` 提供，并自打 `deprecation: true` + `link: …incoming; rel="successor-version"` + `sunset: 2027-01-01`；`Tjg/src` 0 命中                                                                                                 | **候选删除**（同一能力两份实现，且后端自己声明了继任者）                                                                                                                      |
+| `/_matrix/client/v1/proxy/{as_id}/{*path}`（7 个方法）  | 7    | **AS 侧协议，不是客户端能力**       | 这是 application service 代用户调用 C-S API 的代理面（AppService 用它，不是客户端）；路径含 `{*path}` 通配符，codegen 无法生成 route-table；`remaining-issues-and-optimization-plan-2026-10-08.md` §9.2 的 G-01 亦标「是否需 SDK 封装待定」；`src/` 0 命中                                                                                                                                   | **移出客户端面**，归入 §2 的 AS/服务端排除组（与 `/_matrix/app/v1/*` 同类）                                                                                                   |
 
-**MSC4155 / MSC4156 线程不稳定变体（2 条）** — `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）；人工复核判定需与 Sprint 4 交付范围、`MSC_SEMANTICS.md` 对账。
-
-- `GET` `/_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads`
-- `GET` `/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed`
-
-**好友请求收件箱（1 条）** — M3 把该端点从 `/_matrix/client/v1` 移到 `/_matrix/vendor/v1`，SDK 未封装 vendor 租约。
-
-- `GET` `/_matrix/vendor/v1/friends/request/received`
-
-**AppService 代理透传（7 条，GAP）** — 路径含 `{*path}` 通配符，codegen 无法为其生成 route-table；是否有前端消费场景待产品确认。
-
-| Method    | Path                                       | 证据 |
-| --------- | ------------------------------------------ | ---- |
-| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
-| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
-| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
-| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
-| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
-| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
-| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+> **方法学教训（与引用文档一致）**：`remaining-issues…` §9.6 早已写明「凡 T3/T2 桶的条目
+> 一律人工回源，不得直接当缺口」；后端 `ROUTE_CONTRACT.md` 附录 B 也自述扫描器对
+> `room_keys/keys` 族有构造面盲区。本节的 28 条正是「机器按 (method,path) 逐条比对」
+> 的必然产物 —— **路径不同 ≠ 能力缺失**。凡涉及命名空间别名/协议方向，必须回源。
 
 ### 3.2 工具盲区·假阳性（13 条，人工核验实际已封装，不计缺口）
 
@@ -263,7 +237,9 @@
 6. **两处「人工判真缺口 / 机器判已封装」的口径冲突已复核关闭（机器判定正确）**：① `/_matrix/client/unstable/org.matrix.msc2965/auth_metadata`（人工记录写作 `auth_issuer`）—— `src/client-auth.ts:54-61` 明确请求 `/auth_metadata`（稳定版 `ClientPrefix.V1`，不稳定版 `ClientPrefix.Unstable + "/org.matrix.msc2965"`）与 `/auth_issuer`；② `POST /_matrix/client/v3/admin/room/{room_id}/redact` —— `src/admin/sub-managers/admin-room-manager.ts:482` 构造 `/admin/room/${encodeURIComponent(roomId)}/redact`，前缀由 `adminRequest` 注入。两条都是**人工 grep 范围不足**（前者关键字对不上，后者漏了 `sub-managers/` 子目录），不是解析器误配。`artifacts/sdk-contract-gap-report.md` §7 的这两行已按本结论更正。
 
 7. **T1 明细未落盘**：`sdk-contract-gap.json` 只给 T1 总数（331），没有逐条清单，故 §7 的「已封装」= 总条数 −（GAP + T3），即 T1∪T2（与首版口径一致，可直接对比）。
-8. **本报告定稿时 `develop` 工作树有另一写者的在飞改动**（`src/cas/index.ts`、`src/friend/sub-managers/friend-request-manager.ts`、`src/room-keys/index.ts`、`src/room-summary*` 及其 spec），正好命中 §3.2 假阳性条目与 §3.1 的 room_keys 真缺口 ⇒ **该批次落地后必须重跑本报告**（复现命令见文末）；本版数字对应 `779f17d8f` 提交态。
+8. **§3.1 的 28 条已逐条回源证伪（2026-10-09）**：0 条真缺口 —— 21 条是命名空间/路径别名（18 room_keys 版本化 + 2 个 MSC 线程桩 + 1 个 friends predecessor），7 条是 AS 侧代理。证据见 §3.1 表。**不要**为它们新增 SDK 包装：那会与本仓「重复实现的功能都应删除」的既定裁定直接冲突。
+9. **两条候选删除已登记**：`msc4155`/`msc4156` 线程桩、`friends/request/received`（后端自打 `deprecation` + `successor-version` + `sunset` 头）。删除会牵动 `standard_prefix_policy.py` 的 `MSC_KEEP`、`mixed_module_client_routes.txt` 冻结清单、两份 ledger snapshot、两条 fixture lane 与 `derived_route_table_*.inc.rs`，属后端独立批次；动手前须先裁定与 `MSC_KEEP` 的冲突。
+10. **本报告定稿时 `develop` 工作树有另一写者的在飞改动**（`src/cas/index.ts`、`src/friend/sub-managers/friend-request-manager.ts`、`src/room-keys/index.ts`、`src/room-summary*` 及其 spec），正好命中 §3.2 假阳性条目与 §3.1 的 room_keys 真缺口 ⇒ **该批次落地后必须重跑本报告**（复现命令见文末）；本版数字对应 `779f17d8f` 提交态。
 
 ## 7. 逐模块封装总表
 
