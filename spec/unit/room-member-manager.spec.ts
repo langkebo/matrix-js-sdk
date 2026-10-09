@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { RoomMemberManager } from "../../src/room-member";
-import { Method, ClientPrefix } from "../../src/http-api";
+import { Method, ClientPrefix, VendorPrefix } from "../../src/http-api";
 
 describe("RoomMemberManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,7 +42,7 @@ describe("RoomMemberManager", () => {
     });
 
     describe("getMembershipEvents", () => {
-        it("POSTs to /rooms/{roomId}/get_membership_events on r0 prefix", async () => {
+        it("POSTs to /rooms/{roomId}/get_membership_events on vendor prefix", async () => {
             mockClient.http.authedRequest.mockResolvedValueOnce({
                 events: [
                     {
@@ -65,7 +65,7 @@ describe("RoomMemberManager", () => {
                 "/rooms/!r%3Ahs/get_membership_events",
                 undefined,
                 { limit: 50 },
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
 
@@ -80,7 +80,7 @@ describe("RoomMemberManager", () => {
                 "/rooms/!r%3Ahs/get_membership_events",
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: VendorPrefix },
             );
         });
     });

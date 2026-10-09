@@ -876,6 +876,33 @@ AssertionError: expected 'widget:sdk-only:POST …' to be 'undefined:undefined:u
 **教训（已写入 MEMORY）**：CI 的 Gate 会跑 `pnpm test --coverage`，而**本地 `pnpm lint` 链不跑单元测试** ——
 故本地预演除两条链外**必须再跑被改动波及的 spec**，否则"本地全绿"仍会在 CI 的 tests step 翻车。
 
+#### (11) 第七处：`room-member-manager.spec.ts` 期望前缀过时（**存量失败**，非本轮引入）
+
+CI 的 tests step 继而报 `spec/unit/room-member-manager.spec.ts` 2 例：
+
+```
+expected "vi.fn()" to be called with arguments …
+-  "prefix": "/_matrix/client/v3"
++  "prefix": "/_matrix/vendor/v1"
+```
+
+**判定：spec 过时，实现正确。**
+
+- ledger：`POST /_matrix/vendor/v1/rooms/{room_id}/get_membership_events`（**vendor**，`registered_by: room`）。
+- 提交 `0850cc567`「跟随后端 M3 —— room 私有端点迁 vendor（清 46 条 + 改 49 处调用点）」改了实现，
+  **漏改该 spec**（spec 最近提交 `a51f91a4c` 早于它）。
+
+**与本轮改动无关的实证**：`git log c148da631..HEAD -- spec/unit/room-member-manager.spec.ts src/room-summary/`
+为**空**（本轮 5 个提交未碰二者）；且**本地全量 `pnpm test --no-file-parallelism` 同样失败**
+（442 文件 / 6911 例中唯此 1 文件 2 例红）⇒ 属**存量失败**，此前从未被跑到
+（本地未跑全量、CI 的 tests step 一直被前面 step 短路）。
+
+**修**：`{ prefix: ClientPrefix.V3 }` → `{ prefix: VendorPrefix }`（2 处；`VendorPrefix = "/_matrix/vendor/v1"`，
+与实现及既有 spec（如 `account.spec.ts`）一致），用例名 "on r0 prefix" 更正为 "on vendor prefix"；
+**保留**同文件另一处 `ClientPrefix.V3`（那是别的方法，确实走 v3）。
+
+**验收**：该 spec **4 例**绿；`tsc --noEmit` exit 0；prettier / eslint 干净。
+
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
