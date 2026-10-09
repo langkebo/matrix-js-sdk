@@ -10,6 +10,30 @@ export const PREFIX_CONSTANTS: Record<string, Record<string, string>>;
 /** 没有显式 `prefix:` 时 SDK 实际使用的默认前缀。 */
 export const DEFAULT_PREFIX: string;
 
+/** 全部位置参数包装器的名字（`quality:wire-format` 复用同一份清单）。 */
+export const WRAPPER_NAMES: string[];
+
+/**
+ * 各包装器**位置形态**里 `queryParams` / `body` 的实参下标（0-based）；
+ * `null` = 签名不一致 / 未定位到定义 ⇒ 位置不可判（消费方按"未知"计数，不猜）。
+ * `byFile` 形态与 `POSITIONAL_WRAPPERS.doRequest.byDir` 同风格（同名不同签名的包装器用）。
+ */
+export const WRAPPER_IO_POSITIONS: Record<
+    string,
+    | { query: number | null; body: number | null }
+    | {
+          byFile: Array<[string, { query: number | null; body: number | null }]>;
+          fallback: { query: number | null; body: number | null };
+      }
+    | null
+>;
+
+/** 取包装器在指定文件里的 query/body 实参位置；`null` = 位置不可判。 */
+export function resolveWrapperIoPositions(
+    name: string,
+    relFile: string,
+): { query: number | null; body: number | null } | null;
+
 /** 解析结果：`known=false` 表示无法静态求值（调用点计入「动态跳过」，不 silently 放行）。 */
 export interface PrefixResolution {
     prefix: string | null;
@@ -84,6 +108,10 @@ export function extractWrapperCalls(
         guard: "plain" | "guarded" | null;
         prefixFromHelper: boolean;
         line: number;
+        /** `queryParams` 实参原文（截断）；位置不可判或没有该实参时为 null。`quality:wire-format` 用。 */
+        queryArg: string | null;
+        /** `body` 实参原文（截断）；同上。`quality:wire-format` 用。 */
+        bodyArg: string | null;
     }>;
     unchecked: Array<{ file: string; line: number; wrapper: string; expr: string }>;
 };

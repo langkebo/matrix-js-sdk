@@ -39,12 +39,34 @@ import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+/**
+ * CAS **协议面**前缀（`serviceValidate` / `proxyValidate` / `p3/serviceValidate` / `proxy` /
+ * `login` / `logout` 走 `/_synapse/cas`）。
+ */
 export type CasApiPrefix = "synapse_admin" | "cas";
 
 const CAS_API_PREFIX: Record<CasApiPrefix, string> = {
     synapse_admin: AdminPrefix.V1,
     cas: "/_synapse/cas",
 };
+
+/**
+ * CAS **服务/用户属性管理面**的前缀。
+ *
+ * ⚠️ 这里刻意**只有一个取值**（P-13，2026-10-10 回源实测）：
+ * 后端把服务与用户属性管理**只**注册在 `/_synapse/admin/v1/cas/…`
+ * （`cas.rs` 的路由表里 `/_synapse/cas` 下**只有协议面**）。全仓 grep
+ * `/_synapse/cas/services`、`/_synapse/cas/users` **零命中** ⇒ 传 `"cas"` 必然 **404**。
+ *
+ * 旧版本此处类型是 `CasApiPrefix`（含 `"cas"`），于是
+ * `listServices("cas")` / `createService(…, "cas")` / `deleteService(…, "cas")` /
+ * `setUserAttributes(…, "cas")` / `getUserAttributes(…, "cas")` 五个方法**全部不可用**，
+ * 且 `cas.spec.ts` 还把该坏行为断言成了"预期"。
+ *
+ * 收窄成单一取值后，传 `"cas"` 变成**编译错误**（这才是这类缺陷该有的下场）。
+ * 参数本身保留以维持调用形状（`listServices("synapse_admin")` 仍可编译）。
+ */
+export type CasServicePrefix = "synapse_admin";
 
 export interface CasService {
     id: string;
@@ -124,34 +146,29 @@ export class CasManager extends BaseManager {
         super(client, opts);
     }
 
-    private resolvePrefix(prefix: CasApiPrefix): string {
+    private resolvePrefix(prefix: CasServicePrefix): string {
         return CAS_API_PREFIX[prefix];
     }
 
     /**
-     * 解析 API 路径
-     * 根据前缀类型返回正确的路径片段（不包含前缀本身）
+     * 解析 API 路径（**服务管理面**，只有 `/_synapse/admin/v1/cas/…` 一种）
      *
-     * 后端路由契约（ROUTE_CONTRACT.md）:
-     * - synapse_admin: /_synapse/admin/v1/cas/services
-     * - cas: /_synapse/cas/services
+     * 后端路由契约（ROUTE_CONTRACT.md）：
+     * - `/_synapse/admin/v1/cas/services`（服务与用户属性管理**唯一**的注册面）
      *
-     * @param prefix 前缀类型
+     * ⚠️ `/_synapse/cas/services` **后端不存在** ⇒ 不再接受 `"cas"` 前缀（见 `CasServicePrefix`）。
+     *
+     * @param prefix 前缀类型（当前只有 `"synapse_admin"`）
      * @param basePath 基础路径（如 /services, /users/{id}/attributes）
      */
-    private resolvePath(prefix: CasApiPrefix, basePath: string): string {
-        if (prefix === "synapse_admin") {
-            // /_synapse/admin/v1 + /cas/services → /cas/services
-            return `/cas${basePath}`;
-        } else {
-            // /_synapse/cas + /services → /services
-            return basePath;
-        }
+    private resolvePath(prefix: CasServicePrefix, basePath: string): string {
+        // /_synapse/admin/v1 + /cas/services → /cas/services
+        return `/cas${basePath}`;
     }
 
     /**
      * 获取 CAS 服务列表
-     * 对应 GET /_synapse/admin/v1/cas/services (admin 前缀) 或 GET /_synapse/cas/services (cas 前缀)
+     * 对应 GET /_synapse/admin/v1/cas/services（服务管理的**唯一**注册面；`/_synapse/cas` 下只有协议面）
      *
      * @example
      * ```typescript
@@ -159,7 +176,7 @@ export class CasManager extends BaseManager {
      * console.log(services.services.length, 'services found');
      * ```
      */
-    public async listServices(prefix: CasApiPrefix = "synapse_admin"): Promise<CasServiceListResponse> {
+    public async listServices(prefix: CasServicePrefix = "synapse_admin"): Promise<CasServiceListResponse> {
         const prefixValue = this.resolvePrefix(prefix);
         // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
         const path = this.resolvePath(prefix, "/services");
@@ -170,7 +187,7 @@ export class CasManager extends BaseManager {
 
     /**
      * 创建 CAS 服务
-     * 对应 POST /_synapse/admin/v1/cas/services (admin 前缀) 或 POST /_synapse/cas/services (cas 前缀)
+     * 对应 POST /_synapse/admin/v1/cas/services（服务管理的**唯一**注册面）
      *
      * @example
      * ```typescript
@@ -184,7 +201,7 @@ export class CasManager extends BaseManager {
      */
     public async createService(
         data: CasServiceCreateRequest,
-        prefix: CasApiPrefix = "synapse_admin",
+        prefix: CasServicePrefix = "synapse_admin",
     ): Promise<CasServiceCreateResponse> {
         const prefixValue = this.resolvePrefix(prefix);
         // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
@@ -201,11 +218,11 @@ export class CasManager extends BaseManager {
 
     /**
      * 删除 CAS 服务
-     * 对应 DELETE /_synapse/admin/v1/cas/services/{id} (admin 前缀) 或 DELETE /_synapse/cas/services/{id} (cas 前缀)
+     * 对应 DELETE /_synapse/admin/v1/cas/services/{id}（服务管理的**唯一**注册面）
      */
     public async deleteService(
         serviceId: string,
-        prefix: CasApiPrefix = "synapse_admin",
+        prefix: CasServicePrefix = "synapse_admin",
     ): Promise<CasServiceDeleteResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const prefixValue = this.resolvePrefix(prefix);
@@ -222,11 +239,11 @@ export class CasManager extends BaseManager {
 
     /**
      * 获取用户属性
-     * 对应 GET /_synapse/admin/v1/cas/users/{id}/attributes (admin 前缀) 或 GET /_synapse/cas/users/{id}/attributes (cas 前缀)
+     * 对应 GET /_synapse/admin/v1/cas/users/{id}/attributes（服务管理的**唯一**注册面）
      */
     public async getUserAttributes(
         userId: string,
-        prefix: CasApiPrefix = "synapse_admin",
+        prefix: CasServicePrefix = "synapse_admin",
     ): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
         const prefixValue = this.resolvePrefix(prefix);
@@ -243,12 +260,12 @@ export class CasManager extends BaseManager {
 
     /**
      * 设置用户属性
-     * 对应 POST /_synapse/admin/v1/cas/users/{id}/attributes (admin 前缀) 或 POST /_synapse/cas/users/{id}/attributes (cas 前缀)
+     * 对应 POST /_synapse/admin/v1/cas/users/{id}/attributes（服务管理的**唯一**注册面）
      */
     public async setUserAttributes(
         userId: string,
         data: CasUserAttributes,
-        prefix: CasApiPrefix = "synapse_admin",
+        prefix: CasServicePrefix = "synapse_admin",
     ): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
         const prefixValue = this.resolvePrefix(prefix);

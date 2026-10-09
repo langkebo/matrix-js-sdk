@@ -136,86 +136,41 @@ describe("CasManager", () => {
     });
 
     describe("cas prefix", () => {
-        it("listServices with 'cas' prefix should use /services route (no embedded cas)", async () => {
-            // Note: Backend does NOT have /_synapse/cas/services route
-            // The cas prefix is for CAS protocol endpoints (serviceValidate, proxyValidate, etc.)
-            // Service management uses synapse_admin prefix only
-            transport.respondWith({ services: [] });
-
-            await manager.listServices("cas");
-
-            expect(transport.request).toHaveBeenCalledWith(
-                Method.Get,
-                "/services",
-                undefined,
-                undefined,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
-            );
-        });
-
-        it("createService with 'cas' prefix should use /services route", async () => {
-            const data = {
-                service_id: "cas-svc-1",
-                name: "CAS Service",
-                service_url_pattern: "https://cas.example.com",
+        it("服务管理面只认 `synapse_admin`；传 `cas` 现在是**编译错误**（P-13）", async () => {
+            // 后端把服务/用户属性管理**只**注册在 `/_synapse/admin/v1/cas/…`，
+            // `/_synapse/cas` 下只有协议面（cas.rs 路由表）⇒ 旧版本传 "cas" 必然 404。
+            // 收窄 `CasServicePrefix` 后由 tsc 兜住：若哪天有人把 "cas" 加回联合类型，
+            // 下面这行会从「预期报错」变成「不该报错」⇒ `pnpm lint:types` 立刻变红。
+            // 用 `if (false)` 包住是为了**不真的发请求**（类型检查照样发生）。
+            const casPrefixMustNotTypecheck = async (): Promise<void> => {
+                // @ts-expect-error "cas" 不再是服务管理面的合法前缀
+                await manager.listServices("cas");
             };
-            transport.respondWith({ id: "cas-svc-1", name: "CAS Service" });
+            expect(typeof casPrefixMustNotTypecheck).toBe("function");
 
-            const result = await manager.createService(data, "cas");
-
-            expect(result.id).toBe("cas-svc-1");
-            expect(transport.request).toHaveBeenCalledWith(
-                Method.Post,
-                "/services",
-                undefined,
-                data,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
-            );
-        });
-
-        it("deleteService with 'cas' prefix should use /services/{id} route", async () => {
-            transport.respondWith({ id: "cas-svc-1" });
-
-            const result = await manager.deleteService("cas-svc-1", "cas");
-
-            expect(result.id).toBe("cas-svc-1");
-            expect(transport.request).toHaveBeenCalledWith(
-                Method.Delete,
-                "/services/cas-svc-1",
-                undefined,
-                undefined,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
-            );
-        });
-
-        it("getUserAttributes with 'cas' prefix should use /users/{id}/attributes route", async () => {
-            transport.respondWith({ user_id: "@alice:example.com", attributes: { email: ["alice@test.com"] } });
-
-            const result = await manager.getUserAttributes("@alice:example.com", "cas");
-
-            expect(result.user_id).toBe("@alice:example.com");
+            transport.respondWith({ services: [] });
+            await manager.listServices("synapse_admin");
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
-                "/users/%40alice%3Aexample.com/attributes",
+                "/cas/services",
                 undefined,
                 undefined,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
+                expect.objectContaining({ prefix: "/_synapse/admin/v1" }),
             );
         });
 
-        it("setUserAttributes with 'cas' prefix should use /users/{id}/attributes route", async () => {
-            const data = { attributes: { email: ["charlie@test.com"] } };
-            transport.respondWith({ user_id: "@charlie:example.com", attributes: { email: ["charlie@test.com"] } });
-
-            const result = await manager.setUserAttributes("@charlie:example.com", data, "cas");
-
-            expect(result.user_id).toBe("@charlie:example.com");
+        it("显式传 `synapse_admin` 与省略参数等价（路径与前缀都不变）", async () => {
+            transport.respondWith({ services: [] });
+            await manager.createService(
+                { service_id: "svc", name: "S", service_url_pattern: "https://s.example.com" },
+                "synapse_admin",
+            );
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Post,
-                "/users/%40charlie%3Aexample.com/attributes",
+                "/cas/services",
                 undefined,
-                data,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
+                { service_id: "svc", name: "S", service_url_pattern: "https://s.example.com" },
+                expect.objectContaining({ prefix: "/_synapse/admin/v1" }),
             );
         });
 

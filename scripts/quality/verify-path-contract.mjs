@@ -325,6 +325,65 @@ const POSITIONAL_WRAPPERS = {
 };
 
 /**
+ * 全部位置参数包装器的名字（供 `quality:wire-format` 复用它自己的**对象字面量形态**
+ * 扫描 —— 两个门禁必须用**同一份**包装器清单，否则覆盖面对不上）。
+ *
+ * @type {string[]}
+ */
+export const WRAPPER_NAMES = Object.keys(POSITIONAL_WRAPPERS);
+
+/**
+ * 各包装器**位置形态**里 `queryParams` / `body` 的实参下标（0-based），供 `quality:wire-format`
+ * 取「发出的键集」用。位置取自各自定义处的签名（逐一核对过，2026-10-10）：
+ *
+ *   authedRequest / request   (method, path, queryParams?, body?, opts?)
+ *   adminRequest / v2Request  (method, path, queryParams?, body?, label?)
+ *   requestInternal / requestV3  (method, path, queryParams?, body?)
+ *
+ * ⚠️ **不确定就写 `null`，绝不猜**：猜错位置会把"另一个实参的键集"当成 body 键集，
+ * 于是造出**假缺陷**（方向错比不解更糟 —— 本仓累计 24 次抽取器错误全属这一类）。
+ * `doRequest` / `doRequestVendor` 就是实例：同名在**不同文件签名不同**，
+ * `src/widgets/index.ts` 是 `(method, path, body?)`（body 在 2、无 queryParams），
+ * 其余文件是 `(method, path, queryParams?, body?)` ⇒ 必须按文件区分。
+ *
+ * 形如 `{ byFile: [[前缀, {query, body}], …], fallback }` 的写法与 `POSITIONAL_WRAPPERS`
+ * 的 `byDir` 同风格：命中第一个前缀即用，未命中用 `fallback`。
+ */
+export const WRAPPER_IO_POSITIONS = {
+    authedRequest: { query: 2, body: 3 },
+    request: { query: 2, body: 3 },
+    adminRequest: { query: 2, body: 3 },
+    v2Request: { query: 2, body: 3 },
+    requestInternal: { query: 2, body: 3 },
+    requestV3: { query: 2, body: 3 },
+    requestWithRetry: { query: 2, body: 3 },
+    makeRequestWithUIA: { query: 2, body: 3 },
+    doRequest: { byFile: [["src/widgets/", { query: null, body: 2 }]], fallback: { query: 2, body: 3 } },
+    doRequestVendor: { byFile: [["src/widgets/", { query: null, body: 2 }]], fallback: { query: 2, body: 3 } },
+    // 未定位到定义 / 不便判定 ⇒ 一律"不可知"
+    idServerRequest: null,
+};
+
+/**
+ * 取某个包装器在**某个文件**里的 `queryParams` / `body` 实参位置。
+ *
+ * @param {string} name 包装器名
+ * @param {string} relFile 调用点所在文件的仓内相对路径
+ * @returns {{ query: number | null, body: number | null } | null} `null` = 位置不可判（按"未知"计数）
+ */
+export function resolveWrapperIoPositions(name, relFile) {
+    const v = WRAPPER_IO_POSITIONS[name];
+    if (v == null) return null;
+    if (v.byFile) {
+        for (const [prefix, pos] of v.byFile) {
+            if (relFile && relFile.startsWith(prefix)) return pos;
+        }
+        return v.fallback ?? null;
+    }
+    return v;
+}
+
+/**
  * 故意**不**纳入校验的包装器 —— 显式登记而非默默略过。
  * 报告里会打印这张表，使「覆盖面」本身可被审阅：想偷偷漏掉一类写法，
  * 就必须在这里写下一行理由。
@@ -1513,6 +1572,22 @@ export function extractWrapperCalls(source, relFile, options = {}) {
             ? { candidates: [helperInfo.stripPrefix], known: true }
             : candidatesForWrapper(POSITIONAL_WRAPPERS[m[1]], args, relFile);
         const { candidates, known } = resolved;
+        // `quality:wire-format` 需要 body / query 的**实参原文**来取键集；位置不确定就不给
+        // （`WRAPPER_IO_POSITIONS` 为 null）—— 那边按"未知"计数，不猜。
+        const ioPos = resolveWrapperIoPositions(m[1], relFile);
+        // ⚠️ 三种情形必须区分开，否则会造出假缺陷：
+        //   ① 该包装器**没有**这个位置（`ioPos` 为 null / 未定义）⇒ 返回 `null` = **不可知**；
+        //   ② 位置存在但调用点**没传**（实参少于签名）⇒ 运行时是 `undefined` = **确定不发**，
+        //      返回字面量 `"undefined"`；
+        //   ③ 传了 ⇒ 返回实参原文。
+        // 把 ② 当成 ① 会让"形参透传"的调用点（`body` 是方法形参）被读成"空键集"，
+        // 于是 `缺必填` 全量误报 —— 实测一次就造出 4 条假缺陷。
+        const pickArg = (n) =>
+            ioPos && typeof n === "number"
+                ? n < args.length
+                    ? args[n].replace(/\s+/g, " ").slice(0, 300)
+                    : "undefined"
+                : null;
         calls.push({
             method: methodM[1].toUpperCase(),
             pathRaw: pathArg,
@@ -1524,6 +1599,8 @@ export function extractWrapperCalls(source, relFile, options = {}) {
             guard: unwrapped ? (helperInfo?.kind ?? "plain") : null,
             prefixFromHelper: Boolean(helperInfo?.stripPrefix),
             line,
+            queryArg: pickArg(ioPos?.query),
+            bodyArg: pickArg(ioPos?.body),
         });
     }
     return { calls, unchecked };
