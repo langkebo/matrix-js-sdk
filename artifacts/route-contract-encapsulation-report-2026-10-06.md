@@ -1,147 +1,112 @@
-# ROUTE_CONTRACT.md ↔ SDK 封装对账报告（2026-10-06）
+# ROUTE_CONTRACT.md ↔ SDK 封装对账报告（2026-10-06 首版 / 2026-10-09 按最新代码复核重写）
 
-> 基准文档：`synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md`（自动生成于 2026-10-06，1159 条注册路由）
-> SDK 证据：`matrix-js-sdk` 全量源码扫描（`scripts/audit/compare-routes.mjs` 于 2026-10-06 重跑，含当日 assembly→auth 映射等全部改动）
-> 方法：文档 1159 条逐条解析（模块/文件/标注），与三级证据（T1 调用点 / T2 构造 / T3 仅声明 / GAP 全无）逐条 join，可疑项逐个人工核验源码。
+> 基准文档：`synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md`（自动生成于 **2026-10-09**，**1030** 条注册路由、语义 distinct **1025**、65 个模块文件）。
+> SDK 证据：`matrix-js-sdk` @ `779f17d8f` 重跑 `scripts/audit/compare-routes.mjs`，产物 `artifacts/sdk-contract-gap.json`（机器明细）+ `artifacts/sdk-contract-gap-report.md`（长表）。
+> 方法：后端 1030 条逐条解析（`scope` + `registered_by`），与四级证据（T1 路由表调用点 / T2 构造 / T3 仅声明 / GAP 全无）join；`CONDITIONAL` 单独计。人工复核层承接 `sdk-contract-gap-report.md` §7（2026-10-09）。
+>
+> **与首版最大的差别**：首版基准是 2026-10-06 的 **1159 条**。此后后端 M2（线程族迁 vendor）、M3（46 条私有端点整批迁 vendor）、M4 D1（删 2 组真重复）把路由面降到 **1030 条**，`/_matrix/admin/v1/*` 整组消失。**旧报告的绝对条数已不可直接沿用**，故本版所有数字以 2026-10-09 重跑为准，并逐项给出两版对照。
 
 ## 1. 汇总统计
 
-| 指标                                                                                                                    | 数值                                                                             |
-| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 后端注册路由总数（文档口径）                                                                                            | **1159**（`(method,path)` 绝对去重）                                             |
-| └ 语义 distinct（去掉 5 对尾斜杠孪生注册）                                                                              | 1154                                                                             |
-| └ 默认构建不注册（profile 门控）                                                                                        | 19（仅 worker 11 + 仅 oidc 8，全部已有 SDK 证据）                                |
-| **SDK 已封装（T1∪T2，全量口径）**                                                                                       | **993 / 1159 = 85.7%**                                                           |
-| SDK 未封装（T3∪GAP）                                                                                                    | 165（另 1 条条件证据，工具未展开）                                               |
-| 未封装──排除·服务端/内部面                                                                                              | 42（S2S 联邦 30 + AS 回调 12）                                                   |
-| 未封装──排除·根级探活/遗留                                                                                              | 8（探活 3 + CAS legacy root 5）                                                  |
-| 未封装──admin 运维面（本 fork 有意封装，按路径前缀 `/_synapse/admin/*`+`/_matrix/admin/*` 计 300 条，已封 265 = 88.3%） | 35（明细见 §4）                                                                  |
-| 未封装──客户端面                                                                                                        | 80 = 真缺口 46 + 工具盲区假阳性 10 + 运行时版本族 15 + 尾斜杠孪生 1 + 浏览器流 8 |
-| **客户端面封装率（机械口径）**                                                                                          | **678 / 758 = 89.4%**                                                            |
-| **客户端面封装率（人工修正后）**                                                                                        | **704 / 758 = 92.9%**（计入假阳性 10 + 运行时族 15 + 孪生 1）                    |
+| 指标                              | 2026-10-06 首版           | 2026-10-09 复核                                  | 变化原因                                         |
+| --------------------------------- | ------------------------- | ------------------------------------------------ | ------------------------------------------------ |
+| 后端注册路由（绝对去重）          | 1159                      | **1030**                                         | M2/M3 迁 vendor + M4 D1 删 2 组重复              |
+| 语义 distinct（去尾斜杠孪生）     | 1154                      | **1025**                                         | 5 对孪生（见 §3.4）                              |
+| SDK 镜像漂移（missing / extra）   | 0 / 0 ✅                  | **0 / 0 ✅**                                     | `contract:sync` 与 ledger 完全一致               |
+| 证据分布                          | 已封 993 / 未封 165       | T1 331 / T2 563 / T3 70 / GAP 65 / CONDITIONAL 1 | 四级证据分开落盘                                 |
+| 声明面覆盖（declaredCoverage）    | —                         | **732 / 1025 = 71.4%**                           | T3 声明面单独计量                                |
+| 客户端面（scope = CLIENT_FACING） | 758                       | **644**                                          | M3 迁 vendor 后按新前缀重算                      |
+| ├ 已封装（T1 ∪ T2）               | 678                       | **579**                                          | 同上                                             |
+| ├ 机械封装率                      | 89.4%                     | **89.9%**                                        | 579 / 644                                        |
+| └ 人工修正后封装率                | 92.9%                     | **94.4%**                                        | 计入假阳性 13 + 运行时族 15 + 孪生 1 = 608 / 644 |
+| 客户端面未封装                    | 80                        | **65**                                           | T3 58 + GAP 7                                    |
+| admin 运维面（路径前缀口径）      | 300（已封 265 / 未封 35） | **290（已封 265 / 未封 25）**                    | M4 D1 删重复挂载 + M3 移出 vendor                |
 
-> 客户端面 = 758 条（`/_matrix/client`、`/_synapse` 非内部、`/.well-known` 中 SDK 相关），口径与 `compare-routes.mjs` 的 `scopeOf` 一致。
+> 客户端面 = `CLIENT_FACING`（`/_matrix/client/*`、`/_synapse` 非 admin、`/_matrix/vendor/*`、`/.well-known/*` 中 SDK 相关），口径由 `compare-routes.mjs` 的 `scopeOf` 给出。
 
 ## 2. 关于「文档标注无需封装」的诚实声明
 
-**ROUTE_CONTRACT.md 中不存在任何字面的「无需封装」标注。** 因此本报告的排除依据为三级，全部注明出处：
+`ROUTE_CONTRACT.md` 中**不存在**任何字面的「无需封装」标注。本报告的「不该封/不必封」判定全部来自架构位置与人工复核，出处如下：
 
-| 排除类                                                  | 条数                       | 依据                                                                                                                          |
-| ------------------------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| S2S 联邦协议（`/_matrix/federation/*`）                 | 30                         | Matrix 架构：服务器间协议，客户端 SDK 无调用方；文档将其单列为「联邦」模块                                                    |
-| AS→HS 回调（`/_matrix/app/v1/*`）                       | 12                         | Matrix 架构：appservice 实现侧的回调端点（transaction/ping 等），由 AS 服务消费而非客户端                                     |
-| 根级探活（`/`、`/health`、`/_health`）                  | 3                          | 文档「前缀之外」节明确：有意的根级协议与探活端点                                                                              |
-| CAS legacy root（`/admin/services*`、`/admin/users/*`） | 5                          | 文档「前缀之外」节：历史根级注册；SDK CasManager 实际走 `/_synapse/cas/*` 前缀                                                |
-| admin 运维面                                            | （35 不计入排除，单列 §4） | **本 fork 特殊**：AdminManager 有意封装 admin（`adminRequest` 调用点 281 处，解析出 211 条 admin 路由），故不能按上游口径排除 |
+| 分类                                    | 条数             | 出处 / 依据                                                          |
+| --------------------------------------- | ---------------- | -------------------------------------------------------------------- |
+| S2S 联邦协议（`/_matrix/federation/*`） | 26               | 服务器间协议，客户端 SDK 无调用方（§5.1）                            |
+| 服务端密钥查询（`/_matrix/key/v2/*`）   | 4                | 服务器间密钥交换（§5.4）                                             |
+| AS→HS 回调（`/_matrix/app/v1/*`）       | 12               | appservice 实现侧回调（§5.2）                                        |
+| 根级探活/无前缀                         | 3                | 文档「前缀之外」节：有意的根级探活端点（§5.3）                       |
+| admin 运维面                            | （25 条单列 §4） | 本 fork 的 AdminManager **有意**封装 admin，不能按上游口径排除       |
+| 客户端面 T3 仅声明                      | 58（§3）         | 声明面命中但源码无构造/调用点                                        |
+| 客户端面 GAP                            | 7（§3.1）        | appservice 代理透传含 `{*path}` 通配符，codegen 无法生成 route-table |
 
-## 3. 客户端面未封装明细（80 条，重分类后）
+> 合计校验：排除类 45 + admin 25 + 客户端 T3 58 + 客户端 GAP 7 = **135** 条 = T3 70 + GAP 65 ✅
 
-### 3.1 真缺口（46 条，需产品决策是否补封装）
+## 3. 客户端面未封装明细（65 条 = T3 58 + GAP 7，重分类后）
 
-**MSC4108（3 条）** — MSC4108 QR 登录会话的 GET/PUT/DELETE 未封装（模块仅封装了创建等部分端点）
+### 3.1 真缺口（28 条，需产品决策是否补封装）
 
-| Method   | Path                                                                  | 证据 | 备注 |
-| -------- | --------------------------------------------------------------------- | ---- | ---- |
-| `DELETE` | `/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}` | T3   |      |
-| `GET`    | `/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}` | T3   |      |
-| `PUT`    | `/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}` | T3   |      |
+**密钥备份 `{version}` 规范路径（18 条）** — Matrix 规范要求带 `{version}` 段；本 fork 的 SDK 走**无版本**变体（`/_matrix/client/{v1,v3}/room_keys/keys`，有 T2 证据）。若要与其它 homeserver 互通需补。
 
-**其他 (Other)（2 条）** — unstable 变体未封装；SDK 已封装 v1 稳定版 threads（21 条 v1 端点有证据）
+- `DELETE` `/_matrix/client/v1/room_keys/{version}/keys`
+- `GET` `/_matrix/client/v1/room_keys/{version}/keys`
+- `PUT` `/_matrix/client/v1/room_keys/{version}/keys`
+- `DELETE` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`
+- `GET` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`
+- `PUT` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`
+- `DELETE` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}`
+- `GET` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}`
+- `PUT` `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}`
+- `DELETE` `/_matrix/client/v3/room_keys/{version}/keys`
+- `GET` `/_matrix/client/v3/room_keys/{version}/keys`
+- `PUT` `/_matrix/client/v3/room_keys/{version}/keys`
+- `DELETE` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`
+- `GET` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`
+- `PUT` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`
+- `DELETE` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}`
+- `GET` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}`
+- `PUT` `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}`
 
-| Method | Path                                                                  | 证据 | 备注 |
-| ------ | --------------------------------------------------------------------- | ---- | ---- |
-| `GET`  | `/_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads` | T3   |      |
-| `GET`  | `/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed`      | T3   |      |
+**MSC4155 / MSC4156 线程不稳定变体（2 条）** — `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）；人工复核判定需与 Sprint 4 交付范围、`MSC_SEMANTICS.md` 对账。
 
-**好友 (Friends)（2 条）** — 好友请求「收件箱」查询未封装（client/v1 与 vendor/v1 两个租约都缺）
+- `GET` `/_matrix/client/unstable/org.matrix.msc4155/rooms/{room_id}/threads`
+- `GET` `/_matrix/client/unstable/org.matrix.msc4156/threads/subscribed`
 
-| Method | Path                                          | 证据 | 备注 |
-| ------ | --------------------------------------------- | ---- | ---- |
-| `GET`  | `/_matrix/client/v1/friends/request/received` | T3   |      |
-| `GET`  | `/_matrix/vendor/v1/friends/request/received` | T3   |      |
+**好友请求收件箱（1 条）** — M3 把该端点从 `/_matrix/client/v1` 移到 `/_matrix/vendor/v1`，SDK 未封装 vendor 租约。
 
-**密钥备份 (Key Backup)（18 条）** — Matrix 标准规范路径（带 {version} 段）未封装；SDK 使用 fork 自定义的无版本变体（如 `/_matrix/client/v1/room_keys/keys`，有 T2 证据）——若需与其他 homeserver 互通应补
+- `GET` `/_matrix/vendor/v1/friends/request/received`
 
-| Method   | Path                                                                 | 证据 | 备注 |
-| -------- | -------------------------------------------------------------------- | ---- | ---- |
-| `DELETE` | `/_matrix/client/v1/room_keys/{version}/keys`                        | T3   |      |
-| `GET`    | `/_matrix/client/v1/room_keys/{version}/keys`                        | T3   |      |
-| `PUT`    | `/_matrix/client/v1/room_keys/{version}/keys`                        | T3   |      |
-| `DELETE` | `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`              | T3   |      |
-| `GET`    | `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`              | T3   |      |
-| `PUT`    | `/_matrix/client/v1/room_keys/{version}/keys/{room_id}`              | T3   |      |
-| `DELETE` | `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}` | T3   |      |
-| `GET`    | `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}` | T3   |      |
-| `PUT`    | `/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}` | T3   |      |
-| `DELETE` | `/_matrix/client/v3/room_keys/{version}/keys`                        | T3   |      |
-| `GET`    | `/_matrix/client/v3/room_keys/{version}/keys`                        | T3   |      |
-| `PUT`    | `/_matrix/client/v3/room_keys/{version}/keys`                        | T3   |      |
-| `DELETE` | `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`              | T3   |      |
-| `GET`    | `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`              | T3   |      |
-| `PUT`    | `/_matrix/client/v3/room_keys/{version}/keys/{room_id}`              | T3   |      |
-| `DELETE` | `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}` | T3   |      |
-| `GET`    | `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}` | T3   |      |
-| `PUT`    | `/_matrix/client/v3/room_keys/{version}/keys/{room_id}/{session_id}` | T3   |      |
+**AppService 代理透传（7 条，GAP）** — 路径含 `{*path}` 通配符，codegen 无法为其生成 route-table；是否有前端消费场景待产品确认。
 
-**应用服务 (AppService)（7 条）** — 三级证据全无（GAP）：appservice 代理透传端点，含 `{*path}` 通配符，codegen 无法为其生成 route-table；是否有前端消费场景待确认
+| Method    | Path                                       | 证据 |
+| --------- | ------------------------------------------ | ---- |
+| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
+| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |
 
-| Method    | Path                                       | 证据 | 备注 |
-| --------- | ------------------------------------------ | ---- | ---- |
-| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
-| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
-| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
-| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
-| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
-| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
-| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | GAP  |      |
+### 3.2 工具盲区·假阳性（13 条，人工核验实际已封装，不计缺口）
 
-**房间 (Room)（8 条）** — 见逐条备注
+| Method               | Path                                                                          | 实际封装位置 / 判定                                                                        | 盲区成因                               |
+| -------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------- |
+| `GET`                | `/_synapse/cas/p3/serviceValidate`                                            | `CasManager.p3ServiceValidate()`（`src/cas/index.ts`）                                     | prefix 变量                            |
+| `GET`                | `/_synapse/cas/proxy`                                                         | `CasManager.proxy()`（`src/cas/index.ts`）                                                 | prefix 变量                            |
+| `GET`                | `/_synapse/cas/proxyValidate`                                                 | `CasManager.proxyValidate()`（`src/cas/index.ts`）                                         | prefix 变量                            |
+| `GET`                | `/_synapse/room_summary/v1/summaries`                                         | `internalSummaryPath('/summaries')`（`src/room-summary/index.ts`）                         | helper 中转                            |
+| `POST`               | `/_synapse/room_summary/v1/summaries`                                         | 同上                                                                                       | helper 中转                            |
+| `POST`               | `/_synapse/room_summary/v1/updates/process`                                   | `internalSummaryPath('/updates/process')`（room-event-operation-manager）                  | helper 中转                            |
+| `PUT`                | `/_matrix/client/v3/rooms/{room_id}/send/m.call.answer/{txn_id}`              | 泛型 `send/{event_type}` 已封装（T2）                                                      | 泛型覆盖                               |
+| `PUT`                | `/_matrix/client/v3/rooms/{room_id}/send/m.call.candidates/{txn_id}`          | 同上                                                                                       | 泛型覆盖                               |
+| `PUT`                | `/_matrix/client/v3/rooms/{room_id}/send/m.call.hangup/{txn_id}`              | 同上                                                                                       | 泛型覆盖                               |
+| `PUT`                | `/_matrix/client/v3/rooms/{room_id}/send/m.call.invite/{txn_id}`              | 同上                                                                                       | 泛型覆盖                               |
+| `DELETE`/`GET`/`PUT` | `/_matrix/client/unstable/org.matrix.msc4108/rendezvous/{session_id}`（3 条） | `MSC4108RendezvousSession.ts:106` 的 `.getUrl(..., ClientPrefix.Unstable)`，三方法共用基址 | `getUrl(relative, query, prefix)` 形态 |
 
-| Method | Path                                            | 证据 | 备注                                                                   |
-| ------ | ----------------------------------------------- | ---- | ---------------------------------------------------------------------- |
-| `POST` | `/_matrix/client/v1/rooms/create_private`       | T3   | fork 私有「创建私聊房间」v1 租约未封装                                 |
-| `GET`  | `/_matrix/client/v1/user/mutual_rooms`          | T3   | v1 稳定版未封装；SDK 封装的是 unstable msc2666 变体（有 T2 证据）      |
-| `POST` | `/_matrix/client/v3/invite/{room_id}`           | T3   | legacy 按 room_id 邀请路径；SDK 走 `/rooms/{room_id}/invite`（已封装） |
-| `POST` | `/_matrix/client/v3/rooms/create_private`       | T3   | 同上 v3 租约                                                           |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/keys`       | T3   | 房间密钥列表端点未封装（keys/distribution 深层端点已封装）             |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/visibility` | T3   | 房间可见性查询未封装                                                   |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/visibility` | T3   | 房间可见性设置未封装                                                   |
-| `GET`  | `/_matrix/client/v3/user/{user_id}/rooms`       | T3   | 按用户列房间未封装                                                     |
-
-**推送 (Push)（4 条）** — 推送设备管理（push/devices）与推送发送（push/send）未封装
-
-| Method   | Path                                          | 证据 | 备注 |
-| -------- | --------------------------------------------- | ---- | ---- |
-| `GET`    | `/_matrix/client/v3/push/devices`             | T3   |      |
-| `POST`   | `/_matrix/client/v3/push/devices`             | T3   |      |
-| `DELETE` | `/_matrix/client/v3/push/devices/{device_id}` | T3   |      |
-| `POST`   | `/_matrix/client/v3/push/send`                | T3   |      |
-
-**装配 (Assembly)（2 条）** — voip 配置端点未封装（标准 turnServer 已封装，guest 变体与 config 未封装）
-
-| Method | Path                                       | 证据 | 备注 |
-| ------ | ------------------------------------------ | ---- | ---- |
-| `GET`  | `/_matrix/client/v3/voip/config`           | T3   |      |
-| `GET`  | `/_matrix/client/v3/voip/turnServer/guest` | T3   |      |
-
-### 3.2 工具盲区·假阳性（10 条，人工核验实际已封装，不计缺口）
-
-| Method | Path                                                                 | 实际封装位置                                                              | 盲区成因                             |
-| ------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------ |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/send/m.call.answer/{txn_id}`     | `泛型 send/{event_type} 已封装（T2）`                                     | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/send/m.call.candidates/{txn_id}` | `泛型 send/{event_type} 已封装（T2）`                                     | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/send/m.call.hangup/{txn_id}`     | `泛型 send/{event_type} 已封装（T2）`                                     | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/send/m.call.invite/{txn_id}`     | `泛型 send/{event_type} 已封装（T2）`                                     | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `GET`  | `/_synapse/cas/p3/serviceValidate`                                   | `CasManager.p3ServiceValidate() src/cas/index.ts:294`                     | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `GET`  | `/_synapse/cas/proxy`                                                | `CasManager.proxy() src/cas/index.ts:315`                                 | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `GET`  | `/_synapse/cas/proxyValidate`                                        | `CasManager.proxyValidate() src/cas/index.ts:273`                         | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `GET`  | `/_synapse/room_summary/v1/summaries`                                | `internalSummaryPath("/summaries") src/room-summary/index.ts:346`         | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `POST` | `/_synapse/room_summary/v1/summaries`                                | `internalSummaryPath("/summaries") src/room-summary/index.ts:346`         | prefix 变量 / helper 中转 / 泛型覆盖 |
-| `POST` | `/_synapse/room_summary/v1/updates/process`                          | `internalSummaryPath("/updates/process") room-event-operation-manager.ts` | prefix 变量 / helper 中转 / 泛型覆盖 |
+> 前 10 条承接首版报告的人工核验结论；后 3 条（MSC4108）是 `sdk-contract-gap-report.md` §7（2026-10-09）新增的**解析器盲区**判定 —— 生成器看不到 `getUrl()` 形态，重跑后仍会落回 T3。
 
 ### 3.3 运行时版本参数族（15 条，构造存在但静态不可归属）
 
-`src/media/index.ts:452-453` 以 `/_matrix/media/${version}/download` 运行时拼版本，`content-repo.ts`（mxcUrlToHttp）同理构造下载/缩略图 URL；具体命中 r0/r1/v1/v3 哪个变体取决于运行时配置，静态审计无法按 (method,path) 归属。清单：
+`src/media/index.ts` 的 `getDownloadUrl()` 以 `const version = options.version ?? 'v3'` 运行时拼 `/_matrix/media/${version}/download/...`；`content-repo.ts`（mxcUrlToHttp）同理。具体命中 r0/r1/v1/v3 哪个变体取决于运行时配置，静态审计无法按 `(method,path)` 归属。
 
 - `GET` `/_matrix/client/v1/media/download/{server_name}/{media_id}`
 - `GET` `/_matrix/client/v1/media/download/{server_name}/{media_id}/{filename}`
@@ -161,80 +126,77 @@
 
 ### 3.4 尾斜杠孪生（1 条）
 
-- `GET /_matrix/client/v3/pushrules/global/` —— 与已封装的 `/pushrules`（push.rs 注册）为同能力孪生注册，无独立封装必要。
+- `GET /_matrix/client/v3/pushrules/global/` —— 与已封装的 `/pushrules/global`（`push.rs` 注册）为同能力孪生注册，无独立封装必要。
+
+> 全库口径：1030 条绝对注册里恰好有 **5 对**尾斜杠孪生（实测 `(method, path[:-1])` 同时存在者）：
+> `GET|POST /_matrix/client/v3/pushers/`、`GET /_matrix/client/v3/pushrules/`、
+> `GET|PUT /_matrix/client/v3/rooms/{room_id}/state/{event_type}/`，故语义 distinct = 1025。
+> 文档头部只声明了 always/oidc 双档 2 对，**未覆盖这 5 对**（§6 建议补）。
 
 ### 3.5 浏览器/邮件/IdP 流端点（8 条，人工判定无需 SDK 直接封装）
 
-| Path                                                                                                   | 判定依据                                                              |
-| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `GET /_matrix/client/v3/login/sso/redirect/cas`                                                        | 浏览器 SSO 重定向流；SDK oidc 已封装通用 `/login/sso/redirect`        |
-| `GET /.well-known/jwks.json`、`GET /.well-known/openid-configuration`                                  | OIDC 发现端点，由 IdP/浏览器消费                                      |
-| `POST .../account/3pid/email/submitToken`、`POST .../account/password/email/submitToken`（v1/v3 各 2） | 邮件验证链接的浏览器落地页流；SDK 已封装 `register/email/submitToken` |
-| `GET /_matrix/static/client/login/`                                                                    | 服务端渲染静态登录页                                                  |
+| Method | Path                                                    | 判定依据                                   |
+| ------ | ------------------------------------------------------- | ------------------------------------------ |
+| `GET`  | `/.well-known/jwks.json`                                | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `GET`  | `/.well-known/openid-configuration`                     | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `POST` | `/_matrix/client/v1/account/3pid/email/submitToken`     | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `POST` | `/_matrix/client/v1/account/password/email/submitToken` | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `POST` | `/_matrix/client/v3/account/3pid/email/submitToken`     | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `POST` | `/_matrix/client/v3/account/password/email/submitToken` | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect/cas`             | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
+| `GET`  | `/_matrix/static/client/login/`                         | 浏览器/邮件链接落地流，由浏览器或 IdP 消费 |
 
-## 4. admin 运维面未封装（35 条）
+## 4. admin 运维面未封装（25 条）
 
-本 fork 的 AdminManager **有意**封装 admin API（`adminRequest` 调用点 281 处 = 163 非泛型 + 118 泛型，解析出 211 条不同 admin 路由；admin 前缀路由 300 条中已封 265 条）。剩余 35 条按文档子文件分组（注意：这 35 条分属 6 个文档章节，非仅「管理 (Admin)」章节）：
+本 fork 的 AdminManager **有意**封装 admin API。admin 前缀（`/_synapse/admin/*` + `/_matrix/admin/*`）共 **290** 条，已封 **265** 条（91.4%），未封 **25** 条，全部落在 `SERVER_ONLY` 范围（工具判定为服务端运维面）。
 
-**admin/media.rs（16 条）**
+> 与首版对照：首版 admin 面 300 条、未封 35 条；差额来自 M4 D1 删掉同名重复挂载（`admin/media.rs` 的单数 `/room/{room_id}/media*` 变体）与 M3 把 `/_matrix/admin/v1/*` 移出。
 
-- `POST` `/_synapse/admin/v1/media/delete`（GAP）
-- `POST` `/_synapse/admin/v1/media/protect/{media_id}`（GAP）
-- `POST` `/_synapse/admin/v1/media/protect/{server_name}/{media_id}`（GAP）
-- `POST` `/_synapse/admin/v1/media/quarantine/{server_name}/{media_id}`（GAP）
-- `GET` `/_synapse/admin/v1/media/quarantine_changes`（GAP）
-- `POST` `/_synapse/admin/v1/media/unprotect/{media_id}`（GAP）
-- `POST` `/_synapse/admin/v1/media/unquarantine/{server_name}/{media_id}`（GAP）
-- `DELETE` `/_synapse/admin/v1/media/{server_name}/{media_id}`（GAP）
-- `GET` `/_synapse/admin/v1/media/{server_name}/{media_id}`（GAP）
-- `GET` `/_synapse/admin/v1/room/{room_id}/media`（GAP）
-- `POST` `/_synapse/admin/v1/room/{room_id}/media/quarantine`（GAP）
-- `GET` `/_synapse/admin/v1/rooms/{room_id}/media`（GAP）
-- `POST` `/_synapse/admin/v1/rooms/{room_id}/media/quarantine`（GAP）
-- `POST` `/_synapse/admin/v1/rooms/{room_id}/media/unquarantine`（GAP）
-- `DELETE` `/_synapse/admin/v1/rooms/{room_id}/media/{media_id}`（GAP）
-- `POST` `/_synapse/admin/v1/user/{user_id}/media/quarantine`（GAP）
+**?（9 条）**
 
-**admin/room/mod.rs（2 条）**
+- `GET` `/_synapse/admin/v1/cas/services`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/cas/services`（SERVER_ONLY）
+- `DELETE` `/_synapse/admin/v1/cas/services/{service_id}`（SERVER_ONLY）
+- `GET` `/_synapse/admin/v1/cas/users/{user_id}/attributes`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/cas/users/{user_id}/attributes`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/push/cleanup`（SERVER_ONLY）
+- `GET` `/_synapse/admin/v1/push/config`（SERVER_ONLY）
+- `PUT` `/_synapse/admin/v1/push/config`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/push/process`（SERVER_ONLY）
 
-- `POST` `/_synapse/admin/v1/rooms/{room_id}/backfill`（GAP）
-- `POST` `/_synapse/admin/v1/rooms/{room_id}/cascade_redact`（GAP）
+**admin/media（12 条）**
 
-**admin/server.rs（2 条）**
+- `POST` `/_synapse/admin/v1/media/delete`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/media/protect/{media_id}`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/media/protect/{server_name}/{media_id}`（SERVER_ONLY）
+- `GET` `/_synapse/admin/v1/media/quarantine_changes`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/media/unprotect/{media_id}`（SERVER_ONLY）
+- `DELETE` `/_synapse/admin/v1/media/{server_name}/{media_id}`（SERVER_ONLY）
+- `GET` `/_synapse/admin/v1/media/{server_name}/{media_id}`（SERVER_ONLY）
+- `GET` `/_synapse/admin/v1/rooms/{room_id}/media`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/rooms/{room_id}/media/quarantine`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/rooms/{room_id}/media/unquarantine`（SERVER_ONLY）
+- `DELETE` `/_synapse/admin/v1/rooms/{room_id}/media/{media_id}`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/user/{user_id}/media/quarantine`（SERVER_ONLY）
 
-- `GET` `/_synapse/admin/v1/rate-limit-status`（GAP）
-- `GET` `/_synapse/admin/v1/server`（GAP）
+**admin/room（2 条）**
 
-**app_service.rs（1 条）**
+- `POST` `/_synapse/admin/v1/rooms/{room_id}/backfill`（SERVER_ONLY）
+- `POST` `/_synapse/admin/v1/rooms/{room_id}/cascade_redact`（SERVER_ONLY）
 
-- `GET` `/_synapse/admin/v1/appservices/{as_id}/state/{state_key}`（GAP）
+**admin/server（1 条）**
 
-**cas.rs（5 条）**
+- `GET` `/_synapse/admin/v1/rate-limit-status`（SERVER_ONLY）
 
-- `GET` `/_synapse/admin/v1/cas/services`（T3）
-- `POST` `/_synapse/admin/v1/cas/services`（T3）
-- `DELETE` `/_synapse/admin/v1/cas/services/{service_id}`（T3）
-- `GET` `/_synapse/admin/v1/cas/users/{user_id}/attributes`（T3）
-- `POST` `/_synapse/admin/v1/cas/users/{user_id}/attributes`（T3）
+**app_service（1 条）**
 
-**external_service.rs（5 条）**
+- `GET` `/_synapse/admin/v1/appservices/{as_id}/state/{state_key}`（SERVER_ONLY）
 
-- `GET` `/_matrix/admin/v1/external_services`（T3）
-- `POST` `/_matrix/admin/v1/external_services`（T3）
-- `GET` `/_matrix/admin/v1/external_services/health`（T3）
-- `DELETE` `/_matrix/admin/v1/external_services/{as_id}`（T3）
-- `PUT` `/_matrix/admin/v1/external_services/{as_id}`（T3）
+> 注意：这 25 条的 `registered_by` 分属 `admin::media`/`admin::room`/`admin::server` 与 `app_service`/`cas`/`push_notification`，**不等于** `ROUTE_CONTRACT.md` 的「管理 (Admin)」章节。
 
-**push_notification.rs（4 条）**
+## 5. 排除类明细（45 条）
 
-- `POST` `/_synapse/admin/v1/push/cleanup`（T3）
-- `GET` `/_synapse/admin/v1/push/config`（T3）
-- `PUT` `/_synapse/admin/v1/push/config`（T3）
-- `POST` `/_synapse/admin/v1/push/process`（T3）
-
-## 5. 排除类明细（50 条）
-
-### 5.1 S2S 联邦协议（30 条，`/_matrix/federation/*`）
+### 5.1 S2S 联邦协议（26 条，`/_matrix/federation/*`）
 
 - `PUT` `/_matrix/federation/v1/exchange_third_party_invite/{room_id}`
 - `GET` `/_matrix/federation/v1/get_event_auth/{room_id}/{event_id}`
@@ -278,78 +240,97 @@
 - `GET` `/_matrix/app/v1/users/{user_id}`
 - `GET` `/_matrix/app/v1/{as_id}`
 
-### 5.3 根级探活与 CAS legacy（8 条）
+### 5.3 根级探活（3 条）
 
 - `GET` `/`
 - `GET` `/_health`
-- `GET` `/admin/services`
-- `POST` `/admin/services`
-- `DELETE` `/admin/services/{service_id}`
-- `GET` `/admin/users/{user_id}/attributes`
-- `POST` `/admin/users/{user_id}/attributes`
 - `GET` `/health`
+
+### 5.4 服务端密钥查询（4 条，`/_matrix/key/v2/*`）
+
+- `POST` `/_matrix/key/v2/query`
+- `GET` `/_matrix/key/v2/query/{server_name}`
+- `GET` `/_matrix/key/v2/query/{server_name}/{key_id}`
+- `GET` `/_matrix/key/v2/server`
 
 ## 6. 文档状态与实际情况不一致项
 
-1. **文档 ↔ ledger fixture：完全一致** ✅ —— 文档 1159 条与 `ledger_export_sdk/all.json` 逐条比对 0 差异；45 个模块、65 个文件小节的计数声明与实际条目全部吻合；profile 标注（worker 11 + oidc 8 + 双档 2）与清单一致。
-2. **文档「1159 条（去重后）」内含 5 对尾斜杠孪生注册**（如 `.../state/{event_type}` 与 `.../state/{event_type}/`），语义 distinct 为 1154。文档的「孪生注册」说明只覆盖 always/oidc 双档 2 对，**未提及尾斜杠孪生 5 对**——建议文档补一句说明，避免下游把 1159 当作 1159 个独立能力。
-3. **SDK 镜像零漂移** ✅ —— `route-manifest.all.json` 落后 0 / 多出 0。
-4. **审计工具三类盲区导致 28 条假阳性/不可归属**（本轮已人工核验并修正，见 §3.2/§3.3）：prefix 运行时变量（CAS）、helper 中转（room_summary）、运行时版本参数（media）。另有 1 条「注释字面量被计为构造证据」的反向问题：`/_synapse/cas/login|logout|serviceValidate` 的 T2 证据定位在 `src/cas/index.ts:28-29` 的**文件头注释**，真实调用点在 path+prefix 分离的 request 调用处——证据结论（已封装）正确但定位失真。
-5. **MSC4155/4156 unstable 变体未封装**：SDK 已封装 v1 稳定版 threads（21 条端点有证据）。与「Sprint 4 已交付 MSC4155/4156」的项目记忆不一致——按文档头部警告，4155 等编号在本仓被**借用**承载非官方语义，需以 `MSC_SEMANTICS.md` 对账确认交付物到底对应哪组端点。
-6. **compare-routes 的 1 条 CONDITIONAL 证据未在 JSON 中暴露具体路由**（工具待改进：建议把 rows 全量落盘）。
+1. **文档 ↔ ledger fixture：完全一致 ✅** —— `ROUTE_CONTRACT.md` 的 1030 条与 `tests/unit/fixtures/ledger_export_sdk/all.json` 逐条比对 0 差异；模块文件 65 个（文档口径）。机器侧 `registered_by` 根模块为 49 个（§7 按此分组），两种粒度不同，不是矛盾。
+2. **SDK 镜像零漂移 ✅** —— `route-manifest.all.json` 与 ledger 比对 missing 0 / extra 0。
+3. **尾斜杠孪生 5 对**（1030 → 1025，见 §3.4）：文档头部只声明了 always/oidc 双档 2 对，**建议补一句**，避免下游把 1030 当作 1030 个独立能力。
+4. **M3 的 vendor 迁移改变了本报告口径**：`/_matrix/admin/v1/*` 整组（含 `external_services` 5 条）已随后端删除；`friends/request/received` 只剩 `/_matrix/vendor/v1` 租约；线程族 27 条迁 `/_matrix/vendor/v1`。首版报告里凡以 client/v1、client/v3 或 admin/v1 记的条目，本版按新前缀重算。
+5. **工具盲区仍需人工兜底（29 条）**：假阳性 10 + 解析器盲区 3（MSC4108）+ 运行时族 15 + 孪生 1。重跑生成器**不会**自动修正它们，`sdk-contract-gap-report.md` §7.1 列出四类盲区与兜底方式。
+6. **两处口径冲突待定向复核**：`sdk-contract-gap-report.md` §7 的人工记录判定 `/client/unstable/org.matrix.msc2965/*`（人工记录写 `auth_issuer`，当前 fixture 是 `auth_metadata`）与 `POST /_matrix/client/v3/admin/room/{room_id}/redact` 为**真缺口**（`src` 中 0 命中），而机器把它们算进了已封装（T1/T2）。二者必有一错：要么解析器把通用 `redact`/`auth_*` 模式误配，要么人工 grep 范围不足。**复核**：`grep -rn 'admin/room' src` 与 `grep -rn 'msc2965' src --include='*.ts'` 剔除 `__generated__`，确认为 0 后应把这两条并入 §3.1 并修工具规则。
+7. **T1 明细未落盘**：`sdk-contract-gap.json` 只给 T1 总数（331），没有逐条清单，故 §7 的「已封装」= 总条数 −（GAP + T3），即 T1∪T2（与首版口径一致，可直接对比）。
+8. **本报告定稿时 `develop` 工作树有另一写者的在飞改动**（`src/cas/index.ts`、`src/friend/sub-managers/friend-request-manager.ts`、`src/room-keys/index.ts`、`src/room-summary*` 及其 spec），正好命中 §3.2 假阳性条目与 §3.1 的 room_keys 真缺口 ⇒ **该批次落地后必须重跑本报告**（复现命令见文末）；本版数字对应 `779f17d8f` 提交态。
 
 ## 7. 逐模块封装总表
 
-| 模块                    | 文档条数 | 已封装(T1∪T2) | 未封装 |
-| ----------------------- | -------- | ------------- | ------ |
-| 媒体 (Media)            | 62       | 31            | 31     |
-| 联邦 (Federation)       | 71       | 41            | 30     |
-| 应用服务 (AppService)   | 39       | 19            | 20     |
-| 密钥备份 (Key Backup)   | 66       | 48            | 18     |
-| 装配 (Assembly)         | 109      | 94            | 15     |
-| CAS                     | 17       | 3             | 14     |
-| 房间 (Room)             | 119      | 108           | 11     |
-| 推送 (Push)             | 25       | 17            | 8      |
-| 外部服务                | 20       | 15            | 5      |
-| 管理 (Admin)            | 144      | 140           | 4      |
-| MSC4108                 | 4        | 1             | 3      |
-| OIDC                    | 10       | 8             | 2      |
-| 其他 (Other)            | 23       | 21            | 2      |
-| 好友 (Friends)          | 65       | 63            | 2      |
-| Rendezvous              | 6        | 6             | 0      |
-| SAML                    | 16       | 16            | 0      |
-| Worker                  | 26       | 26            | 0      |
-| 临时事件                | 1        | 1             | 0      |
-| 事件举报                | 18       | 18            | 0      |
-| 关联 (Relations)        | 9        | 9             | 0      |
-| 反应 (Reactions)        | 1        | 1             | 0      |
-| 同步 (Sync)             | 4        | 4             | 0      |
-| 后台更新                | 19       | 19            | 0      |
-| 在线状态 (Presence)     | 9        | 9             | 0      |
-| 审核 (Moderation)       | 7        | 7             | 0      |
-| 密钥轮转                | 18       | 18            | 0      |
-| 小组件 (Widget)         | 18       | 18            | 0      |
-| 延迟事件                | 2        | 2             | 0      |
-| 搜索 (Search)           | 8        | 8             | 0      |
-| 标签 (Tags)             | 4        | 4             | 0      |
-| 模块                    | 23       | 23            | 0      |
-| 滑动同步 (Sliding Sync) | 4        | 4             | 0      |
-| 特性开关                | 4        | 4             | 0      |
-| 私聊 (DM)               | 5        | 5             | 0      |
-| 空间 (Space)            | 48       | 48            | 0      |
-| 端到端加密 (E2EE)       | 38       | 38            | 0      |
-| 第三方 (Third-party)    | 6        | 6             | 0      |
-| 设备 (Device)           | 6        | 6             | 0      |
-| 访客 (Guest)            | 3        | 3             | 0      |
-| 语音 (Voice)            | 30       | 30            | 0      |
-| 账户 (Account)          | 15       | 15            | 0      |
-| 输入状态 (Typing)       | 5        | 5             | 0      |
-| 遥测 (Telemetry)        | 6        | 6             | 0      |
-| 阅后即焚                | 21       | 21            | 0      |
-| 验证码 (Captcha)        | 5        | 5             | 0      |
+| 模块（`registered_by` 根） | 条目数 | 已封装(T1∪T2) | 未封装(T3∪GAP) |
+| -------------------------- | ------ | ------------- | -------------- |
+| federation                 | 55     | 25            | 30             |
+| app_service                | 39     | 19            | 20             |
+| admin                      | 179    | 164           | 15             |
+| assembly                   | 104    | 104           | 0              |
+| room                       | 95     | 95            | 0              |
+| key_backup                 | 66     | 66            | 0              |
+| e2ee                       | 36     | 36            | 0              |
+| media                      | 36     | 36            | 0              |
+| friend_room                | 29     | 29            | 0              |
+| space                      | 26     | 26            | 0              |
+| module                     | 23     | 23            | 0              |
+| thread                     | 23     | 23            | 0              |
+| room_summary               | 21     | 21            | 0              |
+| background_update          | 19     | 19            | 0              |
+| event_report               | 18     | 18            | 0              |
+| push                       | 17     | 17            | 0              |
+| saml                       | 16     | 16            | 0              |
+| widget                     | 16     | 16            | 0              |
+| account_data               | 15     | 15            | 0              |
+| worker                     | 15     | 15            | 0              |
+| cas                        | 12     | 12            | 0              |
+| external_service           | 12     | 12            | 0              |
+| voice                      | 12     | 12            | 0              |
+| worker_body                | 11     | 11            | 0              |
+| oidc                       | 10     | 10            | 0              |
+| key_rotation               | 9      | 9             | 0              |
+| presence                   | 9      | 9             | 0              |
+| relations                  | 9      | 9             | 0              |
+| push_notification          | 8      | 8             | 0              |
+| search                     | 8      | 8             | 0              |
+| burn_after_read            | 7      | 7             | 0              |
+| device                     | 6      | 6             | 0              |
+| moderation                 | 6      | 6             | 0              |
+| rendezvous                 | 6      | 6             | 0              |
+| telemetry                  | 6      | 6             | 0              |
+| thirdparty                 | 6      | 6             | 0              |
+| captcha                    | 5      | 5             | 0              |
+| dm                         | 5      | 5             | 0              |
+| typing                     | 5      | 5             | 0              |
+| feature_flags              | 4      | 4             | 0              |
+| invite_blocklist           | 4      | 4             | 0              |
+| msc4108_rendezvous         | 4      | 4             | 0              |
+| sliding_sync               | 4      | 4             | 0              |
+| tags                       | 4      | 4             | 0              |
+| guest                      | 3      | 3             | 0              |
+| sync                       | 3      | 3             | 0              |
+| delayed_events             | 2      | 2             | 0              |
+| ephemeral                  | 1      | 1             | 0              |
+| reactions                  | 1      | 1             | 0              |
 
-> **口径说明**：本表按 `ROUTE_CONTRACT.md` 的**章节模块**分组（与文档结构一致）。注意 admin 路由在文档里按源文件散布于多个章节（如 `admin/media.rs` 归「媒体 (Media)」、`cas.rs` 的 admin 路由归「CAS」），故本表的「管理 (Admin)」仅指该章节自身 144 条，**不等于** §1/§4 按路径前缀聚合的 300 条 admin 面。两种口径的未封装数各自自洽：本表未封装列合计 = 165，其中路径前缀属 admin 的 35 条分散在上述多个章节内。
+> **口径说明**：本表按 ledger 的 `registered_by` 根模块分组（49 个），与 `ROUTE_CONTRACT.md` 的**章节模块**不同 —— 文档把 `admin/media.rs` 归入「媒体 (Media)」、`cas.rs` 的 admin 路由归「CAS」。因此本表的 `admin` 不等于 §1/§4 的「admin 路径前缀面（290 条）」。未封装列合计 = 135（T3 70 + GAP 65）✅
 
 ---
 
-**生成方式**：`/tmp/parse_route_contract.py`（文档解析+交叉校验）→ `scripts/audit/compare-routes.mjs` 重跑（2026-10-06）→ `/tmp/join_doc_evidence.py` + 人工源码核验 → 本报告。机器明细：`artifacts/sdk-contract-gap.json`。
+**生成方式**：`artifacts/sdk-contract-gap.json`（`scripts/audit/compare-routes.mjs` 于 2026-10-09 重跑）→ 一次性脚本按 `scope`/`registered_by` 聚合 → 叠加人工复核层（承接首版 §3.2 与 `sdk-contract-gap-report.md` §7）→ `prettier --write`。
+
+**复现命令**：
+
+```bash
+# 1) 刷新后端 ledger 事实面（离线可跑）
+cd ../synapse-rust && ./scripts/generate_sdk_ledger_fixtures.sh
+# 2) 刷新 SDK 镜像底座 + route-table codegen
+cd ../matrix-js-sdk && pnpm contract:sync && pnpm contract:codegen
+# 3) 重新生成缺口报告 + 附录 JSON（两个产物必须一起刷）
+node scripts/audit/compare-routes.mjs --output artifacts/sdk-contract-gap-report.md --json artifacts/sdk-contract-gap.json
+```
