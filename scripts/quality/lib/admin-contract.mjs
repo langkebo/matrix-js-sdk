@@ -320,6 +320,53 @@ export function parseJsonObjectTopLevel(objectText) {
 }
 
 /**
+ * `json!({...})` 的值**类别**归一化（C4「嵌套形状」用，一层）。
+ *
+ * 只认「一眼可判」的形态；认不出一律 `"unknown"` —— **fail-closed，绝不当成标量**：
+ *   `{…}` → `object`；`[…]` → `array`；`"…"` / `r#"…"#` → `string`；
+ *   数字字面量 → `number`；`true` / `false` → `boolean`；`null` → `null`。
+ * 其余（变量、函数调用、`format!(…)`、结构体字面量、as 转换…）⇒ `unknown`。
+ *
+ * @param {string} text 值的源码文本
+ * @returns {"object"|"array"|"string"|"number"|"boolean"|"null"|"unknown"}
+ */
+export function valueKindOfRustValue(text) {
+    const t = String(text ?? "").trim();
+    if (!t) return "unknown";
+    if (t.startsWith("{")) return "object";
+    if (t.startsWith("[")) return "array";
+    if (t.startsWith('"') || /^r#*"/.test(t)) return "string";
+    if (/^-?\d/.test(t)) return "number";
+    if (t === "true" || t === "false") return "boolean";
+    if (t === "null") return "null";
+    return "unknown";
+}
+
+/**
+ * 取 `json!({ ... })` 调用的第一层 `键 → 值文本`（插入顺序）。
+ *
+ * 与 `jsonMacroTopLevelKeys` 是同一套解析，区别只在**保留值文本**：
+ * C4 要判「键集相等但值类别不同」（如后端 `{"a": {"x":1}}` vs SDK `{a: string}`），
+ * 这是当前只比键名的比对**看不见**的一类偏差。
+ *
+ * @param {string} src
+ * @param {number} jsonBangIndex `json!` 中 `!` 的下标
+ * @returns {Map<string, string> | null} `null` = 参数不是对象字面量（形状在本层不可知）
+ */
+export function jsonMacroTopLevelEntries(src, jsonBangIndex) {
+    const parenIdx = src.indexOf("(", jsonBangIndex);
+    if (parenIdx < 0) return null;
+    const slice = balancedSlice(src, parenIdx);
+    if (!slice) return null;
+    const inner = slice.text.slice(1, -1).trim();
+    if (!inner.startsWith("{")) return null;
+    // 去掉最外层花括号：靠配对找到对象自身的结尾，而不是简单 lastIndexOf("}")
+    const obj = balancedSlice(inner, 0);
+    if (!obj || obj.text[0] !== "{") return null;
+    return parseJsonObjectTopLevel(obj.text.slice(1, -1));
+}
+
+/**
  * 取一个 `json!({ ... })` 调用的第一层键。
  *
  * 返回 `null` 表示**参数不是对象字面量**（如 `json!(notification)`、`json!(event)`、
@@ -334,17 +381,8 @@ export function parseJsonObjectTopLevel(objectText) {
  * @returns {string[] | null} 排序后的键；`[]` 表示空对象字面量；`null` 表示非对象字面量
  */
 export function jsonMacroTopLevelKeys(src, jsonBangIndex) {
-    const parenIdx = src.indexOf("(", jsonBangIndex);
-    if (parenIdx < 0) return null;
-    const slice = balancedSlice(src, parenIdx);
-    if (!slice) return null;
-    const inner = slice.text.slice(1, -1).trim();
-    if (!inner.startsWith("{")) return null;
-    // 去掉最外层花括号：靠配对找到对象自身的结尾，而不是简单 lastIndexOf("}")
-    const obj = balancedSlice(inner, 0);
-    if (!obj || obj.text[0] !== "{") return null;
-    const body = obj.text.slice(1, -1);
-    return [...parseJsonObjectTopLevel(body).keys()].sort();
+    const entries = jsonMacroTopLevelEntries(src, jsonBangIndex);
+    return entries === null ? null : [...entries.keys()].sort();
 }
 
 /**
@@ -2008,9 +2046,63 @@ export function normalizePath(p) {
  * @param {string} bodyText 不含最外层花括号的对象体
  * @returns {{ fields: string[], optionalFields: string[], open: boolean }}
  */
+/**
+ * TS 字段类型的**值类别**归一化（C4「嵌套形状」用，一层）。
+ *
+ * 与 `valueKindOfRustValue` 的输出词表对齐（`object`/`array`/`string`/`number`/`boolean`/`null`），
+ * 另加两个**不可判定**类：
+ *   · `"union"` —— 联合类型含多种类别（`A | B`）⇒ 不能压成单类；
+ *   · `"unknown"` —— 具名类型不在形状表里（枚举 / 别名 / 外部类型）、`any`、函数类型等。
+ * 可空标量（`number | null`）仍判成 `number`（`undefined` 同理忽略），因为线格式仍是标量。
+ *
+ * @param {string} text 类型文本
+ * @param {Map<string, "object"|"array"|"string"|"number"|"boolean"|"null">} [typeKinds]
+ *        具名类型 → 类别（由 `extractTsTypeShapes` 用「已解析且闭合的 interface/type」构建）
+ * @returns {"object"|"array"|"string"|"number"|"boolean"|"null"|"union"|"unknown"}
+ */
+export function valueKindOfTsType(text, typeKinds) {
+    const t = String(text ?? "")
+        .trim()
+        .replace(/^readonly\s+/, "")
+        .replace(/;$/, "")
+        .trim();
+    if (!t) return "unknown";
+    const parts = splitTopLevel(t, "|")
+        .map((p) => p.trim())
+        .filter(Boolean);
+    if (parts.length > 1) {
+        const kinds = new Set(parts.map((p) => valueKindOfTsType(p, typeKinds)));
+        kinds.delete("undefined");
+        // 可空标量：`number | null` / `string | null` 仍是标量（线格式不变）
+        if (kinds.has("null") && kinds.size === 2) {
+            const rest = [...kinds].filter((k) => k !== "null");
+            if (rest.length === 1 && rest[0] !== "unknown") return rest[0];
+        }
+        return kinds.size === 1 ? [...kinds][0] : "union";
+    }
+    if (t.startsWith("{")) return "object";
+    if (/\[\s*\]$/.test(t)) return "array";
+    if (/^readonly\s+(?:Array|ReadonlyArray)\s*</.test(t)) return "array";
+    if (/^(?:Array|ReadonlyArray|Set|ReadonlySet|Vec)\s*</.test(t)) return "array";
+    if (/^(?:Record|Map|Partial|Required|Readonly|NonNullable|Pick|Omit)\s*</.test(t)) return "object";
+    if (/^[A-Za-z_$][\w$]*(?:\s*<[\s\S]*>)?$/.test(t) || /^[A-Za-z_$][\w$]*\s*<[\s\S]*>$/.test(t)) {
+        const bare = t.replace(/\s*<[\s\S]*>$/, "");
+        if (bare === "string") return "string";
+        if (bare === "number" || bare === "bigint") return "number";
+        if (bare === "boolean") return "boolean";
+        if (bare === "null") return "null";
+        if (bare === "undefined") return "undefined";
+        // 具名类型：只认「形状表里已解析且闭合」的——那必然是对象类型（interface / type 对象字面量）
+        const k = typeKinds?.get?.(bare);
+        return k ?? "unknown";
+    }
+    return "unknown";
+}
+
 function parseTsObjectMembers(bodyText) {
     const fields = [];
     const optionalFields = [];
+    const valueTypes = new Map();
     let open = false;
     let cur = "";
     let depth = 0;
@@ -2022,10 +2114,13 @@ function parseTsObjectMembers(bodyText) {
             open = true;
             return;
         }
-        const m = /^(?:readonly\s+)?([A-Za-z_$][\w$]*)\s*(\?)?\s*:/.exec(t);
+        const m = /^(?:readonly\s+)?([A-Za-z_$][\w$]*)\s*(\?)?\s*:\s*([\s\S]+)$/.exec(t);
         if (m) {
             fields.push(m[1]);
             if (m[2]) optionalFields.push(m[1]);
+            // 保留**类型文本**（C4 的值类别用）；归一化留到 `extractTsTypeShapes`，
+            // 那里才有全表可解析具名类型。
+            if (!valueTypes.has(m[1])) valueTypes.set(m[1], m[3].trim());
         }
     };
     for (let i = 0; i < bodyText.length; i++) {
@@ -2055,7 +2150,12 @@ function parseTsObjectMembers(bodyText) {
         cur += c;
     }
     flush();
-    return { fields: [...new Set(fields)].sort(), optionalFields: [...new Set(optionalFields)].sort(), open };
+    return {
+        fields: [...new Set(fields)].sort(),
+        optionalFields: [...new Set(optionalFields)].sort(),
+        open,
+        valueTypes,
+    };
 }
 
 /**
@@ -2191,15 +2291,23 @@ export function extractTsTypeShapes(src) {
         if (self) {
             const fields = new Set(self.fields);
             const optionalFields = new Set(self.optionalFields);
+            const valueTypes = new Map(self.valueTypes ?? []);
             let open = self.open;
             for (const b of bases.get(name) ?? []) {
                 const bv = byName(b, seen);
                 if (!bv) continue;
                 for (const f of bv.fields) fields.add(f);
                 for (const f of bv.optionalFields) optionalFields.add(f);
+                // 继承来的字段也带类型文本（自身声明优先，与字段名合并方向一致）
+                for (const [f, t] of bv.valueTypes ?? []) if (!valueTypes.has(f)) valueTypes.set(f, t);
                 open = open || bv.open;
             }
-            return { fields: [...fields].sort(), optionalFields: [...optionalFields].sort(), open };
+            return {
+                fields: [...fields].sort(),
+                optionalFields: [...optionalFields].sort(),
+                open,
+                valueTypes,
+            };
         }
         const alias = aliases.get(name);
         if (!alias) return null;
@@ -2213,6 +2321,16 @@ export function extractTsTypeShapes(src) {
     for (const name of new Set([...own.keys(), ...aliases.keys()])) {
         const v = byName(name, new Set());
         if (v) out.set(name, v);
+    }
+    // C4「嵌套形状」：把字段的类型文本归一化成**值类别**。具名类型的类别表只收
+    // 「已解析且闭合」的形状（那必然是对象类型：interface / `type X = {…}`）；
+    // 名字不在表里 ⇒ `unknown`（枚举 / 标量别名 / 外部类型）—— 宁可不可判定，也不猜。
+    const namedKinds = new Map();
+    for (const [name, v] of out) if (!v.open) namedKinds.set(name, "object");
+    for (const v of out.values()) {
+        const valueKinds = new Map();
+        for (const [f, t] of v.valueTypes ?? []) valueKinds.set(f, valueKindOfTsType(t, namedKinds));
+        v.valueKinds = valueKinds;
     }
     return out;
 }

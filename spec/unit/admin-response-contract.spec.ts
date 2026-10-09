@@ -30,6 +30,7 @@ import {
     diffRequestShape,
     extractJsonValueBodyKeys,
     extractTsTypeShapes,
+    jsonMacroTopLevelEntries,
     resolveSdkRequestShape,
     scanStructFields,
     diffResponse,
@@ -43,6 +44,8 @@ import {
     findMatchScrutinee,
     jsonMacroTopLevelKeys,
     normalizePath,
+    valueKindOfRustValue,
+    valueKindOfTsType,
     normalizeReturnType,
     parseJsonObjectTopLevel,
     parseRouteTable,
@@ -991,8 +994,16 @@ pub struct X {
 export type PartialX = Partial<X>;
 export type RequiredX = Required<X>;`;
                 const shapes = extractTsTypeShapes(src);
-                expect(shapes.get("PartialX")).toEqual({ fields: ["a", "b"], optionalFields: ["a", "b"], open: false });
-                expect(shapes.get("RequiredX")).toEqual({ fields: ["a", "b"], optionalFields: [], open: false });
+                const partialX = shapes.get("PartialX")!;
+                const requiredX = shapes.get("RequiredX")!;
+                // 判定字段（fields/optionalFields/open）逐项精确；形状对象另含 C4 的
+                // 非判定字段（valueTypes/valueKinds），故用 toMatchObject 而不是 toEqual。
+                expect(partialX).toMatchObject({ fields: ["a", "b"], optionalFields: ["a", "b"], open: false });
+                expect(requiredX).toMatchObject({ fields: ["a", "b"], optionalFields: [], open: false });
+                // C4：值类别随字段一起继承
+                expect(partialX.valueKinds!.get("a")).toBe("string");
+                expect(partialX.valueKinds!.get("b")).toBe("number");
+                expect(requiredX.valueKinds!.get("a")).toBe("string");
             });
 
             it("索引签名 / 联合 RHS ⇒ open（键集不闭合）", () => {
@@ -1215,5 +1226,87 @@ describe("summarizeUnresolved（覆盖桶必须逐条自解释）", () => {
         expect(out.k.count).toBe(1);
         expect(out.k.entries[0].managerMethod).toBeNull();
         expect(out.k.entries[0].route).toBeNull();
+    });
+});
+
+/**
+ * C4「嵌套形状」的地基：**值类别**归一化 + `json!` 的「键 → 值文本」抽取（2026-10-09）。
+ *
+ * 为什么需要它：现有比对只比**键名集合**（`diffFields` / `diffResponse`），
+ * 「键集相同但值类型不同」（后端 `{"a": {"x": 1}}` vs SDK `{a: string}`）**看不见**。
+ * 本组只钉住两侧归一化自身的语义（尤其 fail-closed），比对接线另测。
+ */
+describe("值类别归一化（C4 嵌套形状的地基）", () => {
+    it("Rust json! 值文本 → 六个一眼可判的类别", () => {
+        expect(valueKindOfRustValue('"s"')).toBe("string");
+        expect(valueKindOfRustValue('r#"raw"#')).toBe("string");
+        expect(valueKindOfRustValue("42")).toBe("number");
+        expect(valueKindOfRustValue("-1.5")).toBe("number");
+        expect(valueKindOfRustValue("true")).toBe("boolean");
+        expect(valueKindOfRustValue("null")).toBe("null");
+        expect(valueKindOfRustValue("{ a: 1 }")).toBe("object");
+        expect(valueKindOfRustValue("[1, 2]")).toBe("array");
+    });
+
+    it("fail-closed：变量 / 成员 / 调用 / 转换 一律 unknown（绝不当标量）", () => {
+        expect(valueKindOfRustValue("count")).toBe("unknown");
+        expect(valueKindOfRustValue("event.id")).toBe("unknown");
+        expect(valueKindOfRustValue('format!("{}", x)')).toBe("unknown");
+        expect(valueKindOfRustValue("count as i64")).toBe("unknown");
+        expect(valueKindOfRustValue("")).toBe("unknown");
+    });
+
+    it("TS 类型文本 → 类别；可空标量按非 null 类", () => {
+        expect(valueKindOfTsType("string")).toBe("string");
+        expect(valueKindOfTsType("number")).toBe("number");
+        expect(valueKindOfTsType("boolean")).toBe("boolean");
+        expect(valueKindOfTsType("{ a: number }")).toBe("object");
+        expect(valueKindOfTsType("string[]")).toBe("array");
+        expect(valueKindOfTsType("Array<RoomId>")).toBe("array");
+        expect(valueKindOfTsType("Record<string, number>")).toBe("object");
+        expect(valueKindOfTsType("number | null")).toBe("number");
+        expect(valueKindOfTsType("string | null | undefined")).toBe("string");
+    });
+
+    it("fail-closed：真联合 / any / 未知具名类型 → union|unknown，绝不压成单类", () => {
+        expect(valueKindOfTsType("string | number")).toBe("union");
+        expect(valueKindOfTsType("any")).toBe("unknown");
+        expect(valueKindOfTsType("unknown")).toBe("unknown");
+        expect(valueKindOfTsType("RoomRetentionPolicy")).toBe("unknown");
+        // 只有类型表里**已解析且闭合**的名字才判 object（那必然是 interface / `type X = {…}`）
+        expect(valueKindOfTsType("RoomId", new Map([["RoomId", "object"]]))).toBe("object");
+    });
+
+    it("extractTsTypeShapes 带上 valueTypes/valueKinds，且不改变原有三键", () => {
+        const shapes = extractTsTypeShapes(`
+            export interface Inner { x: number }
+            export interface Outer { id: string; count: number; ok: boolean; nested: Inner; list: string[]; }
+        `);
+        const outer = shapes.get("Outer")!;
+        // 原有判定字段（fields/optionalFields/open）不变 —— 行为零变化的前提
+        expect(outer.fields).toEqual(["count", "id", "list", "nested", "ok"]);
+        expect(outer.open).toBe(false);
+        expect(outer.valueTypes!.get("nested")).toBe("Inner");
+        // C4：具名且闭合的类型 → object；标量 → 各自类别；数组 → array
+        expect(outer.valueKinds!.get("id")).toBe("string");
+        expect(outer.valueKinds!.get("count")).toBe("number");
+        expect(outer.valueKinds!.get("ok")).toBe("boolean");
+        expect(outer.valueKinds!.get("nested")).toBe("object");
+        expect(outer.valueKinds!.get("list")).toBe("array");
+    });
+
+    it("jsonMacroTopLevelEntries 保留值文本，且键集与旧入口逐项一致", () => {
+        const src = 'Ok(Json(json!({ "a": 1, "b": { "c": 2 }, "d": count })))';
+        const idx = src.indexOf("json!");
+        const entries = jsonMacroTopLevelEntries(src, idx)!;
+        expect([...entries.keys()].sort()).toEqual(["a", "b", "d"]);
+        expect(valueKindOfRustValue(entries.get("a")!)).toBe("number");
+        expect(valueKindOfRustValue(entries.get("b")!)).toBe("object");
+        expect(valueKindOfRustValue(entries.get("d")!)).toBe("unknown");
+        expect(jsonMacroTopLevelKeys(src, idx)).toEqual(["a", "b", "d"]);
+        // 非对象字面量仍 null（"不可知" 与 "空对象 []" 不能混）
+        const nonObj = "Ok(Json(json!(notification)))";
+        expect(jsonMacroTopLevelEntries(nonObj, nonObj.indexOf("json!"))).toBeNull();
+        expect(jsonMacroTopLevelKeys(nonObj, nonObj.indexOf("json!"))).toBeNull();
     });
 });

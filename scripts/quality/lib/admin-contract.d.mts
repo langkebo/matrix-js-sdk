@@ -115,7 +115,23 @@ export interface TsTypeShape {
     optionalFields: string[];
     /** 键集不闭合（索引签名 / 映射类型 / 联合 / 展开 …） */
     open: boolean;
+    /** 字段 → 类型文本（C4 的值类别归一化用；非判定字段） */
+    valueTypes?: Map<string, string>;
+    /** 字段 → 值类别（C4「嵌套形状」用；非判定字段） */
+    valueKinds?: Map<string, ValueKind>;
 }
+
+/** 值类别词表（Rust json! 值 与 TS 类型共用；`union` 仅 TS 侧出现）。 */
+export type ValueKind =
+    | "object"
+    | "array"
+    | "string"
+    | "number"
+    | "boolean"
+    | "null"
+    | "undefined"
+    | "union"
+    | "unknown";
 
 /** 解析一段**表达式**（请求体实参）得到字段集；判不出来返回 `null`。 */
 export function resolveSdkRequestShape(input: {
@@ -125,6 +141,15 @@ export function resolveSdkRequestShape(input: {
     shapes?: Map<string, TsTypeShape>;
     ownShapes?: Map<string, TsTypeShape>;
 }): { fields: string[]; optionalFields: string[] } | null;
+
+/** TS 字段类型的值类别归一化（fail-closed：认不出为 `unknown`）。 */
+export function valueKindOfTsType(text: string, typeKinds?: Map<string, ValueKind>): ValueKind;
+
+/** Rust `json!` 值文本的值类别归一化（fail-closed：认不出为 `unknown`）。 */
+export function valueKindOfRustValue(text: string): ValueKind;
+
+/** 取 `json!({…})` 的第一层「键 → 值文本」；`null` = 非对象字面量（形状不可知）。 */
+export function jsonMacroTopLevelEntries(src: string, jsonBangIndex: number): Map<string, string> | null;
 
 /** 索引 TS 类型形状（`interface` / `type X = {…}` / `type X = Y` / 工具类型别名）。 */
 export function extractTsTypeShapes(src: string): Map<string, TsTypeShape>;
