@@ -930,6 +930,32 @@ devDependencies**（不进 SDK 发布物）：
 **验收**：`pnpm audit --audit-level=high` **exit 0**（`Severity: 1 moderate | 2 high (2 ignored)`）；
 `pnpm-lock.yaml` **无改动**（`auditConfig` 不进 lockfile ⇒ 无 mismatch 风险）；prettier 干净。
 
+#### (13) 最终结果：Quality Gate **首次全绿**
+
+`52ccbbbb3` 的 run `37927667293` = **completed / success** —— 全部 step 通过，含**首次真正运行**的
+`Unit + integration tests with coverage`、`Critical modules coverage`、`Repo-wide coverage`、
+`Granular module coverage gates`、`High severity audit gate`、`Performance guard`。
+
+**本轮总账**：E3 推送 → CI 全绿，共 **6 个代码/数据提交 + 1 个文档提交**，修复 **8 处**问题：
+
+| #   | 问题                                     | 类型                           |
+| --- | ---------------------------------------- | ------------------------------ |
+| 1   | `contract:check` 硬依赖兄弟仓            | CI-only（本地有兄弟仓必绿）    |
+| 2   | `path-contract` 双世界 ledger            | 环境差异（本地 vs CI 两结论）  |
+| 3   | `route-set-parity` 并集债                | 刷新镜像后浮出                 |
+| 4   | `contract-drift` 未登记                  | 同上（同事实的第 4 视角）      |
+| 5   | `docs-counts` 数字过时                   | 同上                           |
+| 6   | registry 条目缺 `dir`/`kind`/`entry`     | **本轮引入**（破 spec）        |
+| 7   | `room-member-manager.spec` 前缀期望过时  | **存量**（本地也红，从未跑到） |
+| 8   | `pnpm audit` 2 条 dev-only high advisory | **存量**                       |
+
+**方法论沉淀（已写入 `MEMORY.md`）**：判 CI 绿必须
+① **两条链逐段跑**（`lint` 16 段 + `quality:contracts` 17 段，`&&` 短路会掩盖后续红）；
+② **额外跑被改动波及的 spec**（本地 `pnpm lint` 链**不跑单元测试**，CI 的 Gate 跑 `pnpm test --coverage`）；
+③ 逐段预演**只能靠脚本自己的 env**（`SYNAPSE_RUST_REPO`/`LEDGER_PATH`）——`/tmp` 软链/复制**无效**，
+Node `process.cwd()` 返回 realpath，`..` 仍指向真实兄弟仓；
+④ **刷新契约镜像的连锁面极广**（一次性波及 path-contract / route-set-parity / contract-drift / docs-counts 四个门禁）。
+
 **遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
 需单独判断是否值得在 fork 侧处理。
 
@@ -1002,10 +1028,9 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第七轮：E3 推送（`116631352..c148da631`）+ CI 首跑接连暴露并修复 **5 处 CI-only 缺口**
-—— ① `contract:check` 硬依赖兄弟仓（skip + `--strict`）；② `path-contract` 双世界 ledger（刷新过时镜像，
-**不删豁免**）；③ 并集债 `route-set-parity` waiver 6→7；④ `contract-drift-registry` +1；⑤ `docs-counts`
-数字 1031→1030 —— 见 §7.9；**教训：预演必须覆盖 `lint` 与 `contracts` 两条链**；
+**最后更新**: 2026-10-09（第七轮：E3 推送（`116631352..52ccbbbb3`）+ CI 首跑接连暴露并修复 **8 处**问题，
+直至 Quality Gate **首次全绿**（run `37927667293` = success）—— 见 §7.9；总账 6 个代码/数据提交 + 1 个文档提交；
+**教训：判 CI 绿必须跑 lint + contracts 两条链、再跑被波及的 spec；刷新契约镜像会连锁波及 4 个门禁**；
 第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；
 D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
