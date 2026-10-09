@@ -18,7 +18,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { formatDiff } from "../../scripts/quality/check-msc-changes.mjs";
+import { baselineEntryIds, formatDiff } from "../../scripts/quality/check-msc-changes.mjs";
+import { planBaselineWrite } from "../../scripts/quality/lib/baseline-update.mjs";
 
 /** 构造 current：Map<MSC 编号字符串, Set<文件>>。 */
 function current(entries: Record<string, string[]>): Map<string, Set<string>> {
@@ -86,5 +87,45 @@ describe("formatDiff（MSC 变更三分类）", () => {
 
     it("两侧皆空 → 三类都为空", () => {
         expect(formatDiff(current({}), { entries: {} })).toEqual({ added: [], removed: [], moved: [] });
+    });
+});
+
+/**
+ * `--update-baseline` 的**审查门**（2026-10-09 接入 `lib/baseline-update.mjs`）。
+ *
+ * 背景：`check-msc-changes.mjs` 原先的 `--update-baseline` 是**无条件全量重写** ——
+ * 「重记」与「赦免新条目」共用一个动作，一次手滑就能把一批新 MSC 覆盖静默洗白。
+ * 接入后，条目粒度是 **(MSC 编号, 文件) 对**：老编号下新增引用文件同样要被审阅。
+ */
+describe("baselineEntryIds + 审查门（条目粒度）", () => {
+    it("摊平成 `编号:文件`；一条「条目」= 一个 (编号, 文件) 对", () => {
+        expect(baselineEntryIds({ "4204": ["src/a.ts", "src/b.ts"], "4267": ["src/c.ts"] })).toEqual([
+            "4204:src/a.ts",
+            "4204:src/b.ts",
+            "4267:src/c.ts",
+        ]);
+    });
+
+    it("⚠️ 老编号下新增引用文件也算「新增条目」⇒ 默认拒绝写入", () => {
+        const before = baselineEntryIds({ "4204": ["src/a.ts"] });
+        const after = baselineEntryIds({ "4204": ["src/a.ts", "src/new.ts"] });
+        const plan = planBaselineWrite({ previousIds: before, currentIds: after, acceptNew: false });
+        expect(plan.added).toEqual(["4204:src/new.ts"]);
+        expect(plan.refuse).toBe(true);
+        expect(planBaselineWrite({ previousIds: before, currentIds: after, acceptNew: true }).refuse).toBe(false);
+    });
+
+    it("无变化 ⇒ 不拦（重记是安全的）", () => {
+        const ids = baselineEntryIds({ "4204": ["src/a.ts"] });
+        expect(planBaselineWrite({ previousIds: ids, currentIds: ids, acceptNew: false })).toMatchObject({
+            added: [],
+            removed: [],
+            refuse: false,
+        });
+    });
+
+    it("空 / undefined 不抛异常", () => {
+        expect(baselineEntryIds(undefined)).toEqual([]);
+        expect(baselineEntryIds({})).toEqual([]);
     });
 });

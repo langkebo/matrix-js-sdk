@@ -6,6 +6,10 @@
  *   node scripts/quality/check-msc-changes.mjs           # 正常模式：对比当前 vs baseline
  *   node scripts/quality/check-msc-changes.mjs --strict  # 严格模式：新增未文档化的 MSC 报错
  *   node scripts/quality/check-msc-changes.mjs --update-baseline  # 更新基线（需在 docs/MSC_SDK_MAPPING.md 更新后）
+ *   node scripts/quality/check-msc-changes.mjs --update-baseline --accept-new  # 显式吸收新增条目
+ *
+ * `--update-baseline` **默认拒绝**写入「baseline 里没有的 (MSC 编号, 文件) 条目」——
+ * 「重记」与「赦免新条目」是两件事，后者必须有人看过（判据见 lib/baseline-update.mjs）。
  *
  * 原理:
  *   1. 从 SDK 源码提取所有 MSC[0-9]{4} 引用
@@ -19,6 +23,8 @@ import { join, relative } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { format, resolveConfig } from "prettier";
+
+import { planBaselineWrite } from "./lib/baseline-update.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -107,10 +113,25 @@ export function formatDiff(current, baseline) {
     return { added, removed, moved };
 }
 
+/**
+ * 把 baseline 的 `entries`（`{ "<MSC 编号>": [文件…] }`）摊平成 `"<编号>:<文件>"` 列表。
+ *
+ * **一条「条目」= 一个 (MSC 编号, 文件) 对**，不是"一个 MSC 编号" —— 老编号下新增了引用文件
+ * 同样属于「当前扫到、baseline 没有」，同样要人看过（见 `lib/baseline-update.mjs` 的审查门）。
+ * 纯函数，spec 直接测。
+ *
+ * @param {Record<string, string[]> | undefined} entries
+ * @returns {string[]}
+ */
+export function baselineEntryIds(entries) {
+    return Object.entries(entries ?? {}).flatMap(([num, files]) => (files ?? []).map((f) => `${num}:${f}`));
+}
+
 async function main() {
     const args = process.argv.slice(2);
     const mode = args.includes("--strict") ? "strict" : "normal";
     const updateBaseline = args.includes("--update-baseline");
+    const acceptNew = args.includes("--accept-new");
 
     const current = extractMSCsFromSource();
     const baseline = loadBaseline();
@@ -147,6 +168,37 @@ async function main() {
                     .map(([num, files]) => [num, [...files].sort()]),
             ),
         };
+        // 「重记」与「赦免新条目」必须分开：`(MSC 编号, 文件)` 这一对是"一条条目"，
+        // 新出现的对（新编号，或老编号下新增文件）都要有人看过 —— 否则一次手滑就能把
+        // 一批新 MSC 覆盖静默洗白。判据与另外四个 baseline 型门禁**共用同一份实现**
+        // （`lib/baseline-update.mjs`），避免 5 份各自漂移的副本。
+        const plan = planBaselineWrite({
+            previousIds: baselineEntryIds(baseline.entries),
+            currentIds: baselineEntryIds(newBaseline.entries),
+            acceptNew,
+        });
+        console.log(`\n[msc-changes] baseline 变更摘要`);
+        console.log(`  条目保持   : ${baselineEntryIds(newBaseline.entries).length - plan.added.length}`);
+        console.log(`  退役(stale): ${plan.removed.length}`);
+        console.log(`  新增(added): ${plan.added.length}`);
+        if (plan.removed.length > 0) {
+            console.log(`\n  [REMOVED] baseline 有、当前扫不到（MSC 引用已消失）：`);
+            for (const id of plan.removed.slice(0, 20)) console.log(`    ${id}`);
+        }
+        if (plan.added.length > 0) {
+            console.log(`\n  [ADDED] 当前扫到、baseline 没有（**需要逐条确认**）：`);
+            for (const id of plan.added.slice(0, 20)) console.log(`    ${id}`);
+            if (plan.added.length > 20) console.log(`    …还有 ${plan.added.length - 20} 条`);
+        }
+        if (plan.refuse) {
+            console.error(
+                `\n[msc-changes] --update-baseline 拒绝写入：有 ${plan.added.length} 条 (MSC, 文件) 不在 baseline 中。\n` +
+                    `  「重记」与「赦免新条目」必须分开——前者可以安全重记，后者要人看过。\n` +
+                    `  确认上面 [ADDED] 列表无误后，加 --accept-new 重跑：\n` +
+                    `    node scripts/quality/check-msc-changes.mjs --update-baseline --accept-new\n`,
+            );
+            process.exit(1);
+        }
         // 走 prettier 落盘。原先直接 `JSON.stringify(_, null, 4)`：它会把**单元素数组也展开成多行**，
         // 而 prettier 会把能放下的数组折叠回一行 —— 于是 `--update-baseline`（本门禁自己印出来的
         // 修复指令）每跑一次就把 msc-reference-baseline.json 写成 prettier 不认的格式，让

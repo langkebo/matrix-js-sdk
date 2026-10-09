@@ -3,18 +3,19 @@
  *
  * ## 为什么要抽出来
  *
- * 本仓有 4 个 baseline 型门禁（swallow / generated-dto-strictness / technical-debt /
- * real-backend-types），它们都有 `--update-baseline`。这个动作里藏着两种**性质完全不同**
+ * 本仓的 baseline 型门禁（swallow / generated-dto-strictness / technical-debt /
+ * real-backend-types / msc-changes）都有 `--update-baseline`。这个动作里藏着两种**性质完全不同**
  * 的写入，混在一起就会出事：
  *
  *   · **重记（drift）**：指纹没变，只是行号字段变了 —— 安全，可以无条件重记；
  *   · **赦免新条目（new）**：当前扫到、基线里本来没有 —— **必须有人看过**，
  *     否则一次手滑就能把一批新缺陷静默洗白。
  *
- * 2026-10-07 起 `check-swallow-fallbacks.mjs` 与 `check-generated-dto-strictness.mjs`
- * 已经这么做了（新增项默认拒绝写入，要显式 `--accept-new`）；另外两个还没有。
+ * 截至 2026-10-09 已**全部接入**：`check-swallow-fallbacks.mjs` / `scan-technical-debt.mjs` /
+ * `check-real-backend-types.mjs` / `check-msc-changes.mjs` 走本实现，
+ * `check-generated-dto-strictness.mjs` 自带等价审查门（`added` 非空且无 `--accept-new` 即拒）。
  * 这条判据本身很短，但它是"让债务可以永久不还"的唯一闸门，所以抽成共享实现 + spec，
- * 避免 4 份各自漂移的副本。
+ * 避免 5 份各自漂移的副本。
  *
  * ## 不变量
  *

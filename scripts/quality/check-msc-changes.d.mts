@@ -38,3 +38,10 @@ export function formatDiff(
     removed: MscRemoved[];
     moved: MscMoved[];
 };
+
+/**
+ * baseline 的 `entries` → `"<MSC 编号>:<文件>"` 列表（`--update-baseline` 的审查门用它做集合差）。
+ *
+ * 一条「条目」= 一个 `(MSC 编号, 文件)` 对：老编号下新增引用文件同样要被审阅。
+ */
+export function baselineEntryIds(entries: Record<string, string[]> | undefined): string[];
