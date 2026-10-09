@@ -92,6 +92,8 @@ export interface IdentityHelperInfo {
     files: string[];
     /** 从参数类型里的 `StripXxx<…>` 推出来的真实前缀；推不出来为 null。 */
     stripPrefix: string | null;
+    /** 是否允许多余参数（类方法恒等助手恒为 true：恒等参数恒为第一实参，其余为数据；顶层函数严格单参数）。 */
+    multiArg: boolean;
 }
 
 /** 判断一个 `function <name>(…)` 声明是否为恒等函数（全仓同名多处定义必须一致）。 */
@@ -109,6 +111,12 @@ export function analyzeIdentityFunction(
 /** 扫出源码里所有 `function <name>(…)` 声明并逐条判定。 */
 export function analyzeFunctionDeclarations(
     source: string,
+): Array<{ name: string; ok: boolean; param?: string; typeText?: string | null; reason?: string }>;
+
+/** 扫出源码里所有**类方法**声明并逐条判定是否「对第一参数恒等」（支持委派链定点迭代）。 */
+export function analyzeClassMethodDeclarations(
+    source: string,
+    options?: { simpleHelpers?: Set<string> },
 ): Array<{ name: string; ok: boolean; param?: string; typeText?: string | null; reason?: string }>;
 
 /** 全仓扫描，建「恒等包装器名 → 种类 / 前缀 / 定义文件」索引（同名有非恒等定义 ⇒ 整名作废）。 */

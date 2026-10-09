@@ -28,8 +28,8 @@
 ① 门禁的**执行入口**（本地钩子）是断的；② 门禁的**台账**会腐烂且没有自动发现机制；
 ③ 判据"看得见的范围"仍有边界（139 / 3 / 7 三类盲区）。
 
-> **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，C1 / C4 未做；
-> 批次 D 完成 D1，并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；
+> **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，**C1 部分完成**（cast 4→0、`this-method` 49→8→4，剩余 81 处待做）/ C4 未做；
+> 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；
 > 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
 
 ---
@@ -363,7 +363,7 @@ ls .git/hooks/pre-commit       # → 不存在
 | **C1** | 139 处未校验路径调用点（TS 侧局部变量追踪）                                        | 本轮已把它从"一个看不出下一步的数字"变成**可执行的工作清单**（§7.3），解析器改造本身未做 —— 它属"移植 `admin-contract.mjs`"级别，必须逐条 fail-closed + 变异自证，不该在长会话末尾抢工。 |
 | **C4** | 嵌套形状（值级递归）                                                               | 需要后端在场 + 抽取器改动 + 新覆盖桶的变异自证，同上。                                                                                                                                   |
 | **D2** | `scan-technical-debt` / `check-real-backend-types` 的 `--accept-new`（另两个已有） | 见 §3.7 更正：这一项的实际剩余量比原方案小得多。                                                                                                                                         |
-| **D3** | 统一"所有白名单必须有 owner + expires"                                             | D1 已把**到期**这一半统一；`owner` 这一半未做。                                                                                                                                          |
+| **D3** | 统一"所有白名单必须有 owner + expires"                                             | D1 已把**到期**这一半统一；`owner` 这一半也已完成（`714a88253` 把豁免台账的 `owner` 变成硬要求，缺字段即红）。                                                                           |
 | **E1** | 两个聚合/生成脚本补 spec                                                           | 低价值（`generate-coverage-report.mjs` 与判定无关，`run-granular-coverage-gates.mjs` 是发现器）。                                                                                        |
 | **E3** | 推送提交                                                                           | **需要用户决策**（会触发 CI）。                                                                                                                                                          |
 | **E4** | 给 SDK `exports` 补 `require` 条件                                                 | 当前没有 CJS 消费者，属"有需要再做"。                                                                                                                                                    |
@@ -394,6 +394,11 @@ ls .git/hooks/pre-commit       # → 不存在
 ③跑 `--refresh-coverage` 收紧棘轮（`uncheckedPathArg` 与 `byFile` **只降不升**）。
 ⚠️ 抽取器累计已错 24 次，**全部是"静默给错答案"** —— 这一层最大的风险不是"解不出来"，
 而是"解出来一个错的路径"，然后被当成正确结果拿去比对。
+
+> **C1 进展注记（滚动更新）**：`this-method` 已由 `49 → 8 → 4` 逐级攻破（见 §7.6），
+> `cast` 4 处已剥离（139 → 135）。截至本轮，未校验调用点 **81 = identifier 38 / bare-call 37 /
+> this-method 4（逃逸阀 `uncheckedRoomPath`）/ other 1 / concat 1**；`this-method` 的剩余 4 处是项目
+> **故意**留的 escape valve（契约前缀实际是 vendor、实现却用 v3，解出必 mismatch），保持未校验显式计数。
 
 ### 7.4 本轮新增的两条方法论教训
 
@@ -502,9 +507,56 @@ this-method 8 / other 1 / concat 1`）。该棘轮是「只降不升 + 需显式
 两条都是"**后端有意不存在**"且**已有豁免背书**，且 `quality:path-contract` 全绿（说明 SDK 的每条
 路径都在后端 ledger 里）⇒ 按门禁提示"核对后端"后 `--refresh`，新台账里两条都带 `reason`。
 
-**仍未做**：E3（推送，需用户决策 —— 现在 ahead **112**）；C1 剩余 **85** 处的解析器改造；
-C4（嵌套形状值级递归）；D3 的 `owner` 那一半；以及 §7.2 原有各项。
+**仍未做**：E3（推送，需用户决策）；C1 剩余的 **81** 处（`identifier 38 / bare-call 37 /
+this-method 4 逃逸阀 / other 1 / concat 1`）解析器改造；C4（嵌套形状值级递归）；以及 §7.2 原有各项。
+（D3 的 `owner` 一半已由 `714a88253` 完成，不再列入；`cast`/`this-method` 的进展见 §7.6。）
 **新增登记的产品决策项**：`sendWidgetMessage()` 的存废 / 改接（见 (3)）。
+
+---
+
+### 7.6 2026-10-09 第三轮：`this-method` 形态攻破（85 → 81，8 → 4）
+
+#### 做法
+
+`quality:path-contract` 此前只认**顶层恒等函数**（`analyzeFunctionDeclarations`），不认类方法。本轮补
+`analyzeClassMethodDeclarations`（定点迭代累积 `resolved` 集，处理 `roomPath → buildRoomScopedPath →
+encodeUri` 这类互委派链），并新增 `analyzeClassMethodIdentity`（三种恒等形态：① `return <第一参数>`；
+② `return <已知顶层恒等函数>(<第一参数>)`；③ `return this.<已知恒等方法>(<第一参数>)`，基例 `encodeUri`
+由 `isIdentityName` 注入）。`unwrapIdentityPath` 解包时取**第一实参**（`roomPath(p, roomId)` ⇒ `p`），
+并引入 `multiArg` 标记：类方法恒等助手恒为 `true`（其余实参是数据），顶层函数严格单参数（`apu("a","b")`
+fail-closed 不解）。
+
+**逃逸阀白名单** `ESCAPE_VALVE_METHODS = {"uncheckedRoomPath"}`：`uncheckedRoomPath` 在
+`src/room-summary/sub-managers/room-invite-policy-manager.ts` 有 4 处调用，它体同 `buildRoomScopedPath`
+（解出必 mismatch，契约前缀实际是 vendor、实现却用 v3，见 `docs/sdk-encapsulation-audit.md` §13.11）——
+**故意不登记**为恒等助手，保持这 4 处在未校验桶里显式计数，绝不"解出来一个必错的路径去比对"。
+
+#### 验收证据
+
+- **金标准对拍**：golden（85 / 8）vs after（81 / 4），除 `totalCalls 538→542`、`matched 514→518`、
+  `uncheckedPathArg 85→81`、`byShape.this-method 8→4` 此消彼长外，其余判定字段（`mismatched=0`、
+  `waived`、`skippedDynamic`、`coverageIssues` 等）逐项一致。
+- **变异自证**：把 `room-event-operation-manager.ts` 的 `/rooms/$roomId/state/m.room.power_levels/`
+  改成 `/rooms/$roomId/state/NONEXISTENT_XYZ/` ⇒ 门禁 **exit 1**，精确报
+  `GET /_matrix/client/v3/rooms/{X}/state/NONEXISTENT_XYZ` 不匹配；`cp` 还原后工作区干净。证明解出的路径
+  **真拿去比对**，而非"解出来就算过"。
+- **类型同步**：新增 `analyzeClassMethodDeclarations` 的 `.d.mts` 声明；`IdentityHelperInfo` 加 `multiArg`
+  字段（必填，类型层也 fail-closed）。`tsc --noEmit` 与 59 例 `verify-path-contract-gate.spec.ts` 全绿。
+- **棘轮收紧**：`node scripts/quality/verify-path-contract.mjs --refresh-coverage` 把基线
+  `uncheckedPathArg 85→81`、`checkedPathArg 538→542`、`this-method 8→4`；落盘物过 `prettier --check`。
+
+#### 本轮改动清单
+
+| 文件                                          | 改动                                                                                                                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/quality/verify-path-contract.mjs`    | +`analyzeClassMethodIdentity` / +`analyzeClassMethodDeclarations`；改 `indexIdentityPathHelpers` / `unwrapIdentityPath` / `extractWrapperCalls`；`multiArg` 字段 |
+| `scripts/quality/verify-path-contract.d.mts`  | +`analyzeClassMethodDeclarations` 声明；`IdentityHelperInfo.multiArg`                                                                                            |
+| `spec/unit/verify-path-contract-gate.spec.ts` | +类方法恒等三种形态 / 逃逸阀排除 / multiArg 解包 测试（共 +9 例）                                                                                                |
+| `scripts/quality/path-contract-coverage.json` | `--refresh-coverage` 收紧棘轮（85 → 81）                                                                                                                         |
+
+**剩余**：`identifier 38` / `bare-call 37` 需跨作用域 let/const 绑定追踪（`findLetBinding` 手法）+
+跨函数传播；`this-method` 的 4 处逃逸阀按设计保留；另 `other 1` / `concat 1` 逐条看。下一轮按文档 §7.3
+建议顺序推进，每扩一层都重跑金标准对拍 + 变异自证。
 
 ---
 
@@ -575,7 +627,7 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第二批复核，基线 `develop @ 4d8e264be`：工作区回退事故还原、
-M3 落地、三条既有红修复、棘轮收紧 139 → 85 —— 见 §7.5）
+**最后更新**: 2026-10-09（第三轮：`this-method` 形态攻破 85 → 81 / 8 → 4，见 §7.6；
+D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）

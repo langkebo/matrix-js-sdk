@@ -1,9 +1,9 @@
 {
     "schema_version": 1,
     "note": "未参与路径校验的调用点计数（路径实参不是字面量，也不是已校验的恒等包装器调用）。这是覆盖率声明：`uncheckedPathArg` 与 `byFile` 里的每一项都**只准降不准升**——涨了说明有调用点从「已校验」滑到「未校验」，要么把它改回字面量，要么跑 `node scripts/quality/verify-path-contract.mjs --refresh-coverage` 显式接受。`byFile` 用**仓库相对路径**做键：一个文件被删/改名会让键消失（这是好事，不需要处理），新增文件默认基线 0 ⇒ 它只要出现未校验调用点就会失败。",
-    "generatedAt": "2026-10-09T05:47:34.666Z",
-    "uncheckedPathArg": 85,
-    "checkedPathArg": 538,
+    "generatedAt": "2026-10-09T07:06:22.770Z",
+    "uncheckedPathArg": 81,
+    "checkedPathArg": 542,
     "byFile": {
         "src/client-account-data-requests.ts": 3,
         "src/client-auth.ts": 1,
@@ -19,8 +19,7 @@
         "src/client-third-party.ts": 2,
         "src/client-to-device.ts": 1,
         "src/client.ts": 1,
-        "src/room-summary/index.ts": 2,
-        "src/room-summary/sub-managers/room-event-operation-manager.ts": 4,
+        "src/room-summary/sub-managers/room-event-operation-manager.ts": 2,
         "src/room-summary/sub-managers/room-invite-policy-manager.ts": 4,
         "src/room-summary/sub-managers/room-thread-manager.ts": 3,
         "src/rust-crypto/backup.ts": 3,
@@ -38,14 +37,13 @@
         "doRequest": 13,
         "doRequestVendor": 3,
         "request": 1,
-        "requestInternal": 3,
-        "requestV3": 10,
+        "requestV3": 9,
         "requestWithRetry": 2
     },
     "byShape": {
         "identifier": 38,
         "bare-call": 37,
-        "this-method": 8,
+        "this-method": 4,
         "other": 1,
         "concat": 1
     }

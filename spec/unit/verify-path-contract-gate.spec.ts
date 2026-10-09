@@ -33,6 +33,7 @@ import type { IdentityHelperInfo } from "../../scripts/quality/verify-path-contr
 import {
     DEFAULT_PREFIX,
     PREFIX_CONSTANTS,
+    analyzeClassMethodDeclarations,
     analyzeFunctionDeclarations,
     analyzeIdentityFunction,
     diffCoverage,
@@ -325,6 +326,96 @@ describe("verify-path-contract: 恒等路径包装器（2026-10-08）", () => {
         });
     });
 
+    describe("analyzeClassMethodDeclarations —— 类方法恒等（this-method 形态，2026-10-09）", () => {
+        // 形态 ①：直接恒等
+        const DIRECT = `class A {
+    private roomPath(p: string, roomId: string): string {
+        return p;
+    }
+}`;
+        // 形态 ②：单跳委派到顶层恒等函数（rsi 由 simpleHelpers 注入）
+        const DELEGATE_TOP = `class A {
+    private internalSummaryPath(p: string): string {
+        return rsi(p);
+    }
+}`;
+        // 形态 ③：多跳委派到另一个类方法（定点迭代）—— 本仓真实 roomPath → buildRoomScopedPath → encodeUri
+        const DELEGATE_CHAIN = `class A {
+    private roomPath(p: string, roomId: string): string {
+        return this.buildRoomScopedPath(p, roomId);
+    }
+    private buildRoomScopedPath(p: string, roomId: string): string {
+        return encodeUri(p, { $roomId: roomId });
+    }
+}`;
+
+        it("形态 ①：对第一参数直接恒等（带修饰符）必须识别", () => {
+            const decls = analyzeClassMethodDeclarations(DIRECT);
+            expect(decls).toHaveLength(1);
+            expect(decls[0]).toMatchObject({ name: "roomPath", ok: true, param: "p" });
+        });
+
+        it("形态 ②：委派到已知顶层恒等函数（simpleHelpers 注入）必须识别", () => {
+            const decls = analyzeClassMethodDeclarations(DELEGATE_TOP, { simpleHelpers: new Set(["rsi"]) });
+            expect(decls).toHaveLength(1);
+            expect(decls[0]).toMatchObject({ name: "internalSummaryPath", ok: true, param: "p" });
+        });
+
+        it("形态 ③：多跳委派到另一个类方法（encodeUri 基例）靠定点迭代全部解出", () => {
+            const decls = analyzeClassMethodDeclarations(DELEGATE_CHAIN);
+            const byName = new Map(decls.map((d) => [d.name, d]));
+            expect(byName.get("buildRoomScopedPath")?.ok).toBe(true);
+            expect(byName.get("roomPath")?.ok).toBe(true);
+            expect(byName.get("roomPath")?.param).toBe("p");
+        });
+
+        it("阴性对照：派生类方法即使委派，但只要整条链上有一跳非恒等就整名作废", () => {
+            const src = `class A {
+    private roomPath(p: string, roomId: string): string {
+        return this.buildRoomScopedPath(p, roomId);
+    }
+    private buildRoomScopedPath(p: string, roomId: string): string {
+        return encodeUri(p, { $roomId: roomId }) + "!";
+    }
+}`;
+            const decls = analyzeClassMethodDeclarations(src);
+            const byName = new Map(decls.map((d) => [d.name, d]));
+            expect(byName.get("buildRoomScopedPath")?.ok).toBe(false);
+            // roomPath 依赖 buildRoomScopedPath，后者非恒等 ⇒ roomPath 也解不出
+            expect(byName.get("roomPath")?.ok).toBe(false);
+        });
+
+        it("阴性对照：委派调用实参不是第一参数 ⇒ 不解（解出错的路径比不解更糟）", () => {
+            const src = `class A {
+    private roomPath(p: string, roomId: string): string {
+        return this.buildRoomScopedPath(roomId, p);
+    }
+    private buildRoomScopedPath(p: string, roomId: string): string {
+        return encodeUri(p, { $roomId: roomId });
+    }
+}`;
+            const decls = analyzeClassMethodDeclarations(src);
+            const byName = new Map(decls.map((d) => [d.name, d]));
+            expect(byName.get("roomPath")?.ok).toBe(false);
+        });
+
+        it("阴性对照：函数体不是恒等 / 无修饰符的方法不被当成声明", () => {
+            const src = `class A {
+    private notIdentity(p: string): string {
+        return p + "x";
+    }
+    helperForTest(p: string): string {
+        return p;
+    }
+}`;
+            const decls = analyzeClassMethodDeclarations(src);
+            const byName = new Map(decls.map((d) => [d.name, d]));
+            expect(byName.get("notIdentity")?.ok).toBe(false);
+            // 没有修饰符的方法（helperForTest）不被正则捕获
+            expect(byName.has("helperForTest")).toBe(false);
+        });
+    });
+
     describe("indexIdentityPathHelpers —— 分类与前缀", () => {
         const ALIASES = new Map([
             ["StripV3", "/_matrix/client/v3"],
@@ -370,6 +461,22 @@ describe("verify-path-contract: 恒等路径包装器（2026-10-08）", () => {
             );
             expect(unknown.helpers.get("y")?.stripPrefix).toBeNull();
         });
+
+        it("逃逸阀：uncheckedRoomPath 即使恒等也不进索引（解出必 mismatch，必须留在未校验桶显式计数）", () => {
+            const src = `class A {
+    private uncheckedRoomPath(p: string, roomId: string): string {
+        return this.buildRoomScopedPath(p, roomId);
+    }
+    private buildRoomScopedPath(p: string, roomId: string): string {
+        return encodeUri(p, { $roomId: roomId });
+    }
+}`;
+            const { helpers } = indexIdentityPathHelpers(new Map([["a.ts", src]]), { stripAliases: ALIASES });
+            // 普通恒等类方法仍正常进索引
+            expect(helpers.has("buildRoomScopedPath")).toBe(true);
+            // 逃逸阀被白名单剔除，其调用点因此保持未校验（不能悄悄"解出来"去比对一个必错的路径）
+            expect(helpers.has("uncheckedRoomPath")).toBe(false);
+        });
     });
 
     describe("parseStripPrefixAliases / resolveStripPrefixFromType", () => {
@@ -398,14 +505,22 @@ export type StripAuthPrefix<P extends string> = StripPrefix<
 
     describe("unwrapIdentityPath —— 只解整段就是一个调用的形态", () => {
         const helpers: Map<string, IdentityHelperInfo> = new Map([
-            ["apu", { kind: "plain", files: ["a.ts"], stripPrefix: null }],
-            ["bu", { kind: "guarded", files: ["b.ts"], stripPrefix: "/_synapse/admin/v1" }],
+            ["apu", { kind: "plain", files: ["a.ts"], stripPrefix: null, multiArg: false }],
+            ["bu", { kind: "guarded", files: ["b.ts"], stripPrefix: "/_synapse/admin/v1", multiArg: false }],
+            // 类方法恒等助手：恒等参数恒为第一实参，其余为数据
+            ["roomPath", { kind: "plain", files: ["c.ts"], stripPrefix: null, multiArg: true }],
         ]);
 
         it("解到字面量：单层与嵌套多跳", () => {
             expect(unwrapIdentityPath('apu("/x")', helpers)).toBe('"/x"');
             expect(unwrapIdentityPath("bu(`/a/${id}`)", helpers)).toBe("`/a/${id}`");
             expect(unwrapIdentityPath('apu(bu("/x"))', helpers)).toBe('"/x"');
+        });
+
+        it("multiArg 类方法助手：多参数调用解到第一实参（roomPath(p, roomId) ⇒ p）", () => {
+            expect(unwrapIdentityPath('roomPath("/rooms/$r/state", roomId)', helpers)).toBe('"/rooms/$r/state"');
+            // 第一参数就是字面量、其余是数据变量时，照样解开
+            expect(unwrapIdentityPath('this.roomPath("/rooms/$r/state", roomId)', helpers)).toBe('"/rooms/$r/state"');
         });
 
         it("阴性对照：拼接/方法链/非恒等名/多参数 ⇒ null（展开一半比不解更糟）", () => {
@@ -424,7 +539,7 @@ export type StripAuthPrefix<P extends string> = StripPrefix<
 
     describe("extractWrapperCalls —— 未校验桶与包装器自带前缀", () => {
         const helpers: Map<string, IdentityHelperInfo> = new Map([
-            ["bu", { kind: "guarded", files: ["b.ts"], stripPrefix: "/_synapse/admin/v1" }],
+            ["bu", { kind: "guarded", files: ["b.ts"], stripPrefix: "/_synapse/admin/v1", multiArg: false }],
         ]);
 
         it("非字面量路径必须落进 unchecked（上一版是静默 `continue`，调用点在报告里根本不存在）", () => {

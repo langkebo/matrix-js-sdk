@@ -523,6 +523,121 @@ export function verifyIdentityHelperShape({ source, name }) {
 }
 
 /**
+ * 校验**一个**类方法声明是不是「对第一参数恒等」—— 把 `this.roomPath("/x", roomId)`
+ * 解成第一参数 `"/x"`。
+ *
+ * 与 `analyzeIdentityFunction` 同一条 fail-closed 纪律：认不出的形态一律判"不符"
+ * （这里判错的代价是"路径算错却全绿"，比"门禁拒绝启动"严重得多）。
+ *
+ * 允许本仓实测的三种恒等形态（其余一律 fail-closed）：
+ *   ① `return <第一参数>;`                                   —— 与顶层函数同
+ *   ② `return <已知恒等助手>(<第一参数>);`                      —— 委派链（如 internalSummaryPath → rsi）
+ *   ③ `return encodeUri(<第一参数>, …)` /
+ *      `return this.<已知恒等方法>(<第一参数>, …)`               —— 模板实例化 / 委派到另一个恒等方法
+ *
+ * @param {string} source 已剥注释的源码
+ * @param {number} nameEnd 方法名之后的下标（紧接名字，泛型/参数表在其后）
+ * @param {(name: string) => boolean} resolver 判断某个 callee 是不是「已确认的恒等助手」
+ *        （顶层函数或已解出的类方法；`encodeUri` 作为模板实例化基例由调用方注入）
+ * @returns {{ ok: true, param: string, typeText: string | null } | { ok: false, reason: string }}
+ */
+function analyzeClassMethodIdentity(source, nameEnd, resolver) {
+    let i = nameEnd;
+    while (i < source.length && /\s/.test(source[i])) i++;
+    if (source[i] === "<") {
+        const after = skipGenerics(source, i);
+        if (after < 0) return { ok: false, reason: "泛型参数不配平" };
+        i = after;
+        while (i < source.length && /\s/.test(source[i])) i++;
+    }
+    if (source[i] !== "(") return { ok: false, reason: "名字后面不是参数表" };
+    const openParen = i;
+    const bodyStart = findFunctionBodyStart(source, openParen);
+    if (bodyStart < 0) return { ok: false, reason: "找不到函数体（抽象方法或语法异常）" };
+    const paramList = (splitTopLevelArgs(source, openParen) ?? []).map((p) => p.trim()).filter(Boolean);
+    if (paramList.length < 1) return { ok: false, reason: "没有参数，恒等方法必须至少有 1 个" };
+    const pm = /^([A-Za-z_$][\w$]*)\s*\??\s*(?::([\s\S]*))?$/.exec(paramList[0]);
+    if (!pm) return { ok: false, reason: `第一参数写法认不出：${paramList[0]}` };
+    const firstParam = pm[1];
+    const typeText = pm[2]?.trim() ?? null;
+    const closeBrace = matchBrace(source, bodyStart);
+    if (closeBrace < 0) return { ok: false, reason: "函数体不配平" };
+    const body = source
+        .slice(bodyStart + 1, closeBrace)
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/[^\n]*/g, "")
+        .trim()
+        .replace(/;$/, "")
+        .trim();
+    // 形态 ①：return <第一参数>
+    if (body === `return ${firstParam}`) return { ok: true, param: firstParam, typeText };
+    // 形态 ② / ③：return <callee>(<args>) 且 args[0] 是第一参数，callee 是已知恒等助手
+    const callM = /^\s*return\s+((?:this\.)?[A-Za-z_$][\w$]*)\s*\(([\s\S]*)\)$/.exec(body);
+    if (callM) {
+        let callee = callM[1];
+        if (callee.startsWith("this.")) callee = callee.slice("this.".length);
+        if (!resolver(callee)) return { ok: false, reason: `委派目标不是已知恒等助手：${callee}` };
+        const innerArgs = splitTopLevelArgs(`(${callM[2]})`, 0);
+        if (!innerArgs || innerArgs.length < 1 || innerArgs[0].trim() !== firstParam) {
+            return { ok: false, reason: `委派调用实参不是第一参数：${body}` };
+        }
+        return { ok: true, param: firstParam, typeText };
+    }
+    return { ok: false, reason: `类方法体不是恒等形态：${body.slice(0, 60)}` };
+}
+
+/**
+ * 扫描源码里的**类方法**声明，判定每个方法是不是「对第一参数恒等」。
+ *
+ * 与 `analyzeFunctionDeclarations`（顶层函数）对称，但类方法常带修饰符、泛型，且不一定是
+ * `return <param>`——本仓实测 `roomPath` / `internalSummaryPath` 两条路径：
+ *   - `roomPath`   → `return this.buildRoomScopedPath(p, roomId)` → `buildRoomScopedPath` → `encodeUri(p, …)`（两跳委派）
+ *   - `internalSummaryPath` → `return rsi(p)`（`rsi` 是顶层恒等函数，单跳委派）
+ * 方法之间可能互指（roomPath → buildRoomScopedPath），故用定点迭代直到稳定。
+ *
+ * ⚠️ 已知逃逸阀不在解析范围：`uncheckedRoomPath` 是项目**故意**留的 escape valve（契约前缀
+ * 实际是 vendor、实现却用 v3 的已知缺陷，见 `docs/sdk-encapsulation-audit.md` §13.11）—— 解出来
+ * 必 mismatch，所以绝不登记为恒等助手，保持它在未校验桶里显式计数。
+ *
+ * @param {string} source 已剥注释的源码
+ * @param {{ simpleHelpers?: Set<string> }} [options]
+ *        simpleHelpers = 已确认的「顶层恒等函数」名字集合（用于单跳委派判定）。
+ * @returns {Array<{ name: string, ok: boolean, param?: string, typeText?: string | null, reason?: string }>}
+ */
+export function analyzeClassMethodDeclarations(source, options = {}) {
+    const simpleHelpers = options.simpleHelpers ?? new Set();
+    // 修饰符（至少一个，保守：避免把语句开头的无修饰调用误当成方法声明）+ 方法名
+    const declRe =
+        /(?:^|[\n\r])[ \t]*(?:(?:private|protected|public|static|async|readonly|abstract|override|get|set)\s+)+([A-Za-z_$][\w$]*)/g;
+    const candidates = [...source.matchAll(declRe)];
+    /** @type {Set<string>} 已确认「对第一参数恒等」的类方法名（定点迭代累积） */
+    const resolved = new Set();
+    const isIdentityName = (n) => n === "encodeUri" || simpleHelpers.has(n) || resolved.has(n);
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const m of candidates) {
+            const name = m[1];
+            if (resolved.has(name)) continue;
+            const v = analyzeClassMethodIdentity(source, m.index + m[0].length, isIdentityName);
+            if (v.ok) {
+                resolved.add(name);
+                changed = true;
+            }
+        }
+    }
+    return candidates.map((m) => {
+        const name = m[1];
+        const v = resolved.has(name)
+            ? analyzeClassMethodIdentity(source, m.index + m[0].length, isIdentityName)
+            : { ok: false, reason: "类方法不是对第一参数恒等" };
+        return v.ok
+            ? { name, ok: true, param: v.param, typeText: v.typeText }
+            : { name, ok: false, reason: v.reason ?? "类方法不是对第一参数恒等" };
+    });
+}
+
+/**
  * 全仓扫描 `function <name>(…)` 声明，建「名字 → 恒等包装器种类」索引。
  *
  * 规则（**宁可漏解也不猜**）：
@@ -536,12 +651,15 @@ export function verifyIdentityHelperShape({ source, name }) {
  *
  * @param {Map<string, string>} sourcesByFile 仓库相对路径 → 已剥注释的源码
  * @param {{ stripAliases?: Map<string, string> }} [options] 剥离别名表（见 `parseStripPrefixAliases`）
- * @returns {{ helpers: Map<string, { kind: "plain" | "guarded", files: string[], stripPrefix: string | null }> }}
+ * @returns {{ helpers: Map<string, { kind: "plain" | "guarded", files: string[], stripPrefix: string | null, multiArg: boolean }> }}
  */
 export function indexIdentityPathHelpers(sourcesByFile, options = {}) {
     const stripAliases = options.stripAliases ?? new Map();
+    /** 项目故意留的 escape valve：解出来必 mismatch，保持它在未校验桶里计数。 */
+    const ESCAPE_VALVE_METHODS = new Set(["uncheckedRoomPath"]);
     /** @type {Map<string, { identity: boolean, guarded: boolean, files: Set<string>, prefixes: Set<string> }>} */
     const raw = new Map();
+    // ── 第一遍：顶层恒等函数 ───────────────────────────────────────────────
     for (const [file, source] of sourcesByFile) {
         for (const decl of analyzeFunctionDeclarations(source)) {
             const entry = raw.get(decl.name) ?? {
@@ -549,11 +667,40 @@ export function indexIdentityPathHelpers(sourcesByFile, options = {}) {
                 guarded: true,
                 files: new Set(),
                 prefixes: new Set(),
+                multiArg: false,
             };
             entry.files.add(file);
             if (!decl.ok) {
                 entry.identity = false;
             } else {
+                const strip = resolveStripPrefixFromType(decl.typeText, stripAliases);
+                if (!/PathAssert\s*</.test(decl.typeText ?? "")) entry.guarded = false;
+                if (strip) entry.prefixes.add(strip);
+                else entry.prefixes.add("\u0000unknown");
+            }
+            raw.set(decl.name, entry);
+        }
+    }
+    // 全局「顶层恒等函数」名字集合（委派链的单跳目标，跨文件也可达）—— 类方法分析要用它
+    const globalSimpleHelpers = new Set([...raw].filter(([, e]) => e.identity).map(([n]) => n));
+    // ── 第二遍：类方法（对第一参数恒等）── 用全局顶层助手做委派判定 ──────────
+    for (const [file, source] of sourcesByFile) {
+        for (const decl of analyzeClassMethodDeclarations(source, { simpleHelpers: globalSimpleHelpers })) {
+            if (ESCAPE_VALVE_METHODS.has(decl.name)) continue; // 逃逸阀不登记，保持未校验
+            const entry = raw.get(decl.name) ?? {
+                identity: true,
+                guarded: true,
+                files: new Set(),
+                prefixes: new Set(),
+                multiArg: false,
+            };
+            entry.files.add(file);
+            if (!decl.ok) {
+                entry.identity = false;
+            } else {
+                // 类方法恒等助手：恒等参数恒为第一实参，其余实参是数据（roomPath(p, roomId)），
+                // 构造上允许多余参数 ⇒ 标记 multiArg，让 unwrapIdentityPath 也能解到第一实参。
+                entry.multiArg = true;
                 const strip = resolveStripPrefixFromType(decl.typeText, stripAliases);
                 if (!/PathAssert\s*</.test(decl.typeText ?? "")) entry.guarded = false;
                 if (strip) entry.prefixes.add(strip);
@@ -571,6 +718,7 @@ export function indexIdentityPathHelpers(sourcesByFile, options = {}) {
             kind: e.guarded ? "guarded" : "plain",
             files: [...e.files].sort(),
             stripPrefix: prefixes.length === 1 && prefixes[0] !== "\u0000unknown" ? prefixes[0] : null,
+            multiArg: Boolean(e.multiArg),
         });
     }
     return { helpers };
@@ -591,7 +739,9 @@ export function unwrapIdentityPath(raw, helpers) {
     if (!helpers || typeof helpers.has !== "function") return null;
     let expr = String(raw ?? "").trim();
     for (let hop = 0; hop < 5; hop++) {
-        const m = /^([A-Za-z_$][\w$]*)\s*\(/.exec(expr);
+        // 允许类方法恒等助手：`this.roomPath("x")` 与 `roomPath("x")` 同解
+        const e = expr.replace(/^this\./, "");
+        const m = /^([A-Za-z_$][\w$]*)\s*\(/.exec(e);
         // 不再是函数调用（`"x"` / `path` / `this.a.b()`）⇒ 展开到此结束。
         // ⚠️ 这里必须**返回已展开的表达式**而不是 null：第一版写成 `return null`，
         // 于是 `apu("x")` 展开成 `"x"` 之后又被第二圈判成"不是恒等调用"而整条作废
@@ -599,12 +749,16 @@ export function unwrapIdentityPath(raw, helpers) {
         if (!m) return hop === 0 ? null : expr;
         if (!helpers.has(m[1])) return hop === 0 ? null : expr;
         const openParen = m[0].length - 1;
-        const closeParen = matchParen(expr, openParen);
+        const closeParen = matchParen(e, openParen);
         if (closeParen < 0) return null;
-        const args = splitTopLevelArgs(expr, openParen);
-        if (!args || args.length !== 1) return null;
+        const args = splitTopLevelArgs(e, openParen);
+        // 恒等助手对「第一参数」恒等 ⇒ 多参数（`roomPath(p, roomId)`）也解到第一实参；
+        // 但只有 multiArg 助手（类方法，恒等参数为第一、其余为数据）才允许 2+ 参数：
+        // 顶层函数助手严格单参数，多参数调用（`apu("a","b")`）是误用，必须 fail-closed 不解。
+        if (!args || args.length < 1) return null;
+        if (args.length > 1 && !helpers.get(m[1])?.multiArg) return null;
         // 闭括号之后必须什么都没有（否则是 `apu("x") + y` / `.trim()` 之类）
-        if (expr.slice(closeParen + 1).trim() !== "") return null;
+        if (e.slice(closeParen + 1).trim() !== "") return null;
         expr = args[0].trim();
     }
     return null;
@@ -1005,8 +1159,9 @@ export function extractWrapperCalls(source, relFile, options = {}) {
 
         const line = source.slice(0, m.index).split("\n").length;
         const rawPathArg = args[1];
-        // 恒等包装器（`apu("x")` / `bu("/…")`）先解开，再判是不是字面量
-        const helperName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(rawPathArg.trim())?.[1];
+        // 恒等包装器（`apu("x")` / `bu("/…")` / `this.roomPath("…", roomId)`）先解开，再判是不是字面量
+        const cleanedPathArg = rawPathArg.trim().replace(/^this\./, "");
+        const helperName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(cleanedPathArg)?.[1];
         const unwrapped = unwrapIdentityPath(rawPathArg, identityHelpers);
         // TS 断言是纯类型层的东西，运行时值就是左侧表达式 —— 剥掉后可能就是个模板字面量。
         const pathArg = stripTsAssertion(unwrapped ?? rawPathArg);
