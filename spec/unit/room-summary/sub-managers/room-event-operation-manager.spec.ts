@@ -122,7 +122,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/notifications`,
                 { from: "tok", limit: "10", only: "highlight" },
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 
@@ -186,9 +186,14 @@ describe("RoomSummaryEventOperationManager", () => {
 
                 await invoke();
 
-                // sticky events 自 2026-10 起归位 MSC4354 unstable 前缀（后端 5a8e44534），
-                // 其余同族端点仍是 client v3。
-                const expectedPrefix = path.endsWith("/sticky_events") ? MSC4354_PREFIX : V3_PREFIX;
+                // sticky events 自 2026-10 起归位 MSC4354 unstable 前缀（后端 5a8e44534）；
+                // `state/m.room.power_levels/` 是 Matrix C-S **规范端点**，仍在 client v3；
+                // 其余同族私有端点已在 M3 整批迁 `/_matrix/vendor/v1`（后端 46fbe20a0）。
+                const expectedPrefix = path.endsWith("/sticky_events")
+                    ? MSC4354_PREFIX
+                    : path.includes("/state/m.room.power_levels/")
+                      ? V3_PREFIX
+                      : VENDOR_PREFIX;
 
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                     "GET",
@@ -212,7 +217,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/sync`,
                 { since: "s1", timeout_ms: "5000", filter: "f" },
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -259,7 +264,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/receipts/m.read/%24ev%3Atest`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -275,7 +280,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/timeline`,
                 { from: "a", to: "b", dir: "b", limit: "20", filter: "f" },
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -329,7 +334,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/vault_data`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 
@@ -344,7 +349,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/vault_data`,
                 undefined,
                 data,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
             expect(onCacheInvalidation).toHaveBeenCalledWith(ROOM_ID);
         });
@@ -361,7 +366,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/event_perspective`,
                 { event_id: "$ev:test", room_version: "10" },
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -377,7 +382,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/message_queue`,
                 { from: "tok", limit: "5" },
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -393,7 +398,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/fragments/%40user%3Atest`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -409,7 +414,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/device/DEV1`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -426,7 +431,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/event/%24ev%3Atest/url`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -444,7 +449,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/translate/%24ev%3Atest`,
                 undefined,
                 body,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 
@@ -459,7 +464,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/convert/%24ev%3Atest`,
                 undefined,
                 body,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 
@@ -473,7 +478,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/sign/%24ev%3Atest`,
                 undefined,
                 {},
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 
@@ -488,7 +493,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/verify/%24ev%3Atest`,
                 undefined,
                 body,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -505,7 +510,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/anti_screenshot`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
 
@@ -519,7 +524,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/anti_screenshot`,
                 undefined,
                 { enabled: true },
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
         });
     });
@@ -588,7 +593,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/summary`,
                 undefined,
                 { refresh: true },
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
             expect(summaryCache.get(ROOM_ID)).toEqual(summary);
             expect(onSummaryUpdated).toHaveBeenCalledWith(ROOM_ID, summary);
@@ -612,7 +617,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/summary`,
                 undefined,
                 { name: "New" },
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
             expect(summaryCache.get(ROOM_ID)).toEqual(summary);
             expect(onSummaryUpdated).toHaveBeenCalledWith(ROOM_ID, summary);
@@ -640,7 +645,7 @@ describe("RoomSummaryEventOperationManager", () => {
                 `/rooms/${ENCODED_ROOM_ID}/summary`,
                 undefined,
                 undefined,
-                V3_PREFIX,
+                VENDOR_PREFIX,
             );
             expect(onCacheInvalidation).toHaveBeenCalledWith(ROOM_ID);
         });

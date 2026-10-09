@@ -43,7 +43,6 @@ function assertModeration<const P extends string>(path: P & PathAssert<P, StripV
 void assertRoom(`/rooms/${S}/aliases`);
 void assertRoom(`/rooms/${S}/invite`);
 void assertRoom(`/rooms/${S}/joined_members`);
-void assertRoom(`/rooms/${S}/keys/claim`);
 void assertAuth(`/directory/room/${S}/alias`); // ← ledger 补齐（assembly→auth 映射）
 void assertAuth(`/directory/room/${S}/alias/${S}`); // ← ledger 补齐
 void assertAuth(`/profile/${S}/${S}`); // ← ledger 补齐

@@ -17,7 +17,7 @@ limitations under the License.
 import { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { Body } from "../../http-api/interface";
-import { ClientPrefix } from "../../http-api/prefix";
+import { VendorPrefix } from "../../http-api/prefix";
 import type { QueryDict } from "../../utils";
 import { encodeUri } from "../../http-api/utils";
 import { InvalidParamError } from "../../common/errors";
@@ -154,9 +154,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             if (options?.from) queryParams.from = options.from;
             if (options?.limit !== undefined) queryParams.limit = String(options.limit);
             if (options?.only) queryParams.only = options.only;
-            const result = await this.requestV3<RoomNotificationsResult>(
+            const result = await this.requestVendor<RoomNotificationsResult>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/notifications", roomId),
+                this.roomPathVendor("/rooms/$roomId/notifications", roomId),
                 queryParams,
             );
             return {
@@ -181,9 +181,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomCapabilities(roomId: string): Promise<RoomCapabilities> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomCapabilities>(
+            return await this.requestVendor<RoomCapabilities>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/capabilities", roomId),
+                this.roomPathVendor("/rooms/$roomId/capabilities", roomId),
             );
         }, "getRoomCapabilities");
     }
@@ -204,7 +204,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             if (options?.since) queryParams.since = options.since;
             if (options?.timeout_ms !== undefined) queryParams.timeout_ms = String(options.timeout_ms);
             if (options?.filter) queryParams.filter = options.filter;
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/sync", roomId), queryParams);
+            return await this.requestVendor(
+                Method.Get,
+                this.roomPathVendor("/rooms/$roomId/sync", roomId),
+                queryParams,
+            );
         }, "getRoomSync");
     }
 
@@ -253,7 +257,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomInvites(roomId: string): Promise<RoomInvitesResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/invites", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/invites", roomId));
         }, "getRoomInvites");
     }
 
@@ -269,7 +273,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         if (!receiptType) throw new InvalidParamError("receiptType is required");
         if (!eventId) throw new InvalidParamError("eventId is required");
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Get,
                 encodeUri("/rooms/$roomId/receipts/$receiptType/$eventId", {
                     $roomId: roomId,
@@ -298,7 +302,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             if (options?.dir) queryParams.dir = options.dir;
             if (options?.limit !== undefined) queryParams.limit = String(options.limit);
             if (options?.filter) queryParams.filter = options.filter;
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/timeline", roomId), queryParams);
+            return await this.requestVendor(
+                Method.Get,
+                this.roomPathVendor("/rooms/$roomId/timeline", roomId),
+                queryParams,
+            );
         }, "getRoomTimeline");
     }
 
@@ -310,9 +318,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomUnreadCount(roomId: string): Promise<UnreadCountResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            const result = await this.requestV3<UnreadCountResult>(
+            const result = await this.requestVendor<UnreadCountResult>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/unread_count", roomId),
+                this.roomPathVendor("/rooms/$roomId/unread_count", roomId),
             );
             return {
                 ...result,
@@ -331,9 +339,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomMetadata(roomId: string): Promise<RoomMetadata> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            const result = await this.requestV3<RoomMetadata>(
+            const result = await this.requestVendor<RoomMetadata>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/metadata", roomId),
+                this.roomPathVendor("/rooms/$roomId/metadata", roomId),
             );
             return {
                 ...result,
@@ -351,9 +359,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomVaultData(roomId: string): Promise<RoomVaultDataResult | null> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomVaultDataResult>(
+            return await this.requestVendor<RoomVaultDataResult>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/vault_data", roomId),
+                this.roomPathVendor("/rooms/$roomId/vault_data", roomId),
             );
         }, "getRoomVaultData");
     }
@@ -367,9 +375,9 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async setRoomVaultData(roomId: string, data: IContent): Promise<void> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            await this.requestV3(
+            await this.requestVendor(
                 Method.Put,
-                this.roomPath("/rooms/$roomId/vault_data", roomId),
+                this.roomPathVendor("/rooms/$roomId/vault_data", roomId),
                 undefined,
                 data as Body,
             );
@@ -385,7 +393,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomRetention(roomId: string): Promise<RetentionPolicy | null> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/retention", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/retention", roomId));
         }, "getRoomRetention");
     }
 
@@ -397,7 +405,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomExternalIds(roomId: string): Promise<ExternalId[]> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/external_ids", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/external_ids", roomId));
         }, "getRoomExternalIds");
     }
 
@@ -409,7 +417,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomSpaces(roomId: string): Promise<RoomSpace[]> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/spaces", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/spaces", roomId));
         }, "getRoomSpaces");
     }
 
@@ -429,10 +437,14 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         return await this.withRetry(async () => {
             const queryParams: QueryDict = {};
             if (options?.room_version) queryParams.room_version = options.room_version;
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/event_perspective", roomId), {
-                ...queryParams,
-                event_id: eventId,
-            });
+            return await this.requestVendor(
+                Method.Get,
+                this.roomPathVendor("/rooms/$roomId/event_perspective", roomId),
+                {
+                    ...queryParams,
+                    event_id: eventId,
+                },
+            );
         }, "getRoomEventPerspective");
     }
 
@@ -444,7 +456,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomPermissions(roomId: string): Promise<RoomPermissionsResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/permissions", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/permissions", roomId));
         }, "getRoomPermissions");
     }
 
@@ -456,7 +468,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomResolve(roomId: string): Promise<RoomResolveResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/resolve", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/resolve", roomId));
         }, "getRoomResolve");
     }
 
@@ -475,7 +487,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             const queryParams: QueryDict = {};
             if (options?.from) queryParams.from = options.from;
             if (options?.limit !== undefined) queryParams.limit = String(options.limit);
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/message_queue", roomId), queryParams);
+            return await this.requestVendor(
+                Method.Get,
+                this.roomPathVendor("/rooms/$roomId/message_queue", roomId),
+                queryParams,
+            );
         }, "getRoomMessageQueue");
     }
 
@@ -487,7 +503,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomServiceTypes(roomId: string): Promise<RoomServiceTypesResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/service_types", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/service_types", roomId));
         }, "getRoomServiceTypes");
     }
 
@@ -499,7 +515,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomReducedEvents(roomId: string): Promise<RoomReducedEventsResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/reduced_events", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/reduced_events", roomId));
         }, "getRoomReducedEvents");
     }
 
@@ -511,7 +527,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomRendered(roomId: string): Promise<RoomRenderedResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/rendered/", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/rendered/", roomId));
         }, "getRoomRendered");
     }
 
@@ -525,7 +541,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
         this.validateUserId(userId);
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Get,
                 encodeUri("/rooms/$roomId/fragments/$userId", {
                     $roomId: roomId,
@@ -547,7 +563,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             throw new InvalidParamError("deviceId is required");
         }
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Get,
                 encodeUri("/rooms/$roomId/device/$deviceId", {
                     $roomId: roomId,
@@ -569,7 +585,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             throw new InvalidParamError("eventId is required");
         }
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Get,
                 encodeUri("/rooms/$roomId/event/$eventId/url", {
                     $roomId: roomId,
@@ -599,7 +615,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             throw new InvalidParamError("eventId is required");
         }
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Post,
                 encodeUri("/rooms/$roomId/translate/$eventId", {
                     $roomId: roomId,
@@ -628,7 +644,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             throw new InvalidParamError("eventId is required");
         }
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Post,
                 encodeUri("/rooms/$roomId/convert/$eventId", {
                     $roomId: roomId,
@@ -653,7 +669,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             throw new InvalidParamError("eventId is required");
         }
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Put,
                 encodeUri("/rooms/$roomId/sign/$eventId", {
                     $roomId: roomId,
@@ -682,7 +698,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             throw new InvalidParamError("eventId is required");
         }
         return await this.withRetry(async () => {
-            return await this.requestV3(
+            return await this.requestVendor(
                 Method.Post,
                 encodeUri("/rooms/$roomId/verify/$eventId", {
                     $roomId: roomId,
@@ -702,7 +718,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
     public async getRoomTurnServer(roomId: string): Promise<TurnServerConfig> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3(Method.Get, this.roomPath("/rooms/$roomId/turn_server", roomId));
+            return await this.requestVendor(Method.Get, this.roomPathVendor("/rooms/$roomId/turn_server", roomId));
         }, "getRoomTurnServer");
     }
 
@@ -720,7 +736,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             const result = await this.request<{ enabled?: boolean }>({
                 method: Method.Get,
                 path: `/rooms/${encodeURIComponent(roomId)}/anti_screenshot`,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
             return { enabled: result.enabled ?? false };
         }, "getAntiScreenshot");
@@ -740,7 +756,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
             await this.request({
                 method: Method.Put,
                 path: `/rooms/${encodeURIComponent(roomId)}/anti_screenshot`,
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
                 body: { enabled } as Body,
             });
         }, "setAntiScreenshot");
@@ -836,7 +852,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
 
         try {
             const summary = await this.withRetry(async () => {
-                return await this.requestV3<RoomSummary>(Method.Post, this.summaryReadPath(roomId), undefined, body);
+                return await this.requestVendor<RoomSummary>(
+                    Method.Post,
+                    this.summaryReadPath(roomId),
+                    undefined,
+                    body,
+                );
             }, "createOrRefreshSummary");
 
             if (summary) {
@@ -861,7 +882,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
 
         try {
             const summary = await this.withRetry(async () => {
-                return await this.requestV3<RoomSummary>(Method.Put, this.summaryReadPath(roomId), undefined, body);
+                return await this.requestVendor<RoomSummary>(Method.Put, this.summaryReadPath(roomId), undefined, body);
             }, "updateSummary");
 
             if (summary) {
@@ -885,7 +906,7 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            await this.requestV3(Method.Delete, this.summaryReadPath(roomId));
+            await this.requestVendor(Method.Delete, this.summaryReadPath(roomId));
             this.onCacheInvalidation?.(roomId);
         }, "deleteSummary");
     }

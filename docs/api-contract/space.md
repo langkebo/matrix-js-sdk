@@ -1,7 +1,7 @@
 ---
 module: space
 generated_from: docs/api-contract/generated/modules/space.json
-generated_hash: sha256-908d79d6e8c2537772b820d1495961fa171f448c630b06f1cc5b83113caa8a3f
+generated_hash: sha256-79f680c4da7e877424c9d1dbb27433c1920ee050504872759a8ba874592ed52e
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

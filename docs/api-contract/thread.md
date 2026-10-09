@@ -1,7 +1,7 @@
 ---
 module: thread
 generated_from: docs/api-contract/generated/modules/thread.json
-generated_hash: sha256-1693d8a995b9450410a8f3b6806d88afab418a55ab50c215dc70c82bf378e91f
+generated_hash: sha256-d96ab6db9c5d83854681c7f3aa032fe362fffcab0f4b1c2c8d1ecefdc13c4413
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

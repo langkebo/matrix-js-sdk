@@ -282,7 +282,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return await this.request<IRoomVersionResponse>({
                 method: Method.Get,
                 path: rp(`/rooms/${encodeURIComponent(roomId)}/version`),
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 
@@ -305,7 +305,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return await this.request<IRoomCapabilitiesResponse>({
                 method: Method.Get,
                 path: rp(`/rooms/${encodeURIComponent(roomId)}/capabilities`),
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 
@@ -328,7 +328,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return await this.request<IRoomMetadataResponse>({
                 method: Method.Get,
                 path: rp(`/rooms/${encodeURIComponent(roomId)}/metadata`),
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 
@@ -619,7 +619,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                 return await this.request<IStateEvent>({
                     method: Method.Get,
                     path: rp(`/rooms/${encodeURIComponent(roomId)}/membership/${encodeURIComponent(userId)}`),
-                    prefix: ClientPrefix.V3,
+                    prefix: VendorPrefix,
                 });
             });
 
@@ -856,7 +856,7 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return await this.request<{ notification_count: number; highlight_count: number }>({
                 method: Method.Get,
                 path: rp(`/rooms/${encodeURIComponent(roomId)}/unread_count`),
-                prefix: ClientPrefix.V3,
+                prefix: VendorPrefix,
             });
         });
 

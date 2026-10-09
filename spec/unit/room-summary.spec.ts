@@ -353,7 +353,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/capabilities`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(capabilities.room_version).toBe("10");
             expect(capabilities.features.encryption).toBe(true);
@@ -374,7 +374,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/unread_count`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(unread.notification_count).toBe(7);
             expect(unread.highlight_count).toBe(2);
@@ -407,7 +407,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/metadata`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(metadata.encryption).toBe("m.megolm.v1.aes-sha2");
             expect(metadata.is_encrypted).toBe(true);
@@ -445,7 +445,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/notifications`,
                 { from: "token-0", limit: "20", only: "highlight" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.next_token).toBe("token-1");
             expect(result.next_batch).toBe("token-1");
@@ -471,7 +471,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/permissions`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.can_invite).toBe(true);
             expect(result.can_kick).toBe(false);
@@ -490,7 +490,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/resolve`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.room_id).toBe("!room:example.com");
             expect(result.resolved).toBe(true);
@@ -512,7 +512,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/message_queue`,
                 { from: "n0", limit: "20" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.events?.[0]).toMatchObject({ event_id: "$e1" });
             expect(result.next_batch).toBe("n1");
@@ -530,7 +530,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/service_types`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.service_types).toEqual(["messaging", "encryption"]);
         });
@@ -548,7 +548,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/reduced_events`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.events).toHaveLength(1);
             expect(result.total).toBe(1);
@@ -567,12 +567,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/rendered/`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.rendered).toBe(true);
         });
 
-        it("should get room fragments via v3 endpoint", async () => {
+        it("should get room fragments via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 fragments: [{ id: "f1" }],
             });
@@ -584,12 +584,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/fragments/${encodeURIComponent("@alice:example.com")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.fragments).toHaveLength(1);
         });
 
-        it("should get room device view via v3 endpoint", async () => {
+        it("should get room device view via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 device_id: "DEV1",
                 room_id: "!room:example.com",
@@ -602,7 +602,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/device/${encodeURIComponent("DEV1")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.device_id).toBe("DEV1");
         });
@@ -620,7 +620,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/vault_data`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result).toEqual({ encrypted: true, key_id: "vault-key" });
         });
@@ -638,7 +638,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/vault_data`,
                 undefined,
                 { encrypted: true, key_id: "vault-key" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -652,12 +652,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/external_ids`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result).toEqual([{ provider: "slack", external_id: "room-123" }]);
         });
 
-        it("should get room event url via v3 endpoint", async () => {
+        it("should get room event url via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 url: "https://example.com/event/$evt",
             });
@@ -669,12 +669,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/event/${encodeURIComponent("$evt")}/url`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.url).toContain("/event/");
         });
 
-        it("should translate room event via v3 endpoint", async () => {
+        it("should translate room event via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 room_id: "!room:example.com",
                 event_id: "$evt",
@@ -694,14 +694,14 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/translate/${encodeURIComponent("$evt")}`,
                 undefined,
                 { target_lang: "zh" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.translated_text).toBe("你好");
             expect(result.target_lang).toBe("zh");
             expect(result.provider).toBe("google");
         });
 
-        it("should convert room event via v3 endpoint", async () => {
+        it("should convert room event via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 converted: true,
                 format: "markdown",
@@ -716,12 +716,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/convert/${encodeURIComponent("$evt")}`,
                 undefined,
                 { format: "markdown" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.converted).toBe(true);
         });
 
-        it("should sign room event via v3 endpoint", async () => {
+        it("should sign room event via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 signed: true,
             });
@@ -735,12 +735,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/sign/${encodeURIComponent("$evt")}`,
                 undefined,
                 { signature: "abc" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.signed).toBe(true);
         });
 
-        it("should verify room event via v3 endpoint", async () => {
+        it("should verify room event via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({
                 verified: true,
             });
@@ -754,7 +754,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/verify/${encodeURIComponent("$evt")}`,
                 undefined,
                 { verifier: "@alice:example.com" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.verified).toBe(true);
         });
@@ -799,7 +799,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/invites`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.invites).toEqual([]);
         });
@@ -814,7 +814,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/keys/claim`,
                 undefined,
                 { one_time_keys: {} },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.one_time_keys).toEqual({});
         });
@@ -827,7 +827,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/keys/count`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.count).toBe(3);
         });
@@ -840,7 +840,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/keys`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.keys).toEqual([]);
         });
@@ -853,7 +853,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/keys/version`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.version).toBe("v1");
         });
@@ -866,12 +866,12 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/members/recent`,
                 { from: "s1", limit: "10" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.chunk).toEqual([]);
         });
 
-        it("should get room receipts via v3 endpoint", async () => {
+        it("should get room receipts via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ receipts: [] });
             const result = await summaryManager.getRoomReceipts("!room:example.com", "m.read", "$evt");
             expect(authedRequest).toHaveBeenCalledWith(
@@ -879,7 +879,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/receipts/${encodeURIComponent("m.read")}/${encodeURIComponent("$evt")}`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.receipts).toEqual([]);
         });
@@ -892,7 +892,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/room_keys/keys`,
                 undefined,
                 { room_keys: [] },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.count).toBe(1);
         });
@@ -905,7 +905,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/search`,
                 undefined,
                 { search_term: "hi" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(result.results).toEqual([]);
         });
@@ -937,7 +937,7 @@ describe("RoomSummaryManager", () => {
             );
         });
 
-        it("should update summary state via v3 endpoint", async () => {
+        it("should update summary state via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ membership: "join" });
 
             await summaryManager.updateSummaryState("!room:example.com", "m.room.member", "@alice:example.com", {
@@ -949,7 +949,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/state/${encodeURIComponent("m.room.member")}/${encodeURIComponent("@alice:example.com")}`,
                 undefined,
                 { membership: "join" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1010,7 +1010,7 @@ describe("RoomSummaryManager", () => {
             });
         });
 
-        it("should get all summary state via v3 endpoint", async () => {
+        it("should get all summary state via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce([
                 { event_type: "m.room.name", state_key: "", event_id: "$event1", content: { name: "Test" } },
                 { event_type: "m.room.topic", state_key: "", event_id: "$event2", content: { topic: "Topic" } },
@@ -1023,13 +1023,13 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary/state`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
             expect(states).toHaveLength(2);
             expect(states[0].event_type).toBe("m.room.name");
         });
 
-        it("should create or refresh summary via v3 endpoint", async () => {
+        it("should create or refresh summary via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ room_id: "!room:example.com", name: "New Room" });
 
             await summaryManager.createOrRefreshSummary("!room:example.com", { name: "New Room" });
@@ -1039,11 +1039,11 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary`,
                 undefined,
                 { name: "New Room" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
-        it("should update summary via v3 endpoint", async () => {
+        it("should update summary via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce({ room_id: "!room:example.com", name: "Updated" });
 
             await summaryManager.updateSummary("!room:example.com", { name: "Updated" });
@@ -1053,11 +1053,11 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary`,
                 undefined,
                 { name: "Updated" },
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
-        it("should delete summary via v3 endpoint", async () => {
+        it("should delete summary via vendor endpoint", async () => {
             authedRequest.mockResolvedValueOnce(undefined);
 
             await summaryManager.deleteSummary("!room:example.com");
@@ -1067,7 +1067,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/summary`,
                 undefined,
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1173,7 +1173,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/notifications`,
                 { limit: "0" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1187,7 +1187,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/sync`,
                 { timeout_ms: "0" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1201,7 +1201,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/timeline`,
                 { dir: "b", limit: "0" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1215,7 +1215,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/encrypted_events`,
                 { limit: "0" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
 
@@ -1229,7 +1229,7 @@ describe("RoomSummaryManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/message_queue`,
                 { limit: "0" },
                 undefined,
-                { prefix: ClientPrefix.V3 },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });

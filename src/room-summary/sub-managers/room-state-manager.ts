@@ -75,7 +75,7 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
         this.validateRoomId(roomId);
 
         return this.withRetry(async () => {
-            return await this.requestV3<IRoomSummaryState[]>(Method.Get, this.summaryStateCollectionPath(roomId));
+            return await this.requestVendor<IRoomSummaryState[]>(Method.Get, this.summaryStateCollectionPath(roomId));
         }, "getAllSummaryState");
     }
 
@@ -99,7 +99,7 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
         this.validateEventType(eventType);
 
         return this.withRetry(async () => {
-            return await this.requestV3<RoomSummaryStateContent>(
+            return await this.requestVendor<RoomSummaryStateContent>(
                 Method.Get,
                 this.summaryStatePath(roomId, eventType, stateKey),
             );
@@ -128,7 +128,7 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
         this.validateEventType(eventType);
 
         return this.withRetry(async () => {
-            return await this.requestV3<RoomSummaryStateContent>(
+            return await this.requestVendor<RoomSummaryStateContent>(
                 Method.Put,
                 this.summaryStatePath(roomId, eventType, stateKey),
                 undefined,

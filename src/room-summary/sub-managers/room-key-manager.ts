@@ -57,9 +57,9 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
     public async claimRoomKeys(roomId: string, body: ClaimKeysRequest): Promise<RoomKeyClaimResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomKeyClaimResult>(
+            return await this.requestVendor<RoomKeyClaimResult>(
                 Method.Post,
-                this.roomPath("/rooms/$roomId/keys/claim", roomId),
+                this.roomPathVendor("/rooms/$roomId/keys/claim", roomId),
                 undefined,
                 body as Body,
             );
@@ -75,9 +75,9 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
     public async getRoomKeyCount(roomId: string): Promise<RoomKeyCountResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomKeyCountResult>(
+            return await this.requestVendor<RoomKeyCountResult>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/keys/count", roomId),
+                this.roomPathVendor("/rooms/$roomId/keys/count", roomId),
             );
         }, "getRoomKeyCount");
     }
@@ -102,7 +102,10 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
     public async getRoomKeys(roomId: string): Promise<RoomKeysResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomKeysResult>(Method.Get, this.roomPath("/rooms/$roomId/keys", roomId));
+            return await this.requestVendor<RoomKeysResult>(
+                Method.Get,
+                this.roomPathVendor("/rooms/$roomId/keys", roomId),
+            );
         }, "getRoomKeys");
     }
 
@@ -115,9 +118,9 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
     public async getRoomKeysVersion(roomId: string): Promise<RoomKeysVersionResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomKeysVersionResult>(
+            return await this.requestVendor<RoomKeysVersionResult>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/keys/version", roomId),
+                this.roomPathVendor("/rooms/$roomId/keys/version", roomId),
             );
         }, "getRoomKeysVersion");
     }
@@ -132,9 +135,9 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
     public async forwardRoomKeys(roomId: string, body: IContent): Promise<RoomForwardKeysResult> {
         this.validateRoomId(roomId);
         return await this.withRetry(async () => {
-            return await this.requestV3<RoomForwardKeysResult>(
+            return await this.requestVendor<RoomForwardKeysResult>(
                 Method.Put,
-                this.roomPath("/rooms/$roomId/room_keys/keys", roomId),
+                this.roomPathVendor("/rooms/$roomId/room_keys/keys", roomId),
                 undefined,
                 body as Body,
             );
@@ -157,9 +160,9 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
             const queryParams: QueryDict = {};
             if (options?.from) queryParams.from = options.from;
             if (options?.limit !== undefined) queryParams.limit = String(options.limit);
-            return await this.requestV3<EncryptedEventsResult>(
+            return await this.requestVendor<EncryptedEventsResult>(
                 Method.Get,
-                this.roomPath("/rooms/$roomId/encrypted_events", roomId),
+                this.roomPathVendor("/rooms/$roomId/encrypted_events", roomId),
                 queryParams,
             );
         }, "getEncryptedEvents");

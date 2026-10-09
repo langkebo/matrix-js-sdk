@@ -168,7 +168,7 @@ describe("RoomManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/capabilities`,
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
@@ -880,7 +880,7 @@ describe("RoomManager", () => {
                 `/rooms/${encodeURIComponent("!room:example.com")}/unread_count`,
                 undefined,
                 undefined,
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
