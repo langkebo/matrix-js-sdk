@@ -59,11 +59,24 @@ export interface CasServiceListResponse {
     total?: number;
 }
 
+/**
+ * 注册 CAS 服务的请求体（对齐后端 `RegisterServiceBody`，2026-10-09 实测）。
+ *
+ * ⚠️ 三个必填字段与后端 serde 结构一一对应：`service_id` / `name` / `service_url_pattern`。
+ * 旧版本这里是 `{ name, service_url, enabled? }` —— 既缺 `service_id`、又用 `service_url`
+ * 顶替 `service_url_pattern`，且 `enabled` 后端无此字段 ⇒ 注册链路必然 400。
+ */
 export interface CasServiceCreateRequest {
+    /** 服务标识（后端必填） */
+    service_id: string;
     name: string;
-    service_url: string;
+    /** 服务 URL 匹配模式（后端字段名即 `service_url_pattern`，必填） */
+    service_url_pattern: string;
     description?: string;
-    enabled?: boolean;
+    allowed_attributes?: string[];
+    allowed_proxy_callbacks?: string[];
+    require_secure?: boolean;
+    single_logout?: boolean;
 }
 
 export interface CasServiceCreateResponse {
@@ -162,9 +175,11 @@ export class CasManager extends BaseManager {
      * @example
      * ```typescript
      * const service = await client.getCasManager().createService({
-     *     name: "my-service", service_url: "https://example.com"
+     *     service_id: "my-service",
+     *     name: "my-service",
+     *     service_url_pattern: "https://example.com",
      * });
-     * console.log(service.id);
+     * console.log(service);
      * ```
      */
     public async createService(
@@ -312,9 +327,23 @@ export class CasManager extends BaseManager {
         }, "p3ServiceValidate");
     }
 
+    /**
+     * 获取 CAS 代理票据。
+     *
+     * ⚠️ query 键名必须与后端一致：后端 `ProxyQuery` 是 `{ target_service, pgt }`
+     * **两个都必填**，故这里下发 `target_service`（发 `targetService` 会因必填缺失而
+     * **400**，2026-10-09 实测）。`pgt` 无值时不发送 —— 后端虽标为必填，但调用方
+     * 无 `pgt` 时保持原有行为不变。
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().proxy("https://sso.example.com", "PGT-abc");
+     * console.log(result.proxyTicket);
+     * ```
+     */
     public async proxy(targetService: string, pgt?: string): Promise<CasProxyResponse> {
         this.requireNonEmptyString(targetService, "targetService");
-        const queryParams: Record<string, string> = { targetService };
+        const queryParams: Record<string, string> = { target_service: targetService };
         if (pgt) queryParams.pgt = pgt;
         return await this.withRetry(async () => {
             return await this.request<CasProxyResponse>({

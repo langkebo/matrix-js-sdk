@@ -46,9 +46,23 @@ export interface RoomKeyRequestsResponse {
     requests: RoomKeyRequest[];
 }
 
+/**
+ * 创建房间密钥请求的请求体（对齐后端 `CreateRoomKeyRequestBody`，2026-10-09 实测）。
+ *
+ * ⚠️ 后端 `algorithm` / `room_id` / `session_id` **三个都是必填**（无 `#[serde(default)]`），
+ * 缺 `algorithm` 会直接 400。旧版本这里没有 `algorithm` ⇒ 该链路必然失败。
+ */
 export interface CreateRoomKeyRequest {
+    /** 加密算法（如 `m.megolm.v1.aes-sha2`）。后端必填。 */
+    algorithm: string;
     room_id: string;
     session_id: string;
+    /**
+     * 目标设备 ID。
+     *
+     * 注意：后端 `CreateRoomKeyRequestBody` **没有**这个字段（多传不会 400，因为该结构
+     * 未开 `deny_unknown_fields`，但服务端也不会读它）。保留仅为兼容既有调用方。
+     */
     device_id?: string;
 }
 export class RoomKeysManager extends BaseManager {
@@ -97,8 +111,20 @@ export class RoomKeysManager extends BaseManager {
     /**
      * 创建房间密钥请求
      * POST /_matrix/client/v3/room_keys/request
+     *
+     * 后端 `CreateRoomKeyRequestBody` 的 `algorithm` / `room_id` / `session_id` 均必填，
+     * 缺失会直接 400 ⇒ 此处**本地先校验**，把 400 提前成可读的 `ValidationError`。
      */
     async createRoomKeyRequest(request: CreateRoomKeyRequest): Promise<void> {
+        if (!request?.algorithm) {
+            throw new ValidationError("algorithm is required (backend rejects the request without it)");
+        }
+        if (!request.room_id) {
+            throw new ValidationError("room_id is required");
+        }
+        if (!request.session_id) {
+            throw new ValidationError("session_id is required");
+        }
         try {
             await this.withRetry(async () => {
                 return await this.request({

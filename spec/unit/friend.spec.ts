@@ -978,4 +978,27 @@ describe("FriendManager", () => {
             expect(friendManager.getCachedOutgoingRequests()).toHaveLength(0);
         });
     });
+
+    describe("wire-format：addFriend 下发后端声明的键名 `message`", () => {
+        it("body 用 `message` 而非 `reason`（后端 AddFriendRequest 是 deny_unknown_fields）", async () => {
+            // 后端 `AddFriendRequest` = `#[serde(deny_unknown_fields)] { user_id, message? }`。
+            // 发 `reason` 会被判为未知字段并直接 400（方案文档 §9 P-12）。
+            mockAuthedRequest.mockResolvedValue({ user_id: "@bob:example.com", status: "ok" });
+
+            await friendManager.requests.addFriend("@bob:example.com", { reason: "hi" });
+
+            const sentBody = mockAuthedRequest.mock.calls[0][3] as Record<string, unknown>;
+            expect(Object.keys(sentBody).sort()).toEqual(["message", "user_id"]);
+            expect(sentBody.message).toBe("hi");
+        });
+
+        it("不传 reason 时 message 为 undefined（未额外引入必填）", async () => {
+            mockAuthedRequest.mockResolvedValue({ user_id: "@bob:example.com", status: "ok" });
+
+            await friendManager.requests.addFriend("@bob:example.com");
+
+            const sentBody = mockAuthedRequest.mock.calls[0][3] as Record<string, unknown>;
+            expect(Object.keys(sentBody).sort()).toEqual(["message", "user_id"]);
+        });
+    });
 });

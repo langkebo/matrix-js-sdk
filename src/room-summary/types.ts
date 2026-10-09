@@ -910,9 +910,15 @@ export interface BatchSummaryResponse {
 export interface BatchSummaryRequest {
     /** Room IDs to fetch summaries for */
     rooms: string[];
-    /** Whether to only return suggested rooms (default: false) */
+    /**
+     * Whether to only return suggested rooms (default: false).
+     *
+     * ⚠️ 这只是 **SDK 侧别名**，不会被发到网络上；真正下发的键是 {@link suggested_only}
+     * （后端 `RoomSummaryBatchRequest` 是 `deny_unknown_fields` + `rename="suggested_only"`，
+     * 发 `is_suggested_only` 会直接 400）。两者都给时以 `suggested_only` 为准。
+     */
     is_suggested_only?: boolean;
-    /** Alias for is_suggested_only supported by some server implementations */
+    /** 线上键名：后端 `RoomSummaryBatchRequest.suggested_only` */
     suggested_only?: boolean;
 }
 

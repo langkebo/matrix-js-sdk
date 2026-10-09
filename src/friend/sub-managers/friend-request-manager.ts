@@ -131,6 +131,11 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 直接添加好友（不经过请求流程）
+     *
+     * @param userId - 目标用户 ID
+     * @param opts.reason - 附言。⚠️ **只影响线上键名的取值**：后端 `AddFriendRequest`
+     *   是 `#[serde(deny_unknown_fields)]` 且字段名为 `message`，故这里必须下发 `message`
+     *   （发 `reason` 会被判为未知字段并**直接 400**，2026-10-09 实测）。
      */
     async addFriend(userId: string, opts?: { reason?: string }): Promise<{ user_id?: string; status?: string }> {
         if (!userId) {
@@ -146,7 +151,7 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
             return await this.request<{ user_id?: string; status?: string }>({
                 method: Method.Post,
                 path: friendPath("/friends"),
-                body: { user_id: userId, reason: opts?.reason },
+                body: { user_id: userId, message: opts?.reason },
                 prefix: VendorPrefix,
             });
         }, "addFriend");

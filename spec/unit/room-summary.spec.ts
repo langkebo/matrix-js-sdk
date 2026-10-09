@@ -1463,4 +1463,47 @@ describe("RoomSummaryManager", () => {
             );
         });
     });
+
+    /*
+     * 后端 `RoomSummaryBatchRequest` 是 `#[serde(deny_unknown_fields)] + rename="suggested_only"`：
+     * 发 `is_suggested_only` 会被判为未知字段并**直接 400**。同一文件里
+     * `batchGetRoomSummaries` 一直是对的、`batchGetSummaries`/`fetchBatchSummaries` 是错的
+     * —— 这种"同文件内不一致"只有把线上键集钉住才防得住（方案文档 §9 P-01）。
+     */
+    describe("wire-format：批量摘要的 `suggested_only` 键", () => {
+        const bodyOfLastCall = (): Record<string, unknown> => {
+            const call = authedRequest.mock.calls[authedRequest.mock.calls.length - 1];
+            return call[3] as Record<string, unknown>;
+        };
+
+        it("batchGetRoomSummaries 下发 `suggested_only`（既有正确实现，防回归）", async () => {
+            authedRequest.mockResolvedValue({ rooms: [] });
+
+            await summaryManager.batchGetRoomSummaries(["!r:hs"], { suggestedOnly: true });
+
+            expect(Object.keys(bodyOfLastCall()).sort()).toEqual(["rooms", "suggested_only"]);
+            expect(bodyOfLastCall().suggested_only).toBe(true);
+        });
+
+        it("batchGetSummaries 下发 `suggested_only` 而非 `is_suggested_only`", async () => {
+            authedRequest.mockResolvedValue({});
+
+            await summaryManager.batchGetSummaries(["!r:hs"], true);
+
+            const body = bodyOfLastCall();
+            expect(body).not.toHaveProperty("is_suggested_only");
+            expect(body.suggested_only).toBe(true);
+        });
+
+        it("fetchBatchSummaries 下发 `suggested_only`；兼容别名 is_suggested_only 但以线上键为准", async () => {
+            authedRequest.mockResolvedValue({});
+
+            await summaryManager.fetchBatchSummaries({ rooms: ["!r:hs"], is_suggested_only: true });
+            expect(bodyOfLastCall().suggested_only).toBe(true);
+            expect(bodyOfLastCall()).not.toHaveProperty("is_suggested_only");
+
+            await summaryManager.fetchBatchSummaries({ rooms: ["!r:hs"], suggested_only: false });
+            expect(bodyOfLastCall().suggested_only).toBe(false);
+        });
+    });
 });

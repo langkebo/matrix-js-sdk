@@ -501,7 +501,10 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             return await this.requestInternal<BatchSummaryResponse>(Method.Post, rsi("/summaries/batch"), undefined, {
                 rooms,
-                is_suggested_only: isSuggestedOnly ?? false,
+                // ⚠️ 线上键名必须与后端一致：后端 `RoomSummaryBatchRequest` 用
+                // `#[serde(deny_unknown_fields, rename = "suggested_only")]`；写成
+                // `is_suggested_only` 会被判为未知字段并**直接 400**（2026-10-09 实测）。
+                suggested_only: isSuggestedOnly ?? false,
             });
         }, "batchGetSummaries");
     }
@@ -515,14 +518,16 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      *
      * @param request - Batch fetch request body
      * @param request.rooms - Array of room IDs to fetch summaries for
-     * @param request.is_suggested_only - Whether to only return suggested rooms (default: false)
+     * @param request.suggested_only - Whether to only return suggested rooms (default: false)。
+     *   **这是线上键名**；`request.is_suggested_only` 仅为 SDK 侧别名（后端 deny_unknown_fields，
+     *   发别名会 400）。
      * @returns Raw batch response with room summaries
      *
      * @example
      * ```typescript
      * const result = await roomSummaryManager.fetchBatchSummaries({
      *     rooms: ["!room1:server.com", "!room2:server.com"],
-     *     is_suggested_only: true,
+     *     suggested_only: true,
      * });
      * console.log(result.rooms?.length);
      * ```
@@ -540,7 +545,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.withRetry(async () => {
             return await this.requestInternal<BatchSummaryResponse>(Method.Post, rsi("/summaries/batch"), undefined, {
                 rooms: request.rooms,
-                is_suggested_only: request.is_suggested_only ?? false,
+                // 同 `batchGetSummaries`：线上键名是 `suggested_only`（后端 deny_unknown_fields）。
+                // `is_suggested_only` 仅作 SDK 侧别名接受，两个都给时以 `suggested_only` 为准。
+                suggested_only: request.suggested_only ?? request.is_suggested_only ?? false,
             });
         }, "fetchBatchSummaries");
     }

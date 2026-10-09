@@ -31,14 +31,39 @@ describe("RoomKeysManager", () => {
 
     it("creates request and cache/stat helpers", async () => {
         mockClient.http.authedRequest.mockResolvedValue({});
-        await manager.createRoomKeyRequest({ room_id: "!r:hs", session_id: "s1" });
+        await manager.createRoomKeyRequest({ algorithm: "m.megolm.v1.aes-sha2", room_id: "!r:hs", session_id: "s1" });
         expect(mockClient.http.authedRequest).toHaveBeenCalled();
+
+        // 线上键必须覆盖后端的三个必填字段（`algorithm` / `room_id` / `session_id`）。
+        // 缺 `algorithm` 会被后端判 400（方案文档 §9 P-10）。
+        const sentBody = mockClient.http.authedRequest.mock.calls[0][3] as Record<string, unknown>;
+        expect(sentBody).toMatchObject({
+            algorithm: "m.megolm.v1.aes-sha2",
+            room_id: "!r:hs",
+            session_id: "s1",
+        });
 
         expect(manager.getCacheStats().size).toBeGreaterThanOrEqual(0);
         expect(manager.getRequestStats().total).toBeGreaterThan(0);
         manager.clearCache();
         manager.resetRequestStats();
         expect(manager.getRequestStats().total).toBe(0);
+    });
+
+    it("fail-fast：缺 algorithm / room_id / session_id 时本地抛 ValidationError（不发出 400）", async () => {
+        await expect(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            manager.createRoomKeyRequest({ room_id: "!r:hs", session_id: "s1" } as any),
+        ).rejects.toMatchObject({ name: "ValidationError" });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await expect(manager.createRoomKeyRequest({ algorithm: "a", session_id: "s1" } as any)).rejects.toMatchObject({
+            name: "ValidationError",
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await expect(manager.createRoomKeyRequest({ algorithm: "a", room_id: "!r:hs" } as any)).rejects.toMatchObject({
+            name: "ValidationError",
+        });
+        expect(mockClient.http.authedRequest).not.toHaveBeenCalled();
     });
 
     it("normalizes auth/notfound/api errors", async () => {

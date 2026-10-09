@@ -52,8 +52,14 @@ describe("CasManager", () => {
             );
         });
 
-        it("createService should send POST /cas/services with body", async () => {
-            const data = { name: "My Service", service_url: "https://sso.example.com" };
+        it("createService should send POST /cas/services with body（键名对齐后端 RegisterServiceBody）", async () => {
+            // 后端 `RegisterServiceBody` 必填 `service_id` / `name` / `service_url_pattern`；
+            // 缺必填或键名不符（如旧的 `service_url`）会被判 400。见方案文档 §9 P-09。
+            const data = {
+                service_id: "my-service",
+                name: "My Service",
+                service_url_pattern: "https://sso.example.com",
+            };
             transport.respondWith({ id: "svc1", name: "My Service" });
 
             const result = await manager.createService(data);
@@ -66,6 +72,12 @@ describe("CasManager", () => {
                 data,
                 expect.objectContaining({ prefix: "/_synapse/admin/v1" }),
             );
+            // 钉住"发出的是后端声明的键"：不得出现旧键名
+            const sentBody = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0][3] as Record<
+                string,
+                unknown
+            >;
+            expect(Object.keys(sentBody).sort()).toEqual(["name", "service_id", "service_url_pattern"]);
         });
 
         it("deleteService should send DELETE /cas/services/{id}", async () => {
@@ -142,7 +154,11 @@ describe("CasManager", () => {
         });
 
         it("createService with 'cas' prefix should use /services route", async () => {
-            const data = { name: "CAS Service", service_url: "https://cas.example.com" };
+            const data = {
+                service_id: "cas-svc-1",
+                name: "CAS Service",
+                service_url_pattern: "https://cas.example.com",
+            };
             transport.respondWith({ id: "cas-svc-1", name: "CAS Service" });
 
             const result = await manager.createService(data, "cas");
@@ -258,7 +274,9 @@ describe("CasManager", () => {
             );
         });
 
-        it("proxy should send GET /proxy with targetService", async () => {
+        it("proxy 下发后端声明的 query 键名 `target_service`（非 targetService）", async () => {
+            // 后端 `ProxyQuery` 是 `{ target_service, pgt }`：发 `targetService` 会因
+            // `target_service` 缺失而 400（方案文档 §9 P-07）。
             transport.respondWith({ proxyTicket: "PT-789" });
 
             const result = await manager.proxy("https://target.test", "PGT-123");
@@ -267,10 +285,22 @@ describe("CasManager", () => {
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
                 "/proxy",
-                { targetService: "https://target.test", pgt: "PGT-123" },
+                { target_service: "https://target.test", pgt: "PGT-123" },
                 undefined,
                 expect.objectContaining({ prefix: "/_synapse/cas" }),
             );
+        });
+
+        it("proxy 无 pgt 时不发送 pgt 键（保持既有行为，不引入必填）", async () => {
+            transport.respondWith({ proxyTicket: "PT-1" });
+
+            await manager.proxy("https://target.test");
+
+            const sentQuery = (transport.request as ReturnType<typeof vi.fn>).mock.calls[0][2] as Record<
+                string,
+                unknown
+            >;
+            expect(sentQuery).toEqual({ target_service: "https://target.test" });
         });
 
         it("handleLogout should send GET /logout with cas prefix", async () => {
