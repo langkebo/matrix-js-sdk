@@ -53,6 +53,7 @@ import {
     resolvePathExpressionText,
     resolveStripPrefixFromType,
     resolveTemplateLiteral,
+    spliceLiteralConcat,
     splitTopLevelPlus,
     splitTopLevelTernary,
     unwrapIdentityPath,
@@ -751,10 +752,14 @@ describe("identifier 形态：局部 const 绑定解析（2026-10-09）", () => 
             ).toBe('"/rooms/$room_id/forget"');
         });
 
-        it("fail-closed：三元 / 拼接 / 裸形参 一律不解", () => {
+        it("fail-closed：三元 / 含非字面量操作数的拼接 / 裸形参 一律不解", () => {
             expect(resolvePathExpressionText('version ? "/a" : "/b"')).toBeNull();
             expect(resolvePathExpressionText('"/a" + suffix')).toBeNull();
             expect(resolvePathExpressionText("endpoint")).toBeNull();
+        });
+
+        it("拼接形态经 spliceLiteralConcat 解开（统一产出模板字面量）", () => {
+            expect(resolvePathExpressionText('"/rooms/$roomId/state" + ""')).toBe("`/rooms/$roomId/state`");
         });
     });
 
@@ -857,5 +862,75 @@ describe("identifier 形态：局部 const 绑定解析（2026-10-09）", () => 
         });
         expect(r.unchecked.length).toBe(1);
         expect(r.calls.length).toBe(0);
+    });
+});
+
+describe("concat 形态：spliceLiteralConcat（2026-10-09）", () => {
+    it("两个字面量拼接 → 合并成单个模板字面量", () => {
+        expect(spliceLiteralConcat('"/a/" + `b`')).toBe("`/a/b`");
+    });
+
+    it("带插值的模板字面量原样拼进去（插值文字交给 normalizePath 归一化）", () => {
+        expect(spliceLiteralConcat("`/rooms/${encodeURIComponent(id)}/send/` + `x/${y}`")).toBe(
+            "`/rooms/${encodeURIComponent(id)}/send/x/${y}`",
+        );
+    });
+
+    it("单段编码器调用（encodeURIComponent）在段边界上收成 {X}", () => {
+        expect(spliceLiteralConcat("`/_matrix/client/v3/sendToDevice/${enc(t)}/` + encodeURIComponent(txnId)")).toBe(
+            "`/_matrix/client/v3/sendToDevice/${enc(t)}/{X}`",
+        );
+    });
+
+    it('`?` 之后的拼接物与判定无关（归一化本就 split("?")[0]）⇒ 截断', () => {
+        expect(spliceLiteralConcat('"/rooms/$roomId/members?" + utils.encodeParams(q)')).toBe(
+            "`/rooms/$roomId/members`",
+        );
+    });
+
+    it("fail-closed：多段可能性的操作数（裸标识符）⇒ null（半截路径会变假缺陷）", () => {
+        expect(spliceLiteralConcat('"/rooms/" + roomId + "/members"')).toBeNull();
+        expect(spliceLiteralConcat('"/a" + suffix')).toBeNull();
+    });
+
+    it("fail-closed：不以 `/` 开头（baseUrl 拼接不是路径）⇒ null", () => {
+        expect(spliceLiteralConcat('baseUrl + "/x"')).toBeNull();
+        expect(spliceLiteralConcat('"a" + "b"')).toBeNull();
+    });
+
+    it("fail-closed：`encodeURIComponent` 左侧不是段边界 ⇒ null（会拼出 /rooms{X} 这种粘连形态）", () => {
+        expect(spliceLiteralConcat('"/rooms" + encodeURIComponent(id)')).toBeNull();
+    });
+
+    it("fail-closed：非 encodeURIComponent 的任意调用不作段（encodeURI 不转义 `/`）", () => {
+        expect(spliceLiteralConcat('"/rooms/" + encodeURI(id)')).toBeNull();
+        expect(spliceLiteralConcat('"/rooms/" + utils.encodeParams(q)')).toBeNull();
+    });
+
+    it("fail-closed：插值里带嵌套花括号 ⇒ 归一化不可信 ⇒ null", () => {
+        expect(spliceLiteralConcat("`/rooms/${ {a:1}.a }/x` + ``")).toBeNull();
+    });
+
+    it("单段（无顶层 `+`）⇒ null：这不是拼接", () => {
+        expect(spliceLiteralConcat('"/a"')).toBeNull();
+        expect(spliceLiteralConcat("`/a`")).toBeNull();
+    });
+
+    it("端到端：`const path = <拼接>` → 经绑定解析进 calls（不再是 unchecked）", () => {
+        const src = `
+            export function f(msg: Msg, txn: string, requestWithRetry: ReqFn) {
+                const path =
+                    \`/_matrix/client/v3/rooms/\${encodeURIComponent(msg.room_id)}/send/\` +
+                    \`\${encodeURIComponent(msg.event_type)}/\${encodeURIComponent(txn)}\`;
+                return requestWithRetry(Method.Put, path, {}, msg.body);
+            }
+        `;
+        const r = extractWrapperCalls(src, "src/rust-crypto/OutgoingRequestProcessor.ts", {
+            identityHelpers: null,
+            templateBuilders: null,
+        });
+        expect(r.unchecked.length).toBe(0);
+        expect(r.calls.length).toBe(1);
+        expect(r.calls[0].pathRaw).toContain("/send/");
     });
 });

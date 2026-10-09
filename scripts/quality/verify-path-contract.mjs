@@ -869,13 +869,85 @@ function wholeCallName(expr) {
 }
 
 /**
+ * 「拼接」：`` `…` + `…${x}…` `` ⇒ 合并成**一个**模板字面量。操作数两类：
+ *   · **完整字面量**（含带 `${…}` 插值的模板字面量）——原样拼进去；
+ *   · **单段编码器调用** `encodeURIComponent(…)` —— 收成 `{X}`（它转义 `/`，不可能是多段）。
+ * 其余（裸变量、任意函数调用、`encodeURI`、`bundleUrl.pathname`…）一律 null。
+ *
+ * 切分复用 `splitTopLevelPlus`（它走 `findTopLevel`，字符串内 / 括号内都不切）。
+ *
+ * 为什么不敢放开非字面量操作数：拼接里只要有一个**可能多段**的操作数，它就可能贡献
+ * 路径中间段（`"/rooms/" + roomId + "/members"`）—— 此时只取字面量部分会得到
+ * `/_matrix/client/v3/rooms/` 这种**半截路径**，进比对必然 mismatch
+ * ⇒ 把「未校验」错升级成「假缺陷」（方向错误、比不解更糟）。
+ *
+ * 四道 fail-closed 兜底：
+ *   ① 每个操作数必须是完整字面量或白名单编码器调用；
+ *   ② 合并结果必须以 `/` 开头（排除 `baseUrl + "/x"` 这类非路径拼接）；
+ *   ③ 归一化后不得残留 `$` / `{` / `}`（残留 = 插值里带嵌套花括号，`\$\{[^}]*\}` 会截错位置）；
+ *   ④ 每个 `{X}` 必须落在**段边界**（两侧各为 `/` 或串端）——否则占位符是粘在字面量里的
+ *      （`/rooms{X}`），与后端路由的段结构不可比。
+ *
+ * @param {string} expr
+ * @returns {string | null} 带反引号的模板字面量，或 null
+ */
+export function spliceLiteralConcat(expr) {
+    const text = stripTsAssertion(String(expr ?? "").trim());
+    const parts = splitTopLevelPlus(text);
+    if (parts.length < 2) return null;
+    let inner = "";
+    for (const p of parts) {
+        // `?` 已是 query 起点：`normalizePath` 本来就 `.split("?")[0]`，其后拼接物与判定无关
+        // ⇒ 直接截断，不再看剩下的操作数（`"/rooms/$roomId/members?" + utils.encodeParams(…)`）。
+        if (inner.includes("?")) break;
+        const t = stripTsAssertion(p);
+        if (PATH_LITERAL_RE.test(t)) {
+            inner += t.slice(1, -1);
+            continue;
+        }
+        // 单段编码器调用：只认 `encodeURIComponent(…)`（它把 `/` 转义成 `%2F`，
+        // **不可能**贡献路径分隔符 ⇒ 只可能是一整段）。`encodeURI` 不转义 `/`，故不在白名单。
+        // 还要求它左侧已经是段边界（`…/`），否则 `"/rooms" + enc(id)` 会拼出 `/rooms{X}` 这种
+        // 粘在一起的形态 —— 归一化后与 ledger 对不上，会变成**假缺陷**。
+        if (wholeSegmentEncoderCall(t) && inner.endsWith("/")) {
+            inner += "{X}";
+            continue;
+        }
+        return null;
+    }
+    inner = inner.split("?")[0];
+    if (!inner.startsWith("/")) return null;
+    const normalized = normalizePath(inner);
+    // 归一化后不得残留 `$` / `{` / `}`（残留 = 插值里带嵌套花括号，`\$\{[^}]*\}` 会截错位置）。
+    if (/[${}]/.test(normalized.replace(/\{X\}/g, ""))) return null;
+    // 每个 `{X}` 都必须落在段边界上（两侧各自为 `/` 或串端）——否则是把占位符粘进了字面量，
+    // 与后端路由的段结构不可比，宁可不解。
+    const segs = normalized.split("{X}");
+    for (let i = 0; i + 1 < segs.length; i++) {
+        if (segs[i] !== "" && !segs[i].endsWith("/")) return null;
+        if (segs[i + 1] !== "" && !segs[i + 1].startsWith("/")) return null;
+    }
+    return "`" + inner + "`";
+}
+
+/** 整段表达式就是一个 `encodeURIComponent(…)` 调用（允许 `utils.` 之类成员前缀）。 */
+function wholeSegmentEncoderCall(text) {
+    const m = /^(?:[A-Za-z_$][\w$]*\.)*encodeURIComponent\s*\(/.exec(text);
+    if (!m) return false;
+    const close = matchParen(text, m[0].length - 1);
+    return close >= 0 && text.slice(close + 1).trim() === "";
+}
+
+/**
  * 把「路径表达式」解析到字面量/模板；认不出返回 null —— **fail-closed，绝不半解**。
  *
  * 定点迭代（≤6 跳），每跳依次尝试：
  *   ① 恒等助手调用（`apu("x")` / `this.roomPath("x", id)` / `adp(…)`）；
  *   ② 成员形式的结构恒等原语（`utils.encodeUri("<模板>", {…})`）；
- *   ③ 模板构造器（`buildXxxPath(…)`）。
- * 只认「整段就是一个调用」：`"a" + b`、`x ? y : z`、`` `a${b}` + c `` 一律不解（这类留给后续形态）。
+ *   ③ 模板构造器（`buildXxxPath(…)`）；
+ *   ④ 全字面量拼接（`` `a` + `b${x}` ``，见 `spliceLiteralConcat`）。
+ * 只认「整段就是一个调用 / 全字面量拼接」：`"a" + b`、`x ? y : z`、`bundleUrl.pathname + bundleUrl.search`
+ * 一律不解（前两者要的是**多候选**语义、后者是纯运行时值，留给后续形态）。
  *
  * @param {string} expr
  * @param {{ identityHelpers?: Map<string, IdentityHelperInfo> | null, templateBuilders?: Map<string, string> | null }} [options]
@@ -895,6 +967,10 @@ export function resolvePathExpressionText(expr, options = {}) {
         if (!PATH_LITERAL_RE.test(e)) {
             const bn = wholeCallName(e);
             if (bn && options.templateBuilders?.has(bn)) e = options.templateBuilders.get(bn);
+        }
+        if (!PATH_LITERAL_RE.test(e)) {
+            const spliced = spliceLiteralConcat(e);
+            if (spliced != null) e = spliced;
         }
         if (e === before) break; // 不再变化 ⇒ 认不出，退出
     }

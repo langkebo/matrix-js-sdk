@@ -143,7 +143,8 @@ export function matchWholeIdentityPrimitiveCall(expr: string): { name: string; f
 
 /**
  * 把「路径表达式」解析到带引号的字面量/模板；认不出返回 null。
- * 顺序：恒等助手调用 → 成员恒等原语 → 模板构造器 → 字面量（定点迭代，只认「整段就是一个调用」）。
+ * 顺序：恒等助手调用 → 成员恒等原语 → 模板构造器 → 全字面量拼接 → 字面量
+ * （定点迭代，只认「整段就是一个调用 / 全字面量拼接」）。
  */
 export function resolvePathExpressionText(
     expr: string,
@@ -152,6 +153,12 @@ export function resolvePathExpressionText(
         templateBuilders?: Map<string, string> | null;
     },
 ): string | null;
+
+/**
+ * 全字面量拼接（`` `a` + `b${x}` ``）合并成单个模板字面量；任一段非字面量、或以非 `/` 开头、
+ * 或归一化后仍残留 `$`/`{`/`}` ⇒ 返回 null（fail-closed，绝不半解出半截路径）。
+ */
+export function spliceLiteralConcat(expr: string): string | null;
 
 /**
  * 由内到外沿外层作用域链找 `<name>` 的局部 `const` 绑定（仅 `const`；`let`/`var` 可能重赋值故不认），
