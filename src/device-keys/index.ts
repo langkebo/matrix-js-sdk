@@ -334,6 +334,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
      * ⚠️ 2026-10-09 修正：此前打成 `/keys/signatures`（**漏了 `/upload`**）⇒ 必然 404，
      * 即这个方法此前从未真正工作过。同一个 SDK 里其它两处（`client-crypto-requests.ts`、
      * `rust-crypto/OutgoingRequestProcessor.ts`）用的都是带 `/upload` 的正确路径。
+     *
+     * @example
+     * ```typescript
+     * await client.getDeviceKeysManager().uploadSignatures({
+     *     "@alice:example.org": { DEVICEID: { "ed25519:DEVICEID": "<signature>" } },
+     * });
+     * ```
      */
     async uploadSignatures(
         signatures: Record<string, Record<string, Record<string, string>>>,

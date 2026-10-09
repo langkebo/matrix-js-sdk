@@ -126,6 +126,14 @@ export class ModerationManager extends BaseManager {
     /**
      * 举报用户
      * 对应 POST /_matrix/client/v3/users/{user_id}/report
+     *
+     * @example
+     * ```typescript
+     * await client.getModerationManager().reportUser("@spammer:example.org", {
+     *     reason: "spam",
+     *     score: -50,
+     * });
+     * ```
      */
     async reportUser(userId: string, body: ReportEventBody): Promise<void> {
         this.requireNonEmptyString(userId, "userId");

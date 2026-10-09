@@ -411,7 +411,15 @@ export class WidgetsManager extends BaseManager<keyof WidgetsManagerEvents, Widg
         );
     }
 
-    /** POST /_matrix/vendor/v1/rooms/{roomId}/widgets/{widgetId}/send */
+    /**
+     * ⚠️ 后端已于 `ebe4a3db6` **删除** `POST /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send`
+     * —— 它原本就是拒绝型实现（恒返 400，并要求调用方改走标准发送端点
+     * `PUT /_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`），即本方法从未真正可用。
+     *
+     * 保留本方法是为了不破坏公开 API；调用它会得到 404。该调用点已登记在
+     * `scripts/quality/path-contract-waivers.json`（category: `by-design`），
+     * 在产品决定移除本方法或改接标准 send API 之前，不要依赖它。
+     */
     public async sendWidgetMessage(roomId: string, widgetId: string, message: unknown): Promise<WidgetMessageResponse> {
         this.requireNonEmptyString(roomId, "roomId");
         this.requireNonEmptyString(widgetId, "widgetId");

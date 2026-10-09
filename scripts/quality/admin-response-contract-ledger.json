@@ -1,7 +1,7 @@
 {
     "schema_version": 1,
-    "generated_at": "2026-10-08T02:47:01.590Z",
-    "synapseRustCommit": "ea72fc75b560628e4ece80639e1288d47b0009be",
+    "generated_at": "2026-10-09T06:00:55.507Z",
+    "synapseRustCommit": "f6cdd5c601b7affc84d354e9b3bb804c5010c2c6",
     "note": "由 `node scripts/quality/check-admin-response-contract.mjs --refresh` 生成。`entries` / `requestEntries` 只收录**已验证一致**的行（CI 半场据此发现 SDK 单方面改动）；`deviations` 为人工登记的已知偏差（必须带 reason 与 expires）；`unresolved` 为抽取器覆盖不到的桶，**逐条带 reason**（只留数字的桶会被读成噪声，而它实际是抽取器看不见的地面），计数只准降不准升。",
     "entries": [
         {
@@ -1907,7 +1907,7 @@
     ],
     "unresolved": {
         "route-not-resolved": {
-            "count": 15,
+            "count": 17,
             "entries": [
                 {
                     "managerMethod": "deleteFeatureFlag",
@@ -1990,6 +1990,14 @@
                     "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
                 },
                 {
+                    "managerMethod": "resetFederationDestination",
+                    "route": "POST /_synapse/admin/v1/federation/destinations/{x}/reset",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
                     "managerMethod": "addToInviteAllowlist",
                     "route": "POST /_synapse/admin/v1/invite/allowlist/{x}",
                     "declaredReturn": "void",
@@ -2024,6 +2032,14 @@
                 {
                     "managerMethod": "joinRoom",
                     "route": "POST /_synapse/admin/v1/rooms/{x}/join",
+                    "declaredReturn": "void",
+                    "handler": null,
+                    "sdkType": null,
+                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
+                },
+                {
+                    "managerMethod": "deleteUserDevices",
+                    "route": "POST /_synapse/admin/v1/users/{x}/devices/delete",
                     "declaredReturn": "void",
                     "handler": null,
                     "sdkType": null,
