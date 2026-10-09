@@ -78,6 +78,9 @@ export interface IThreadReply {
     sender: string;
     content: Record<string, unknown>; // Dynamic: dynamic Matrix content
     origin_server_ts: number;
+    in_reply_to_event_id?: string | null;
+    is_edited?: boolean;
+    is_redacted?: boolean;
 }
 
 export interface IThread {
@@ -104,13 +107,61 @@ export interface IThreadListResponse {
     next_batch?: string;
 }
 
-export interface IThreadRepliesResponse {
-    replies: IThreadReply[];
-    next_batch?: string;
+/**
+ * 话题根事件（后端 `ThreadResponse` / `ThreadRoot` 的 wire 形状）。
+ * 创建话题与话题详情中的 `root` 均使用该形状。
+ * 注意：创建响应不含 `id` / `updated_ts`（故为可选）。
+ */
+export interface IThreadRoot {
+    id?: number;
+    room_id: string;
+    root_event_id: string;
+    sender: string;
+    thread_id?: string | null;
+    reply_count?: number | null;
+    last_reply_event_id?: string | null;
+    last_reply_sender?: string | null;
+    last_reply_ts?: number | null;
+    participants?: unknown;
+    is_fetched: boolean;
+    created_ts: number;
+    updated_ts?: number | null;
 }
 
-export interface IThreadResponse {
-    thread: IThread;
+export interface IThreadSubscription {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    user_id: string;
+    notification_level: string;
+    is_muted: boolean;
+    is_pinned: boolean;
+    subscribed_ts: number;
+    updated_ts: number;
+}
+
+export interface IThreadReadReceipt {
+    id: number;
+    room_id: string;
+    thread_id: string;
+    user_id: string;
+    last_read_event_id: string | null;
+    last_read_ts: number;
+    unread_count: number;
+    updated_ts: number;
+}
+
+/**
+ * 话题详情（后端 `ThreadDetailResponse` 的 wire 形状，扁平结构，非 `{ thread }` 包裹）。
+ */
+export interface IThreadDetail {
+    root: IThreadRoot;
+    replies: IThreadReply[];
+    reply_count: number;
+    participants: string[];
+    summary?: Record<string, unknown> | null;
+    user_receipt?: IThreadReadReceipt | null;
+    user_subscription?: IThreadSubscription | null;
 }
 
 interface ThreadManagerEventMap {
@@ -135,7 +186,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      */
     async getRoomThreads(
         roomId: string,
-        params?: { from?: string; limit?: number; include?: string },
+        params?: { from?: string; limit?: number; include_all?: boolean },
     ): Promise<IThreadListResponse> {
         validateRoomId(roomId);
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads`);
@@ -155,7 +206,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 在房间中创建新话题
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads
      */
-    async createThread(roomId: string, body: { event_id: string; name?: string }): Promise<IThreadResponse> {
+    async createThread(roomId: string, body: { event_id: string; name?: string }): Promise<IThreadRoot> {
         validateRoomId(roomId);
         if (!body.event_id) {
             throw new InvalidParamError("event_id is required");
@@ -163,10 +214,10 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         const path = tpv(`/rooms/${encodeURIComponent(roomId)}/threads`);
         return this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<IThreadRoot>({
                     method: Method.Post,
                     path: path,
-                    body: body,
+                    body: { root_event_id: body.event_id, content: body.name ?? {} },
                     prefix: VendorPrefix,
                 }),
             "createThread",
@@ -191,7 +242,7 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
                 this.request<IThreadListResponse>({
                     method: Method.Get,
                     path: path,
-                    queryParams: params,
+                    queryParams: { q: params.term, limit: params.limit, from: params.from },
                     prefix: VendorPrefix,
                 }),
             "searchThreads",
@@ -222,13 +273,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 获取话题详情
      * GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}
      */
-    async getThread(roomId: string, threadId: string): Promise<IThreadResponse> {
+    async getThread(roomId: string, threadId: string): Promise<IThreadDetail> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}`);
         return this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<IThreadDetail>({
                     method: Method.Get,
                     path: path,
                     prefix: THREAD_PREFIX_V1,
@@ -260,13 +311,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 冻结话题（禁止新回复）
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze
      */
-    async freezeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
+    async freezeThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tpv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/freeze`);
-        return this.withRetry(
+        await this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<void>({
                     method: Method.Post,
                     path: path,
                     body: {},
@@ -280,13 +331,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 取消冻结话题
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze
      */
-    async unfreezeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
+    async unfreezeThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tpv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unfreeze`);
-        return this.withRetry(
+        await this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<void>({
                     method: Method.Post,
                     path: path,
                     body: {},
@@ -300,13 +351,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 静音话题
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute
      */
-    async muteThread(roomId: string, threadId: string): Promise<IThreadResponse> {
+    async muteThread(roomId: string, threadId: string): Promise<IThreadSubscription> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tpv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/mute`);
         return this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<IThreadSubscription>({
                     method: Method.Post,
                     path: path,
                     body: {},
@@ -320,20 +371,17 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 标记话题为已读
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read
      */
-    async markThreadRead(roomId: string, threadId: string, readUpTo?: string): Promise<void> {
+    async markThreadRead(roomId: string, threadId: string, readUpTo: string): Promise<IThreadReadReceipt> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
+        if (!readUpTo) throw new InvalidParamError("readUpTo is required");
         const path = tpv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`);
-        const body: Record<string, unknown> = {};
-        if (readUpTo) {
-            body.read_up_to = readUpTo;
-        }
-        await this.withRetry(
+        return this.withRetry(
             () =>
-                this.request<void>({
+                this.request<IThreadReadReceipt>({
                     method: Method.Post,
                     path: path,
-                    body: body,
+                    body: { event_id: readUpTo, origin_server_ts: Date.now() },
                     prefix: VendorPrefix,
                 }),
             "markThreadRead",
@@ -344,16 +392,16 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 订阅话题
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe
      */
-    async subscribeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
+    async subscribeThread(roomId: string, threadId: string): Promise<IThreadSubscription> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/subscribe`);
         return this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<IThreadSubscription>({
                     method: Method.Post,
                     path: path,
-                    body: {},
+                    body: { notification_level: "all" },
                     prefix: THREAD_PREFIX_V1,
                 }),
             "subscribeThread",
@@ -364,13 +412,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 取消订阅话题
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe
      */
-    async unsubscribeThread(roomId: string, threadId: string): Promise<IThreadResponse> {
+    async unsubscribeThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/unsubscribe`);
-        return this.withRetry(
+        await this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<void>({
                     method: Method.Post,
                     path: path,
                     body: {},
@@ -390,13 +438,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
         roomId: string,
         threadId: string,
         params?: { from?: string; limit?: number; dir?: string },
-    ): Promise<IThreadRepliesResponse> {
+    ): Promise<IThreadReply[]> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`);
         return this.withRetry(
             () =>
-                this.request<IThreadRepliesResponse>({
+                this.request<IThreadReply[]>({
                     method: Method.Get,
                     path: path,
                     queryParams: params,
@@ -413,10 +461,12 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     async createThreadReply(
         roomId: string,
         threadId: string,
-        body: { content: Record<string, unknown> },
+        body: { event_id: string; root_event_id: string; content: Record<string, unknown> },
     ): Promise<IThreadReply> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
+        if (!body.event_id) throw new InvalidParamError("event_id is required");
+        if (!body.root_event_id) throw new InvalidParamError("root_event_id is required");
         if (!body.content) throw new InvalidParamError("content is required");
         const path = tp(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/replies`);
         return this.withRetry(
@@ -500,16 +550,16 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      * 创建话题（无需指定房间上下文）
      * POST /_matrix/vendor/v1/threads
      */
-    async createGlobalThread(body: { room_id: string; event_id: string; name?: string }): Promise<IThreadResponse> {
+    async createGlobalThread(body: { room_id: string; event_id: string; name?: string }): Promise<IThreadRoot> {
         if (!body.room_id) throw new InvalidParamError("room_id is required");
         if (!body.event_id) throw new InvalidParamError("event_id is required");
         const path = tpv("/threads");
         return this.withRetry(
             () =>
-                this.request<IThreadResponse>({
+                this.request<IThreadRoot>({
                     method: Method.Post,
                     path: path,
-                    body: body,
+                    body: { room_id: body.room_id, root_event_id: body.event_id, content: body.name ?? {} },
                     prefix: VendorPrefix,
                 }),
             "createGlobalThread",

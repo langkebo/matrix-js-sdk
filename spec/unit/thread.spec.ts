@@ -53,24 +53,25 @@ describe("ThreadManager", () => {
     describe("createThread", () => {
         it("should create a thread in a room", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 0,
-                    participants: [],
-                    unread: false,
-                },
+                thread_id: "t1",
+                room_id: "!room:example.com",
+                root_event_id: "$ev1",
+                sender: "@user:example.com",
+                reply_count: 0,
+                participants: [],
+                is_fetched: false,
+                created_ts: 1234,
             });
             const result = await threadManager.createThread("!room:example.com", { event_id: "$ev1" });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/rooms/!room%3Aexample.com/threads",
                 undefined,
-                { event_id: "$ev1" },
+                { root_event_id: "$ev1", content: {} },
                 { prefix: "/_matrix/vendor/v1" },
             );
-            expect(result.thread.thread_id).toBe("t1");
+            expect(result.thread_id).toBe("t1");
+            expect(result.root_event_id).toBe("$ev1");
         });
 
         it("should throw if event_id is missing", async () => {
@@ -87,7 +88,7 @@ describe("ThreadManager", () => {
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
                 "/rooms/!room%3Aexample.com/threads/search",
-                { term: "hello" },
+                { q: "hello" },
                 undefined,
                 { prefix: "/_matrix/vendor/v1" },
             );
@@ -119,14 +120,19 @@ describe("ThreadManager", () => {
     describe("getThread", () => {
         it("should fetch thread details", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
+                root: {
                     thread_id: "t1",
                     room_id: "!room:example.com",
                     root_event_id: "$ev1",
+                    sender: "@user:example.com",
                     reply_count: 3,
                     participants: [],
-                    unread: true,
+                    is_fetched: true,
+                    created_ts: 1234,
                 },
+                replies: [],
+                reply_count: 3,
+                participants: [],
             });
             const result = await threadManager.getThread("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -136,7 +142,7 @@ describe("ThreadManager", () => {
                 undefined,
                 { prefix: "/_matrix/client/v1" },
             );
-            expect(result.thread.thread_id).toBe("t1");
+            expect(result.root.thread_id).toBe("t1");
         });
 
         it("should throw if thread_id is missing", async () => {
@@ -160,17 +166,7 @@ describe("ThreadManager", () => {
 
     describe("freezeThread", () => {
         it("should freeze a thread", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 3,
-                    participants: [],
-                    unread: false,
-                    frozen: true,
-                },
-            });
+            mockAuthedRequest.mockResolvedValueOnce(undefined);
             await threadManager.freezeThread("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -184,17 +180,7 @@ describe("ThreadManager", () => {
 
     describe("unfreezeThread", () => {
         it("should unfreeze a thread", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 3,
-                    participants: [],
-                    unread: false,
-                    frozen: false,
-                },
-            });
+            mockAuthedRequest.mockResolvedValueOnce(undefined);
             await threadManager.unfreezeThread("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -209,15 +195,15 @@ describe("ThreadManager", () => {
     describe("muteThread", () => {
         it("should mute a thread", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 3,
-                    participants: [],
-                    unread: false,
-                    muted: true,
-                },
+                id: 1,
+                room_id: "!room:example.com",
+                thread_id: "t1",
+                user_id: "@user:example.com",
+                notification_level: "mute",
+                is_muted: true,
+                is_pinned: false,
+                subscribed_ts: 1234,
+                updated_ts: 1234,
             });
             await threadManager.muteThread("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
@@ -232,26 +218,30 @@ describe("ThreadManager", () => {
 
     describe("markThreadRead", () => {
         it("should mark thread as read", async () => {
-            mockAuthedRequest.mockResolvedValueOnce(undefined);
-            await threadManager.markThreadRead("!room:example.com", "t1");
+            mockAuthedRequest.mockResolvedValueOnce({
+                id: 1,
+                room_id: "!room:example.com",
+                thread_id: "t1",
+                user_id: "@user:example.com",
+                last_read_event_id: "$ev99",
+                last_read_ts: 1234,
+                unread_count: 0,
+                updated_ts: 1234,
+            });
+            const result = await threadManager.markThreadRead("!room:example.com", "t1", "$ev99");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/rooms/!room%3Aexample.com/threads/t1/read",
                 undefined,
-                {},
+                { event_id: "$ev99", origin_server_ts: expect.any(Number) },
                 { prefix: "/_matrix/vendor/v1" },
             );
+            expect(result.unread_count).toBe(0);
         });
 
-        it("should mark thread as read up to specific event", async () => {
-            mockAuthedRequest.mockResolvedValueOnce(undefined);
-            await threadManager.markThreadRead("!room:example.com", "t1", "$ev99");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/rooms/!room%3Aexample.com/threads/t1/read",
-                undefined,
-                { read_up_to: "$ev99" },
-                { prefix: "/_matrix/vendor/v1" },
+        it("should throw if readUpTo is missing", async () => {
+            await expect(threadManager.markThreadRead("!room:example.com", "t1", "")).rejects.toThrow(
+                "readUpTo is required",
             );
         });
     });
@@ -259,22 +249,22 @@ describe("ThreadManager", () => {
     describe("subscribeThread", () => {
         it("should subscribe to a thread", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 3,
-                    participants: [],
-                    unread: false,
-                    subscribed: true,
-                },
+                id: 1,
+                room_id: "!room:example.com",
+                thread_id: "t1",
+                user_id: "@user:example.com",
+                notification_level: "all",
+                is_muted: false,
+                is_pinned: false,
+                subscribed_ts: 1234,
+                updated_ts: 1234,
             });
             await threadManager.subscribeThread("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/rooms/!room%3Aexample.com/threads/t1/subscribe",
                 undefined,
-                {},
+                { notification_level: "all" },
                 { prefix: "/_matrix/client/v1" },
             );
         });
@@ -282,17 +272,7 @@ describe("ThreadManager", () => {
 
     describe("unsubscribeThread", () => {
         it("should unsubscribe from a thread", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 3,
-                    participants: [],
-                    unread: false,
-                    subscribed: false,
-                },
-            });
+            mockAuthedRequest.mockResolvedValueOnce(undefined);
             await threadManager.unsubscribeThread("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -308,18 +288,16 @@ describe("ThreadManager", () => {
 
     describe("getThreadReplies", () => {
         it("should get thread replies", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({
-                replies: [
-                    {
-                        event_id: "$reply1",
-                        room_id: "!room:example.com",
-                        thread_id: "t1",
-                        sender: "@user:example.com",
-                        content: {},
-                        origin_server_ts: 1234,
-                    },
-                ],
-            });
+            mockAuthedRequest.mockResolvedValueOnce([
+                {
+                    event_id: "$reply1",
+                    room_id: "!room:example.com",
+                    thread_id: "t1",
+                    sender: "@user:example.com",
+                    content: {},
+                    origin_server_ts: 1234,
+                },
+            ]);
             const result = await threadManager.getThreadReplies("!room:example.com", "t1");
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -328,7 +306,8 @@ describe("ThreadManager", () => {
                 undefined,
                 { prefix: "/_matrix/client/v1" },
             );
-            expect(result.replies).toHaveLength(1);
+            expect(result).toHaveLength(1);
+            expect(result[0].event_id).toBe("$reply1");
         });
     });
 
@@ -343,13 +322,15 @@ describe("ThreadManager", () => {
                 origin_server_ts: 1234,
             });
             const result = await threadManager.createThreadReply("!room:example.com", "t1", {
+                event_id: "$reply1",
+                root_event_id: "$ev1",
                 content: { body: "hello" },
             });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/rooms/!room%3Aexample.com/threads/t1/replies",
                 undefined,
-                { content: { body: "hello" } },
+                { event_id: "$reply1", root_event_id: "$ev1", content: { body: "hello" } },
                 { prefix: "/_matrix/client/v1" },
             );
             expect(result.event_id).toBe("$reply1");
@@ -357,8 +338,12 @@ describe("ThreadManager", () => {
 
         it("should throw if content is missing", async () => {
             await expect(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                threadManager.createThreadReply("!room:example.com", "t1", { content: undefined as any }),
+                threadManager.createThreadReply("!room:example.com", "t1", {
+                    event_id: "$reply1",
+                    root_event_id: "$ev1",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    content: undefined as any,
+                }),
             ).rejects.toThrow("content is required");
         });
     });
@@ -421,24 +406,25 @@ describe("ThreadManager", () => {
     describe("createGlobalThread", () => {
         it("should create a global thread", async () => {
             mockAuthedRequest.mockResolvedValueOnce({
-                thread: {
-                    thread_id: "t1",
-                    room_id: "!room:example.com",
-                    root_event_id: "$ev1",
-                    reply_count: 0,
-                    participants: [],
-                    unread: false,
-                },
+                thread_id: "t1",
+                room_id: "!room:example.com",
+                root_event_id: "$ev1",
+                sender: "@user:example.com",
+                reply_count: 0,
+                participants: [],
+                is_fetched: false,
+                created_ts: 1234,
             });
             const result = await threadManager.createGlobalThread({ room_id: "!room:example.com", event_id: "$ev1" });
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
                 "/threads",
                 undefined,
-                { room_id: "!room:example.com", event_id: "$ev1" },
+                { room_id: "!room:example.com", root_event_id: "$ev1", content: {} },
                 { prefix: "/_matrix/vendor/v1" },
             );
-            expect(result.thread.thread_id).toBe("t1");
+            expect(result.thread_id).toBe("t1");
+            expect(result.root_event_id).toBe("$ev1");
         });
 
         it("should throw if room_id is missing", async () => {
