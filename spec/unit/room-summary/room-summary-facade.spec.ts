@@ -439,7 +439,8 @@ describe("RoomSummaryManager 门面层", () => {
 
             const spec = lastRequestSpec();
             expect(spec.prefix).toBe("/_synapse/room_summary/v1");
-            expect(spec.body).toMatchObject({ rooms: ["!r:example.com"], is_suggested_only: true });
+            // 线上键名是 `suggested_only`（后端 deny_unknown_fields + rename），见方案文档 §9 P-01
+            expect(spec.body).toMatchObject({ rooms: ["!r:example.com"], suggested_only: true });
         });
 
         it("getRoomSummary 走 ClientPrefix.V3（与内部端点区分）", async () => {
