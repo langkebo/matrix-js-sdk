@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
     discoverSupportedModules,
+    missingBackendBehavior,
+    parseArgs,
     renderContractAssertions,
     renderDtoFile,
     resolveFullPath,
@@ -147,5 +149,35 @@ describe("resolveFullPath", () => {
                 "/_matrix/client/v3/upload/provider",
             ),
         ).toBe("/_matrix/client/v1/upload/provider");
+    });
+});
+
+/**
+ * `--strict` / 无后端契约时的降级语义（2026-10-09）。
+ *
+ * 背景：CI 是 SDK-only checkout（runner 上没有 `../synapse-rust`），原先脚本在契约缺失时
+ * 硬 `return 2` ⇒ `quality:contracts` 在 CI 上**必红**（fork 上 Quality Gate 从未绿过，
+ * 10-06 与 10-09 两个 run 同一条 `Entrypoint contract gates`）。现改为默认 skip、
+ * `--strict` 才 fail，与 check-sdk-contract-alignment.mjs 既有的同款降级一致。
+ */
+describe("sdk-contract-codegen CLI 契约（缺后端仓的降级）", () => {
+    it("parseArgs 认 --check / --strict，默认非 strict，未知参数即抛", () => {
+        expect(parseArgs(["node", "x", "--check"])).toEqual({ mode: "check", help: false, strict: false });
+        expect(parseArgs(["node", "x", "--check", "--strict"])).toEqual({
+            mode: "check",
+            help: false,
+            strict: true,
+        });
+        expect(() => parseArgs(["node", "x", "--nope"])).toThrow(/unknown argument/);
+    });
+
+    it("无后端契约时默认 skip（exit 0）—— CI 布局不该常红", () => {
+        expect(missingBackendBehavior({ strict: false })).toEqual({ action: "skip", exitCode: 0 });
+        expect(missingBackendBehavior({})).toEqual({ action: "skip", exitCode: 0 });
+        expect(missingBackendBehavior()).toEqual({ action: "skip", exitCode: 0 });
+    });
+
+    it("--strict 时 fail（exit 2）—— 工作区/release 布局缺兄弟仓就该红", () => {
+        expect(missingBackendBehavior({ strict: true })).toEqual({ action: "fail", exitCode: 2 });
     });
 });

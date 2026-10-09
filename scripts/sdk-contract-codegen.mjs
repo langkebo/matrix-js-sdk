@@ -465,15 +465,32 @@ function loadExistingEntries(sdkDir) {
     return out;
 }
 
-function parseArgs(argv) {
-    const out = { mode: "write", help: false };
+export function parseArgs(argv) {
+    const out = { mode: "write", help: false, strict: false };
     for (let i = 2; i < argv.length; i += 1) {
         const arg = argv[i];
         if (arg === "--help" || arg === "-h") out.help = true;
         else if (arg === "--check") out.mode = "check";
+        else if (arg === "--strict") out.strict = true;
         else throw new Error(`unknown argument: ${arg}`);
     }
     return out;
+}
+
+/**
+ * 后端契约（`ROUTE_CONTRACT.md`）在本机不可见时的处置策略。
+ *
+ * 本仓 CI 是 **SDK-only checkout**（runner 上没有 `../synapse-rust`，与
+ * contract-sync.mjs「SDK-only CI has no sibling checkout」是同一既有约定），
+ * 此时无法校验 route-table 与后端契约的新鲜度：
+ *   · 默认 **skip（exit 0）** —— 与 check-sdk-contract-alignment.mjs 同款降级，避免 CI 常红；
+ *   · `--strict` → **fail（exit 2）** —— 工作区/release 期布局本应有兄弟仓，缺了就该红。
+ *
+ * ⚠️ skip 意味着 CI 上这道校验**空转**（route-table 新鲜度不在 CI 把关），
+ * 因此 run() 会显式打印 `skipped` 供人审计，绝不静默。
+ */
+export function missingBackendBehavior(args = {}) {
+    return args?.strict === true ? { action: "fail", exitCode: 2 } : { action: "skip", exitCode: 0 };
 }
 
 function printHelp() {
@@ -482,6 +499,8 @@ function printHelp() {
             `Usage:\n` +
             `  node scripts/sdk-contract-codegen.mjs            # regenerate supported modules\n` +
             `  node scripts/sdk-contract-codegen.mjs --check    # fail if disk would change\n` +
+            `  node scripts/sdk-contract-codegen.mjs --check --strict  # fail (not skip) when\n` +
+            `                                                   # ./../synapse-rust is unavailable\n` +
             `  node scripts/sdk-contract-codegen.mjs --help     # this message\n`,
     );
 }
@@ -1292,11 +1311,21 @@ function run(argv) {
         return 0;
     }
     if (!fs.existsSync(BACKEND_CONTRACT_MD)) {
-        process.stderr.write(
-            `error: backend contract not found at ${BACKEND_CONTRACT_MD}\n` +
-                `       set SYNAPSE_RUST_CONTRACT_MD or SYNAPSE_RUST_REPO to locate ROUTE_CONTRACT.md.\n`,
-        );
-        return 2;
+        const decision = missingBackendBehavior(args);
+        if (decision.action === "fail") {
+            process.stderr.write(
+                `error: backend contract not found at ${BACKEND_CONTRACT_MD}\n` +
+                    `       set SYNAPSE_RUST_CONTRACT_MD or SYNAPSE_RUST_REPO to locate ROUTE_CONTRACT.md.\n`,
+            );
+        } else {
+            process.stdout.write(
+                `[sdk-contract-codegen] skipped: backend contract not found at ${BACKEND_CONTRACT_MD}\n` +
+                    `       SDK-only checkout (no sibling synapse-rust) — route-table freshness NOT verified.\n` +
+                    `       set SYNAPSE_RUST_CONTRACT_MD or SYNAPSE_RUST_REPO to locate ROUTE_CONTRACT.md,\n` +
+                    `       or pass --strict to fail instead of skip.\n`,
+            );
+        }
+        return decision.exitCode;
     }
     const contractText = fs.readFileSync(BACKEND_CONTRACT_MD, "utf8");
     CONTRACT_PARSED = parseBackendContractMd(contractText);

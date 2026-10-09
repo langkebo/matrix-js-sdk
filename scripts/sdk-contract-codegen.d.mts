@@ -54,3 +54,21 @@ export function resolveFullPath(
     lookups: ResolveFullPathLookups,
     rawPath?: string,
 ): string;
+
+export interface CodegenArgs {
+    mode: "write" | "check";
+    help: boolean;
+    strict: boolean;
+}
+
+/** 解析 CLI 参数（`--check` / `--strict` / `--help`）。 */
+export function parseArgs(argv: string[]): CodegenArgs;
+
+/**
+ * 后端契约不可见时的处置：默认 `{action:"skip", exitCode:0}`，
+ * `--strict` 时为 `{action:"fail", exitCode:2}`（工作区/release 期布局应有兄弟仓）。
+ */
+export function missingBackendBehavior(args?: Partial<CodegenArgs>): {
+    action: "skip" | "fail";
+    exitCode: 0 | 2;
+};

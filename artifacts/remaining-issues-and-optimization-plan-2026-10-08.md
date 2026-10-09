@@ -33,7 +33,8 @@
 > 真形参/成员访问 5、逃逸阀 4、other 1、concat 1）/ C4 未做；  
 > 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；  
 > 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
-> （最新基线：`develop @ b34a34bc6`，ahead **117** 于 `langkebo/develop`；E3 推送仍待用户决策。）
+> （最新基线：`develop @ c148da631`，**E3 已推送**（`116631352..c148da631`，ahead/behind **0/0**）；
+> CI 首跑暴露并修复了一处「SDK-only checkout」缺口，见 §7.9；`Tests` 的 `startup_failure` 为 fork 既有，待定。）
 
 ---
 
@@ -312,12 +313,12 @@ ls .git/hooks/pre-commit       # → 不存在
 
 ### 批次 E —— 长尾与工程卫生（P2/P3，低风险）
 
-| 步  | 动作                                                                                                                                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| E1  | `run-granular-coverage-gates.mjs` 补"发现即跑"的 spec；`generate-coverage-report.mjs`（纯报告生成）按惯例**登记豁免**而非硬凑 spec   |
-| E2  | 审计文档的 IDE 回写防护：`artifacts/**/*.md` 纳入提交前 `prettier --write`（B2 顺带覆盖）；若 IDE 仍回写，考虑把该目录移出预览白名单 |
-| E3  | 推送提交（现为 **117** 个未推；**先本地跑一遍 `pnpm lint && pnpm quality:contracts` 确认绿**；需用户决策）                           |
-| E4  | 只有当真的出现 CJS 消费者时，才给 SDK `exports` 补 `require` 条件（当前 `./contract` 等仅 `import` / `types`）                       |
+| 步  | 动作                                                                                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| E1  | `run-granular-coverage-gates.mjs` 补"发现即跑"的 spec；`generate-coverage-report.mjs`（纯报告生成）按惯例**登记豁免**而非硬凑 spec                                       |
+| E2  | 审计文档的 IDE 回写防护：`artifacts/**/*.md` 纳入提交前 `prettier --write`（B2 顺带覆盖）；若 IDE 仍回写，考虑把该目录移出预览白名单                                     |
+| E3  | ~~推送提交（现为 **117** 个未推）~~ **已推送**（`116631352..c148da631`；推前本地 `pnpm lint` + `pnpm quality:contracts` 双绿；CI 首跑暴露的 SDK-only 缺口已修，见 §7.9） |
+| E4  | 只有当真的出现 CJS 消费者时，才给 SDK `exports` 补 `require` 条件（当前 `./contract` 等仅 `import` / `types`）                                                           |
 
 ---
 
@@ -372,7 +373,7 @@ ls .git/hooks/pre-commit       # → 不存在
 | **D2**     | `scan-technical-debt` / `check-real-backend-types` 的 `--accept-new`（另两个已有）       | 见 §3.7 更正：这一项的实际剩余量比原方案小得多。                                                                                                                                                                                                                                                                                        |
 | **D3**     | 统一"所有白名单必须有 owner + expires"                                                   | D1 已把**到期**这一半统一；`owner` 这一半也已完成（`714a88253` 把豁免台账的 `owner` 变成硬要求，缺字段即红）。                                                                                                                                                                                                                          |
 | **E1**     | 两个聚合/生成脚本补 spec                                                                 | 低价值（`generate-coverage-report.mjs` 与判定无关，`run-granular-coverage-gates.mjs` 是发现器）。                                                                                                                                                                                                                                       |
-| **E3**     | 推送提交                                                                                 | **需要用户决策**（会触发 CI）。                                                                                                                                                                                                                                                                                                         |
+| **E3**     | ~~推送提交~~ **已完成**（`116631352..c148da631`）                                        | 用户决策后执行；推前本地 `pnpm lint` + `quality:contracts` 双绿。CI 首跑暴露「SDK-only checkout」缺口（`contract:check` 硬依赖兄弟仓），本轮已修，见 §7.9。                                                                                                                                                                             |
 | **E4**     | 给 SDK `exports` 补 `require` 条件                                                       | 当前没有 CJS 消费者，属"有需要再做"。                                                                                                                                                                                                                                                                                                   |
 
 ### 7.3 C1 的工作清单：139 处长什么样（本轮实测的形态拆解）
@@ -713,6 +714,75 @@ waivers **24 → 26**，门禁恢复 mismatch 0。
 
 ---
 
+### 7.9 2026-10-09 第七轮：E3 推送执行 + CI 首跑暴露「SDK-only checkout」缺口
+
+**推送本体成功**：推前本地 `pnpm lint` exit 0 + `pnpm quality:contracts` exit 0（6m57s）；
+`116631352..c148da631 develop -> develop`，fast-forward（远端 HEAD 与本地一致，ahead/behind 0/0）。
+
+**CI 首跑两条结果**（均**非本次改动引入**，是「118 个提交从未在 CI 上跑过」第一次把存量暴露）：
+
+| workflow                         | 结果                      | 定性                                                                                                                                                                                             |
+| -------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Systemic Refactor Quality Gate` | **failure**（2m47s）      | 失败 step = `Entrypoint contract gates`（`pnpm quality:contracts`）；**10-06 的 run 是同一 step 同一原因** ⇒ 该门禁在 fork 上**从未绿过**                                                        |
+| `Tests`                          | **startup_failure**（1s） | 10-05/10-06 同；本地提交 `02ea2e98d`（2026-07-21「fix(ci): skip downstream jobs … on fork」）**并未解决**；两个被引用的 reusable workflow 实测都存在 ⇒ 疑为 fork 跨仓 reusable workflow 解析策略 |
+
+#### (1) 根因：`contract:check` 硬依赖兄弟仓，CI 上没有
+
+```
+error: backend contract not found at <repo>/../synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md
+ELIFECYCLE  Command failed with exit code 2.
+```
+
+`contract:check` → **`scripts/sdk-contract-codegen.mjs:1294`**（`--check` 模式）在
+`BACKEND_CONTRACT_MD` 缺失时**硬 `return 2`**。CI runner（`/home/runner/work/matrix-js-sdk/matrix-js-sdk`）
+只有本仓、无 `../synapse-rust` ⇒ **必红**；本地有兄弟仓 ⇒ **必绿**。
+⇒ **"推前先在本地跑一遍"永远发现不了它**（环境差异不在本地可见范围内）。
+
+**逐段预演**（`SYNAPSE_RUST_REPO=/tmp/nonexistent-synapse-rust` 模拟 CI，17 段逐段跑）：
+**只 2 段红**（`contract:check` / `contract:codegen:check`，同一脚本触发），其余 15 段均**优雅降级为绿**。
+
+**定性依据**：本仓设计**早已承认** CI 是 SDK-only checkout ——
+`contract-sync.mjs:431-437` 注释原文「SDK-only CI has no sibling checkout」；
+`check-sdk-contract-alignment.mjs:1597` 亦有同款 skip 降级。
+**唯独 `sdk-contract-codegen.mjs` 漏了降级** ⇒ 属"漏做"，不是设计分歧。
+
+#### (2) 修复（方案 A：加 skip 降级 + `--strict` 逃生阀）
+
+- `parseArgs` 新增 `--strict`；新增导出纯函数 `missingBackendBehavior(args)`：
+  默认 `{action:"skip", exitCode:0}`，`--strict` 时 `{action:"fail", exitCode:2}`。
+- `run()` 的后端契约缺失分支改用该决策：**默认显式打印 `skipped` + 提示路线**后 exit 0；
+  `--strict` 时保持原 error + exit 2（**fail-closed 语义不丢**）。
+- `.d.mts` 补 `parseArgs` / `missingBackendBehavior` 声明。
+
+⚠️ **明知的取舍（必须记账）**：默认 skip 意味着**CI 上这道 route-table 新鲜度校验空转**
+（本仓一贯反对"看起来有门禁、实际从不执行"）。缓解：① 打印 `skipped` 供审计，绝不静默；
+② 保留 `--strict` 供工作区/release 期布局使用（那里本应有兄弟仓）。**后续待办**：评估把
+`contract:check` 在 CI 上接成"有兄弟仓就真校验"，或加带 `expires` 的 waiver 显式跟踪这个盲区。
+
+#### (3) 验收证据
+
+- **行为四验**：① 模拟 CI `pnpm contract:check` → **exit 0**（原 2）+ 打印 `skipped`；
+  ② 模拟 CI `pnpm contract:codegen:check` → **exit 0**；③ `--check --strict` → **exit 2**（逃生阀生效）；
+  ④ 有兄弟仓 `pnpm contract:codegen:check` → exit 0 且**真跑**（`46 supported module helper sets are in sync`）。
+- **变异自证**：在 `src/room/__generated__/route-table.ts` 注入一行 → `contract:codegen:check`
+  **exit 1**，精确报 `1 file(s) would change: src/room/__generated__/route-table.ts`；
+  还原后 exit 0、工作区干净 ⇒ 降级**没有削弱**有兄弟仓时的真校验。
+- **spec +3 例**（`sdk-contract-codegen.spec.ts` 7 → **10 例全绿**：`--strict` 解析 / 默认 skip 三态 / strict fail）；
+  `tsc --noEmit` exit 0；prettier 干净；eslint 0 error（2 个既有 warning 非本批引入）。
+
+#### (4) 本轮改动清单
+
+| 文件                                     | 改动                                                                                                       |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `scripts/sdk-contract-codegen.mjs`       | `parseArgs` 加 `--strict`；新增导出 `missingBackendBehavior`；缺后端契约分支改为 skip/fail 决策；help 更新 |
+| `scripts/sdk-contract-codegen.d.mts`     | +`parseArgs` / `missingBackendBehavior` 声明                                                               |
+| `spec/unit/sdk-contract-codegen.spec.ts` | +3 例（CLI 契约：`--strict` 解析 / 默认 skip / strict fail）                                               |
+
+**遗留（未在本轮修）**：`Tests` 的 `startup_failure`（fork 既有，跨仓 reusable workflow 解析策略），
+需单独判断是否值得在 fork 侧处理。
+
+---
+
 ## 8. 明确不建议做的事
 
 | 不做                                                  | 为什么                                                                                                                                         |
@@ -780,10 +850,9 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第六轮：全文与实际对齐复核 —— §0 执行状态 C1 更新为主体完成（139 → 11）、
-§2.1 补首版快照警示注记（path-contract 最新 605/576/29/0/11、spec 81 例）、§7.2 C1 行改为已完成、
-§5 C1 加执行指针、§8/E3 的未推数字更正为 117；第五轮 `identifier` 见 §7.8；第四轮 `bare-call` 见 §7.7；
-第三轮 `this-method` 见 §7.6；D3 的 `owner` 一半更正为已完成（`714a88253`）；
-C1 进展注记 —— 第二批复核见 §7.5）
+**最后更新**: 2026-10-09（第七轮：E3 推送执行（`116631352..c148da631`）+ CI 首跑暴露「SDK-only checkout」
+缺口（`contract:check` 硬依赖兄弟仓 ⇒ CI 必红）并修复（skip + `--strict`），见 §7.9；第六轮全文对齐复核、
+第五轮 `identifier`（见 §7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；
+D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
