@@ -36,6 +36,7 @@ import {
     analyzeClassMethodDeclarations,
     analyzeFunctionDeclarations,
     analyzeIdentityFunction,
+    analyzeTemplateBuilders,
     diffCoverage,
     extractWrapperCalls,
     findTopLevel,
@@ -637,5 +638,66 @@ describe("resolveLedgerPath（ledger 来源解析）", () => {
         const r = resolveLedgerPath({ explicitPath: null, siblingExists: false, mirrorExists: false });
         expect(r.source).toBe("none");
         expect(r.path).toContain("synapse-rust");
+    });
+});
+
+describe("analyzeTemplateBuilders —— 路径模板构造器（bare-call 形态，2026-10-09）", () => {
+    it("从 buildXxxPath 定义体提取硬编码模板（与实参无关）", () => {
+        const src = `
+            export function buildProfilePath(userId: string | null): string {
+                return utils.encodeUri("/profile/$userId", { $userId: userId });
+            }
+        `;
+        const b = analyzeTemplateBuilders(new Map([["src/x.ts", src]]));
+        expect(b.get("buildProfilePath")).toBe('"/profile/$userId"');
+    });
+
+    it("嵌套 adp(utils.encodeUri(<模板>)) 也能提取", () => {
+        const src = `
+            export function buildUserAccountDataPath(userId, eventType): string {
+                return adp(utils.encodeUri("/user/$userId/account_data/$type", { $userId: userId, $type: eventType }));
+            }
+        `;
+        const b = analyzeTemplateBuilders(new Map([["src/y.ts", src]]));
+        expect(b.get("buildUserAccountDataPath")).toBe('"/user/$userId/account_data/$type"');
+    });
+
+    it("收窄：非 Path 命名的构造器（如请求体构造器）不登记", () => {
+        const src = `
+            export function buildSearchMessageRequestBody(q): object {
+                return utils.encodeUri("/search", { q });
+            }
+        `;
+        const b = analyzeTemplateBuilders(new Map([["src/z.ts", src]]));
+        expect(b.has("buildSearchMessageRequestBody")).toBe(false);
+    });
+
+    it("fail-closed：认不出模板的函数不进 map", () => {
+        const src = `
+            export function buildRoomFooPath(x: string): string { return x; }
+        `;
+        const b = analyzeTemplateBuilders(new Map([["src/w.ts", src]]));
+        expect(b.size).toBe(0);
+    });
+
+    it("extractWrapperCalls 经 templateBuilders 把 buildXxxPath(...) 解成模板字面量", () => {
+        const src = `authedRequest(Method.Get, buildProfilePath(userId), undefined, content);`;
+        const r = extractWrapperCalls(src, "src/x.ts", {
+            identityHelpers: null,
+            templateBuilders: new Map([["buildProfilePath", '"/profile/$userId"']]),
+        });
+        expect(r.unchecked.length).toBe(0);
+        expect(r.calls.length).toBe(1);
+        expect(r.calls[0].pathRaw).toBe('"/profile/$userId"');
+    });
+
+    it("templateBuilders 里没有的 bare-call 仍进未校验桶", () => {
+        const src = `authedRequest(Method.Get, someUnknownBuilder(userId), undefined, content);`;
+        const r = extractWrapperCalls(src, "src/x.ts", {
+            identityHelpers: null,
+            templateBuilders: new Map([["buildProfilePath", '"/profile/$userId"']]),
+        });
+        expect(r.unchecked.length).toBe(1);
+        expect(r.calls.length).toBe(0);
     });
 });

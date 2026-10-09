@@ -6,6 +6,7 @@
         "backend-missing": "后端确实没有这个端点（SDK 超前封装或能力未实现）。删掉条件：后端补上该路由。",
         "semantic-mismatch": "后端有同名/邻近端点，但**语义不同**，不能靠改路径解决。删掉条件：产品决策（对齐后端语义 / 改造 SDK API / 移除方法）。",
         "by-design": "后端**有意不实现**（有源码注释或测试固定该决策）。删掉条件：产品改变该决策。",
+        "prefix-mismatch": "SDK 用某前缀（如 client v3）调用，但后端仅在另一前缀（如 vendor）注册同名路由——**前缀不一致**而非路由缺失。删掉条件：后端补双前缀注册，或 SDK 改走正确前缀的包装器（如 requestV3 → requestVendor）。",
         "other-homeserver": "为兼容其他 homeserver / 协议变体而保留的封装，本后端不在范畴内。"
     },
     "waivers": [
@@ -199,6 +200,22 @@
             "owner": "langkebo",
             "category": "by-design",
             "reason": "sendWidgetMessage()。后端已于 ebe4a3db6 **删除**该路由：它原本就是拒绝型实现（handler 正文 `let _ = body;` 之后恒返 400，并提示调用方改走标准发送端点 `PUT /_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`）⇒ 该方法从未真正可用。SDK 侧保留本方法是为了不破坏公开 API（Tjg 无消费者，全仓仅此 1 处调用点）。删掉条件：产品决定移除 sendWidgetMessage()，或把它改接标准 send API。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/rooms/{X}/keys/{X}",
+            "file": "src/room-summary/sub-managers/room-thread-manager.ts",
+            "owner": "langkebo",
+            "category": "prefix-mismatch",
+            "reason": "getEventKeys()。SDK 的 JSDoc 与实现都用 requestV3（client v3）：`GET /_matrix/client/v3/rooms/{roomId}/keys/{eventId}`；但后端 ledger 仅在 vendor 前缀注册该路由（`GET /_matrix/vendor/v1/rooms/{roomId}/keys/{eventId}`），client v3 版不存在。本条由本轮攻破 bare-call（解开 encodeUri 恒等包装器）后**首次被校验**发现——此前落在 unchecked 桶从未校验。删掉条件：后端补 client v3 注册，或 SDK 把 getEventKeys 改走 requestVendor。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/v3/rooms/{X}/thread/{X}",
+            "file": "src/room-summary/sub-managers/room-thread-manager.ts",
+            "owner": "langkebo",
+            "category": "prefix-mismatch",
+            "reason": "getRoomThread()。同 getEventKeys：SDK JSDoc/实现用 requestV3（client v3）：`GET /_matrix/client/v3/rooms/{roomId}/thread/{eventId}`；后端仅在 vendor 前缀注册（`GET /_matrix/vendor/v1/rooms/{roomId}/thread/{eventId}`）。本轮解开 encodeUri 后首次被校验发现。删掉条件：后端补 client v3 注册，或 SDK 改走 requestVendor。",
             "expires": "2026-12-31"
         }
     ]

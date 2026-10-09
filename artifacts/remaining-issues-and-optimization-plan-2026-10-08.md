@@ -1,12 +1,12 @@
 # matrix-js-sdk 剩余问题复盘与优化方案（2026-10-08）
 
-> 触发点：对 `develop @ e84016df8` 做一轮**不预设结论**的全量复检 —— 不读历史结论当真，每条都实跑取证。
-> 结论先行：**`pnpm lint` 在当前 HEAD 上是红的**（两条独立原因），而它**不是新引入的代码缺陷**，
-> 是「本地提交守卫从未生效 + 台账腐烂」的合成结果。其余 20 余个门禁全绿，Tjg 侧的
+> 触发点：对 `develop @ e84016df8` 做一轮**不预设结论**的全量复检 —— 不读历史结论当真，每条都实跑取证。  
+> 结论先行：**`pnpm lint` 在当前 HEAD 上是红的**（两条独立原因），而它**不是新引入的代码缺陷**，  
+> 是「本地提交守卫从未生效 + 台账腐烂」的合成结果。其余 20 余个门禁全绿，Tjg 侧的  
 > `matrix-js-sdk/contract` 断链**已在今日 08:58 闭环**。
 >
-> 关联文档：`artifacts/quality-gate-fingerprint-audit-2026-10-06.md`（门禁指纹与治理主线）、
-> `.workbuddy/memory/2026-10-08.md`（§33~35 逐轮记录）。
+> 关联文档：`artifacts/quality-gate-fingerprint-audit-2026-10-06.md`（门禁指纹与治理主线）、  
+> `.workbuddy/memory/2026-10-08.md`（§33~35 逐轮记录）。  
 > ⚠️ **首版结论里的两条红已修复**（批次 A，`15eefb285`）；**2026-10-09 第二轮复核的门禁实况见 §7.5**。
 
 ---
@@ -23,13 +23,13 @@
 | **P1-3** | 豁免与基线纪律不一致                                            | baseline 更新无条件全量重写；swallow 白名单过期只 warn                     | 否（策略债）           |
 | **P2**   | 长尾与工程卫生                                                  | 3 个聚合/生成脚本无 spec；2 个已登记孤岛；101 提交未推                     | 否                     |
 
-**整体判断**：门禁体系本身已经相当成熟（56 个受管辖门禁、52 可达、4 豁免、0 死门禁；判定类门禁
-普遍有 spec + 变异自证）。**剩余问题不在"缺门禁"，而在三件事**：
-① 门禁的**执行入口**（本地钩子）是断的；② 门禁的**台账**会腐烂且没有自动发现机制；
+**整体判断**：门禁体系本身已经相当成熟（56 个受管辖门禁、52 可达、4 豁免、0 死门禁；判定类门禁  
+普遍有 spec + 变异自证）。**剩余问题不在"缺门禁"，而在三件事**：  
+① 门禁的**执行入口**（本地钩子）是断的；② 门禁的**台账**会腐烂且没有自动发现机制；  
 ③ 判据"看得见的范围"仍有边界（139 / 3 / 7 三类盲区）。
 
-> **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，**C1 部分完成**（cast 4→0、`this-method` 49→8→4，剩余 81 处待做）/ C4 未做；
-> 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；
+> **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，**C1 部分完成**（cast 4→0、`this-method` 49→8→4，剩余 81 处待做）/ C4 未做；  
+> 批次 D 完成 D1 / D3（`714a88253` 把豁免台账的 `owner` 变成硬要求），并**重新核实**了 D2（上一轮对 P2 的判断有 grep 误报，见 §3.7 的更正）；  
 > 另新增一条共享落盘约定（§7.1 末行）。**逐项状态与验收证据见 §7。**
 
 ---
@@ -44,7 +44,7 @@
 | 工作区起点  | 仅 `artifacts/quality-gate-fingerprint-audit-2026-10-06.md` 为 `M`（外部进程回写，见 §3.4） |
 | 跨仓        | `../Tjg`（vendor tarball / node_modules / ESM 解析）                                        |
 
-实跑内容：`pnpm lint`（全链）、`pnpm quality:contracts`（16 段全链）、20 个单门禁、
+实跑内容：`pnpm lint`（全链）、`pnpm quality:contracts`（16 段全链）、20 个单门禁、  
 4 个守卫 spec（151 例）、跨仓解析探针。
 
 ---
@@ -71,7 +71,7 @@
 | `quality:public-api-docs`         | exit 1（R2 指标恶化 + 两处 R3 需下调） | exit 0（台账已下调）             | 见 (5)(7) |
 | `quality:admin-response-contract` | exit 1（`route-not-resolved` 15 → 17） | exit 0（逐条核对后 `--refresh`） | 见 (8)    |
 
-> `pnpm lint` 的链序是 `lint:types → test:types → type-coverage → lint:js → … → coverage:critical-files → gate-reachability → manager-extensions`。
+> `pnpm lint` 的链序是 `lint:types → test:types → type-coverage → lint:js → … → coverage:critical-files → gate-reachability → manager-extensions`。  
 > `lint:js` 在 `prettier` 那一步就失败，`&&` 短路 ⇒ **P0-2 这条红平时根本走不到**，是单独跑才暴露的。
 
 ---
@@ -117,11 +117,11 @@ node ./node_modules/prettier/bin/prettier.cjs --check <上面 6 个>   # → exi
 | `spec/unit/large-file-changes-gate.spec.ts`                                                             | `4e619c158` |
 | `spec/unit/msc-changes-gate.spec.ts`                                                                    | `13b5a4c50` |
 
-第 7 个是审计文档：`prettier --write` 对它的改动集中在 **2445–2472 行起的手写 CJK 表格**
-（prettier 重排表头分隔行），实测 `diff` 约 **223 行**。用 `git show HEAD:<doc>` 抽到仓内单独
+第 7 个是审计文档：`prettier --write` 对它的改动集中在 **2445–2472 行起的手写 CJK 表格**  
+（prettier 重排表头分隔行），实测 `diff` 约 **223 行**。用 `git show HEAD:<doc>` 抽到仓内单独  
 `--check` 也是 exit 1 ⇒ **不是工作区改动造成的，HEAD 本身就不合格**。
 
-**根因**：这三个都是"手写 markdown 表格 + CJK 内容"，prettier 的列宽算法与人工对齐不同；
+**根因**：这三个都是"手写 markdown 表格 + CJK 内容"，prettier 的列宽算法与人工对齐不同；  
 而 `pnpm lint` 从未在本地跑过（见 §3.3）。
 
 **影响**：CI `Systemic Refactor Quality Gate` 的 `Lint and Typecheck` 步骤必红 ⇒ 推上去会拦掉所有 PR。
@@ -143,18 +143,18 @@ node ./node_modules/prettier/bin/prettier.cjs --check <上面 6 个>   # → exi
 
 **取证（两条都是"条目失效"，不是门禁误报）**
 
-- `src/room-creation/index.ts`：已**不再有 HTTP 调用**，全文件只剩 `import type { ICreateRoomOpts }`。
+- `src/room-creation/index.ts`：已**不再有 HTTP 调用**，全文件只剩 `import type { ICreateRoomOpts }`。  
   ⇒ 它不再是"带 HTTP 调用的未测文件"，不该占关键覆盖台账。
-- `src/sessions/index.ts`：**文件已被整体删除** ——
-  `159e46d2d refactor(sessions): 删除整个 SessionsManager —— Matrix 里没有 session 概念`。
+- `src/sessions/index.ts`：**文件已被整体删除** ——  
+  `159e46d2d refactor(sessions): 删除整个 SessionsManager —— Matrix 里没有 session 概念`。  
   台账里那条（`module: sessions`、`lines: 86`、`httpCalls: 2`、`deadline 2026-12-31`）是幽灵条目。
 
-**影响**：`quality:coverage:critical-files` 在 `lint` 链里 ⇒ 与 P0-1 一起构成 HEAD 的双红。
-真正的缺陷是**「台账没有随代码删除而收缩」的机制缺失**，不是这两行本身。
+**影响**：`quality:coverage:critical-files` 在 `lint` 链里 ⇒ 与 P0-1 一起构成 HEAD 的双红。  
+真正的缺陷&#x662F;**「台账没有随代码删除而收缩」的机制缺失**，不是这两行本身。
 
 ### 3.3 P0-3 根因：本地提交钩子从未安装
 
-**现象**：`.husky/pre-commit` 在版本库里（内容 `npx lint-staged`，`origin/develop` 也有），
+**现象**：`.husky/pre-commit` 在版本库里（内容 `npx lint-staged`，`origin/develop` 也有），  
 但本地三处证据表明它**从未生效**：
 
 ```bash
@@ -163,13 +163,13 @@ git config core.hooksPath      # → 未设置
 ls .git/hooks/pre-commit       # → 不存在
 ```
 
-**根因**：husky v9 靠 `package.json` 的 `prepare` 脚本里那条 `husky` 命令来安装钩子。
-本仓 `prepare` 是 `pnpm build`（`origin/develop` 同样是 `pnpm build`）⇒ **`husky` 命令永不执行**
+**根因**：husky v9 靠 `package.json` 的 `prepare` 脚本里那条 `husky` 命令来安装钩子。  
+本仓 `prepare` 是 `pnpm build`（`origin/develop` 同样是 `pnpm build`）⇒ **`husky` 命令永不执行**  
 ⇒ 钩子永不安装 ⇒ `.lintstagedrc` 那套 `prettier --write` / `eslint --fix` 拦截在本地提交时压根没跑。
 
 **这直接解释了 P0-1**：4 个 2026-10-07 的 spec 提交带着格式问题进来，且因为未被推送、CI 也没看过。
 
-**附带发现**：`.lintstagedrc` 的三条 glob 是 `*.(ts|tsx)` / `*.(py|md|yaml)` / `*.(mjs|cjs|js)`，
+**附带发现**：`.lintstagedrc` 的三条 glob 是 `*.(ts|tsx)` / `*.(py|md|yaml)` / `*.(mjs|cjs|js)`，  
 **`*.(ts|tsx)` 不匹配 `.d.mts`** —— 这正是 P0-1 里唯一那个非 `.ts` / 非 `.mjs` 的漏网文件后缀。
 
 ### 3.4 P3 工作区脏：审计文档被外部进程回写
@@ -177,12 +177,12 @@ ls .git/hooks/pre-commit       # → 不存在
 `artifacts/quality-gate-fingerprint-audit-2026-10-06.md`（mtime `2026-10-08 08:25`）相对 HEAD：
 
 - 全量 `git diff`：**837 insertions / 994 deletions**；`--ignore-all-space` 后 **69 / 226**。
-- 内容级差异**只有三类**：① 表格分隔行被按另一套列宽规则重排（绝大多数）；
-  ② 行尾两空格被删（破坏 markdown 硬换行）；③ **3 处中文被 HTML 实体化**：
+- 内容级差异**只有三类**：① 表格分隔行被按另一套列宽规则重排（绝大多数）；  
+  ② 行尾两空格被删（破坏 markdown 硬换行）；③ **3 处中文被 HTML 实体化**：  
   `的`→`&#x7684;`、`报`→`&#x62A5;`、`是`→`&#x662F;`（出现在 `**粗体**` 紧邻位置）。
 - **未丢章节**：`^## ` 计数 14 / 14，`7.15-1 … 7.15-31` 小节齐全。
 
-⇒ 判定为**编辑器/预览器的回写**（不是 `git checkout`，也不像 prettier），内容无损失但有语义破坏
+⇒ 判定为**编辑器/预览器的回写**（不是 `git checkout`，也不像 prettier），内容无损失但有语义破坏  
 （硬换行、实体转义）。处置见 §5 批次 A3。
 
 ### 3.5 P1-1 判据盲区（"看不见"的三类）
@@ -200,39 +200,39 @@ ls .git/hooks/pre-commit       # → 不存在
 
 ### 3.6 P1-2 语义不匹配 / 后端缺路由（需产品决策）
 
-- `POST /invite/blocklist`：后端语义是**整体替换** `{user_ids}`，SDK 却按"逐个增删"封装
+- `POST /invite/blocklist`：后端语义是**整体替换** `{user_ids}`，SDK 却按"逐个增删"封装  
   （已挂 `path-contract-waivers.json` 的 `semantic-mismatch`）；**方法名仍在鼓励错误用法**。
-- `deleteFeatureFlag`：后端 `feature_flags.rs` 只有 `POST|GET` 与 `GET|PATCH`，**没有 DELETE**
-  ⇒ 10-07 已改正为连字符路径 + 补 ⚠️ JSDoc + 登记 `backend-missing` 豁免（expires 2026-12-31）。
+- `deleteFeatureFlag`：后端 `feature_flags.rs` 只有 `POST|GET` 与 `GET|PATCH`，**没有 DELETE**  
+  ⇒ 10-07 已改正为连字符路径 + 补 ⚠️ JSDoc + 登记 `backend-missing` 豁免（expires 2026-12-31）。  
   本条保留为"后端补 DELETE 或删方法"的决策项。
 
 ### 3.7 P1-3 豁免与基线纪律不一致（本轮已部分修复，详见 §7.1）
 
-- **基线更新粗放（旧编号 P2）**：~~`grep -rn 'accept-new|acceptNew' scripts/quality/*.mjs` **0 命中**~~
-  —— **⚠️ 这条判断已作废**：那次 grep 用了 `'a\|b'` 这种 BRE 扩展写法，在本机 CLI 的 shim
-  `grep`（toybox）下**静默返回空**，被误读成"确实没有"。用检索工具重查后事实是：
-  `check-swallow-fallbacks.mjs` 与 `check-generated-dto-strictness.mjs` **已有** `--accept-new`
-  （`--update-baseline` 在出现新指纹时**默认拒绝写入**）。真正还是无条件重写的只剩
-  `scan-technical-debt.mjs` 与 `check-real-backend-types.mjs`。
+- **基线更新粗放（旧编号 P2）**：~~`grep -rn 'accept-new|acceptNew' scripts/quality/*.mjs` **0 命中**~~  
+  —— **⚠️ 这条判断已作废**：那次 grep 用了 `'a\|b'` 这种 BRE 扩展写法，在本机 CLI 的 shim  
+  `grep`（toybox）下**静默返回空**，被误读成"确实没有"。用检索工具重查后事实是：  
+  `check-swallow-fallbacks.mjs` 与 `check-generated-dto-strictness.mjs` **已有** `--accept-new`  
+  （`--update-baseline` 在出现新指纹时**默认拒绝写入**）。真正还是无条件重写的只剩  
+  `scan-technical-debt.mjs` 与 `check-real-backend-types.mjs`。  
   ⇒ **这条更正本身是方法论教训**：判"有没有"之前，先确认检索工具没在骗你。
-- **到期纪律双标（旧编号 P3）**：`path-contract-waivers.json` 有硬阻断
-  （`quality:waiver-expiry`，当前 20 条全部在期）；而 `swallow-fallback-baseline.json` 的
-  `@swallow-error { owner, expires }` 白名单**过期只 warn**
-  （`check-swallow-fallbacks.mjs:445`），且 `waiver-expiry` 只读 path-contract 那一份台账。
+- **到期纪律双标（旧编号 P3）**：`path-contract-waivers.json` 有硬阻断  
+  （`quality:waiver-expiry`，当前 20 条全部在期）；而 `swallow-fallback-baseline.json` 的  
+  `@swallow-error { owner, expires }` 白名单**过期只 warn**  
+  （`check-swallow-fallbacks.mjs:445`），且 `waiver-expiry` 只读 path-contract 那一份台账。  
   当前实测：**过期 0 条 / 30 天内到期 0 条**（所以是策略缺口，不是当下的火）。
 
 ### 3.8 P2 长尾与工程卫生
 
-- 门禁自身 spec：`scripts/quality` 共 **55** 个 `.mjs`，其中 **20** 个在 `spec/**` 文本里找不到文件名。
-  逐类看：**17 个 granular** 已全部改成"调用共享库 `scripts/quality/lib/granular-coverage.mjs` +
-  配置数据"的形态（`grep -c 'function hasMethod'` 逐文件 = **0**，`importShared=2`），
-  而该共享库有 `spec/unit/granular-coverage-gate.spec.ts` ⇒ **风险已收敛**，属"配置型调用方"。
-  真正待补的是 `generate-coverage-report.mjs`（纯报告生成，与判定无关，建议登记豁免）与
+- 门禁自身 spec：`scripts/quality` 共 **55** 个 `.mjs`，其中 **20** 个在 `spec/**` 文本里找不到文件名。  
+  逐类看：**17 个 granular** 已全部改成"调用共享库 `scripts/quality/lib/granular-coverage.mjs` +  
+  配置数据"的形态（`grep -c 'function hasMethod'` 逐文件 = **0**，`importShared=2`），  
+  而该共享库有 `spec/unit/granular-coverage-gate.spec.ts` ⇒ **风险已收敛**，属"配置型调用方"。  
+  真正待补的是 `generate-coverage-report.mjs`（纯报告生成，与判定无关，建议登记豁免）与  
   `run-granular-coverage-gates.mjs`（聚合入口）。
 - 孤岛脚本 **2** 个（`scripts/audit/compare-routes.mjs`、`scripts/update-doc-hashes.mjs`），均已登记。
 - `quality:cross-repo-pin` 在 `develop` 上**按设计红**（仅 `release/**` 触发）。
-- 两轨覆盖率门禁（`quality:coverage:repo` / `quality:coverage:critical`）依赖
-  `pnpm test --coverage` 产出的 `coverage/lcov.info`；本地没跑过测试就只有"缺 lcov"这一条，
+- 两轨覆盖率门禁（`quality:coverage:repo` / `quality:coverage:critical`）依赖  
+  `pnpm test --coverage` 产出的 `coverage/lcov.info`；本地没跑过测试就只有"缺 lcov"这一条，  
   是设计而非缺陷（CI 里排在 coverage 之后）。
 - **101 个提交未推送** ⇒ P0-1 / P0-2 至今没被远程 CI 发现。
 
@@ -248,9 +248,9 @@ ls .git/hooks/pre-commit       # → 不存在
 | 守卫 spec                         | **全绿**   | 151 passed（4 个文件）                                                                                                                                                                                             |
 | `swallow` 白名单到期              | 当前无过期 | 过期 0 / 30 天内到期 0                                                                                                                                                                                             |
 
-> ⚠️ **更正上一轮的一个误判**：我曾用 `require.resolve('matrix-js-sdk/contract')` 复现出
-> `ERR_PACKAGE_PATH_NOT_EXPORTED` 并据此判"Tjg 解析不了"。实际原因是我用了 **CJS 入口**——
-> 该包 `exports` 的每个条目**只声明 `import` / `types` 条件，没有 `require`**，而 Tjg 是 Vite/ESM。
+> ⚠️ **更正上一轮的一个误判**：我曾用 `require.resolve('matrix-js-sdk/contract')` 复现出  
+> `ERR_PACKAGE_PATH_NOT_EXPORTED` 并据此判"Tjg 解析不了"。实际原因是我用了 **CJS 入口**——  
+> 该包 `exports` 的每个条目**只声明 `import` / `types` 条件，没有 `require`**，而 Tjg 是 Vite/ESM。  
 > ESM 侧一切正常。**若将来出现 CJS 消费者**，需要给 `exports` 补 `require` 条件（见 §5 E4）。
 
 ---
@@ -266,7 +266,7 @@ ls .git/hooks/pre-commit       # → 不存在
 | A3  | 先把 §3.4 的外部回写文件**从 HEAD 恢复**（证据已备份），再做 A1 ⇒ 只留一个"prettier 规范化"的 hunk，不和回写混在一起 | `git diff --stat` 该文件只反映 prettier 重排                           |
 | A4  | 全链回归：`pnpm lint` + `pnpm quality:contracts` 各跑一遍                                                            | 两条都 **exit 0**                                                      |
 
-**注意**：A2 是**删除**条目，不是 `--update-baseline` 重记 —— R4 的语义是"条目已失效"，重记等于把幽灵留着。
+**注意**：A2 是**删除**条目，不是 `--update-baseline` 重记 —— R4 的语义是"条目已失效"，重记等于把幽灵留着。  
 **不要**为了 A1 把 `artifacts/` 加进 `.prettierignore`（那是把真问题藏起来；文档就该能被 prettier 重排）。
 
 ### 批次 B —— 把"提交前守卫"真正装上（P0 根因，低风险）
@@ -278,8 +278,8 @@ ls .git/hooks/pre-commit       # → 不存在
 | B3  | 新增 `scripts/quality/check-git-hooks.mjs`（**本地自检**：`core.hooksPath` 未指向 `.husky/_` 就 warn；CI 上 `CI=true` 时跳过） | `pnpm quality:git-hooks` 在未装钩子时 exit 1                                                      |
 | B4  | 变异自证                                                                                                                       | 故意造未格式化文件 → `git commit` **必须被拦**；删掉钩子后再提交 → 放行（证明拦的是钩子不是别的） |
 
-**风险**：`prepare` 同时在 CI 的 `pnpm install` 里执行。husky 在无 `.git` 的浅克隆/打包环境里
-会打印错误并**可能非零退出** ⇒ B1 实施时要用 `husky || true` 或 `husky` 的 `HUSKY=0` 保护，
+**风险**：`prepare` 同时在 CI 的 `pnpm install` 里执行。husky 在无 `.git` 的浅克隆/打包环境里  
+会打印错误并**可能非零退出** ⇒ B1 实施时要用 `husky || true` 或 `husky` 的 `HUSKY=0` 保护，  
 并在 `systemic_refactor_quality_gate.yml` 的 `Install Deps` 步骤验证一次。
 
 ### 批次 C —— 收缩判据盲区（P1，中风险，**必须变异自证**）
@@ -292,7 +292,7 @@ ls .git/hooks/pre-commit       # → 不存在
 | C4  | 嵌套形状：对 `entries` / `deviations` 里"顶层键集相等但值类型不同"的条目做一层**值级递归**（承接 §7.15-29 的 `get_all_health_status` 遗留）                                                                                                                               | 新覆盖桶计数只降不升；每个新解析器形态配一条 spec                                                                                                                                 |
 | C5  | `route-not-resolved=15` 逐条定性：能解析的解析掉，不能的登记 waiver 并**写清 reason**（不允许只留一个数字）                                                                                                                                                               | `unresolved` 桶里每条都有 `reason` 字段；`deviations` 有 `expires`                                                                                                                |
 
-**统一要求**：每个抽取器新形态都要走「**改坏输入必须变红**」——本仓抽取器累计错 24 次，
+**统一要求**：每个抽取器新形态都要走「**改坏输入必须变红**」——本仓抽取器累计错 24 次，  
 **24/24 全是"静默给错答案"**，没有一次是报错。
 
 ### 批次 D —— 统一豁免与基线纪律（P1/P2，中风险）
@@ -331,7 +331,7 @@ ls .git/hooks/pre-commit       # → 不存在
 | D    | C 的台账稳定后 | 中                                           | 多台账到期门禁、baseline 更新审查门               |
 | E    | 任意           | 低                                           | 推送 + 长尾清账                                   |
 
-**完成后统一验收**：`pnpm lint`、`pnpm quality:contracts`、`pnpm quality:gate-reachability`、
+**完成后统一验收**：`pnpm lint`、`pnpm quality:contracts`、`pnpm quality:gate-reachability`、  
 相关守卫 spec（`--no-file-parallelism`）全绿；`git status` 干净；台账数字只降不升。
 
 ---
@@ -370,8 +370,8 @@ ls .git/hooks/pre-commit       # → 不存在
 
 ### 7.3 C1 的工作清单：139 处长什么样（本轮实测的形态拆解）
 
-`quality:path-contract` 的报告新增一行「形态拆解」（**报表口径，不参与判定**；金标准对拍确认
-`totalCalls / matched / mismatched / waived / skippedDynamic / uncheckedPathArg / coverageIssues`
+`quality:path-contract` 的报告新增一行「形态拆解」（**报表口径，不参与判定**；金标准对拍确认  
+`totalCalls / matched / mismatched / waived / skippedDynamic / uncheckedPathArg / coverageIssues`  
 与改动前**逐项一致**，`uncheckedSamples` 与 `mismatches` 也完全一致）：
 
 ```
@@ -387,26 +387,27 @@ ls .git/hooks/pre-commit       # → 不存在
 | `cast`             | 4      | `` `/v1/workers/${x}` as `/v1/workers/${string}` ``                        | 剥掉 `as <类型>` 后就是模板，形态最简单。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `other` / `concat` | 1 / 1  | —                                                                          | 逐条看。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
-**下一轮的执行规格（建议）**：按 `cast`（4）→ `this-method`（49）→ `identifier`（38）→ `bare-call`（46）
-的顺序推进；每扩一层都要
-①用 `scripts/audit/gate-golden.mjs` 存金标准、改完对拍；
-②对**每一类新形态**做变异自证（把形态改坏必须变红，而不是"解出更多"就算成功）；
-③跑 `--refresh-coverage` 收紧棘轮（`uncheckedPathArg` 与 `byFile` **只降不升**）。
-⚠️ 抽取器累计已错 24 次，**全部是"静默给错答案"** —— 这一层最大的风险不是"解不出来"，
+**下一轮的执行规格（建议）**：按 `cast`（4）→ `this-method`（49）→ `identifier`（38）→ `bare-call`（46）  
+的顺序推进；每扩一层都要  
+①用 `scripts/audit/gate-golden.mjs` 存金标准、改完对拍；  
+②对**每一类新形态**做变异自证（把形态改坏必须变红，而不是"解出更多"就算成功）；  
+③跑 `--refresh-coverage` 收紧棘轮（`uncheckedPathArg` 与 `byFile` **只降不升**）。  
+⚠️ 抽取器累计已错 24 次，**全部是"静默给错答案"** —— 这一层最大的风险不是"解不出来"，  
 而是"解出来一个错的路径"，然后被当成正确结果拿去比对。
 
-> **C1 进展注记（滚动更新）**：`this-method` 已由 `49 → 8 → 4` 逐级攻破（见 §7.6），
-> `cast` 4 处已剥离（139 → 135）。截至本轮，未校验调用点 **81 = identifier 38 / bare-call 37 /
-> this-method 4（逃逸阀 `uncheckedRoomPath`）/ other 1 / concat 1**；`this-method` 的剩余 4 处是项目
-> **故意**留的 escape valve（契约前缀实际是 vendor、实现却用 v3，解出必 mismatch），保持未校验显式计数。
+> **C1 进展注记（滚动更新）**：`this-method` 已由 `49 → 8 → 4` 逐级攻破（见 §7.6），  
+> `cast` 4 处已剥离（139 → 135），`bare-call` 37 处已攻破（81 → 44，见 §7.7）。  
+> 截至 §7.7（第四轮），未校验调用点 **44 = identifier 38 / this-method 4（逃逸阀 `uncheckedRoomPath`）/  
+> other 1 / concat 1**；`this-method` 的剩余 4 处是项目**故意**留的 escape valve（契约前缀实际是  
+> vendor、实现却用 v3，解出必 mismatch），保持未校验显式计数。
 
 ### 7.4 本轮新增的两条方法论教训
 
-1. **`grep 'a\|b'` 在本机 CLI 下会静默返回空**，看起来像"确实没有"。本轮因此把 P2（`--accept-new`）
-   误判为"完全未修"，实际 4 个里已有 2 个。**判"有没有"之前先确认检索工具没在骗你** ——
+1. **`grep 'a\|b'` 在本机 CLI 下会静默返回空**，看起来像"确实没有"。本轮因此把 P2（`--accept-new`）  
+   误判为"完全未修"，实际 4 个里已有 2 个。**判"有没有"之前先确认检索工具没在骗你** ——  
    用检索工具（Grep）或 `grep -E`，不要用裸 `grep` + `\|`。
-2. **「门禁自己印出来的修复指令」必须自己也过一遍 lint**：`--refresh` / `--update-baseline` 用
-   `JSON.stringify(_, null, 4)` 落盘与 prettier 的数组折叠规则不一致，用户照做反而得到红工作区。
+2. **「门禁自己印出来的修复指令」必须自己也过一遍 lint**：`--refresh` / `--update-baseline` 用  
+   `JSON.stringify(_, null, 4)` 落盘与 prettier 的数组折叠规则不一致，用户照做反而得到红工作区。  
    已抽成 `lib/write-json.mjs` 并用静态守卫钉住。
 
 ---
@@ -507,8 +508,8 @@ this-method 8 / other 1 / concat 1`）。该棘轮是「只降不升 + 需显式
 两条都是"**后端有意不存在**"且**已有豁免背书**，且 `quality:path-contract` 全绿（说明 SDK 的每条
 路径都在后端 ledger 里）⇒ 按门禁提示"核对后端"后 `--refresh`，新台账里两条都带 `reason`。
 
-**仍未做**：E3（推送，需用户决策）；C1 剩余的 **81** 处（`identifier 38 / bare-call 37 /
-this-method 4 逃逸阀 / other 1 / concat 1`）解析器改造；C4（嵌套形状值级递归）；以及 §7.2 原有各项。
+**仍未做**：E3（推送，需用户决策）；C1 剩余的 **44** 处（`identifier 38 / this-method 4 逃逸阀 /
+other 1 / concat 1`；`bare-call` 37 已收于 §7.7）解析器改造；C4（嵌套形状值级递归）；以及 §7.2 原有各项。
 （D3 的 `owner` 一半已由 `714a88253` 完成，不再列入；`cast`/`this-method` 的进展见 §7.6。）
 **新增登记的产品决策项**：`sendWidgetMessage()` 的存废 / 改接（见 (3)）。
 
@@ -554,9 +555,80 @@ fail-closed 不解）。
 | `spec/unit/verify-path-contract-gate.spec.ts` | +类方法恒等三种形态 / 逃逸阀排除 / multiArg 解包 测试（共 +9 例）                                                                                                |
 | `scripts/quality/path-contract-coverage.json` | `--refresh-coverage` 收紧棘轮（85 → 81）                                                                                                                         |
 
-**剩余**：`identifier 38` / `bare-call 37` 需跨作用域 let/const 绑定追踪（`findLetBinding` 手法）+
-跨函数传播；`this-method` 的 4 处逃逸阀按设计保留；另 `other 1` / `concat 1` 逐条看。下一轮按文档 §7.3
-建议顺序推进，每扩一层都重跑金标准对拍 + 变异自证。
+**剩余**：`identifier 38` 需跨作用域 let/const 绑定追踪（`findLetBinding` 手法）+ 跨函数传播；
+`this-method` 的 4 处逃逸阀按设计保留；`other 1` / `concat 1` 逐条看；`bare-call` 37 已收于 §7.7
+（机制 A 结构恒等原语 + 机制 B 模板构造器）。下一轮按文档 §7.3 建议顺序推进，每扩一层都重跑金标准对拍 + 变异自证。
+
+---
+
+### 7.7 2026-10-09 第四轮：`bare-call` 形态攻破（81 → 44，37 → 0）
+
+#### 做法
+
+`bare-call` 是调用点把"一个函数调用的返回值"直接当路径实参（`buildUserAccountDataPath(userId, eventType)`、
+`spacePath(...)`、`encodeUri(...)`），抽取器既不进 `calls` 也不进 `skipped`，整条从分母蒸发。本轮用两套
+**互不依赖、纯定义体检视（无跨函数实参传播）**的机制收下：
+
+**机制 A —— 结构恒等原语强制登记**：在 `indexIdentityPathHelpers` 里把 `encodeUri`（`src/http-api/utils.ts:306`，
+`return pathTemplate` 第一参数恒等）与 `spacePath`（`src/space/utils.ts:35`，`return sp(pathTemplate.replace(...))`
+第一参数恒等）**强制登记为恒等助手**（`identity=true`、`multiArg=true`、`prefixes={unknown}`），复用既有
+`unwrapIdentityPath` 取第一实参直接拿模板去比对。解 **21 处**（5 `encodeUri` + 16 `spacePath`）。
+
+**机制 B —— 路径模板构造器（`analyzeTemplateBuilders`）**：新增扫描，对命名以 `Path$` 结尾的函数/箭头，
+抽取其定义体里 `encodeUri|sp|adp("<硬编码模板>", …)` 的第一个字面量参数作为"该 builder 产出的路径"。
+调用点若实参是某 builder 名（`buildUserAccountDataPath(...)`），即用其定义体模板替换。覆盖全部 16 个真路径
+构造器（`buildStateEventPath` / `buildUserAccountDataPath` 等），解 **16 处**。
+
+**fail-closed 收窄**：机制 B 首次误登记 64 个函数（含 `buildSearchMessageRequestBody` / `buildReceiptBody`
+这类请求体构造器，体内也有 `encodeUri("<字面量>"` 但返回的是 body，若日后被当路径实参会解出错路径）——
+用 **`/Path$/` 命名收窄**降到 30 个（只留真路径构造器）。`buildProfilePath` 的调用点第 5 参是
+`{ prefix: requestPrefix }`（动态前缀）→ 正确归入 `skippedDynamic`，根本不到 mismatch 判定（这是正确
+fail-closed，非缺陷）。
+
+#### ⚠️ 新发现三：`room-thread-manager` 的真实前缀不一致（prefix-mismatch）
+
+机制 B 让门禁**首次真正跑通** `getEventKeys` / `getRoomThread`（`src/room-summary/sub-managers/room-thread-manager.ts`）
+的解析，随即报出 **2 处 mismatch**：
+
+- `GET /_matrix/client/v3/rooms/{X}/keys/{X}`
+- `GET /_matrix/client/v3/rooms/{X}/thread/{X}`
+
+排查（兄弟仓 `ledger_export_sdk/all.json` 与仓内镜像 `route-manifest.all.json`，两者对 keys/thread 都
+**只列 vendor 版**）确认：SDK 与 JSDoc 写的是 client **v3**，但后端仅在 **vendor** 前缀注册同名路由 ⇒
+不是解析 bug，是**存量隐藏缺陷**（与 `uncheckedRoomPath` 逃逸阀同型，只是此前被 `bare-call` 的分母蒸发
+掩盖了）。按 waiver 机制登记 `prefix-mismatch` 类别 2 条（`owner=langkebo`、`expires=2026-12-31`），
+waivers **24 → 26**，门禁恢复 mismatch 0。
+
+（建议产品/后端决策：把 SDK 这两条调用迁到 vendor 前缀，或后端在 v3 补注册；届时删 waiver。）
+
+#### 验收证据
+
+- **金标准对拍**：golden（81）vs after（44），除 `uncheckedPathArg 81→44`、`byShape.bare-call 37→0`
+  此消彼长外，`mismatched` 经 waiver 回到 0（新增 2 条 prefix-mismatch），其余判定字段逐项一致。
+- **变异自证（机制 A）**：把 `spacePath` 模板改成 `.../spaces/{X}/NONEXISTENT_XYZ` ⇒ 门禁 **exit 1**，
+  精确报 `GET /_matrix/vendor/v1/spaces/{X}/NONEXISTENT_XYZ` 不匹配；还原后工作区干净。
+- **变异自证（机制 B）**：把 `buildUserAccountDataPath` 模板改成 `.../account_data/NONEXISTENT_BC`
+  ⇒ **3 处** `GET /_matrix/client/v3/user/{X}/account_data/NONEXISTENT_BC` 报红；还原后干净。
+  （首选用 `buildUserAccountDataPath` 而非 `buildProfilePath`：后者调用点带动态前缀，被 `skippedDynamic`
+  接走，验证不了 mismatch 判定 —— 这恰好证明动态前缀路径正确 fail-closed。）
+- **类型/测试**：`analyzeTemplateBuilders` 补 `.d.mts` 声明；`extractWrapperCalls` 的 options 加
+  `templateBuilders?`。spec 新增 6 例（模板提取 / 嵌套 / 命名收窄 fail-closed / 经 builder 解析 /
+  未知 builder 仍进未校验），`verify-path-contract-gate.spec.ts` **65 例全绿**；`tsc --noEmit` 通过。
+- **棘轮收紧**：`--refresh-coverage` 把基线 `uncheckedPathArg 81→44`、`checkedPathArg 542→573`
+  （extract 573 / match 547）；落盘物过 `prettier --check`。
+
+#### 本轮改动清单
+
+| 文件                                          | 改动                                                                                                                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/quality/verify-path-contract.mjs`    | `indexIdentityPathHelpers` 强制登记 `encodeUri`/`spacePath`；新增 `analyzeTemplateBuilders`；`extractWrapperCalls` 经 `templateBuilders` 解析 builder 实参 |
+| `scripts/quality/verify-path-contract.d.mts`  | +`analyzeTemplateBuilders` 声明；`extractWrapperCalls` options 加 `templateBuilders?`                                                                      |
+| `spec/unit/verify-path-contract-gate.spec.ts` | +`analyzeTemplateBuilders` 6 例（提取 / 嵌套 / 命名收窄 fail-closed / 经 builder 解析 / 未知 builder 仍进未校验）                                          |
+| `scripts/quality/path-contract-waivers.json`  | +`prefix-mismatch` 类别；+2 条（`rooms/{X}/keys/{X}`、`rooms/{X}/thread/{X}`，`owner=langkebo`、`expires=2026-12-31`），waivers 24 → 26                    |
+| `scripts/quality/path-contract-coverage.json` | `--refresh-coverage` 收紧棘轮（81 → 44）                                                                                                                   |
+
+**剩余**：`identifier 38` 需作用域 let/const 绑定追踪 + 跨函数传播；`other 1` / `concat 1` 逐条看；
+`this-method` 的 4 处逃逸阀按设计保留。下一批按 §7.3 顺序推进。
 
 ---
 
@@ -627,7 +699,7 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第三轮：`this-method` 形态攻破 85 → 81 / 8 → 4，见 §7.6；
-D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
+**最后更新**: 2026-10-09（第四轮：`bare-call` 形态攻破 81 → 44（37 → 0），见 §7.7；第三轮
+`this-method` 见 §7.6；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）

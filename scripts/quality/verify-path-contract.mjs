@@ -709,6 +709,30 @@ export function indexIdentityPathHelpers(sourcesByFile, options = {}) {
             raw.set(decl.name, entry);
         }
     }
+    // ── 结构恒等原语：路径构造基座 ─────────────────────────────────────────────
+    // `encodeUri` 即类方法解析器的基例（对第一参数结构恒等：`$var` 仅做编码替换，模板形状不变）；
+    // `spacePath` = `sp(pathTemplate.replace(...))`，对第一参数恒等。二者占位符归一化后
+    // 直接匹配 ledger，等同恒等助手。它们本体不是 `return <参数>` 形态（走循环/嵌套），
+    // 自动判定会判成非恒等 ⇒ 这里**强制**登记（覆盖前面两遍的结论），让 `unwrapIdentityPath`
+    // 能解开 `encodeUri("/rooms/$roomId/...", {...})` 与 `spacePath("/spaces/$spaceId/...", id)`。
+    for (const [name, file] of [
+        ["encodeUri", "src/http-api/utils.ts"],
+        ["spacePath", "src/space/utils.ts"],
+    ]) {
+        const entry = raw.get(name) ?? {
+            identity: true,
+            guarded: true,
+            files: new Set(),
+            prefixes: new Set(),
+            multiArg: false,
+        };
+        entry.identity = true;
+        entry.guarded = false; // 第一参数是裸 string 模板，无 PathAssert
+        entry.multiArg = true; // 第一参数为路径模板，其余为变量
+        entry.files.add(file);
+        entry.prefixes = new Set(["\u0000unknown"]); // 前缀由调用方包装器决定
+        raw.set(name, entry);
+    }
     const helpers = new Map();
     for (const [name, e] of raw) {
         if (!e.identity) continue; // 同名有非恒等定义 ⇒ 整名作废
@@ -722,6 +746,49 @@ export function indexIdentityPathHelpers(sourcesByFile, options = {}) {
         });
     }
     return { helpers };
+}
+
+/**
+ * 扫描全仓「路径模板构造器」：`function buildXxx(...) { … return IDENTITY("<模板>", …) }`，
+ * 其中 `IDENTITY` 是已知恒等原语（`encodeUri` / `sp` / `adp` / `utils.encodeUri`），且**模板硬编码
+ * 在定义体里、与实参无关**。返回 `name → 带引号的模板字面量`（如 `"buildProfilePath" → "/profile/$userId"`）。
+ *
+ * 这是「定义体检视」式解析（**无跨函数实参数据流**），fail-closed：
+ *   ① 找不到「恒等原语 + 字面量第一参数」的函数不进 map，其调用点留在 unchecked；
+ *   ② 抽到的模板必须以 `/` 开头才登记（避免把非路径构造器误登记）；
+ *   ③ 绝不"解出错的路径"——只认第一实参是字面量且为路径的形态。
+ *
+ * 与恒等助手的区别：恒等助手的路径模板是**调用点的第一实参**（`sp("/x")`），
+ * 而构造器的路径模板是**定义体里写死的**（`buildProfilePath(userId)` → `encodeUri("/profile/$userId", …)`）。
+ * 前者走 `unwrapIdentityPath`，后者走本索引；两者都只在「整段就是一个调用」时解，绝不半解。
+ *
+ * @param {Map<string,string>} sourcesByFile
+ * @returns {Map<string,string>} 构造器名 → 带引号的模板字面量
+ */
+export function analyzeTemplateBuilders(sourcesByFile) {
+    // 只认第一实参是字面量的恒等原语调用；`[\w]+\.` 兼容 `utils.encodeUri(...)`。
+    const TMPL_RE = /(?:[\w]+\.)?(?:encodeUri|sp|adp)\s*\(\s*(["'`])((?:\\.|(?!\1)[\s\S])*?)\1/;
+    // 函数 / const 箭头 / const function 表达式 声明
+    const DECL_RE =
+        /(?:export\s+)?(?:function\s+([A-Za-z_$][\w$]*)\s*\(|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:function|\([^)]*\)\s*=>))/g;
+    const builders = new Map();
+    for (const source of sourcesByFile.values()) {
+        DECL_RE.lastIndex = 0;
+        for (const d of source.matchAll(DECL_RE)) {
+            const name = d[1] ?? d[2];
+            // 收窄：路径构造器统一命名 `buildXxxPath`（如 `buildProfilePath` / `buildSecureBackupPath`）。
+            // 跳过 `buildSearchMessageRequestBody` / `buildReceiptBody` 这类**请求体**构造器——
+            // 它们体内也含 `encodeUri("<字面量>"`，但返回的是请求体而非路径；若不收窄，
+            // 日后一旦被当成路径实参调用就会解出错路径（与 fail-closed 纪律相悖）。
+            if (!name || builders.has(name) || !/Path$/.test(name)) continue;
+            const m = TMPL_RE.exec(source.slice(d.index));
+            if (!m) continue;
+            const template = m[1] + m[2] + m[1]; // 还原成带引号的字面量
+            if (!template.replace(/^["'`]|["'`]$/g, "").startsWith("/")) continue; // 必须是路径
+            builders.set(name, template);
+        }
+    }
+    return builders;
 }
 
 /**
@@ -1164,7 +1231,15 @@ export function extractWrapperCalls(source, relFile, options = {}) {
         const helperName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(cleanedPathArg)?.[1];
         const unwrapped = unwrapIdentityPath(rawPathArg, identityHelpers);
         // TS 断言是纯类型层的东西，运行时值就是左侧表达式 —— 剥掉后可能就是个模板字面量。
-        const pathArg = stripTsAssertion(unwrapped ?? rawPathArg);
+        let pathArg = stripTsAssertion(unwrapped ?? rawPathArg);
+        // 模板构造器：`buildProfilePath(userId)` → 定义体写死的模板 `"/profile/$userId"`
+        // （与实参无关，纯定义体检视）。认不出（不在索引里）就原样留着，下面仍进 unchecked。
+        if (!PATH_LITERAL_RE.test(pathArg)) {
+            const tbName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(cleanedPathArg)?.[1];
+            if (tbName && options.templateBuilders?.has(tbName)) {
+                pathArg = options.templateBuilders.get(tbName);
+            }
+        }
         if (!PATH_LITERAL_RE.test(pathArg)) {
             unchecked.push({
                 file: relFile,
@@ -1416,6 +1491,8 @@ function main() {
     }
     const stripAliases = parseStripPrefixAliases(stripSource);
     const { helpers: identityHelpers } = indexIdentityPathHelpers(sourcesByFile, { stripAliases });
+    // 路径模板构造器（buildXxxPath 等）：定义体写死的模板，无跨函数数据流
+    const templateBuilders = analyzeTemplateBuilders(sourcesByFile);
 
     const findings = [];
     const skipped = [];
@@ -1425,7 +1502,7 @@ function main() {
     for (const [relFile, source] of sourcesByFile) {
         // 同一调用可能被两种提取器各命中一次，按 method+path+候选前缀 去重
         const seen = new Set();
-        const wrapperResult = extractWrapperCalls(source, relFile, { identityHelpers });
+        const wrapperResult = extractWrapperCalls(source, relFile, { identityHelpers, templateBuilders });
         uncheckedCalls.push(...wrapperResult.unchecked);
         const calls = [...extractObjectCalls(source), ...wrapperResult.calls];
 

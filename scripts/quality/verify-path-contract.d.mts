@@ -70,7 +70,10 @@ export function extractObjectCalls(source: string): Array<{
 export function extractWrapperCalls(
     source: string,
     relFile: string,
-    options?: { identityHelpers?: Map<string, IdentityHelperInfo> | null },
+    options?: {
+        identityHelpers?: Map<string, IdentityHelperInfo> | null;
+        templateBuilders?: Map<string, string> | null;
+    },
 ): {
     calls: Array<{
         method: string;
@@ -124,6 +127,13 @@ export function indexIdentityPathHelpers(
     sourcesByFile: Map<string, string>,
     options?: { stripAliases?: Map<string, string> },
 ): { helpers: Map<string, IdentityHelperInfo> };
+
+/**
+ * 扫描全仓「路径模板构造器」：`function buildXxx(...) { return IDENTITY("<模板>", …) }`，
+ * `IDENTITY` 为已知恒等原语且模板硬编码在定义体里、与实参无关。返回 构造器名 → 带引号的模板字面量。
+ * fail-closed：认不出模板的函数不进 map，其调用点留在 unchecked。
+ */
+export function analyzeTemplateBuilders(sourcesByFile: Map<string, string>): Map<string, string>;
 
 /** 把 `helper(<字面量>)` 展开成 `<字面量>`；不是恒等包装器调用返回 null。 */
 export function unwrapIdentityPath(raw: string, helpers: { has(name: string): boolean } | null): string | null;
