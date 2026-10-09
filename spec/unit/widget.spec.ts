@@ -379,21 +379,6 @@ describe("WidgetManager", () => {
         });
     });
 
-    describe("sendWidgetEvent", () => {
-        it("should send a widget event", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({ event_id: "$ev1" });
-            const result = await widgetManager.sendWidgetEvent("!room:example.com", "w1", { action: "click" });
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/rooms/!room%3Aexample.com/widgets/w1/send",
-                undefined,
-                { action: "click" },
-                { prefix: "/_matrix/vendor/v1" },
-            );
-            expect(result.event_id).toBe("$ev1");
-        });
-    });
-
     describe("createWidgetV3", () => {
         it("should create a widget via v3 endpoint", async () => {
             mockAuthedRequest.mockResolvedValueOnce({

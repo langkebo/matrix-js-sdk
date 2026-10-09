@@ -557,6 +557,48 @@ describe("AdminManager - Extended Tests", () => {
             await expect(adminManager.unquarantineMedia("example.org", "")).rejects.toThrow("Media ID is required");
         });
 
+        it("should protect media via the server_name-scoped path", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ stream_id: 7 });
+
+            await adminManager.protectMedia("example.org", "media123");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/media/protect/example.org/media123",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should protect media by id (upstream shape, no server_name segment)", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ stream_id: 8 });
+
+            await adminManager.protectMediaById("media123");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/media/protect/media123",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
+        it("should unprotect media by id", async () => {
+            mockClient.http.authedRequest.mockResolvedValue({ stream_id: 9 });
+
+            await adminManager.unprotectMedia("media123");
+
+            expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
+                "POST",
+                "/media/unprotect/media123",
+                undefined,
+                undefined,
+                { prefix: "/_synapse/admin/v1" },
+            );
+        });
+
         it("should purge media cache successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValue({ deleted: 42 });
 

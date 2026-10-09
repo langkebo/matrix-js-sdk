@@ -1,7 +1,7 @@
 ---
 module: friend_room
 generated_from: docs/api-contract/generated/modules/friend_room.json
-generated_hash: sha256-8a04f716d1e26597abb76de4ae578e597fefd36d5480d497dc7945965415a907
+generated_hash: sha256-e9403f10b2bc9971dc23d262869175e9e106b03440bd413553ebe157996051a3
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
@@ -35,30 +35,30 @@ last_reviewed: 2026-05-11
 
 ### 好友与请求
 
-| 方法     | 路径                                                       | 后端行为               | SDK 主入口                                         |
-| -------- | ---------------------------------------------------------- | ---------------------- | -------------------------------------------------- |
-| `GET`    | `/_matrix/client/v3/friends`                               | 好友列表正式入口       | `FriendManager.getFriends()`                       |
-| `POST`   | `/_matrix/client/v3/friends`                               | 发送好友请求的兼容别名 | SDK 不默认使用                                     |
-| `GET`    | `/_matrix/client/v1/friends`                               | 列表兼容别名           | SDK 不默认使用                                     |
-| `POST`   | `/_matrix/client/v1/friends`                               | 发送请求兼容别名       | SDK 不默认使用                                     |
-| `GET`    | `/_matrix/client/r0/friendships`                           | 历史列表别名           | SDK 不默认使用                                     |
-| `POST`   | `/_matrix/client/r0/friendships`                           | 历史发送别名           | SDK 不默认使用                                     |
-| `POST`   | `/_matrix/client/v1/friends/request`                       | 发送好友请求           | `sendFriendRequest()` / `addFriend()`              |
-| `GET`    | `/_matrix/client/v1/friends/request/received`              | 正式 incoming 请求入口 | `getIncomingRequests()`                            |
-| `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/accept` | 接受请求               | `acceptFriendRequest()`                            |
-| `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/reject` | 拒绝请求               | `rejectFriendRequest()` / `declineFriendRequest()` |
-| `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/cancel` | 取消请求               | `cancelFriendRequest()`                            |
-| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/requests/incoming`     | incoming 兼容别名      | `getIncomingRequests()` 在 404 时 fallback         |
-| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/requests/outgoing`     | outgoing 请求          | `getOutgoingRequests()`                            |
-| `GET`    | `/_matrix/client/{r0,v1,v3}/friends/search`                | 搜索用户目录           | `searchUsers()`                                    |
-| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/check/{user_id}`       | 检查好友关系           | `checkFriendship()`                                |
-| `GET`    | `/_matrix/client/{v1,r0}/friends/suggestions`              | 好友建议               | `getFriendSuggestions()`                           |
-| `DELETE` | `/_matrix/client/{v1,r0}/friends/{user_id}`                | 删除好友               | `removeFriend()`                                   |
-| `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/note`           | 更新备注               | `updateFriendNote()`                               |
-| `GET`    | `/_matrix/client/{v1,r0}/friends/{user_id}/status`         | 获取好友状态           | `getFriendStatus()`                                |
-| `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/status`         | 更新好友状态           | `updateFriendStatus()`                             |
-| `GET`    | `/_matrix/client/{v1,r0}/friends/{user_id}/info`           | 获取好友详情           | `getFriendInfo()`                                  |
-| `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/displayname`    | 设置好友显示名         | `setFriendDisplayName()`                           |
+| 方法     | 路径                                                       | 后端行为                 | SDK 主入口                                         |
+| -------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------------------- |
+| `GET`    | `/_matrix/client/v3/friends`                               | 好友列表正式入口         | `FriendManager.getFriends()`                       |
+| `POST`   | `/_matrix/client/v3/friends`                               | 发送好友请求的兼容别名   | SDK 不默认使用                                     |
+| `GET`    | `/_matrix/client/v1/friends`                               | 列表兼容别名             | SDK 不默认使用                                     |
+| `POST`   | `/_matrix/client/v1/friends`                               | 发送请求兼容别名         | SDK 不默认使用                                     |
+| `GET`    | `/_matrix/client/r0/friendships`                           | 历史列表别名             | SDK 不默认使用                                     |
+| `POST`   | `/_matrix/client/r0/friendships`                           | 历史发送别名             | SDK 不默认使用                                     |
+| `POST`   | `/_matrix/client/v1/friends/request`                       | 发送好友请求             | `sendFriendRequest()` / `addFriend()`              |
+| `GET`    | `/_matrix/vendor/v1/friends/requests/incoming`             | 收件箱请求的**规范路径** | `getIncomingRequests()`                            |
+| `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/accept` | 接受请求                 | `acceptFriendRequest()`                            |
+| `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/reject` | 拒绝请求                 | `rejectFriendRequest()` / `declineFriendRequest()` |
+| `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/cancel` | 取消请求                 | `cancelFriendRequest()`                            |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/requests/incoming`     | incoming 兼容别名        | `getIncomingRequests()` 在 404 时 fallback         |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/requests/outgoing`     | outgoing 请求            | `getOutgoingRequests()`                            |
+| `GET`    | `/_matrix/client/{r0,v1,v3}/friends/search`                | 搜索用户目录             | `searchUsers()`                                    |
+| `GET`    | `/_matrix/client/{v1,r0,v3}/friends/check/{user_id}`       | 检查好友关系             | `checkFriendship()`                                |
+| `GET`    | `/_matrix/client/{v1,r0}/friends/suggestions`              | 好友建议                 | `getFriendSuggestions()`                           |
+| `DELETE` | `/_matrix/client/{v1,r0}/friends/{user_id}`                | 删除好友                 | `removeFriend()`                                   |
+| `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/note`           | 更新备注                 | `updateFriendNote()`                               |
+| `GET`    | `/_matrix/client/{v1,r0}/friends/{user_id}/status`         | 获取好友状态             | `getFriendStatus()`                                |
+| `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/status`         | 更新好友状态             | `updateFriendStatus()`                             |
+| `GET`    | `/_matrix/client/{v1,r0}/friends/{user_id}/info`           | 获取好友详情             | `getFriendInfo()`                                  |
+| `PUT`    | `/_matrix/client/{v1,r0}/friends/{user_id}/displayname`    | 设置好友显示名           | `setFriendDisplayName()`                           |
 
 ### 好友分组
 

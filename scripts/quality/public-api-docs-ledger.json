@@ -706,8 +706,8 @@
         },
         "WidgetManager": {
             "missingJsDoc": 2,
-            "missingExample": 18,
-            "throwsWithoutTag": 16
+            "missingExample": 17,
+            "throwsWithoutTag": 15
         },
         "WidgetsManager": {
             "missingJsDoc": 6,

@@ -363,6 +363,41 @@ export interface MediaQuotaResponse {
 }
 
 /**
+ * 保护 / 取消保护媒体的响应
+ *
+ * 后端 `admin/media.rs::{protect_media, protect_media_by_id, unprotect_media_by_id}`
+ * 统一返回这五个键（2026-10-09 对源核验）。
+ */
+export interface MediaProtectionResponse {
+    /** 单调递增的流位置 */
+    stream_id: number;
+    /** 媒体所属服务器名 */
+    server_name: string;
+    media_id: string;
+    /** 保护后恒为 true */
+    protected: boolean;
+    /** 执行该操作的管理员 user_id */
+    changed_by: string;
+}
+
+/**
+ * 取消保护媒体的响应
+ *
+ * ⚠️ 与 {@link MediaProtectionResponse} **不同形**：后端 `unprotect_media_by_id`
+ * 不返回 `server_name`，且状态键是 `unprotected`（不是 `protected: false`）。
+ * 2026-10-09 由 `quality:admin-response-contract` 判据对源核出。
+ */
+export interface MediaUnprotectionResponse {
+    /** 单调递增的流位置 */
+    stream_id: number;
+    media_id: string;
+    /** 取消保护后恒为 true */
+    unprotected: boolean;
+    /** 执行该操作的管理员 user_id */
+    changed_by: string;
+}
+
+/**
  * Response item for `GET /quarantine_media/{media_id}/changes` — single quarantine change record.
  *
  * 字段与后端处理器 `synapse-web/src/routes/admin/media.rs::get_media_quarantine_changes`

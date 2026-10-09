@@ -20,6 +20,8 @@ import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../
 import { buildPaginationParams } from "../utils";
 import type {
     MediaInfo,
+    MediaProtectionResponse,
+    MediaUnprotectionResponse,
     MediaPage,
     MediaQuotaResponse,
     MediaQuarantineChange,
@@ -148,6 +150,80 @@ export class AdminMediaManager extends AdminBaseManager {
         await this.adminRequest(
             Method.Post,
             `/media/unquarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+        );
+    }
+
+    /**
+     * 保护媒体，阻止其被自动隔离
+     *
+     * 对应 `POST /_synapse/admin/v1/media/protect/{server_name}/{media_id}`
+     * （后端 `admin/media.rs::protect_media`）。
+     *
+     * @param serverName - 媒体所属服务器名（本地媒体用 `client.getDomain()`）
+     * @param mediaId - 媒体 ID
+     * @throws {ValidationError} `serverName` 或 `mediaId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().protectMedia(client.getDomain()!, "abc123");
+     * ```
+     */
+    async protectMedia(serverName: string, mediaId: string): Promise<MediaProtectionResponse> {
+        if (!serverName) {
+            throw new ValidationError("Server name is required");
+        }
+        if (!mediaId) {
+            throw new ValidationError("Media ID is required");
+        }
+        return await this.adminRequest<MediaProtectionResponse>(
+            Method.Post,
+            `/media/protect/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+        );
+    }
+
+    /**
+     * 按 `media_id` 保护媒体（上游形态，无 `server_name` 段）
+     *
+     * 对应 `POST /_synapse/admin/v1/media/protect/{media_id}`
+     * （后端 `admin/media.rs::protect_media_by_id`，内部用本服务器名补全 `server_name`）。
+     *
+     * @param mediaId - 媒体 ID
+     * @throws {ValidationError} `mediaId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().protectMediaById("abc123");
+     * ```
+     */
+    async protectMediaById(mediaId: string): Promise<MediaProtectionResponse> {
+        if (!mediaId) {
+            throw new ValidationError("Media ID is required");
+        }
+        return await this.adminRequest<MediaProtectionResponse>(
+            Method.Post,
+            `/media/protect/${encodeURIComponent(mediaId)}`,
+        );
+    }
+
+    /**
+     * 取消媒体保护
+     *
+     * 对应 `POST /_synapse/admin/v1/media/unprotect/{media_id}`
+     * （后端 `admin/media.rs::unprotect_media_by_id`）。
+     * ⚠️ 后端**只注册按 `media_id`** 的形态，没有 `unprotect/{server_name}/{media_id}` 变体。
+     *
+     * @param mediaId - 媒体 ID
+     * @throws {ValidationError} `mediaId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().unprotectMedia("abc123");
+     * ```
+     */
+    async unprotectMedia(mediaId: string): Promise<MediaUnprotectionResponse> {
+        if (!mediaId) {
+            throw new ValidationError("Media ID is required");
+        }
+        return await this.adminRequest<MediaUnprotectionResponse>(
+            Method.Post,
+            `/media/unprotect/${encodeURIComponent(mediaId)}`,
         );
     }
 

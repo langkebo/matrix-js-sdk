@@ -4,7 +4,7 @@
  *
  * Module:        Widget 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       17 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       16 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `widget` module (mirrored from the backend contract). */
@@ -13,7 +13,6 @@ export const WIDGET_ROUTES = [
     { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config" },
     { method: "GET", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities" },
     { method: "PUT", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities" },
-    { method: "POST", path: "/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send" },
     { method: "POST", path: "/_matrix/vendor/v1/widgets" },
     { method: "DELETE", path: "/_matrix/vendor/v1/widgets/sessions/{session_id}" },
     { method: "GET", path: "/_matrix/vendor/v1/widgets/sessions/{session_id}" },

@@ -4,7 +4,7 @@
  *
  * Module:        Friend 模块契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       29 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       28 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `friend` module (mirrored from the backend contract). */
@@ -17,7 +17,6 @@ export const FRIEND_ROUTES = [
     { method: "GET", path: "/_matrix/vendor/v1/friends/dm/{user_id}" },
     { method: "GET", path: "/_matrix/vendor/v1/friends/groups" },
     { method: "GET", path: "/_matrix/vendor/v1/friends/groups/{group_id}/friends" },
-    { method: "GET", path: "/_matrix/vendor/v1/friends/request/received" },
     { method: "GET", path: "/_matrix/vendor/v1/friends/requests/incoming" },
     { method: "GET", path: "/_matrix/vendor/v1/friends/requests/outgoing" },
     { method: "GET", path: "/_matrix/vendor/v1/friends/search" },

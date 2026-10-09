@@ -1,7 +1,7 @@
 ---
 module: room
 generated_from: docs/api-contract/generated/modules/room.json
-generated_hash: sha256-1cdbf7728d3d1bfda8e8032eccb81f42d76ae4bd3ac4c57b8c12b6d40003e676
+generated_hash: sha256-fbf7597535d9806774f0b65714ce37df70c36caa1cafe5ee5b1bded977eff6b1
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
@@ -131,7 +131,7 @@ last_reviewed: 2026-05-11
 
 - `GET /_matrix/client/{r0,v3}/rooms/{room_id}/initialSync` 现已提供最小兼容实现，要求调用方已加入房间；响应包含 `room_id`、`membership`、`visibility`、`state`、`members`、`messages`、`pagination_chunk`、`presence`、`receipts`、`account_data` 等基础字段。
 - 下列扩展接口在后端 `room` 路由树中仍然挂载，属于当前 Ledger 契约范围；SDK 侧是否封装需以模块实现与单测为准，不应按“已移除/404”口径统计。
-- `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` 与 `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send` 实际由 `widget.rs` 挂载，且当前实现可用，因此不计入“已挂载但未支持”列表。
+- `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` 实际由 `widget.rs` 挂载，因此不计入“已挂载但未支持”列表。
 
 | 方法 | 路径                                                      | 当前状态                              |
 | ---- | --------------------------------------------------------- | ------------------------------------- |

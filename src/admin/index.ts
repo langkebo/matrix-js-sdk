@@ -179,6 +179,8 @@ import {
     type PurgeRoomResponse,
     type FederationResolveResponse,
     type FederationRewriteResponse,
+    type MediaProtectionResponse,
+    type MediaUnprotectionResponse,
     type MediaQuotaResponse,
     type ThirdPartyRuleCheckPayload,
     type SpamCheckResult,
@@ -520,6 +522,12 @@ export interface AdminManager {
     /** 隔离媒体（后端仅注册带 server_name 段的形态，签名见 AdminMediaManager.quarantineMedia） */
     quarantineMedia(serverName: string, mediaId: string): Promise<void>;
     unquarantineMedia(serverName: string, mediaId: string): Promise<void>;
+    /** 保护媒体（带 server_name 段；详见 AdminMediaManager.protectMedia） */
+    protectMedia(serverName: string, mediaId: string): Promise<MediaProtectionResponse>;
+    /** 按 media_id 保护媒体（上游形态，无 server_name 段） */
+    protectMediaById(mediaId: string): Promise<MediaProtectionResponse>;
+    /** 取消媒体保护（后端只注册按 media_id 的形态） */
+    unprotectMedia(mediaId: string): Promise<MediaUnprotectionResponse>;
     purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }>;
     /** 获取媒体隔离变更历史（详见 AdminMediaManager.getMediaQuarantineChanges） */
     getMediaQuarantineChanges(

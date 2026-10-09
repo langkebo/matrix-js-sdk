@@ -1,7 +1,7 @@
 ---
 module: widget
 generated_from: docs/api-contract/generated/modules/widget.json
-generated_hash: sha256-54fbfc02a62f31e3950416e22e733cfc5630896246b3458e6822f2b1b253e845
+generated_hash: sha256-bed59ffd515c9d947fdfabfca2088be7413abeb69fce45fdc1fa0fe2492bcc82
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -19,29 +19,28 @@ last_reviewed: 2026-05-03
 | 前缀                 | 路由                                                                                                                                                                                                                                                                                        |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/_matrix/client/v1` | `/widgets`、`/widgets/{widget_id}`、`/widgets/{widget_id}/config`、`/widgets/{widget_id}/permissions`、`/widgets/{widget_id}/permissions/{user_id}`、`/widgets/{widget_id}/sessions`、`/widgets/sessions/{session_id}`、`/rooms/{room_id}/widgets`、`/rooms/{room_id}/widgets/jitsi/config` |
-| `/_matrix/client/v3` | `/rooms/{room_id}/widgets/{widget_id}/capabilities`、`/rooms/{room_id}/widgets/{widget_id}/send`                                                                                                                                                                                            |
+| `/_matrix/client/v3` | `/rooms/{room_id}/widgets/{widget_id}/capabilities`                                                                                                                                                                                                                                         |
 
 ## 路由清单
 
-| 方法   | 路径                                                                  | 说明                 | 认证 |
-| ------ | --------------------------------------------------------------------- | -------------------- | ---- |
-| POST   | `/_matrix/client/v1/widgets`                                          | 创建小组件           | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}`                              | 获取小组件详情       | 用户 |
-| PUT    | `/_matrix/client/v1/widgets/{widget_id}`                              | 更新小组件           | 用户 |
-| DELETE | `/_matrix/client/v1/widgets/{widget_id}`                              | 删除小组件           | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}/config`                       | 获取小组件配置       | 用户 |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/widgets`                          | 获取房间小组件列表   | 用户 |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`             | 获取 Jitsi 配置      | 公开 |
-| GET    | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | 获取房间小组件能力   | 用户 |
-| PUT    | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | 设置房间小组件能力   | 用户 |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send`         | 向房间小组件发送消息 | 用户 |
-| POST   | `/_matrix/client/v1/widgets/{widget_id}/permissions`                  | 设置小组件权限       | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}/permissions`                  | 获取小组件权限列表   | 用户 |
-| DELETE | `/_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}`        | 删除小组件权限       | 用户 |
-| POST   | `/_matrix/client/v1/widgets/{widget_id}/sessions`                     | 创建小组件会话       | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}/sessions`                     | 获取小组件会话列表   | 用户 |
-| GET    | `/_matrix/client/v1/widgets/sessions/{session_id}`                    | 获取单个会话         | 用户 |
-| DELETE | `/_matrix/client/v1/widgets/sessions/{session_id}`                    | 终止会话             | 用户 |
+| 方法   | 路径                                                                  | 说明               | 认证 |
+| ------ | --------------------------------------------------------------------- | ------------------ | ---- |
+| POST   | `/_matrix/client/v1/widgets`                                          | 创建小组件         | 用户 |
+| GET    | `/_matrix/client/v1/widgets/{widget_id}`                              | 获取小组件详情     | 用户 |
+| PUT    | `/_matrix/client/v1/widgets/{widget_id}`                              | 更新小组件         | 用户 |
+| DELETE | `/_matrix/client/v1/widgets/{widget_id}`                              | 删除小组件         | 用户 |
+| GET    | `/_matrix/client/v1/widgets/{widget_id}/config`                       | 获取小组件配置     | 用户 |
+| GET    | `/_matrix/client/v1/rooms/{room_id}/widgets`                          | 获取房间小组件列表 | 用户 |
+| GET    | `/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`             | 获取 Jitsi 配置    | 公开 |
+| GET    | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | 获取房间小组件能力 | 用户 |
+| PUT    | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | 设置房间小组件能力 | 用户 |
+| POST   | `/_matrix/client/v1/widgets/{widget_id}/permissions`                  | 设置小组件权限     | 用户 |
+| GET    | `/_matrix/client/v1/widgets/{widget_id}/permissions`                  | 获取小组件权限列表 | 用户 |
+| DELETE | `/_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}`        | 删除小组件权限     | 用户 |
+| POST   | `/_matrix/client/v1/widgets/{widget_id}/sessions`                     | 创建小组件会话     | 用户 |
+| GET    | `/_matrix/client/v1/widgets/{widget_id}/sessions`                     | 获取小组件会话列表 | 用户 |
+| GET    | `/_matrix/client/v1/widgets/sessions/{session_id}`                    | 获取单个会话       | 用户 |
+| DELETE | `/_matrix/client/v1/widgets/sessions/{session_id}`                    | 终止会话           | 用户 |
 
 ## 请求体与稳定响应
 
@@ -79,11 +78,6 @@ last_reviewed: 2026-05-03
 - `GET` 稳定字段: `capabilities`、`widget_id`、`room_id`
 - `PUT` 请求体为 `{ "capabilities": string[] }`
 
-### `POST /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send`
-
-- 请求体稳定字段: `type`、`content`
-- 成功响应稳定字段: `event_id`、`widget_id`、`room_id`、`type`、`content`
-
 ### 权限相关端点
 
 - `POST /permissions` 请求体要求 `user_id` 与 `permissions`
@@ -115,31 +109,30 @@ last_reviewed: 2026-05-03
 
 ## SDK Manager 对应关系
 
-| 后端端点                                                                  | SDK Manager     | 方法                       | 现状                                                       |
-| ------------------------------------------------------------------------- | --------------- | -------------------------- | ---------------------------------------------------------- |
-| `POST /_matrix/client/v1/widgets`                                         | `WidgetManager` | `addWidget()`              | ✅ 请求路径与主要字段一致                                  |
-| `POST /_matrix/client/v3/widgets/create`                                  | `WidgetManager` | `createWidget()`           | ✅ 已新增直连 `v3` 创建入口                                |
-| `GET /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `getWidget()`              | ✅ 已封装                                                  |
-| `PUT /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `updateWidget()`           | ✅ 已封装                                                  |
-| `DELETE /_matrix/client/v1/widgets/{widget_id}`                           | `WidgetManager` | `removeWidget()`           | ✅ 已封装                                                  |
-| `GET /_matrix/client/v1/rooms/{room_id}/widgets`                          | `WidgetManager` | `getRoomWidgets()`         | ✅ 已封装                                                  |
-| `GET /_matrix/client/v1/widgets/{widget_id}/config`                       | `WidgetManager` | `getWidgetConfig()`        | ✅ 已封装                                                  |
-| `GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`             | `WidgetManager` | `getJitsiConfig()`         | ✅ 已封装                                                  |
-| `GET /_matrix/client/v1/widgets/{widget_id}/permissions`                  | `WidgetManager` | `getWidgetPermissions()`   | ✅ 已封装                                                  |
-| `POST /_matrix/client/v1/widgets/{widget_id}/permissions`                 | `WidgetManager` | `setWidgetPermission()`    | ✅ 已封装                                                  |
-| `DELETE /_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}`     | `WidgetManager` | `deleteWidgetPermission()` | ✅ 已封装                                                  |
-| `POST /_matrix/client/v1/widgets/{widget_id}/sessions`                    | `WidgetManager` | `createWidgetSession()`    | ✅ 已以路径 `widget_id` 为准，body 中该字段可省略          |
-| `GET /_matrix/client/v1/widgets/{widget_id}/sessions`                     | `WidgetManager` | `getWidgetSessions()`      | ✅ 已封装                                                  |
-| `GET /_matrix/client/v1/widgets/sessions/{session_id}`                    | `WidgetManager` | `getWidgetSession()`       | ✅ 已封装                                                  |
-| `DELETE /_matrix/client/v1/widgets/sessions/{session_id}`                 | `WidgetManager` | `terminateWidgetSession()` | ✅ 已封装                                                  |
-| `GET /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `getWidgetCapabilities()`  | ✅ 已切换到 `v3` 前缀并对齐房间级路径                      |
-| `PUT /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `setWidgetCapabilities()`  | ✅ 已新增公开方法并按后端契约发送 `capabilities` 数组      |
-| `POST /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/send`        | `WidgetManager` | `sendWidgetMessage()`      | ✅ 已切换到 `v3` 前缀，并归一化为 `{ type, content }` body |
+| 后端端点                                                                  | SDK Manager     | 方法                       | 现状                                                  |
+| ------------------------------------------------------------------------- | --------------- | -------------------------- | ----------------------------------------------------- |
+| `POST /_matrix/client/v1/widgets`                                         | `WidgetManager` | `addWidget()`              | ✅ 请求路径与主要字段一致                             |
+| `POST /_matrix/client/v3/widgets/create`                                  | `WidgetManager` | `createWidget()`           | ✅ 已新增直连 `v3` 创建入口                           |
+| `GET /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `getWidget()`              | ✅ 已封装                                             |
+| `PUT /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `updateWidget()`           | ✅ 已封装                                             |
+| `DELETE /_matrix/client/v1/widgets/{widget_id}`                           | `WidgetManager` | `removeWidget()`           | ✅ 已封装                                             |
+| `GET /_matrix/client/v1/rooms/{room_id}/widgets`                          | `WidgetManager` | `getRoomWidgets()`         | ✅ 已封装                                             |
+| `GET /_matrix/client/v1/widgets/{widget_id}/config`                       | `WidgetManager` | `getWidgetConfig()`        | ✅ 已封装                                             |
+| `GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`             | `WidgetManager` | `getJitsiConfig()`         | ✅ 已封装                                             |
+| `GET /_matrix/client/v1/widgets/{widget_id}/permissions`                  | `WidgetManager` | `getWidgetPermissions()`   | ✅ 已封装                                             |
+| `POST /_matrix/client/v1/widgets/{widget_id}/permissions`                 | `WidgetManager` | `setWidgetPermission()`    | ✅ 已封装                                             |
+| `DELETE /_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}`     | `WidgetManager` | `deleteWidgetPermission()` | ✅ 已封装                                             |
+| `POST /_matrix/client/v1/widgets/{widget_id}/sessions`                    | `WidgetManager` | `createWidgetSession()`    | ✅ 已以路径 `widget_id` 为准，body 中该字段可省略     |
+| `GET /_matrix/client/v1/widgets/{widget_id}/sessions`                     | `WidgetManager` | `getWidgetSessions()`      | ✅ 已封装                                             |
+| `GET /_matrix/client/v1/widgets/sessions/{session_id}`                    | `WidgetManager` | `getWidgetSession()`       | ✅ 已封装                                             |
+| `DELETE /_matrix/client/v1/widgets/sessions/{session_id}`                 | `WidgetManager` | `terminateWidgetSession()` | ✅ 已封装                                             |
+| `GET /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `getWidgetCapabilities()`  | ✅ 已切换到 `v3` 前缀并对齐房间级路径                 |
+| `PUT /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `setWidgetCapabilities()`  | ✅ 已新增公开方法并按后端契约发送 `capabilities` 数组 |
 
 ## 当前对齐结论
 
 - `widget.rs` 的 18 个端点已独立建档，不再依赖总表中的路径族摘要。
-- SDK 已覆盖 `v1` widget CRUD、权限与会话接口，以及 `v3` 的 `create`、房间级 `capabilities` / `send` 路径。
+- SDK 已覆盖 `v1` widget CRUD、权限与会话接口，以及 `v3` 的 `create`、房间级 `capabilities` 路径。
 - `createWidgetSession()` 仍可兼容携带 body 中的 `widget_id`，但后端现在以路径参数为单一真实来源；若两处不一致则返回 `400`。
 - `v1` widget CRUD、权限与 session 查询/终止接口现已显式要求认证，不再是公开接口；对象级访问也已收敛为创建者、房间成员、管理员或显式授权用户。
 - `WidgetManager.createWidget()` 与 `WidgetManager.addWidget()` 现分别对应 `v3 /widgets/create` 与 `v1 /widgets` 两条创建链路。

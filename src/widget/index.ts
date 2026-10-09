@@ -122,10 +122,6 @@ export interface IWidgetCapabilities {
     capabilities: string[];
 }
 
-export interface IWidgetSendResponse {
-    event_id: string;
-}
-
 export interface IWidgetResponse {
     widget: IWidget;
 }
@@ -490,30 +486,6 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
                     prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "setWidgetCapabilities",
-        );
-    }
-
-    /**
-     * 发送小组件事件
-     * POST /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/send
-     */
-    async sendWidgetEvent(
-        roomId: string,
-        widgetId: string,
-        message: Record<string, unknown>,
-    ): Promise<IWidgetSendResponse> {
-        validateRoomId(roomId);
-        if (!widgetId) throw new InvalidParamError("widget_id is required");
-        const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/send`);
-        return this.withRetry(
-            () =>
-                this.request<IWidgetSendResponse>({
-                    method: Method.Post,
-                    path,
-                    body: message,
-                    prefix: WIDGET_PREFIX_VENDOR,
-                }),
-            "sendWidgetEvent",
         );
     }
 

@@ -45,6 +45,15 @@ function ap<const P extends string>(path: P & PathAssert<P, StripV3<AuthPath>>):
     return path;
 }
 
+/** 邮箱令牌归属的流程（后端三条路径挂同一个处理器 `assembly.rs::submit_email_token`）。 */
+export type EmailTokenScope = "register" | "password" | "threepid";
+
+const EMAIL_TOKEN_PATHS = {
+    register: "/register/email/submitToken",
+    password: "/account/password/email/submitToken",
+    threepid: "/account/3pid/email/submitToken",
+} as const satisfies Record<EmailTokenScope, string>;
+
 type Body = IContent;
 type UIARequest<T> = T & {
     auth?: AuthDict;
@@ -248,13 +257,31 @@ export class AccountManager extends BaseManager {
     }
 
     /**
-     * Submit email verification token for registration
+     * Submit an email verification token for one of the three Matrix scopes.
+     *
+     * 三条路径在后端是**同一个处理器**（`assembly.rs::submit_email_token`），只是挂载位置不同：
+     * `register` → `POST /_matrix/client/v3/register/email/submitToken`、
+     * `password` → `POST /_matrix/client/v3/account/password/email/submitToken`、
+     * `threepid` → `POST /_matrix/client/v3/account/3pid/email/submitToken`。
+     *
+     * 此前 SDK 只覆盖 `register`，密码重置与 3PID 流程只能由调用方自行拼 URL
+     * （Tjg 的 `matrixSubmitEmailToken` 就是这类重复实现，已随本改动删除）。
+     *
+     * @param sid - 验证会话 ID（`requestEmailToken` 返回）
+     * @param clientSecret - 客户端密钥（与 requestToken 时一致）
+     * @param token - 用户收到的邮箱令牌
+     * @param scope - 令牌归属流程，默认 `register`
      */
-    public async submitEmailToken(sid: string, clientSecret: string, token: string): Promise<{ success: boolean }> {
+    public async submitEmailToken(
+        sid: string,
+        clientSecret: string,
+        token: string,
+        scope: EmailTokenScope = "register",
+    ): Promise<{ success: boolean }> {
         return this.withRetry(async () => {
             return await this.request<{ success: boolean }>({
                 method: Method.Post,
-                path: ap("/register/email/submitToken"),
+                path: ap(EMAIL_TOKEN_PATHS[scope]),
                 body: {
                     sid,
                     client_secret: clientSecret,

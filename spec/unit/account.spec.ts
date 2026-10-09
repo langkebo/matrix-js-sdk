@@ -259,6 +259,42 @@ describe("AccountManager", () => {
                 { prefix: ClientPrefix.V3 },
             );
         });
+
+        it("should submit the password-reset token to the account/password path", async () => {
+            mockClient.http.request.mockResolvedValueOnce({ success: true });
+
+            await accountManager.submitEmailToken("sid123", "secret456", "token789", "password");
+
+            expect(mockClient.http.request).toHaveBeenCalledWith(
+                "POST",
+                "/account/password/email/submitToken",
+                undefined,
+                {
+                    sid: "sid123",
+                    client_secret: "secret456",
+                    token: "token789",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
+        });
+
+        it("should submit the 3PID token to the account/3pid path", async () => {
+            mockClient.http.request.mockResolvedValueOnce({ success: true });
+
+            await accountManager.submitEmailToken("sid123", "secret456", "token789", "threepid");
+
+            expect(mockClient.http.request).toHaveBeenCalledWith(
+                "POST",
+                "/account/3pid/email/submitToken",
+                undefined,
+                {
+                    sid: "sid123",
+                    client_secret: "secret456",
+                    token: "token789",
+                },
+                { prefix: ClientPrefix.V3 },
+            );
+        });
     });
 
     describe("deactivateAccount", () => {
