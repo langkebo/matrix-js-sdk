@@ -396,10 +396,11 @@ ls .git/hooks/pre-commit       # → 不存在
 而是"解出来一个错的路径"，然后被当成正确结果拿去比对。
 
 > **C1 进展注记（滚动更新）**：`this-method` 已由 `49 → 8 → 4` 逐级攻破（见 §7.6），  
-> `cast` 4 处已剥离（139 → 135），`bare-call` 37 处已攻破（81 → 44，见 §7.7）。  
-> 截至 §7.7（第四轮），未校验调用点 **44 = identifier 38 / this-method 4（逃逸阀 `uncheckedRoomPath`）/  
-> other 1 / concat 1**；`this-method` 的剩余 4 处是项目**故意**留的 escape valve（契约前缀实际是  
-> vendor、实现却用 v3，解出必 mismatch），保持未校验显式计数。
+> `cast` 4 处已剥离（139 → 135），`bare-call` 37 处已攻破（81 → 44，见 §7.7），  
+> `identifier` 38 → 5 已攻破（44 → 11，见 §7.8）。  
+> 截至 §7.8（第五轮），未校验调用点 **11 = identifier 5（真形参/成员访问，fail-closed 保留）/  
+> this-method 4（逃逸阀 `uncheckedRoomPath`）/ other 1 / concat 1**；`this-method` 的剩余 4 处是  
+> 项目**故意**留的 escape valve（契约前缀实际是 vendor、实现却用 v3，解出必 mismatch），保持未校验显式计数。
 
 ### 7.4 本轮新增的两条方法论教训
 
@@ -632,6 +633,79 @@ waivers **24 → 26**，门禁恢复 mismatch 0。
 
 ---
 
+### 7.8 2026-10-09 第五轮：`identifier` 形态攻破（44 → 11，38 → 5）
+
+**先摸形态再动手**：`--json` 的 `uncheckedSamples` + 探针（复用门禁导出的
+`extractWrapperCalls`/`indexIdentityPathHelpers`/`analyzeTemplateBuilders`，内联 `stripComments`）dump
+全部 38 处 `identifier` 的源码上下文，实测构成远好于预期：
+
+| 构成                                    | 处数 | 说明                                                            |
+| --------------------------------------- | ---- | --------------------------------------------------------------- |
+| A 类：`const path = utils.encodeUri(…)` | ≈19  | 局部 const 绑定，初始化表达式本身可解析                         |
+| B 类：`const path = buildXxxPath(…)`    | ≈9   | 局部 const 绑定到模板构造器（membership / receipt / discovery） |
+| 真形参 / `path.path` / `let`+concat     | ≈10  | fail-closed 保留项（`client-auth.ts` 的 `endpoint` 形参等）     |
+
+即绝大多数是**就地 const 绑定的初始化表达式本身可解析**——不需要"跨函数形参传播"那套重机制，
+借鉴 `lib/admin-contract.mjs` 的 `findLetBinding` 手法即可。
+
+**两套新机制（均纯静态、fail-closed）**：
+
+1. **`resolvePathExpressionText(expr, options)`**：定点迭代（≤6 跳）把"路径表达式"解到字面量/模板。
+   每跳依次试：恒等助手（`apu(…)`/`this.roomPath(…)`/`adp(…)`）→ **成员形式的结构恒等原语
+   `utils.encodeUri("<模板>", {…})`**（本轮新增：`unwrapIdentityPath` 只认单标识符，不认
+   `utils.` 前缀，故补 `matchWholeIdentityPrimitiveCall`，白名单只有 `encodeUri`/`sp`/`adp`）→
+   模板构造器（`buildXxxPath(…)`）。**只认"整段就是一个调用"**：`"a" + b`、`x ? y : z`、裸形参一律
+   返回 null（留给后续形态）。
+2. **`findLocalConstBinding(source, callIndex, name, options)`**：由内到外沿"未闭合 `{` 栈"求作用域链，
+   每层用 `extractTopLevelConstRhs` 找**相对深度 0** 的 `const <name> = <rhs>`。**只认 `const`**
+   （`let`/`var` 可重赋值，静态单值不可保证，如 `buildStateEventPath` 里会被重赋值的 `let path`）；
+   **内层遮蔽找到即止**（即便内层解不出也不外溢到外层同名绑定）。
+
+`extractWrapperCalls` 的接线点在 bare-call 解析之后：路径实参是**裸标识符**且 `PATH_LITERAL_RE`
+不匹配时，尝试 `findLocalConstBinding`；解出字面量则进正常比对，解不出仍落 `unchecked` —— 分母不变、
+判据变严。
+
+**解开新形态暴露存量状态（3 处 mismatch，逐条定性后均非解析 bug）**：
+
+| mismatch                                   | 定性                                           | 处置                                           |
+| ------------------------------------------ | ---------------------------------------------- | ---------------------------------------------- |
+| `POST /_matrix/client/v3/rooms/{X}/{X}`    | `buildMembershipChangePath` 拼的是**路由家族** | 新增 `route-family` 类别豁免 1 条              |
+| `GET /_matrix/client/unstable/…/relations` | unstable MSC 前缀（`M_UNRECOGNIZED` 后回退）   | `other-homeserver` 豁免 2 条（与既有先例一致） |
+
+（`buildMembershipChangePath` 的 `$membership` 是运行时枚举值 join/leave/…，后端按具体值注册多条路由
+⇒ `{X}` 末段与通配规则不匹配是**结构性的**，非缺陷；unstable 前缀流与既有
+`im.nheko.summary` 条目同类。）
+
+#### 验收证据
+
+- **变异自证**：把 `client-batch-requests.ts:59` 的
+  `const path = utils.encodeUri("/rooms/$roomId/state", …)` 改成 `…/state_MUTANT` ⇒ 门禁 **exit 1**，
+  精确报 `GET /_matrix/client/v3/rooms/{X}/state_MUTANT`（真实后端会 404）；还原后 exit 0、工作区干净。
+- **测试自身的 bug 教训**：首版 3 个用例用 `src.indexOf("authedRequest")` 取调用点，命中的是
+  **参数声明**（在函数体 `{` 之前、作用域栈为空）——1 个用例必失败，2 个 fail-closed 用例
+  **以错误理由通过**（实现坏了它们也绿）。修正为 `indexOf("authedRequest(")` 后 81 例全绿。
+  ⇒ **构造作用域类测试必须断言索引真的落在目标作用域内**。
+- **spec +16 例**（`resolvePathExpressionText` 8 例 + `findLocalConstBinding` 6 例 + 端到端 2 例，
+  含上述索引修正）；spec 65 → **81 例全绿**；`tsc --noEmit` 通过；prettier / eslint 干净
+  （3 个既有 warning 非本批引入）。
+- **棘轮收紧**：`--refresh-coverage` 把 `uncheckedPathArg 44 → 11`（`byFile` 收到 7 个文件），
+  `checkedPathArg 573 → 602`；落盘物过 `prettier --check`。
+
+#### 本轮改动清单
+
+| 文件                                          | 改动                                                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/quality/verify-path-contract.mjs`    | +`resolvePathExpressionText` / `findLocalConstBinding` / `extractTopLevelConstRhs` / `matchWholeIdentityPrimitiveCall`；`extractWrapperCalls` 接线 |
+| `scripts/quality/verify-path-contract.d.mts`  | +上述导出声明                                                                                                                                      |
+| `spec/unit/verify-path-contract-gate.spec.ts` | +16 例（定点解析 8 / 绑定追踪 6 / 端到端 2，含 3 处索引修正）；81 例全绿                                                                           |
+| `scripts/quality/path-contract-waivers.json`  | +`route-family` 类别；+3 条豁免（26 → 29）                                                                                                         |
+| `scripts/quality/path-contract-coverage.json` | `--refresh-coverage` 收紧棘轮（44 → 11）                                                                                                           |
+
+**剩余**：`identifier 5`（真形参 `endpoint` / 成员访问 `path.path` 等，需跨函数传播才能再降，成本高收益低）、
+`other 1` / `concat 1` 逐条看、`this-method 4` 逃逸阀按设计保留。
+
+---
+
 ## 8. 明确不建议做的事
 
 | 不做                                                  | 为什么                                                                      |
@@ -699,7 +773,8 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-09（第四轮：`bare-call` 形态攻破 81 → 44（37 → 0），见 §7.7；第三轮
-`this-method` 见 §7.6；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
+**最后更新**: 2026-10-09（第五轮：`identifier` 形态攻破 44 → 11（38 → 5），见 §7.8；第四轮
+`bare-call` 见 §7.7；第三轮 `this-method` 见 §7.6；D3 的 `owner` 一半更正为已完成（`714a88253`）；
+C1 进展注记 —— 第二批复核见 §7.5）
 **此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）

@@ -135,6 +135,38 @@ export function indexIdentityPathHelpers(
  */
 export function analyzeTemplateBuilders(sourcesByFile: Map<string, string>): Map<string, string>;
 
+/**
+ * 结构恒等原语的**成员调用形态**（`utils.encodeUri("<模板>", {…})` / `sp(…)` / `adp(…)`）
+ * 是否**覆盖整段**表达式；`expr + "x"` / `.trim()` 之类返回 null（fail-closed）。
+ */
+export function matchWholeIdentityPrimitiveCall(expr: string): { name: string; firstArg: string } | null;
+
+/**
+ * 把「路径表达式」解析到带引号的字面量/模板；认不出返回 null。
+ * 顺序：恒等助手调用 → 成员恒等原语 → 模板构造器 → 字面量（定点迭代，只认「整段就是一个调用」）。
+ */
+export function resolvePathExpressionText(
+    expr: string,
+    options?: {
+        identityHelpers?: Map<string, IdentityHelperInfo> | null;
+        templateBuilders?: Map<string, string> | null;
+    },
+): string | null;
+
+/**
+ * 由内到外沿外层作用域链找 `<name>` 的局部 `const` 绑定（仅 `const`；`let`/`var` 可能重赋值故不认），
+ * 并把 rhs 解析成路径字面量。内层绑定遮蔽外层（找到即止，即便解不出也不外溢）。认不出返回 null。
+ */
+export function findLocalConstBinding(
+    source: string,
+    callIndex: number,
+    name: string,
+    options?: {
+        identityHelpers?: Map<string, IdentityHelperInfo> | null;
+        templateBuilders?: Map<string, string> | null;
+    },
+): string | null;
+
 /** 把 `helper(<字面量>)` 展开成 `<字面量>`；不是恒等包装器调用返回 null。 */
 export function unwrapIdentityPath(raw: string, helpers: { has(name: string): boolean } | null): string | null;
 

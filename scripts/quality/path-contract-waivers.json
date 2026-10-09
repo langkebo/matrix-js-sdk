@@ -7,6 +7,7 @@
         "semantic-mismatch": "后端有同名/邻近端点，但**语义不同**，不能靠改路径解决。删掉条件：产品决策（对齐后端语义 / 改造 SDK API / 移除方法）。",
         "by-design": "后端**有意不实现**（有源码注释或测试固定该决策）。删掉条件：产品改变该决策。",
         "prefix-mismatch": "SDK 用某前缀（如 client v3）调用，但后端仅在另一前缀（如 vendor）注册同名路由——**前缀不一致**而非路由缺失。删掉条件：后端补双前缀注册，或 SDK 改走正确前缀的包装器（如 requestV3 → requestVendor）。",
+        "route-family": "SDK 用**运行时枚举值**拼出路径末段（如 `/rooms/{roomId}/{membership}`，membership ∈ join/leave/…），后端把该枚举的每个具体值各注册成一条路由；静态无法逐条枚举 ⇒ 记为「路由家族」，不按单条路由校验。删掉条件：后端改注册参数化路由，或 SDK 改为按值分支调用具体路由。",
         "other-homeserver": "为兼容其他 homeserver / 协议变体而保留的封装，本后端不在范畴内。"
     },
     "waivers": [
@@ -216,6 +217,30 @@
             "owner": "langkebo",
             "category": "prefix-mismatch",
             "reason": "getRoomThread()。同 getEventKeys：SDK JSDoc/实现用 requestV3（client v3）：`GET /_matrix/client/v3/rooms/{roomId}/thread/{eventId}`；后端仅在 vendor 前缀注册（`GET /_matrix/vendor/v1/rooms/{roomId}/thread/{eventId}`）。本轮解开 encodeUri 后首次被校验发现。删掉条件：后端补 client v3 注册，或 SDK 改走 requestVendor。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "POST /_matrix/client/v3/rooms/{X}/{X}",
+            "file": "src/client-membership.ts",
+            "owner": "langkebo",
+            "category": "route-family",
+            "reason": "buildMembershipChangePath() 拼的是**路由家族** `/rooms/$room_id/$membership`（membership 是运行时枚举值 join/invite/knock/leave/ban/…），后端按每个具体值各注册一条路由（`/rooms/{roomId}/join` 等），不存在参数化路由 `/rooms/{roomId}/{membership}` ⇒ 归一化后为 `/rooms/{X}/{X}`，ledger 无匹配。本轮攻破 identifier（解开局部 const 绑定 + 模板构造器）后首次被校验发现；SDK 侧由 `Membership` 枚举类型约束取值，非缺陷。删掉条件：后端改注册参数化路由，或 SDK 改为按枚举值分支调用具体路由。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/unstable/org.matrix.msc2946/rooms/{X}/hierarchy",
+            "file": "src/client-room-discovery-requests.ts",
+            "owner": "langkebo",
+            "category": "other-homeserver",
+            "reason": "getRoomHierarchy()。SDK 先打标准前缀 `ClientPrefix.V1`（`GET /_matrix/client/v1/rooms/{roomId}/hierarchy`，ledger 有），catch `M_UNRECOGNIZED` 后回退到 **MSC2946 unstable 前缀**（`GET /_matrix/client/unstable/org.matrix.msc2946/rooms/{roomId}/hierarchy`）——为兼容尚未实现 v1 的其他 homeserver / 协议变体而留的回退。本后端只实现稳定前缀，ledger 无 unstable 条目。本轮攻破 identifier 后首次被校验发现。删掉条件：不再支持 unstable 回退（删 fallback），或后端也注册 unstable 前缀。",
+            "expires": "2026-12-31"
+        },
+        {
+            "sdkCall": "GET /_matrix/client/unstable/org.matrix.msc3030/rooms/{X}/timestamp_to_event",
+            "file": "src/client-room-discovery-requests.ts",
+            "owner": "langkebo",
+            "category": "other-homeserver",
+            "reason": "timestampToEvent()。同 getRoomHierarchy：先打 `ClientPrefix.V1`（`GET /_matrix/client/v1/rooms/{roomId}/timestamp_to_event`，ledger 有），catch M_UNRECOGNIZED（400/404/405）后回退到 **MSC3030 unstable 前缀**（`GET /_matrix/client/unstable/org.matrix.msc3030/rooms/{roomId}/timestamp_to_event`）。本后端只实现稳定前缀，ledger 无 unstable 条目。本轮攻破 identifier 后首次被校验发现。删掉条件：不再支持 unstable 回退，或后端也注册 unstable 前缀。",
             "expires": "2026-12-31"
         }
     ]

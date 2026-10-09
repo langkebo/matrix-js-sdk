@@ -39,15 +39,18 @@ import {
     analyzeTemplateBuilders,
     diffCoverage,
     extractWrapperCalls,
+    findLocalConstBinding,
     findTopLevel,
     indexIdentityPathHelpers,
     matchAgainstLedger,
     matchBrace,
+    matchWholeIdentityPrimitiveCall,
     normalizePath,
     parseStripPrefixAliases,
     resolvePrefix,
     resolvePrefixExpression,
     resolveLedgerPath,
+    resolvePathExpressionText,
     resolveStripPrefixFromType,
     resolveTemplateLiteral,
     splitTopLevelPlus,
@@ -696,6 +699,161 @@ describe("analyzeTemplateBuilders —— 路径模板构造器（bare-call 形�
         const r = extractWrapperCalls(src, "src/x.ts", {
             identityHelpers: null,
             templateBuilders: new Map([["buildProfilePath", '"/profile/$userId"']]),
+        });
+        expect(r.unchecked.length).toBe(1);
+        expect(r.calls.length).toBe(0);
+    });
+});
+
+describe("identifier 形态：局部 const 绑定解析（2026-10-09）", () => {
+    describe("matchWholeIdentityPrimitiveCall —— 成员形式的结构恒等原语", () => {
+        it('认 `utils.encodeUri("<模板>", {…})` 并取第一实参', () => {
+            expect(
+                matchWholeIdentityPrimitiveCall('utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId })'),
+            ).toEqual({ name: "encodeUri", firstArg: '"/rooms/$roomId/state"' });
+        });
+
+        it("裸形态 sp(…) / adp(…) 也认", () => {
+            expect(matchWholeIdentityPrimitiveCall('sp("/joined_rooms")')?.firstArg).toBe('"/joined_rooms"');
+            expect(matchWholeIdentityPrimitiveCall("adp(x)")?.name).toBe("adp");
+        });
+
+        it("fail-closed：拼接 / 后缀访问不解（只认整段就是一个调用）", () => {
+            expect(matchWholeIdentityPrimitiveCall('utils.encodeUri("/a", {}) + "b"')).toBeNull();
+            expect(matchWholeIdentityPrimitiveCall('sp("/a").trim()')).toBeNull();
+        });
+
+        it("fail-closed：白名单外的方法不解（如 utils.encodeParams）", () => {
+            expect(matchWholeIdentityPrimitiveCall("utils.encodeParams(q)")).toBeNull();
+        });
+    });
+
+    describe("resolvePathExpressionText —— 定点解析到字面量", () => {
+        it("成员形式恒等原语 → 字面量", () => {
+            expect(resolvePathExpressionText('utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId })')).toBe(
+                '"/rooms/$roomId/state"',
+            );
+        });
+
+        it("嵌套 adp(utils.encodeUri(<模板>)) 逐层解开", () => {
+            expect(
+                resolvePathExpressionText(
+                    'adp(utils.encodeUri("/user/$userId/openid/request_token", { $userId: userId }))',
+                ),
+            ).toBe('"/user/$userId/openid/request_token"');
+        });
+
+        it("模板构造器 → 模板（经 templateBuilders 索引）", () => {
+            expect(
+                resolvePathExpressionText("buildRoomForgetPath(roomId)", {
+                    templateBuilders: new Map([["buildRoomForgetPath", '"/rooms/$room_id/forget"']]),
+                }),
+            ).toBe('"/rooms/$room_id/forget"');
+        });
+
+        it("fail-closed：三元 / 拼接 / 裸形参 一律不解", () => {
+            expect(resolvePathExpressionText('version ? "/a" : "/b"')).toBeNull();
+            expect(resolvePathExpressionText('"/a" + suffix')).toBeNull();
+            expect(resolvePathExpressionText("endpoint")).toBeNull();
+        });
+    });
+
+    describe("findLocalConstBinding —— 沿外层作用域链找 const 绑定", () => {
+        it("函数体内 `const path = utils.encodeUri(<字面量>, {…})` → 解析", () => {
+            const src = `
+                export function roomStateRequest(roomId: string, authedRequest: AuthedRequestFn) {
+                    const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
+                    return authedRequest(Method.Get, path);
+                }
+            `;
+            expect(findLocalConstBinding(src, src.indexOf("authedRequest("), "path")).toBe('"/rooms/$roomId/state"');
+        });
+
+        it("绑定在 try 外层、调用在 try 内 —— 沿作用域链外扩找到", () => {
+            const src = `
+                export async function hierarchy(roomId, authedRequest) {
+                    const path = buildRoomHierarchyPath(roomId);
+                    try {
+                        return await authedRequest(Method.Get, path, q, undefined, { prefix: ClientPrefix.V1 });
+                    } catch (e) { throw e; }
+                }
+            `;
+            expect(
+                findLocalConstBinding(src, src.indexOf("authedRequest("), "path", {
+                    templateBuilders: new Map([["buildRoomHierarchyPath", '"/rooms/$roomId/hierarchy"']]),
+                }),
+            ).toBe('"/rooms/$roomId/hierarchy"');
+        });
+
+        it("fail-closed：形参（无 const 绑定）→ null", () => {
+            const src = `
+                export function f(endpoint: string, request: RequestFn) {
+                    return request(Method.Post, endpoint, undefined, {});
+                }
+            `;
+            expect(findLocalConstBinding(src, src.indexOf("request("), "endpoint")).toBeNull();
+        });
+
+        it("fail-closed：`let` 可重赋值故不认", () => {
+            const src = `
+                export function f(roomId, authedRequest) {
+                    let path = "/a";
+                    path = "/b";
+                    return authedRequest(Method.Get, path);
+                }
+            `;
+            expect(findLocalConstBinding(src, src.indexOf("authedRequest("), "path")).toBeNull();
+        });
+
+        it("内层遮蔽：内层 const 解不出时，不外溢到外层同名绑定", () => {
+            const src = `
+                export function f(cond, authedRequest) {
+                    const path = utils.encodeUri("/outer", {});
+                    if (cond) {
+                        const path = dynamicThing();
+                        return authedRequest(Method.Get, path);
+                    }
+                }
+            `;
+            expect(findLocalConstBinding(src, src.indexOf("authedRequest("), "path")).toBeNull();
+        });
+
+        it("fail-closed：非裸标识符（`path.path` 成员访问）→ null", () => {
+            const src = `
+                export function f(roomId, authedRequest) {
+                    const path = this.makeKeyBackupPath(roomId);
+                    return authedRequest(Method.Delete, path.path);
+                }
+            `;
+            expect(findLocalConstBinding(src, src.indexOf("authedRequest"), "path.path")).toBeNull();
+        });
+    });
+
+    it("extractWrapperCalls 端到端：局部 const 绑定 → 进 calls 而非 unchecked 桶", () => {
+        const src = `
+            export function roomStateRequest(roomId: string, authedRequest: AuthedRequestFn) {
+                const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
+                return authedRequest(Method.Get, path);
+            }
+        `;
+        const r = extractWrapperCalls(src, "src/client-batch-requests.ts", {
+            identityHelpers: null,
+            templateBuilders: null,
+        });
+        expect(r.unchecked.length).toBe(0);
+        expect(r.calls.length).toBe(1);
+        expect(r.calls[0].pathRaw).toBe('"/rooms/$roomId/state"');
+    });
+
+    it("extractWrapperCalls 端到端：解不出的绑定（形参）仍进 unchecked 桶", () => {
+        const src = `
+            export function f(endpoint: string, request: RequestFn) {
+                return request(Method.Post, endpoint, undefined, {});
+            }
+        `;
+        const r = extractWrapperCalls(src, "src/client-auth.ts", {
+            identityHelpers: null,
+            templateBuilders: null,
         });
         expect(r.unchecked.length).toBe(1);
         expect(r.calls.length).toBe(0);

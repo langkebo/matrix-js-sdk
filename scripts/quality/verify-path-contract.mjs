@@ -835,6 +835,173 @@ export function unwrapIdentityPath(raw, helpers) {
 const PATH_LITERAL_RE = /^(`[^`]*`|"[^"]*"|'[^']*')$/;
 
 /**
+ * 结构恒等原语的**成员调用形态**：`utils.encodeUri("<模板>", {…})` / `sp("<模板>")` / `adp(<…>)`。
+ *
+ * `unwrapIdentityPath` 只认「裸标识符助手调用」（`encodeUri("x")`），认不出带 `utils.` 前缀的写法
+ * ⇒ 这类调用点（以及以它初始化的局部 `const`）此前全部落在未校验桶。这里补上。
+ *
+ * **fail-closed**：仅限这三个已知结构恒等原语；且要求**整段就是该调用** ——
+ * `utils.encodeUri("a", {}) + "b"`、`utils.encodeUri("a", {}).trim()` 一律返回 null（半解比不解更糟）。
+ *
+ * @param {string} expr
+ * @returns {{ name: string, firstArg: string } | null}
+ */
+export function matchWholeIdentityPrimitiveCall(expr) {
+    const text = String(expr ?? "").trim();
+    const m = /^(?:[A-Za-z_$][\w$]*\.)?(encodeUri|sp|adp)\s*\(/.exec(text);
+    if (!m) return null;
+    const openParen = m[0].length - 1;
+    const close = matchParen(text, openParen);
+    if (close < 0 || text.slice(close + 1).trim() !== "") return null;
+    const args = splitTopLevelArgs(text, openParen);
+    if (!args || args.length < 1) return null;
+    return { name: m[1], firstArg: args[0] };
+}
+
+/** 整个表达式就是一次 `name(...)` 调用时返回 callee 名；否则 null（`x + y` / `a ? b : c` 均 null）。 */
+function wholeCallName(expr) {
+    const text = String(expr ?? "").trim();
+    const m = /^([A-Za-z_$][\w$]*)\s*\(/.exec(text);
+    if (!m) return null;
+    const close = matchParen(text, m[0].length - 1);
+    if (close < 0 || text.slice(close + 1).trim() !== "") return null;
+    return m[1];
+}
+
+/**
+ * 把「路径表达式」解析到字面量/模板；认不出返回 null —— **fail-closed，绝不半解**。
+ *
+ * 定点迭代（≤6 跳），每跳依次尝试：
+ *   ① 恒等助手调用（`apu("x")` / `this.roomPath("x", id)` / `adp(…)`）；
+ *   ② 成员形式的结构恒等原语（`utils.encodeUri("<模板>", {…})`）；
+ *   ③ 模板构造器（`buildXxxPath(…)`）。
+ * 只认「整段就是一个调用」：`"a" + b`、`x ? y : z`、`` `a${b}` + c `` 一律不解（这类留给后续形态）。
+ *
+ * @param {string} expr
+ * @param {{ identityHelpers?: Map<string, IdentityHelperInfo> | null, templateBuilders?: Map<string, string> | null }} [options]
+ * @returns {string | null} 带引号的字面量/模板，或 null
+ */
+export function resolvePathExpressionText(expr, options = {}) {
+    let e = stripTsAssertion(String(expr ?? "").trim());
+    for (let hop = 0; hop < 6; hop++) {
+        if (PATH_LITERAL_RE.test(e)) return e;
+        const before = e;
+        const un = unwrapIdentityPath(e, options.identityHelpers);
+        if (un != null) e = stripTsAssertion(un.trim());
+        if (!PATH_LITERAL_RE.test(e)) {
+            const whole = matchWholeIdentityPrimitiveCall(e);
+            if (whole) e = stripTsAssertion(whole.firstArg.trim());
+        }
+        if (!PATH_LITERAL_RE.test(e)) {
+            const bn = wholeCallName(e);
+            if (bn && options.templateBuilders?.has(bn)) e = options.templateBuilders.get(bn);
+        }
+        if (e === before) break; // 不再变化 ⇒ 认不出，退出
+    }
+    return PATH_LITERAL_RE.test(e) ? e : null;
+}
+
+/**
+ * 从 `[from, upto)` 里抽**相对深度 0** 上最后出现的 `const <name> = <rhs>` 的 rhs。
+ *
+ * 只看 `const`：`let`/`var` 可能被再次赋值，静态单值不可保证 ⇒ fail-closed 不认
+ * （如 `buildStateEventPath` 里那个会被重赋值的 `let path`）。
+ * 相对深度取 0 ⇒ 嵌套块（`if {}` / `try {}` 内）里的同名 `const` 不算本层绑定（正确定位遮蔽关系）。
+ */
+function extractTopLevelConstRhs(src, from, upto, name) {
+    let depth = 0;
+    let inStr = null;
+    let rhsStart = -1;
+    for (let i = from; i < upto; i++) {
+        const c = src[i];
+        if (inStr) {
+            if (c === "\\") i++;
+            else if (c === inStr) inStr = null;
+            continue;
+        }
+        if (c === '"' || c === "'" || c === "`") {
+            inStr = c;
+            continue;
+        }
+        if (c === "(" || c === "{" || c === "[") {
+            depth++;
+            continue;
+        }
+        if (c === ")" || c === "}" || c === "]") {
+            depth--;
+            continue;
+        }
+        if (depth !== 0) continue;
+        if (src.startsWith("const", i) && !/[\w$.]/.test(src[i - 1] ?? "") && !/[\w$]/.test(src[i + 5] ?? "")) {
+            const rest = src.slice(i + 5);
+            const m = /^\s+([A-Za-z_$][\w$]*)\s*(?::\s*[^=;]+?)?=/.exec(rest);
+            if (m && m[1] === name) rhsStart = i + 5 + m[0].length;
+        }
+    }
+    if (rhsStart < 0) return null;
+    return extractStatementRhs(src, rhsStart, upto);
+}
+
+/** 从 rhs 起点抽到语句结束（顶层 `;`，或收尾括号/大括号）；两侧 trim。 */
+function extractStatementRhs(src, start, upto) {
+    let depth = 0;
+    let inStr = null;
+    let j = start;
+    for (; j < upto; j++) {
+        const c = src[j];
+        if (inStr) {
+            if (c === "\\") j++;
+            else if (c === inStr) inStr = null;
+            continue;
+        }
+        if (c === '"' || c === "'" || c === "`") {
+            inStr = c;
+            continue;
+        }
+        if (c === "(" || c === "{" || c === "[") depth++;
+        else if (c === ")" || c === "}" || c === "]") {
+            if (depth === 0) break;
+            depth--;
+        } else if (c === ";" && depth === 0) break;
+    }
+    return src.slice(start, j).trim();
+}
+
+/**
+ * 由内到外沿**外层作用域链**找 `<name>` 的局部 `const` 绑定，并把 rhs 解析成路径字面量。
+ *
+ * 作用域链用「未闭合 `{` 栈」求：`callIndex` 之前的 `{` 即各层块（含函数体、`if`/`try` 块）。
+ * 由内到外找第一层存在该 `const` 的块 —— 内层绑定**遮蔽**外层，故找到即止
+ * （即便内层解不出也返回 null，绝不外溢到被遮蔽的外层同名绑定）。
+ *
+ * @returns {string | null} 解析出的字面量/模板；认不出返回 null（调用点留在 unchecked）
+ */
+export function findLocalConstBinding(source, callIndex, name, options = {}) {
+    if (!/^[A-Za-z_$][\w$]*$/.test(name)) return null;
+    const stack = [];
+    let inStr = null;
+    for (let i = 0; i < callIndex; i++) {
+        const c = source[i];
+        if (inStr) {
+            if (c === "\\") i++;
+            else if (c === inStr) inStr = null;
+            continue;
+        }
+        if (c === '"' || c === "'" || c === "`") {
+            inStr = c;
+            continue;
+        }
+        if (c === "{") stack.push(i);
+        else if (c === "}") stack.pop();
+    }
+    for (let b = stack.length - 1; b >= 0; b--) {
+        const rhs = extractTopLevelConstRhs(source, stack[b] + 1, callIndex, name);
+        if (rhs != null) return resolvePathExpressionText(rhs, options);
+    }
+    return null;
+}
+
+/**
  * 不属于「homeserver ledger」校验范畴的路径命名空间 —— 单独成桶，**不计入 mismatch**。
  *
  * ledger 是 homeserver 的路由表。identity server（身份服务器）是独立部署的服务，
@@ -1238,6 +1405,16 @@ export function extractWrapperCalls(source, relFile, options = {}) {
             const tbName = /^([A-Za-z_$][\w$]*)\s*\(/.exec(cleanedPathArg)?.[1];
             if (tbName && options.templateBuilders?.has(tbName)) {
                 pathArg = options.templateBuilders.get(tbName);
+            }
+        }
+        // 局部 `const path = …` 绑定：把裸标识符实参追到同作用域（或外层作用域）的初始化表达式。
+        // fail-closed：只在初始化表达式能被 `resolvePathExpressionText` 解成字面量/模板时替换；
+        // 形参（`endpoint`）与成员访问（`path.path`）不是裸标识符或找不到绑定 ⇒ 仍进 unchecked。
+        if (!PATH_LITERAL_RE.test(pathArg)) {
+            const ident = pathArg.trim();
+            if (/^[A-Za-z_$][\w$]*$/.test(ident)) {
+                const bound = findLocalConstBinding(source, m.index, ident, options);
+                if (bound != null) pathArg = bound;
             }
         }
         if (!PATH_LITERAL_RE.test(pathArg)) {
