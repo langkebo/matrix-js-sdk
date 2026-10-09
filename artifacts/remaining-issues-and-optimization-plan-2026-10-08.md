@@ -13,15 +13,15 @@
 
 ## 0. 结论速览
 
-| 级别              | 问题                                                                                           | 一句话                                                                                                                                    | 是否阻断 CI              |
-| ----------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **✅ 已闭环**     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                 | 否（不再拦）             |
-| **🔴 P1（最高）** | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类剩余 10 条**（P-13 已修，见 §9.8）+ **W-01（新，§9.11.1）**。门禁 `quality:wire-format` **已落地**（§9.11） | **是（门禁已挂 CI 链）** |
-| **🎯 N-02（新）** | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 258 成员用例满负载 30s 超时；**单独跑 113/113 通过** ⇒ CI 间歇红、真缺陷被噪声淹没                                     | **间歇（噪声）**         |
-| **🟡 P1-1**       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                            | 否（棘轮已钉住）         |
-| **🟡 P1-2**       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                | 否（已登记 waiver）      |
-| **P1-3**          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                    | 否（策略债）             |
-| **P2**            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                            | 否                       |
+| 级别              | 问题                                                                                           | 一句话                                                                                                                                                                      | 是否阻断 CI              |
+| ----------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **✅ 已闭环**     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                   | 否（不再拦）             |
+| **🔴 P1（最高）** | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类剩余 10 条**（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3）。门禁 `quality:wire-format` **已落地**（§9.11） | **是（门禁已挂 CI 链）** |
+| **🎯 N-02（新）** | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 258 成员用例满负载 30s 超时；**单独跑 113/113 通过** ⇒ CI 间歇红、真缺陷被噪声淹没                                                                       | **间歇（噪声）**         |
+| **🟡 P1-1**       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                              | 否（棘轮已钉住）         |
+| **🟡 P1-2**       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                  | 否（已登记 waiver）      |
+| **P1-3**          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                      | 否（策略债）             |
+| **P2**            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                              | 否                       |
 
 > **⚠️ 新增最高优先事项**：2026-10-09 与后端 `ROUTE_CONTRACT.md` 附录 B 的**联审**发现
 > **27 条 wire-format 缺陷**（其中 19 条会导致 400 或静默返回空数据）；2026-10-10 又在当前 HEAD 上
@@ -1670,7 +1670,7 @@ SDK `d51c56dda`、Tjg `5e9c4b99` 已跟随。
 | SDK  | `src/auth/index.ts:572-587` `getSamlRedirect(idpId)` → `GET /login/sso/redirect/saml` + **`queryParams: { idp_id }`**；JSDoc 还写着"`/login/sso/redirect/{idp_id}`"（路径参数形态）                                                                                  |
 | 后端 | `saml.rs:502` 路由存在；处理器 `saml_login_redirect`（`:122-133`）用 `Query<SamlLoginQuery>`，读的是 **`query.redirect_url`**；`SamlLoginQuery`（`:18-24`）为 **`#[serde(deny_unknown_fields)]` + 仅 `redirectUrl`(alias `redirect_url`)**；全仓 `idp_id` **零出现** |
 | 后果 | `deny_unknown_fields` 使 `Query` 反序列化失败 ⇒ **400**；`getSamlRedirect` **完全不可用**（A 类，同 P-01/P-12 家族）                                                                                                                                                 |
-| 处置 | 登记为 waiver（`wire-format-waivers.json`，`expires: 2026-12-31`）。**修法需产品裁定**：① SDK 改下发 `redirectUrl`（并删除/改写 `idpId` 语义）；② 后端补 `idp_id` 或补 `{idp_id}` 路径形态。**未改代码**                                                             |
+| 处置 | 登记为 waiver（`wire-format-waivers.json`，`expires: 2026-12-31`）。**修法论证见 §9.11.3**（结论：两侧都别改参数名，收敛到 `SamlAuthManager`；并顺带发现**前端第二条独立缺陷 W-02**）。**未改代码**                                                                  |
 
 #### 9.11.2 为什么没有把覆盖桶做成硬失败
 
@@ -1688,6 +1688,67 @@ SDK `d51c56dda`、Tjg `5e9c4b99` 已跟随。
 
 ④ **把 `wire-format-waivers.json` 注册进 `quality:waiver-expiry` 的 `LEDGER_SOURCES`**
 （当前门槛：本门禁**自己**会在每次运行时判豁免过期，故纪律不漏；但集中台账能统一报告口径）。
+
+#### 9.11.3 W-01 的修法论证：**两侧都别改"参数名"，改为收敛到 `SamlAuthManager`**
+
+用户给出两个候选：① SDK 改发 `redirectUrl`；② 后端补 `idp_id`。**追加取证后两者都不推荐**，
+并**顺带发现第二条独立缺陷 W-02**（前端 404）。
+
+**(1) 事实：同一个"取 SAML 跳转地址"的功能，本仓有 3 份实现**
+
+| #   | 位置                                                                                           | 实际发出                                                                                                                                  | 后端实际                                                                                                                            | 结果                                                        |
+| --- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| A   | SDK `src/auth/index.ts:579` `getSamlRedirect(idpId)`                                           | `GET /login/sso/redirect/saml` + **`idp_id`**，期望 `{location}`                                                                          | 路由**存在**；`SamlLoginQuery` = `deny_unknown_fields` + 只认 `redirectUrl`/`redirect_url`（`saml.rs:18-24`）；GET 分支返回 **302** | **400**（W-01）；即便不 400，响应也不是 JSON `{location}`   |
+| B   | 前端 `Tjg/src/services/matrix/auth/MatrixAuthSaml.ts:17` `getSamlRedirect(idpId, redirectUrl)` | `GET **/login/saml/redirect**` + `idp_id` + `redirectUrl`                                                                                 | **该路径不存在**（镜像 manifest 与后端源码**双双零命中**）                                                                          | **404**（**W-02，本轮新发现**）                             |
+| C   | SDK `src/saml/index.ts`（`SamlAuthManager`，走 generated `route-table.ts` + `dto.ts`）         | `initiateLogin`(POST body `{redirectUrl}`)／`initiateLoginGet`·`getSsoRedirect`(GET query `{redirectUrl}`)／`getLoginRedirectUrl`(拼 URL) | ✅ 完全一致（`SamlLoginResponse { redirect_url }` 来自生成 dto）                                                                    | ✅ **可用**；`docs/api-contract/saml.md` 标 16/16 ✅ 已封装 |
+
+**(2) 定位：A/B 是同一错误的两种表现，根因是"照 API 清单补方法，而非照后端契约补"**
+
+- `docs/superpowers/plans/2026-07-31-sdk-manager-gap-optimization.md:112` 明确写着
+  `❌ getSamlRedirect(idpId) — missing` ⇒ A 是**为"补齐 AuthManager 缺口"而加**的，
+  签名照搬了**上游/规范形状**（`/login/sso/redirect/{idpId}`），**没有核对本后端**。
+- B 的注释直说了动机：`SDK getSamlAuthManager().getLoginRedirectUrl() 不支持 idpId 参数，
+暂保留 authedRequestWithPath 以传递 idp_id` ⇒ 前端**为了一个后端不支持的参数**绕开 SDK、又拼错了路径。
+
+**(3) 后端不是"漏了 `idp_id`"，而是有意按规范实现**
+
+`saml.rs:16-24` 原话：_"Accepts the Matrix SSO spec-canonical `redirectUrl` plus a `redirect_url`
+alias for tolerance"_；`deny_unknown_fields` 是**防御性**选择（宁可 400 也不静默吃错参数）。
+本后端的 IdP 选择模型是**按 provider 的字面量路径段**（`/saml`、`/cas`、generic 无段），
+IdP 本身由 `/_synapse/admin/v1/saml/config` 配置 —— **路由表里不存在 `{idp_id}` 形态**
+（实测：镜像 manifest 无 `sso/redirect/{…}`、无 `/login/saml/redirect`）。
+⇒ 给后端补 `idp_id` 是**新增一个恒被忽略的字段**，并把"防错"改成"静默忽略"，方向相反。
+
+**(4) 成本 / 风险不对称**
+
+| 路线                           | 改动面                                                                                                      | 风险与副作用                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| ② 后端补 `idp_id`              | `saml.rs` struct（+ 连带 `SamlLoginBody`）、`ROUTE_CONTRACT.md`、codegen 重生成、跨仓版本/提交协调、两侧 CI | **新增非规范参数**；收益仅"让一个本该删的方法能跑"；跨仓协调成本最高 |
+| ① 只把 A 的 query 键改掉       | SDK 1 文件 —— 但**不改形参就没法自洽**：`idpId` 无处可传（保留=撒谎，删=破坏性变更）                        | 留下**第三份重复实现**，且与 C 功能重叠                              |
+| **③ 收敛到 `SamlAuthManager`** | SDK 删 1 方法 + 1 interface + 改 1 spec；前端改 1 适配器                                                    | **零新增契约、零后端改动**；消除"第二真源"；顺带修掉 W-02            |
+
+**(5) 结论**
+
+- **首选路线 ③**：删 `auth.getSamlRedirect` 与 `SamlRedirectResponse`；调用方改用
+  `client.getSamlAuthManager()` 的 `getLoginRedirectUrl(redirectUrl)`（浏览器整页跳转）
+  或 `getSsoRedirect` / `initiateLoginGet`（要拿 `redirect_url` 字符串）；`idp_id` 概念前后端一并移除。
+- **若必须二选一，选 ①**（SDK 改发 `redirectUrl`）—— 后端是规范侧、改动更小；
+  但请按"改用 `SamlAuthManager`"落地，而不是把 A 的键名改一改。
+- **W-02 必须同批修**：只修 A 而留着 B，登录仍然走不通（404）。
+- **`SamlAuthManager` 已能覆盖前端需求**：`getLoginRedirectUrl(redirectUrl: string): string`（`:95`）
+  直接产出浏览器跳转 URL —— 前端当初要 `idp_id` 是**伪需求**。
+
+**(6) 若将来真要多 IdP**：那应是一次**独立的后端特性**（按 MSC2858 新增
+`/_matrix/client/v3/login/sso/redirect/{idp_id}`，或给 `SamlLoginQuery` 增加 `idp_id` 并同步
+`ROUTE_CONTRACT.md` + codegen），与本次收口解耦，不要用"改查询键"的名义夹带。
+
+**(7) 落地清单（待裁定后执行）**
+
+1. SDK：`src/auth/index.ts` 删 `getSamlRedirect` + `SamlRedirectResponse`；`spec/unit/auth.spec.ts:409-424` 删该用例。
+2. SDK：`SamlAuthManager.getLoginRedirectUrl` 的 JSDoc 补一句"本后端为单 IdP 模型，无 `idp_id`"。
+3. 前端 Tjg：`MatrixAuthSaml.getSamlRedirect` 改走 `getSamlAuthManager()` 并删 `idp_id`；同步 `MatrixAuthService:54` 与 `MatrixAuthSaml.test.ts`。
+4. `wire-format-waivers.json` **删除 W-01 条目**（真修了就不该留豁免）；`quality:wire-format` 保持绿。
+5. 本文档 §9.11.1 标"已修"，并登记 W-02 的收口证据。
 
 ---
 
