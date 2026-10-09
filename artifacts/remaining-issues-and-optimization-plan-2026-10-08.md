@@ -7,6 +7,7 @@
 >
 > 关联文档：`artifacts/quality-gate-fingerprint-audit-2026-10-06.md`（门禁指纹与治理主线）、
 > `.workbuddy/memory/2026-10-08.md`（§33~35 逐轮记录）。
+> ⚠️ **首版结论里的两条红已修复**（批次 A，`15eefb285`）；**2026-10-09 第二轮复核的门禁实况见 §7.5**。
 
 ---
 
@@ -63,10 +64,12 @@
 
 ### 2.2 红
 
-| 门禁                              | 结果                    | 证据                   |
-| --------------------------------- | ----------------------- | ---------------------- |
-| `lint:js` → `prettier --check .`  | **exit 1**，7 个文件    | `LINT_EXIT=1`，见 §3.1 |
-| `quality:coverage:critical-files` | **exit 1**，2 条 `[R4]` | 见 §3.2                |
+| 门禁                              | 结果                                   | 证据                             |
+| --------------------------------- | -------------------------------------- | -------------------------------- | --------- |
+| `lint:js` → `prettier --check .`  | **exit 1**，7 个文件                   | `LINT_EXIT=1`，见 §3.1           |
+| `quality:coverage:critical-files` | **exit 1**，2 条 `[R4]`                | 见 §3.2                          |
+| `quality:public-api-docs`         | exit 1（R2 指标恶化 + 两处 R3 需下调） | exit 0（台账已下调）             | 见 (5)(7) |
+| `quality:admin-response-contract` | exit 1（`route-not-resolved` 15 → 17） | exit 0（逐条核对后 `--refresh`） | 见 (8)    |
 
 > `pnpm lint` 的链序是 `lint:types → test:types → type-coverage → lint:js → … → coverage:critical-files → gate-reachability → manager-extensions`。
 > `lint:js` 在 `prettier` 那一步就失败，`&&` 短路 ⇒ **P0-2 这条红平时根本走不到**，是单独跑才暴露的。
@@ -403,6 +406,108 @@ ls .git/hooks/pre-commit       # → 不存在
 
 ---
 
+### 7.5 2026-10-09 第二轮复核：工作区回退 + M3 落地 + 三条既有红
+
+基线换成 `develop @ 4d8e264be`（`langkebo/develop` ahead **112**），逐项实跑。
+
+#### (1) 工作区回退事故（§3.4 的同型，第 2 次 —— 这次回退的是**本文件自身**）
+
+进入本轮时本文件是 `M`，但工作区内容**不是任何提交的 blob**（`git hash-object` 的结果与
+`git log --all` 里每个提交逐一对拍，无命中）⇒ 判定为**编辑器/预览器的陈旧缓冲区回写**，
+且回写目标是本文件的**首版**：相对 HEAD 少 76 行（丢了 §7 的「执行状态」表、§7.3 的 C1 工作清单、
+§7.4 的两条方法论教训，§8/附录的编号也退回旧值），页脚仍是「（首版：…）」。
+
+**处置**：证据备份到 `/tmp/artifacts-stale-writeback-2026-10-09.md`（md5 `abecceaf9075e1e52b01e164ca4b1fd1`）
+→ `git checkout -- <file>` 还原 HEAD 版（474 行）→ 复核 §7 / §8 完整。
+
+**副作用（值得记一笔）**：回退期间 `pnpm lint` 是红的，而**唯一的红就是这份被回退的文档** ——
+`lint:js` 的 `prettier --check` 判它不合格 ⇒ 还原后该步即转绿。**回写不只是"文档格式脏"，
+它会真的把门禁弄红**，这是批次 A3 / E2 的现实依据。
+
+#### (2) 门禁实况（还原 + 修复之后，2026-10-09 实测）
+
+| 门禁                              | 进入本轮时                        | 现在                       | 说明                                                   |
+| --------------------------------- | --------------------------------- | -------------------------- | ------------------------------------------------------ |
+| `pnpm lint`                       | **exit 1**                        | **exit 0**                 | 三条红全部修掉（见下）                                 |
+| `quality:docs-counts`             | exit 1（2 处数值不一致）          | exit 0（11 条规则一致）    | `contract-artifacts.md` 写 1034 / 940，实际 1031 / 739 |
+| `quality:path-contract`           | exit 1（1 处不匹配 + 棘轮未收紧） | exit 0（豁免 24 处已登记） | 见 (3)(4)                                              |
+| `quality:public-jsdoc-examples`   | exit 1（1 处缺 `@example`）       | exit 0（43 个方法）        | 见 (5)                                                 |
+| `quality:coverage:critical-files` | exit 0                            | exit 0                     | 批次 A2 的成果保持                                     |
+
+⇒ **`pnpm quality:contracts`（16 段全链）进入本轮时 exit 1（4 段红），修复后 exit 0**；`pnpm lint` 同样 exit 0。
+
+#### (3) ⚠️ 新发现一：develop 仍在调用「后端已删除」的路由（**我方 M3 的真实漏项**）
+
+`src/widgets/index.ts:415` 的 `sendWidgetMessage()` 打
+`POST /_matrix/vendor/v1/rooms/{roomId}/widgets/{widgetId}/send`，而后端 `ebe4a3db6` 已**删除**该路由
+（它原本就是拒绝型实现、恒返 400，并要求改走标准发送端点）。后端删路由时判「零消费者」是**错的**：
+
+> **教训**：那次判断用了两个不可靠判据 —— ① `grep 'a\|b'`（本机 CLI 的 toybox grep 对 BRE 扩展
+> 静默返回空，正是 §7.4 教训 1 的同型复发）；② 只检索了 `src/widget/`（**单数**），漏掉真正存在的
+> `src/widgets/`（**复数**）。⇒ **判"有没有消费者"必须用可靠检索工具，且覆盖所有同名目录（单/复数）。**
+
+**处置（按本仓既有形态，不破坏公开 API）**：给 `sendWidgetMessage` 补 ⚠️ JSDoc（写明会 404、
+指向标准 send API）；在 `scripts/quality/path-contract-waivers.json` 登记 `by-design` 豁免
+（写清「为什么后端没有」与「删掉条件」，expires `2026-12-31`）。
+**未做（留产品决策）**：删除该方法，或把它改接标准 `PUT .../send/{event_type}/{txn_id}`。
+`release/contract-entrypoint` 不受影响（该分支两个方法都不存在，实测无命中）。
+
+#### (4) M3 的连带债：覆盖棘轮未收紧（139 → 85，已 `--refresh-coverage`）
+
+`0850cc567` 把 `requestV3(this.roomPath(…))` 一族改成 vendor 前缀的**已覆盖包装器**
+⇒ 未校验调用点 **139 → 85**、`this-method` **49 → 8**（新形态拆解：`identifier 38 / bare-call 37 /
+this-method 8 / other 1 / concat 1`）。该棘轮是「只降不升 + 需显式声明」，故必须跑
+`--refresh-coverage` 收紧基线，否则门禁判红 —— **清账类提交容易漏掉这一步**（§7.3 的 139 基线由此作废）。
+
+#### (5) 新发现二：一条由 `1d6258870` 引入的 `public-jsdoc-examples` 红
+
+`1d6258870`（**我方 M3 之前**）往 `docs/api-contract/moderation.md` 加了
+`ModerationManager.reportUser()` 一行，而 `src/moderation/index.ts` 的 `reportUser` 缺 JSDoc `@example`
+⇒ 门禁判红。归因用**零副作用对照**（detached worktree）：`e84016df8` exit 0（42 个方法）、
+`cd6213c54` 起 exit 1 ⇒ 引入点即 `1d6258870`。已补 `@example`（43 个方法，exit 0）。
+
+但补完它并**不能**让链变绿：`quality:public-api-docs` 的台账下调（`--write-ledger`）被一条
+**指标恶化**挡住 —— `DeviceKeysManager.missingExample 12 → 13`。定位：`1a02d6d6f` 给
+`DeviceKeysManager.uploadSignatures` 补了 JSDoc 却漏了 `@example`（`missingJsDoc` −1 挪进
+`missingExample` +1，正是本仓文档记过的同型）。补上它的 `@example` 后 `--write-ledger` 才成功：
+`DeviceKeysManager.missingJsDoc 4 → 3`、`ModerationManager.missingExample 2 → 1`、
+`capturedAt 2026-10-08 → 2026-10-09`。
+
+#### (6) 本轮改动清单（develop）
+
+| 文件                                                             | 改动                                                                 |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `artifacts/remaining-issues-and-optimization-plan-2026-10-08.md` | 还原 HEAD（回退事故）+ 本节                                          |
+| `docs/api-contract/contract-artifacts.md`                        | 1034 → **1031**、940 → **739**（口径未变，数字跟实际走）             |
+| `scripts/quality/path-contract-waivers.json`                     | +1 条 `by-design`；核验戳 → `f6cdd5c60, ledger 1030 entries`         |
+| `scripts/quality/path-contract-coverage.json`                    | `--refresh-coverage` 收紧棘轮（139 → 85）                            |
+| `src/widgets/index.ts`                                           | `sendWidgetMessage` 补 ⚠️ JSDoc                                      |
+| `src/moderation/index.ts`                                        | `reportUser` 补 `@example`                                           |
+| `src/device-keys/index.ts`                                       | `uploadSignatures` 补 `@example`（解开 `--write-ledger` 的 R2 阻塞） |
+| `scripts/quality/public-api-docs-ledger.json`                    | `--write-ledger` 下调（见 (5)）                                      |
+| `scripts/quality/admin-response-contract-ledger.json`            | `--refresh`（`route-not-resolved` 15 → 17，见 (8)）                  |
+
+#### (8) M3 的第二条连带债：`admin-response-contract` 的未解析桶 15 → 17
+
+`quality:admin-response-contract` 判红：`route-not-resolved` **15 → 17**（覆盖桶只准降）。
+零副作用对照：`cd6213c54`（我方 M3 之前）该门禁 **exit 0** ⇒ 引入点在我方两笔之内 ——
+但两笔都**没动 `src/admin/`**；真正的原因是 `contract:sync` 把镜像从陈旧状态收紧（1034 → 1031）
+⇒ 原先靠"陈旧镜像里的幽灵条目"解析成功的 2 条 admin 调用点，现在解析不到了。新增的两条是：
+
+| 新增条目                                                                                   | 后端实况                                                | 是否已复核                                       |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------ |
+| `resetFederationDestination` → `POST /_synapse/admin/v1/federation/destinations/{x}/reset` | 后端只有 `.../reset_connection`；SDK 有意保留双路径回退 | ✅ 已登记 `other-homeserver` 豁免（`1a02d6d6f`） |
+| `deleteUserDevices` → `POST /_synapse/admin/v1/users/{x}/devices/delete`                   | 后端无批量端点（该别名已在 C6 第三批删除）              | ✅ 已登记 `backend-missing` 豁免                 |
+
+两条都是"**后端有意不存在**"且**已有豁免背书**，且 `quality:path-contract` 全绿（说明 SDK 的每条
+路径都在后端 ledger 里）⇒ 按门禁提示"核对后端"后 `--refresh`，新台账里两条都带 `reason`。
+
+**仍未做**：E3（推送，需用户决策 —— 现在 ahead **112**）；C1 剩余 **85** 处的解析器改造；
+C4（嵌套形状值级递归）；D3 的 `owner` 那一半；以及 §7.2 原有各项。
+**新增登记的产品决策项**：`sendWidgetMessage()` 的存废 / 改接（见 (3)）。
+
+---
+
 ## 8. 明确不建议做的事
 
 | 不做                                                  | 为什么                                                                      |
@@ -470,5 +575,7 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
+**最后更新**: 2026-10-09（第二批复核，基线 `develop @ 4d8e264be`：工作区回退事故还原、
+M3 落地、三条既有红修复、棘轮收紧 139 → 85 —— 见 §7.5）
+**此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
