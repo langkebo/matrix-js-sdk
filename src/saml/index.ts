@@ -92,6 +92,23 @@ export class SamlAuthManager extends BaseManager {
         }, "initiateLogin");
     }
 
+    /**
+     * 拼出 SAML 登录的浏览器跳转地址（纯 URL 拼接，**不发网络请求**）。
+     *
+     * ⚠️ 本后端为**单 IdP 模型**：IdP 由 `/_synapse/admin/v1/saml/config` 配置，
+     * 路由表中**不存在** `{idp_id}` 形态 ⇒ **不要传 `idp_id`** —— 后端
+     * `SamlLoginQuery` 带 `deny_unknown_fields`，多传一个键即 **400**。
+     * 需要多 IdP 时走后端配置，不要在本方法上开参数口子（见 `W-01` 收口论证）。
+     *
+     * @param redirectUrl 登录成功后的回跳地址；传空串则不拼 `?redirectUrl=`。
+     * @returns 供浏览器整页跳转的绝对 URL。
+     *
+     * @example
+     * ```typescript
+     * const url = client.getSamlAuthManager().getLoginRedirectUrl("https://app.example/callback");
+     * window.location.href = url; // 浏览器整页跳转
+     * ```
+     */
     getLoginRedirectUrl(redirectUrl: string): string {
         const baseUrl = this.client.getHomeserverUrl();
         const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";

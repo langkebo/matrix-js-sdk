@@ -90,6 +90,12 @@ export function diffBuckets(
 /** 违规项的稳定键（`kind|route|file`）。 */
 export function violationKey(v: { kind: string; route: string; file: string }): string;
 
+/** waiver 是否**指向**该违规（`kind`+`route` 一致，`file` 给出时再要求一致）。**不含过期判断。** */
+export function waiverMatch(
+    w: { kind: string; route: string; file?: string; expires?: string },
+    v: { kind: string; route: string; file: string },
+): boolean;
+
 /** waiver 是否覆盖该违规：`kind`+`route` 一致，`file` 给出时再要求一致；过期即不覆盖。 */
 export function waiverCovers(
     waivers: Array<{ kind: string; route: string; file?: string; expires?: string }>,

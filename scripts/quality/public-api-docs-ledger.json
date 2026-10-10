@@ -1,7 +1,7 @@
 {
     "schemaVersion": 3,
     "capturedAt": "2026-10-10",
-    "previousCapturedAt": "2026-10-09",
+    "previousCapturedAt": "2026-10-10",
     "note": "公开 API 文档棘轮台账。本文件是「允许存在的缺口上限」，只能下降不能上升。用 node scripts/quality/check-public-api-docs.mjs --write-ledger 更新，该命令在检测到任何指标恶化时会拒绝写入。",
     "ratchet": {
         "AccountDataManager": {
@@ -535,7 +535,7 @@
             "throwsWithoutTag": 2
         },
         "SamlAuthManager": {
-            "missingJsDoc": 17,
+            "missingJsDoc": 16,
             "missingExample": 3,
             "throwsWithoutTag": 0
         },

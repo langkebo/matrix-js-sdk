@@ -82,10 +82,6 @@ export interface WhoamiResponse {
     is_guest?: boolean;
 }
 
-export interface SamlRedirectResponse {
-    location: string;
-}
-
 export interface VersionsResponse {
     versions: string[];
     unstable_features?: Record<string, boolean>;
@@ -570,21 +566,6 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
                 prefix: ClientPrefix.V3,
             });
         }, "logout");
-    }
-
-    /**
-     * Get SAML redirect URL
-     * GET /_matrix/client/v3/login/sso/redirect/{idp_id}
-     */
-    public async getSamlRedirect(idpId: string): Promise<SamlRedirectResponse> {
-        return this.withRetry(async () => {
-            return await this.request<SamlRedirectResponse>({
-                method: Method.Get,
-                path: "/login/sso/redirect/saml",
-                queryParams: { idp_id: idpId },
-                prefix: ClientPrefix.V3,
-            });
-        }, "getSamlRedirect");
     }
 
     /**

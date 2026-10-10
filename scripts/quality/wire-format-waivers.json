@@ -1,13 +1,5 @@
 {
     "schemaVersion": 1,
-    "notice": "wire-format 门禁的已知偏差台账。每条必须带 reason 与 expires（过期即红）。只登记**已回源确认**的真缺陷；抽取器覆盖不到的情形一律落 wire-format-coverage.json 的桶，不写在这里。",
-    "entries": [
-        {
-            "kind": "query-unknown-key",
-            "route": "GET /_matrix/client/v3/login/sso/redirect/saml",
-            "file": "src/auth/index.ts",
-            "reason": "W-01（2026-10-10 本门禁首跑发现）：后端 `SamlLoginQuery` 带 `#[serde(deny_unknown_fields)]` 且只声明 `redirectUrl`/`redirect_url`（saml.rs:18-24），SDK `getSamlRedirect` 却下发 `idp_id`（auth/index.ts:581）⇒ axum Query 反序列化失败 ⇒ 该功能**完全不可用**。修法需产品裁定（后端无 `{idp_id}` 路径形态）：① SDK 改发 `redirectUrl`（并删掉/改写 `idpId` 语义）；② 后端补 `idp_id`。见方案文档 §9.11。",
-            "expires": "2026-12-31"
-        }
-    ]
+    "notice": "wire-format 门禁的已知偏差台账。每条必须带 reason 与 expires（过期即红；**台账里有但当前没有任何违规与之对应**也红——须先判定是『缺陷已修好』还是『抽取器失明』，后者删条目等于藏缺口）。只登记**已回源确认**的真缺陷；抽取器覆盖不到的情形一律落 wire-format-coverage.json 的桶，不写在这里。",
+    "entries": []
 }

@@ -405,21 +405,15 @@ describe("AuthManager", () => {
             });
         });
 
-        it("should get SAML redirect URL", async () => {
-            mockAuthedRequest.mockResolvedValue({
-                location: "https://idp.example.com/saml?SAMLRequest=abc",
-            });
-
-            const result = await authManager.getSamlRedirect("saml-idp");
-
-            expect(result.location).toContain("https://idp.example.com/saml");
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Get,
-                "/login/sso/redirect/saml",
-                { idp_id: "saml-idp" },
-                undefined,
-                { prefix: ClientPrefix.V3 },
-            );
+        it("不再暴露 SAML 跳转方法（收敛到 getSamlAuthManager，见方案文档 §9.11.4）", () => {
+            // 旧实现 `getSamlRedirect(idpId)` 发 `GET /login/sso/redirect/saml?idp_id=…`，
+            // 而后端 `SamlLoginQuery` 是 `#[serde(deny_unknown_fields)]` + 只认
+            // `redirectUrl`/`redirect_url`（synapse-rust `routes/saml.rs:18-24`）⇒ 该调用必然 400。
+            // SAML 跳转的唯一入口是 `client.getSamlAuthManager()`（走生成的 route-table/dto）。
+            // 下面这行同时是**编译期锁**：谁把方法加回 `AuthManager`，
+            // 它就从"预期报错"变成"不该报错" ⇒ `pnpm lint:types` 报 TS2578 立刻变红。
+            // @ts-expect-error getSamlRedirect 已从 AuthManager 移除（改走 getSamlAuthManager）
+            expect(authManager.getSamlRedirect).toBeUndefined();
         });
 
         it("should get server versions", async () => {

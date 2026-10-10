@@ -27,6 +27,7 @@ import {
     splitTopLevelObjectProps,
     violationKey,
     waiverCovers,
+    waiverMatch,
 } from "../../scripts/quality/check-wire-format.mjs";
 import { resolveWrapperIoPositions } from "../../scripts/quality/verify-path-contract.mjs";
 
@@ -305,5 +306,38 @@ describe("countBuckets / diffBuckets / waiverCovers", () => {
             waiverCovers([{ kind: "query-unknown-key", route: "GET /s", expires: "2026-01-01" }], v, "2026-10-10"),
         ).toBe(false);
         expect(violationKey(v)).toBe("query-unknown-key|GET /s|src/auth/index.ts");
+    });
+
+    it("waiverMatch：不含过期判断（过期 ≠ 失效）", () => {
+        const w = { kind: "query-unknown-key", route: "GET /s", expires: "2026-01-01" };
+        const v = { kind: "query-unknown-key", route: "GET /s", file: "src/auth/index.ts" };
+        // 已过期，但**仍指向**这条违规 ⇒ 属"过期"，不属"失效"
+        expect(waiverMatch(w, v)).toBe(true);
+        expect(waiverCovers([w], v, "2026-10-10")).toBe(false);
+        // 路由不同 ⇒ 既不指向也不覆盖
+        expect(waiverMatch({ ...w, route: "GET /other" }, v)).toBe(false);
+    });
+
+    it("失效豁免判定：台账里有但当前零违规与之对应 ⇒ 必须被点名（W-01 修完后删条目的机器判据）", () => {
+        // 复现本轮的场景：删掉 SDK 的 getSamlRedirect 后，那条豁免不再对应任何违规
+        const waivers = [
+            {
+                kind: "query-unknown-key",
+                route: "GET /_matrix/client/v3/login/sso/redirect/saml",
+                file: "src/auth/index.ts",
+            },
+        ];
+        const violations: Array<{ kind: string; route: string; file: string }> = [];
+        const unused = waivers.filter((w) => !violations.some((v) => waiverMatch(w, v)));
+        expect(unused).toHaveLength(1);
+        // 只要还有一条对应违规，就不算失效
+        const stillThere = [
+            {
+                kind: "query-unknown-key",
+                route: "GET /_matrix/client/v3/login/sso/redirect/saml",
+                file: "src/auth/index.ts",
+            },
+        ];
+        expect(waivers.filter((w) => !stillThere.some((v) => waiverMatch(w, v)))).toHaveLength(0);
     });
 });

@@ -32,6 +32,13 @@
  * 落进具名桶（`route-not-resolved` / `backend-body-unknown` / `sdk-keys-unknown` …），
  * 桶计数写进 `wire-format-coverage.json` 且**只降不升**。
  *
+ * ## 豁免台账（`wire-format-waivers.json`）
+ *
+ * 只登记**已回源确认**的真缺陷，每条带 `reason` 与 `expires`。三类都会红：
+ * 到期未处理（`expired`）、**台账里有但当前没有任何违规与之对应**（`unusedWaivers`）。
+ * 后者必须人工判定成因：① 缺陷真修好了 ⇒ 删条目；② 抽取器失明了（调用点改用了解不开的
+ * 形态）⇒ **修抽取器，别删条目**（删掉等于把仍在的缺陷藏起来）。见方案文档 §9.11.4。
+ *
  * ## 用法
  *
  * ```bash
@@ -597,15 +604,14 @@ function loadWaivers() {
     return Array.isArray(j.entries) ? j.entries : [];
 }
 
-/** waiver 是否覆盖该违规：`kind` + `route` 必须一致；`file` 给出时再要求一致。过期即不覆盖。 */
+/** waiver 是否**指向**该违规：`kind` + `route` 必须一致；`file` 给出时再要求一致。**不含过期判断。** */
+export function waiverMatch(w, v) {
+    return w.kind === v.kind && w.route === v.route && (!w.file || w.file === v.file);
+}
+
+/** waiver 是否覆盖该违规：先 `waiverMatch`，再要求未过期。 */
 export function waiverCovers(waivers, v, today) {
-    return waivers.some(
-        (w) =>
-            w.kind === v.kind &&
-            w.route === v.route &&
-            (!w.file || w.file === v.file) &&
-            !(w.expires && w.expires < today),
-    );
+    return waivers.some((w) => waiverMatch(w, v) && !(w.expires && w.expires < today));
 }
 
 async function main() {
@@ -717,6 +723,12 @@ async function main() {
     const waivers = loadWaivers();
     const unwaived = violations.filter((v) => !waiverCovers(waivers, v, today));
     const expired = waivers.filter((w) => w.expires && w.expires < today);
+    // **失效豁免**：台账里有、但当前没有任何违规与它对应。两种成因都必须人工看一眼：
+    //   ① 缺陷真修好了 ⇒ 该删条目；
+    //   ② 抽取器失明了（调用点改用了解不开的形态）⇒ 缺陷仍在，只是记不出来，删条目=藏真缺口。
+    // 所以是**硬失败**（同 path-contract 的「豁免未被引用 0」纪律），报错时必须把这两种可能
+    // 一起写出来，避免有人条件反射地删条目。过期与否不参与本判定（那是 `expired` 的职责）。
+    const unusedWaivers = REFRESH ? [] : waivers.filter((w) => !violations.some((v) => waiverMatch(w, v)));
 
     const coverage = readJsonIfExists(COVERAGE_PATH, { buckets: {} });
     const bucketRegressions = REFRESH ? [] : diffBuckets(coverage.buckets ?? {}, buckets);
@@ -753,6 +765,7 @@ async function main() {
         unwaived: unwaived.length,
         waived: violations.length - unwaived.length,
         expiredWaivers: expired.length,
+        unusedWaivers,
         comparable: comparable.length,
         buckets,
         bucketRegressions,
@@ -812,6 +825,13 @@ async function main() {
         if (expired.length) {
             console.log(`  ❌ 豁免过期 ${expired.length} 条（需重新核对后更新 expires 或删除）`);
         }
+        if (unusedWaivers.length) {
+            console.log("---------------------------------------------------------------");
+            console.log(`  ❌ 失效豁免 ${unusedWaivers.length} 条（台账有、当前没有任何违规与之对应）`);
+            for (const w of unusedWaivers) console.log(`     ${w.kind} @ ${w.route}${w.file ? `  ${w.file}` : ""}`);
+            console.log("     ⚠️ 先判定是①缺陷已修好（⇒ 删条目）还是②抽取器失明（⇒ 修抽取器，");
+            console.log("        **别删条目** —— 那会把仍在的缺陷藏掉）。见方案文档 §9.11.4。");
+        }
         console.log("================================================================");
     }
 
@@ -820,7 +840,11 @@ async function main() {
         return 2;
     }
     const failed =
-        unwaived.length > 0 || bucketRegressions.length > 0 || expired.length > 0 || (!REFRESH && drift.length > 0);
+        unwaived.length > 0 ||
+        bucketRegressions.length > 0 ||
+        expired.length > 0 ||
+        unusedWaivers.length > 0 ||
+        (!REFRESH && drift.length > 0);
     if (!failed) {
         if (!EMIT_JSON)
             console.log(
