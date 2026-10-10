@@ -123,7 +123,6 @@ export default {
         // Additional manager modules with extendMatrixClient but not yet wired
         // into manager-extensions/index.ts MANAGER_EXTENSION_MODULES list:
         "src/event/index.ts",
-        "src/widgets/index.ts",
         // worker / room-alias 的 extendMatrixClient 已于 2026-10-05 补入
         // MODULE_DEFS 并接线（此前 client.getWorkerManager() /
         // getRoomAliasManager() 在运行时是 undefined，调用即 TypeError）。

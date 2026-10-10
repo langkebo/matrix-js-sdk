@@ -124,27 +124,11 @@
             "expires": "2026-12-31"
         },
         {
-            "sdkCall": "POST /_matrix/vendor/v1/widgets/create",
-            "file": "src/widgets/index.ts",
-            "owner": "langkebo",
-            "category": "backend-missing",
-            "reason": "createWidgetV3()。后端 ledger 全部 widget 路由共 17 条，其中创建只有 `POST /_matrix/vendor/v1/widgets`，**没有** `/widgets/create`。createWidget() 已覆盖该 vendor 端点，本方法疑为重复封装。删掉条件：产品决定合并到 createWidget() 或移除 createWidgetV3()。",
-            "expires": "2026-12-31"
-        },
-        {
             "sdkCall": "POST /_synapse/admin/v1/federation/destinations/{X}/reset",
             "file": "src/admin/sub-managers/admin-federation-manager.ts",
             "owner": "langkebo",
             "category": "other-homeserver",
             "reason": "resetFederationDestination() 的**有意双路径回退**：先打 `/reset`，收到 404 再回退到 `/reset_connection`（后端只注册后者：POST /_synapse/admin/v1/federation/destinations/{destination}/reset_connection）。保留首跳是为了兼容仅认 `/reset` 的部署。删掉条件：确认无需该兼容 —— 届时把首跳直接指向 `/reset_connection`，可顺带省掉每次一次必然 404 的往返。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_matrix/vendor/v1/rooms/{X}/widgets/{X}/send",
-            "file": "src/widgets/index.ts",
-            "owner": "langkebo",
-            "category": "by-design",
-            "reason": "sendWidgetMessage()。后端已于 ebe4a3db6 **删除**该路由：它原本就是拒绝型实现（handler 正文 `let _ = body;` 之后恒返 400，并提示调用方改走标准发送端点 `PUT /_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`）⇒ 该方法从未真正可用。SDK 侧保留本方法是为了不破坏公开 API（Tjg 无消费者，全仓仅此 1 处调用点）。删掉条件：产品决定移除 sendWidgetMessage()，或把它改接标准 send API。",
             "expires": "2026-12-31"
         },
         {

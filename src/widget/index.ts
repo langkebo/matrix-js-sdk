@@ -20,7 +20,6 @@ limitations under the License.
  * 提供 Matrix widget 的创建、查询、配置、权限管理功能
  * 对应后端: synapse-rust widget 模块
  *
- * Note: 此模块区别于 src/widgets/（WidgetsManager，历史兼容层）。
  * 本模块使用 __generated__ route-table 路径常量，提供 Ledger 对齐的 widget API。
  */
 
@@ -486,35 +485,6 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
                     prefix: WIDGET_PREFIX_VENDOR,
                 }),
             "setWidgetCapabilities",
-        );
-    }
-
-    /**
-     * 创建小组件（v3 端点）
-     *
-     * ⚠️ 后端 ledger 中**不存在** `/_matrix/vendor/v1/widgets/create`。与
-     * `src/widgets/index.ts` 的同名方法一样属于后端未实现的超前封装，已登记在
-     * `scripts/quality/path-contract-waivers.json`（category: `backend-missing`）。
-     */
-    async createWidgetV3(body: {
-        room_id?: string;
-        widget_type: string;
-        url: string;
-        name: string;
-        data?: Record<string, unknown>;
-    }): Promise<IWidgetResponse> {
-        if (!body.widget_type) throw new InvalidParamError("widget_type is required");
-        if (!body.url) throw new InvalidParamError("url is required");
-        const path = wpv("/widgets/create");
-        return this.withRetry(
-            () =>
-                this.request<IWidgetResponse>({
-                    method: Method.Post,
-                    path,
-                    body,
-                    prefix: WIDGET_PREFIX_VENDOR,
-                }),
-            "createWidgetV3",
         );
     }
 

@@ -379,39 +379,6 @@ describe("WidgetManager", () => {
         });
     });
 
-    describe("createWidgetV3", () => {
-        it("should create a widget via v3 endpoint", async () => {
-            mockAuthedRequest.mockResolvedValueOnce({
-                widget: {
-                    widget_id: "w1",
-                    room_id: null,
-                    user_id: "@user:example.com",
-                    type: "custom",
-                    url: "https://example.com",
-                    name: "Test",
-                    data: {},
-                    creator: "@user:example.com",
-                    active: true,
-                },
-            });
-            const result = await widgetManager.createWidgetV3({
-                widget_type: "custom",
-                url: "https://example.com",
-                name: "Test",
-            });
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/widgets/create",
-                undefined,
-                { widget_type: "custom", url: "https://example.com", name: "Test" },
-                // ⚠️ 后端无 `/_matrix/vendor/v1/widgets/create` 该端点（已在
-                // path-contract-waivers.json 登记为 backend-missing）；这里只锁 SDK 发什么前缀。
-                { prefix: "/_matrix/vendor/v1" },
-            );
-            expect(result.widget.widget_id).toBe("w1");
-        });
-    });
-
     // ============ Lifecycle ============
 
     describe("start/stop", () => {

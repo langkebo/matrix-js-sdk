@@ -236,4 +236,3 @@ export type {
     IVoiceMessage,
     IVoiceDeleteResponse,
 } from "./voice";
-export { WidgetsManager } from "./widgets";

@@ -173,7 +173,6 @@ export type ManagerName =
     | "userDirectory"
     | "voice"
     | "widget"
-    | "widgets"
     | "workerAdmin"
     | "workerBody"
     | "worker";
@@ -279,7 +278,6 @@ export interface ManagerTypeMap {
     userDirectory: import("../user-directory/index").UserDirectoryManager;
     voice: import("../voice/index").VoiceManager;
     widget: import("../widget/index").WidgetManager;
-    widgets: import("../widgets/index").WidgetsManager;
     workerAdmin: import("../worker-admin/index").WorkerAdminManager;
     workerBody: import("../worker-body/index").WorkerBodyManager;
     worker: import("../client/worker/worker").WorkerManager;

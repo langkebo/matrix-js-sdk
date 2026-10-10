@@ -139,7 +139,6 @@ const MANAGER_EXTENSION_MODULES: Array<{
     { option: "includeSession", module: "session" },
     { option: "includeSyncAccumulator", module: "sync-accumulator" },
     { option: "includeUploads", module: "uploads" },
-    { option: "includeWidgets", module: "widgets" },
     { option: "includeDeviceKeys", module: "device-keys" },
     { option: "includePushRules", module: "push-rules" },
 ];
@@ -241,7 +240,6 @@ const DEFAULT_CORE_EXTENSIONS: ManagerExtensionsOptions = {
     includeSession: true,
     includeSyncAccumulator: true,
     includeUploads: true,
-    includeWidgets: true,
     includeDeviceKeys: true,
     includePushRules: true,
 };
@@ -780,10 +778,6 @@ export async function extendMatrixClientWithManagers(
 
             if (currentOptions.includeUploads || all) {
                 promises.push(safeDynamicImport(import("../uploads/index.js").then((m) => m?.extendMatrixClient())));
-            }
-
-            if (currentOptions.includeWidgets || all) {
-                promises.push(safeDynamicImport(import("../widgets/index.js").then((m) => m?.extendMatrixClient())));
             }
 
             if (currentOptions.includeDeviceKeys || all) {

@@ -17,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient as extendAdminClient } from "../../../src/admin/index";
 import { extendMatrixClient as extendFriendClient } from "../../../src/friend/index";
-import { extendMatrixClient as extendWidgetsClient } from "../../../src/widgets/index";
+import { extendMatrixClient as extendWidgetManagerClient } from "../../../src/widget/index";
 import { extendMatrixClient as extendWorkerAdminClient } from "../../../src/worker-admin/index";
 import { extendMatrixClient as extendPresenceClient } from "../../../src/presence/index";
 import { TestConfig } from "./TestConfig";
@@ -25,7 +25,7 @@ import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendAdminClient();
 extendFriendClient();
-extendWidgetsClient();
+extendWidgetManagerClient();
 extendWorkerAdminClient();
 extendPresenceClient();
 
@@ -289,13 +289,13 @@ describe("SDK ↔ synapse-rust 2026-04-23 alignment", () => {
 
     // ===== Widgets =====
 
-    describe("WidgetsManager REST path (read-only probe)", () => {
-        it("listRoomWidgets returns {widgets}", async () => {
+    describe("WidgetManager REST path (read-only probe)", () => {
+        it("getRoomWidgets returns {widgets}", async () => {
             if (!backendAvailable) return;
-            const widgets = client.getWidgetsManager();
+            const widgets = client.getWidgetManager();
             const room = await client.createRoom({ name: `sdk-widget-${Date.now()}` });
             try {
-                const page = await widgets.listRoomWidgets(room.room_id);
+                const page = await widgets.getRoomWidgets(room.room_id);
                 expect(page).toHaveProperty("widgets");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {

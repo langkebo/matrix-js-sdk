@@ -23,7 +23,6 @@ import type {
     MatrixClientExtensionMethods,
     MatrixClientInternalMethods,
     SharedWithUsersMap,
-    WidgetData,
 } from "./matrix-client-extensions";
 import {
     EventStatus,
@@ -4374,21 +4373,6 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     public syncing: boolean = false;
     public getTurnServerURIs(): Promise<string[]> {
         return this.getTurnServerManager().getTurnServerURIs();
-    }
-    public getUserWidgets(): Promise<WidgetData> {
-        return Promise.resolve({});
-    }
-    public getRoomWidgets(_roomId: string): Promise<WidgetData> {
-        return Promise.resolve({});
-    }
-    public setUserWidgets(_widgets: WidgetData): Promise<void> {
-        return Promise.resolve();
-    }
-    public setRoomWidgets(_roomId: string, _widgets: WidgetData): Promise<void> {
-        return Promise.resolve();
-    }
-    public getAllWidgetEvents(_roomId: string): Promise<MatrixEvent[]> {
-        return Promise.resolve([]);
     }
     public getProfileManager(): ProfileManager {
         return null!;

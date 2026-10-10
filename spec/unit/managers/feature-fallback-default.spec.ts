@@ -6,7 +6,6 @@
 import { describe, expect, it } from "vitest";
 
 import { VoiceManager } from "../../../src/voice/index";
-import { WidgetsManager } from "../../../src/widgets/index";
 import { DehydratedDeviceManager } from "../../../src/dehydrated-device/index";
 import type { MatrixClient } from "../../../src/client";
 
@@ -17,11 +16,6 @@ function makeClientWithoutDiscovery(): MatrixClient {
 describe("feature fallback default (S-13: must default to unsupported)", () => {
     it("VoiceManager.isSupported() 在无能力探测时返回 false", async () => {
         const m = new VoiceManager(makeClientWithoutDiscovery());
-        await expect(m.isSupported()).resolves.toBe(false);
-    });
-
-    it("WidgetsManager.isSupported() 在无能力探测时返回 false", async () => {
-        const m = new WidgetsManager(makeClientWithoutDiscovery());
         await expect(m.isSupported()).resolves.toBe(false);
     });
 

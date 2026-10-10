@@ -325,7 +325,7 @@
             "throwsWithoutTag": 0
         },
         "MatrixClient": {
-            "missingJsDoc": 209,
+            "missingJsDoc": 204,
             "missingExample": 88,
             "throwsWithoutTag": 1
         },
@@ -701,13 +701,8 @@
         },
         "WidgetManager": {
             "missingJsDoc": 2,
-            "missingExample": 17,
-            "throwsWithoutTag": 15
-        },
-        "WidgetsManager": {
-            "missingJsDoc": 6,
-            "missingExample": 19,
-            "throwsWithoutTag": 0
+            "missingExample": 16,
+            "throwsWithoutTag": 14
         },
         "WorkerAdminManager": {
             "missingJsDoc": 0,

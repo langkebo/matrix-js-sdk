@@ -112,44 +112,42 @@ last_reviewed: 2026-05-03
 | 后端端点                                                                  | SDK Manager     | 方法                       | 现状                                                  |
 | ------------------------------------------------------------------------- | --------------- | -------------------------- | ----------------------------------------------------- |
 | `POST /_matrix/vendor/v1/widgets`                                         | `WidgetManager` | `createWidget()`           | ✅ 请求路径与主要字段一致                             |
-| `POST /_matrix/vendor/v1/widgets/create`                                  | `WidgetManager` | `createWidgetV3()`         | ⚠️ 后端未实现（已登记豁免 `backend-missing`）         |
-| `GET /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `getWidget()`              | ✅ 已封装                                             |
-| `PUT /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `updateWidget()`           | ✅ 已封装                                             |
-| `DELETE /_matrix/client/v1/widgets/{widget_id}`                           | `WidgetManager` | `removeWidget()`           | ✅ 已封装                                             |
-| `GET /_matrix/client/v1/rooms/{room_id}/widgets`                          | `WidgetManager` | `getRoomWidgets()`         | ✅ 已封装                                             |
-| `GET /_matrix/client/v1/widgets/{widget_id}/config`                       | `WidgetManager` | `getWidgetConfig()`        | ✅ 已封装                                             |
-| `GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`             | `WidgetManager` | `getJitsiConfig()`         | ✅ 已封装                                             |
-| `GET /_matrix/client/v1/widgets/{widget_id}/permissions`                  | `WidgetManager` | `getWidgetPermissions()`   | ✅ 已封装                                             |
-| `POST /_matrix/client/v1/widgets/{widget_id}/permissions`                 | `WidgetManager` | `setWidgetPermission()`    | ✅ 已封装                                             |
-| `DELETE /_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}`     | `WidgetManager` | `deleteWidgetPermission()` | ✅ 已封装                                             |
-| `POST /_matrix/client/v1/widgets/{widget_id}/sessions`                    | `WidgetManager` | `createWidgetSession()`    | ✅ 已以路径 `widget_id` 为准，body 中该字段可省略     |
-| `GET /_matrix/client/v1/widgets/{widget_id}/sessions`                     | `WidgetManager` | `getWidgetSessions()`      | ✅ 已封装                                             |
-| `GET /_matrix/client/v1/widgets/sessions/{session_id}`                    | `WidgetManager` | `getWidgetSession()`       | ✅ 已封装                                             |
-| `DELETE /_matrix/client/v1/widgets/sessions/{session_id}`                 | `WidgetManager` | `terminateWidgetSession()` | ✅ 已封装                                             |
-| `GET /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `getWidgetCapabilities()`  | ✅ 已切换到 `v3` 前缀并对齐房间级路径                 |
-| `PUT /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `setWidgetCapabilities()`  | ✅ 已新增公开方法并按后端契约发送 `capabilities` 数组 |
+| `GET /_matrix/vendor/v1/widgets/{widget_id}`                              | `WidgetManager` | `getWidget()`              | ✅ 已封装                                             |
+| `PUT /_matrix/vendor/v1/widgets/{widget_id}`                              | `WidgetManager` | `updateWidget()`           | ✅ 已封装                                             |
+| `DELETE /_matrix/vendor/v1/widgets/{widget_id}`                           | `WidgetManager` | `removeWidget()`           | ✅ 已封装                                             |
+| `GET /_matrix/vendor/v1/rooms/{room_id}/widgets`                          | `WidgetManager` | `getRoomWidgets()`         | ✅ 已封装                                             |
+| `GET /_matrix/vendor/v1/widgets/{widget_id}/config`                       | `WidgetManager` | `getWidgetConfig()`        | ✅ 已封装                                             |
+| `GET /_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`             | `WidgetManager` | `getJitsiConfig()`         | ✅ 已封装                                             |
+| `GET /_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `WidgetManager` | `getWidgetPermissions()`   | ✅ 已封装                                             |
+| `POST /_matrix/vendor/v1/widgets/{widget_id}/permissions`                 | `WidgetManager` | `setWidgetPermission()`    | ✅ 已封装                                             |
+| `DELETE /_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}`     | `WidgetManager` | `deleteWidgetPermission()` | ✅ 已封装                                             |
+| `POST /_matrix/vendor/v1/widgets/{widget_id}/sessions`                    | `WidgetManager` | `createWidgetSession()`    | ✅ 已以路径 `widget_id` 为准，body 中该字段可省略     |
+| `GET /_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `WidgetManager` | `getWidgetSessions()`      | ✅ 已封装                                             |
+| `GET /_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `WidgetManager` | `getWidgetSession()`       | ✅ 已封装                                             |
+| `DELETE /_matrix/vendor/v1/widgets/sessions/{session_id}`                 | `WidgetManager` | `terminateWidgetSession()` | ✅ 已封装                                             |
+| `GET /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `getWidgetCapabilities()`  | ✅ 已切换到 `v3` 前缀并对齐房间级路径                 |
+| `PUT /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `WidgetManager` | `setWidgetCapabilities()`  | ✅ 已新增公开方法并按后端契约发送 `capabilities` 数组 |
 
 ## 当前对齐结论
 
-- `widget.rs` 的 18 个端点已独立建档，不再依赖总表中的路径族摘要。
-- SDK 已覆盖 `vendor` widget CRUD、权限与会话接口，以及 `vendor` 的 `create`、房间级 `capabilities` 路径。
+- `widget.rs` 的 16 个端点已独立建档，不再依赖总表中的路径族摘要。
+- SDK 已覆盖 `v1` widget CRUD、权限与会话接口，以及房间级 `capabilities` 路径。
 - `createWidgetSession()` 仍可兼容携带 body 中的 `widget_id`，但后端现在以路径参数为单一真实来源；若两处不一致则返回 `400`。
 - `v1` widget CRUD、权限与 session 查询/终止接口现已显式要求认证，不再是公开接口；对象级访问也已收敛为创建者、房间成员、管理员或显式授权用户。
-- `WidgetManager.createWidgetV3()` 与 `WidgetManager.createWidget()` 现分别对应 `vendor /widgets/create`（后端未实现，已登记豁免）与 `vendor /widgets` 两条创建链路。
+- ISSUE-13 第二批后**只有一条**创建链路：`POST /_matrix/vendor/v1/widgets`（`WidgetManager.createWidget()` 走它；此前后端同时注册 `v3 /widgets/create` 与 `v1 /widgets` 两条同 handler 路径，已按铁律 1/2 合并，重复路径的 SDK 侧方法、route-table 条目与契约差集登记项已同批删除）。
 
 ## 封装覆盖率
 
-- **后端路由总数**: 18 个端点
-- **SDK 已封装**: 18/18
-- **完全正确封装**: 18/18
-- **路径前缀或契约细节不一致**: 0/18
+- **后端路由总数**: 16 个端点
+- **SDK 已封装**: 16/16
+- **完全正确封装**: 16/16
+- **路径前缀或契约细节不一致**: 0/16
 
 ## 人工 Review 对齐
 
-- `src/widget/index.ts` 已补齐 `POST /_matrix/client/v3/widgets/create` 的公开封装 `createWidget()`。
-- `addWidget()` 保持兼容既有 `v1 /widgets` 行为，不改变老调用方默认路径。
-- `createWidget()` 与 `addWidget()` 共享请求体映射逻辑，避免 `widget_type` / `room_id` / `data` 字段再次分叉。
-- 单测已补充 `v3 createWidget` 成功路径和参数校验覆盖。
+- `src/widget/index.ts` 的 `createWidget()` 走 `POST /_matrix/vendor/v1/widgets`（`widgets/create` 已合并，不再存在）。
+- `createWidget()` 统一映射 `widget_type` / `room_id` / `data` 字段，避免再次分叉。
+- 单测已覆盖 `createWidget()` 成功路径和参数校验。
 
 ## 代码定位
 
