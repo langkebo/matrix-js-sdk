@@ -13,15 +13,15 @@
 
 ## 0. 结论速览
 
-| 级别              | 问题                                                                                           | 一句话                                                                                                                                                                                                                     | 是否阻断 CI              |
-| ----------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **✅ 已闭环**     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                                                                  | 否（不再拦）             |
-| **🔴 P1（最高）** | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类剩余 10 条**（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3；✅ **2026-10-10 已按路线 ③ 收口**，见 §9.11.4）。门禁 `quality:wire-format` **已落地**（§9.11） | **是（门禁已挂 CI 链）** |
-| **🎯 N-02（新）** | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 258 成员用例满负载 30s 超时；**单独跑 113/113 通过** ⇒ CI 间歇红、真缺陷被噪声淹没                                                                                                                      | **间歇（噪声）**         |
-| **🟡 P1-1**       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                                                                             | 否（棘轮已钉住）         |
-| **🟡 P1-2**       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                                                                 | 否（已登记 waiver）      |
-| **P1-3**          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                                                                     | 否（策略债）             |
-| **P2**            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                                                                             | 否                       |
+| 级别              | 问题                                                                                           | 一句话                                                                                                                                                                                                                                 | 是否阻断 CI              |
+| ----------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **✅ 已闭环**     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                                                                              | 否（不再拦）             |
+| **🔴 P1（最高）** | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类 8 条亦已修**（§9.13.1）（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3；✅ **2026-10-10 已按路线 ③ 收口**，见 §9.11.4）。门禁 `quality:wire-format` **已落地**（§9.11） | **是（门禁已挂 CI 链）** |
+| **✅ N-02**       | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 环绕用例原循环 258 个成员、满负载撞 30s 墙钟 ⇒ CI 间歇红；**已修**（`3eb764b0a` / `a389b259c`：改「注入索引」版，`membersToTest = 4`），见 §9.13.2                                                                  | 否（已消）               |
+| **🟡 P1-1**       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                                                                                         | 否（棘轮已钉住）         |
+| **🟡 P1-2**       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                                                                             | 否（已登记 waiver）      |
+| **P1-3**          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                                                                                 | 否（策略债）             |
+| **P2**            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                                                                                         | 否                       |
 
 > **⚠️ 新增最高优先事项**：2026-10-09 与后端 `ROUTE_CONTRACT.md` 附录 B 的**联审**发现
 > **27 条 wire-format 缺陷**（其中 19 条会导致 400 或静默返回空数据）；2026-10-10 又在当前 HEAD 上
@@ -94,7 +94,14 @@
 | `quality:public-api-docs`         | exit 1（R2 指标恶化 + 两处 R3 需下调） | exit 0（台账已下调）             | 见 (5)(7) |
 | `quality:admin-response-contract` | exit 1（`route-not-resolved` 15 → 17） | exit 0（逐条核对后 `--refresh`） | 见 (8)    |
 
-> `pnpm lint` 的链序是 `lint:types → test:types → type-coverage → lint:js → … → coverage:critical-files → gate-reachability → manager-extensions`。  
+> `pnpm lint` 的链序是 `lint:types → test:types → type-coverage → lint:js → … → coverage:critical-files → gate-reachability → manager-extensions`。
+> **⚠️ 2026-10-10 第十九轮实况（上表为历史快照，勿再引用）**：本轮在 `develop @ 23bb55479` 上复跑
+> 24 个单门禁 ⇒ **22 绿 / 2 红**。两红都是**已知口径**而非新缺陷：`quality:docs-counts`
+> （`contract-artifacts.md` 735 vs 实际 729，**已随本轮修好**）与 `quality:cross-repo-pin`
+> （develop 上 pin 故意滞后，workflow 只对 `release/**` 触发，见 §9.13.5）。
+> 另：`pnpm lint` 全链**红**，唯一原因是 **2 个文件的 prettier**（本文档自身 732 行表格对齐 +
+> 未提交的 `src/client-auth.ts`），eslint 段是 `0 errors / 60 warnings` —— 见 §9.13.3 的 D-02。
+
 > `lint:js` 在 `prettier` 那一步就失败，`&&` 短路 ⇒ **P0-2 这条红平时根本走不到**，是单独跑才暴露的。
 
 ---
@@ -1412,26 +1419,26 @@ Error: Test timed out in 30000ms.
 
 #### B 类 —— 响应形状 / 字段名不符 ⇒ **读到 `undefined`**（无 4xx，静默错）
 
-| #       | SDK 位置（期望）                                                                                                      | 后端实际                                                                                                                                                                                                             | 后果                                    | 复核      |
-| ------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------- |
-| 🔴 M-02 | `src/cas/index.ts:57-60`（`{services}`）                                                                              | `cas.rs:307-311` 返回**裸数组** `Vec<ServiceResponse>`                                                                                                                                                               | `services` 恒 `undefined` ⇒ 列表恒空    | ✅ 双侧   |
-| 🔴 R-01 | `src/thread/index.ts:388-406`（`{replies,next_batch}`）                                                               | `thread.rs:453-464` 返回**裸数组** `Json<Vec<ReplyResponse>>`                                                                                                                                                        | 回复列表恒空                            | ✅ 双侧   |
-| 🔴 R-02 | `src/thread/index.ts:225-238`（`{thread}`）                                                                           | `thread.rs:359-376` 返回 `ThreadDetailResponse` **本体**                                                                                                                                                             | `.thread` 恒 `undefined`                | ✅ 双侧   |
-| 🔴 R-04 | `src/media/index.ts:138-163`（`received_bytes` / `upload_id` / `received_chunks` / `bytes_received` / `total_bytes`） | `media/upload.rs:269-274`（`upload_id`/`uploaded_chunks`/`uploaded_size`/`status`）、`:291-295`（complete：`content_uri`/`media_id`/`size`）、`:334-344`（progress：`uploaded_chunks`/`uploaded_size`/`total_size`） | 分块进度/完成结果字段系统性 `undefined` | ✅ 双侧   |
-| 🔴 M-06 | `src/room-keys/index.ts:35-43`（`state`，值域 `pending/approved/rejected`）                                           | `e2ee/devices.rs:395-417` 输出 **`status`**，值域 `pending`/**`cancelled`**/**`fulfilled`**                                                                                                                          | 字段名 **+ 值域**双不符                 | ✅ 双侧   |
-| 🔴 R-03 | `src/cas/index.ts:98-107`（按 **JSON** 解析）                                                                         | `cas.rs:202-205` 返回 **`text/plain`** `yes\n{user}\n`；`:225`/`:246`/`:263` 返回 **XML**                                                                                                                            | JSON 解析抛错 ⇒ CAS 校验链不可用        | ✅ 双侧   |
-| 🔴 R-05 | `src/e2ee/index.ts:135-141`（期望 4 字段）                                                                            | `e2ee/devices.rs:275-300` 仅 `{request_id}`                                                                                                                                                                          | 4 字段全 `undefined`                    | 🟡 待复核 |
-| 🔴 R-06 | `src/room-keys/index.ts:45-47`、`src/device-keys/index.ts:161-163`（缺 `next_batch`）                                 | `e2ee/devices.rs:319-351` 返回 `next_batch`                                                                                                                                                                          | 游标丢失 ⇒ 无法翻页（数据截断）         | 🟡 待复核 |
+| #       | SDK 位置（期望）                                                                                                      | 后端实际                                                                                                                                                                                                             | 后果                                    | 复核               |
+| ------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------ |
+| 🔴 M-02 | `src/cas/index.ts:57-60`（`{services}`）                                                                              | `cas.rs:307-311` 返回**裸数组** `Vec<ServiceResponse>`                                                                                                                                                               | `services` 恒 `undefined` ⇒ 列表恒空    | ✅ 双侧            |
+| 🔴 R-01 | `src/thread/index.ts:388-406`（`{replies,next_batch}`）                                                               | `thread.rs:453-464` 返回**裸数组** `Json<Vec<ReplyResponse>>`                                                                                                                                                        | 回复列表恒空                            | ✅ 双侧            |
+| 🔴 R-02 | `src/thread/index.ts:225-238`（`{thread}`）                                                                           | `thread.rs:359-376` 返回 `ThreadDetailResponse` **本体**                                                                                                                                                             | `.thread` 恒 `undefined`                | ✅ 双侧            |
+| 🔴 R-04 | `src/media/index.ts:138-163`（`received_bytes` / `upload_id` / `received_chunks` / `bytes_received` / `total_bytes`） | `media/upload.rs:269-274`（`upload_id`/`uploaded_chunks`/`uploaded_size`/`status`）、`:291-295`（complete：`content_uri`/`media_id`/`size`）、`:334-344`（progress：`uploaded_chunks`/`uploaded_size`/`total_size`） | 分块进度/完成结果字段系统性 `undefined` | ✅ 双侧            |
+| 🔴 M-06 | `src/room-keys/index.ts:35-43`（`state`，值域 `pending/approved/rejected`）                                           | `e2ee/devices.rs:395-417` 输出 **`status`**，值域 `pending`/**`cancelled`**/**`fulfilled`**                                                                                                                          | 字段名 **+ 值域**双不符                 | ✅ 双侧            |
+| 🔴 R-03 | `src/cas/index.ts:98-107`（按 **JSON** 解析）                                                                         | `cas.rs:202-205` 返回 **`text/plain`** `yes\n{user}\n`；`:225`/`:246`/`:263` 返回 **XML**                                                                                                                            | JSON 解析抛错 ⇒ CAS 校验链不可用        | ✅ 双侧            |
+| 🔴 R-05 | `src/e2ee/index.ts:135-141`（期望 4 字段）                                                                            | `e2ee/devices.rs:275-300` 仅 `{request_id}`                                                                                                                                                                          | 4 字段全 `undefined`                    | ✅ 已修（§9.13.1） |
+| 🔴 R-06 | `src/room-keys/index.ts:45-47`、`src/device-keys/index.ts:161-163`（缺 `next_batch`）                                 | `e2ee/devices.rs:319-351` 返回 `next_batch`                                                                                                                                                                          | 游标丢失 ⇒ 无法翻页（数据截断）         | ✅ 已修（§9.13.1） |
 
 #### C 类 —— **静默失效**（无 4xx，功能不生效；最难发现）
 
-| #       | SDK 位置                                                                     | 后端实际                                                                                                                                                                                        | 后果                                                                            | 复核      |
-| ------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------- |
-| 🔴 M-01 | `src/media/index.ts:439-470`：把 `signature`/`ts` 挂到**普通** download 路由 | 签名端点是 `media/mod.rs:113-116` **`/download_signed/{server}/{id}`** → `download.rs:319-333` 读 `signature` + **`expires`**；普通 `download_media`（`download.rs:298-305`）**不读任何 query** | 签名不生效；SDK 传 `ts` 而后端读 `expires`；SDK **从不**构造 `/download_signed` | ✅ 双侧   |
-| 🔴 M-07 | `src/client-auth.ts:59-61`：MSC2965 旧变体回退 `GET /auth_issuer`            | `assembly.rs` **无 `auth_issuer`**（实测 grep 无匹配，只有 `auth_metadata`）                                                                                                                    | 一旦落入回退分支即 **404**                                                      | ✅ 双侧   |
-| 🟡 M-04 | `src/thread/index.ts:136-152`（query `include`）                             | `thread.rs:59-64` `ListQuery` 读 `include_all`                                                                                                                                                  | 参数被忽略（静默）                                                              | 🟡 待复核 |
-| 🟡 P-08 | `src/cas/index.ts:261`/`:282`/`:303`（query `pgtUrl`）                       | `cas.rs:51`/`:67`/`:75`（读 `pgt_url`，`Option`）                                                                                                                                               | 静默丢弃，`pgt_url` 恒 `None`                                                   | 🟡 待复核 |
-| 🟡 P-11 | `src/device-keys/index.ts:398-414`（声明 `limit` 却不下发）                  | `e2ee/devices.rs:338-351`（后端支持 `limit`）                                                                                                                                                   | 分页能力失效（静默）                                                            | 🟡 待复核 |
+| #       | SDK 位置                                                                     | 后端实际                                                                                                                                                                                        | 后果                                                                            | 复核               |
+| ------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------ |
+| 🔴 M-01 | `src/media/index.ts:439-470`：把 `signature`/`ts` 挂到**普通** download 路由 | 签名端点是 `media/mod.rs:113-116` **`/download_signed/{server}/{id}`** → `download.rs:319-333` 读 `signature` + **`expires`**；普通 `download_media`（`download.rs:298-305`）**不读任何 query** | 签名不生效；SDK 传 `ts` 而后端读 `expires`；SDK **从不**构造 `/download_signed` | ✅ 双侧            |
+| 🔴 M-07 | `src/client-auth.ts:59-61`：MSC2965 旧变体回退 `GET /auth_issuer`            | `assembly.rs` **无 `auth_issuer`**（实测 grep 无匹配，只有 `auth_metadata`）                                                                                                                    | 一旦落入回退分支即 **404**                                                      | ✅ 双侧            |
+| 🟡 M-04 | `src/thread/index.ts:136-152`（query `include`）                             | `thread.rs:59-64` `ListQuery` 读 `include_all`                                                                                                                                                  | 参数被忽略（静默）                                                              | ✅ 已修（§9.13.1） |
+| 🟡 P-08 | `src/cas/index.ts:261`/`:282`/`:303`（query `pgtUrl`）                       | `cas.rs:51`/`:67`/`:75`（读 `pgt_url`，`Option`）                                                                                                                                               | 静默丢弃，`pgt_url` 恒 `None`                                                   | ✅ 已修（§9.13.1） |
+| 🟡 P-11 | `src/device-keys/index.ts:398-414`（声明 `limit` 却不下发）                  | `e2ee/devices.rs:338-351`（后端支持 `limit`）                                                                                                                                                   | 分页能力失效（静默）                                                            | ✅ 已修（§9.13.1） |
 
 #### D 类 —— **功能遗漏**（后端已实现、SDK 无封装）
 
@@ -1443,12 +1450,12 @@ Error: Test timed out in 30000ms.
 
 ### 9.3 解决方案（4 批，每批可独立验收）
 
-| 批次                 | 范围                                   | 改法                                                                                                                                                                                                                                                                                                                                                             | 验收                                             |
-| -------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| **批 1**（最高优先） | A 类 **11 条**（400） **✅ 已完成**    | **只改 SDK 的键名/补必填**：`is_suggested_only`→`suggested_only`（并统一到 `:469` 的写法）、`reason`→`message`、thread 五处 body/query 按后端结构补齐、cas 三处、e2ee 补 `algorithm`。**后端零改动**。thread 族由 `a35496e59` 完成，另 5 条见 §7.15                                                                                                              | 每条补单测断言"发出的键集 ⊇ 后端 serde 必填集"   |
-| **批 2**             | B 类 **8 条 → 剩 6 条**（形状）        | 改 SDK 类型与解析：cas 改 `CasService[]`、thread replies 改裸数组（**已由并行会话完成**）、thread detail 去包裹（**已完成**）、media 分块字段名对齐、`state`→`status` **并校正值域**、cas 校验改按 `text/plain`/XML 解析、`RoomKeyRequestResponse` 对齐 create 端点的单字段。**剩余 = M-02 / R-03 / R-04 / M-06 / R-06 / R-05**（见 §9.10.2 / §9.10.3）          | 每条补响应形状回归测试（含"后端返回裸数组"用例） |
-| **批 3**             | C 类 **5 条 → 剩 4 条 + P-13**（静默） | media：`getDownloadUrl` 在带 `signature` 时改走 `/download_signed/...` 且参数名用 **`expires`**；`pgtUrl`→`pgt_url`；`limit` 真正下发；`auth_issuer` 回退分支要么删除、要么按后端实际路由改写；**P-13**：`cas` 前缀的服务管理面（待产品裁定：后端补别名 vs SDK 删选项）。**剩余 = M-01 / M-07 / P-08 / P-11 / P-13**（`include`→`include_all` 已由并行会话完成） | 断言"URL/参数构造"的纯函数单测                   |
-| **批 4**             | D 类 **3 条 → ✅ 0 条**（遗漏）        | **已完成**：`protectMedia` / `protectMediaById` / `unprotectMedia`、`submitEmailToken(scope)` 均已由并行会话新增；G-01 已裁定（AS 侧协议，不封装）                                                                                                                                                                                                               | 新方法带 `@example`（公开 API 文档棘轮要求）     |
+| 批次                 | 范围                                   | 改法                                                                                                                                                                                                                                                                                                                                                      | 验收                                             |
+| -------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **批 1**（最高优先） | A 类 **11 条**（400） **✅ 已完成**    | **只改 SDK 的键名/补必填**：`is_suggested_only`→`suggested_only`（并统一到 `:469` 的写法）、`reason`→`message`、thread 五处 body/query 按后端结构补齐、cas 三处、e2ee 补 `algorithm`。**后端零改动**。thread 族由 `a35496e59` 完成，另 5 条见 §7.15                                                                                                       | 每条补单测断言"发出的键集 ⊇ 后端 serde 必填集"   |
+| **批 2**             | B 类 **8 条 → 剩 6 条**（形状）        | 改 SDK 类型与解析：cas 改 `CasService[]`、thread replies 改裸数组（**已由并行会话完成**）、thread detail 去包裹（**已完成**）、media 分块字段名对齐、`state`→`status` **并校正值域**、cas 校验改按 `text/plain`/XML 解析、`RoomKeyRequestResponse` 对齐 create 端点的单字段。**剩余 = 0**（全部已修，见 §9.13.1）（见 §9.10.2 / §9.10.3）                 | 每条补响应形状回归测试（含"后端返回裸数组"用例） |
+| **批 3**             | C 类 **5 条 → 剩 4 条 + P-13**（静默） | media：`getDownloadUrl` 在带 `signature` 时改走 `/download_signed/...` 且参数名用 **`expires`**；`pgtUrl`→`pgt_url`；`limit` 真正下发；`auth_issuer` 回退分支要么删除、要么按后端实际路由改写；**P-13**：`cas` 前缀的服务管理面（待产品裁定：后端补别名 vs SDK 删选项）。**剩余 = 0**（全部已修，见 §9.13.1）（`include`→`include_all` 已由并行会话完成） | 断言"URL/参数构造"的纯函数单测                   |
+| **批 4**             | D 类 **3 条 → ✅ 0 条**（遗漏）        | **已完成**：`protectMedia` / `protectMediaById` / `unprotectMedia`、`submitEmailToken(scope)` 均已由并行会话新增；G-01 已裁定（AS 侧协议，不封装）                                                                                                                                                                                                        | 新方法带 `@example`（公开 API 文档棘轮要求）     |
 
 ### 9.4 根本原因与防复发（比逐条修更重要）
 
@@ -1634,7 +1641,7 @@ SDK `d51c56dda`、Tjg `5e9c4b99` 已跟随。
 ⇒ 加固建议：把 `quality:wire-format`（§9.4）与"spec 断言键名同步"纳入同一门禁；
 过渡期纪律 = 改 wire key 时**按目录**枚举 spec，或直接跑 CI 口径的 `pnpm test`。
 
-**N-02 🟡 测试基建存在负载敏感假红（未修，本审计方给出定性）**
+**N-02 ✅ 已修（2026-10-10 同日；本节写成时尚未修 —— develop `3eb764b0a` / release `a389b259c`）**
 `spec/unit/matrix-rtc/MatrixRTCSession.spec.ts` 的 `wraps key index around to 0 …`（`:1267`，`{ timeout: 30000 }`）
 循环 **258 个成员**逐个触发密钥轮换；**单独跑 113/113 通过**，满负载（全量 `pnpm test`）下 `Error: Test timed out in 30000ms`。
 `vi.useFakeTimers()` 只冻结**逻辑时间**，250+ 次唤醒的真实 CPU 开销不受控 ⇒ 上限是**墙钟**而非逻辑时间。
@@ -1882,6 +1889,188 @@ release 线的 `src/admin/**` 与 develop **不是同一内容**（四个文件�
 
 ---
 
+### 9.13 2026-10-10 第十九轮：全量复核（§9.2 / §9.10 / §9.12 的**可销号性**）＋ 6 条新发现
+
+**本轮基线**（一律取**提交对象**，不取工作树）：
+
+| 仓                                          | HEAD                             |
+| ------------------------------------------- | -------------------------------- |
+| matrix-js-sdk `develop`                     | `23bb55479`                      |
+| matrix-js-sdk `release/contract-entrypoint` | `a321796e2`                      |
+| Tjg                                         | `b828f303`（pin 锚 `a321796e2`） |
+| synapse-rust                                | `5ea329a82`                      |
+
+**实跑范围**：`pnpm lint`（全链 11 段）；SDK 侧 24 个单门禁；release worktree 4 个；Tjg 5 个；
+1 组变异自证；四仓 HEAD 与工作区核对。
+
+#### 9.13.1 ✅ 可销号：§9.2 全 27 条 + P-13 已逐条实测修复
+
+| 类       | 条目                                                  | 本轮取证（当前 HEAD）                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A（11）  | P-01 / P-12 / P-02~P-06 / M-05 / P-07 / P-09 / P-10   | `room-summary/index.ts:507` 发 `suggested_only`（`is_suggested_only` 仅作 SDK 侧别名并注明了原因）；`friend-request-manager.ts:114` `body:{user_id,message}`；`thread/index.ts:220/384/404/464-470/562` 五处 body 已按后端结构（`root_event_id`/`content`/`event_id`+`origin_server_ts`/`notification_level`）；`:245` `queryParams:{q:params.term,…}`；cas `target_service`+`pgt` / `service_id`+`service_url_pattern`；`room-keys` 补 `algorithm` |
+| B（8）   | M-02 / R-01 / R-02 / R-03 / R-04 / M-06 / R-05 / R-06 | `cas/index.ts:236-247` `Array.isArray(raw)` 兼容裸数组；thread replies/detail 去包裹；`cas/index.ts:147-162` 新增 text/plain 与 XML 解析器（注释自述"此前按 JSON 解析 ⇒ 校验链恒不可用"）；`media/index.ts:160-162` `uploaded_chunks`/`uploaded_size`/`total_size`；`room-keys/index.ts:41` `status:"pending"\|"cancelled"\|"fulfilled"`、`:53` `next_batch?`、`:36` `request_id`                                                                   |
+| C（5+1） | M-01 / M-04 / M-07 / P-08 / P-11 / P-13               | `media/index.ts:462-476` 带签名时走 `download_signed` 且用 `expires`；`thread/index.ts:189` `include_all`；`client-auth.ts:57` 回退分支已删（仅留说明注释）；`cas/index.ts:354/377` `queryParams.pgt_url`；`device-keys/index.ts:410` `params.limit`；`cas/index.ts:69` `CasServicePrefix = "synapse_admin"`（单一取值）                                                                                                                            |
+| D（3）   | G-01 / G-02 / G-03                                    | `admin-media-manager.ts` 的 `protectMedia`/`protectMediaById`/`unprotectMedia`；`account/index.ts` 的 `submitEmailToken(scope)`；G-01 已裁定不封装（AS 侧协议）                                                                                                                                                                                                                                                                                     |
+
+#### 9.13.2 ✅ 可销号：N-01 / N-02 / §9.12 / DOC-13
+
+| 项                                                  | 结论                                  | 证据                                                                                                                                  |
+| --------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| N-01（改 wire key 漏改子目录 spec）                 | ✅ 已修                               | `09d55a321`                                                                                                                           |
+| **N-02（负载敏感假红）**                            | ✅ **已修**（§9.10.4 记"未修"已过时） | develop `3eb764b0a` / release `a389b259c`：环绕用例改「注入索引」版，`membersToTest = 4`（原 258），注释自述"原实现满负载撞 30s 墙钟" |
+| §9.12 的 3 组「预置未实现」                         | ✅ 已删                               | develop `37dcce63a` / release `a321796e2`；本轮 `grep` 仅命中"已删除"说明注释，代码零残留                                             |
+| DOC-13（`scripts/api_test/ledger.json` 陈旧默认值） | ✅ 后端已收口                         | 该文件已删 + 4 个脚本默认值改必需 + 新增守卫 `tests/unit/api_test_ledger_source_tests.rs`（带"本测试能变红"两态自证）                 |
+
+#### 9.13.3 🔴 本轮新发现（6 条）
+
+**D-01 🔴 release 线的门禁面显著窄于 develop（结构性问题）**
+
+| 对象                                         | develop | release |
+| -------------------------------------------- | ------- | ------- |
+| `quality:*` / `contract:*` / `lint:*` 脚本数 | **86**  | **54**  |
+| `quality:contracts` 链段数                   | **18**  | **9**   |
+
+release **缺**（develop 独有）：`quality:path-contract`、`quality:wire-format`、
+`quality:waiver-expiry`、`quality:docs-counts`、`quality:api-contract-doc-paths`、
+`quality:public-api-docs`、`quality:docs-examples`、`quality:gate-reachability`、
+`quality:coverage:critical-files`、`quality:manager-extensions`、`quality:granular-coverage`、
+`quality:audit-doc-integrity`、`quality:contract-freshness`、`quality:contract-provenance`、
+`quality:msc`、`quality:admin-response-contract`、`quality:log-sensitive` 等。
+
+**取证**：在 release worktree 跑 `pnpm quality:path-contract` ⇒ `Command "…" not found`（exit 254），
+`wire-format` / `docs-counts` / `api-contract-doc-paths` 同。
+**后果**：Tjg 实际消费的这条线上，**路径契约与报文契约都没有机器判据** ⇒ 这正是 §9.2 那批缺陷
+能在 release 线长期存活的**结构性原因**（它们是靠 develop 的门禁发现、再人工到 release 复刻的）。
+处置见 §10 批次 F。
+
+**D-02 🔴 `pnpm lint` 在 develop 上红（2 个文件 prettier 不合格）**
+
+- `artifacts/remaining-issues-and-optimization-plan-2026-10-08.md`（**本文档自身**，732 行表格对齐差异）
+- `src/client-auth.ts`（未提交改动）
+
+eslint 段是 `0 errors / 60 warnings`（不阻断）。⇒ 与 §2.2「P0-1 prettier 红（7 文件）已闭环」
+对照：**prettier 红换了形态回来**（本文档长期未 prettier 化，人工编辑表格即再引入）。处置见 §10 批次 G。
+
+**D-03 🟡 `quality:docs-counts` 红**：`contract-artifacts.md` 写 **735**，实际 **729**
+
+成因链：`d231f3b4c` 写入 735（当时正确）→ `6d84d9876`（死条目剪枝清 6 条）+ `37dcce63a`
+（删 3 组零注册成员）把条目降到 729，**未同步文档** ⇒ 与 §7.9(9) 同型（清账类提交漏同步计数
+文档，**第 3 次**）。**已随本轮修好**（735 → 729，4 处；`quality:docs-counts` 复跑 `exit 0`）。
+
+**D-04 🟡 `quality:api-contract-doc-paths` 存在 11 行漏扫盲区**
+
+判据是 `PATH_RE = /`(\/(?:\_matrix|\_synapse)[^`\s|]\*)`/g`（脚本 `:48`）—— 只认**反引号内以 `/`
+开头**的路径。因此 ``| `GET /path` |`` 这种**方法+路径同反引号**的写法**完全不被扫描**。
+
+实测（与门禁同口径：只扫表格行、跳通配、跳裸前缀）：该形态共 **50 处**，其中 **11 处路径不在
+ledger**（= 棘轮看不见的陈旧引用）：
+
+| 页              | 行                    | 路径                                                                       |
+| --------------- | --------------------- | -------------------------------------------------------------------------- |
+| `federation.md` | 93 / 94               | `/_synapse/admin/v1/federation/blacklist/add` / `…/remove`                 |
+| `thread.md`     | 106 / 107 / 108 / 110 | `/_matrix/client/v1/threads` / `…/subscribed` / `…/unread` / `…/threads`   |
+| `voice.md`      | 121 / 122 / 124       | `/_matrix/client/r0/voice/upload` / `…/stats` / `…/v1/voice/transcription` |
+| `widget.md`     | 114 / 115             | `/_matrix/client/v1/widgets` / `/_matrix/client/v3/widgets/create`         |
+
+处置见 §10 批次 H。
+
+**D-05 🟡 新门禁缺负向测试 spec**：8 个近期门禁里 7 个有 `spec/unit/*-gate.spec.ts`，
+`quality:api-contract-doc-paths` **没有**。本轮已用变异自证补上端到端证据（§9.13.4），组件级仍缺。
+
+**D-06 🟡 半提交 + pin 滞后**
+
+- `src/client-auth.ts` 有未提交改动（M-07 修复后遗留的未使用 import `MatrixError` /
+  `discoverAndValidateOIDCIssuerWellKnown` 的清理），mtime 08:50；**HEAD 上这两个 import
+  确实未被使用**（`git show HEAD:…` 逐行确认 ⇒ 与 §3.4 的"半提交"同型）。
+- Tjg `pin.synapse_rust_commit = 998d2ad2b`，而后端 HEAD 已 `5ea329a82` ⇒ 一旦发 release，
+  `cross-repo-pin --strict` 会判 drift（该 workflow 只对 `release/**` 触发）。
+
+#### 9.13.4 变异自证（本轮新增的红证明）
+
+**`quality:api-contract-doc-paths`**（此前无 spec，端到端证据尤其必要）：
+
+| 步骤                       | 结果                                              |
+| -------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 注入 ``                    | GET                                               | `/_synapse/admin/v1/__probe_not_exist__` \| 探针 \| ``到`admin.md` 主表格 | **exit 1**：报「陈旧行总数由 0 增至 1」+「新页面进入名单：admin.md（1 行）」 |
+| 还原该行                   | `exit 0`，文件与 HEAD 逐字节一致（`git diff` 空） |
+| ⚠️ 反例：首轮探针误写成 `` | `GET /_synapse/…` \| ``（方法+路径同反引号）      | **exit 0**（判据没抓到）—— 正是 **D-04** 那条盲区的现场复现               |
+
+> 方法论：**首轮探针"没抓到"不等于门禁坏了** —— 先核对判据的正则锚定（本例要求反引号内以
+> `/` 开头），再判"门禁无效"。两次探针的差异本身就是 D-04 的证据。
+
+#### 9.13.5 口径澄清（不是缺陷，避免下一轮重复排查）
+
+- `quality:cross-repo-pin` 在 **develop** 上判 drift 是**设计取舍**：`cross-repo-pin.yml` 头注释
+  明说"On develop the pin intentionally lags, so gating every push here would produce permanent
+  noise"，且它只对 `release/**` 触发（带 `--strict`）。
+- release worktree 上 `pnpm quality:<某脚本>` 报 `Command not found`（exit 254）**不是**"门禁失败"，
+  而是 D-01 的直接证据。
+- **本文档已 4 次遭遇「陈旧缓冲区回写」**：本轮开工时它被写成 1875 行（丢整个 §9.12），
+  blob 三角验证无命中 ⇒ 外部进程写回。已备份（`/tmp/audit.bak-19.md`）并从 HEAD 还原（1942 行）。
+  ⇒ 纪律：**编辑本文档前后都必须核 `git status` + 行数 + `git hash-object` 三角验证**。
+
+---
+
+## 10. 下一阶段优化方案（2026-10-10 第十九轮制定）
+
+> 原则：每条**可独立验收**；判定类改动**必须配变异自证**（铁律 8）；两条线（develop / release）
+> 要么同批落地，要么显式登记"只在一线做"的理由。
+
+### 批次 F —— release 线门禁对齐（🔴 最高优先，结构性）
+
+| 步  | 动作                                                                                                                                                                 | 验收                                                            |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| F1  | 对 develop 的 86 个脚本与 release 的 54 个求差集，按「是否依赖 develop 独有的 lib / 台账 / 镜像」分两组                                                              | 一份清单 + 依赖表（预计"无依赖组"约 10 个、"有依赖组"约 22 个） |
+| F2  | 无依赖组整体移植（脚本 + 台账 + `.d.mts` + spec）：`path-contract`、`waiver-expiry`、`docs-counts`、`msc`、`log-sensitive`、`audit-doc-integrity`、`debt-markers` 等 | 每个在 release 上 `exit 0`                                      |
+| F3  | 有依赖组先移植依赖再移植门禁：`wire-format` 需后端的 serde 抽取器与 `ledger_export_sdk` fixture；`api-contract-doc-paths` 需 `docs/api-contract/generated/**`        | 同上                                                            |
+| F4  | 接链：挂进 release 的 `lint` / `quality:contracts`（对齐 develop 的次序）                                                                                            | `pnpm lint` 与 `pnpm quality:contracts` 在 release 上 `exit 0`  |
+| F5  | 新增守卫「两线门禁集合差集」：release 缺任一门禁即红，或必须在 waiver 写明理由                                                                                       | 变异：删 release 一个脚本 ⇒ 红                                  |
+
+**为什么排最高**：这是"Tjg 消费的线缺契约判据"的根因；F5 是防止它**再次**漂移的唯一机制。
+
+### 批次 G —— 让 develop 回到 `pnpm lint` 绿（🔴 立即，低成本）
+
+| 步  | 动作                                                                                                                          | 验收                      |
+| --- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| G1  | 对 `artifacts/remaining-issues-and-optimization-plan-2026-10-08.md` 跑 `prettier --write`（732 行纯表格对齐，**无语义变化**） | `prettier --check` 通过   |
+| G2  | 提交 `src/client-auth.ts` 的未使用 import 清理（修 D-06 那半截）                                                              | `pnpm lint` 全链 `exit 0` |
+| G3  | 把"长审计文档也要 prettier"写进 `AGENTS.md` / `CLAUDE.md`（两处同步），并考虑把 `artifacts/**/*.md` 纳入 lint-staged          | 变异：不改格式提交 ⇒ 被拦 |
+
+### 批次 H —— 门禁鉴别力补强（🟡）
+
+| 步  | 动作                                                                                      | 验收                                                               |
+| --- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| H1  | `api-contract-doc-paths` 的判据扩到「方法+路径同反引号」形态（或新增第二判据）            | 那 11 行**进入**棘轮（总数由 0 变 ≥11），`--write-baseline` 后可见 |
+| H2  | 修 `thread.md` / `voice.md` / `widget.md` / `federation.md` 那 11 行的陈旧路径            | 两个判据都归零                                                     |
+| H3  | 补 `spec/unit/api-contract-doc-paths-gate.spec.ts`（三条规则各一例 + 本轮的两种探针形态） | 组件级红证明                                                       |
+
+### 批次 I —— 跨仓 pin 与计数纪律（🟡）
+
+| 步  | 动作                                                                                                         |
+| --- | ------------------------------------------------------------------------------------------------------------ |
+| I1  | `contract-artifacts.md` 735 → 729（**已随本轮修好**，见 D-03）                                               |
+| I2  | Tjg 重钉 pin（`synapse_rust_commit` → 当前后端 HEAD），并确认 `cross-repo-pin --strict` 在 release 上绿      |
+| I3  | 把"清账类提交必须同步 `docs-counts`"前移到 pre-commit（脚本已有 remediation hint，可做成提交前的 `--check`） |
+
+### 批次 J —— 长期项（沿用，不重复展开）
+
+- C1 剩余 **8** 处（逃逸阀 4 / 多候选 2 / 跨函数传播 1 / 运行时值 1），见 §7.13；
+- `quality:wire-format` 的 **889 条覆盖桶**（9 类），扩能力三方向见 §9.11.2；
+- `knip.ts` entry 与 `package.json` 入口的 **94 文件差集**（见"已知遗留"节）；
+- `check-public-api-docs.mjs` 自身补单测（现以变异自证替代）；
+- 未封装路由的逐条决策（`artifacts/sdk-contract-gap-report.md` §2），补时必须走 `rp()` 契约绑定。
+
+### 依赖与顺序
+
+```
+F1 → F2 → F3 → F4 → F5      （release 门禁对齐：跨仓、需单独授权）
+G1 → G2 → G3                （立即，低风险，可与 F 并行）
+H1 → H2 → H3                （依赖 G1 之后文档不再漂移）
+I2 → I3                     （I2 需要后端内容先冻结）
+```
+
+---
+
 ## 附录 A：本轮核验命令
 
 ```bash
@@ -1937,6 +2126,6 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-10（**第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员**（develop `37dcce63a` / release `a321796e2` / Tjg pin `a321796e2`），见 §9.12；第十七轮：W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4）；第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049`+Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 门禁 0 违规；仍余 N-02（负载假红）（W-01/W-02 已于**第十七轮**收口）。此前：**`quality:wire-format` 门禁落地** + **P-13 修复**。门禁按 §9.4 的设计实现：后端抽 `serde` 结构 / `Query<T>` 键集，SDK 抽**位置形态 + 对象字面量形态**两种调用点（后者占全仓一半以上、`path-contract` 完全不认，cas 全族就在里面），判据 = `SDK 键集 ⊇ 必填集`，`deny_unknown_fields` 时再加 `⊆`；认不出的一律落**具名计数桶且只降不升**（当前 9 类 / 889 条）。**首跑即抓到 1 条此前未知的 A 类缺陷 W-01**（`getSamlRedirect` 发 `idp_id` 而后端 `SamlLoginQuery` 是 `deny_unknown_fields` ⇒ **400**，功能完全不可用）。P-13 按裁定「SDK 删掉服务管理面的 `cas` 选项」实施：`CasServicePrefix` 收窄为单一取值 + `@ts-expect-error` 类型守卫（原 spec 竟把坏行为断言成预期）。含抽取器**四次自我纠错**（全是"假缺陷 / 静默漏抽"方向）。见 §7.17 / §9.11 / §9.8；第十四轮：**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
-**此前更新\*\*: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
+**最后更新**: 2026-10-10（**第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01/N-02/§9.12/DOC-13 销号；新登记 6 条（release 线门禁面仅 54 vs develop 86、`pnpm lint` 因 2 文件 prettier 红、`docs-counts` 735→729、`api-contract-doc-paths` 11 行漏扫、新门禁缺 spec、半提交 + pin 滞后），并给出下一阶段批次 F~J**（§9.13 / §10）；第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员**（develop `37dcce63a` / release `a321796e2` / Tjg pin `a321796e2`），见 §9.12；第十七轮：W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4）；第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049`+Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 门禁 0 违规；仍余 N-02（负载假红）（W-01/W-02 已于**第十七轮**收口）。此前：**`quality:wire-format` 门禁落地** + **P-13 修复**。门禁按 §9.4 的设计实现：后端抽 `serde` 结构 / `Query<T>` 键集，SDK 抽**位置形态 + 对象字面量形态**两种调用点（后者占全仓一半以上、`path-contract` 完全不认，cas 全族就在里面），判据 = `SDK 键集 ⊇ 必填集`，`deny_unknown_fields` 时再加 `⊆`；认不出的一律落**具名计数桶且只降不升**（当前 9 类 / 889 条）。**首跑即抓到 1 条此前未知的 A 类缺陷 W-01**（`getSamlRedirect` 发 `idp_id` 而后端 `SamlLoginQuery` 是 `deny_unknown_fields` ⇒ **400**，功能完全不可用）。P-13 按裁定「SDK 删掉服务管理面的 `cas` 选项」实施：`CasServicePrefix` 收窄为单一取值 + `@ts-expect-error` 类型守卫（原 spec 竟把坏行为断言成预期）。含抽取器**四次自我纠错**（全是"假缺陷 / 静默漏抽"方向）。见 §7.17 / §9.11 / §9.8；第十四轮：**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
+\*\*此前更新\*\*: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
