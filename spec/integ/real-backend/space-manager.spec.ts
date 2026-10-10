@@ -55,7 +55,7 @@ describe("SpaceManager — real backend", () => {
             const space = client.getSpaceManager();
             for (const spaceId of createdSpaces) {
                 try {
-                    await space.deleteSpace(spaceId);
+                    await space.lifecycle.deleteSpace(spaceId);
                 } catch (e) {
                     /* best effort */
                 }
@@ -74,7 +74,7 @@ describe("SpaceManager — real backend", () => {
                 name: `Space backing room ${Date.now()}`,
                 visibility: Visibility.Private,
             });
-            const result = await space.createSpace({
+            const result = await space.lifecycle.createSpace({
                 room_id: backingRoom.room_id,
                 name: `Test Space ${Date.now()}`,
                 topic: "Created by real-backend test",
@@ -89,7 +89,7 @@ describe("SpaceManager — real backend", () => {
             if (!backendAvailable) return;
             if (createdSpaces.length === 0) return;
             const space = client.getSpaceManager();
-            const result = await space.getSpace(createdSpaces[0]);
+            const result = await space.lifecycle.getSpace(createdSpaces[0]);
             expect(result).toBeDefined();
             expect(result).toHaveProperty("room_id");
             expect(result.room_id).toBe(createdSpaces[0]);
@@ -99,7 +99,7 @@ describe("SpaceManager — real backend", () => {
             if (!backendAvailable) return;
             if (createdSpaces.length === 0) return;
             const space = client.getSpaceManager();
-            const updated = await space.updateSpace(createdSpaces[0], {
+            const updated = await space.lifecycle.updateSpace(createdSpaces[0], {
                 name: `Updated Space ${Date.now()}`,
             });
             expect(updated).toBeDefined();
@@ -108,7 +108,7 @@ describe("SpaceManager — real backend", () => {
         it("lists public spaces via getPublicSpaces", async () => {
             if (!backendAvailable) return;
             const space = client.getSpaceManager();
-            const result = await space.getPublicSpaces({ limit: 5 });
+            const result = await space.query.getPublicSpaces({ limit: 5 });
             expect(result).toHaveProperty("spaces");
             expect(Array.isArray(result.spaces)).toBe(true);
         });
@@ -122,15 +122,15 @@ describe("SpaceManager — real backend", () => {
                     name: `Delete Test Space backing room ${Date.now()}`,
                     visibility: Visibility.Private,
                 });
-                const created = await space.createSpace({
+                const created = await space.lifecycle.createSpace({
                     room_id: backingRoom.room_id,
                     name: `Delete Test Space ${Date.now()}`,
                     visibility: "private",
                 });
-                await space.deleteSpace(created.room_id);
+                await space.lifecycle.deleteSpace(created.room_id);
                 // Verify deletion by attempting to get it
                 try {
-                    await space.getSpace(created.room_id);
+                    await space.lifecycle.getSpace(created.room_id);
                 } catch (e) {
                     // Expected: space not found
                     expect(e).toBeDefined();
@@ -138,7 +138,7 @@ describe("SpaceManager — real backend", () => {
             } else {
                 const spaceId = createdSpaces.pop()!;
                 const space = client.getSpaceManager();
-                await space.deleteSpace(spaceId);
+                await space.lifecycle.deleteSpace(spaceId);
             }
         });
 

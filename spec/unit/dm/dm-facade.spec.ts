@@ -6,16 +6,16 @@ Please see LICENSE files in the repository root for full details.
 */
 
 /**
- * `DirectMessageManager` 门面层测试。
+ * `DirectMessageManager` 生命周期 / 事件转发 / 扩展测试。
  *
- * 覆盖三条既有 spec 漏掉的分支（2026-10-01 定向覆盖率实测 65.75%）：
+ * 覆盖 `dm.spec.ts` 漏掉的分支：
  *
  * 1. **生命周期**：`start()` 的并发复用（FT-115：`startPromise` 让并发调用共享同一次初始化）、
  *    失败后的重试语义（失败要清空 `startPromise` 否则永远卡在 rejected promise）、
  *    `stop()` 的监听器解绑（否则 stop 之后事件还会继续冒泡）。
- * 2. **事件转发**：`forwardSubManagerEvents()` 把三个 sub-manager 的事件重新 emit 到顶层，
- *    这是 `@deprecated 委托方法` 能保持向后兼容的关键。
- * 3. **原型扩展**：`extendMatrixClient()` 的两个幂等守卫 —— `MatrixClient.prototype`
+ * 2. **事件转发**：`forwardSubManagerEvents()` 把三个 sub-manager 的事件重新 emit 到顶层。
+ * 3. **缓存统计**：`getCacheStats()` 透传 list sub-manager 的统计。
+ * 4. **原型扩展**：`extendMatrixClient()` 的两个幂等守卫 —— `MatrixClient.prototype`
  *    不存在时直接返回、已经有 `getDirectMessageManager` 时不重复打补丁。
  */
 
@@ -100,8 +100,8 @@ describe("DirectMessageManager 门面层", () => {
             });
             await dmManager.start();
 
-            // 重试成功后 userDmMapCache 应被填充
-            expect(dmManager.userDmMapCache.get("@bob:example.com")).toBe("!dm2:example.com");
+            // 重试成功后 list.userDmMapCache 应被填充
+            expect(dmManager.list.userDmMapCache.get("@bob:example.com")).toBe("!dm2:example.com");
         });
 
         it("忽略 userId 对应的空房间列表（不写入空数组）", async () => {
@@ -114,8 +114,8 @@ describe("DirectMessageManager 门面层", () => {
 
             await dmManager.start();
 
-            expect(dmManager.userDmMapCache.get("@alice:example.com")).toBeUndefined();
-            expect(dmManager.userDmMapCache.get("@bob:example.com")).toBe("!dm:example.com");
+            expect(dmManager.list.userDmMapCache.get("@alice:example.com")).toBeUndefined();
+            expect(dmManager.list.userDmMapCache.get("@bob:example.com")).toBe("!dm:example.com");
         });
 
         it("每个 userId 只取第一个房间 ID", async () => {
@@ -127,7 +127,7 @@ describe("DirectMessageManager 门面层", () => {
 
             await dmManager.start();
 
-            expect(dmManager.userDmMapCache.get("@alice:example.com")).toBe("!first:example.com");
+            expect(dmManager.list.userDmMapCache.get("@alice:example.com")).toBe("!first:example.com");
         });
     });
 
@@ -171,7 +171,7 @@ describe("DirectMessageManager 门面层", () => {
             });
             await dmManager.start();
 
-            expect(dmManager.userDmMapCache.get("@bob:example.com")).toBe("!dm2:example.com");
+            expect(dmManager.list.userDmMapCache.get("@bob:example.com")).toBe("!dm2:example.com");
         });
     });
 
@@ -218,15 +218,10 @@ describe("DirectMessageManager 门面层", () => {
     });
 
     // ========================================================================
-    // 3. 缓存访问器（向后兼容）
+    // 3. 缓存统计
     // ========================================================================
 
-    describe("缓存访问器代理", () => {
-        it("dmRoomsCache 与 userDmMapCache 代理到 list manager 的同一实例", () => {
-            expect(dmManager.dmRoomsCache).toBe(dmManager.list.dmRoomsCache);
-            expect(dmManager.userDmMapCache).toBe(dmManager.list.userDmMapCache);
-        });
-
+    describe("缓存统计", () => {
         it("getCacheStats 返回 list manager 的统计", () => {
             const stats = dmManager.getCacheStats();
 
@@ -238,77 +233,7 @@ describe("DirectMessageManager 门面层", () => {
     });
 
     // ========================================================================
-    // 4. 服务端 DM REST API 委托（synapse-rust 自定义端点）
-    // ========================================================================
-
-    describe("服务端 DM REST API 委托", () => {
-        it("getRoomDm 委托到 list.getRoomDm", async () => {
-            const spy = vi.spyOn(dmManager.list, "getRoomDm").mockResolvedValue({ is_dm: true } as never);
-
-            await dmManager.getRoomDm("!room:example.com");
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com");
-        });
-
-        it("setDirect 委托到 list.setDirect", async () => {
-            const spy = vi.spyOn(dmManager.list, "setDirect").mockResolvedValue(undefined);
-
-            await dmManager.setDirect("!room:example.com");
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com");
-        });
-
-        it("leaveDm 委托到 operation.leaveDm", async () => {
-            const spy = vi.spyOn(dmManager.operation, "leaveDm").mockResolvedValue(undefined);
-
-            await dmManager.leaveDm("!room:example.com");
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com");
-        });
-
-        it("markDmAsRead 委托到 operation.markDmAsRead", async () => {
-            const spy = vi.spyOn(dmManager.operation, "markDmAsRead").mockResolvedValue(undefined);
-
-            await dmManager.markDmAsRead("!room:example.com");
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com");
-        });
-
-        it("sendDmMessage 委托到 operation.sendDmMessage 并回传 event_id", async () => {
-            const spy = vi.spyOn(dmManager.operation, "sendDmMessage").mockResolvedValue("$sent:example.com");
-
-            const result = await dmManager.sendDmMessage("!room:example.com", "hello");
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com", "hello");
-            expect(result).toBe("$sent:example.com");
-        });
-    });
-
-    // ========================================================================
-    // 5. updateDirectRoom 的 overload 分发
-    // ========================================================================
-
-    describe("updateDirectRoom overload 分发", () => {
-        it("传数组时走 userIds 分支", async () => {
-            const spy = vi.spyOn(dmManager.creation, "updateDirectRoom").mockResolvedValue({ updated: true } as never);
-
-            await dmManager.updateDirectRoom("!room:example.com", ["@alice:example.com"]);
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com", ["@alice:example.com"]);
-        });
-
-        it("传对象时走 options 分支", async () => {
-            const options = { userIds: ["@bob:example.com"], extra: true } as never;
-            const spy = vi.spyOn(dmManager.creation, "updateDirectRoom").mockResolvedValue({ updated: true } as never);
-
-            await dmManager.updateDirectRoom("!room:example.com", options);
-
-            expect(spy).toHaveBeenCalledWith("!room:example.com", options);
-        });
-    });
-
-    // ========================================================================
-    // 6. extendMatrixClient 的幂等守卫
+    // 4. extendMatrixClient 的幂等守卫
     // ========================================================================
 
     describe("extendMatrixClient()", () => {

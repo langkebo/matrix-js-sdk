@@ -64,7 +64,7 @@ async function main(): Promise<void> {
 
     // 3.1 创建加密 DM
     await runTest("createDm (encrypted) - 创建加密私信", async () => {
-        testDmRoomId = await dmManagerA.createDm({
+        testDmRoomId = await dmManagerA.creation.createDm({
             userIds: [TestConfig.secondaryUser.userId],
             isEncrypted: true,
         });
@@ -73,83 +73,83 @@ async function main(): Promise<void> {
 
     // 3.2 检查 DM 房间是否存在
     await runTest("getDmForUser - 获取用户私信房间", async () => {
-        const roomId = await dmManagerA.getDmForUser(TestConfig.secondaryUser.userId);
+        const roomId = await dmManagerA.list.getDmForUser(TestConfig.secondaryUser.userId);
         console.log(`      私信房间: ${roomId || "无"}`);
         if (!roomId && testDmRoomId) {
             // 可能缓存未更新，手动设置
-            await dmManagerA.setDmRoom(testDmRoomId, TestConfig.secondaryUser.userId);
+            await dmManagerA.creation.setDmRoom(testDmRoomId, TestConfig.secondaryUser.userId);
         }
     });
 
     // 3.3 获取 DM 房间列表
     await runTest("getDMRooms - 获取私信房间列表", async () => {
-        const rooms = await dmManagerA.getDMRooms();
+        const rooms = await dmManagerA.list.getDMRooms();
         console.log(`      DM 房间数: ${rooms.length}`);
     });
 
     // 3.4 获取按用户分类的房间映射
     await runTest("getDirectRoomsByUser - 获取按用户分类的房间", async () => {
-        const dmMap = await dmManagerA.getDirectRoomsByUser();
+        const dmMap = await dmManagerA.list.getDirectRoomsByUser();
         console.log(`      用户数: ${Object.keys(dmMap).length}`);
     });
 
     // 3.5 发送私信消息
     await runTest("sendDmMessage - 发送私信消息", async () => {
         if (!testDmRoomId) throw new Error("DM 房间未创建");
-        const eventId = await dmManagerA.sendDmMessage(testDmRoomId, "你好！这是测试消息");
+        const eventId = await dmManagerA.operation.sendDmMessage(testDmRoomId, "你好！这是测试消息");
         console.log(`      事件ID: ${eventId}`);
     });
 
     // 3.6 发送第二条消息
     await runTest("sendDmMessage (second) - 发送第二条消息", async () => {
         if (!testDmRoomId) throw new Error("DM 房间未创建");
-        const eventId = await dmManagerA.sendDmMessage(testDmRoomId, "第二条测试消息");
+        const eventId = await dmManagerA.operation.sendDmMessage(testDmRoomId, "第二条测试消息");
         console.log(`      事件ID: ${eventId}`);
     });
 
     // 3.7 获取 DM 房间信息
     await runTest("getDmRoomInfo - 获取私信房间信息", async () => {
         if (!testDmRoomId) throw new Error("DM 房间未创建");
-        const info = await dmManagerA.getDmRoomInfo(testDmRoomId);
+        const info = await dmManagerA.list.getDmRoomInfo(testDmRoomId);
         console.log(`      房间信息: ${JSON.stringify(info)}`);
     });
 
     // 3.8 标记为已读
     await runTest("markDmAsRead - 标记私信为已读", async () => {
         if (!testDmRoomId) throw new Error("DM 房间未创建");
-        await dmManagerA.markDmAsRead(testDmRoomId);
+        await dmManagerA.operation.markDmAsRead(testDmRoomId);
         console.log(`      已标记为已读`);
     });
 
     // 3.9 获取缓存的 DM 房间
     await runTest("getCachedDmRooms - 获取缓存的私信房间", async () => {
-        const cached = dmManagerA.getCachedDmRooms();
+        const cached = dmManagerA.list.getCachedDmRooms();
         console.log(`      缓存房间数: ${cached.length}`);
     });
 
     // 3.10 获取缓存的特定用户 DM
     await runTest("getCachedDmForUser - 获取缓存的私信", async () => {
-        const cached = dmManagerA.getCachedDmForUser(TestConfig.secondaryUser.userId);
+        const cached = dmManagerA.list.getCachedDmForUser(TestConfig.secondaryUser.userId);
         console.log(`      缓存私信: ${cached || "无"}`);
     });
 
     // 3.11 创建非加密 DM (可选)
     await runTest("createDm (non-encrypted) - 创建非加密私信", async () => {
-        const nonEncryptedRoomId = await dmManagerA.createDm({
+        const nonEncryptedRoomId = await dmManagerA.creation.createDm({
             userIds: [TestConfig.secondaryUser.userId],
             isEncrypted: false,
             name: "Test Non-Encrypted DM",
         });
         console.log(`      非加密 DM 房间ID: ${nonEncryptedRoomId}`);
         // 清理：离开这个房间
-        await dmManagerA.leaveDm(nonEncryptedRoomId);
+        await dmManagerA.operation.leaveDm(nonEncryptedRoomId);
     });
 
     // 3.12 设置 DM 房间
     await runTest("setDmRoom - 设置私信房间映射", async () => {
         if (!testDmRoomId) throw new Error("DM 房间未创建");
         // 尝试设置（可能已存在）
-        await dmManagerA.setDmRoom(testDmRoomId, TestConfig.secondaryUser.userId);
+        await dmManagerA.creation.setDmRoom(testDmRoomId, TestConfig.secondaryUser.userId);
         console.log(`      DM 房间映射已设置`);
     });
 
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
     // 离开 DM 房间
     if (testDmRoomId) {
         try {
-            await dmManagerA.leaveDm(testDmRoomId);
+            await dmManagerA.operation.leaveDm(testDmRoomId);
             console.log("   ✅ 已离开 DM 测试房间");
         } catch (e) {
             console.log("   ⚠️ 离开 DM 房间失败");

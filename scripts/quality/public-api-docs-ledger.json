@@ -166,7 +166,7 @@
         },
         "DirectMessageManager": {
             "missingJsDoc": 0,
-            "missingExample": 5,
+            "missingExample": 3,
             "throwsWithoutTag": 0
         },
         "DirectoryManager": {

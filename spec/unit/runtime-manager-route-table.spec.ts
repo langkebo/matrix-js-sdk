@@ -458,7 +458,7 @@ describe("runtime manager route-table contract", () => {
         const client = { http: { authedRequest } } as unknown as ConstructorParameters<typeof SpaceManager>[0];
         const manager = new SpaceManager(client);
 
-        await manager.getPublicSpaces({ limit: 10 });
+        await manager.query.getPublicSpaces({ limit: 10 });
 
         const [method, path, , , options] = authedRequest.mock.calls[0] as [
             string,

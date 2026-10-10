@@ -46,7 +46,7 @@ describe("SpaceManager - Extended Tests", () => {
                 name: "Updated Space",
             });
 
-            const result = await spaceManager.updateSpace("!space:test", {
+            const result = await spaceManager.lifecycle.updateSpace("!space:test", {
                 name: "Updated Space",
                 topic: "New topic",
             });
@@ -64,7 +64,7 @@ describe("SpaceManager - Extended Tests", () => {
         it("should delete space successfully", async () => {
             mockAuthedRequest.mockResolvedValue({});
 
-            await spaceManager.deleteSpace("!space:test");
+            await spaceManager.lifecycle.deleteSpace("!space:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Delete,
@@ -85,7 +85,7 @@ describe("SpaceManager - Extended Tests", () => {
                 total_room_count_estimate: 2,
             });
 
-            const result = await spaceManager.getPublicSpaces({ limit: 10 });
+            const result = await spaceManager.query.getPublicSpaces({ limit: 10 });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/public", { limit: 10 }, undefined, {
                 prefix: VendorPrefix,
@@ -101,7 +101,7 @@ describe("SpaceManager - Extended Tests", () => {
                 total_rooms: 200,
             });
 
-            const stats = await spaceManager.getSpaceStatistics();
+            const stats = await spaceManager.query.getSpaceStatistics();
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/statistics", undefined, undefined, {
                 prefix: VendorPrefix,
@@ -119,7 +119,7 @@ describe("SpaceManager - Extended Tests", () => {
                 ],
             });
 
-            const children = await spaceManager.getSpaceChildren("!space:test", { limit: 20 });
+            const children = await spaceManager.child.getSpaceChildren("!space:test", { limit: 20 });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -134,7 +134,7 @@ describe("SpaceManager - Extended Tests", () => {
         it("should remove child successfully", async () => {
             mockAuthedRequest.mockResolvedValue({});
 
-            await spaceManager.removeChild("!space:test", "!child:test");
+            await spaceManager.child.removeChild("!space:test", "!child:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Delete,
@@ -155,7 +155,7 @@ describe("SpaceManager - Extended Tests", () => {
                 ],
             });
 
-            const members = await spaceManager.getSpaceMembers("!space:test");
+            const members = await spaceManager.member.getSpaceMembers("!space:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -170,7 +170,7 @@ describe("SpaceManager - Extended Tests", () => {
         it("should invite to space successfully", async () => {
             mockAuthedRequest.mockResolvedValue({});
 
-            await spaceManager.inviteToSpace("!space:test", "@user:test", { reason: "Welcome!" });
+            await spaceManager.member.inviteToSpace("!space:test", "@user:test", { reason: "Welcome!" });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -184,7 +184,7 @@ describe("SpaceManager - Extended Tests", () => {
         it("should join space successfully", async () => {
             mockAuthedRequest.mockResolvedValue({ room_id: "!space:test" });
 
-            const result = await spaceManager.joinSpace("!space:test", { via: ["test"] });
+            const result = await spaceManager.member.joinSpace("!space:test", { via: ["test"] });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -199,7 +199,7 @@ describe("SpaceManager - Extended Tests", () => {
         it("should leave space successfully", async () => {
             mockAuthedRequest.mockResolvedValue({});
 
-            await spaceManager.leaveSpace("!space:test");
+            await spaceManager.member.leaveSpace("!space:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Post,
@@ -226,7 +226,7 @@ describe("SpaceManager - Extended Tests", () => {
                     members: [{ user_id: "@user:test" }],
                 });
 
-            const hierarchy = await spaceManager.getSpaceHierarchy("!space:test");
+            const hierarchy = await spaceManager.hierarchy.getSpaceHierarchy("!space:test");
 
             expect(hierarchy.space.space_id).toBe("!space:test");
             expect(hierarchy.children).toHaveLength(1);
@@ -239,7 +239,7 @@ describe("SpaceManager - Extended Tests", () => {
                 next_batch: "next",
             });
 
-            const page = await spaceManager.getSpaceHierarchyPage("!space:test", { limit: 10 });
+            const page = await spaceManager.hierarchy.getSpaceHierarchyPage("!space:test", { limit: 10 });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -256,7 +256,7 @@ describe("SpaceManager - Extended Tests", () => {
                 rooms: [{ room_id: "!space:test" }],
             });
 
-            await spaceManager.getSpaceHierarchyV1("!space:test", { max_depth: 2 });
+            await spaceManager.hierarchy.getSpaceHierarchyV1("!space:test", { max_depth: 2 });
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -273,7 +273,7 @@ describe("SpaceManager - Extended Tests", () => {
                 children: [{ room_id: "!child:test" }],
             });
 
-            const summary = await spaceManager.getSpaceSummaryWithChildren("!space:test");
+            const summary = await spaceManager.hierarchy.getSpaceSummaryWithChildren("!space:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -293,7 +293,7 @@ describe("SpaceManager - Extended Tests", () => {
                 { type: "m.room.topic", content: { topic: "Topic" } },
             ]);
 
-            const state = await spaceManager.getSpaceState("!space:test");
+            const state = await spaceManager.child.getSpaceState("!space:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -312,7 +312,7 @@ describe("SpaceManager - Extended Tests", () => {
                 name: "Parent Space",
             });
 
-            const space = await spaceManager.getSpaceByRoom("!room:test");
+            const space = await spaceManager.query.getSpaceByRoom("!room:test");
 
             expect(mockAuthedRequest).toHaveBeenCalledWith(
                 Method.Get,
@@ -330,7 +330,7 @@ describe("SpaceManager - Extended Tests", () => {
                 space_id: "!space:test",
             });
 
-            const result = await spaceManager.isSpace("!space:test");
+            const result = await spaceManager.query.isSpace("!space:test");
 
             expect(result).toBe(true);
         });
@@ -344,7 +344,7 @@ describe("SpaceManager - Extended Tests", () => {
                     children: Array(10).fill({ room_id: "!child:test" }),
                 });
 
-            const stats = await spaceManager.getSpaceStats("!space:test");
+            const stats = await spaceManager.query.getSpaceStats("!space:test");
 
             expect(stats.memberCount).toBe(50);
             expect(stats.childCount).toBe(10);
@@ -357,8 +357,8 @@ describe("SpaceManager - Extended Tests", () => {
                 spaces: [{ room_id: "!space:test", name: "Cached Space" }],
             });
 
-            await spaceManager.getUserSpaces();
-            const cached = await spaceManager.getUserSpaces();
+            await spaceManager.query.getUserSpaces();
+            const cached = await spaceManager.query.getUserSpaces();
 
             // Should only call API once due to caching
             expect(mockAuthedRequest).toHaveBeenCalledTimes(1);
@@ -370,8 +370,8 @@ describe("SpaceManager - Extended Tests", () => {
                 spaces: [{ room_id: "!space:test", name: "Space" }],
             });
 
-            await spaceManager.getUserSpaces();
-            await spaceManager.getUserSpaces(true);
+            await spaceManager.query.getUserSpaces();
+            await spaceManager.query.getUserSpaces(true);
 
             // Should call API twice due to force refresh
             expect(mockAuthedRequest).toHaveBeenCalledTimes(2);
@@ -383,20 +383,20 @@ describe("SpaceManager - Extended Tests", () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockAuthedRequest.mockRejectedValue(notFoundError);
 
-            await expect(spaceManager.getSpace("!missing:test")).rejects.toBeInstanceOf(NotFoundError);
+            await expect(spaceManager.lifecycle.getSpace("!missing:test")).rejects.toBeInstanceOf(NotFoundError);
         });
 
         it("should handle 404 for getSpaceByRoom", async () => {
             const notFoundError = new MatrixError({ errcode: "M_NOT_FOUND" }, 404, undefined);
             mockAuthedRequest.mockRejectedValue(notFoundError);
 
-            await expect(spaceManager.getSpaceByRoom("!room:test")).rejects.toBeInstanceOf(NotFoundError);
+            await expect(spaceManager.query.getSpaceByRoom("!room:test")).rejects.toBeInstanceOf(NotFoundError);
         });
 
         it("should handle network errors", async () => {
             mockAuthedRequest.mockRejectedValue(new Error("Network error"));
 
-            await expect(spaceManager.getSpace("!space:test")).rejects.toThrow("Network error");
+            await expect(spaceManager.lifecycle.getSpace("!space:test")).rejects.toThrow("Network error");
         });
     });
 });

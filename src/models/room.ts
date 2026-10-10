@@ -983,7 +983,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     public isDirect(): boolean {
         try {
             const dmManager = this.client.getDirectMessageManager();
-            const dmMap = dmManager.getDirectRoomsByUserSync();
+            const dmMap = dmManager.list.getDirectRoomsByUserSync();
             for (const roomIds of Object.values(dmMap)) {
                 if ((roomIds as string[]).includes(this.roomId)) {
                     return true;

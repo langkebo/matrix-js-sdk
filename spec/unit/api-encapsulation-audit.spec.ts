@@ -636,7 +636,7 @@ describe("API encapsulation audit", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const manager = new SpaceManager({ http: { authedRequest } } as any);
 
-        await manager.getUserSpaces(true);
+        await manager.query.getUserSpaces(true);
 
         expect(authedRequest).toHaveBeenCalledWith(Method.Get, "/spaces/user", undefined, undefined, {
             prefix: VendorPrefix,
