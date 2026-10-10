@@ -71,6 +71,20 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// 共享核心已搬到 `check-url-constructors.mjs`（为什么搬、为什么不放 lib/ —— 见该文件
+// 顶部「共享核心」段的长注释）。下面这些名字历史上由**本模块**导出，spec
+// （`verify-path-contract-gate.spec.ts` 等）与 `check-wire-format.mjs` 直接 import ⇒ 原样转出。
+import {
+    LEDGER_PATH,
+    ledgerResolution,
+    loadBackendRoutes,
+    matchAgainstLedger,
+    normalizePath,
+    resolveLedgerPath,
+} from "./check-url-constructors.mjs";
+
+export { loadBackendRoutes, matchAgainstLedger, normalizePath, resolveLedgerPath };
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..", "..");
 
@@ -78,45 +92,12 @@ const EMIT_JSON = process.argv.includes("--json");
 const VERBOSE = process.argv.includes("--verbose");
 
 // ---------------------------------------------------------------------------
-// 1. 加载后端 ledger
+// 1. 加载后端 ledger —— 已搬到 `check-url-constructors.mjs`（见该文件「共享核心」段）
 // ---------------------------------------------------------------------------
-
-/** 兄弟仓的**实时**导出（首选）。 */
-const SIBLING_LEDGER_PATH = "../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json";
-/**
- * 仓内镜像（回退）。`synapse-ledger-sync.yaml` 把后端 ledger 导出同步进来的**纯后端副本**，
- * `docs/api-contract/contract-artifacts.md` 明确它就是「后端 ledger 声明的全部路由」。
- *
- * 为什么需要回退：本门禁原来**只认兄弟仓**，读不到就 `process.exit(2)`；而
- * `.github/workflows/systemic_refactor_quality_gate.yml` 只 checkout 本仓 ⇒
- * CI 上 `quality:contracts` 必然卡在这一步（实测 `LEDGER_PATH=/nonexistent` ⇒ exit 2）。
- * 实测两者在 2026-10-08 的判定逐项一致（539 / 519 / 20 / 0 / 139 全同）⇒ 回退是**保判定**的。
- */
-const MIRROR_LEDGER_PATH = "docs/api-contract/generated/route-manifest.all.json";
-
-/**
- * 解析 ledger 来源（纯函数，spec 直接测）。
- *
- * 优先级：显式 `LEDGER_PATH` > 兄弟仓实时导出 > 仓内镜像。
- * 三者都没有时仍返回兄弟仓路径 —— 让 `loadBackendRoutes` 打出原本那句「请先拉取」。
- *
- * @param {{ explicitPath: string | null; siblingExists: boolean; mirrorExists: boolean }} input
- * @returns {{ path: string; source: "env" | "sibling" | "mirror" | "none" }}
- */
-export function resolveLedgerPath({ explicitPath, siblingExists, mirrorExists }) {
-    if (explicitPath) return { path: explicitPath, source: "env" };
-    if (siblingExists) return { path: SIBLING_LEDGER_PATH, source: "sibling" };
-    if (mirrorExists) return { path: MIRROR_LEDGER_PATH, source: "mirror" };
-    return { path: SIBLING_LEDGER_PATH, source: "none" };
-}
-
-const ledgerResolution = resolveLedgerPath({
-    explicitPath: process.env.LEDGER_PATH ?? null,
-    siblingExists: existsSync(resolve(PROJECT_ROOT, SIBLING_LEDGER_PATH)),
-    mirrorExists: existsSync(resolve(PROJECT_ROOT, MIRROR_LEDGER_PATH)),
-});
-const LEDGER_PATH = ledgerResolution.path;
-const ledgerFile = resolve(PROJECT_ROOT, LEDGER_PATH);
+//
+// 搬走的原因：本门禁与 `check-url-constructors.mjs` 之间原有那条 import 边，使后者被
+// F3「高依赖组」绑住、无法独立移植到 release 线。搬走后依赖方向反过来
+// （尚不可移植的本门禁 → 已可移植的那个），移植顺序因此变得可满足。
 
 /**
  * 覆盖率基线文件（棘轮）：未参与校验的调用点计数，只准降不准升。
@@ -216,33 +197,9 @@ export function summarizeUncheckedShapes(unchecked) {
     return Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]));
 }
 
-/**
- * 读后端 ledger 并建成「`METHOD /归一化路径` → 原始路径」索引。
- *
- * 这一段原先写在顶层：`ledger` 不存在时直接 `process.exit(2)`，于是**只要 import
- * 这个模块就会去读兄弟仓的文件、读不到就退出进程**——spec 连加载都做不到，只能
- * 退而求其次抄一份常量自己测自己（见 `spec/unit/scripts/quality/` 下那份老 spec）。
- * 现在改成函数，由 `main()` 调用；`--json` 之外的入口行为一字未变。
- */
-export function loadBackendRoutes(file = ledgerFile) {
-    if (!existsSync(file)) {
-        console.error(`❌ ledger 不存在: ${file}`);
-        console.error(`   请先拉取/更新 synapse-rust，或设置 LEDGER_PATH 环境变量。`);
-        process.exit(2);
-    }
-
-    const routes = new Map();
-    try {
-        const ledger = JSON.parse(readFileSync(file, "utf8"));
-        for (const entry of ledger.entries) {
-            routes.set(`${entry.method.toUpperCase()} ${normalizePath(entry.path)}`, entry.path);
-        }
-    } catch (e) {
-        console.error(`❌ ledger 解析失败: ${e.message}`);
-        process.exit(2);
-    }
-    return routes;
-}
+// ---------------------------------------------------------------------------
+// loadBackendRoutes —— 已搬到 `check-url-constructors.mjs`（顶部 import 后原样转出）
+// ---------------------------------------------------------------------------
 
 let backendRoutes;
 
@@ -1235,21 +1192,8 @@ export function resolveTemplateLiteral(literal) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. 路径归一化
+// 3. 路径归一化 —— 已搬到 `check-url-constructors.mjs`（顶部 import 后原样转出）
 // ---------------------------------------------------------------------------
-
-export function normalizePath(p) {
-    return (
-        p
-            // ${encodeURIComponent(x)} / ${this.encode(x)} / ${x || y} 等任意插值表达式 → {X}
-            .replace(/\$\{[^}]*\}/g, "{X}")
-            .replace(/\$(\w+)/g, "{X}") // $roomId（无花括号形态）
-            .replace(/\{[^}]+\}/g, "{X}") // {roomId}
-            .replace(/:(\w+)/g, "{X}") // :roomId
-            .split("?")[0]
-            .replace(/\/+$/, "") || "/"
-    );
-}
 
 /**
  * 形态 A（对象字面量，主流写法）：
@@ -1741,44 +1685,9 @@ export function matchBrace(src, openIdx) {
 // 4b. 与后端注册面比对
 // ---------------------------------------------------------------------------
 
-/**
- * 判断 (method, 完整路径) 是否在后端注册面内，并返回**匹配方式**：
- *   "exact"    — 与 ledger 条目逐段完全一致
- *   "wildcard" — 仅靠「SDK 字面量段 ↔ 后端占位符段」等价规则命中。**语义存疑**，
- *                必须单独汇报让人复核：`DELETE /notifications/deactivate` 正是靠这条规则
- *                被误当成 `DELETE /notifications/{notification_id}` 而长期隐形的
- *                （真实情况是后端只有 `PUT /notifications/{id}/deactivate`）。
- *   null       — 未命中
- */
-export function matchAgainstLedger(method, fullPath, routes = backendRoutes) {
-    if (routes.has(`${method} ${fullPath}`)) return "exact";
-
-    const sdkSegments = fullPath.split("/");
-    for (const [backendKey, originalBackendPath] of routes.entries()) {
-        const [backendMethod] = backendKey.split(" ");
-        if (backendMethod !== method) continue;
-
-        const backendSegments = normalizePath(originalBackendPath).split("/");
-        if (sdkSegments.length !== backendSegments.length) continue;
-
-        const compatible = sdkSegments.every((seg, i) => {
-            const bSeg = backendSegments[i];
-            if (seg === bSeg) return true;
-            // 只允许一种放宽：SDK 写了**具体值**而后端声明为占位符，且该具体值形如
-            // Matrix 的事件类型 / 域名（含 "."）。这是为
-            // `send/m.room.message/{txn}` vs `send/{event_type}/{txn_id}` 这类等价而留的。
-            //
-            // 早期版本还允许「SDK 的任意字面量段顶掉任意 {占位符} 段」，结果把
-            // `/notifications/deactivate` 当成 `/notifications/{notification_id}`、
-            // `/federation/blacklist/add` 当成 `/federation/blacklist/{server_name}` ——
-            // 两处真缺陷因此长期隐形。收紧后它们会被正常报出。
-            if (bSeg.startsWith("{") && seg !== "{X}" && seg.includes(".")) return true;
-            return false;
-        });
-        if (compatible) return "wildcard";
-    }
-    return null;
-}
+// ---------------------------------------------------------------------------
+// 4b. 与后端注册面比对 —— 已搬到 `check-url-constructors.mjs`（顶部 import 后原样转出）
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // 5. 遍历源码
@@ -1895,7 +1804,7 @@ function main() {
             for (const prefix of candidates) {
                 const fp = normalizePath(isFullUrl ? pathOnly : (prefix ?? "") + pathOnly);
                 if (fullPath === null) fullPath = fp;
-                const kind = matchAgainstLedger(call.method, fp);
+                const kind = matchAgainstLedger(call.method, fp, backendRoutes);
                 if (kind) {
                     matchKind = kind;
                     fullPath = fp;

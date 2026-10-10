@@ -68,6 +68,15 @@ const ALIASES_FOR_TYPE = new Map([
 ]);
 
 const GATE_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../scripts/quality/verify-path-contract.mjs");
+/**
+ * 共享核心（ledger 解析/读取 + `normalizePath` + `matchAgainstLedger`）在 2026-10-10 搬到了
+ * `check-url-constructors.mjs` —— 让本门禁与它之间的依赖方向反过来，使后者可独立移植到
+ * release 线（理由见那个文件顶部的「共享核心」段）。本模块仍原样转出这些名字。
+ */
+const URL_CONSTRUCTORS_GATE_PATH = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../scripts/quality/check-url-constructors.mjs",
+);
 
 /** 解析 `src/http-api/prefix.ts`，作为前缀常量的唯一真相源。 */
 function parsePrefixSource(): Record<string, Record<string, string>> {
@@ -272,9 +281,20 @@ describe("verify-path-contract: 模块入口", () => {
     it("import 时不跑 main —— 顶层裸跑会去读兄弟仓 ledger，读不到就 process.exit(2)", () => {
         const source = fs.readFileSync(GATE_PATH, "utf8");
         expect(source).toMatch(/if \(import\.meta\.url === `file:\/\/\$\{process\.argv\[1\]\}`\)/);
-        // ledger 加载必须已移出顶层：import 就 exit 的话 spec 连加载都做不到
-        expect(source).toMatch(/export function loadBackendRoutes\(/);
-        expect(source).not.toMatch(/^if \(!existsSync\(ledgerFile\)\)/m);
+        // ledger 加载必须已移出顶层：import 就 exit 的话 spec 连加载都做不到。
+        // 2026-10-10 解耦后，这段加载的**定义**在 check-url-constructors.mjs（本模块 import
+        // 后转出）⇒ 两个文件都要看：谁都不许在顶层裸读 ledger，且定义侧必须仍是「函数」形态。
+        for (const file of [GATE_PATH, URL_CONSTRUCTORS_GATE_PATH]) {
+            const src = fs.readFileSync(file, "utf8");
+            expect(src, file).not.toMatch(/^if \(!existsSync\(ledgerFile\)\)/m);
+            expect(src, file).toMatch(/if \(import\.meta\.url === `file:\/\/\$\{process\.argv\[1\]\}`\)/);
+        }
+        expect(
+            fs.readFileSync(URL_CONSTRUCTORS_GATE_PATH, "utf8"),
+            "定义侧必须把 ledger 加载包成函数，而不是顶层裸跑",
+        ).toMatch(/export function loadBackendRoutes\(/);
+        // 本模块仍对外提供它（spec / check-wire-format.mjs 直接 import）—— 转出而非复制。
+        expect(source).toMatch(/loadBackendRoutes,/);
     });
 });
 
