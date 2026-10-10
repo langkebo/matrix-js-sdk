@@ -88,7 +88,6 @@ export {
     RoomSummaryThreadManager,
     RoomSummarySearchManager,
     RoomSummaryKeyManager,
-    RoomSummaryInvitePolicyManager,
     RoomSummaryEventOperationManager,
 } from "./room-summary";
 export { ThirdPartyManager } from "./third-party";

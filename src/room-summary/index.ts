@@ -24,7 +24,6 @@ limitations under the License.
  * - threads: 线程管理（线程查询、事件密钥）
  * - search: 搜索/发现（层级、公共房间、推荐、收藏、最近、搜索）
  * - keys: 密钥管理（申领密钥、密钥计数、版本、转发、加密事件）
- * - invitePolicy: 邀请策略（黑名单、白名单）
  * - eventOps: 事件操作（通知、能力、同步、账户数据、时间线、元数据等 30+ 方法）
  *
  * 所有原有方法保持向后兼容（委托到子 Manager）。
@@ -94,8 +93,6 @@ export type {
     RoomThreadDetailResult,
     TurnServerConfig,
     StickyEvent,
-    InviteBlocklist,
-    InviteAllowlist,
     HeroesRecalcResult,
     UnreadClearResult,
     BatchSummaryResponse,
@@ -113,7 +110,6 @@ export { RoomSummaryStatsManager, RoomSummaryStatsEvent } from "./sub-managers/r
 export { RoomSummaryThreadManager } from "./sub-managers/room-thread-manager";
 export { RoomSummarySearchManager } from "./sub-managers/room-search-manager";
 export { RoomSummaryKeyManager } from "./sub-managers/room-key-manager";
-export { RoomSummaryInvitePolicyManager } from "./sub-managers/room-invite-policy-manager";
 export { RoomSummaryEventOperationManager } from "./sub-managers/room-event-operation-manager";
 
 import { MatrixClient } from "../client";
@@ -181,8 +177,6 @@ import type {
     RoomThreadDetailResult,
     TurnServerConfig,
     StickyEvent,
-    InviteBlocklist,
-    InviteAllowlist,
     HeroesRecalcResult,
     UnreadClearResult,
     BatchSummaryResponse,
@@ -200,7 +194,6 @@ import { RoomSummaryStatsManager, RoomSummaryStatsEvent } from "./sub-managers/r
 import { RoomSummaryThreadManager } from "./sub-managers/room-thread-manager";
 import { RoomSummarySearchManager, type RoomSearchBody } from "./sub-managers/room-search-manager";
 import { RoomSummaryKeyManager } from "./sub-managers/room-key-manager";
-import { RoomSummaryInvitePolicyManager } from "./sub-managers/room-invite-policy-manager";
 import {
     RoomSummaryEventOperationManager,
     type TranslateEventBody,
@@ -268,7 +261,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
     public readonly threads: RoomSummaryThreadManager;
     public readonly search: RoomSummarySearchManager;
     public readonly keys: RoomSummaryKeyManager;
-    public readonly invitePolicy: RoomSummaryInvitePolicyManager;
     public readonly eventOps: RoomSummaryEventOperationManager;
 
     public constructor(client: MatrixClient, opts?: ManagerOpts) {
@@ -303,7 +295,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         this.threads = new RoomSummaryThreadManager(client, onError);
         this.search = new RoomSummarySearchManager(client, onError);
         this.keys = new RoomSummaryKeyManager(client, onError);
-        this.invitePolicy = new RoomSummaryInvitePolicyManager(client, onCacheInvalidation, onError);
         this.eventOps = new RoomSummaryEventOperationManager(
             client,
             onCacheInvalidation,
@@ -579,16 +570,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      */
     public getRequestStats(): RequestStats {
         const aggregated: RequestStats = { total: 0, successful: 0, failed: 0, retried: 0 };
-        const subManagers = [
-            this.members,
-            this.state,
-            this.stats,
-            this.threads,
-            this.search,
-            this.keys,
-            this.invitePolicy,
-            this.eventOps,
-        ];
+        const subManagers = [this.members, this.state, this.stats, this.threads, this.search, this.keys, this.eventOps];
         for (const sm of subManagers) {
             const s = sm.getRequestStats();
             aggregated.total += s.total;
@@ -609,16 +591,7 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
      */
     public resetRequestStats(): void {
         super.resetRequestStats();
-        for (const sm of [
-            this.members,
-            this.state,
-            this.stats,
-            this.threads,
-            this.search,
-            this.keys,
-            this.invitePolicy,
-            this.eventOps,
-        ]) {
+        for (const sm of [this.members, this.state, this.stats, this.threads, this.search, this.keys, this.eventOps]) {
             sm.resetRequestStats();
         }
     }
@@ -836,23 +809,9 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
         return this.keys.getEncryptedEvents(roomId, options);
     }
 
-    // ----- 邀请策略（委托 → invitePolicy） -----
-
-    async getInviteBlocklist(roomId: string): Promise<InviteBlocklist> {
-        return this.invitePolicy.getInviteBlocklist(roomId);
-    }
-
-    async addInviteBlocklist(roomId: string, userId: string): Promise<void> {
-        return this.invitePolicy.addInviteBlocklist(roomId, userId);
-    }
-
-    async getInviteAllowlist(roomId: string): Promise<InviteAllowlist> {
-        return this.invitePolicy.getInviteAllowlist(roomId);
-    }
-
-    async addInviteAllowlist(roomId: string, userId: string): Promise<void> {
-        return this.invitePolicy.addInviteAllowlist(roomId, userId);
-    }
+    // 邀请策略（黑名单/白名单）由 `InviteBlocklistManager` 唯一提供（`client.getInviteBlocklistManager()`）：
+    // 本类原先的 `invitePolicy` 子管理器是它的**子集重复实现**，且用 client v3 打只存在于
+    // `/_matrix/vendor/v1` 的 `invite_*list`（必然 404），已按"重复实现一律删除"原则移除。
 
     // ----- 事件操作（委托 → eventOps） -----
 

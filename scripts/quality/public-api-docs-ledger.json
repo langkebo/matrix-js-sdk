@@ -484,18 +484,13 @@
             "missingExample": 41,
             "throwsWithoutTag": 11
         },
-        "RoomSummaryInvitePolicyManager": {
-            "missingJsDoc": 0,
-            "missingExample": 4,
-            "throwsWithoutTag": 0
-        },
         "RoomSummaryKeyManager": {
             "missingJsDoc": 0,
             "missingExample": 5,
             "throwsWithoutTag": 0
         },
         "RoomSummaryManager": {
-            "missingJsDoc": 84,
+            "missingJsDoc": 80,
             "missingExample": 4,
             "throwsWithoutTag": 1
         },

@@ -881,24 +881,6 @@ export interface StickyEvent {
     ts?: number;
 }
 
-export interface InviteBlocklist {
-    room_id: string;
-    blocked: Array<{
-        user_id: string;
-        blocked_by: string;
-        blocked_at: number;
-    }>;
-}
-
-export interface InviteAllowlist {
-    room_id: string;
-    allowed: Array<{
-        user_id: string;
-        allowed_by: string;
-        allowed_at: number;
-    }>;
-}
-
 /** POST /_synapse/room_summary/v1/summaries/batch — raw batch response */
 export interface BatchSummaryResponse {
     rooms?: ClientRoomSummary[];
