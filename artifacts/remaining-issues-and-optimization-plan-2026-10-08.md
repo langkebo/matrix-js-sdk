@@ -26,8 +26,8 @@
 | **✅ W-06（已修）**               | SDK `getSsoLoginUrl`/`getCasLoginUrl` **拼错路径段 ⇒ 404**（§9.14.3）                          | **已按裁定修好（§9.14.6）**：删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]` ⇒ `getCasLoginUrl()` 得 `/login/sso/redirect/cas`；Tjg 侧不再把 `'Tjg Client'` 当第二参（那是 `loginType`，会拼成路径段）⇒ 实际 404 已消。**仍待**：release 复刻 + 重打包 + 重钉 pin（Tjg 吃 tarball）                                                                                                                                                  |
 | **✅ W-03/W-05/W-04（全部已修）** | 同族 3 条（§9.14.3 登记；§9.14.6、§9.14.8 收口）                                               | ✅ **W-03** 前端 `handleSamlCallback` 收敛到 SDK `handleCallback`、删 `session_id`（§9.14.6）；✅ **W-05** `OidcManager.ssoRedirect` 改纯 URL 构造器；✅ **W-04**（§9.14.8）`MatrixAuthService.getSsoLoginUrl` **整方法删除** —— 除已知的 `idp_id` 被静默丢弃外，本轮实查还有两处更重：期望 JSON 而后端恒 **302**、且用**带认证**的 `authedRequestWithPath` 打**登录前**端点；零调用点 + `MatrixClientAuth.getSSOLoginUrl` 已是规范实现      |
 | **✅ N-03 / N-04（已修）**        | `Large file change guard` 的两处结构缺陷（§9.14.7）                                            | **N-03** 该门禁**不在任何本地链**（`pnpm lint`/`quality:contracts` 都不含）⇒ 本地永久预演不到、只能等 CI，且**无 per-change 批准**（唯一出口是**全局**旁路）；**N-04** push 事件 `GITHUB_BASE_SHA` 为空 ⇒ 只看 tip 提交 ⇒ **非 tip 提交改大文件不拦**（实测：1766 行文件改 **855 行** 未被拦）。**已修**：加第二判据 `LARGE_FILE_DIFF_LINES`（≥50 行才要求评审 + fail-closed + 打印豁免名单）+ `resolveDiffRange` 改用 `GITHUB_EVENT_BEFORE` |
-| **🔴 W-07（新，已缓解）**         | 前端调用 SDK **已删除**的方法（§9.14.9）                                                       | `Tjg SecurityService.getBackups` → `AdminManager.listBackups()`，而该方法已随 release `a321796e2` 删除；后端 `admin/server.rs:488-493` 有**专测**断言 `/_synapse/admin/v1/backups` **不在** manifest（"backups are managed by external infrastructure"）。**此前一直假绿**（见 N-05）。处置（最小可逆）：`getBackups` 改为不发请求、返回 `[]` + warn。**⏸ 维护页「备份列表」卡片去留待裁定**                                                 |
-| **🔴 N-05（新，未修）**           | `node_modules` 与 `vendor/*.tgz` **可不同步**，门禁看不出来（§9.14.9）                         | `verify:sdk-pin` 的 tarball 段只比 `sha256(tarball 文件)` 与 **`installedSdkPkg.version`（版本字符串）**；release 线改代码**不改版本号** ⇒ **"node_modules 里装的是哪个 commit 打的包"无判据**。实证：重钉前 `vue-tsc` 0，重钉 + 真正 `pnpm install` 后**立刻**暴露 W-07 ⇒ 本地 Tjg 的编译/测试结论**此前可能全部建立在陈旧 SDK 产物上**                                                                                                     |
+| **✅ W-07（已按裁定修）**         | 前端调用 SDK **已删除**的方法（§9.14.9 / §9.14.10）                                            | `Tjg SecurityService.getBackups` → `AdminManager.listBackups()`，该方法已随 release `a321796e2` 删除；后端 `admin/server.rs:488-493` 有**专测**断言 `/_synapse/admin/v1/backups` **不在** manifest。**用户裁定删除**：卡片 + `backupColumns` + `useAdminMaintenance` 全链 + 2 处 subtitle **及 5 个 i18n key** 一并清除；另由测试发现并清掉一个**中文用例名**（`渲染备份列表到表格`）。验收 30 文件 / 305 例绿                               |
+| **✅ N-05（已补判据）**           | `node_modules` 与 `vendor/*.tgz` **可不同步**（§9.14.9 / §9.14.10）                            | 根因：旧判据只比「tarball sha256」与 **版本字符串**，而 release 线改代码**不改版本号** ⇒ 长期假绿。**已补**：pin 增 `sdk_lib_fingerprint`（包内 `lib/` 内容指纹）+ `verify:sdk-pin` fail-closed 比对（缺字段 / 取不到 / 不等三态皆失败）+ schema 扩展 + spec **14 例**；**变异自证 3/3**（含"删比对块 ⇒ 篡改被放过"的反证）。⚠️ 性能：同步版 21.5s ⇒ 并发 16 路 **5.8s**                                                                     |
 | **🟡 D-01（复核）**               | release 线门禁面窄于 develop                                                                   | **实测 53 vs 85** 个门禁类脚本；抽查 7 个全缺（含 `path-contract`/`wire-format`）⇒ Tjg 消费的线上**路径与报文都无机器判据**（§9.14.2）                                                                                                                                                                                                                                                                                                       | 否（结构性）             |
 
 > **⚠️ 新增最高优先事项**：2026-10-09 与后端 `ROUTE_CONTRACT.md` 附录 B 的**联审**发现
@@ -2344,6 +2344,86 @@ grep -rn "\bbackups\b" src/components/ src/views/
 > ② 删除（连带清 `admin.maintenance.backup*` 5 个 i18n key 与 2 处 subtitle 文案）；
 > ③ 改为静态说明（"备份由外部基础设施管理"，需新增 1 个 i18n key）。
 
+#### 9.14.10 2026-10-10 第二十轮续五：W-07 按裁定删除卡片 + **N-05 判据落地**
+
+**用户裁定**：① 维护页「备份列表」卡片**删除**（连带 5 个 i18n key + 2 处 subtitle）；
+② **N-05 判据要补**。
+
+##### 一、W-07 收口：删除整条链（Tjg）
+
+后端 `admin/server.rs:488-493` 有**专测**断言 `/_synapse/admin/v1/backups` **不在** manifest
+（"backups are managed by external infrastructure"），SDK 侧 `AdminManager.listBackups()` 已随
+release `a321796e2` 删除 ⇒ 该卡片**从来只能显示空表格**（旧实现把异常吞掉后返回 `[]`）。
+
+| 文件                            | 删除内容                                                                                                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AdminMaintenance.vue`          | 备份卡片 + `backupColumns` + `backups` 绑定；连带清理**只服务它**的 import（`DataTableColumns` / `NDataTable` / `NTag` / Vue 的 `h`）                              |
+| `useAdminMaintenance.ts`        | `backups` ref / `loadBackups` / 接口声明 / 返回值 / `loadAll` 的扇出                                                                                               |
+| `SecurityService.ts`            | `getBackups`（**上一轮那个 `[]`+warn 兜底版一并删除** —— 用户选的是"删卡片"而非"保留空实现"）                                                                      |
+| `AdminFacadeOpsMethods.ts`      | `getBackups` 转发                                                                                                                                                  |
+| `locales/{zh-CN,en}/admin.json` | `admin.maintenance.backups` / `backup_id` / `backup_size` / `backup_created` / `backup_status`（5 key × 2 语言）＋ `maintenance.subtitle` 去掉「备份」/「backups」 |
+| `typings/i18n.d.ts`             | `pnpm gen:i18n` 重生成（5416 key paths）                                                                                                                           |
+
+**验收**：`vue-tsc --noEmit` **0**；`biome check` 0；`check:i18n` 0（en/zh-CN 一致）；
+`check:i18n-dead-keys` 0（孤儿 0）；受影响 spec **30 文件 / 305 例**全绿。
+⚠️ 过程中漏删了一个**中文用例名**（`渲染备份列表到表格`，字面不含 `backups` 关键字）——
+由测试而非检索发现。**教训：删功能时按"功能名 + 中文措辞"两路各搜一遍。**
+
+##### 二、N-05 判据落地（Tjg）
+
+**判据形状（三角闭合）**
+
+```
+pin.tarball_sha256       ↔ vendor/*.tgz 的 sha256              （原有）
+pin.sdk_lib_fingerprint  ↔ node_modules 里 lib 的内容指纹        （新增 · verify 时算）
+pin.sdk_lib_fingerprint  == 打进该 tarball 的 lib 指纹           （新增 · pack 时算）
+⇒ node_modules 里的 lib == tarball 里的 lib
+```
+
+第三个等号的前提是 `pnpm pack` **不改写 `lib/` 的内容**（它只处理 package.json 的文件清单），
+故 pack 侧指纹直接取**产出该 tarball 的 worktree 的 `lib/`**，无需解包 tarball。
+
+**为什么只看 `lib/`**：`pnpm pack` 会**改写 package.json**（≠ worktree 的）⇒ 纳入会假红；`src/` 虽
+也进包，但消费方只 `import lib/`，而 `lib/` 正是 `src/` 编译出来的产物；`lib/` 是唯一能从
+「worktree」与「node_modules」两侧稳定重算且不受 pack 改写影响的子树。
+
+**实现**：新增 `scripts/sdk-lib-fingerprint.mjs`（单一来源）→ `pack-sdk-tarball.mjs` 写字段、
+`refresh-sdk-pin.mjs` 写字段（以**已安装包**为准 ⇒ refresh 后 verify 自洽）、`verify-sdk-pin.mjs`
+比对；`meta/sdk-pin.schema.json` 因 `additionalProperties: false` **必须同步扩展**（否则
+"unknown field"）；`apply --restore` 时把该字段清空（link 模式下它无意义）。
+
+**fail-closed 三态**：`pin` 缺字段 ⇒ 失败（并打印 repack 命令）；`node_modules` 的 lib 取不到 ⇒
+失败；指纹不等 ⇒ 失败并打印两侧指纹。
+
+**⚠️ 性能：门禁也要量。** 首版同步实现实测 **21.5s**（本机 CLI 的 fs shim 下逐文件 `readFileSync`）。
+基准定位到瓶颈后改**并发 `fs.promises.readFile`（16 路）⇒ 5.8s**：
+
+| 操作（2478 个文件）            | 耗时                                          |
+| ------------------------------ | --------------------------------------------- |
+| `readdir` 遍历                 | 26 ms                                         |
+| 全量 `stat`                    | 24 ms                                         |
+| 全量同步 `readFileSync`+sha256 | **27322 ms** ← 瓶颈                           |
+| 全量并发 read（16 / 64 / 256） | **5.4 / 5.7 / 5.6 s**（已到该 shim 吞吐上限） |
+
+真实 CI（GitHub Actions，无此 shim）会明显更快。**权衡后仍保留"全量内容"**（不用
+`(路径,size)` 清单或抽样）：判据最强、且没有"抽样恰好漏掉"的解释空间。
+
+**验收**
+
+- 新增 `tests/unit/sdk-lib-fingerprint.test.ts` **14 例**（改变指纹的 7 种 / 不该改变的 3 种 /
+  不可知必须 `null` 的 4 种；含"**同长度**改内容也必须变"——只比 size 的判据会漏掉这种）。
+- **变异自证 3/3**（还原逐字节一致）：
+  ① 指纹忽略内容（只用路径）⇒ spec exit 1；
+  ② **端到端**：篡改 `node_modules/matrix-js-sdk/lib/account/index.js` 一个注释 ⇒
+  `verify:sdk-pin` **exit 1**，且失败信息正是 N-05 判据（这就是 W-07 场景的复现）；
+  ③ **决定性反证**：删掉 verify 里的比对块 ⇒ 同样的篡改被**放过**（exit 0）⇒
+  证明该判据是这条路径上的唯一拦截者。
+- 还原后 `verify:sdk-pin` **ok**（5.8s）。
+
+> 📌 **通则（本轮第三类"假绿"）**：一个门禁只比"**标识**"（版本号 / 文件名 / 存在性）而不比
+> "**内容**"，在"同标识不同内容"的合法操作下**必然假绿**。补判据时要问：
+> 「我比的是这条记录的身份，还是它承载的东西？」N-05 就是答案错在这一步。
+
 ---
 
 ## 10. 下一阶段优化方案（2026-10-10 第十九轮制定，第二十轮增补 F~M）
@@ -2539,6 +2619,6 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-10（**第二十轮：独立复核 §9.13 的 6 条 + 新发现 4 条（W-03～W-06）与两处结构性盲区** —— 实测 `pnpm lint` 全链 `exit 0`（D-02 销号）、D-03 / D-06 前半销号；**D-01（release 门禁面 53 vs 85）/ D-04 / D-05 / D-06 后半**复核仍存在；新登记 **W-03**（前端 `handleSamlCallback` 发 `session_id`，后端 `deny_unknown_fields` ⇒ 400）、**W-04**（前端 `idp_id` 被静默丢弃）、**W-05**（`OidcManager.ssoRedirect` 期望 JSON 而后端恒 302）、**W-06**（`getSsoLoginUrl` / `getCasLoginUrl` 拼错路径段 ⇒ **404**）；并点出**两处结构性盲区** ——「URL 构造器」无门禁、「前端裸调」无门禁。下一阶段增补 **批次 K / L / M** 并修订依赖顺序，见 §9.14 / §10。**第二十轮续（同日）：W-06 / W-03 / W-05 按裁定落地** —— `getSsoLoginUrl` 删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]`（`getCasLoginUrl()` 得 `/login/sso/redirect/cas`）、Tjg 调用点不再把 `'Tjg Client'` 当第二参并**删除**错误的重复类型声明、前端 `handleSamlCallback` 收敛到 SDK `handleCallback`（删 `session_id`）、`OidcManager.ssoRedirect` 改为**纯 URL 构造器**；变异自证 3/3、SDK 62 例 + Tjg 109 例绿，见 §9.14.6。**第二十轮续二：`Large file change guard` 加固** —— 该门禁首步红（改 4399 行的 `src/client.ts` 只改 4 行却被拦），暴露 **N-03**（不在任何本地链 ⇒ 本地预演不到 + 无 per-change 批准）与 **N-04**（push 只看 tip 提交 ⇒ 非 tip 提交改大文件不拦，实测 1766 行文件改 **855 行** 被放行）；按裁定加第二判据 `LARGE_FILE_DIFF_LINES`（≥50 行才要求评审、fail-closed、打印豁免名单）并改 `resolveDiffRange` 用 `GITHUB_EVENT_BEFORE`；spec 8→22 例、变异自证 3/3、边界与 A/B 端到端各一组，见 §9.14.7。**第二十轮续三：W-04 收口** —— 删除 Tjg `MatrixAuthService.getSsoLoginUrl`（零调用点、第二真源；实查还发现它期望 JSON 而后端恒 **302**、并**用带认证的传输层打登录前端点**）⇒ SSO 入口唯一收敛到 `MatrixClientAuth.getSSOLoginUrl`；加 2 条点状守卫 + 变异自证（两条守卫各红一次），Tjg spec 33 → 35 例，见 §9.14.8。**第二十轮续四：release 复刻 + 重钉 pin** —— release 线 cherry-pick `882b6ce24`（7 个代码/spec 文件自动合并，3 个 develop 独有文档/台账 modify-delete 冲突按 release 现状删除）⇒ `9740e1ef2`；`build:compile`+`build:types` 后打 tarball 重钉（`sdk_commit=9740e1ef2`、`tarball_sha256=76b1c14c…`、`verify:sdk-pin` ok、`pnpm install --update-checksums` 更新 lockfile）。⚠️ 重钉过程两处工程坑（`pnpm clean`/`pnpm pack` 的 `prepare` 撞 CLI 批量删除护栏，后者曾误删 vendor tarball，已恢复；绕过用 `npm_config_ignore_scripts=true`）。🔴 **重钉暴露 W-07**（Tjg 调 `AdminManager.listBackups`，该方法已被删；`a321796e2` 提交信息里"Tjg 侧零引用（已 grep 确认）"**不成立**）与 **N-05**（`node_modules` 与 tarball 可不同步、`verify:sdk-pin` 只比版本字符串 ⇒ 长期假绿）。⚠️ 根因是我用 `grep "\b…\b"` 判引用——该写法在 CLI shim 下**静默返空**（**同一个坑第 2 次**）。见 §9.14.9。⚠️ 同批实录**第 6 次陈旧缓冲区回写**（本审计文档缺 §9.14.7，已从 HEAD 恢复）。第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01 / N-02 / §9.12 / DOC-13 销号；新登记 6 条（D-01～D-06），给出批次 F~J（§9.13 / §10）。第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员（develop `37dcce63a` / release `a321796e2`），见 §9.12。第十七轮：**W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4。第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049` + Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 0 违规。第十五轮：**`quality:wire-format` 门禁落地** + P-13 修复（首跑即抓到 W-01），含抽取器四次自我纠错，见 §7.17 / §9.11 / §9.8。第十四轮：批 1 的 CI 回归定位与修复（`09d55a321`）+ §9.2 逐条双侧复核（§0 / §7.16 / §9.10）。第十三轮：§9.3 批 1 落地，A 类 11 条关闭，新发现 P-13（§7.15 / §9.8）。第十二轮：后端 `ROUTE_CONTRACT.md` 附录 B 联审 —— 27 条逐条回源复核，新增 §9 清单 + 4 批方案 + `quality:wire-format` 设计，并实测出附录 B 两处引证错误（§7.14 / §9）；同日晚修 §7.11 哨兵标题归一化误报。第十一轮：`concat` 形态攻破，未校验 **11 → 8**（§7.13）。第十轮：D2 收尾（§7.12）。第九轮：审计文档章节完整性哨兵（§7.11）。第八轮：C4 降级（§7.10）。第七轮：E3 推送与 CI 首跑修复 8 处至 Quality Gate 首次全绿（run `37927667293`，§7.9）。此前第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记见 §7.5）
+**最后更新**: 2026-10-10（**第二十轮：独立复核 §9.13 的 6 条 + 新发现 4 条（W-03～W-06）与两处结构性盲区** —— 实测 `pnpm lint` 全链 `exit 0`（D-02 销号）、D-03 / D-06 前半销号；**D-01（release 门禁面 53 vs 85）/ D-04 / D-05 / D-06 后半**复核仍存在；新登记 **W-03**（前端 `handleSamlCallback` 发 `session_id`，后端 `deny_unknown_fields` ⇒ 400）、**W-04**（前端 `idp_id` 被静默丢弃）、**W-05**（`OidcManager.ssoRedirect` 期望 JSON 而后端恒 302）、**W-06**（`getSsoLoginUrl` / `getCasLoginUrl` 拼错路径段 ⇒ **404**）；并点出**两处结构性盲区** ——「URL 构造器」无门禁、「前端裸调」无门禁。下一阶段增补 **批次 K / L / M** 并修订依赖顺序，见 §9.14 / §10。**第二十轮续（同日）：W-06 / W-03 / W-05 按裁定落地** —— `getSsoLoginUrl` 删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]`（`getCasLoginUrl()` 得 `/login/sso/redirect/cas`）、Tjg 调用点不再把 `'Tjg Client'` 当第二参并**删除**错误的重复类型声明、前端 `handleSamlCallback` 收敛到 SDK `handleCallback`（删 `session_id`）、`OidcManager.ssoRedirect` 改为**纯 URL 构造器**；变异自证 3/3、SDK 62 例 + Tjg 109 例绿，见 §9.14.6。**第二十轮续二：`Large file change guard` 加固** —— 该门禁首步红（改 4399 行的 `src/client.ts` 只改 4 行却被拦），暴露 **N-03**（不在任何本地链 ⇒ 本地预演不到 + 无 per-change 批准）与 **N-04**（push 只看 tip 提交 ⇒ 非 tip 提交改大文件不拦，实测 1766 行文件改 **855 行** 被放行）；按裁定加第二判据 `LARGE_FILE_DIFF_LINES`（≥50 行才要求评审、fail-closed、打印豁免名单）并改 `resolveDiffRange` 用 `GITHUB_EVENT_BEFORE`；spec 8→22 例、变异自证 3/3、边界与 A/B 端到端各一组，见 §9.14.7。**第二十轮续三：W-04 收口** —— 删除 Tjg `MatrixAuthService.getSsoLoginUrl`（零调用点、第二真源；实查还发现它期望 JSON 而后端恒 **302**、并**用带认证的传输层打登录前端点**）⇒ SSO 入口唯一收敛到 `MatrixClientAuth.getSSOLoginUrl`；加 2 条点状守卫 + 变异自证（两条守卫各红一次），Tjg spec 33 → 35 例，见 §9.14.8。**第二十轮续四：release 复刻 + 重钉 pin** —— release 线 cherry-pick `882b6ce24`（7 个代码/spec 文件自动合并，3 个 develop 独有文档/台账 modify-delete 冲突按 release 现状删除）⇒ `9740e1ef2`；`build:compile`+`build:types` 后打 tarball 重钉（`sdk_commit=9740e1ef2`、`tarball_sha256=76b1c14c…`、`verify:sdk-pin` ok、`pnpm install --update-checksums` 更新 lockfile）。⚠️ 重钉过程两处工程坑（`pnpm clean`/`pnpm pack` 的 `prepare` 撞 CLI 批量删除护栏，后者曾误删 vendor tarball，已恢复；绕过用 `npm_config_ignore_scripts=true`）。🔴 **重钉暴露 W-07**（Tjg 调 `AdminManager.listBackups`，该方法已被删；`a321796e2` 提交信息里"Tjg 侧零引用（已 grep 确认）"**不成立**）与 **N-05**（`node_modules` 与 tarball 可不同步、`verify:sdk-pin` 只比版本字符串 ⇒ 长期假绿）。⚠️ 根因是我用 `grep "\b…\b"` 判引用——该写法在 CLI shim 下**静默返空**（**同一个坑第 2 次**）。见 §9.14.9。**第二十轮续五：W-07 删除 + N-05 判据** —— 按裁定删除维护页「备份列表」整条链（卡片 / `useAdminMaintenance` / `SecurityService` / facade / **5 个 i18n key × 2 语言** + 2 处 subtitle，并清掉一个由测试才发现的**中文用例名**）；N-05 落地为 `scripts/sdk-lib-fingerprint.mjs`+ `pin.sdk_lib_fingerprint` 三角闭合判据（pack/refresh 写、verify fail-closed 比对、schema 同步扩展），spec 14 例、**变异自证 3/3**（含决定性反证：删比对块则篡改被放过）。⚠️ 门禁性能也量过：同步 21.5s → 并发 16 路 5.8s（瓶颈是本机 fs shim 的逐文件读）。见 §9.14.10。⚠️ 同批实录**第 6 次陈旧缓冲区回写**（本审计文档缺 §9.14.7，已从 HEAD 恢复）。第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01 / N-02 / §9.12 / DOC-13 销号；新登记 6 条（D-01～D-06），给出批次 F~J（§9.13 / §10）。第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员（develop `37dcce63a` / release `a321796e2`），见 §9.12。第十七轮：**W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4。第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049` + Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 0 违规。第十五轮：**`quality:wire-format` 门禁落地** + P-13 修复（首跑即抓到 W-01），含抽取器四次自我纠错，见 §7.17 / §9.11 / §9.8。第十四轮：批 1 的 CI 回归定位与修复（`09d55a321`）+ §9.2 逐条双侧复核（§0 / §7.16 / §9.10）。第十三轮：§9.3 批 1 落地，A 类 11 条关闭，新发现 P-13（§7.15 / §9.8）。第十二轮：后端 `ROUTE_CONTRACT.md` 附录 B 联审 —— 27 条逐条回源复核，新增 §9 清单 + 4 批方案 + `quality:wire-format` 设计，并实测出附录 B 两处引证错误（§7.14 / §9）；同日晚修 §7.11 哨兵标题归一化误报。第十一轮：`concat` 形态攻破，未校验 **11 → 8**（§7.13）。第十轮：D2 收尾（§7.12）。第九轮：审计文档章节完整性哨兵（§7.11）。第八轮：C4 降级（§7.10）。第七轮：E3 推送与 CI 首跑修复 8 处至 Quality Gate 首次全绿（run `37927667293`，§7.9）。此前第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记见 §7.5）
 \*\*此前更新\*\*: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
