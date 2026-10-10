@@ -123,6 +123,8 @@ export interface CasAuthenticationSuccess {
     user: string;
     pgtIou?: string;
     proxies?: string[];
+    /** CAS XML 的 `<cas:attributes>` 子树（键 → 值数组） */
+    attributes?: Record<string, string[]>;
 }
 
 export interface CasAuthenticationFailure {
@@ -139,6 +141,54 @@ export interface CasServiceValidateResponse {
 
 export interface CasProxyResponse {
     proxyTicket: string;
+}
+
+/**
+ * 解析 `GET /_synapse/cas/serviceValidate` 的 **text/plain** 响应（`yes\n<user>` / `no`）。
+ *
+ * 后端 `cas.rs::service_validate` 返回 text/plain，此前 SDK 按 JSON 解析 ⇒ 校验链恒不可用。
+ */
+function parseServiceValidateText(text: string): CasServiceValidateResponse {
+    const lines = text.split("\n").map((l) => l.trim());
+    if (lines[0] === "yes" && lines[1]) {
+        return { serviceResponse: { authenticationSuccess: { user: lines[1] } } };
+    }
+    const description =
+        lines.slice(1).join(" ").trim() || (lines[0] === "no" ? "Ticket not recognized" : text.slice(0, 200));
+    return { serviceResponse: { authenticationFailure: { code: "INVALID_TICKET", description } } };
+}
+
+/**
+ * 解析 CAS **XML** 响应（`cas_service.rs::to_xml` 的形状）。只覆盖后端实际生成的子集。
+ */
+function parseCasXmlResponse(xml: string): CasServiceValidateResponse {
+    const failure = /<cas:authenticationFailure\s+code="([^"]*)"\s*>([\s\S]*?)<\/cas:authenticationFailure>/.exec(xml);
+    if (failure) {
+        return { serviceResponse: { authenticationFailure: { code: failure[1], description: failure[2].trim() } } };
+    }
+    const user = /<cas:user>([\s\S]*?)<\/cas:user>/.exec(xml)?.[1]?.trim();
+    if (!user) {
+        return {
+            serviceResponse: {
+                authenticationFailure: { code: "INVALID_RESPONSE", description: xml.trim().slice(0, 200) },
+            },
+        };
+    }
+    const pgt = /<cas:proxyGrantingTicket>([\s\S]*?)<\/cas:proxyGrantingTicket>/.exec(xml)?.[1]?.trim();
+    const attributes: Record<string, string[]> = {};
+    const attrsBlock = /<cas:attributes>([\s\S]*?)<\/cas:attributes>/.exec(xml)?.[1] ?? "";
+    for (const m of attrsBlock.matchAll(/<cas:([A-Za-z0-9_.-]+)>([\s\S]*?)<\/cas:\1>/g)) {
+        (attributes[m[1]] ??= []).push(m[2].trim());
+    }
+    return {
+        serviceResponse: {
+            authenticationSuccess: {
+                user,
+                ...(pgt ? { pgtIou: pgt } : {}),
+                ...(Object.keys(attributes).length ? { attributes } : {}),
+            },
+        },
+    };
 }
 
 export class CasManager extends BaseManager {
@@ -181,7 +231,18 @@ export class CasManager extends BaseManager {
         // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
         const path = this.resolvePath(prefix, "/services");
         return await this.withRetry(async () => {
-            return await this.request<CasServiceListResponse>({ method: Method.Get, path: path, prefix: prefixValue });
+            // 后端 `cas.rs::list_services` 返回**裸数组**（`Json(Vec<ServiceResponse>)`），
+            // 不是 `{ services }` ⇒ 此前 `.services` 恒 undefined。
+            const raw = await this.request<CasService[] | CasServiceListResponse>({
+                method: Method.Get,
+                path: path,
+                prefix: prefixValue,
+            });
+            if (Array.isArray(raw)) {
+                return { services: raw, total: raw.length };
+            }
+            const services = raw.services ?? [];
+            return { services, total: raw.total ?? services.length };
         }, "listServices");
     }
 
@@ -290,15 +351,17 @@ export class CasManager extends BaseManager {
         this.requireNonEmptyString(service, "service");
         const queryParams: Record<string, string> = { service };
         if (ticket) queryParams.ticket = ticket;
-        if (pgtUrl) queryParams.pgtUrl = pgtUrl;
+        if (pgtUrl) queryParams.pgt_url = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.request<CasServiceValidateResponse>({
+            const text = await this.request<string>({
                 method: Method.Get,
                 path: "/serviceValidate",
                 queryParams: queryParams,
                 prefix: CAS_API_PREFIX.cas,
+                textResponse: true,
             });
+            return parseServiceValidateText(text);
         }, "serviceValidate");
     }
 
@@ -311,15 +374,17 @@ export class CasManager extends BaseManager {
         this.requireNonEmptyString(service, "service");
         const queryParams: Record<string, string> = { service };
         if (ticket) queryParams.ticket = ticket;
-        if (pgtUrl) queryParams.pgtUrl = pgtUrl;
+        if (pgtUrl) queryParams.pgt_url = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.request<CasServiceValidateResponse>({
+            const xml = await this.request<string>({
                 method: Method.Get,
                 path: "/proxyValidate",
                 queryParams: queryParams,
                 prefix: CAS_API_PREFIX.cas,
+                textResponse: true,
             });
+            return parseCasXmlResponse(xml);
         }, "proxyValidate");
     }
 
@@ -332,15 +397,17 @@ export class CasManager extends BaseManager {
         this.requireNonEmptyString(service, "service");
         const queryParams: Record<string, string> = { service };
         if (ticket) queryParams.ticket = ticket;
-        if (pgtUrl) queryParams.pgtUrl = pgtUrl;
+        if (pgtUrl) queryParams.pgt_url = pgtUrl;
         if (renew) queryParams.renew = "true";
         return await this.withRetry(async () => {
-            return await this.request<CasServiceValidateResponse>({
+            const xml = await this.request<string>({
                 method: Method.Get,
                 path: "/p3/serviceValidate",
                 queryParams: queryParams,
                 prefix: CAS_API_PREFIX.cas,
+                textResponse: true,
             });
+            return parseCasXmlResponse(xml);
         }, "p3ServiceValidate");
     }
 
@@ -352,6 +419,7 @@ export class CasManager extends BaseManager {
      * **400**，2026-10-09 实测）。`pgt` 无值时不发送 —— 后端虽标为必填，但调用方
      * 无 `pgt` 时保持原有行为不变。
      *
+     * @throws {Error} 后端返回 `authenticationFailure`（无 `proxyGrantingTicket`）时
      * @example
      * ```typescript
      * const result = await client.getCasManager().proxy("https://sso.example.com", "PGT-abc");
@@ -363,12 +431,21 @@ export class CasManager extends BaseManager {
         const queryParams: Record<string, string> = { target_service: targetService };
         if (pgt) queryParams.pgt = pgt;
         return await this.withRetry(async () => {
-            return await this.request<CasProxyResponse>({
+            const xml = await this.request<string>({
                 method: Method.Get,
                 path: "/proxy",
                 queryParams: queryParams,
                 prefix: CAS_API_PREFIX.cas,
+                textResponse: true,
             });
+            const parsed = parseCasXmlResponse(xml);
+            const ticket = parsed.serviceResponse.authenticationSuccess?.pgtIou;
+            if (!ticket) {
+                throw new Error(
+                    `CAS proxy failed: ${parsed.serviceResponse.authenticationFailure?.code ?? "INVALID_RESPONSE"}`,
+                );
+            }
+            return { proxyTicket: ticket };
         }, "proxy");
     }
 

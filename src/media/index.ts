@@ -157,9 +157,14 @@ export interface ChunkUploadCancelResponse {
 export interface ChunkUploadProgressResponse {
     upload_id: string;
     total_chunks: number;
-    received_chunks: number;
-    bytes_received: number;
-    total_bytes: number;
+    /** 已接收分块数（后端键 `uploaded_chunks`） */
+    uploaded_chunks: number;
+    /** 已接收字节数（后端键 `uploaded_size`） */
+    uploaded_size: number;
+    /** 总字节数（后端键 `total_size`） */
+    total_size?: number;
+    /** 上传状态（后端 `status`） */
+    status?: string;
     [key: string]: unknown;
 }
 
@@ -448,9 +453,13 @@ export class MediaManager extends BaseManager {
 
         const { serverName, mediaId } = parsed;
         const version = options.version ?? "v3";
-        const prefix = options.useAuthentication
-            ? "/_matrix/client/v1/media/download"
-            : `/_matrix/media/${version}/download`;
+        // 带签名时必须走签名端点：普通 download 完全不读签名参数，
+        // 只有 `/_matrix/media/{version}/download_signed/...` 会校验 `signature` + `expires`。
+        const isSigned = Boolean(options.signature);
+        const prefix =
+            options.useAuthentication && !isSigned
+                ? "/_matrix/client/v1/media/download"
+                : `/_matrix/media/${version}/${isSigned ? "download_signed" : "download"}`;
         const encodedServer = encodeURIComponent(serverName);
         const encodedMediaId = encodeURIComponent(mediaId);
         const encodedFilename = options.filename ? `/${encodeURIComponent(options.filename)}` : "";
@@ -463,7 +472,8 @@ export class MediaManager extends BaseManager {
         // m-30: 添加签名参数（HMAC-SHA256 认证媒体 URL）
         if (options.signature) {
             url.searchParams.set("signature", options.signature);
-            url.searchParams.set("ts", (options.timestamp ?? Date.now()).toString());
+            // 后端读 `expires`（不是 `ts`），见 `media/download.rs:325-330`。
+            url.searchParams.set("expires", (options.timestamp ?? Date.now()).toString());
         }
 
         return url.href;

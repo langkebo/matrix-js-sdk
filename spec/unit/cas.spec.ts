@@ -35,14 +35,14 @@ describe("CasManager", () => {
 
     describe("synapse_admin prefix (default)", () => {
         it("listServices should send GET /cas/services with admin prefix", async () => {
-            transport.respondWith({
-                services: [{ id: "1", name: "Test", service_url: "https://sso.test", enabled: true }],
-            });
+            // 后端 `cas.rs::list_services` 返回**裸数组**（不是 `{ services }`）
+            transport.respondWith([{ id: "1", name: "Test", service_url: "https://sso.test", enabled: true }]);
 
             const result = await manager.listServices();
 
             expect(result.services).toHaveLength(1);
             expect(result.services[0].name).toBe("Test");
+            expect(result.total).toBe(1);
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
                 "/cas/services",
@@ -175,9 +175,8 @@ describe("CasManager", () => {
         });
 
         it("serviceValidate should send GET /serviceValidate with query params", async () => {
-            transport.respondWith({
-                serviceResponse: { authenticationSuccess: { user: "alice" } },
-            });
+            // 后端 `cas.rs::service_validate` 返回 text/plain：`yes\n<user>\n`
+            transport.respondWith("yes\nalice\n");
 
             const result = await manager.serviceValidate("https://app.test", "ST-123");
 
@@ -187,8 +186,17 @@ describe("CasManager", () => {
                 "/serviceValidate",
                 { service: "https://app.test", ticket: "ST-123" },
                 undefined,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
+                expect.objectContaining({ prefix: "/_synapse/cas", json: false }),
             );
+        });
+
+        it("serviceValidate should report failure text as authenticationFailure", async () => {
+            transport.respondWith("no\n\n");
+
+            const result = await manager.serviceValidate("https://app.test", "ST-BAD");
+
+            expect(result.serviceResponse.authenticationSuccess).toBeUndefined();
+            expect(result.serviceResponse.authenticationFailure?.code).toBe("INVALID_TICKET");
         });
 
         it("serviceValidate should throw if service is empty", async () => {
@@ -196,30 +204,48 @@ describe("CasManager", () => {
         });
 
         it("proxyValidate should send GET /proxyValidate with query params", async () => {
-            transport.respondWith({
-                serviceResponse: { authenticationSuccess: { user: "bob" } },
-            });
+            transport.respondWith(
+                '<cas:serviceResponse xmlns:cas="http://www.yale.edu/tp/cas"><cas:authenticationSuccess>' +
+                    "<cas:user>bob</cas:user><cas:proxyGrantingTicket>PGT-1</cas:proxyGrantingTicket>" +
+                    "</cas:authenticationSuccess></cas:serviceResponse>",
+            );
 
             const result = await manager.proxyValidate("https://app.test", "PT-456", "https://pgt.test");
 
             expect(result.serviceResponse.authenticationSuccess?.user).toBe("bob");
+            expect(result.serviceResponse.authenticationSuccess?.pgtIou).toBe("PGT-1");
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
                 "/proxyValidate",
-                { service: "https://app.test", ticket: "PT-456", pgtUrl: "https://pgt.test" },
+                { service: "https://app.test", ticket: "PT-456", pgt_url: "https://pgt.test" },
                 undefined,
-                expect.objectContaining({ prefix: "/_synapse/cas" }),
+                expect.objectContaining({ prefix: "/_synapse/cas", json: false }),
             );
         });
 
-        it("p3ServiceValidate should send GET /p3/serviceValidate with query params", async () => {
-            transport.respondWith({
-                serviceResponse: { authenticationSuccess: { user: "charlie" } },
+        it("proxyValidate should parse an authenticationFailure XML response", async () => {
+            transport.respondWith(
+                '<cas:serviceResponse><cas:authenticationFailure code="INVALID_TICKET">bad ticket</cas:authenticationFailure></cas:serviceResponse>',
+            );
+
+            const result = await manager.proxyValidate("https://app.test", "PT-BAD");
+
+            expect(result.serviceResponse.authenticationFailure).toEqual({
+                code: "INVALID_TICKET",
+                description: "bad ticket",
             });
+        });
+
+        it("p3ServiceValidate should send GET /p3/serviceValidate with query params", async () => {
+            transport.respondWith(
+                "<cas:serviceResponse><cas:authenticationSuccess><cas:user>charlie</cas:user>" +
+                    "<cas:attributes><cas:dept>eng</cas:dept></cas:attributes></cas:authenticationSuccess></cas:serviceResponse>",
+            );
 
             const result = await manager.p3ServiceValidate("https://app.test", undefined, undefined, true);
 
             expect(result.serviceResponse.authenticationSuccess?.user).toBe("charlie");
+            expect(result.serviceResponse.authenticationSuccess?.attributes).toEqual({ dept: ["eng"] });
             expect(transport.request).toHaveBeenCalledWith(
                 Method.Get,
                 "/p3/serviceValidate",
@@ -232,7 +258,10 @@ describe("CasManager", () => {
         it("proxy 下发后端声明的 query 键名 `target_service`（非 targetService）", async () => {
             // 后端 `ProxyQuery` 是 `{ target_service, pgt }`：发 `targetService` 会因
             // `target_service` 缺失而 400（方案文档 §9 P-07）。
-            transport.respondWith({ proxyTicket: "PT-789" });
+            transport.respondWith(
+                "<cas:serviceResponse><cas:authenticationSuccess><cas:user>@alice:test</cas:user>" +
+                    "<cas:proxyGrantingTicket>PT-789</cas:proxyGrantingTicket></cas:authenticationSuccess></cas:serviceResponse>",
+            );
 
             const result = await manager.proxy("https://target.test", "PGT-123");
 
@@ -247,7 +276,10 @@ describe("CasManager", () => {
         });
 
         it("proxy 无 pgt 时不发送 pgt 键（保持既有行为，不引入必填）", async () => {
-            transport.respondWith({ proxyTicket: "PT-1" });
+            transport.respondWith(
+                "<cas:serviceResponse><cas:authenticationSuccess><cas:user>@alice:test</cas:user>" +
+                    "<cas:proxyGrantingTicket>PT-1</cas:proxyGrantingTicket></cas:authenticationSuccess></cas:serviceResponse>",
+            );
 
             await manager.proxy("https://target.test");
 
@@ -302,9 +334,7 @@ describe("CasManager", () => {
         });
 
         it("should not embed prefix in the path for cas endpoints", async () => {
-            transport.respondWith({
-                serviceResponse: { authenticationSuccess: { user: "alice" } },
-            });
+            transport.respondWith("yes\nalice\n");
 
             await manager.serviceValidate("https://test");
 

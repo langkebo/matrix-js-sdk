@@ -55,13 +55,9 @@ export async function fetchAuthMetadataWithFallback(
             prefix: useStable ? ClientPrefix.V1 : ClientPrefix.Unstable + "/org.matrix.msc2965",
         });
     } catch (e) {
-        if (e instanceof MatrixError && e.errcode === "M_UNRECOGNIZED") {
-            // Fall back to older variant of MSC2965
-            const { issuer } = await request<{ issuer: string }>(Method.Get, "/auth_issuer", undefined, undefined, {
-                prefix: ClientPrefix.Unstable + "/org.matrix.msc2965",
-            });
-            return discoverAndValidateOIDCIssuerWellKnown(issuer);
-        }
+        // ⚠️ 这里曾回退到 `GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer`，
+        // 但后端从未注册该路由（`assembly.rs` 只有 `auth_metadata`）⇒ 一旦落入必然 404，
+        // 属「回退即失败」的死路径，按铁律 1 删除。
         throw e;
     }
 

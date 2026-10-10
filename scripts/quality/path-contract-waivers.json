@@ -44,14 +44,6 @@
             "expires": "2026-12-31"
         },
         {
-            "sdkCall": "GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer",
-            "file": "src/client-auth.ts",
-            "owner": "langkebo",
-            "category": "backend-missing",
-            "reason": "MSC2965 旧变体的 auth_issuer 回退分支（主路径 auth_metadata 已被 M_UNRECOGNIZED 触发后才走这里）。后端只注册 auth_metadata（v1 与 unstable 两种形态），未注册 auth_issuer。删掉条件：确认不再需要兼容该旧变体。",
-            "expires": "2026-12-31"
-        },
-        {
             "sdkCall": "GET /_synapse/admin/v1/presence_routes",
             "file": "src/admin/sub-managers/admin-config-manager.ts",
             "owner": "langkebo",

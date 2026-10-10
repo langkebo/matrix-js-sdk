@@ -4854,8 +4854,9 @@ describe("MatrixClient", function () {
             expect(httpLookups.length).toEqual(0);
         });
 
-        it("should fall back to auth_issuer + openid-configuration", async () => {
-            const metadata = mockOpenIdConfiguration();
+        it("should propagate M_UNRECOGNIZED without the removed /auth_issuer fallback", async () => {
+            // 回归守卫：后端从未注册 `/auth_issuer`（只有 `auth_metadata`）⇒ 该回退必然 404，
+            // 已按铁律 1 删除；错误应原样抛出，且不得再请求它。
             httpLookups = [
                 {
                     method: "GET",
@@ -4863,20 +4864,9 @@ describe("MatrixClient", function () {
                     error: new MatrixError({ errcode: "M_UNRECOGNIZED" }, 404),
                     prefix: "/_matrix/client/unstable/org.matrix.msc2965",
                 },
-                {
-                    method: "GET",
-                    path: `/auth_issuer`,
-                    data: { issuer: metadata.issuer },
-                    prefix: "/_matrix/client/unstable/org.matrix.msc2965",
-                },
             ];
-            fetchMock.get("https://auth.org/.well-known/openid-configuration", metadata);
 
-            await expect(client.getAuthMetadata()).resolves.toEqual({
-                ...metadata,
-                signingKeys: [],
-            });
-            expect(httpLookups.length).toEqual(0);
+            await expect(client.getAuthMetadata()).rejects.toThrow(MatrixError);
         });
     });
 

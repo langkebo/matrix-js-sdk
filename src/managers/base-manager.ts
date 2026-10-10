@@ -105,6 +105,13 @@ export interface RequestSpec {
      *   查询等无需用户鉴权的端点。
      */
     authenticated?: boolean;
+    /**
+     * 透传至 `IRequestOpts.json = false`：响应按 **UTF-8 文本**解析而不是 JSON。
+     *
+     * 用于返回 `text/plain` / `application/xml` 的端点（如 CAS 的
+     * `serviceValidate` ⇒ `yes\n<user>`、`proxyValidate`/`p3/serviceValidate`/`proxy` ⇒ CAS XML）。
+     */
+    textResponse?: boolean;
     /** 透传至 IRequestOpts.localTimeoutMs，用于长轮询请求（如 sliding sync） */
     localTimeoutMs?: number;
     /** 透传至 IRequestOpts.headers，用于自定义请求头（如媒体上传的 Content-Type） */
@@ -272,6 +279,10 @@ export abstract class BaseManager<
         const opts: TransportOpts = { prefix, authenticated };
         if (spec.localTimeoutMs !== undefined) {
             opts.localTimeoutMs = spec.localTimeoutMs;
+        }
+        if (spec.textResponse) {
+            // CAS 校验端点返回 text/plain / XML，不是 JSON。
+            opts.json = false;
         }
         if (spec.headers) {
             opts.headers = spec.headers;

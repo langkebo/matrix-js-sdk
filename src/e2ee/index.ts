@@ -132,14 +132,6 @@ export interface RoomKeyRequestBody {
     body?: IContent;
 }
 
-export interface RoomKeyRequestResponse {
-    request_id: string;
-    room_id: string;
-    session_id: string;
-    algorithm: string;
-    state: "pending" | "accepted" | "cancelled";
-}
-
 export interface RoomKeyDistributionResponse {
     room_id: string;
     sessions: Array<{
@@ -305,7 +297,20 @@ export class E2EEManager extends BaseManager {
         return this.post(ep("/keys/device_signing/upload"), body, "uploadDeviceSigning");
     }
 
-    public async createRoomKeyRequest(body: RoomKeyRequestBody): Promise<RoomKeyRequestResponse> {
+    /**
+     * 创建房间密钥请求。**后端只返回 `{ request_id }`**（`e2ee/keys.rs::create_room_key_request`），
+     * 此前 SDK 声明 5 个字段 ⇒ 其中 4 个恒为 undefined。
+     *
+     * @example
+     * ```typescript
+     * const { request_id } = await client.getE2EEManager().createRoomKeyRequest({
+     *     room_id: "!room:example.org",
+     *     session_id: "session-1",
+     *     algorithm: "m.megolm.v1.aes-sha2",
+     * });
+     * ```
+     */
+    public async createRoomKeyRequest(body: RoomKeyRequestBody): Promise<{ request_id: string }> {
         return this.post(ep("/room_keys/request"), body, "createRoomKeyRequest");
     }
 

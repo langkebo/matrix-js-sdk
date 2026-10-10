@@ -400,11 +400,15 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
         room_id?: string;
         session_id?: string;
         limit?: number;
+        from?: string;
     }): Promise<RoomKeyRequestsResponse> {
         const params: Record<string, string> = {};
         if (options?.status) params.status = options.status;
         if (options?.room_id) params.room_id = options.room_id;
         if (options?.session_id) params.session_id = options.session_id;
+        // P-11：`limit`/`from` 此前只声明不下发 ⇒ 分页失效（后端 `devices.rs:324` 支持二者）。
+        if (options?.limit !== undefined) params.limit = String(options.limit);
+        if (options?.from) params.from = options.from;
 
         const response = await this.request<RoomKeyRequestsResponse>({
             method: Method.Get,

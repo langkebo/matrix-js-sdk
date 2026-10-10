@@ -37,13 +37,20 @@ export interface RoomKeyRequest {
     room_id: string;
     session_id: string;
     device_id: string;
-    state: "pending" | "approved" | "rejected";
+    /** 后端 `devices.rs:397-402` 的取值：pending / cancelled / fulfilled */
+    status: "pending" | "cancelled" | "fulfilled";
+    algorithm?: string;
+    action?: string;
     created_ts: number;
-    updated_ts: number;
+    is_fulfilled?: boolean;
+    fulfilled_by_device?: string;
+    fulfilled_ts?: number;
 }
 
 export interface RoomKeyRequestsResponse {
     requests: RoomKeyRequest[];
+    /** 分页游标（后端满页时返回） */
+    next_batch?: string;
 }
 
 /**
@@ -81,7 +88,10 @@ export class RoomKeysManager extends BaseManager {
      * 获取房间密钥请求列表
      * GET /_matrix/client/v3/room_keys/request
      */
-    async getRoomKeyRequests(forceRefresh = false): Promise<RoomKeyRequestsResponse> {
+    async getRoomKeyRequests(
+        forceRefresh = false,
+        options: { limit?: number; from?: string; status?: string; room_id?: string; session_id?: string } = {},
+    ): Promise<RoomKeyRequestsResponse> {
         if (!forceRefresh) {
             const cached = this.requestsCache.get("__requests__");
             if (cached) {
@@ -91,9 +101,16 @@ export class RoomKeysManager extends BaseManager {
 
         try {
             const response = await this.withRetry(async () => {
+                const params: Record<string, string> = {};
+                if (options.limit !== undefined) params.limit = String(options.limit);
+                if (options.from) params.from = options.from;
+                if (options.status) params.status = options.status;
+                if (options.room_id) params.room_id = options.room_id;
+                if (options.session_id) params.session_id = options.session_id;
                 return await this.request<RoomKeyRequestsResponse>({
                     method: Method.Get,
                     path: "/room_keys/request",
+                    queryParams: Object.keys(params).length > 0 ? params : undefined,
                     prefix: ClientPrefix.V3,
                 });
             }, "getRoomKeyRequests");
