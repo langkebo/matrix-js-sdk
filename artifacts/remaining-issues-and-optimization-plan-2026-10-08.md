@@ -13,15 +13,19 @@
 
 ## 0. 结论速览
 
-| 级别              | 问题                                                                                           | 一句话                                                                                                                                                                                                                                 | 是否阻断 CI              |
-| ----------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **✅ 已闭环**     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                                                                              | 否（不再拦）             |
-| **🔴 P1（最高）** | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类 8 条亦已修**（§9.13.1）（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3；✅ **2026-10-10 已按路线 ③ 收口**，见 §9.11.4）。门禁 `quality:wire-format` **已落地**（§9.11） | **是（门禁已挂 CI 链）** |
-| **✅ N-02**       | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 环绕用例原循环 258 个成员、满负载撞 30s 墙钟 ⇒ CI 间歇红；**已修**（`3eb764b0a` / `a389b259c`：改「注入索引」版，`membersToTest = 4`），见 §9.13.2                                                                  | 否（已消）               |
-| **🟡 P1-1**       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                                                                                         | 否（棘轮已钉住）         |
-| **🟡 P1-2**       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                                                                             | 否（已登记 waiver）      |
-| **P1-3**          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                                                                                 | 否（策略债）             |
-| **P2**            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                                                                                         | 否                       |
+| 级别                        | 问题                                                                                           | 一句话                                                                                                                                                                                                                                 | 是否阻断 CI              |
+| --------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **✅ 已闭环**               | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                                                                              | 否（不再拦）             |
+| **🔴 P1（最高）**           | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类 8 条亦已修**（§9.13.1）（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3；✅ **2026-10-10 已按路线 ③ 收口**，见 §9.11.4）。门禁 `quality:wire-format` **已落地**（§9.11） | **是（门禁已挂 CI 链）** |
+| **✅ N-02**                 | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 环绕用例原循环 258 个成员、满负载撞 30s 墙钟 ⇒ CI 间歇红；**已修**（`3eb764b0a` / `a389b259c`：改「注入索引」版，`membersToTest = 4`），见 §9.13.2                                                                  | 否（已消）               |
+| **🟡 P1-1**                 | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                                                                                         | 否（棘轮已钉住）         |
+| **🟡 P1-2**                 | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                                                                             | 否（已登记 waiver）      |
+| **P1-3**                    | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                                                                                 | 否（策略债）             |
+| **P2**                      | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                                                                                         | 否                       |
+| **🔴 盲区 1（新）**         | **「URL 构造器」无任何门禁**（§9.14.4）                                                        | `wire-format` 只看 `request()` 调用点；而 `getSsoLoginUrl`/`getCasLoginUrl`/`getLoginRedirectUrl` 等**纯拼 URL**、零调用点 ⇒ **W-06 的 4 个 404 全部隐形**。处置 = §10 批次 K                                                          | **否（当前无覆盖）**     |
+| **🔴 W-06（新）**           | SDK `getSsoLoginUrl`/`getCasLoginUrl` **拼错路径段 ⇒ 404**（§9.14.3）                          | `getCasLoginUrl()` → `/login/cas/redirect`（后端是 `/login/sso/redirect/cas`）；传 `idpId` → `/login/sso/redirect/{idpId}`（后端无此形态）；前端把第 2 参当 `deviceName` 传 ⇒ `Tjg%20Client` 成路径段                                  | 否（仓内零调用点）       |
+| **🟡 W-03/W-04/W-05（新）** | 同族 3 条（§9.14.3）                                                                           | W-03 前端 `handleSamlCallback` 发 `session_id`（后端 `deny_unknown_fields` ⇒ 400）；W-04 前端 `idp_id` **被静默丢弃**；W-05 `OidcManager.ssoRedirect` 期望 JSON 而后端恒 **302**                                                       | 否                       |
+| **🟡 D-01（复核）**         | release 线门禁面窄于 develop                                                                   | **实测 53 vs 85** 个门禁类脚本；抽查 7 个全缺（含 `path-contract`/`wire-format`）⇒ Tjg 消费的线上**路径与报文都无机器判据**（§9.14.2）                                                                                                 | 否（结构性）             |
 
 > **⚠️ 新增最高优先事项**：2026-10-09 与后端 `ROUTE_CONTRACT.md` 附录 B 的**联审**发现
 > **27 条 wire-format 缺陷**（其中 19 条会导致 400 或静默返回空数据）；2026-10-10 又在当前 HEAD 上
@@ -36,7 +40,12 @@
 ③ 判据"看得见的范围"仍有边界（未校验 8 / 3 未覆盖包装器 / **wire-format 的 889 条覆盖桶**）；  
 **④ 门禁覆盖的是"路径"，没覆盖"报文"** —— **本轮已补上**（§9.11）；其覆盖面仍受**抽取能力**限制，  
 桶只降不升，扩能力的三个方向见 §9.11.2。  
-**⑤（本轮新增）"改报文后该验证什么"也纯靠人手枚举** —— N-01 的现场复现（§9.10.4）。
+**⑤（第十五轮新增）"改报文后该验证什么"也纯靠人手枚举** —— N-01 的现场复现（§9.10.4）。  
+**⑥（第二十轮新增）判据的"第三层"仍未覆盖：报文之后还有「URL 构造」** —— `wire-format` 只盯
+`request({...})` 的键集，而**纯拼 URL 的同步方法**（`getSsoLoginUrl`/`getCasLoginUrl`/…）
+在 `request()` 视角下**零调用点** ⇒ W-06 那 4 个 404 可以长期隐形（§9.14.4）。处置 = 批次 K。  
+**⑦（第二十轮新增）跨仓盲区**：前端（Tjg）自造封装/裸调没有任何机器判据，而 W-02/W-03/W-04
+三条都长在那里（§9.14.4）。处置 = 批次 L。
 
 > **执行状态**：批次 A / B 已落地；批次 C 完成 C0 / C0b / C2（复核为"无需改动"）/ C5，**C1 主体已完成**（139 → 8：
 > cast 4→0、`this-method` 49→4、`bare-call` 37→0、`identifier` 38→2、`concat` → 1（第十一轮解出 3 处），
@@ -2011,10 +2020,81 @@ ledger**（= 棘轮看不见的陈旧引用）：
 
 ---
 
-## 10. 下一阶段优化方案（2026-10-10 第十九轮制定）
+### 9.14 2026-10-10 第二十轮：独立复核 §9.13 的 6 条 + **新发现 4 条（W-03～W-06）与两处结构性盲区**
+
+**本轮基线**：SDK `develop @ d50d805d8`、release worktree `a321796e2`、Tjg `b828f303`
+（`meta/sdk-pin.json` 锚 `a321796e2`）、synapse-rust `e73efbd74`。
+**方法**：不采信上一轮结论，逐条回源；**W-03～W-06 全部双侧取 `file:line`**。
+
+#### 9.14.1 ✅ 已闭环（本轮实测，避免下一轮重复排查）
+
+| §9.13 条目                         | 本轮实测                                                                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D-02** `pnpm lint` 红            | **实测 `exit 0`**（全链 19 段）。`d50d805d8` 清掉 `client-auth.ts` 两个未使用 import，文档亦已 prettier 化 ⇒ 该条**已闭环**，§10 批次 G 的 G1/G2 同步销号 |
+| **D-03** `docs-counts` 735→729     | 已修（lint 段含 `quality:docs-counts`，本轮全链绿）                                                                                                       |
+| **D-06 前半** 半提交               | `d50d805d8` 已提交那处 import 清理                                                                                                                        |
+| **D-01 / D-04 / D-05 / D-06 后半** | **仍存在**，见 9.14.2                                                                                                                                     |
+
+#### 9.14.2 🔴 复核确认仍存在（4 条，均给出本轮实测证据）
+
+| 编号                  | 结论                           | 本轮证据                                                                                                                                                                                                                                                                                                                        |
+| --------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **D-01**（🔴 结构性） | 成立，且**比上一轮记的更严重** | 实测 release worktree **53** 个 `quality:*`/`contract:*`/`lint:*` 脚本 vs develop **85**；抽查 7 个（`path-contract`/`wire-format`/`waiver-expiry`/`docs-counts`/`api-contract-doc-paths`/`audit-doc-integrity`/`gate-reachability`）**全部缺失** ⇒ Tjg 消费的这条线上**路径与报文都无机器判据**                                |
+| **D-04**（🟡）        | 成立，且不止"文档旧行"         | 抽样 `docs/api-contract/thread.md:105-107` 三行声明 `GET /_matrix/client/v1/threads`、`/threads/subscribed`、`/threads/unread` 且标"✅ 已直接封装"，但**镜像 manifest 中零命中**（真实注册在 `/_matrix/vendor/v1/threads*`）；同页 `federation/blacklist/add` 亦不存在 ⇒ 该页对**前缀**的陈述是错的，读者会以为走的是 client v1 |
+| **D-05**（🟡）        | 成立                           | `quality:api-contract-doc-paths` 仍无 `spec/unit/*-gate.spec.ts`                                                                                                                                                                                                                                                                |
+| **D-06 后半**（🟡）   | 成立                           | `Tjg/meta/sdk-pin.json` 的 `synapse_rust_commit = 998d2ad2b`，后端 HEAD 已 `e73efbd74`（领先 5 个提交）；`release/**` 触发 `cross-repo-pin --strict` 时会判 drift                                                                                                                                                               |
+
+> 📌 **P-13 教训的第二次复现**：D-04 的性质不是"文档没更新"，而是**文档与后端前缀模型不一致**
+> —— 与 `cas` 前缀（§9.8）、`idp_id`（§9.11）同源：**按"看起来该有的路径"写，而不是按后端注册表写**。
+
+#### 9.14.3 🔴 本轮新增 4 条（W-03～W-06）—— **全部落在 §9.11.4「收敛到 SDK」的同一条链上**
+
+| 编号     | 严重度 | 位置                                                                                                                    | 事实（双侧证据）                                                                                                                                                                                                                                                                                                | 后果                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **W-03** | 🟡     | Tjg `services/matrix/auth/MatrixAuthSaml.ts:37 handleSamlCallback`                                                      | 仍**裸调** `postMatrixJson('${PREFIX_V3}/login/saml/callback', { saml_response, relay_state, session_id })`；后端 `SamlCallbackBody`（`synapse-web/src/routes/saml.rs:67-80`）是 **`deny_unknown_fields`** 且只声明 `SAMLResponse`\|`saml_response`、`SAMLRequest`\|`saml_request`、`RelayState`\|`relay_state` | 传 `sessionId` ⇒ serde 拒绝 ⇒ **400**（当前 Tjg 内无调用方，属潜伏）；且它绕开 SDK 的 `SamlAuthManager.handleCallback` ⇒ **第二真源**。⚠️ 前端测试 `MatrixAuthSaml.test.ts` 把 `session_id` **断言成预期**（N-01 型第三次）                                                                                                                                                                                                                                                          |
+| **W-04** | 🟡     | Tjg `services/matrix/auth/MatrixAuthService.ts:289 getSsoLoginUrl(idpId?, redirectUrl?)`                                | 下发 `idp_id`；后端 `SsoRedirectQuery`（`synapse-web/src/routes/oidc/sso.rs:19-24`）**没有** `deny_unknown_fields`（只有 `redirectUrl` + `redirect_url` 兼容字段）                                                                                                                                              | 不 400，但 `idp_id` **被静默丢弃** ⇒ 调用方以为指定了 IdP，实际用默认 IdP（**C 类静默失效**）。同一个 `idp_id` 谬误的**第 3 份实现**（前两份见 §9.11.1 / §9.11.3）                                                                                                                                                                                                                                                                                                                   |
+| **W-05** | 🟡     | SDK `src/oidc/manager.ts:313 ssoRedirect(redirectUrl?)`                                                                 | 期望 JSON `{ url: string }` 并 `return response.url`；后端 `sso_redirect`（`oidc/sso.rs:108-137`）签名是 `Result<Redirect, ApiError>`，**三条分支全返回 302 `Redirect::temporary`**，无任何 JSON 分支                                                                                                           | SDK 侧 `response.url` 恒 `undefined`；且 `fetch` 用 `redirect: "follow"`（`src/http-api/fetch.ts:372`）会跟到 IdP 页面再按 JSON 解析 ⇒ 该封装**不可用**                                                                                                                                                                                                                                                                                                                              |
+| **W-06** | 🔴     | SDK `src/account/index.ts:172 getSsoLoginUrl(redirectUrl, loginType="sso", idpId?, action?)` → 经 `client.ts:3604` 暴露 | 拼的是 `/{prefix}/login/{loginType}/redirect[/{idpId}]`。后端只注册三个字面量：`/_matrix/client/v3/login/sso/redirect`、`…/redirect/cas`、`…/redirect/saml`（**无** `…/{idp_id}` 形态）                                                                                                                         | ① `getCasLoginUrl()`（内部传 `loginType="cas"`）⇒ `/login/cas/redirect` ⇒ **404**（应为 `/login/sso/redirect/cas`）；② 传 `idpId` ⇒ `/login/sso/redirect/{idpId}` ⇒ **404**（除非恰为 `cas`/`saml`）；③ 前端 `Tjg/services/matrix/MatrixClientAuth.ts:174` 按 `(redirectUrl, deviceName, identityProviderId)` 调用 ⇒ 路径段变成 `Tjg%20Client` ⇒ **404**，且 Tjg 的 `types/matrix-js-sdk-augmentations.d.ts:182-183` 用**错误的第二参名**（`deviceName`）声明了它 ⇒ 类型系统帮不上忙 |
+
+**W-06 为什么至今没被发现**：仓内 `src/` 与 `spec/` **零调用点**（`getSsoLoginUrl` / `getCasLoginUrl`
+只被 Tjg 消费）；而 `quality:path-contract` 与 `quality:wire-format` 都只看 `request()` 调用点。
+
+#### 9.14.4 🔴 本轮最重要的结论：**两处结构性盲区**（比 4 条单缺陷更要紧）
+
+**盲区 1 —「URL 构造器」完全无门禁（🔴）**
+
+`wire-format` 覆盖的是 `this.request({...})` 的**键集**；但 SDK 里另有一类方法**不发请求、纯字符串拼 URL**：
+`getSsoLoginUrl` / `getCasLoginUrl`（`src/account/index.ts`）、`getLoginRedirectUrl` / `getLogoutRedirectUrl`
+（`src/saml/index.ts`）。它们返回给浏览器跳转，**路径拼错就是 404**，而**在 `request()` 视角下零调用点**
+⇒ W-06 的 4 个 404 全部隐形。
+⇒ 这是继「路径 → 报文」（§9.4/§9.11 已补）之后的**第三层**：**报文 → URL 构造**。处置见 §10 批次 K。
+
+**盲区 2 — 前端裸调（另一仓）无门禁（🟡）**
+
+W-02 / W-03 / W-04 形态相同：Tjg 自造封装或裸调 `/_matrix/...`，**SDK 侧门禁看不到另一个仓**。
+本轮已用一次性脚本核过（`authedRequestWithPath` / `postMatrixJson` 的**可静态解析**调用点 3 个，其中
+2 个初判为假阳性——`/register/captcha/status`、`/login/sso/redirect` 在补上默认前缀后**均存在** ⇒
+**扫描器必须把 `authedRequestWithPath` 的默认前缀算进去，否则会造出假缺陷**）。处置见 §10 批次 L。
+
+> 📌 **方法论（本轮两次踩到同一个坑）**：**bash 的 `grep` 在本 CLI 里被 toybox 替换，`\|` 会静默返空**
+> —— 本轮两次据此得出"该文件不存在 X"的**反向结论**，都靠换用检索工具才纠正。
+> **判"有没有引用"一律用 Grep 工具（ripgrep），不要用裸 `grep` + `\|`。**
+
+#### 9.14.5 口径澄清
+
+- 后端 `/login/sso/redirect`（泛化）**不是** SAML 端点：它优先走 OIDC，其次 fallback 到 SAML
+  （`oidc/sso.rs:113-135`）⇒ W-04 与 W-01/W-02 **不是同一端点**，修复时不要一并"收敛到 SamlAuthManager"。
+- `/_matrix/client/v3/login/sso/redirect/{idp_id}` 这种**路径参数形态**在本后端**从不曾存在**
+  （镜像 manifest 零命中）⇒ 任何"补一个 `{idp_id}` 路由"的想法都属**新增后端特性**，不是修复。
+
+---
+
+## 10. 下一阶段优化方案（2026-10-10 第十九轮制定，第二十轮增补 F~M）
 
 > 原则：每条**可独立验收**；判定类改动**必须配变异自证**（铁律 8）；两条线（develop / release）
 > 要么同批落地，要么显式登记"只在一线做"的理由。
+> **第二十轮增补**：新增批次 **K / L / M**（对应 §9.14.3 的 W-03～W-06 与 §9.14.4 的两处结构性盲区），
+> 并把批次 G 按实测状态销号。
 
 ### 批次 F —— release 线门禁对齐（🔴 最高优先，结构性）
 
@@ -2028,13 +2108,16 @@ ledger**（= 棘轮看不见的陈旧引用）：
 
 **为什么排最高**：这是"Tjg 消费的线缺契约判据"的根因；F5 是防止它**再次**漂移的唯一机制。
 
-### 批次 G —— 让 develop 回到 `pnpm lint` 绿（🔴 立即，低成本）
+### 批次 G —— 让 develop 回到 `pnpm lint` 绿（✅ G1/G2 已闭环，G3 待做）
 
-| 步  | 动作                                                                                                                          | 验收                      |
-| --- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| G1  | 对 `artifacts/remaining-issues-and-optimization-plan-2026-10-08.md` 跑 `prettier --write`（732 行纯表格对齐，**无语义变化**） | `prettier --check` 通过   |
-| G2  | 提交 `src/client-auth.ts` 的未使用 import 清理（修 D-06 那半截）                                                              | `pnpm lint` 全链 `exit 0` |
-| G3  | 把"长审计文档也要 prettier"写进 `AGENTS.md` / `CLAUDE.md`（两处同步），并考虑把 `artifacts/**/*.md` 纳入 lint-staged          | 变异：不改格式提交 ⇒ 被拦 |
+| 步     | 动作                                                                                                                 | 验收                         |
+| ------ | -------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| ~~G1~~ | ~~对本文档跑 `prettier --write`~~ **已完成**                                                                         | ✅ `prettier --check` 通过   |
+| ~~G2~~ | ~~提交 `src/client-auth.ts` 的未使用 import 清理~~ **已完成**（`d50d805d8`）                                         | ✅ `pnpm lint` 全链 `exit 0` |
+| **G3** | 把"长审计文档也要 prettier"写进 `AGENTS.md` / `CLAUDE.md`（两处同步），并考虑把 `artifacts/**/*.md` 纳入 lint-staged | 变异：不改格式提交 ⇒ 被拦    |
+
+> G1/G2 已由第二十轮实测确认闭环（`pnpm lint` 全链 `exit 0`，含 `prettier --check .`）。
+> **G3 仍有价值**：本轮再次验证——本文档此前长期未 prettier 化，是"prettier 红反复出现"的唯一来源。
 
 ### 批次 H —— 门禁鉴别力补强（🟡）
 
@@ -2060,20 +2143,89 @@ ledger**（= 棘轮看不见的陈旧引用）：
 - `check-public-api-docs.mjs` 自身补单测（现以变异自证替代）；
 - 未封装路由的逐条决策（`artifacts/sdk-contract-gap-report.md` §2），补时必须走 `rp()` 契约绑定。
 
-### 依赖与顺序
+### 批次 K —— **「URL 构造器」门禁**（🔴 高优先，堵 §9.14.4 盲区 1）
+
+| 步  | 动作                                                                                                                                                                                                        | 验收                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| K1  | 抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态）：`getSsoLoginUrl`/`getCasLoginUrl`/`getLoginRedirectUrl`/`getLogoutRedirectUrl` 起手 | 一份清单（方法 → 拼出的 path 模板），先量比对面再定判据 |
+| K2  | 判据：拼出的 `(method, path)` 必须命中镜像 manifest（`{…}` 段按段通配）；认不出的一律落**具名桶**且只降不升                                                                                                 | 门禁 `exit 0`，桶计数入库                               |
+| K3  | **变异自证（样本已现成）**：`getCasLoginUrl` 传 `"cas"` ⇒ 应报 `/login/cas/redirect` 不存在；`getSsoLoginUrl(…, "sso", idpId)` ⇒ 应报 `{idp_id}` 形态不存在                                                 | 两处都变红；还原后 `exit 0`、字节一致                   |
+| K4  | 挂进 `quality:contracts`；同步 release（见批次 F）                                                                                                                                                          | 整链 `exit 0`                                           |
+
+**为什么排第二**：`wire-format` 上线后仍漏掉 W-06 那 4 个 404，说明"每补一层判据就有一层新盲区"——
+**先建判据再修实例**（本仓既有纪律），否则修完 W-06 下次换个方法又会静默复发。
+
+### 批次 L —— 前端裸调门禁（🟡 中，堵 §9.14.4 盲区 2；需 Tjg 侧配合）
+
+| 步  | 动作                                                                                                                                                                                                | 验收                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| L1  | 在 Tjg 侧抽所有裸调调用点：`authedRequestWithPath` / `postMatrixJson` / `runtimeFetch` 的路径实参，**必须把 helper 的默认前缀算进去**（否则 `/register/captcha/status` 会被误判成不存在——本轮踩过） | 可静态解析的调用点全部列出；动态拼接收进具名桶 |
+| L2  | 判据：裸调路径必须命中 SDK 侧镜像 manifest（跨仓依赖：读 `matrix-js-sdk/docs/api-contract/generated/route-manifest.all.json`，路径可用 `meta/sdk-pin.json` 的 `sdk_commit` 定位）                   | 门禁 `exit 0`                                  |
+| L3  | 与 W-03/W-04 联动：修完后裸调计数下降；把"该收敛到 SDK 的方法"登记成显式清单（不静默）                                                                                                              | 棘轮只降不升                                   |
+
+### 批次 M —— W-03～W-06 实例修复（🟡，**需先裁定**）
+
+| 步  | 对象               | 动作与**待裁定项**                                                                                                                                                                                                         |
+| --- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | **W-06**（🔴 404） | `getSsoLoginUrl` 的 `loginType` 会被当**路径段**用 ⇒ 至少修 `getCasLoginUrl`（改拼 `/login/sso/redirect/cas`）；`idpId` 形参**建议删除**（后端无 `{idp_id}` 形态）。**待裁定**：删形参（破坏性）vs 保留但不再拼进路径      |
+| M2  | **W-06 前端侧**    | `Tjg/MatrixClientAuth.ts:174` 的第三参被当 `deviceName` 用 ⇒ 改为不传；同步修 `matrix-js-sdk-augmentations.d.ts:182-183` 的**错误参数名**（`deviceName` → `loginType`）                                                    |
+| M3  | **W-03**           | 前端 `handleSamlCallback` 收敛到 `client.getSamlAuthManager().handleCallback()`；`sessionId` 形参删除，测试里那条"把 `session_id` 断言成预期"的用例同步改。**待裁定**：`session_id` 若确有产品需求，应改后端而不是前端假传 |
+| M4  | **W-04**           | 前端 `getSsoLoginUrl(idpId, redirectUrl)` 删 `idpId`（后端静默丢弃）；或收敛到 `OidcManager`——⚠️ 但须先修 M5，否则等于换了个坏封装                                                                                         |
+| M5  | **W-05**           | `OidcManager.ssoRedirect` 期望 JSON 而后端恒 302 ⇒ 要么改成"返回 URL 由前端跳转"（与 `getLoginRedirectUrl` 同型），要么改后端加 JSON 分支。**待裁定**（后端加分支属新特性）                                                |
+| M6  | **W-06 文档侧**    | `docs/api-contract/thread.md:105-107` 等 11 行前缀纠正（并入批次 H2）                                                                                                                                                      |
+
+### 依赖与顺序（第二十轮修订）
 
 ```
 F1 → F2 → F3 → F4 → F5      （release 门禁对齐：跨仓、需单独授权）
-G1 → G2 → G3                （立即，低风险，可与 F 并行）
-H1 → H2 → H3                （依赖 G1 之后文档不再漂移）
+G3                          （低风险，可随时做）
+K1 → K2 → K3 → K4           （先建判据，再做 M —— 否则修完还会复发）
+L1 → L2 → L3                （需 Tjg 侧配合；可与 K 并行）
+M1~M6                       （实例修复；M1/M3/M5 各有待裁定项，需用户决策后再动）
+H1 → H2 → H3                （H2 顺带覆盖 M6）
 I2 → I3                     （I2 需要后端内容先冻结）
 ```
+
+> **一句话优先级**：**F（补 release 线的判据）> K（补 URL 构造器判据）> M（修当前 4 条）> L > H/I/J**。
+> 理由：F 与 K 都是"让存量缺陷无法再藏"，属**判据工程**；M 是"修已知实例"，没有 K 就会复发。
 
 ---
 
 ## 附录 A：本轮核验命令
 
 ```bash
+# ── 第二十轮（§9.14）────────────────────────────────────────────
+# D-02 复核：develop 的 lint 是否仍红
+pnpm lint > /tmp/lint.log 2>&1; echo "exit=$?"          # → 0（D-02 已闭环）
+
+# D-01 复核：两线门禁脚本数量差
+cd /Users/ljf/Desktop/hu_ts/.wt-sdk-clean && node -e "
+const s=require('./package.json').scripts;
+console.log(Object.keys(s).filter(k=>/^(quality|contract|lint):/.test(k)).length)"   # → 53
+# develop 同口径 → 85；抽查 7 个全缺（path-contract / wire-format / waiver-expiry / docs-counts /
+# api-contract-doc-paths / audit-doc-integrity / gate-reachability）
+
+# W-06 取证：SDK 拼出的路径是否存在于后端
+node -e "
+const m=JSON.parse(require('fs').readFileSync('docs/api-contract/generated/route-manifest.all.json','utf8'));
+const all=new Set((m.entries||[]).map(e=>e.method+' '+e.path));
+for(const [M,p] of [['GET','/_matrix/client/v3/login/cas/redirect'],['GET','/_matrix/client/v3/login/sso/redirect/cas'],['GET','/_matrix/client/v3/login/sso/redirect/{idp_id}']])
+  console.log(all.has(M+' '+p)?'存在':'不存在', M, p);"     # → 不存在 / 存在 / 不存在
+grep -n "loginType" src/account/index.ts | head -3          # → :172 拼 /login/{loginType}/redirect
+
+# W-03 取证：后端 SamlCallbackBody 是否声明 session_id
+sed -n '/pub struct SamlCallbackBody/,/^}/p' \
+  /Users/ljf/Desktop/hu_ts/synapse-rust/synapse-web/src/routes/saml.rs   # → 无 session_id + deny_unknown_fields
+grep -n "session_id" /Users/ljf/Desktop/hu_ts/Tjg/src/services/matrix/auth/MatrixAuthSaml.ts
+
+# W-04 取证：SsoRedirectQuery 有没有 deny_unknown_fields
+sed -n '17,25p' /Users/ljf/Desktop/hu_ts/synapse-rust/synapse-web/src/routes/oidc/sso.rs   # → 没有
+
+# W-05 取证：sso_redirect 的返回类型
+grep -n "async fn sso_redirect" -A 4 \
+  /Users/ljf/Desktop/hu_ts/synapse-rust/synapse-web/src/routes/oidc/sso.rs   # → Result<Redirect, ApiError>
+
+# ── 第一轮（历史，保留）────────────────────────────────────────
 # ── P0-1 prettier ──────────────────────────────────────────────
 pnpm lint > /tmp/lint.log 2>&1; echo "exit=$?"        # → 1
 tail -12 /tmp/lint.log                                 # 看 [warn] 清单
@@ -2126,6 +2278,6 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-10（**第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01/N-02/§9.12/DOC-13 销号；新登记 6 条（release 线门禁面仅 54 vs develop 86、`pnpm lint` 因 2 文件 prettier 红、`docs-counts` 735→729、`api-contract-doc-paths` 11 行漏扫、新门禁缺 spec、半提交 + pin 滞后），并给出下一阶段批次 F~J**（§9.13 / §10）；第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员**（develop `37dcce63a` / release `a321796e2` / Tjg pin `a321796e2`），见 §9.12；第十七轮：W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4）；第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049`+Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 门禁 0 违规；仍余 N-02（负载假红）（W-01/W-02 已于**第十七轮**收口）。此前：**`quality:wire-format` 门禁落地** + **P-13 修复**。门禁按 §9.4 的设计实现：后端抽 `serde` 结构 / `Query<T>` 键集，SDK 抽**位置形态 + 对象字面量形态**两种调用点（后者占全仓一半以上、`path-contract` 完全不认，cas 全族就在里面），判据 = `SDK 键集 ⊇ 必填集`，`deny_unknown_fields` 时再加 `⊆`；认不出的一律落**具名计数桶且只降不升**（当前 9 类 / 889 条）。**首跑即抓到 1 条此前未知的 A 类缺陷 W-01**（`getSamlRedirect` 发 `idp_id` 而后端 `SamlLoginQuery` 是 `deny_unknown_fields` ⇒ **400**，功能完全不可用）。P-13 按裁定「SDK 删掉服务管理面的 `cas` 选项」实施：`CasServicePrefix` 收窄为单一取值 + `@ts-expect-error` 类型守卫（原 spec 竟把坏行为断言成预期）。含抽取器**四次自我纠错**（全是"假缺陷 / 静默漏抽"方向）。见 §7.17 / §9.11 / §9.8；第十四轮：**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
+**最后更新**: 2026-10-10（**第二十轮：独立复核 §9.13 的 6 条 + 新发现 4 条（W-03～W-06）与两处结构性盲区** —— 实测 `pnpm lint` 全链 `exit 0`（D-02 销号）、D-03 / D-06 前半销号；**D-01（release 门禁面 53 vs 85）/ D-04 / D-05 / D-06 后半**复核仍存在；新登记 **W-03**（前端 `handleSamlCallback` 发 `session_id`，后端 `deny_unknown_fields` ⇒ 400）、**W-04**（前端 `idp_id` 被静默丢弃）、**W-05**（`OidcManager.ssoRedirect` 期望 JSON 而后端恒 302）、**W-06**（`getSsoLoginUrl` / `getCasLoginUrl` 拼错路径段 ⇒ **404**）；并点出**两处结构性盲区** ——「URL 构造器」无门禁、「前端裸调」无门禁。下一阶段增补 **批次 K / L / M** 并修订依赖顺序，见 §9.14 / §10。第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01 / N-02 / §9.12 / DOC-13 销号；新登记 6 条（D-01～D-06），给出批次 F~J（§9.13 / §10）。第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员（develop `37dcce63a` / release `a321796e2`），见 §9.12。第十七轮：**W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4。第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049` + Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 0 违规。第十五轮：**`quality:wire-format` 门禁落地** + P-13 修复（首跑即抓到 W-01），含抽取器四次自我纠错，见 §7.17 / §9.11 / §9.8。第十四轮：批 1 的 CI 回归定位与修复（`09d55a321`）+ §9.2 逐条双侧复核（§0 / §7.16 / §9.10）。第十三轮：§9.3 批 1 落地，A 类 11 条关闭，新发现 P-13（§7.15 / §9.8）。第十二轮：后端 `ROUTE_CONTRACT.md` 附录 B 联审 —— 27 条逐条回源复核，新增 §9 清单 + 4 批方案 + `quality:wire-format` 设计，并实测出附录 B 两处引证错误（§7.14 / §9）；同日晚修 §7.11 哨兵标题归一化误报。第十一轮：`concat` 形态攻破，未校验 **11 → 8**（§7.13）。第十轮：D2 收尾（§7.12）。第九轮：审计文档章节完整性哨兵（§7.11）。第八轮：C4 降级（§7.10）。第七轮：E3 推送与 CI 首跑修复 8 处至 Quality Gate 首次全绿（run `37927667293`，§7.9）。此前第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记见 §7.5）
 \*\*此前更新\*\*: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
