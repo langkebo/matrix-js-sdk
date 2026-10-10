@@ -2917,6 +2917,106 @@ I2 原文：「Tjg 重钉 pin（`synapse_rust_commit` → 当前后端 HEAD）�
 §9.14.16「四」的 prettier 漏做同源：**新增/改动 `scripts/quality/**` 文件或其导入关系时，必须同批跑全链\*\*，
 否则台账棘轮会在提交时才咬人。
 
+#### 9.14.18 2026-10-10 第二十轮续十三：F2 台账回收 + **F3 五条移植口径被实测证伪** + 「release 追平可小步落地」亦被证伪
+
+> 本轮由独立会话完成（非第二十轮的同一执行者）。**两条结论都与本文档先前的定性相反**，
+> 所有数字均为本机实测，非引用。
+
+**一、F2 台账回收（15 条）—— `7310c3c55`**
+
+`release/contract-entrypoint` 于 `802781b4f` 落定 F2/F4 后，本线台账里 15 条 F2 条目**同时变「腐烂」**
+（两线已一致）。逐条核实（`git cat-file -e`，**15/15 均在 release**）后回收 —— 属 §9.14.13 预告的
+既定动作，**不是**「应当避免的漂移」。
+
+| 项              | 回收前 | 回收后 |
+| --------------- | ------ | ------ |
+| `gates`         | 20     | **5**  |
+| `support.count` | 57     | **30** |
+
+剩余 5 条**恰好是 F3 全集**（`admin-response-contract` / `route-set-parity` / `url-constructors` /
+`wire-format` / `verify-path-contract`），release 独有门禁 **0** 条。`support` 下降是 release 追平
+`lib/` + `.d.mts` 的自然结果 ⇒ 棘轮**更紧**（§9.14.17 表里 `56→57` 那次上抬已被反向收回）。
+（本轮另有一份独立复算，得数与上表**完全一致**，互为交叉验证。）
+
+**二、F3 五条 reason 口径订正 —— `7afc6e985`（1 file，`+5/−5`）**
+
+原口径统一写「F3（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 /
+`ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）」。
+**逐条实测：该口径对 5 条里的 4 条不成立。**
+
+| 门禁                                | `SYNAPSE_RUST_REPO` 出现次数 | 实测                                                                                                                                                                   |
+| ----------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify-path-contract.mjs`          | **0**                        | ledger 走三级回退（`LEDGER_PATH` > 兄弟仓 > 仓内镜像 `docs/api-contract/generated/route-manifest.all.json`），CI 恒走镜像 ⇒ 本就 repo-less 可跑                        |
+| `check-route-set-parity.mjs`        | **0**                        | 只读仓内产物（`generated/**` + `route-table.ts`）⇒ **纯本仓**，归入「高依赖组」属**误分类**；且在 release 上 `exit 0` 属「弱绿」（判据是**子集包含**），**测不出落后** |
+| `check-url-constructors.mjs`        | 0                            | 已解耦（K4，`25be6a889`）⇒ 可**独立先行移植**                                                                                                                          |
+| `check-wire-format.mjs`             | 2                            | **有回退**：`backendAvailable = fs.existsSync(RUST_ROUTES_ROOT)`、`effective = backend ?? frozen`（冻结台账 `wire-format-ledger.json`）                                |
+| `check-admin-response-contract.mjs` | 2                            | **仅 `--refresh` 需后端仓**；默认走 `readLedger()` ⇒ 可 repo-less 跑                                                                                                   |
+
+⇒ **批次 F 的 F3 行「有依赖组先移植依赖再移植门禁」这一前提不成立**：真阻塞是 **release 的 `src` 落后**。
+口径已写进台账 reason。`--write-waivers` 的写法是 `waivers.gates?.[rel] ?? <默认>` ⇒ **保留既有 reason**；
+实测再跑一次哈希**逐字节不变**（`8ad724ddce14593a`）⇒ 订正不会被后续刷新冲掉。
+
+**三、🔴 证伪：「release 追平 = 补几个 `src` 文件」在门禁层面不成立**
+
+按上一节的判断，接链前置 = release 缺 `src/http-api/strip-prefix.ts` 且滞后 `src/cas`、`src/saml`。
+在 release 工作树开作业分支实测（**未直接动 `release/contract-entrypoint`**）：
+
+| 门禁                         | 只换 4 个 src/spec 文件 |
+| ---------------------------- | ----------------------- |
+| `pnpm lint:types`            | `exit 0` ✓              |
+| `pnpm lint:js`               | `exit 0` ✓              |
+| `vitest cas + saml`          | `exit 0` ✓              |
+| `pnpm quality:type-coverage` | `exit 0` ✓              |
+| `pnpm quality:contracts`     | **`exit 1`** ✗          |
+
+失败点：`check-manager-codegen-coverage.mjs` 报
+`NO_CONSUMER: cas (12 routes) -> generated cas/__generated__/route-table.ts … has no consumer`，
+`Covered 36 / Waived 11 / Missing 1`（97.3%）。
+
+**纯净基线对照**（release `802781b4f` 的独立探测树）：
+`Covered 37 / Waived 11 / Missing 0`（100%）、`exit 0` ⇒ **该红是本轮改动引入的，不是既有**。
+
+根因（实测）：**两侧同名门禁不是同版本**。
+
+- release 旧版把 `cas` 算 **covered** —— 因为 release 旧 `src/cas/index.ts:29` 有
+  `import type { CasPathPattern } from "./__generated__/route-table"`；
+- develop 新版**显式把 `cas` 列入 `WAIVED_MODULES`**（理由：CasManager 经 `resolvePath` 做运行时
+  二元前缀拼接、从不 `import route-table`；迁移 PathAssert 需改 11 处路径构造点，属独立改造）。
+
+⇒ **换 `src` 必须连它对应的门禁一起换。**
+
+追加同步 `check-manager-codegen-coverage.{mjs,d.mts}` + `scripts/contract-module-map.{mjs,d.mts}` 后
+**缺口反而变大**：`cas` 正确归位 ✓，但出现 `Covered 36 / Waived 9 / **Missing 3**`（92.3%），
+门禁看到的**模块基数 37 → 39** —— 新版门禁要求的是 **develop 侧的生成产物面**，release 缺。
+⇒ **级联**，不是「6 个文件」能闭合的最小集。
+
+**处置**：**未落地**。release 工作树已恢复原状（`release/contract-entrypoint` @ `802781b4f`，工区 0 条），
+作业分支已删除；7 文件作业补丁留证于仓库外
+（`/Users/ljf/Desktop/hu_ts/OPS_ARTIFACTS/release-catchup-attempt-2026-10-10.patch`，`+595/−105`）。
+
+**订正后的结论**：release 的 `src`、**它自己的门禁**、**生成产物**是**耦合的一整套**。
+「补几个 `src` 文件让 5 条 F3 能接链」在**类型检查层面成立**（该轮 `tsc` 确实归零），
+**在门禁层面不成立**。⇒ 正确路径是**系统性的 `develop → release` 收敛**
+（见 `artifacts/branch-consolidation-analysis-and-plan-2026-10-10.md`），
+**不应对 F3 单独排「挑文件」的期**。
+
+**四、附带订正：`lib/` 分层归位**不是**免费的**
+
+先前设想「release 已有 `lib/` ⇒ 把 K4 那段共享核心搬进 `lib/path-contract-core.mjs` 即可归位，
+两线同增、差集不变」。实测（探测 worktree，**先以回收后的台账建基线**，否则旧台账的 15 条腐烂会掩盖信号）：
+
+| 变体                                | 结果                                                   |
+| ----------------------------------- | ------------------------------------------------------ |
+| 基线（无新增文件）                  | `ok`，非门禁差集 **30（上限 30）**                     |
+| 加 `lib/path-contract-core.mjs`     | `exit 1`「非门禁差集从 30 涨到 **31**」                |
+| 再加 `lib/path-contract-core.d.mts` | `exit 1`「从 30 涨到 **32**」                          |
+| 改名为受管辖门禁名（不落 `lib/`）   | `exit 1`「未登记」，但**可通过登记消除**（前两者不能） |
+
+机制：`supportCount = onlyInThisLine + onlyInOtherLine − gates`，**双向计数** ⇒ 新文件只在一线必然 +1/+2。
+**「两线同增」无法原子达成**（两条线分开提交、各自独立求值）⇒ **先落地的一线必然红**；
+**免费的是后落地的一线**。故**不新增文件才是零代价路径** —— 这也正是 K4 解耦把核心搬进
+**既有门禁文件**（而非新建 `lib/`）的原因。
+
 ---
 
 ## 10. 下一阶段优化方案（2026-10-10 第十九轮制定，第二十轮增补 F~M）
@@ -2932,7 +3032,7 @@ I2 原文：「Tjg 重钉 pin（`synapse_rust_commit` → 当前后端 HEAD）�
 | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | ~~F1~~ | **已完成（§9.14.11）**：实测 develop **132** vs release **62**，release 缺 **70**（18 门禁 + 12 lib + 24 `.d.mts` + 16 台账）⇒ 门禁分 14 低依赖 / 4 高依赖两组                                                                                                                                                                                                             | ✅ 依赖表见 §9.14.11 + 台账 `$comment`                                      |
 | F2     | **✅ 已完成（§9.14.13）**：无依赖组整体移植（脚本 + lib + 台账 + `.d.mts` + spec）：`path-contract`、`waiver-expiry`、`docs-counts`、`msc`、`log-sensitive`、`audit-doc-integrity`、`debt-markers` 等                                                                                                                                                                      | ✅ 每个在 release 上 `exit 0`                                               |
-| F3     | ⏸ **未动（决策 A：暂不接链）**：有依赖组先移植依赖再移植门禁：`wire-format` 需后端的 serde 抽取器与 `ledger_export_sdk` fixture；`api-contract-doc-paths` 需 `docs/api-contract/generated/**`                                                                                                                                                                              | ⏸ release 侧仍登记 5 条 waiver（棘轮不升）                                  |
+| F3     | ⏸ **未动（决策 A：暂不接链）**：有依赖组先移植依赖再移植门禁：`wire-format` 需后端的 serde 抽取器与 `ledger_export_sdk` fixture；`api-contract-doc-paths` 需 `docs/api-contract/generated/**` —— ⚠️ **该前提已被实测证伪（§9.14.18 二）**：5 条中 4 条本就不依赖兄弟仓；真阻塞是 release 的 `src` + 它自己的门禁 + 生成产物**耦合**，**不可小步落地**（§9.14.18 三）       | ⏸ release 侧仍登记 5 条 waiver（棘轮不升）                                  |
 | F4     | **✅ 已完成（§9.14.13）**：接链：挂进 release 的 `lint` / `quality:contracts`（对齐 develop 的次序）                                                                                                                                                                                                                                                                       | ✅ `pnpm lint` 与 `pnpm quality:contracts` 在 release 上 `exit 0`           |
 | ~~F5~~ | **已完成（§9.14.11）**：`check-cross-line-gate-parity.mjs`（复用 `isGoverned` 的受管辖判据）+ 台账 + spec 16 例，挂进 `quality:contracts`；**CI 侧 SKIP 的真因**（§9.14.16 订正）：`release/contract-entrypoint` **不在任何 remote**（`git branch -r` / `ls-remote` 均无），`fetch-depth: 0` 已全历史也抓不到 ⇒ **登记为「受不 push 约束阻塞」的已知限制**，本地侧照常生效 | ✅ 变异 B：真删 release 一个门禁 ⇒ 红且点名；变异 C（差集为空）⇒ 报腐烂条目 |
 
@@ -2975,12 +3075,12 @@ I2 原文：「Tjg 重钉 pin（`synapse_rust_commit` → 当前后端 HEAD）�
 
 ### 批次 K —— **「URL 构造器」门禁**（🔴 高优先，堵 §9.14.4 盲区 1）**—— K1/K2/K3 ✅ 已落地；K4 挂链+登记 ✅，同步 release ⏸（⊂ F3）**
 
-| 步     | 动作                                                                                                                                                             | 验收                                                                                                                    |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| ~~K1~~ | **已完成（§9.14.12）**：抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态），登记成 15 条台账 | ✅ 清单（方法 → 拼出的 path 模板），先量比对面再定判据                                                                  |
-| ~~K2~~ | **已完成（§9.14.12）**：三层判据（存在性 / 路径命中 / 覆盖率守卫）+ 具名桶棘轮（`template-slot=1` / `identity-server=3`）                                        | ✅ 门禁 `exit 0`，桶计数入库                                                                                            |
-| ~~K3~~ | **已完成（§9.14.12）**：**变异自证 3/3 全 RED**（A/B 守卫缺失、C 未登记构造点），还原后字节一致                                                                  | ✅ 三处都变红；还原后 `exit 0`、字节一致                                                                                |
-| ~~K4~~ | **已完成（§9.14.12）**：挂进 `quality:contracts`（`quality:url-constructors`）+ 台账 `gates=20`/`support=56`；**未完成**：同步 release（⊂ F3，见批次 F）         | ✅ 挂链+登记完成；✅ release `lint`/`quality:contracts` `exit 0`（F4，§9.14.13）；⏸ release 侧 `url-constructors` 待 F3 |
+| 步     | 动作                                                                                                                                                                                                                                        | 验收                                                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ~~K1~~ | **已完成（§9.14.12）**：抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态），登记成 15 条台账                                                                            | ✅ 清单（方法 → 拼出的 path 模板），先量比对面再定判据                                                                  |
+| ~~K2~~ | **已完成（§9.14.12）**：三层判据（存在性 / 路径命中 / 覆盖率守卫）+ 具名桶棘轮（`template-slot=1` / `identity-server=3`）                                                                                                                   | ✅ 门禁 `exit 0`，桶计数入库                                                                                            |
+| ~~K3~~ | **已完成（§9.14.12）**：**变异自证 3/3 全 RED**（A/B 守卫缺失、C 未登记构造点），还原后字节一致                                                                                                                                             | ✅ 三处都变红；还原后 `exit 0`、字节一致                                                                                |
+| ~~K4~~ | **已完成（§9.14.12）**：挂进 `quality:contracts`（`quality:url-constructors`）+ 台账 `gates=20`/`support=56`（**已过期** —— 2026-10-10 回收 15 条 F2 后为 `gates=5`/`support=30`，见 §9.14.18）；**未完成**：同步 release（⊂ F3，见批次 F） | ✅ 挂链+登记完成；✅ release `lint`/`quality:contracts` `exit 0`（F4，§9.14.13）；⏸ release 侧 `url-constructors` 待 F3 |
 
 **为什么排第二**：`wire-format` 上线后仍漏掉 W-06 那 4 个 404，说明"每补一层判据就有一层新盲区"——
 **先建判据再修实例**（本仓既有纪律），否则修完 W-06 下次换个方法又会静默复发。
