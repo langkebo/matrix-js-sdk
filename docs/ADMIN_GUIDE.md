@@ -160,9 +160,6 @@ devices.forEach((device) => {
 
 // 删除单个设备
 await adminManager.deleteUserDevice("@alice:example.com", "DEVICE123");
-
-// 批量删除设备
-await adminManager.deleteUserDevices("@alice:example.com", ["DEVICE1", "DEVICE2", "DEVICE3"]);
 ```
 
 ### 速率限制

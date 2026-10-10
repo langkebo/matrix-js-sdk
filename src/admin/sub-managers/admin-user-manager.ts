@@ -284,19 +284,6 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     }
 
     /**
-     * 删除用户的设备
-     */
-    async deleteUserDevices(userId: string, deviceIds: string[]): Promise<void> {
-        AdminValidators.validateUserId(userId);
-        if (!deviceIds || deviceIds.length === 0) {
-            throw new ValidationError("Device IDs list cannot be empty");
-        }
-        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/devices/delete`, undefined, {
-            devices: deviceIds,
-        });
-    }
-
-    /**
      * 删除用户的单个设备
      */
     async deleteUserDevice(userId: string, deviceId: string): Promise<void> {

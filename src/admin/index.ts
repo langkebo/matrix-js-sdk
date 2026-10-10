@@ -325,7 +325,6 @@ export interface AdminManager {
     resetPassword(userId: string, newPassword: string): Promise<void>;
     setAdmin(userId: string, admin: boolean): Promise<void>;
     getUserDevices(userId: string): Promise<DeviceInfo[]>;
-    deleteUserDevices(userId: string, deviceIds: string[]): Promise<void>;
     deleteUserDevice(userId: string, deviceId: string): Promise<void>;
     getUserTokens(userId: string): Promise<UserTokensResponse>;
     deleteUserToken(userId: string, tokenId: string): Promise<void>;

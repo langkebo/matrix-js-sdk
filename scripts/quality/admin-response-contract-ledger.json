@@ -1891,13 +1891,6 @@
             "reason": "后端 unban_user 只有 Path、无 Json 提取器 ⇒ 请求体被忽略。"
         },
         {
-            "route": "POST /_synapse/admin/v1/users/{x}/devices/delete",
-            "sdkType": "",
-            "kind": "body-sent-ignored",
-            "expires": "2026-12-31",
-            "reason": "该路由由 user.rs::logout_user_devices 处理（与 /logout 同一处理器！），后端不读请求体 ⇒ SDK 传的 devices 列表被静默忽略；注意这可能是**路由复用**导致的语义错配，需要单独核实。"
-        },
-        {
             "kind": "body-sent-ignored",
             "route": "DELETE /_synapse/admin/v1/rooms/{x}",
             "sdkType": "",
@@ -1907,7 +1900,7 @@
     ],
     "unresolved": {
         "route-not-resolved": {
-            "count": 17,
+            "count": 16,
             "entries": [
                 {
                     "managerMethod": "deleteFeatureFlag",
@@ -2032,14 +2025,6 @@
                 {
                     "managerMethod": "joinRoom",
                     "route": "POST /_synapse/admin/v1/rooms/{x}/join",
-                    "declaredReturn": "void",
-                    "handler": null,
-                    "sdkType": null,
-                    "reason": "SDK 调用点拼出的路由在后端处理器映射里找不到（路径由局部变量 / 方法返回值决定，静态解析不出来）⇒ 响应与请求都无法核"
-                },
-                {
-                    "managerMethod": "deleteUserDevices",
-                    "route": "POST /_synapse/admin/v1/users/{x}/devices/delete",
                     "declaredReturn": "void",
                     "handler": null,
                     "sdkType": null,

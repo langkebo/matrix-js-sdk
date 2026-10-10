@@ -76,8 +76,8 @@
         },
         "AdminUserManager": {
             "missingJsDoc": 18,
-            "missingExample": 18,
-            "throwsWithoutTag": 7
+            "missingExample": 17,
+            "throwsWithoutTag": 6
         },
         "AggregationsManager": {
             "missingJsDoc": 4,
