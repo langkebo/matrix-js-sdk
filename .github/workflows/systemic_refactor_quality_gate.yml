@@ -29,8 +29,10 @@ jobs:
             - name: Large file change guard
               env:
                   GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+                  GITHUB_EVENT_BEFORE: ${{ github.event.before || '' }}
                   GITHUB_SHA: ${{ github.sha }}
                   LARGE_FILE_THRESHOLD: "1500"
+                  LARGE_FILE_DIFF_LINES: "50"
               run: pnpm quality:large-file-check
 
             - name: Lint and Typecheck
