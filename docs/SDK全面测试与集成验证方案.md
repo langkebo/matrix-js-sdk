@@ -2,20 +2,25 @@
 
 > 本方案旨在验证 matrix-js-sdk 项目对后端功能封装的正确性与完整性，依托 `fullstack-redo-batch-b` 测试套件开展端到端验证。
 > **范围声明**：本方案仅聚焦于测试方法论与实施路径，不涉及任何实际代码修改操作。
+>
+> **修订记录**：
+>
+> - **v2（2026-10-10）**：对齐 SDK 契约门禁演进——新增 §2.4「SDK 侧静态验证设施」（PathAssert 段级路径断言、契约门禁链、ROUTE_CONTRACT 对账收口、admin 响应形状门禁），并同步更新 §0 / §2.2 / §2.3 / §3.1 / §3.2.3 / §4.1 / §5 / 附录 A 中的相关条目。
+> - **v1（2026-07-31）**：初版，基于 fullstack-redo-batch-b 测试套件分析建立五阶段验证框架。
 
 ---
 
 ## 0. 方案总览
 
-| 维度             | 说明                                                                                                 |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| **测试代码位置** | `/Users/ljf/Desktop/hu_ts/docs/superpowers/plans/fullstack-redo-batch-b/`                            |
-| **测试套件规模** | 24 个 Shell 脚本，覆盖 60+ 后端功能模块，约 700+ 测试用例                                            |
-| **测试类型**     | 真实后端集成测试（Real Backend Integration）                                                         |
-| **后端环境**     | synapse-rust 运行于 `https://matrix.test`，PostgreSQL 数据库                                         |
-| **SDK 验证目标** | 每个 SDK Manager 方法正确封装对应后端路由，响应格式、数据准确性、异常处理符合契约                    |
-| **执行入口**     | `run_all.sh`（批量） / 单脚本独立执行 / SDK 集成后通过 tsx 执行                                      |
-| **结果产物**     | `results.csv`（机器可读） + `*_results.txt`（控制台日志） + `logs/*_fail_response.txt`（失败响应体） |
+| 维度             | 说明                                                                                                                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **测试代码位置** | `/Users/ljf/Desktop/hu_ts/docs/superpowers/plans/fullstack-redo-batch-b/`                                                                                                                                 |
+| **测试套件规模** | 24 个 Shell 脚本，覆盖 60+ 后端功能模块，约 700+ 测试用例                                                                                                                                                 |
+| **测试类型**     | 真实后端集成测试（Real Backend Integration）                                                                                                                                                              |
+| **后端环境**     | synapse-rust 运行于 `https://matrix.test`，PostgreSQL 数据库                                                                                                                                              |
+| **SDK 验证目标** | 每个 SDK Manager 方法正确封装对应后端路由，响应格式、数据准确性、异常处理符合契约；静态层面须先通过契约门禁链（PathAssert 编译期断言 + `contract:codegen:check` + `quality:path-contract` 等，详见 §2.4） |
+| **执行入口**     | `run_all.sh`（批量） / 单脚本独立执行 / SDK 集成后通过 tsx 执行                                                                                                                                           |
+| **结果产物**     | `results.csv`（机器可读） + `*_results.txt`（控制台日志） + `logs/*_fail_response.txt`（失败响应体）                                                                                                      |
 
 ### 0.1 五大阶段关系图
 
@@ -282,10 +287,15 @@ fullstack-redo-batch-b/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 1: 路由常量校验                                          │
-│   - 确认 SDK __generated__/route-table.ts 中存在该路由常量    │
-│   - 确认 method + path 与后端 Ledger 一致                    │
-│   - 执行：pnpm contract:codegen:check                       │
+│ Step 1: 路由常量校验（四层静态防护，v2 增补）                 │
+│   - 层1 类型级断言：PathAssert 段级精确匹配，路径写错即编译   │
+│     期报错（src/http-api/strip-prefix.ts，52 文件接入；§2.4.1）│
+│   - 层2 生成物校验：pnpm contract:codegen:check              │
+│     （46 模块 __generated__/ 与契约 manifest 一致）           │
+│   - 层3 字面量对账：pnpm quality:path-contract               │
+│     （433 个请求调用点路径 vs 后端 Ledger；§2.4.2）           │
+│   - 层4 Manager 覆盖：pnpm quality:manager-codegen           │
+│     （38 covered / 10 waived / 0 missing；§2.4.2）           │
 ├─────────────────────────────────────────────────────────────┤
 │ Step 2: 测试用例关联                                          │
 │   - 在映射表中找到该 SDK 方法对应的 test_id 列表               │
@@ -312,7 +322,7 @@ fullstack-redo-batch-b/
 
 #### 2.2.2 批量验证流程（按模块批量确认）
 
-1. **契约同步检查**：`pnpm contract:sync && pnpm contract:codegen:check`，确保 SDK 路由表与后端 Ledger 一致；
+1. **契约同步检查**：`pnpm contract:sync && pnpm contract:codegen && pnpm contract:codegen:check && pnpm quality:path-contract`，确保 SDK 路由表与后端 Ledger 一致、且全部字面量调用路径通过对账；
 2. **执行模块测试脚本**：如 `bash 12_friend_room.sh`，收集 `results.csv` 中 `module=friend_room` 的所有用例；
 3. **聚合通过率**：计算该模块 PASS/FAIL/SKIP 比例；
 4. **SDK 方法抽样**：从映射表中随机抽取 20% 的 SDK 方法，编写 tsx 调用脚本对比响应；
@@ -322,13 +332,14 @@ fullstack-redo-batch-b/
 
 #### 2.3.1 正确性维度
 
-| 子维度             | 判定标准                                                                                                                     | 验证方法                                           |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **响应格式合规性** | SDK 返回的 JSON 结构与后端响应字段一致（字段名、类型、可空性）                                                               | jq 提取后端响应字段 → 对比 SDK TypeScript 接口定义 |
-| **数据准确性**     | SDK 解析后的值与后端原始响应值相等（含数值类型、字符串、布尔）                                                               | 同一字段在后端响应和 SDK 返回对象中比对            |
-| **异常处理有效性** | 后端返回 4xx/5xx 时，SDK 抛出对应类型异常（`MatrixError` / `ConnectionError` / `HTTPError`），且 `errcode`、`error` 字段保留 | 触发异常场景，捕获 SDK 异常并检查 `errcode` 属性   |
-| **状态码语义对齐** | SDK 不应将 4xx 当成成功；429 应触发 `ConnectionError` 重试逻辑                                                               | 检查 SDK 内部 http-api 错误处理路径                |
-| **错误码契约**     | 后端返回的 `errcode`（如 `M_FORBIDDEN`、`M_USER_IN_USE`、`M_MISSING_TOKEN`）应在 SDK 错误对象中保留                          | 检查 `MatrixError.errcode` 字段                    |
+| 子维度                   | 判定标准                                                                                                                     | 验证方法                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **响应格式合规性**       | SDK 返回的 JSON 结构与后端响应字段一致（字段名、类型、可空性）                                                               | jq 提取后端响应字段 → 对比 SDK TypeScript 接口定义                          |
+| **数据准确性**           | SDK 解析后的值与后端原始响应值相等（含数值类型、字符串、布尔）                                                               | 同一字段在后端响应和 SDK 返回对象中比对                                     |
+| **异常处理有效性**       | 后端返回 4xx/5xx 时，SDK 抛出对应类型异常（`MatrixError` / `ConnectionError` / `HTTPError`），且 `errcode`、`error` 字段保留 | 触发异常场景，捕获 SDK 异常并检查 `errcode` 属性                            |
+| **状态码语义对齐**       | SDK 不应将 4xx 当成成功；429 应触发 `ConnectionError` 重试逻辑                                                               | 检查 SDK 内部 http-api 错误处理路径                                         |
+| **错误码契约**           | 后端返回的 `errcode`（如 `M_FORBIDDEN`、`M_USER_IN_USE`、`M_MISSING_TOKEN`）应在 SDK 错误对象中保留                          | 检查 `MatrixError.errcode` 字段                                             |
+| **编译期路径断言**（v2） | SDK 方法使用的路径经 PathAssert 段级精确匹配校验，杜绝泛化 `${string}` 吞噬前缀导致的命名空间路由零校验                      | `pnpm lint:types` + `spec/type-tests/path-assert.type-test.ts` 永久类型守卫 |
 
 **正确性合格门槛**：
 
@@ -353,6 +364,42 @@ fullstack-redo-batch-b/
 - T1/T2 模块的边缘场景用例通过率 = 100%；
 - T3 模块边缘场景通过率 ≥ 90%；
 - T4 模块边缘场景通过率 ≥ 80%。
+
+### 2.4 SDK 侧静态验证设施（2026-10 增补）
+
+> 动态测试（阶段 3/4）之外，SDK 已建立一套编译期/静态验证设施，可在不启动后端的情况下拦截「路径写错 / 路由漏封装 / 响应形状不符」类缺陷。它们构成阶段 2 验证的第一道防线；动态测试聚焦这些设施无法覆盖的行为语义（响应数据、异常处理、时序）。
+
+#### 2.4.1 PathAssert 段级精确路径断言
+
+- **唯一实现**：`src/http-api/strip-prefix.ts`（`StripPrefix<P, Prefix, Fallback>` 条件类型 + `StripV3` / `StripV1` / `StripR0` / `StripAdminV1` / `StripVendor` 等规范别名），全仓 **52 个文件**接入，禁止各模块再手写等价条件类型；
+- **解决的历史问题**：此前全仓 66 份手写 `StripXxx` 条件类型（22 个名字、14 种形态）存在「同名不同义」陷阱；且泛化 `${string}` 匹配会让 `/rooms/${string}` 无条件吞掉整个前缀，导致命名空间路由零校验（该教训已记入项目硬约束：路径断言必须段级精确匹配）；
+- **永久守卫**：`spec/type-tests/path-assert.type-test.ts` 类型测试，防止断言能力退化；
+- **详细设计**：见 `docs/sdk-encapsulation-audit.md` §13.13–13.14（本文不复制全文）。
+
+#### 2.4.2 契约门禁链与独立契约门禁
+
+`pnpm lint` 为 **18 项串联检查**（任一失败即整链失败）：`lint:types` → `test:types` → `quality:type-coverage`（禁止新增 `any`）→ `lint:js` → `lint:workflows` → `quality:swallow-fallbacks` → `quality:debt-markers` → `quality:no-default-key` → `quality:real-backend-types` → `quality:timer-pairing` → `quality:contract-drift` → `quality:docs-counts` → `quality:audit-doc-integrity` → `quality:coverage:critical-files` → `quality:waiver-expiry:strict` → `quality:git-hooks` → `quality:gate-reachability` → `quality:manager-extensions`。
+
+门禁链之外另有独立契约门禁（当前基线为 2026-10-10 实测值）：
+
+| 门禁命令                               | 校验内容                                                                                                                                               | 当前基线                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| `pnpm contract:check`                  | `docs/api-contract/generated/` 镜像（49 份模块 manifest）与后端 Ledger 字节一致                                                                        | 通过                               |
+| `pnpm contract:codegen:check`          | 46 个模块 `__generated__/` 生成物（39 份 route-table + 46 份 dto）与契约 manifest 一致（CI 门禁）                                                      | 通过                               |
+| `pnpm quality:path-contract`           | SDK 全部字面量请求路径 vs 后端 Ledger 对账；2026-10-06 门禁改造后由 159 → **433 调用点**（表驱动多包装器 + 变异自证，`adminRequest` 简写形态纳入校验） | 通过                               |
+| `pnpm quality:manager-codegen`         | Manager 方法 ↔ 生成路由消费覆盖对账                                                                                                                    | 38 covered / 10 waived / 0 missing |
+| `pnpm quality:admin-response-contract` | Admin 响应形状 vs 后端处理器签名（129 条目、58 请求体条目、5 类覆盖桶）                                                                                | 无违规                             |
+
+#### 2.4.3 ROUTE_CONTRACT 对账收口结论
+
+- **已封装 10 条真缺口（B1–B4，2026-10 落地）**：
+    - B1 `src/notifications/index.ts` 4 方法：`getPushDevices` / `registerPushDevice` / `unregisterPushDevice` / `sendPushNotification`（`/push/devices`、`/push/send`）；
+    - B2 `src/turn-server/index.ts` 2 方法：`getVoipConfig` / `getGuestTurnServerConfig`（`/voip/config`、`/voip/turnServer/guest`，assembly→auth 跨模块归属）；
+    - B3 `src/room-summary/sub-managers/room-key-manager.ts` 1 方法：`getRoomKeys`（`GET /rooms/{room_id}/keys`）；
+    - B4 `src/room/RoomManager.ts` 3 方法：`getUserRooms` / `getMutualRooms` / `createPrivateRoom`。
+- **admin 面 25 条真缺口**：确需产品决策、本轮不实现——差异记录口径见 §5.3.4，不阻塞非 admin 模块验收；
+- **admin-media 路径缺陷已修**：后端只注册带 `server_name` 段的 `POST /media/quarantine/{server_name}/{media_id}`，SDK quarantine 方法签名已对齐 `(serverName, mediaId)`；
+- 更多细节（assembly→auth 归属映射、moderation 表生成 + cas waiver 等）见 `docs/sdk-encapsulation-audit.md` §13.14–13.15。
 
 ---
 
@@ -409,8 +456,11 @@ fullstack-redo-batch-b/
 ┌─ Step 6: 契约同步检查 ─────────────────────────────────────┐
 │  6.1 cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk              │
 │  6.2 pnpm contract:check                                    │
-│  6.3 pnpm contract:codegen:check                            │
-│  6.4 确认 SDK 路由表与后端 Ledger 完全对齐                  │
+│  6.3 pnpm contract:sync && pnpm contract:codegen            │
+│      && pnpm contract:codegen:check                         │
+│  6.4 pnpm quality:path-contract                             │
+│      && pnpm quality:manager-codegen（v2 增补）              │
+│  6.5 确认 SDK 路由表与后端 Ledger 完全对齐                  │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -492,15 +542,19 @@ fullstack-redo-batch-b/
 
 #### 3.2.3 SDK 构建配置对齐
 
-| 配置项          | 期望值                | 验证命令                         |
-| --------------- | --------------------- | -------------------------------- |
-| TypeScript 编译 | 0 errors              | `pnpm lint:types`                |
-| ESLint 检查     | 0 errors / 0 warnings | `pnpm lint:js`                   |
-| 契约同步        | 通过                  | `pnpm contract:check`            |
-| 契约代码生成    | 通过                  | `pnpm contract:codegen:check`    |
-| 类型覆盖率      | 无新增 `any`          | `pnpm quality:type-coverage`     |
-| 吞异常检查      | 无空 catch            | `pnpm quality:swallow-fallbacks` |
-| SDK 构建        | lib/ 已生成           | `pnpm build`                     |
+| 配置项                      | 期望值                              | 验证命令                               |
+| --------------------------- | ----------------------------------- | -------------------------------------- |
+| 全链质量门禁（v2 增补）     | 18 项串联检查全部通过               | `pnpm lint`                            |
+| TypeScript 编译             | 0 errors                            | `pnpm lint:types`                      |
+| ESLint 检查                 | 0 errors / 0 warnings               | `pnpm lint:js`                         |
+| 契约同步                    | 通过                                | `pnpm contract:check`                  |
+| 契约代码生成                | 通过                                | `pnpm contract:codegen:check`          |
+| 字面量路径对账（v2 增补）   | 433 调用点全部匹配                  | `pnpm quality:path-contract`           |
+| Manager 覆盖对账（v2 增补） | 0 missing（38 covered / 10 waived） | `pnpm quality:manager-codegen`         |
+| Admin 响应形状（v2 增补）   | 无违规                              | `pnpm quality:admin-response-contract` |
+| 类型覆盖率                  | 无新增 `any`                        | `pnpm quality:type-coverage`           |
+| 吞异常检查                  | 无空 catch                          | `pnpm quality:swallow-fallbacks`       |
+| SDK 构建                    | lib/ 已生成                         | `pnpm build`                           |
 
 ---
 
@@ -547,12 +601,21 @@ cd /Users/ljf/Desktop/hu_ts/matrix-js-sdk/
 # 步骤 1: 确认 SDK 已构建
 pnpm build
 
-# 步骤 2: 执行 SDK 真实后端测试（按模块）
-pnpm test:real-backend:setup                              # 确保测试账号存在
-pnpm run test:real-backend:tsx -- spec/integ/real-backend/<module>.test.ts
+# 步骤 2: 确保测试账号存在（run-real-backend-with-ca.mjs + ensure-real-backend-users.mjs）
+pnpm test:real-backend:setup
 
-# 步骤 3: 批量执行
+# 步骤 3: 单文件执行（示例：账户模块）
+#   注意：必须用 test:real-backend:tsx 入口（自带 CA 信任注入），
+#   勿直接对 spec/integ/real-backend/ 跑 vitest
+pnpm run test:real-backend:tsx -- spec/integ/real-backend/step1-account.test.ts
+
+# 步骤 4: 批量执行（scripts/run-real-backend-batch.mjs 驱动全量 real-backend 套件）
 pnpm test:real-backend:batch
+
+# 步骤 5: 完整链路与专项入口
+pnpm test:real-backend            # 完整链路（smoke → setup → batch）
+pnpm test:real-backend:device     # 设备管理专项（4 个 spec 文件）
+pnpm test:real-backend:l4         # L4 弱网络专项
 ```
 
 #### 4.1.4 失败用例复现与诊断
@@ -773,19 +836,20 @@ SDK 用户文档（TypeDoc 生成）
 
 #### 5.2.1 SDK 整体验收标准
 
-| 验收项              | 合格标准                              | 不合格后果                     |
-| ------------------- | ------------------------------------- | ------------------------------ |
-| **契约对齐**        | `pnpm contract:codegen:check` 通过    | 一票否决：SDK 不得发布         |
-| **类型安全**        | `pnpm lint:types` 0 errors            | 一票否决                       |
-| **代码质量**        | `pnpm lint:js` 0 errors / 0 warnings  | 一票否决                       |
-| **吞异常检查**      | `pnpm quality:swallow-fallbacks` 通过 | 一票否决                       |
-| **T1 核心模块**     | 通过率 = 100%                         | 一票否决                       |
-| **T2 重要模块**     | 通过率 ≥ 95%                          | 阻塞发布，需评估豁免           |
-| **T3 标准模块**     | 通过率 ≥ 90%                          | 不阻塞发布，但需在下个迭代修复 |
-| **T4 边缘模块**     | 通过率 ≥ 85%                          | 不阻塞发布，记入技术债务       |
-| **SDK 方法验证率**  | ≥ 95%                                 | 阻塞发布                       |
-| **异常路径验证**    | 100% 覆盖                             | 阻塞发布                       |
-| **SDK↔HTTP 一致率** | 100%（抽样）                          | 阻塞发布                       |
+| 验收项                 | 合格标准                                                                                      | 不合格后果                     |
+| ---------------------- | --------------------------------------------------------------------------------------------- | ------------------------------ |
+| **契约对齐**           | `pnpm contract:codegen:check` 通过                                                            | 一票否决：SDK 不得发布         |
+| **类型安全**           | `pnpm lint:types` 0 errors                                                                    | 一票否决                       |
+| **代码质量**           | `pnpm lint:js` 0 errors / 0 warnings                                                          | 一票否决                       |
+| **吞异常检查**         | `pnpm quality:swallow-fallbacks` 通过                                                         | 一票否决                       |
+| **静态契约门禁（v2）** | `pnpm lint` 全链（18 项）+ `pnpm quality:path-contract` + `pnpm quality:manager-codegen` 通过 | 一票否决                       |
+| **T1 核心模块**        | 通过率 = 100%                                                                                 | 一票否决                       |
+| **T2 重要模块**        | 通过率 ≥ 95%                                                                                  | 阻塞发布，需评估豁免           |
+| **T3 标准模块**        | 通过率 ≥ 90%                                                                                  | 不阻塞发布，但需在下个迭代修复 |
+| **T4 边缘模块**        | 通过率 ≥ 85%                                                                                  | 不阻塞发布，记入技术债务       |
+| **SDK 方法验证率**     | ≥ 95%                                                                                         | 阻塞发布                       |
+| **异常路径验证**       | 100% 覆盖                                                                                     | 阻塞发布                       |
+| **SDK↔HTTP 一致率**    | 100%（抽样）                                                                                  | 阻塞发布                       |
 
 #### 5.2.2 验收结论判定规则
 
@@ -843,6 +907,15 @@ SDK 用户文档（TypeDoc 生成）
 | 3   | VF-005  | verification_routes | verifyDeviceSigning     | exception_type_mismatch | P1       | SDK 抛出通用 Error 而非 MatrixError | 待修复 |
 | ... | ...     | ...                 | ...                     | ...                     | ...      | ...                                 | ...    |
 
+#### 5.3.4 契约对账已知缺口的记录口径（v2 增补）
+
+差异清单除记录本轮动态测试新发现的差异外，还必须并入静态契约对账的**已知缺口**（基线见 §2.4.3）：
+
+- **admin 面 25 条真缺口**：逐条列入差异清单，`差异类型 = sdk_method_missing`、`状态 = 待产品决策`、`影响等级 = P3`；不阻塞非 admin 模块验收，但须在报告「执行摘要」与「SDK 与后端差异清单」中显式披露；
+- **manager-codegen 豁免项（10 项 waiver）**：列入报告附录，注明豁免理由与到期时间（`quality:waiver-expiry:strict` 会阻断过期豁免，到期未续期即门禁失败）；
+- **已收口项**（B1–B4 的 10 条封装、admin-media quarantine 路径修复）：不重复列为差异，但在「执行摘要」中说明其对路由覆盖率统计口径的影响；
+- **路径对账显式登记的不覆盖项**（`quality:path-contract` 的 `EXCLUDED_WRAPPERS` / `OUT_OF_SCOPE_PREFIXES`）：逐条附录化，与「忘记覆盖」区分，避免静默黑洞。
+
 ---
 
 ## 附录 A: 测试执行检查清单
@@ -857,6 +930,7 @@ SDK 用户文档（TypeDoc 生成）
 - [ ] `pnpm lint:types` 0 errors
 - [ ] `pnpm lint:js` 0 errors / 0 warnings
 - [ ] `pnpm contract:check && pnpm contract:codegen:check` 通过
+- [ ] `pnpm quality:path-contract && pnpm quality:manager-codegen` 通过（v2 增补）
 - [ ] `pnpm quality:swallow-fallbacks` 通过
 - [ ] 后端 Ledger 已同步到 `docs/api-contract/generated/`
 - [ ] `bash setup_accounts.sh` 执行成功，`tokens.env` 中 4 个 token 均非空
