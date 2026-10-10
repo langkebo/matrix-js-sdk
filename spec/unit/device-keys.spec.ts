@@ -56,7 +56,6 @@ describe("DeviceKeysManager", () => {
                 stream_id: 1,
             })
             .mockResolvedValueOnce({})
-            .mockResolvedValueOnce({})
             .mockResolvedValueOnce({ request_id: "r1" })
             .mockResolvedValueOnce({ requests: [{ request_id: "r1" }] })
             .mockResolvedValueOnce({})
@@ -69,7 +68,6 @@ describe("DeviceKeysManager", () => {
             left: [],
             stream_id: 1,
         });
-        await manager.uploadSignatures({ "@a:hs": { D1: { k: "v" } } });
         await manager.uploadDeviceSigning({});
         await expect(
             manager.createRoomKeyRequest({ room_id: "!r:hs", session_id: "s1", algorithm: "m.megolm.v1.aes-sha2" }),

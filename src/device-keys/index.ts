@@ -26,7 +26,6 @@ limitations under the License.
  * - POST /keys/claim - 声明一次性密钥
  * - GET /keys/changes - 获取密钥变化
  * - POST /keys/device_list/update - 更新设备列表
- * - POST /keys/signatures - 上传签名
  * - POST /keys/device_signing/upload - 上传设备签名
  * - POST /room_keys/request - 创建密钥请求
  * - GET /room_keys/request - 获取密钥请求
@@ -324,33 +323,6 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
             left: response.left || [],
             stream_id: response.stream_id,
         };
-    }
-
-    /**
-     * 上传跨签名
-     *
-     * `POST /_matrix/client/v3/keys/signatures/upload`。
-     *
-     * ⚠️ 2026-10-09 修正：此前打成 `/keys/signatures`（**漏了 `/upload`**）⇒ 必然 404，
-     * 即这个方法此前从未真正工作过。同一个 SDK 里其它两处（`client-crypto-requests.ts`、
-     * `rust-crypto/OutgoingRequestProcessor.ts`）用的都是带 `/upload` 的正确路径。
-     *
-     * @example
-     * ```typescript
-     * await client.getDeviceKeysManager().uploadSignatures({
-     *     "@alice:example.org": { DEVICEID: { "ed25519:DEVICEID": "<signature>" } },
-     * });
-     * ```
-     */
-    async uploadSignatures(
-        signatures: Record<string, Record<string, Record<string, string>>>,
-    ): Promise<SignaturesUploadResponse> {
-        return await this.request<SignaturesUploadResponse>({
-            method: Method.Post,
-            path: "/keys/signatures/upload",
-            body: signatures,
-            prefix: ClientPrefix.V3,
-        });
     }
 
     /**

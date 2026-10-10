@@ -248,7 +248,10 @@ export class CryptoKeysManager extends BaseManager {
                 return await this.request<IUploadKeySignaturesResponse>({
                     method: Method.Post,
                     path: "/keys/signatures/upload",
-                    body: { signatures },
+                    // Matrix 规范：请求体**直接是签名映射**；`{ signatures }` 的包一层是
+                    // 后端为历史写法保留的兼容分支（`device_keys/service.rs` 的
+                    // `body.get("signatures").unwrap_or(body)`），SDK 不再产生它。
+                    body: signatures,
                     prefix: ClientPrefix.V3,
                 });
             }, "uploadKeySignatures");

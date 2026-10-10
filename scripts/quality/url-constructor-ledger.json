@@ -31,7 +31,7 @@
             "file": "src/cas/index.ts",
             "symbol": "getLoginUrl",
             "method": "GET",
-            "guards": ["CAS_API_PREFIX.cas", "/login${params}"],
+            "guards": ["CAS_PROTOCOL_PREFIX", "/login${params}"],
             "paths": [{ "path": "/_synapse/cas/login", "expect": "manifest" }]
         },
         {

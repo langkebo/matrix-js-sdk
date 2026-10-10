@@ -16,7 +16,7 @@ last_reviewed: 2026-05-03
 ### 公共 CAS 协议端点
 
 > 后端 2026-09 已把这些端点从根级路径迁到 `/_synapse/cas` 前缀下（SDK 的
-> `CAS_API_PREFIX.cas` 一直按 `/_synapse/cas` 构建 URL，故 SDK 侧无需改动）。
+> `CAS_PROTOCOL_PREFIX` 一直按 `/_synapse/cas` 构建 URL，故 SDK 侧无需改动）。
 > 根级 `/login`、`/serviceValidate` 等旧路径已下线，**不得**再写回契约表。
 
 | 方法 | 路径                                        | 说明                     | 认证 |
@@ -38,16 +38,6 @@ last_reviewed: 2026-05-03
 | DELETE | `/_synapse/admin/v1/cas/services/{service_id}`      | 删除服务          | 管理员 |
 | GET    | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | 获取用户 CAS 属性 | 管理员 |
 | POST   | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | 设置用户 CAS 属性 | 管理员 |
-
-### 兼容管理别名
-
-后端还保留一组无前缀兼容别名，指向相同的管理逻辑：
-
-- `GET /admin/services`
-- `POST /admin/services`
-- `DELETE /admin/services/{service_id}`
-- `GET /admin/users/{user_id}/attributes`
-- `POST /admin/users/{user_id}/attributes`
 
 ## SDK 对齐状态
 
@@ -74,4 +64,6 @@ last_reviewed: 2026-05-03
 - **契约覆盖率**: 100%
 - **说明**:
     - `/_synapse/cas/serviceValidate`、`/_synapse/cas/proxyValidate`、`/_synapse/cas/p3/serviceValidate`、`/_synapse/cas/proxy` 属于 CAS 协议 XML 端点，通过 `buildValidateUrl()` helper 绑定。
-    - 后端保留的 5 条无前缀兼容别名（如 `GET /admin/services`）与 `/_synapse/admin/v1/cas/*` 逻辑完全一致，SDK 统一采用 V1 路径进行封装，视为逻辑覆盖 100%。
+    - 后端曾保留的 5 条**无前缀**兼容别名（`/admin/services*`、`/admin/users/{user_id}/attributes`）
+      已按铁律 1 连同 `cas.rs` 的 `legacy_admin_routes` 与专用 deprecation 中间件整段删除
+      （2026-10-08，C6 第四批）；SDK 侧同步收敛为唯一的 `/_synapse/admin/v1/cas/*` 形态。

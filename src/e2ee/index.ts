@@ -45,7 +45,6 @@ function ep<const P extends string>(path: P & PathAssert<P, StripV3<E2eePath>>):
  *   - POST   /keys/claim
  *   - GET    /keys/changes
  *   - POST   /keys/device_list/update
- *   - POST   /keys/signatures
  *   - POST   /keys/signatures/upload
  *   - POST   /keys/device_signing/upload
  *   - GET/POST /room_keys/request
@@ -226,23 +225,6 @@ export class E2EEManager extends BaseManager {
 
     public async postDeviceListUpdate(body: Array<DeviceListUpdateEntry | DeviceListDeletedEntry>): Promise<void> {
         return this.postVoid(ep("/keys/device_list/update"), body, "postDeviceListUpdate");
-    }
-
-    public async uploadSignatures(
-        body: Record<string, Record<string, Record<string, string>>>,
-    ): Promise<SignaturesUploadResponse> {
-        return this.post(ep("/keys/signatures/upload"), body, "uploadSignatures");
-    }
-
-    /**
-     * `/keys/signatures` 是历史别名；后端 ledger 只注册 `/keys/signatures/upload`
-     * （`POST /_matrix/client/{v1,v3}/keys/signatures/upload`），旧路径恒 404，
-     * 故两个入口统一指向规范路径。
-     */
-    public async uploadSignaturesAlt(
-        body: Record<string, Record<string, Record<string, string>>>,
-    ): Promise<SignaturesUploadResponse> {
-        return this.post(ep("/keys/signatures/upload"), body, "uploadSignaturesAlt");
     }
 
     /**

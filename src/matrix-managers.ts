@@ -50,7 +50,6 @@ export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
 export {
     CasManager,
-    type CasApiPrefix,
     type CasService,
     type CasServiceListResponse,
     type CasServiceCreateRequest,

@@ -195,8 +195,8 @@
             "throwsWithoutTag": 0
         },
         "E2EEManager": {
-            "missingJsDoc": 17,
-            "missingExample": 5,
+            "missingJsDoc": 16,
+            "missingExample": 4,
             "throwsWithoutTag": 0
         },
         "EncryptionManager": {
