@@ -1265,8 +1265,12 @@ describe("MatrixRTCSession", () => {
             });
 
             it("wraps key index around to 0 when it reaches the maximum", { timeout: 30000 }, async () => {
-                // this should give us keys with index [0...255, 0, 1]
-                const membersToTest = 258;
+                // 覆盖「255 → 0 → 1」的环绕即可，**不必真的跑 258 次轮换**：
+                // 原实现循环 258 次、每次都有真实 CPU 开销，满负载下会撞 30s 墙钟上限
+                // （假时钟只冻结逻辑时间，不冻结真实耗时 ⇒ 间歇性红，见治理方案 §9.10.4 N-02）。
+                // 这里把内部索引直接顶到 254，用 4 次轮换拿到同一组断言。
+                const startIndex = 254;
+                const membersToTest = 4;
                 const members: MembershipData[] = [];
                 for (let i = 0; i < membersToTest; i++) {
                     members.push(Object.assign({}, membershipTemplate, { device_id: `DEVICE${i}` }));
@@ -1289,6 +1293,12 @@ describe("MatrixRTCSession", () => {
                                 manageMediaKeys: true,
                             });
                         } else {
+                            if (i === 1) {
+                                // 直接顶到 254 ⇒ 后续三次轮换分别得到 255 / 0 / 1
+                                (
+                                    sess as unknown as { encryptionManager: { latestGeneratedKeyIndex: number } }
+                                ).encryptionManager.latestGeneratedKeyIndex = startIndex;
+                            }
                             // otherwise update the state reducing the membership each time in order to trigger key rotation
                             mockRoomState(mockRoom, members.slice(0, membersToTest - i));
                         }
@@ -1300,7 +1310,7 @@ describe("MatrixRTCSession", () => {
 
                         const keysPayload = await keysSentPromise;
                         expect(keysPayload.keys).toHaveLength(1);
-                        expect(keysPayload.keys[0].index).toEqual(i % 256);
+                        expect(keysPayload.keys[0].index).toEqual(i === 0 ? 0 : (startIndex + i) % 256);
                     }
                 } finally {
                     vi.useRealTimers();
