@@ -90,8 +90,18 @@ export function getSSOUserInfoRequest<T>(authedRequest: AuthedRequestFn): Promis
     });
 }
 
-export function createSecureBackupRequest<T>(passphrase: string, authedRequest: AuthedRequestFn): Promise<T> {
-    return authedRequest<T>(Method.Post, "/keys/backup/secure", undefined, { passphrase }, { prefix: ClientPrefix.V3 });
+export function createSecureBackupRequest<T>(
+    algorithm: string,
+    authData: unknown,
+    authedRequest: AuthedRequestFn,
+): Promise<T> {
+    return authedRequest<T>(
+        Method.Post,
+        "/keys/backup/secure",
+        undefined,
+        { algorithm, auth_data: authData },
+        { prefix: ClientPrefix.V3 },
+    );
 }
 
 export function getSecureBackupRequest<T>(backupId: string, authedRequest: AuthedRequestFn): Promise<T> {
@@ -118,7 +128,6 @@ export function verifySecureBackupPassphraseRequest<T>(
 
 export function storeSecureBackupKeysRequest<T>(
     backupId: string,
-    passphrase: string,
     sessionKeys: unknown[],
     authedRequest: AuthedRequestFn,
 ): Promise<T> {
@@ -126,25 +135,19 @@ export function storeSecureBackupKeysRequest<T>(
         Method.Post,
         buildSecureBackupKeysPath(backupId),
         undefined,
-        { passphrase, session_keys: sessionKeys },
+        { session_keys: sessionKeys },
         { prefix: ClientPrefix.V3 },
     );
 }
 
 export function restoreSecureBackupRequest<T>(
     backupId: string,
-    passphrase: string,
+    rooms: string[] | undefined,
     authedRequest: AuthedRequestFn,
 ): Promise<T> {
-    return authedRequest<T>(
-        Method.Post,
-        buildSecureBackupRestorePath(backupId),
-        undefined,
-        { passphrase },
-        {
-            prefix: ClientPrefix.V3,
-        },
-    );
+    return authedRequest<T>(Method.Post, buildSecureBackupRestorePath(backupId), undefined, rooms ? { rooms } : {}, {
+        prefix: ClientPrefix.V3,
+    });
 }
 
 export function deleteSecureBackupRequest(backupId: string, authedRequest: AuthedRequestFn): Promise<EmptyObject> {

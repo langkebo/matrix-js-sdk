@@ -115,6 +115,9 @@ describe("Cross-device passphrase recovery real backend integration", () => {
         });
 
         client.setAccessToken(result.access_token);
+        // loginRequest is a low-level HTTP wrapper that does not populate credentials.
+        // Set userId explicitly so initRustCrypto()/getUserId() work downstream.
+        client.credentials.userId = result.user_id;
         return client;
     }
 

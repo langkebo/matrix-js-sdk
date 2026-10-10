@@ -19,6 +19,17 @@ import { InvalidParamError } from "./errors";
 
 const USER_ID_REGEX = /^@[a-z0-9._=-]+:[a-z0-9.-]+$/i;
 
+/**
+ * Room v12 / MSC4291 domainless room IDs: `!` followed by exactly 43 unpadded
+ * URL-safe base64 characters and **no `:domain` part**.
+ *
+ * Mirrors synapse-rust's `parse_room_id` (`DOMAINLESS_ROOM_ID_LEN = 43`): a
+ * domainless ID is the `m.room.create` event ID with `$` swapped for `!`, so it
+ * carries no homeserver. Accepting it here is required for every room-v12 room,
+ * whose `room_id` returned by the backend has exactly this shape.
+ */
+const DOMAINLESS_ROOM_ID_REGEX = /^![A-Za-z0-9_-]{43}$/;
+
 export function validateUserId(userId: string): void {
     if (!userId || typeof userId !== "string") {
         throw new InvalidParamError("User ID must be a non-empty string");
@@ -32,13 +43,18 @@ export function validateRoomId(roomId: string, opts?: { allowAlias?: boolean }):
     if (!roomId || typeof roomId !== "string") {
         throw new ValidationError("Room ID is required and must be a string");
     }
+    // Both accepted room-ID forms are valid: the legacy `!opaque:server` form
+    // (room versions 1–11) and the domainless `!<43-char v12 hash>` form
+    // (MSC4291), which has no `:` at all. Aliases (`#alias:server`) also
+    // contain a `:`.
+    const wellFormed = DOMAINLESS_ROOM_ID_REGEX.test(roomId) || roomId.includes(":");
     const aliasOk = opts?.allowAlias === true;
     if (aliasOk) {
-        if (!roomId.includes(":")) {
+        if (!wellFormed) {
             throw new ValidationError(`Invalid room ID or alias format: ${roomId}`);
         }
     } else {
-        if (!roomId.startsWith("!") || !roomId.includes(":")) {
+        if (!roomId.startsWith("!") || !wellFormed) {
             throw new ValidationError(`Invalid room ID format: ${roomId}`);
         }
     }

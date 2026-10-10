@@ -24,7 +24,7 @@ describe("E2EEManager", () => {
 
         await manager.uploadKeys({ oneTimeKeys: { "signed_curve25519:k1": { key: "abc" } } });
         await manager.listRoomKeyRequests();
-        await manager.storeSecureBackupKeys("backup-1", { passphrase: "secret", session_keys: [] });
+        await manager.storeSecureBackupKeys("backup-1", { session_keys: [] });
 
         expect(mockClient.http.authedRequest).toHaveBeenNthCalledWith(
             1,
@@ -47,33 +47,32 @@ describe("E2EEManager", () => {
             "POST",
             "/keys/backup/secure/backup-1/keys",
             undefined,
-            { passphrase: "secret", session_keys: [] },
+            { session_keys: [] },
             expect.objectContaining({ prefix: "/_matrix/client/v3" }),
         );
     });
 
-    it("requires passphrase or algorithm when creating secure backups", async () => {
-        // Algorithm-only (no passphrase) is now valid
+    it("requires algorithm and auth_data when creating secure backups", async () => {
+        // algorithm + auth_data (client-derived key) is now the only valid shape
         mockClient.http.authedRequest.mockResolvedValueOnce({ backup_id: "b1" });
         await expect(
             manager.createSecureBackup({
                 algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                auth_data: { public_key: "curve25519-public-key" },
             }),
         ).resolves.toEqual({ backup_id: "b1" });
 
-        // Both passphrase and algorithm
-        mockClient.http.authedRequest.mockResolvedValueOnce({ backup_id: "b2" });
+        // Missing auth_data → error
         await expect(
             manager.createSecureBackup({
-                passphrase: "secret",
                 algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
-            }),
-        ).resolves.toEqual({ backup_id: "b2" });
+            } as unknown as Parameters<typeof manager.createSecureBackup>[0]),
+        ).rejects.toThrow("'algorithm' and 'auth_data' are required to create a secure backup");
 
-        // Neither passphrase nor algorithm → error
+        // Missing algorithm → error
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await expect(manager.createSecureBackup({} as any)).rejects.toThrow(
-            "Either passphrase or algorithm must be provided",
+        await expect(manager.createSecureBackup({ auth_data: {} } as any)).rejects.toThrow(
+            "'algorithm' and 'auth_data' are required to create a secure backup",
         );
 
         expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -81,8 +80,8 @@ describe("E2EEManager", () => {
             "/keys/backup/secure",
             undefined,
             {
-                passphrase: "secret",
                 algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                auth_data: { public_key: "curve25519-public-key" },
             },
             expect.objectContaining({ prefix: "/_matrix/client/v3" }),
         );

@@ -159,6 +159,11 @@ describe("PushManager", () => {
                 expect.objectContaining({ pushkey: "new-key" }),
                 { prefix: "/_matrix/client/v3" },
             );
+            // P2 #32: the backend derives the device from the access token and
+            // rejects `device_id` in the body (`deny_unknown_fields`), so the
+            // SDK must never forward a caller-supplied one.
+            const setCall = mockClient.http.authedRequest.mock.calls.find((c: unknown[]) => c[1] === "/pushers/set");
+            expect(setCall?.[3]).not.toHaveProperty("device_id");
         });
 
         it("should throw InvalidParamError when pushkey is missing", async () => {
@@ -197,10 +202,13 @@ describe("PushManager", () => {
                     pushkey: "key1",
                     app_id: "com.example.app",
                     kind: null,
-                    device_id: "test-device",
                 }),
                 { prefix: "/_matrix/client/v3" },
             );
+            // device_id is accepted for backwards compatibility but stripped
+            // before the request is sent (P2 #32).
+            const setCall = mockClient.http.authedRequest.mock.calls.find((c: unknown[]) => c[1] === "/pushers/set");
+            expect(setCall?.[3]).not.toHaveProperty("device_id");
         });
 
         it("should throw InvalidParamError when pushkey is missing", async () => {

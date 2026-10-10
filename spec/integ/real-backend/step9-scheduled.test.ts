@@ -44,6 +44,9 @@ async function login(): Promise<MatrixClient> {
     });
 
     testClient.setAccessToken(result.access_token);
+    // loginRequest is a low-level HTTP wrapper that does not populate credentials.
+    // Set userId explicitly so client.getUserId() works in downstream tests.
+    testClient.credentials.userId = result.user_id;
 
     return testClient;
 }
@@ -62,7 +65,7 @@ async function main(): Promise<void> {
     // 创建测试房间
     console.log("2. 创建测试房间...");
     const room = await client!.createRoom({
-        name: "Step9 Test Room",
+        name: `Step9 Test Room ${Date.now()}`,
         topic: "Test Room for Step 9",
     });
     testRoomId = room.room_id;
@@ -377,7 +380,7 @@ async function main(): Promise<void> {
     await runTest("getRoomAccountData", async () => {
         if (testRoomId) {
             try {
-                const data = client!.getRoomSummaryManager().getRoomAccountData(testRoomId, "m.test");
+                const data = await client!.getRoomSummaryManager().getRoomAccountData(testRoomId, "m.test");
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (e: any) {
                 console.log("    ⚠️ Get room account data not available");

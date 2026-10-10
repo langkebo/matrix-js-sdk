@@ -796,10 +796,10 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
     }
 }
 
-export function extendMatrixClient(): void {
+export function extendMatrixClient(opts?: ManagerOpts): void {
     MatrixClient.prototype.getAdminManager = function (): AdminManager {
         registerManagerClass("admin", AdminManager);
-        return getOrCreateManager(this, "admin", () => new AdminManager(this));
+        return getOrCreateManager(this, "admin", () => new AdminManager(this, opts));
     };
 
     // 子 Manager 便捷访问方法（通过 AdminManager 的组合属性获取）

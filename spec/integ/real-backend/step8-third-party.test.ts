@@ -43,6 +43,9 @@ async function login(): Promise<MatrixClient> {
     });
 
     testClient.setAccessToken(result.access_token);
+    // loginRequest is a low-level HTTP wrapper that does not populate credentials.
+    // Set userId explicitly so client.getUserId() works in downstream tests.
+    testClient.credentials.userId = result.user_id;
 
     return testClient;
 }

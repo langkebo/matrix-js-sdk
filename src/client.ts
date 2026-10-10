@@ -224,6 +224,7 @@ import {
     type IRequestMsisdnTokenResponse,
     type IRequestTokenResponse,
     type IRoomInitialSyncResponse,
+    type ISecureBackupCreateBody,
     type ISecureBackupInfo,
     type ISecureBackupRestoreResponse,
     type ISecureBackupSessionKey,
@@ -297,6 +298,7 @@ export type {
     IRoomKeyRequestCreateResponse,
     IRoomKeyRequestsResponse,
     IRoomInitialSyncResponse,
+    ISecureBackupCreateBody,
     ISecureBackupInfo,
     ISecureBackupRestoreResponse,
     ISecureBackupSessionKey,
@@ -4075,8 +4077,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().getMyRooms() as Promise<{ rooms: IMyRoomInfo[]; total: number }>;
     }
 
-    public async createSecureBackup(passphrase: string): Promise<ISecureBackupInfo> {
-        return createSecureBackupRequest<ISecureBackupInfo>(passphrase, this.authedRequestProxy);
+    public async createSecureBackup(body: ISecureBackupCreateBody): Promise<ISecureBackupInfo> {
+        return createSecureBackupRequest<ISecureBackupInfo>(body.algorithm, body.auth_data, this.authedRequestProxy);
     }
 
     public async searchRooms(
@@ -4130,19 +4132,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     public async storeSecureBackupKeys(
         backupId: string,
-        passphrase: string,
         sessionKeys: ISecureBackupSessionKey[],
     ): Promise<ISecureBackupStoreKeysResponse> {
         return storeSecureBackupKeysRequest<ISecureBackupStoreKeysResponse>(
             backupId,
-            passphrase,
             sessionKeys,
             this.authedRequestProxy,
         );
     }
 
-    public async restoreSecureBackup(backupId: string, passphrase: string): Promise<ISecureBackupRestoreResponse> {
-        return restoreSecureBackupRequest<ISecureBackupRestoreResponse>(backupId, passphrase, this.authedRequestProxy);
+    public async restoreSecureBackup(backupId: string, rooms?: string[]): Promise<ISecureBackupRestoreResponse> {
+        return restoreSecureBackupRequest<ISecureBackupRestoreResponse>(backupId, rooms, this.authedRequestProxy);
     }
 
     public async deleteSecureBackup(backupId: string): Promise<EmptyObject> {

@@ -10,7 +10,10 @@ describe("Secure backup lifecycle real backend integration", () => {
     let setupError: unknown;
     let backupId: string | null = null;
 
-    const passphrase = `RealBackendBackup!${Date.now()}`;
+    // The backend removed passphrase mode: the caller derives the backup key
+    // client-side and supplies the algorithm plus the corresponding auth_data.
+    const algorithm = "m.megolm_backup.v1.curve25519-aes-sha2";
+    const authData = { public_key: `real-backend-backup-key-${Date.now()}` };
 
     beforeAll(async () => {
         try {
@@ -40,7 +43,7 @@ describe("Secure backup lifecycle real backend integration", () => {
                 `real backend should be reachable for this integration test: ${String(setupError)}`,
             ).toBe(true);
 
-            const created = await client.createSecureBackup(passphrase);
+            const created = await client.createSecureBackup({ algorithm, auth_data: authData });
             backupId = created.backup_id;
 
             expect(created.backup_id).toBeTruthy();
@@ -52,7 +55,7 @@ describe("Secure backup lifecycle real backend integration", () => {
             expect(fetched.version).toBe(created.version);
             expect(fetched.algorithm).toBe(created.algorithm);
 
-            const storeResult = await client.storeSecureBackupKeys(created.backup_id, passphrase, [
+            const storeResult = await client.storeSecureBackupKeys(created.backup_id, [
                 {
                     room_id: `!secure-backup-room-${Date.now()}:matrix.test`,
                     session_id: `session-${Date.now()}`,
@@ -64,15 +67,10 @@ describe("Secure backup lifecycle real backend integration", () => {
             ]);
             expect(storeResult.key_count).toBeGreaterThan(0);
 
-            const restored = await client.restoreSecureBackup(created.backup_id, passphrase);
-            expect(restored).toEqual(
-                expect.objectContaining({
-                    recovered_keys: expect.any(Number),
-                    total_keys: expect.any(Number),
-                }),
-            );
-            expect(restored.recovered_keys).toBeGreaterThan(0);
-            expect(restored.total_keys).toBeGreaterThanOrEqual(restored.recovered_keys);
+            const restored = await client.restoreSecureBackup(created.backup_id);
+            expect(restored.total_keys).toBeGreaterThan(0);
+            expect(restored.sessions.length).toBeGreaterThan(0);
+            expect(restored.total_keys).toBeGreaterThanOrEqual(restored.sessions.length);
 
             await client.deleteSecureBackup(created.backup_id);
 

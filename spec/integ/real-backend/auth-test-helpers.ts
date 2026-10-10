@@ -1,4 +1,5 @@
 /// <reference lib="es2015" />
+import { createHmac } from "node:crypto";
 import { createClient, type MatrixClient } from "../../../src/matrix";
 import { TestConfig } from "./TestConfig";
 
@@ -147,8 +148,58 @@ export async function withRateLimitRetry<T>(operation: () => Promise<T>, maxAtte
     throw new Error("Failed after retry budget was exhausted.");
 }
 
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+/** Decode a base32 (RFC 4648, no padding required) secret into raw bytes. */
+function base32Decode(secret: string): Buffer {
+    const normalized = secret.replace(/[\s=]/g, "").toUpperCase();
+    let bits = 0;
+    let value = 0;
+    const bytes: number[] = [];
+
+    for (const char of normalized) {
+        const index = BASE32_ALPHABET.indexOf(char);
+        if (index === -1) {
+            throw new Error(`Invalid base32 character in TOTP secret: ${char}`);
+        }
+
+        value = (value << 5) | index;
+        bits += 5;
+
+        if (bits >= 8) {
+            bytes.push((value >>> (bits - 8)) & 0xff);
+            bits -= 8;
+        }
+    }
+
+    return Buffer.from(bytes);
+}
+
+/**
+ * Generate a 6-digit TOTP (RFC 6238, HMAC-SHA1, 30s step) for the given base32 secret.
+ * Used to satisfy the deployment stack's `admin_mfa_required` login challenge.
+ */
+export function generateTotp(secret: string, timestampMs: number = Date.now(), stepSeconds = 30, digits = 6): string {
+    const counter = Math.floor(timestampMs / 1000 / stepSeconds);
+    const counterBuffer = Buffer.alloc(8);
+    const high = Math.floor(counter / 0x100000000);
+    const low = counter - high * 0x100000000;
+    counterBuffer.writeUInt32BE(high >>> 0, 0);
+    counterBuffer.writeUInt32BE(low >>> 0, 4);
+
+    const hmac = createHmac("sha1", base32Decode(secret)).update(counterBuffer).digest();
+    const offset = hmac[hmac.length - 1] & 0x0f;
+    const binary =
+        ((hmac[offset] & 0x7f) << 24) |
+        ((hmac[offset + 1] & 0xff) << 16) |
+        ((hmac[offset + 2] & 0xff) << 8) |
+        (hmac[offset + 3] & 0xff);
+
+    return (binary % 10 ** digits).toString().padStart(digits, "0");
+}
+
 export async function loginAsConfiguredUser(
-    user: { userId: string; password: string; deviceId?: string } = TestConfig.testUser,
+    user: { userId: string; password: string; deviceId?: string; mfaSecret?: string } = TestConfig.testUser,
 ): Promise<MatrixClient> {
     const client = createClient({
         baseUrl: TestConfig.baseUrl,
@@ -158,11 +209,15 @@ export async function loginAsConfiguredUser(
     const username = localpartFromMxid(user.userId);
 
     const result = await withRateLimitRetry(async () => {
+        // Regenerate the TOTP inside the retry closure so a retried attempt never
+        // replays an expired code.
+        const mfaCode = user.mfaSecret ? generateTotp(user.mfaSecret) : undefined;
         return await client.loginRequest({
             type: "m.login.password",
             identifier: { type: "m.id.user", user: username },
             password: user.password,
             device_id: user.deviceId,
+            ...(mfaCode ? { mfa_code: mfaCode } : {}),
         });
     });
 

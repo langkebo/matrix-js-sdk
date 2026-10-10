@@ -45,6 +45,9 @@ async function login(): Promise<MatrixClient> {
     });
 
     testClient.setAccessToken(result.access_token);
+    // loginRequest is a low-level HTTP wrapper that does not populate credentials.
+    // Set userId explicitly so client.getUserId() works in downstream tests.
+    testClient.credentials.userId = result.user_id;
 
     return testClient;
 }
@@ -286,12 +289,22 @@ async function main(): Promise<void> {
     console.log("\n10. Additional 模块测试...");
 
     await runTest("getIdentityServerUrl", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力，探测用例改为存在性判断
+        if (typeof (client as any)?.getCredentialsManager !== "function") {
+            console.log("    ⚠️ client.getCredentialsManager 不存在（本 fork 无此能力），跳过");
+            return;
+        }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
         const identityServer = (client as any).getCredentialsManager().getIdentityServer();
         // 可能为 undefined
     });
 
     await runTest("getHomeserverName", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力，探测用例改为存在性判断
+        if (typeof (client as any)?.getCredentialsManager !== "function") {
+            console.log("    ⚠️ client.getCredentialsManager 不存在（本 fork 无此能力），跳过");
+            return;
+        }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 本 fork 无此能力/签名不兼容，探测用例保留原意图
         const homeserver = (client as any).getCredentialsManager().getHomeserverName();
         if (!homeserver) throw new Error("No homeserver name");

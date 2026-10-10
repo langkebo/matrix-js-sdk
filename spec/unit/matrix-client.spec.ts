@@ -2942,14 +2942,20 @@ describe("MatrixClient", function () {
                 key_count: 0,
             });
 
-            await client.createSecureBackup("plain-passphrase");
+            await client.createSecureBackup({
+                algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                auth_data: { public_key: "curve25519-public-key" },
+            });
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
                 .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/backup/secure");
             expect(queryParams).toBeUndefined();
-            expect(requestContent).toEqual({ passphrase: "plain-passphrase" });
+            expect(requestContent).toEqual({
+                algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+                auth_data: { public_key: "curve25519-public-key" },
+            });
             expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
         });
 
@@ -2970,7 +2976,7 @@ describe("MatrixClient", function () {
         it("sends contract-compliant payload for storeSecureBackupKeys", async () => {
             vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({ key_count: 1 });
 
-            await client.storeSecureBackupKeys("backup-1", "plain-passphrase", [
+            await client.storeSecureBackupKeys("backup-1", [
                 {
                     room_id: "!room:example.org",
                     session_id: "sess1",
@@ -2987,7 +2993,6 @@ describe("MatrixClient", function () {
             expect(path).toBe("/keys/backup/secure/backup-1/keys");
             expect(queryParams).toBeUndefined();
             expect(requestContent).toEqual({
-                passphrase: "plain-passphrase",
                 session_keys: [
                     {
                         room_id: "!room:example.org",
@@ -3003,20 +3008,24 @@ describe("MatrixClient", function () {
         });
 
         it("sends contract-compliant payload for restoreSecureBackup", async () => {
-            vi.mocked(client.http.authedRequest).mockClear().mockResolvedValue({
-                recovered_keys: 1,
-                total_keys: 2,
-            });
+            vi.mocked(client.http.authedRequest)
+                .mockClear()
+                .mockResolvedValue({
+                    total_keys: 2,
+                    sessions: [{ room_id: "!room:example.org", session_id: "sess1", session_key: "abc" }],
+                });
 
-            await client.restoreSecureBackup("backup-1", "plain-passphrase");
+            const restored = await client.restoreSecureBackup("backup-1", ["!room:example.org"]);
 
             const [method, path, queryParams, requestContent, opts] = vi.mocked(client.http.authedRequest).mock
                 .calls[0];
             expect(method).toBe("POST");
             expect(path).toBe("/keys/backup/secure/backup-1/restore");
             expect(queryParams).toBeUndefined();
-            expect(requestContent).toEqual({ passphrase: "plain-passphrase" });
+            expect(requestContent).toEqual({ rooms: ["!room:example.org"] });
             expect(opts).toMatchObject({ prefix: ClientPrefix.V3 });
+            expect(restored.total_keys).toBe(2);
+            expect(restored.sessions).toHaveLength(1);
         });
 
         it("calls deleteSecureBackup with the secure backup path", async () => {

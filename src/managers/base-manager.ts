@@ -168,6 +168,22 @@ export interface ManagerOpts extends RetryOptions {
     transport?: Transport;
     /** 默认 API 前缀，不传时 fallback 为 `ClientPrefix.V3` */
     defaultPrefix?: string;
+    /**
+     * 管理员敏感操作 MFA 验证码（TOTP）提供者。
+     *
+     * 当后端开启 `admin_mfa_required` 时，所有敏感 admin 请求（全部 POST/PUT/PATCH/DELETE，
+     * 以及 `/_synapse/admin/v1/{security,server,media/quarantine}` 下的 GET）都必须携带
+     * `x-admin-mfa-code` 头，否则会被 403 拒绝（`"Sensitive admin operation requires MFA code"`）。
+     *
+     * 仅在 admin 域（`AdminBaseManager` 及其子 Manager）生效：每次发送 admin 请求时调用该
+     * 回调取当前 6 位 TOTP 并注入请求头。未配置时行为与之前完全一致（不注入该头）。
+     *
+     * @example
+     * ```typescript
+     * extendMatrixClient({ adminMfaCodeProvider: () => generateTotp(secret) });
+     * ```
+     */
+    adminMfaCodeProvider?: () => string;
 }
 
 // ─── BaseManager ──────────────────────────────────────────────

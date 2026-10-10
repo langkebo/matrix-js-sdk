@@ -25,6 +25,16 @@ export const TestConfig = {
         password: process.env.MATRIX_REAL_BACKEND_SECONDARY_USER_PASSWORD || "Test@123",
     },
 
+    // 超管用户（admin-manager 等需要 admin 权限的用例）
+    // 该账号需在测试栈中预置为 super_admin（is_admin=true, user_type='super_admin'）。
+    // 由于部署栈 admin_mfa_required=true，超管登录必须携带由 mfaSecret 生成的 TOTP mfa_code。
+    adminUser: {
+        userId: process.env.MATRIX_REAL_BACKEND_ADMIN_USER_ID || "@sdk_admin_test:matrix.test",
+        password: process.env.MATRIX_REAL_BACKEND_ADMIN_USER_PASSWORD || "Test@123",
+        deviceId: process.env.MATRIX_REAL_BACKEND_ADMIN_DEVICE_ID || "SDK_ADMIN_DEVICE",
+        mfaSecret: process.env.MATRIX_REAL_BACKEND_ADMIN_MFA_SECRET || "7A4AS4IFE3QDXTFXRFSZOXJZCOTVZEGK",
+    },
+
     // 测试房间配置
     testRoom: {
         name: "SDK Test Room",

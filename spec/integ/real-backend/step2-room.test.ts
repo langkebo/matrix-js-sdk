@@ -46,6 +46,9 @@ async function login(): Promise<MatrixClient> {
     });
 
     testClient.setAccessToken(result.access_token);
+    // loginRequest is a low-level HTTP wrapper that does not populate credentials.
+    // Set userId explicitly so client.getUserId() works in downstream tests.
+    testClient.credentials.userId = result.user_id;
 
     return testClient;
 }
@@ -75,7 +78,10 @@ async function main(): Promise<void> {
 
     await runTest("createRoom (private)", async () => {
         const room = await client!.createRoom({
-            name: "Private Room",
+            // Unique name: the backend rejects duplicate room names for rooms the
+            // user is still joined to (409 M_ROOM_IN_USE), and this room is never
+            // left, so a fixed name would break re-runs.
+            name: `Private Room ${Date.now()}`,
             visibility: Visibility.Private,
         });
         if (!room.room_id) throw new Error("Failed to create private room");
@@ -213,7 +219,9 @@ async function main(): Promise<void> {
     await runTest("upgradeRoom", async () => {
         // 创建一个新房间用于升级测试
         const oldRoom = await client!.createRoom({
-            name: "Room to Upgrade",
+            // Unique name: the room survives a failed upgrade and is never left,
+            // so a fixed name would trigger 409 M_ROOM_IN_USE on re-runs.
+            name: `Room to Upgrade ${Date.now()}`,
         });
         // 注意：部分服务器可能不支持房间升级
         try {

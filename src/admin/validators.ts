@@ -29,6 +29,10 @@ export { validateUserId, validateRoomId, validateLimit };
  */
 export class AdminValidators {
     private static readonly ROOM_ID_REGEX = /^![a-z0-9._=-]+:[a-z0-9.-]+$/i;
+    // Room v12 / MSC4291 domainless form: `!` + 43 URL-safe base64 chars, no
+    // `:domain`. A space is a room, so a v12 space's backend-provided ID has
+    // this shape and must be accepted alongside the legacy `!localpart:server`.
+    private static readonly DOMAINLESS_ROOM_ID_REGEX = /^![A-Za-z0-9_-]{43}$/;
 
     static validateUserId = validateUserId;
     static validateRoomId = validateRoomId;
@@ -38,8 +42,10 @@ export class AdminValidators {
         if (!spaceId || typeof spaceId !== "string") {
             throw new ValidationError("Space ID must be a non-empty string");
         }
-        if (!this.ROOM_ID_REGEX.test(spaceId)) {
-            throw new ValidationError(`Invalid space ID format: ${spaceId}. Expected format: !localpart:homeserver`);
+        if (!this.ROOM_ID_REGEX.test(spaceId) && !this.DOMAINLESS_ROOM_ID_REGEX.test(spaceId)) {
+            throw new ValidationError(
+                `Invalid space ID format: ${spaceId}. Expected format: !localpart:homeserver or !<43-char v12 hash>`,
+            );
         }
     }
 

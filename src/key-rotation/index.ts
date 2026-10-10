@@ -169,9 +169,25 @@ interface StatusCacheEntry {
 export class KeyRotationManager extends BaseManager {
     private readonly statusCacheTtlMs = 30_000;
     private statusCache: StatusCacheEntry | null = null;
+    private readonly adminMfaCodeProvider?: () => string;
 
     public constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
+        this.adminMfaCodeProvider = opts?.adminMfaCodeProvider;
+    }
+
+    /**
+     * 构造 admin 敏感操作所需的请求头。
+     *
+     * 该 Manager 的全部端点都要求调用方为 server admin；当后端开启
+     * `admin_mfa_required` 时，全部 POST/PUT/PATCH/DELETE 都必须携带
+     * `x-admin-mfa-code` 头（见 `synapse-web/src/utils/admin_auth.rs::is_sensitive_admin_request`），
+     * 否则会被 403 拒绝。配置了 `adminMfaCodeProvider` 时每次请求重新取码，
+     * 避免重试时复用已过期的 TOTP；未配置时返回 `undefined`，请求行为不变。
+     */
+    private adminMfaHeaders(): Record<string, string> | undefined {
+        const code = this.adminMfaCodeProvider?.();
+        return code ? { "x-admin-mfa-code": code } : undefined;
     }
 
     /**
@@ -206,6 +222,8 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Get,
                 path: "/keys/rotation/status",
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "getStatus",
             });
         }, "getStatus");
 
@@ -250,6 +268,8 @@ export class KeyRotationManager extends BaseManager {
                 path: "/keys/rotation/rotate",
                 body: request,
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "rotateKey",
             });
         }, "rotateKey");
 
@@ -301,6 +321,8 @@ export class KeyRotationManager extends BaseManager {
                     from: options.from,
                 },
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "getRotationHistory",
             });
         }, "getRotationHistory");
     }
@@ -336,6 +358,8 @@ export class KeyRotationManager extends BaseManager {
                 path: "/keys/rotation/revoke",
                 body: request,
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "revokeKey",
             });
         }, "revokeKey");
 
@@ -388,6 +412,8 @@ export class KeyRotationManager extends BaseManager {
                 path: "/keys/rotation/config",
                 body: request,
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "updateConfig",
             });
         }, "updateConfig");
 
@@ -425,6 +451,8 @@ export class KeyRotationManager extends BaseManager {
                 path: "/keys/rotation/config",
                 body: request,
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "postConfig",
             });
         }, "postConfig");
 
@@ -442,6 +470,8 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Post,
                 path: "/keys/rotation/status",
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "postStatus",
             });
         }, "postStatus");
 
@@ -481,6 +511,8 @@ export class KeyRotationManager extends BaseManager {
                 path: "/keys/rotation/check",
                 queryParams: { key_id: keyId },
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "checkKeyValidity",
             });
         }, "checkKeyValidity");
     }
@@ -491,6 +523,8 @@ export class KeyRotationManager extends BaseManager {
                 method: Method.Post,
                 path: "/keys/rotation/check",
                 prefix: VendorPrefix,
+                headers: this.adminMfaHeaders(),
+                label: "postCheck",
             });
         }, "postCheck");
     }
@@ -500,9 +534,9 @@ export class KeyRotationManager extends BaseManager {
     }
 }
 
-export function extendMatrixClient(): void {
+export function extendMatrixClient(opts?: ManagerOpts): void {
     MatrixClient.prototype.getKeyRotationManager = function (): KeyRotationManager {
         registerManagerClass("keyRotation", KeyRotationManager);
-        return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this));
+        return getOrCreateManager(this, "keyRotation", () => new KeyRotationManager(this, opts));
     };
 }

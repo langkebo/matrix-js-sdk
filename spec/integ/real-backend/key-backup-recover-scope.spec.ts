@@ -7,11 +7,6 @@ import { loginAsConfiguredUser } from "./auth-test-helpers";
 
 extendE2EEClient();
 
-interface ScopedRestoreResponse {
-    recovered_keys: number;
-    total_keys: number;
-}
-
 describe("Secure backup scoped restore real backend integration", () => {
     let client: MatrixClient;
     let backendAvailable = false;
@@ -20,7 +15,10 @@ describe("Secure backup scoped restore real backend integration", () => {
 
     const roomA = `!recover-scope-a-${Date.now()}:matrix.test`;
     const roomB = `!recover-scope-b-${Date.now()}:matrix.test`;
-    const passphrase = `ScopedRestore!${Date.now()}`;
+    // The backend removed passphrase mode: the caller derives the backup key
+    // client-side and supplies the algorithm plus the corresponding auth_data.
+    const algorithm = "m.megolm_backup.v1.curve25519-aes-sha2";
+    const authData = { public_key: `scoped-restore-backup-key-${Date.now()}` };
 
     beforeAll(async () => {
         try {
@@ -47,10 +45,10 @@ describe("Secure backup scoped restore real backend integration", () => {
                 `real backend should be reachable for this integration test: ${String(setupError)}`,
             ).toBe(true);
 
-            const created = await client.createSecureBackup(passphrase);
+            const created = await client.createSecureBackup({ algorithm, auth_data: authData });
             backupId = created.backup_id;
 
-            const storeResult = await client.storeSecureBackupKeys(backupId, passphrase, [
+            const storeResult = await client.storeSecureBackupKeys(backupId, [
                 {
                     room_id: roomA,
                     session_id: "scope-session-a",
@@ -70,12 +68,12 @@ describe("Secure backup scoped restore real backend integration", () => {
             ]);
             expect(storeResult.key_count).toBeGreaterThanOrEqual(2);
 
-            const recovered = (await client.getE2EEManager().restoreSecureBackup(backupId, {
-                passphrase,
+            const recovered = await client.getE2EEManager().restoreSecureBackup(backupId, {
                 rooms: [roomA],
-            })) as unknown as ScopedRestoreResponse;
-            expect(recovered.recovered_keys).toBe(1);
+            });
             expect(recovered.total_keys).toBe(2);
+            expect(recovered.sessions).toHaveLength(1);
+            expect(recovered.sessions[0].room_id).toBe(roomA);
         },
         TestConfig.timeout.long,
     );

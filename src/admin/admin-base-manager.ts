@@ -24,6 +24,7 @@ limitations under the License.
  */
 
 import { Method } from "../http-api/method";
+import { AdminPrefix } from "../http-api/prefix";
 import type { IContent } from "../models/event";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { MatrixClient } from "../client";
@@ -53,16 +54,29 @@ export abstract class AdminBaseManager<
 > extends BaseManager<Events, EventMap> {
     /* eslint-enable @typescript-eslint/no-explicit-any */
     private readonly onError?: AdminErrorCallback;
+    private readonly adminMfaCodeProvider?: () => string;
 
     constructor(client: MatrixClient, onError?: AdminErrorCallback, opts?: ManagerOpts) {
         super(client, opts);
         this.onError = onError;
+        this.adminMfaCodeProvider = opts?.adminMfaCodeProvider;
+    }
+
+    /**
+     * 构造 admin 敏感操作所需的请求头。
+     *
+     * 当配置了 `adminMfaCodeProvider` 时注入 `x-admin-mfa-code`（每次调用重新取码，
+     * 避免重试时复用已过期的 TOTP）；否则返回 `undefined`，不改变原有请求。
+     */
+    private adminMfaHeaders(): Record<string, string> | undefined {
+        const code = this.adminMfaCodeProvider?.();
+        return code ? { "x-admin-mfa-code": code } : undefined;
     }
 
     /**
      * Admin v1 请求（带错误回调和事件发射）
      *
-     * 覆盖 BaseManager.adminRequest，添加错误回调通知。
+     * 覆盖 BaseManager.adminRequest，添加错误回调通知与（可选的）admin MFA 头。
      * 所有子 Manager 的 admin 请求都应通过此方法发送。
      */
     protected async adminRequest<T>(
@@ -73,7 +87,15 @@ export abstract class AdminBaseManager<
         label?: string,
     ): Promise<T> {
         try {
-            return await super.adminRequest<T>(method, path, queryParams, body, label);
+            return await this.request<T>({
+                method,
+                path,
+                prefix: AdminPrefix.V1,
+                queryParams,
+                body: body ?? undefined,
+                label,
+                headers: this.adminMfaHeaders(),
+            });
         } catch (err) {
             const error = this.normalizeError(err, label ?? "unknown");
             this.onError?.(error);
@@ -106,6 +128,7 @@ export abstract class AdminBaseManager<
                 body,
                 prefix: "/_synapse/admin",
                 label: label ?? "v2Request",
+                headers: this.adminMfaHeaders(),
             });
         } catch (err) {
             const error = this.normalizeError(err, label ?? "unknown");

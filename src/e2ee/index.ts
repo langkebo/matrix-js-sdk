@@ -114,10 +114,10 @@ export interface SecureBackupKeysResponse {
 }
 
 export interface SecureBackupRestoreResponse {
-    /** Number of keys recovered */
-    recovered_keys: number;
-    /** Total keys in backup */
-    total: number;
+    /** Total number of keys stored in the backup. */
+    total_keys: number;
+    /** Encrypted session keys returned by the backend (filtered by `rooms` when supplied). */
+    sessions: Array<{ room_id: string; session_id: string; session_key: string }>;
 }
 
 export interface SecureBackupVerifyResponse {
@@ -145,22 +145,24 @@ export interface SignaturesUploadResponse {
     failures?: Record<string, Record<string, string>>;
 }
 
+/**
+ * Request body for creating a secure backup.
+ *
+ * The backend removed passphrase mode: callers must derive the backup key
+ * client-side and supply the algorithm plus the corresponding `auth_data`.
+ */
 export interface SecurityBackupCreateBody {
-    algorithm?: string;
+    algorithm: string;
     /** Algorithm-specific auth data (shape varies by backup algorithm) */
-    auth_data?: IContent;
-    passphrase?: string;
+    auth_data: IContent;
 }
 
 export interface StoreSecureBackupKeysBody {
-    passphrase: string;
     session_keys?: Array<{ session_id: string; session_data: IContent }>;
 }
 
 export interface RestoreSecureBackupBody {
-    passphrase: string;
     rooms?: string[];
-    key?: string;
 }
 
 export interface VerifySecureBackupPassphraseBody {
@@ -379,9 +381,9 @@ export class E2EEManager extends BaseManager {
     // -------- v3-only ----------
 
     public async createSecureBackup(body: SecurityBackupCreateBody): Promise<SecureBackupCreateResponse> {
-        // Support both passphrase mode and algorithm+auth_data mode
-        if (!body.passphrase && !body.algorithm) {
-            throw new InvalidParamError("Either passphrase or algorithm must be provided");
+        // The backend no longer accepts a passphrase; the key must be derived client-side.
+        if (!body.algorithm || !body.auth_data) {
+            throw new InvalidParamError("'algorithm' and 'auth_data' are required to create a secure backup");
         }
         return this.post(ep("/keys/backup/secure"), body, "createSecureBackup");
     }

@@ -4,9 +4,12 @@ import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient as extendKeyRotationClient } from "../../../src/key-rotation/index";
 import { ApiError } from "../../../src/errors";
 import { TestConfig, getRealBackendVersionsUrl, isRealBackendReachable } from "./TestConfig";
-import { createTestUser, registerTestUser } from "./auth-test-helpers";
+import { createTestUser, generateTotp, loginAsConfiguredUser, registerTestUser } from "./auth-test-helpers";
 
-extendKeyRotationClient();
+// key-rotation 全部端点都要求 server admin，且后端 `admin_mfa_required=true` 时对全部
+// POST/PUT/PATCH/DELETE 强制 `x-admin-mfa-code`（见后端 admin_auth.rs::is_sensitive_admin_request）。
+// 这里注入 TOTP 提供者，使用例 2 能以 admin 账号实际命中 history/revoke/check 三个端点。
+extendKeyRotationClient({ adminMfaCodeProvider: () => generateTotp(TestConfig.adminUser.mfaSecret) });
 
 async function expectApiError(
     promise: Promise<unknown>,
@@ -24,6 +27,7 @@ async function expectApiError(
 
 describe("KeyRotationManager real backend integration", () => {
     let client: MatrixClient;
+    let adminClient: MatrixClient;
     let backendAvailable = false;
     let setupError: unknown;
 
@@ -36,6 +40,7 @@ describe("KeyRotationManager real backend integration", () => {
 
         try {
             client = await registerTestUser(createTestUser("kr_primary"));
+            adminClient = await loginAsConfiguredUser(TestConfig.adminUser);
             backendAvailable = true;
         } catch (error) {
             setupError = error;
@@ -45,6 +50,7 @@ describe("KeyRotationManager real backend integration", () => {
 
     afterAll(async () => {
         await client?.logout?.().catch(() => undefined);
+        adminClient?.stopClient();
     });
 
     it(
@@ -78,8 +84,8 @@ describe("KeyRotationManager real backend integration", () => {
         async () => {
             if (!backendAvailable) return;
 
-            const manager = client.getKeyRotationManager();
-            const deviceId = client.getDeviceId();
+            const manager = adminClient.getKeyRotationManager();
+            const deviceId = adminClient.getDeviceId();
             expect(deviceId).toBeTruthy();
 
             const history = await manager.getRotationHistory(deviceId!);

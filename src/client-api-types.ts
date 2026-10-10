@@ -235,11 +235,25 @@ export interface IRoomKeyRequestsResponse {
     requests: IRoomKeyRequest[];
 }
 
+export type ISecureBackupAuthData = ISigned & (Curve25519AuthData | Aes256AuthData);
+
+/**
+ * Request body for creating a secure backup.
+ *
+ * The backend removed passphrase mode: callers must derive the backup key
+ * client-side and supply the algorithm plus the corresponding `auth_data`
+ * (e.g. the public key for `m.megolm_backup.v1.curve25519-aes-sha2`).
+ */
+export interface ISecureBackupCreateBody {
+    algorithm: string;
+    auth_data: ISecureBackupAuthData;
+}
+
 export interface ISecureBackupInfo {
     backup_id: string;
     version: string;
     algorithm: string;
-    auth_data: ISigned & (Curve25519AuthData | Aes256AuthData);
+    auth_data: ISecureBackupAuthData;
     key_count: number;
 }
 
@@ -261,8 +275,10 @@ export interface ISecureBackupStoreKeysResponse {
 }
 
 export interface ISecureBackupRestoreResponse {
-    recovered_keys: number;
+    /** Total number of keys stored in the backup. */
     total_keys: number;
+    /** Encrypted session keys returned by the backend (filtered by `rooms` when supplied). */
+    sessions: ISecureBackupSessionKey[];
 }
 
 export interface ISignedKey {

@@ -157,7 +157,7 @@ describe("Database Integrity Tests", () => {
         });
 
         test("schema_migrations should have successful migrations recorded", async () => {
-            const sql = `SELECT version, success, executed_at FROM schema_migrations ORDER BY applied_ts DESC LIMIT 10`;
+            const sql = `SELECT version, is_success, executed_at FROM schema_migrations ORDER BY applied_ts DESC LIMIT 10`;
             const rows = await dbVerifier.queryParsed(sql);
             console.log(`Migration records: ${rows.length}`);
             expect(rows.length).toBeGreaterThan(0);

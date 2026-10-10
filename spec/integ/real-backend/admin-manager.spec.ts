@@ -22,7 +22,7 @@ limitations under the License.
  *
  * Prerequisites:
  *   - synapse-rust running at TestConfig.baseUrl
- *   - TestConfig.testUser provisioned as super admin
+ *   - TestConfig.adminUser provisioned as super admin (login includes TOTP mfa_code)
  *   - PostgreSQL accessible via DatabaseVerifier
  *
  * Run with: pnpm run test:real-backend:batch -- spec/integ/real-backend/admin-manager.spec.ts
@@ -34,9 +34,9 @@ import type { MatrixClient } from "../../../src/matrix";
 import { extendMatrixClient as extendAdminClient } from "../../../src/admin/index";
 import { DatabaseVerifier } from "./DatabaseVerifier";
 import { TestConfig } from "./TestConfig";
-import { loginAsConfiguredUser } from "./auth-test-helpers";
+import { generateTotp, loginAsConfiguredUser } from "./auth-test-helpers";
 
-extendAdminClient();
+extendAdminClient({ adminMfaCodeProvider: () => generateTotp(TestConfig.adminUser.mfaSecret) });
 
 describe("AdminManager — real backend", () => {
     let client: MatrixClient;
@@ -46,7 +46,7 @@ describe("AdminManager — real backend", () => {
     beforeAll(async () => {
         dbVerifier = new DatabaseVerifier("docker-postgres");
         try {
-            client = await loginAsConfiguredUser();
+            client = await loginAsConfiguredUser(TestConfig.adminUser);
             backendAvailable = true;
         } catch (e) {
             console.warn("Backend not reachable, skipping admin real-backend tests:", (e as Error).message);
@@ -84,7 +84,7 @@ describe("AdminManager — real backend", () => {
             if (!backendAvailable) return;
             const admin = client.getAdminManager();
             const health = await admin.server.getServerHealth();
-            expect(health).toHaveProperty("healthy");
+            expect(health).toHaveProperty("status");
         });
 
         it("database has users table matching API response", async () => {
@@ -113,7 +113,7 @@ describe("AdminManager — real backend", () => {
             const user = await admin.users.getUser(TestConfig.testUser.userId);
             expect(user).toBeDefined();
             expect(user).toHaveProperty("name");
-            expect(user).toHaveProperty("is_admin");
+            expect(user).toHaveProperty("admin");
         });
 
         it("database users table contains test user", async () => {

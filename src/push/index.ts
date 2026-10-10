@@ -67,7 +67,11 @@ export interface IPusherRequest {
     lang: string;
     data?: Record<string, unknown>; // Dynamic: pusher data varies by kind
     append?: boolean;
-    device_id?: string; // P2 #32: required for pusher authentication
+    /**
+     * @deprecated Ignored. The backend binds the pusher to the access token's
+     * device and rejects `device_id` in the request body (P2 #32).
+     */
+    device_id?: string;
 }
 
 export interface ICreatePushRuleRequest {
@@ -181,14 +185,19 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     async setPusher(pusher: IPusherRequest): Promise<void> {
         if (!pusher.pushkey) throw new InvalidParamError("pushkey is required");
         if (!pusher.app_id) throw new InvalidParamError("app_id is required");
-        if (!pusher.device_id) throw new InvalidParamError("device_id is required for pusher authentication (P2 #32)");
+
+        // P2 #32: the backend binds the pusher to the *access token's* device
+        // (`auth_user.device_id`) and rejects the field in the body
+        // (`SetPusherRequest` uses `#[serde(deny_unknown_fields)]`). Never
+        // forward `device_id` over the wire — a caller-supplied one would 400.
+        const { device_id: _ignoredDeviceId, ...body } = pusher;
 
         try {
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Post,
                     path: pp("/pushers/set"),
-                    body: pusher,
+                    body,
                     prefix: ClientPrefix.V3,
                 });
             }, "setPusher");
