@@ -1807,6 +1807,81 @@ IdP 本身由 `/_synapse/admin/v1/saml/config` 配置 —— **路由表里不�
 
 ---
 
+### 9.12 2026-10-10 第十八轮：DOC-12 收口（145 行 → 0）＋ 由它挖出的 3 组「预置未实现」成员
+
+#### 9.12.1 DOC-12 的处置口径
+
+`docs/api-contract/*.md` 是**手维护**页面，表格里逐行写着路径。M2/M3 的 vendor 迁移与多轮别名删除之后，
+页面上的「挂载版本」大面积停在旧前缀。**新增门禁** `quality:api-contract-doc-paths`
+（`scripts/quality/check-api-contract-doc-paths.mjs`，挂在 `quality:contracts` 里 `quality:public-api-docs` 之后），
+台账 `scripts/quality/api-contract-doc-paths-baseline.json`：`total 145 / 27 页` → **`0 / 0`**。
+
+判据三条（缺一条就会把正常页面判成缺陷）：
+
+1. **逐行**取 Markdown 表格行里反引号包起来的路径，与 ledger 镜像（`docs/api-contract/generated/modules/*.json`）求差；
+2. **裸前缀豁免** `BARE_PREFIX_RE` —— 说明段里单独出现的 `/_matrix/client`、`/_synapse/admin` 等**前缀本身**
+   不算违规（否则每个「这些路由都在 `/_matrix/client/v3` 下」的句子都会成为违规）；
+3. `{`/`*`/`...` 形态（模板/通配）跳过，不做存在性判定。
+
+处置方式：**方法感知解析器**先做 71 行机械重写（auth 24 / saml 8 / oidc 7 / friend 5 / search 5 / dm 4 /
+sync 4 / thread 4 / captcha 3 / voice 3 / burn-after-read 2 / room 1 / widget 1）；余下 **27 行**逐行人工判定 ——
+**能对上的改前缀/改方法，对不上的删行**（不是留着当"待办"）：
+
+| 页面              | 处置                                                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin.md`        | 删 `/backups`、`/login/failures`（后端无路由）；`application_services`→`appservices`；黑名单 `add`/`remove`→`POST`/`DELETE .../blacklist[/{server_name}]`                     |
+| `auth.md`         | MSC4108 五条（`login/get_qr_code`、`login/qr/{start,confirm,invalidate}`、`.../status`）后端**零注册** ⇒ 收敛为唯一的 `POST /login/qr_token` + 说明                           |
+| `federation.md`   | `query/auth`→`_synapse/federation/v1`；`event_auth`→`get_event_auth/{room_id}/{event_id}`；`keys/{claim,query,upload}`→`user/keys/*`；`v2/key/clone`→`_synapse/federation/v2` |
+| `friend.md`       | 删 `/_matrix/client/r0/friendships` 两行（已删的历史别名）                                                                                                                    |
+| `module.md`       | 删 `presence_routes`、`rate_limit_callbacks` 四行（后端未注册）                                                                                                               |
+| `oidc.md`         | 删 `oidc/register` 两行（动态客户端注册未实现；ledger 只有 authorize/callback/login/logout）                                                                                  |
+| `sliding-sync.md` | `/_matrix/client/v3/sync/sliding`→`/_matrix/client/unstable/org.matrix.simplified_msc3575/sync`                                                                               |
+| `voice.md`        | 三条→`/_matrix/vendor/v1/voice/{media_id}/{convert,optimize,transcription}`                                                                                                   |
+
+**顺手修掉的门禁自伤**：新脚本第一版用裸 `JSON.stringify(baseline, null, 4)` 落盘，被仓级静态守卫
+`spec/unit/ledger-json-format.spec.ts`（"不得绕过 `writeJsonFormatted` 写台账"）**首跑即抓到** ——
+这正是那条守卫存在的意义。改为 `scripts/quality/lib/write-json.mjs::writeJsonFormatted` 后 69 passed。
+
+#### 9.12.2 同一条线索挖出的真缺陷：3 组「预置未实现」（C 类）
+
+DOC-12 的逐行判定必然要问「后端到底有没有这条路由」，于是顺带证伪了
+`docs/sdk-encapsulation-audit.md` §7.3 **C 类 3 条**（该表是 2026-10-06 快照，一直没销号）。判据是**回源**：
+`synapse-rust` 全仓 `*.rs` + `tests/unit/fixtures/ledger_export_sdk/` 对这三个词**零命中**
+（`key_backup.rs` 是客户端 `/_matrix/client/v3/keys/backup/*` 的密钥备份，与"服务端备份管理"无关）：
+
+| SDK 成员                                                                           | 打的路径                         | 结论                                           |
+| ---------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------- | ----------------------------------------------------- |
+| `listBackups()` + `AdminBackupInfo`/`AdminBackupPage`                              | `GET /_synapse/admin/v1/backups` | 后端无路由 ⇒ 404                               |
+| `listPresenceRoutes()`/`createPresenceRoute()` + `AdminPresenceRoute*`             | `GET                             | POST /\_synapse/admin/v1/presence_routes`      | 后端无路由 ⇒ 404                                      |
+| `listRateLimitCallbacks()`/`createRateLimitCallback()` + `AdminRateLimitCallback*` | `GET                             | POST /\_synapse/admin/v1/rate_limit_callbacks` | 后端只有 `media_callbacks` / `account_data_callbacks` |
+
+处置：**删代码**（方法 + 类型 + 单测），不含任何 `@deprecated` 兼容层（铁律 1）。连带效果：
+
+- `path-contract-waivers.json` 里 5 条对应豁免变成「未被引用」⇒ 门禁硬失败要求删除 ⇒ **28 → 23**；
+- `public-api-docs-ledger.json` 缺口收窄 ⇒ 棘轮要求下调（`AdminConfigManager` missingJsDoc 27→23、
+  `AdminServerManager` missingExample 30→29）；
+- Tjg 侧**零引用**（`grep -rn` 全仓确认）⇒ 不涉及前端改动。
+
+#### 9.12.3 两线关系与证据
+
+release 线的 `src/admin/**` 与 develop **不是同一内容**（四个文件差异 375/498/477/964 行），
+所以**没有**跨线复制文件，而是把同一份「精确块替换」脚本在两条线各自施加（第一次尝试过直接 `cp`，
+被同一目录下 `git diff` 的**空输出**骗过 —— 比较命令里的路径写错了，diff 报错到 stderr 被吞掉，
+"0 行差异"其实是"文件不存在"。release 线 `tsc` 立刻炸出上百条 `Cannot find module`，
+**当场发现并 `git checkout` 全量还原**，重做。教训：跨工作树比较必须让 `diff` 的 stderr 可见）。
+
+| 线                          | 提交                                         | 验证                                                                                              |
+| --------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| develop                     | `37dcce63a`                                  | `tsc` EXIT=0、`quality:contracts` EXIT=0、`pnpm test` **6996 passed / 0 failed**                  |
+| release/contract-entrypoint | `a321796e2`                                  | `tsc` EXIT=0、`quality:contracts` EXIT=0、`pnpm test` 5601 passed / 2 failed（两条既有红，见 §8） |
+| Tjg                         | pin `a321796e2` + tarball `sha256-51200137…` | `verify-sdk-pin` 三段判据 EXIT=0、`vue-tsc`/`pnpm check`/`check-ratchet` EXIT=0                   |
+
+> 门禁只减不增的好例子：这三组成员**从来没有**被 `quality:path-contract` 抓到 —— 它们在
+> `path-contract-waivers.json` 里被登记成了豁免（所以"全部一致"是真的、也是空的）。
+> 换句话说，**豁免台账不是免责区，而是待收口清单**；本轮收口后台账从 28 条降到 23 条。
+
+---
+
 ## 附录 A：本轮核验命令
 
 ```bash
@@ -1862,6 +1937,6 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-10（**第十七轮：W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4）；第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049`+Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 门禁 0 违规；仍余 N-02（负载假红）（W-01/W-02 已于**第十七轮**收口）。此前：**`quality:wire-format` 门禁落地** + **P-13 修复**。门禁按 §9.4 的设计实现：后端抽 `serde` 结构 / `Query<T>` 键集，SDK 抽**位置形态 + 对象字面量形态**两种调用点（后者占全仓一半以上、`path-contract` 完全不认，cas 全族就在里面），判据 = `SDK 键集 ⊇ 必填集`，`deny_unknown_fields` 时再加 `⊆`；认不出的一律落**具名计数桶且只降不升**（当前 9 类 / 889 条）。**首跑即抓到 1 条此前未知的 A 类缺陷 W-01**（`getSamlRedirect` 发 `idp_id` 而后端 `SamlLoginQuery` 是 `deny_unknown_fields` ⇒ **400**，功能完全不可用）。P-13 按裁定「SDK 删掉服务管理面的 `cas` 选项」实施：`CasServicePrefix` 收窄为单一取值 + `@ts-expect-error` 类型守卫（原 spec 竟把坏行为断言成预期）。含抽取器**四次自我纠错**（全是"假缺陷 / 静默漏抽"方向）。见 §7.17 / §9.11 / §9.8；第十四轮：**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
-**此前更新**: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
+**最后更新**: 2026-10-10（**第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员**（develop `37dcce63a` / release `a321796e2` / Tjg pin `a321796e2`），见 §9.12；第十七轮：W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4）；第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049`+Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 门禁 0 违规；仍余 N-02（负载假红）（W-01/W-02 已于**第十七轮**收口）。此前：**`quality:wire-format` 门禁落地** + **P-13 修复**。门禁按 §9.4 的设计实现：后端抽 `serde` 结构 / `Query<T>` 键集，SDK 抽**位置形态 + 对象字面量形态**两种调用点（后者占全仓一半以上、`path-contract` 完全不认，cas 全族就在里面），判据 = `SDK 键集 ⊇ 必填集`，`deny_unknown_fields` 时再加 `⊆`；认不出的一律落**具名计数桶且只降不升**（当前 9 类 / 889 条）。**首跑即抓到 1 条此前未知的 A 类缺陷 W-01**（`getSamlRedirect` 发 `idp_id` 而后端 `SamlLoginQuery` 是 `deny_unknown_fields` ⇒ **400**，功能完全不可用）。P-13 按裁定「SDK 删掉服务管理面的 `cas` 选项」实施：`CasServicePrefix` 收窄为单一取值 + `@ts-expect-error` 类型守卫（原 spec 竟把坏行为断言成预期）。含抽取器**四次自我纠错**（全是"假缺陷 / 静默漏抽"方向）。见 §7.17 / §9.11 / §9.8；第十四轮：**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；**批 1 的 CI 回归定位与修复** —— CI `37942625990` 唯一红点是我批 1 改 wire key 时**漏改的子目录 spec 断言**（`spec/unit/room-summary/room-summary-facade.spec.ts:442`），本地只跑顶层同名 spec 故全绿；修复 `09d55a321`。同时**在当前 HEAD 上逐条双侧复核** §9.2 全部条目：**5 条已修 / 11 条仍在 / R-05 需精确化**；新增两条发现 —— **N-01**（改报文与验什么两层纯人工 ⇒ 漏网必然）与 **N-02**（`MatrixRTCSession` 258 成员用例满负载 30s 超时 = 测试基建负载敏感假红）。见 §0 / §7.16 / §9.10；第十三轮：§9.3 **批 1** 修复落地 —— A 类 11 条全部关闭（thread 族 6 条由 `a35496e59`、另 5 条 P-01/P-12/P-07/P-09/P-10 为本轮），5 处变异自证 + 8 例新测试；另**新增发现 P-13**（CAS 服务管理的 `cas` 前缀后端无路由 ⇒ 404），见 §7.15 / §9.2 / §9.8；⚠️ 本轮开工前再次撞上**陈旧缓冲区回写**（本文档被写成 709 行旧版、丢 §7.8–§7.14 与 §9），且一小时内**连撞两次**（第二次抹掉本轮编辑），由 §7.11 哨兵精确点名后从 HEAD 还原；第十二轮：**后端 `ROUTE_CONTRACT.md` 附录 B 联审** —— 27 条 wire-format 缺陷逐条回源复核（复核 22 条全部复现，含 17 条 P1），新增 **§9 缺陷清单 + 4 批修复方案 + `quality:wire-format` 门禁设计**，并实测出附录 B 两处引证错误，见 §7.14 / §9；同日晚：修 §7.11 哨兵的**标题归一化**误报（外部重新生成 `sdk-contract-gap-report.md` 时标题里的生成计数/日期变化被误判为"章节丢失"），见 §7.11 (6)；第十一轮：`concat` 形态攻破 —— 新增 `spliceLiteralConcat`（全字面量拼接 / 单段 `encodeURIComponent` 收 `{X}` / `?` 后截断，四道 fail-closed 兜底），未校验 **11 → 8**（`identifier 4 → 2`），并给出剩余 **8 处逐条定性**，见 §7.13；第十轮：D2 收尾（第 5 个 baseline 型门禁 `check-msc-changes` 接入审查门），见 §7.12；第九轮：E2 后半 —— 审计文档**章节完整性哨兵** `quality:audit-doc-integrity`（核实"预览白名单"**不存在**并更正该表述），见 §7.11；第八轮：C4 规模实证 ⇒ **降级**（见 §7.10）；第七轮：E3 推送与 CI 首跑修复 **8 处**至 Quality Gate **首次全绿**（run `37927667293`），见 §7.9；第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记 —— 第二批复核见 §7.5）
+**此前更新\*\*: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）
