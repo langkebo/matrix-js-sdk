@@ -114,7 +114,7 @@
         "contract:pin-docs": "node scripts/pin-module-docs.mjs",
         "generate:manager-extensions": "node scripts/generate-manager-extensions.mjs",
         "quality:manager-extensions": "node scripts/generate-manager-extensions.mjs --check",
-        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:contract-entrypoint && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:contract-freshness && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:public-api-docs && pnpm quality:docs-examples && pnpm quality:path-contract && pnpm quality:route-set-parity && pnpm quality:admin-response-contract && pnpm quality:wire-format && pnpm quality:msc && pnpm quality:waiver-expiry",
+        "quality:contracts": "pnpm quality:exports && pnpm quality:entrypoints && pnpm quality:contract-entrypoint && pnpm quality:sdk-contracts && pnpm contract:check && pnpm contract:codegen:check && pnpm quality:contract-freshness && pnpm quality:manager-codegen && pnpm quality:generated-dto-strictness && pnpm quality:public-jsdoc-examples && pnpm quality:public-api-docs && pnpm quality:api-contract-doc-paths && pnpm quality:docs-examples && pnpm quality:path-contract && pnpm quality:route-set-parity && pnpm quality:admin-response-contract && pnpm quality:wire-format && pnpm quality:msc && pnpm quality:waiver-expiry",
         "quality:report": "node scripts/quality-report.mjs",
         "quality:large-file-check": "node scripts/quality/check-large-file-changes.mjs",
         "audit:high": "pnpm audit --audit-level=high",
@@ -123,7 +123,8 @@
         "quality:bundle-size": "node scripts/check-bundle-size.mjs",
         "quality:cross-repo-pin": "node scripts/quality/check-cross-repo-pin.mjs",
         "quality:cross-repo-pin:strict": "node scripts/quality/check-cross-repo-pin.mjs --strict",
-        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && pnpm quality:bundle-size"
+        "prepublishOnly": "pnpm lint && pnpm test && pnpm quality:report && pnpm audit:high && pnpm quality:bundle-size",
+        "quality:api-contract-doc-paths": "node scripts/quality/check-api-contract-doc-paths.mjs"
     },
     "keywords": [
         "matrix-org"
