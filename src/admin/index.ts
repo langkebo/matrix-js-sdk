@@ -118,18 +118,13 @@ import {
     type AdminModuleLog,
     type AdminAccountValidityInfo,
     type AdminPasswordAuthProvider,
-    type AdminPresenceRoute,
-    type AdminPresenceRoutePage,
     type AdminMediaCallback,
-    type AdminRateLimitCallback,
-    type AdminRateLimitCallbackPage,
     type AdminAccountDataCallback,
     type AdminInviteAllowlist,
     type AdminInviteBlocklist,
     type AdminJitsiConfig,
     type AdminPurgeHistoryResult,
     type AdminShutdownRoomResult,
-    type AdminBackupPage,
     type AdminExperimentalFeatures,
     type ShadowBanStatus,
     type RateLimitConfig,
@@ -477,7 +472,6 @@ export interface AdminManager {
     getRegisterNonce(): Promise<{ nonce: string }>;
     registerAdmin(payload: AdminRegisterRequest): Promise<AdminRegisterResult>;
     restartServer(payload?: RestartServerPayload): Promise<RestartServerResponse>;
-    listBackups(options?: { limit?: number; offset?: number }): Promise<AdminBackupPage>;
     getExperimentalFeatures(): Promise<AdminExperimentalFeatures>;
     purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse>;
     purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult>;
@@ -594,13 +588,9 @@ export interface AdminManager {
     renewAccountValidity(userId: string, payload: AccountValidityRenewRequest): Promise<AdminAccountValidityInfo>;
     listPasswordAuthProviders(): Promise<AdminPasswordAuthProvider[]>;
     createPasswordAuthProvider(payload: DynamicConfig): Promise<AdminPasswordAuthProvider>;
-    listPresenceRoutes(): Promise<AdminPresenceRoutePage>;
-    createPresenceRoute(payload: DynamicConfig): Promise<AdminPresenceRoute>;
     listMediaCallbacks(): Promise<AdminMediaCallback[]>;
     listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallback[]>;
     createMediaCallback(payload: DynamicConfig): Promise<AdminMediaCallback>;
-    listRateLimitCallbacks(): Promise<AdminRateLimitCallbackPage>;
-    createRateLimitCallback(payload: DynamicConfig): Promise<AdminRateLimitCallback>;
     listAccountDataCallbacks(): Promise<AdminAccountDataCallback[]>;
     createAccountDataCallback(payload: DynamicConfig): Promise<AdminAccountDataCallback>;
     getInviteAllowlist(): Promise<AdminInviteAllowlist>;

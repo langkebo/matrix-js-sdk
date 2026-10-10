@@ -261,22 +261,9 @@ export interface AdminShutdownRoomResult {
     failed_to_kick_users?: string[];
 }
 
-export interface AdminBackupInfo {
-    backup_id: string;
-    room_id?: string;
-    session_count?: number;
-    key_count?: number;
-    created_ts?: number;
-    version?: string;
-}
-
-export interface AdminBackupPage {
-    backups: AdminBackupInfo[];
-    total: number;
-    total_keys: number;
-    limit: number;
-    offset: number;
-}
+// `AdminBackupInfo` / `AdminBackupPage` 已删除：后端**没有** `/_synapse/admin/v1/backups`
+// 路由（2026-10-10 全仓 rs 源码 + ledger 零命中；`key_backup.rs` 是客户端 `/_matrix/client/v3/keys/backup/*`
+// 的密钥备份，不是服务端备份管理）。原 `listBackups()` 是「预置未实现」死代码，只会 404。
 
 /**
  * `GET /_synapse/admin/v1/experimental_features` 的响应。

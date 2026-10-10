@@ -399,16 +399,9 @@ export interface AdminPasswordAuthProvider {
 // 返回的是**裸数组** `PasswordAuthProviderResponse[]`（后端 `Ok(Json(responses))`），
 // 不存在 `{providers, total}` 包装对象。
 
-export interface AdminPresenceRoute {
-    route_name: string;
-    route_type: string;
-    config?: DynamicConfig;
-}
-
-export interface AdminPresenceRoutePage {
-    routes: AdminPresenceRoute[];
-    total?: number;
-}
+// `AdminPresenceRoute` / `AdminPresenceRoutePage` 已删除：后端 `module.rs` **从未注册**
+// `/_synapse/admin/v1/presence_routes`（2026-10-10 ledger 零命中），SDK 侧对应方法是
+// 「预置未实现」的死代码，只会 404。同理见下方 `AdminRateLimitCallback*`。
 
 /**
  * 媒体回调**任务**记录。
@@ -430,16 +423,9 @@ export interface AdminMediaCallback {
     is_enabled: boolean;
 }
 
-export interface AdminRateLimitCallback {
-    callback_name: string;
-    callback_type: string;
-    config?: DynamicConfig;
-}
-
-export interface AdminRateLimitCallbackPage {
-    callbacks: AdminRateLimitCallback[];
-    total?: number;
-}
+// `AdminRateLimitCallback` / `AdminRateLimitCallbackPage` 已删除：后端无
+// `/_synapse/admin/v1/rate_limit_callbacks` 注册（存在的是 `media_callbacks` /
+// `account_data_callbacks`），保留即是死代码。
 
 /**
  * 账户数据回调配置项。

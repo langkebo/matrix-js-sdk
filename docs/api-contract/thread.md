@@ -25,10 +25,10 @@ last_reviewed: 2026-05-03
 
 | 方法   | 路径                                                                 | 说明                 | 认证     |
 | ------ | -------------------------------------------------------------------- | -------------------- | -------- |
-| GET    | `/_matrix/client/v1/threads`                                         | 全局线程列表         | 用户     |
-| POST   | `/_matrix/client/v1/threads`                                         | 全局创建线程         | 用户     |
-| GET    | `/_matrix/client/v1/threads/subscribed`                              | 获取已订阅线程       | 用户     |
-| GET    | `/_matrix/client/v1/threads/unread`                                  | 获取全局未读线程     | 用户     |
+| GET    | `/_matrix/vendor/v1/threads`                                         | 全局线程列表         | 用户     |
+| POST   | `/_matrix/vendor/v1/threads`                                         | 全局创建线程         | 用户     |
+| GET    | `/_matrix/vendor/v1/threads/subscribed`                              | 获取已订阅线程       | 用户     |
+| GET    | `/_matrix/vendor/v1/threads/unread`                                  | 获取全局未读线程     | 用户     |
 | GET    | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads`          | 兼容旧版线程搜索列表 | 用户     |
 | POST   | `/_matrix/client/v1/rooms/{room_id}/threads`                         | 在房间内创建线程     | 用户     |
 | GET    | `/_matrix/client/v1/rooms/{room_id}/threads`                         | 获取房间线程列表     | 用户     |

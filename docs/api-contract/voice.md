@@ -23,19 +23,19 @@ last_reviewed: 2026-05-03
 
 ## 路由清单
 
-| 方法   | 路径                                            | 说明             | 认证 |
-| ------ | ----------------------------------------------- | ---------------- | ---- |
-| POST   | `/_matrix/client/r0/voice/upload`               | 上传语音消息     | 用户 |
-| GET    | `/_matrix/client/r0/voice/stats`                | 获取当前用户统计 | 用户 |
-| GET    | `/_matrix/client/r0/voice/{message_id}`         | 获取语音内容     | 用户 |
-| DELETE | `/_matrix/client/r0/voice/{message_id}`         | 删除语音消息     | 用户 |
-| GET    | `/_matrix/client/r0/voice/user/{user_id}`       | 获取指定用户语音 | 用户 |
-| GET    | `/_matrix/client/r0/voice/room/{room_id}`       | 获取房间语音列表 | 用户 |
-| GET    | `/_matrix/client/r0/voice/user/{user_id}/stats` | 获取指定用户统计 | 用户 |
-| GET    | `/_matrix/client/r0/voice/config`               | 获取语音配置     | 公开 |
-| POST   | `/_matrix/client/r0/voice/convert`              | 转换语音格式     | 用户 |
-| POST   | `/_matrix/client/r0/voice/optimize`             | 压缩优化语音     | 用户 |
-| POST   | `/_matrix/client/v1/voice/transcription`        | 语音转写         | 用户 |
+| 方法   | 路径                                                | 说明             | 认证 |
+| ------ | --------------------------------------------------- | ---------------- | ---- |
+| POST   | `/_matrix/vendor/v1/voice/upload`                   | 上传语音消息     | 用户 |
+| GET    | `/_matrix/vendor/v1/voice/stats`                    | 获取当前用户统计 | 用户 |
+| GET    | `/_matrix/client/r0/voice/{message_id}`             | 获取语音内容     | 用户 |
+| DELETE | `/_matrix/client/r0/voice/{message_id}`             | 删除语音消息     | 用户 |
+| GET    | `/_matrix/client/r0/voice/user/{user_id}`           | 获取指定用户语音 | 用户 |
+| GET    | `/_matrix/client/r0/voice/room/{room_id}`           | 获取房间语音列表 | 用户 |
+| GET    | `/_matrix/client/r0/voice/user/{user_id}/stats`     | 获取指定用户统计 | 用户 |
+| GET    | `/_matrix/vendor/v1/voice/config`                   | 获取语音配置     | 公开 |
+| POST   | `/_matrix/vendor/v1/voice/{media_id}/convert`       | 转换语音格式     | 用户 |
+| POST   | `/_matrix/vendor/v1/voice/{media_id}/optimize`      | 压缩优化语音     | 用户 |
+| POST   | `/_matrix/vendor/v1/voice/{media_id}/transcription` | 语音转写         | 用户 |
 
 ## 请求体与稳定响应
 

@@ -25,14 +25,14 @@ last_reviewed: 2026-05-03
 
 | 方法 | 路径                              | 查询参数                                                    | 主要响应字段                                               | 认证 |
 | ---- | --------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------- | ---- |
-| GET  | `/_matrix/client/r0/sync`         | `since?` `timeout?` `filter?` `full_state?` `set_presence?` | `next_batch` `rooms` `presence` `account_data` `to_device` | 用户 |
+| GET  | `/_matrix/client/v3/sync`         | `since?` `timeout?` `filter?` `full_state?` `set_presence?` | `next_batch` `rooms` `presence` `account_data` `to_device` | 用户 |
 | GET  | `/_matrix/client/v1/sync`         | 同上                                                        | 同上                                                       | 用户 |
 | GET  | `/_matrix/client/v3/sync`         | 同上                                                        | 同上                                                       | 用户 |
-| GET  | `/_matrix/client/r0/events`       | 流水线查询参数                                              | 事件流结果                                                 | 用户 |
 | GET  | `/_matrix/client/v3/events`       | 流水线查询参数                                              | 事件流结果                                                 | 用户 |
-| GET  | `/_matrix/client/r0/joined_rooms` | 无                                                          | `joined_rooms`                                             | 用户 |
+| GET  | `/_matrix/client/v3/events`       | 流水线查询参数                                              | 事件流结果                                                 | 用户 |
 | GET  | `/_matrix/client/v3/joined_rooms` | 无                                                          | `joined_rooms`                                             | 用户 |
-| GET  | `/_matrix/client/v3/my_rooms`     | 无                                                          | `rooms`                                                    | 用户 |
+| GET  | `/_matrix/client/v3/joined_rooms` | 无                                                          | `joined_rooms`                                             | 用户 |
+| GET  | `/_matrix/vendor/v1/my_rooms`     | 无                                                          | `rooms`                                                    | 用户 |
 
 ## POST Sliding Sync
 

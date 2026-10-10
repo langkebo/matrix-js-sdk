@@ -28,15 +28,15 @@ last_reviewed: 2026-05-11
 
 | 方法 | 路径                                                    | 说明                   | 认证     |
 | ---- | ------------------------------------------------------- | ---------------------- | -------- |
-| POST | `/_matrix/client/r0/search`                             | 全局搜索               | 用户     |
-| POST | `/_matrix/client/r0/search_recipients`                  | 搜索可作为收件人的用户 | 用户     |
-| POST | `/_matrix/client/r0/search_rooms`                       | 搜索房间               | 用户     |
+| POST | `/_matrix/client/v3/search`                             | 全局搜索               | 用户     |
+| POST | `/_matrix/vendor/v1/search_recipients`                  | 搜索可作为收件人的用户 | 用户     |
+| POST | `/_matrix/vendor/v1/search_rooms`                       | 搜索房间               | 用户     |
 | GET  | `/_matrix/client/v1/rooms/{room_id}/context/{event_id}` | 获取事件上下文         | 房间成员 |
 | GET  | `/_matrix/client/v1/rooms/{room_id}/hierarchy`          | 获取房间层级           | 房间可见 |
 | GET  | `/_matrix/client/v1/rooms/{room_id}/timestamp_to_event` | 时间戳定位事件         | 房间成员 |
 | POST | `/_matrix/client/v3/search`                             | 全局搜索               | 用户     |
-| POST | `/_matrix/client/v3/search_recipients`                  | 搜索可作为收件人的用户 | 用户     |
-| POST | `/_matrix/client/v3/search_rooms`                       | 搜索房间               | 用户     |
+| POST | `/_matrix/vendor/v1/search_recipients`                  | 搜索可作为收件人的用户 | 用户     |
+| POST | `/_matrix/vendor/v1/search_rooms`                       | 搜索房间               | 用户     |
 | GET  | `/_matrix/client/v3/rooms/{room_id}/context/{event_id}` | 获取事件上下文         | 房间成员 |
 | GET  | `/_matrix/client/v3/rooms/{room_id}/hierarchy`          | 获取房间层级           | 房间可见 |
 

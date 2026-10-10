@@ -16,14 +16,14 @@ last_reviewed: 2026-05-03
 
 | 方法 | 路径                                         | 说明           | 认证 |
 | ---- | -------------------------------------------- | -------------- | ---- |
-| GET  | `/_matrix/client/r0/login/sso/redirect/saml` | SSO 重定向     | 公开 |
-| POST | `/_matrix/client/r0/login/sso/redirect/saml` | SSO 重定向     | 公开 |
-| GET  | `/_matrix/client/r0/login/saml/callback`     | SAML 回调      | 公开 |
-| POST | `/_matrix/client/r0/login/saml/callback`     | SAML 回调      | 公开 |
-| GET  | `/_matrix/client/r0/logout/saml`             | SAML 登出      | 公开 |
-| GET  | `/_matrix/client/r0/logout/saml/callback`    | SAML 登出回调  | 公开 |
-| GET  | `/_matrix/client/r0/saml/metadata`           | SAML 元数据    | 公开 |
-| GET  | `/_matrix/client/r0/saml/sp_metadata`        | SAML SP 元数据 | 公开 |
+| GET  | `/_matrix/client/v3/login/sso/redirect/saml` | SSO 重定向     | 公开 |
+| POST | `/_matrix/client/v3/login/sso/redirect/saml` | SSO 重定向     | 公开 |
+| GET  | `/_matrix/client/v3/login/saml/callback`     | SAML 回调      | 公开 |
+| POST | `/_matrix/client/v3/login/saml/callback`     | SAML 回调      | 公开 |
+| GET  | `/_matrix/client/v3/logout/saml`             | SAML 登出      | 公开 |
+| GET  | `/_matrix/client/v3/logout/saml/callback`    | SAML 登出回调  | 公开 |
+| GET  | `/_matrix/client/v3/saml/metadata`           | SAML 元数据    | 公开 |
+| GET  | `/_matrix/client/v3/saml/sp_metadata`        | SAML SP 元数据 | 公开 |
 
 ### 管理端点（需要管理员 access token）
 

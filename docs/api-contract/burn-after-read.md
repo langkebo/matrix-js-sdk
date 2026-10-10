@@ -94,8 +94,8 @@ interface BurnStats {
 | GET    | `/_matrix/client/v1/rooms/{room_id}/burn/pending`    | `getPendingBurns()`              |
 | POST   | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `markBurnRead()`                 |
 | DELETE | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `cancelBurn()`                   |
-| PUT    | `/_matrix/client/v1/user/burn/config`                | `setBurnConfig()`                |
-| GET    | `/_matrix/client/v1/user/burn/stats`                 | `getBurnStats()`                 |
+| PUT    | `/_matrix/vendor/v1/user/burn/config`                | `setBurnConfig()`                |
+| GET    | `/_matrix/vendor/v1/user/burn/stats`                 | `getBurnStats()`                 |
 
 ## 五、SDK 对齐状态
 

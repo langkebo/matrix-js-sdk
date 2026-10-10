@@ -17,7 +17,7 @@ last_reviewed: 2026-05-11
 ## 一、当前审计结论
 
 - `generated/modules/module.json` 当前记录 **27** 条 admin 路由，不是旧文档中的 `13` 条。
-- 这些路由并不只包含 `/modules/*`，还包括模块系统挂出的 `account_validity`、`password_auth_providers`、`presence_routes`、`media_callbacks`、`rate_limit_callbacks`、`account_data_callbacks`。
+- 这些路由并不只包含 `/modules/*`，还包括模块系统挂出的 `account_validity`、`password_auth_providers`、`media_callbacks`、`account_data_callbacks`。（`presence_routes` / `rate_limit_callbacks` 后端**未注册**，属「预置未实现」，SDK 侧成员已于 2026-10-10 删除。）
 - 存在独立的 `ModuleManager`：`src/module/index.ts` 定义 `MatrixClient.prototype.getModuleManager()`。
   **但它不在 `src/manager-extensions/` 的扩展清单里**，因此不会随 `initializeManagerExtensions()`
   自动挂载 —— 必须显式 `import "matrix-js-sdk/src/module"`（或经 `AdminManager`）才可用。
@@ -60,13 +60,9 @@ last_reviewed: 2026-05-11
 | POST | `/_synapse/admin/v1/account_validity/{user_id}/renew` | `renewAccountValidity()`       |
 | GET  | `/_synapse/admin/v1/password_auth_providers`          | `listPasswordAuthProviders()`  |
 | POST | `/_synapse/admin/v1/password_auth_providers`          | `createPasswordAuthProvider()` |
-| GET  | `/_synapse/admin/v1/presence_routes`                  | `listPresenceRoutes()`         |
-| POST | `/_synapse/admin/v1/presence_routes`                  | `createPresenceRoute()`        |
 | GET  | `/_synapse/admin/v1/media_callbacks`                  | `listMediaCallbacks()`         |
 | GET  | `/_synapse/admin/v1/media_callbacks/{callback_type}`  | `listMediaCallbacksByType()`   |
 | POST | `/_synapse/admin/v1/media_callbacks`                  | `createMediaCallback()`        |
-| GET  | `/_synapse/admin/v1/rate_limit_callbacks`             | `listRateLimitCallbacks()`     |
-| POST | `/_synapse/admin/v1/rate_limit_callbacks`             | `createRateLimitCallback()`    |
 | GET  | `/_synapse/admin/v1/account_data_callbacks`           | `listAccountDataCallbacks()`   |
 | POST | `/_synapse/admin/v1/account_data_callbacks`           | `createAccountDataCallback()`  |
 
@@ -105,7 +101,7 @@ interface ListModulesResponse {
 
 补充说明:
 
-- `listModulesByType()`、`listPasswordAuthProviders()`、`listPresenceRoutes()`、`listMediaCallbacks()` 等多个列表端点返回的是数组，不是 `{ items: [] }` 包装对象。
+- `listModulesByType()`、`listPasswordAuthProviders()`、`listMediaCallbacks()` 等多个列表端点返回的是数组，不是 `{ items: [] }` 包装对象。
 - `DELETE /modules/{module_name}` 后端返回 `204 No Content`，SDK `deleteModule()` 保持 `Promise<void>`。
 - `check_spam` 与 `check_third_party_rule` 都要求完整事件上下文，不是旧文档里的简化 `{ event: {} }`。
 

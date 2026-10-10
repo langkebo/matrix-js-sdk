@@ -25,7 +25,7 @@ last_reviewed: 2026-05-03
 
 | 方法   | 路径                                                                  | 说明               | 认证 |
 | ------ | --------------------------------------------------------------------- | ------------------ | ---- |
-| POST   | `/_matrix/client/v1/widgets`                                          | 创建小组件         | 用户 |
+| POST   | `/_matrix/vendor/v1/widgets`                                          | 创建小组件         | 用户 |
 | GET    | `/_matrix/client/v1/widgets/{widget_id}`                              | 获取小组件详情     | 用户 |
 | PUT    | `/_matrix/client/v1/widgets/{widget_id}`                              | 更新小组件         | 用户 |
 | DELETE | `/_matrix/client/v1/widgets/{widget_id}`                              | 删除小组件         | 用户 |

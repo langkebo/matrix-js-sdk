@@ -37,13 +37,11 @@ last_reviewed: 2026-05-11
 
 | 方法     | 路径                                                       | 后端行为                 | SDK 主入口                                         |
 | -------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------------------- |
-| `GET`    | `/_matrix/client/v3/friends`                               | 好友列表正式入口         | `FriendManager.getFriends()`                       |
-| `POST`   | `/_matrix/client/v3/friends`                               | 发送好友请求的兼容别名   | SDK 不默认使用                                     |
-| `GET`    | `/_matrix/client/v1/friends`                               | 列表兼容别名             | SDK 不默认使用                                     |
-| `POST`   | `/_matrix/client/v1/friends`                               | 发送请求兼容别名         | SDK 不默认使用                                     |
-| `GET`    | `/_matrix/client/r0/friendships`                           | 历史列表别名             | SDK 不默认使用                                     |
-| `POST`   | `/_matrix/client/r0/friendships`                           | 历史发送别名             | SDK 不默认使用                                     |
-| `POST`   | `/_matrix/client/v1/friends/request`                       | 发送好友请求             | `sendFriendRequest()` / `addFriend()`              |
+| `GET`    | `/_matrix/vendor/v1/friends`                               | 好友列表正式入口         | `FriendManager.getFriends()`                       |
+| `POST`   | `/_matrix/vendor/v1/friends`                               | 发送好友请求的兼容别名   | SDK 不默认使用                                     |
+| `GET`    | `/_matrix/vendor/v1/friends`                               | 列表兼容别名             | SDK 不默认使用                                     |
+| `POST`   | `/_matrix/vendor/v1/friends`                               | 发送请求兼容别名         | SDK 不默认使用                                     |
+| `POST`   | `/_matrix/vendor/v1/friends/request`                       | 发送好友请求             | `sendFriendRequest()` / `addFriend()`              |
 | `GET`    | `/_matrix/vendor/v1/friends/requests/incoming`             | 收件箱请求的**规范路径** | `getIncomingRequests()`                            |
 | `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/accept` | 接受请求                 | `acceptFriendRequest()`                            |
 | `POST`   | `/_matrix/client/{v1,r0}/friends/request/{user_id}/reject` | 拒绝请求                 | `rejectFriendRequest()` / `declineFriendRequest()` |

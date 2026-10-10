@@ -13,9 +13,9 @@ last_reviewed: 2026-05-03
 
 ## 真实后端路由
 
-| 方法 | 路径                              | 说明         | 认证 |
-| ---- | --------------------------------- | ------------ | ---- |
-| POST | `/_matrix/client/v3/sync/sliding` | Sliding Sync | 用户 |
+| 方法 | 路径                                                          | 说明         | 认证 |
+| ---- | ------------------------------------------------------------- | ------------ | ---- |
+| POST | `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` | Sliding Sync | 用户 |
 
 ## SDK 对齐状态
 

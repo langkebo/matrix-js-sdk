@@ -330,13 +330,9 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             await manager.renewAccountValidity("@u:x", { renewal_token: "t", new_expiration_ts: 2 });
             await manager.listPasswordAuthProviders();
             await manager.createPasswordAuthProvider({ provider_name: "p1", provider_type: "ldap", config: {} });
-            await manager.listPresenceRoutes();
-            await manager.createPresenceRoute({ route_name: "r1", route_type: "remote", config: {} });
             await manager.listMediaCallbacks();
             await manager.listMediaCallbacksByType("upload");
             await manager.createMediaCallback({ callback_name: "c1", callback_type: "upload", url: "https://x" });
-            await manager.listRateLimitCallbacks();
-            await manager.createRateLimitCallback({ callback_name: "rl1", callback_type: "login", config: {} });
             await manager.listAccountDataCallbacks();
             await manager.createAccountDataCallback({ callback_name: "ad1", callback_type: "m.tag", config: {} });
 
@@ -350,15 +346,11 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[6][1]).toBe("/account_validity/%40u%3Ax/renew");
             expect(req.mock.calls[7][1]).toBe("/password_auth_providers");
             expect(req.mock.calls[8][1]).toBe("/password_auth_providers");
-            expect(req.mock.calls[9][1]).toBe("/presence_routes");
-            expect(req.mock.calls[10][1]).toBe("/presence_routes");
+            expect(req.mock.calls[9][1]).toBe("/media_callbacks");
+            expect(req.mock.calls[10][1]).toBe("/media_callbacks/upload");
             expect(req.mock.calls[11][1]).toBe("/media_callbacks");
-            expect(req.mock.calls[12][1]).toBe("/media_callbacks/upload");
-            expect(req.mock.calls[13][1]).toBe("/media_callbacks");
-            expect(req.mock.calls[14][1]).toBe("/rate_limit_callbacks");
-            expect(req.mock.calls[15][1]).toBe("/rate_limit_callbacks");
-            expect(req.mock.calls[16][1]).toBe("/account_data_callbacks");
-            expect(req.mock.calls[17][1]).toBe("/account_data_callbacks");
+            expect(req.mock.calls[12][1]).toBe("/account_data_callbacks");
+            expect(req.mock.calls[13][1]).toBe("/account_data_callbacks");
         });
     });
 
@@ -1165,40 +1157,6 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
         it("rejects non-integer beforeTs", async () => {
             await expect(manager.purgeMediaCache(1.5)).rejects.toThrow(ValidationError);
             await expect(manager.purgeMediaCache(Number.NaN)).rejects.toThrow(ValidationError);
-        });
-    });
-
-    // --------- listBackups (backend newly implemented) ---------
-    describe("listBackups", () => {
-        it("GETs /v1/backups with default params", async () => {
-            req.mockResolvedValue({
-                backups: [],
-                total: 0,
-                total_keys: 0,
-                limit: 50,
-                offset: 0,
-            });
-            const result = await manager.listBackups();
-            expect(req.mock.calls[0][0]).toBe("GET");
-            expect(req.mock.calls[0][1]).toBe("/backups");
-            expect(req.mock.calls[0][2]).toEqual({});
-            expect(result.total).toBe(0);
-        });
-
-        it("passes limit/offset as query params", async () => {
-            req.mockResolvedValue({ backups: [], total: 0, total_keys: 0, limit: 10, offset: 5 });
-            await manager.listBackups({ limit: 10, offset: 5 });
-            expect(req.mock.calls[0][2]).toEqual({ limit: "10", offset: "5" });
-        });
-
-        it("rejects out-of-range limit", async () => {
-            await expect(manager.listBackups({ limit: 0 })).rejects.toThrow(ValidationError);
-            await expect(manager.listBackups({ limit: 501 })).rejects.toThrow(ValidationError);
-            await expect(manager.listBackups({ limit: 1.5 })).rejects.toThrow(ValidationError);
-        });
-
-        it("rejects negative offset", async () => {
-            await expect(manager.listBackups({ offset: -1 })).rejects.toThrow(ValidationError);
         });
     });
 

@@ -15,9 +15,9 @@ last_reviewed: 2026-06-01
 
 | 方法 | 路径                                         | 说明              | 认证   |
 | ---- | -------------------------------------------- | ----------------- | ------ |
-| POST | `/_matrix/client/r0/register/captcha/send`   | r0 发送验证码挑战 | 公开   |
-| GET  | `/_matrix/client/r0/register/captcha/status` | r0 查询验证码状态 | 公开   |
-| POST | `/_matrix/client/r0/register/captcha/verify` | r0 验证验证码     | 公开   |
+| POST | `/_matrix/client/v3/register/captcha/send`   | r0 发送验证码挑战 | 公开   |
+| GET  | `/_matrix/client/v3/register/captcha/status` | r0 查询验证码状态 | 公开   |
+| POST | `/_matrix/client/v3/register/captcha/verify` | r0 验证验证码     | 公开   |
 | POST | `/_matrix/client/v3/register/captcha/send`   | v3 发送验证码挑战 | 公开   |
 | GET  | `/_matrix/client/v3/register/captcha/status` | v3 查询验证码状态 | 公开   |
 | POST | `/_matrix/client/v3/register/captcha/verify` | v3 验证验证码     | 公开   |

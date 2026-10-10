@@ -88,35 +88,34 @@ last_reviewed: 2026-05-11
 
 ## 安全、通知、媒体、服务器
 
-| 方法                | 路径                                                        | 说明                        |
-| ------------------- | ----------------------------------------------------------- | --------------------------- |
-| POST/DELETE         | `/_synapse/admin/v1/users/{user_id}/shadow_ban`             | 影子封禁 / 解封             |
-| GET/PUT/DELETE      | `/_synapse/admin/v1/users/{user_id}/rate_limit`             | 用户限速                    |
-| GET/POST/DELETE     | `/_synapse/admin/v1/users/{user_id}/override_ratelimit`     | 覆盖限速                    |
-| POST/GET/PUT/DELETE | `/_synapse/admin/v1/notifications...`                       | 系统通知 CRUD               |
-| POST                | `/_synapse/admin/v1/send_server_notice`                     | 发送 server notice          |
-| GET                 | `/_synapse/admin/v1/server_notices`                         | notice 列表                 |
-| GET/PUT             | `/_synapse/admin/v1/users/{user_id}/notification`           | 用户通知设置                |
-| GET/DELETE          | `/_synapse/admin/v1/users/{user_id}/pushers...`             | 管理用户 pushers            |
-| GET/DELETE          | `/_synapse/admin/v1/media...`                               | 管理媒体与用户媒体          |
-| GET                 | `/_synapse/admin/info`                                      | 管理端信息                  |
-| GET                 | `/_synapse/admin/v1/server_version`                         | 服务器版本                  |
-| POST                | `/_synapse/admin/v1/purge_media_cache`                      | 清理媒体缓存                |
-| POST                | `/_synapse/admin/v1/restart`                                | 重启                        |
-| GET                 | `/_synapse/admin/v1/statistics`                             | 服务器统计                  |
-| GET                 | `/_synapse/admin/v1/status`                                 | 服务器状态                  |
-| GET                 | `/_synapse/admin/v1/whois/{user_id}`                        | whois                       |
-| GET                 | `/_synapse/admin/v1/health`                                 | 健康检查                    |
-| GET                 | `/_synapse/admin/v1/config`                                 | 配置                        |
-| GET                 | `/_synapse/admin/v1/experimental_features`                  | 实验特性                    |
-| GET                 | `/_synapse/admin/v1/backups`                                | 备份信息                    |
-| GET/PUT             | `/_synapse/admin/v1/saml/config`                            | 读取/更新 SAML 配置         |
-| GET                 | `/_synapse/admin/v1/saml/mappings`                          | SAML 用户映射列表           |
-| GET/PUT/DELETE      | `/_synapse/admin/v1/saml/mapping/{name_id}`                 | 单个 SAML 映射管理          |
-| POST                | `/_synapse/admin/v1/saml/logout`                            | 发起 SAML 登出              |
-| GET/POST            | `/_synapse/admin/v1/application_services`                   | 应用服务列表 / 注册应用服务 |
-| GET/PUT/DELETE      | `/_synapse/admin/v1/application_services/{service_id}`      | 查询 / 更新 / 删除应用服务  |
-| POST                | `/_synapse/admin/v1/application_services/{service_id}/ping` | Ping 应用服务               |
+| 方法                | 路径                                                    | 说明                        |
+| ------------------- | ------------------------------------------------------- | --------------------------- |
+| POST/DELETE         | `/_synapse/admin/v1/users/{user_id}/shadow_ban`         | 影子封禁 / 解封             |
+| GET/PUT/DELETE      | `/_synapse/admin/v1/users/{user_id}/rate_limit`         | 用户限速                    |
+| GET/POST/DELETE     | `/_synapse/admin/v1/users/{user_id}/override_ratelimit` | 覆盖限速                    |
+| POST/GET/PUT/DELETE | `/_synapse/admin/v1/notifications...`                   | 系统通知 CRUD               |
+| POST                | `/_synapse/admin/v1/send_server_notice`                 | 发送 server notice          |
+| GET                 | `/_synapse/admin/v1/server_notices`                     | notice 列表                 |
+| GET/PUT             | `/_synapse/admin/v1/users/{user_id}/notification`       | 用户通知设置                |
+| GET/DELETE          | `/_synapse/admin/v1/users/{user_id}/pushers...`         | 管理用户 pushers            |
+| GET/DELETE          | `/_synapse/admin/v1/media...`                           | 管理媒体与用户媒体          |
+| GET                 | `/_synapse/admin/info`                                  | 管理端信息                  |
+| GET                 | `/_synapse/admin/v1/server_version`                     | 服务器版本                  |
+| POST                | `/_synapse/admin/v1/purge_media_cache`                  | 清理媒体缓存                |
+| POST                | `/_synapse/admin/v1/restart`                            | 重启                        |
+| GET                 | `/_synapse/admin/v1/statistics`                         | 服务器统计                  |
+| GET                 | `/_synapse/admin/v1/status`                             | 服务器状态                  |
+| GET                 | `/_synapse/admin/v1/whois/{user_id}`                    | whois                       |
+| GET                 | `/_synapse/admin/v1/health`                             | 健康检查                    |
+| GET                 | `/_synapse/admin/v1/config`                             | 配置                        |
+| GET                 | `/_synapse/admin/v1/experimental_features`              | 实验特性                    |
+| GET/PUT             | `/_synapse/admin/v1/saml/config`                        | 读取/更新 SAML 配置         |
+| GET                 | `/_synapse/admin/v1/saml/mappings`                      | SAML 用户映射列表           |
+| GET/PUT/DELETE      | `/_synapse/admin/v1/saml/mapping/{name_id}`             | 单个 SAML 映射管理          |
+| POST                | `/_synapse/admin/v1/saml/logout`                        | 发起 SAML 登出              |
+| GET/POST            | `/_synapse/admin/v1/appservices`                        | 应用服务列表 / 注册应用服务 |
+| GET/PUT/DELETE      | `/_synapse/admin/v1/appservices/{service_id}`           | 查询 / 更新 / 删除应用服务  |
+| POST                | `/_synapse/admin/v1/appservices/{service_id}/ping`      | Ping 应用服务               |
 
 ## 令牌、联邦、审计、报表、保留策略、管理员注册
 
@@ -127,8 +126,8 @@ last_reviewed: 2026-05-11
 | GET/POST        | `/_synapse/admin/v1/audit/events`                        | 审计事件列表/记录  |
 | GET             | `/_synapse/admin/v1/audit/events/{event_id}`             | 审计详情           |
 | GET             | `/_synapse/admin/v1/federation/blacklist`                | 获取联邦黑名单     |
-| POST            | `/_synapse/admin/v1/federation/blacklist/add`            | 添加到联邦黑名单   |
-| POST            | `/_synapse/admin/v1/federation/blacklist/remove`         | 从联邦黑名单移除   |
+| POST            | `/_synapse/admin/v1/federation/blacklist`                | 添加到联邦黑名单   |
+| DELETE          | `/_synapse/admin/v1/federation/blacklist/{server_name}`  | 从联邦黑名单移除   |
 | GET             | `/_synapse/admin/v1/federation/destinations`             | 获取联邦目的地列表 |
 | GET             | `/_synapse/admin/v1/federation/status/{server_name}`     | 获取联邦服务器状态 |
 | POST            | `/_synapse/admin/v1/federation/disconnect/{server_name}` | 断开联邦连接       |
@@ -147,7 +146,6 @@ last_reviewed: 2026-05-11
 | GET  | `/_synapse/admin/v1/users/{user_id}/admin`    | 检查用户是否是管理员               |
 | PUT  | `/_synapse/admin/v1/users/{user_id}/admin`    | 设置用户管理员状态                 |
 | GET  | `/_synapse/admin/v1/account_status/{user_id}` | 获取用户账户状态（锁定/暂停/验证） |
-| GET  | `/_synapse/admin/v1/login/failures`           | 获取登录失败记录                   |
 | POST | `/_synapse/admin/v1/deactivate/{user_id}`     | 停用用户（兼容路由）               |
 
 ## 常见状态码

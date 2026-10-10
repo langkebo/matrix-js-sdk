@@ -37,11 +37,7 @@ import type {
     AdminModuleLog,
     AdminAccountValidityInfo,
     AdminPasswordAuthProvider,
-    AdminPresenceRoute,
-    AdminPresenceRoutePage,
     AdminMediaCallback,
-    AdminRateLimitCallback,
-    AdminRateLimitCallbackPage,
     AdminAccountDataCallback,
     AdminInviteAllowlist,
     AdminInviteBlocklist,
@@ -618,16 +614,6 @@ export class AdminConfigManager extends AdminBaseManager {
         return await this.adminRequest(Method.Post, "/password_auth_providers", {}, payload);
     }
 
-    // ===== Presence Routes =====
-
-    async listPresenceRoutes(): Promise<AdminPresenceRoutePage> {
-        return await this.adminRequest(Method.Get, "/presence_routes");
-    }
-
-    async createPresenceRoute(payload: DynamicConfig): Promise<AdminPresenceRoute> {
-        return await this.adminRequest(Method.Post, "/presence_routes", {}, payload);
-    }
-
     // ===== Media Callbacks =====
 
     /**
@@ -671,16 +657,6 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async createMediaCallback(payload: CreateMediaCallbackRequest): Promise<AdminMediaCallback> {
         return await this.adminRequest(Method.Post, "/media_callbacks", {}, payload);
-    }
-
-    // ===== Rate Limit Callbacks =====
-
-    async listRateLimitCallbacks(): Promise<AdminRateLimitCallbackPage> {
-        return await this.adminRequest(Method.Get, "/rate_limit_callbacks");
-    }
-
-    async createRateLimitCallback(payload: DynamicConfig): Promise<AdminRateLimitCallback> {
-        return await this.adminRequest(Method.Post, "/rate_limit_callbacks", {}, payload);
     }
 
     // ===== Account Data Callbacks =====

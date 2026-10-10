@@ -12,27 +12,25 @@ last_reviewed: 2026-05-03
 
 ## 真实后端路由
 
-| 方法 | 路径                                    | 说明              | 认证 |
-| ---- | --------------------------------------- | ----------------- | ---- |
-| GET  | `/.well-known/openid-configuration`     | OIDC discovery    | 公开 |
-| GET  | `/.well-known/jwks.json`                | JWKS 公钥集合     | 公开 |
-| GET  | `/_matrix/client/r0/login/sso/redirect` | r0 SSO 重定向     | 公开 |
-| GET  | `/_matrix/client/r0/login/sso/userinfo` | r0 SSO 用户信息   | 用户 |
-| GET  | `/_matrix/client/r0/oidc/authorize`     | r0 授权端点       | 公开 |
-| GET  | `/_matrix/client/r0/oidc/callback`      | r0 回调端点       | 公开 |
-| POST | `/_matrix/client/r0/oidc/logout`        | r0 登出端点       | 用户 |
-| POST | `/_matrix/client/r0/oidc/register`      | r0 动态客户端注册 | 公开 |
-| POST | `/_matrix/client/r0/oidc/token`         | r0 令牌端点       | 公开 |
-| GET  | `/_matrix/client/r0/oidc/userinfo`      | r0 userinfo       | 用户 |
-| GET  | `/_matrix/client/v3/login/sso/redirect` | v3 SSO 重定向     | 公开 |
-| GET  | `/_matrix/client/v3/login/sso/userinfo` | v3 SSO 用户信息   | 用户 |
-| GET  | `/_matrix/client/v3/oidc/authorize`     | v3 授权端点       | 公开 |
-| GET  | `/_matrix/client/v3/oidc/callback`      | v3 回调端点       | 公开 |
-| POST | `/_matrix/client/v3/oidc/login`         | 内置 OIDC 登录    | 公开 |
-| POST | `/_matrix/client/v3/oidc/logout`        | v3 登出端点       | 用户 |
-| POST | `/_matrix/client/v3/oidc/register`      | v3 动态客户端注册 | 公开 |
-| POST | `/_matrix/client/v3/oidc/token`         | v3 令牌端点       | 公开 |
-| GET  | `/_matrix/client/v3/oidc/userinfo`      | v3 userinfo       | 用户 |
+| 方法 | 路径                                    | 说明            | 认证 |
+| ---- | --------------------------------------- | --------------- | ---- |
+| GET  | `/.well-known/openid-configuration`     | OIDC discovery  | 公开 |
+| GET  | `/.well-known/jwks.json`                | JWKS 公钥集合   | 公开 |
+| GET  | `/_matrix/client/v3/login/sso/redirect` | r0 SSO 重定向   | 公开 |
+| GET  | `/_matrix/client/v3/login/sso/userinfo` | r0 SSO 用户信息 | 用户 |
+| GET  | `/_matrix/client/v3/oidc/authorize`     | r0 授权端点     | 公开 |
+| GET  | `/_matrix/client/v3/oidc/callback`      | r0 回调端点     | 公开 |
+| POST | `/_matrix/client/v3/oidc/logout`        | r0 登出端点     | 用户 |
+| POST | `/_matrix/client/v3/oidc/token`         | r0 令牌端点     | 公开 |
+| GET  | `/_matrix/client/v3/oidc/userinfo`      | r0 userinfo     | 用户 |
+| GET  | `/_matrix/client/v3/login/sso/redirect` | v3 SSO 重定向   | 公开 |
+| GET  | `/_matrix/client/v3/login/sso/userinfo` | v3 SSO 用户信息 | 用户 |
+| GET  | `/_matrix/client/v3/oidc/authorize`     | v3 授权端点     | 公开 |
+| GET  | `/_matrix/client/v3/oidc/callback`      | v3 回调端点     | 公开 |
+| POST | `/_matrix/client/v3/oidc/login`         | 内置 OIDC 登录  | 公开 |
+| POST | `/_matrix/client/v3/oidc/logout`        | v3 登出端点     | 用户 |
+| POST | `/_matrix/client/v3/oidc/token`         | v3 令牌端点     | 公开 |
+| GET  | `/_matrix/client/v3/oidc/userinfo`      | v3 userinfo     | 用户 |
 
 ## SDK 对齐状态
 
@@ -42,7 +40,6 @@ last_reviewed: 2026-05-03
 | `GET /.well-known/jwks.json`            | `OidcManager` | `getJwks()`                  | ✅            |
 | `GET /v3/oidc/authorize`                | `OidcManager` | `authorize()`                | ✅            |
 | `GET /v3/oidc/callback`                 | `OidcManager` | `buildCallbackUrl()`         | ✅ URL helper |
-| `POST /v3/oidc/register`                | `OidcManager` | `registerClient()`           | ✅            |
 | `POST /v3/oidc/token`                   | `OidcManager` | `token()` / `refreshToken()` | ✅            |
 | `GET /v3/oidc/userinfo`                 | `OidcManager` | `getUserInfo()`              | ✅            |
 | `POST /v3/oidc/logout`                  | `OidcManager` | `logout()`                   | ✅            |

@@ -73,7 +73,7 @@ last_reviewed: 2026-05-11
 
 | 方法 | 路径                                                       | 说明                 |
 | ---- | ---------------------------------------------------------- | -------------------- |
-| POST | `/_matrix/client/r0/createRoom`                            | 创建房间             |
+| POST | `/_matrix/client/v3/createRoom`                            | 创建房间             |
 | POST | `/_matrix/client/r0/rooms/{room_id}/get_membership_events` | 获取 membership 事件 |
 
 ## v1 专用

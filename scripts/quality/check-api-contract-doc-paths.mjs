@@ -37,6 +37,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { writeJsonFormatted } from "./lib/write-json.mjs";
+
 const projectRoot = process.cwd();
 const DOCS_DIR = path.join(projectRoot, "docs", "api-contract");
 const MANIFEST = path.join(DOCS_DIR, "generated", "route-manifest.all.json");
@@ -44,6 +46,19 @@ const BASELINE = path.join(projectRoot, "scripts", "quality", "api-contract-doc-
 
 const SKIP_PAGES = new Set(["README.md", "CHANGELOG.md", "AUDIT_INDEX.md", "CONTRACT_INDEX.md"]);
 const PATH_RE = /`(\/(?:_matrix|_synapse)[^`\s|]*)`/g;
+/**
+ * 「纯前缀提及」不是端点引用，不参与判定：
+ * 表格里的 `/_matrix/client/v3` / `/_matrix/client/r0` / `/_matrix/vendor/v1` /
+ * `/_synapse/admin` 这类只是**命名空间**（列标题、模块归属说明）。
+ * 注意不能只看"ledger 里是否有后代" —— r0 家族已被整族删除，`/_matrix/client/r0`
+ * 恰恰没有后代，用后代判断反而会把它算成陈旧端点（2026-10-10 实测 32+8 处）。
+ */
+const BARE_PREFIX_RE =
+    /^\/(?:_matrix\/(?:client(?:\/(?:r0|v1|v3|unstable[^/]*|unstable\/[^/]+))?|vendor\/v1|federation\/v[12]|app\/v1|media\/(?:r0|r1|v1|v3))|_synapse\/(?:admin(?:\/v1)?|room_summary\/v1))$/;
+
+function isBarePrefix(p) {
+    return BARE_PREFIX_RE.test(p.replace(/\/$/, ""));
+}
 
 function ledgerPaths() {
     if (!fs.existsSync(MANIFEST)) {
@@ -77,7 +92,8 @@ function scan() {
             for (const m of line.matchAll(PATH_RE)) {
                 const p = m[1];
                 // 通配/模板路径不参与逐字比对
-                if (p.includes("{") || p.includes("*")) continue;
+                if (p.includes("{") || p.includes("*") || p.includes("...")) continue;
+                if (isBarePrefix(p)) continue;
                 if (paths.has(p) || paths.has(p.replace(/\/$/, ""))) continue;
                 (byPage[name] ??= []).push({ line: i + 1, path: p });
                 total += 1;
@@ -102,7 +118,7 @@ function main() {
             total,
             byPage: Object.fromEntries(pages.map((p) => [p, byPage[p].length])),
         };
-        fs.writeFileSync(BASELINE, `${JSON.stringify(baseline, null, 4)}\n`);
+        writeJsonFormatted(BASELINE, baseline);
         console.log(`[api-contract-doc-paths] 已写入上限：total=${total}，页面 ${pages.length} 个`);
         return 0;
     }

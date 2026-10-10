@@ -38,7 +38,6 @@ import type {
     SystemNotificationPage,
     AdminPurgeHistoryResult,
     AdminShutdownRoomResult,
-    AdminBackupPage,
     AdminExperimentalFeatures,
     AdminRegisterResult,
     AdminServerConfig,
@@ -416,33 +415,6 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async restartServer(payload?: RestartServerPayload): Promise<RestartServerResponse> {
         return await this.adminRequest(Method.Post, "/restart", {}, payload ?? {});
-    }
-
-    /**
-     * 获取备份列表
-     *
-     * @param options - 查询选项
-     * @param options.limit - 返回数量限制（1-500）
-     * @param options.offset - 偏移量（>=0）
-     * @returns 备份分页结果
-     *
-     * @throws {ValidationError} 如果 limit 或 offset 参数无效
-     */
-    async listBackups(options?: { limit?: number; offset?: number }): Promise<AdminBackupPage> {
-        if (options?.limit !== undefined) {
-            if (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 500) {
-                throw new ValidationError("limit must be an integer between 1 and 500");
-            }
-        }
-        if (options?.offset !== undefined) {
-            if (!Number.isInteger(options.offset) || options.offset < 0) {
-                throw new ValidationError("offset must be a non-negative integer");
-            }
-        }
-        const query: Record<string, string> = {};
-        if (options?.limit !== undefined) query.limit = String(options.limit);
-        if (options?.offset !== undefined) query.offset = String(options.offset);
-        return await this.adminRequest(Method.Get, "/backups", query);
     }
 
     /**

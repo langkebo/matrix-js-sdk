@@ -34,11 +34,11 @@ last_reviewed: 2026-05-11
 
 | 方法   | 路径                                            | 说明                         | SDK 主入口                   |
 | ------ | ----------------------------------------------- | ---------------------------- | ---------------------------- |
-| `POST` | `/_matrix/client/r0/create_dm`                  | 创建私聊房间兼容前缀         | SDK 默认走 `v3`              |
-| `POST` | `/_matrix/client/v3/create_dm`                  | 创建私聊房间                 | `createDmRoom()`             |
-| `GET`  | `/_matrix/client/r0/direct`                     | 获取 `m.direct` 映射兼容前缀 | SDK 默认走 `v3`              |
+| `POST` | `/_matrix/vendor/v1/create_dm`                  | 创建私聊房间兼容前缀         | SDK 默认走 `v3`              |
+| `POST` | `/_matrix/vendor/v1/create_dm`                  | 创建私聊房间                 | `createDmRoom()`             |
+| `GET`  | `/_matrix/vendor/v1/direct`                     | 获取 `m.direct` 映射兼容前缀 | SDK 默认走 `v3`              |
 | `PUT`  | `/_matrix/client/r0/direct/{room_id}`           | 更新 direct map 兼容前缀     | SDK 默认走 `v3`              |
-| `GET`  | `/_matrix/client/v3/direct`                     | 获取当前用户 direct map      | `getDirectRoomsFromServer()` |
+| `GET`  | `/_matrix/vendor/v1/direct`                     | 获取当前用户 direct map      | `getDirectRoomsFromServer()` |
 | `PUT`  | `/_matrix/client/v3/direct/{room_id}`           | 更新某房间的 direct map      | `updateDirectRoom()`         |
 | `GET`  | `/_matrix/client/v3/rooms/{room_id}/dm`         | 判断房间是否为 DM            | `isDmRoomFromServer()`       |
 | `GET`  | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取 DM 对端资料             | `getDmPartnerFromServer()`   |

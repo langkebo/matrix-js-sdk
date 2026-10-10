@@ -56,18 +56,18 @@ last_reviewed: 2026-05-03
 | POST | `/_matrix/federation/v1/get_missing_events/{room_id}`             | 获取缺失事件            |
 | GET  | `/_matrix/federation/v1/timestamp_to_event/{room_id}`             | 时间戳转事件            |
 | GET  | `/_matrix/federation/v1/get_event_auth/{room_id}/{event_id}`      | 事件鉴权链              |
-| GET  | `/_matrix/federation/v1/query/auth`                               | query auth              |
-| GET  | `/_matrix/federation/v1/event_auth`                               | event auth              |
+| GET  | `/_synapse/federation/v1/query/auth`                              | query auth              |
+| GET  | `/_matrix/federation/v1/get_event_auth/{room_id}/{event_id}`      | event auth              |
 | GET  | `/_matrix/federation/v1/state/{room_id}`                          | 房间状态                |
 | GET  | `/_matrix/federation/v1/event/{event_id}`                         | 事件详情                |
 | GET  | `/_matrix/federation/v1/state_ids/{room_id}`                      | 状态 ID 列表            |
 | GET  | `/_matrix/federation/v1/query/directory/room/{room_id}`           | 目录查询                |
 | GET  | `/_matrix/federation/v1/query/profile/{user_id}`                  | profile 查询            |
 | GET  | `/_matrix/federation/v1/backfill/{room_id}`                       | backfill                |
-| POST | `/_matrix/federation/v1/keys/claim`                               | claim keys              |
-| POST | `/_matrix/federation/v1/keys/query`                               | query keys              |
-| POST | `/_matrix/federation/v1/keys/upload`                              | upload keys             |
-| POST | `/_matrix/federation/v2/key/clone`                                | key clone               |
+| POST | `/_matrix/federation/v1/user/keys/claim`                          | claim keys              |
+| POST | `/_matrix/federation/v1/user/keys/query`                          | query keys              |
+| POST | `/_matrix/federation/v1/user/keys/upload`                         | upload keys             |
+| POST | `/_synapse/federation/v2/key/clone`                               | key clone               |
 | POST | `/_matrix/federation/v2/user/keys/query`                          | user keys query         |
 | POST | `/_matrix/federation/v1/publicRooms`                              | 联邦公开房间查询        |
 | GET  | `/_matrix/federation/v1/query/directory`                          | 目录查询                |

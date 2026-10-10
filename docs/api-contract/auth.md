@@ -54,57 +54,57 @@ last_reviewed: 2026-05-03
 
 | 方法 | 路径                                             | 版本    | 主要请求参数                                     | 主要响应字段                                          | 常见状态码                    |
 | ---- | ------------------------------------------------ | ------- | ------------------------------------------------ | ----------------------------------------------------- | ----------------------------- |
-| GET  | `/_matrix/client/r0/register`                    | r0      | 无                                               | 注册 flow 列表                                        | `200`                         |
-| POST | `/_matrix/client/r0/register`                    | r0      | `username` `password` `auth` `device_id`         | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401` `409` `429` |
+| GET  | `/_matrix/client/v3/register`                    | r0      | 无                                               | 注册 flow 列表                                        | `200`                         |
+| POST | `/_matrix/client/v3/register`                    | r0      | `username` `password` `auth` `device_id`         | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401` `409` `429` |
 | GET  | `/_matrix/client/v3/register`                    | v3      | 无                                               | 注册 flow 列表                                        | `200`                         |
 | POST | `/_matrix/client/v3/register`                    | v3      | 同上                                             | 同上                                                  | `200` `400` `401` `409` `429` |
-| GET  | `/_matrix/client/r0/register/available`          | r0      | `username`                                       | `available`                                           | `200` `400`                   |
+| GET  | `/_matrix/client/v3/register/available`          | r0      | `username`                                       | `available`                                           | `200` `400`                   |
 | GET  | `/_matrix/client/v3/register/available`          | v3      | `username`                                       | `available`                                           | `200` `400`                   |
-| POST | `/_matrix/client/r0/register/email/requestToken` | r0      | 邮箱验证参数                                     | token/会话信息                                        | `200` `400`                   |
+| POST | `/_matrix/client/v3/register/email/requestToken` | r0      | 邮箱验证参数                                     | token/会话信息                                        | `200` `400`                   |
 | POST | `/_matrix/client/v3/register/email/requestToken` | v3      | 邮箱验证参数                                     | token/会话信息                                        | `200` `400`                   |
-| POST | `/_matrix/client/r0/register/email/submitToken`  | r0      | token 提交参数                                   | 验证结果                                              | `200` `400`                   |
+| POST | `/_matrix/client/v3/register/email/submitToken`  | r0      | token 提交参数                                   | 验证结果                                              | `200` `400`                   |
 | POST | `/_matrix/client/v3/register/email/submitToken`  | v3      | token 提交参数                                   | 验证结果                                              | `200` `400`                   |
-| GET  | `/_matrix/client/r0/login`                       | r0      | 无                                               | 登录 flow 列表                                        | `200`                         |
-| POST | `/_matrix/client/r0/login`                       | r0      | `type` `identifier` `password/token` `device_id` | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401` `403` `429` |
+| GET  | `/_matrix/client/v3/login`                       | r0      | 无                                               | 登录 flow 列表                                        | `200`                         |
+| POST | `/_matrix/client/v3/login`                       | r0      | `type` `identifier` `password/token` `device_id` | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401` `403` `429` |
 | GET  | `/_matrix/client/v3/login`                       | v3      | 无                                               | 登录 flow 列表                                        | `200`                         |
 | POST | `/_matrix/client/v3/login`                       | v3      | 同上                                             | 同上                                                  | `200` `400` `401` `403` `429` |
-| POST | `/_matrix/client/r0/logout`                      | r0      | 无                                               | 空对象                                                | `200` `401`                   |
+| POST | `/_matrix/client/v3/logout`                      | r0      | 无                                               | 空对象                                                | `200` `401`                   |
 | POST | `/_matrix/client/v3/logout`                      | v3      | 无                                               | 空对象                                                | `200` `401`                   |
-| POST | `/_matrix/client/r0/logout/all`                  | r0      | 无                                               | 空对象                                                | `200` `401`                   |
+| POST | `/_matrix/client/v3/logout/all`                  | r0      | 无                                               | 空对象                                                | `200` `401`                   |
 | POST | `/_matrix/client/v3/logout/all`                  | v3      | 无                                               | 空对象                                                | `200` `401`                   |
-| POST | `/_matrix/client/r0/refresh`                     | r0      | `refresh_token`                                  | `access_token` `refresh_token?` `expires_in_ms?`      | `200` `400` `401`             |
+| POST | `/_matrix/client/v3/refresh`                     | r0      | `refresh_token`                                  | `access_token` `refresh_token?` `expires_in_ms?`      | `200` `400` `401`             |
 | POST | `/_matrix/client/v3/refresh`                     | v3      | `refresh_token`                                  | 同上                                                  | `200` `400` `401`             |
-| GET  | `/_matrix/client/r0/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 跳转到 IdP 或返回重定向信息                           | `200` `302` `400`             |
-| POST | `/_matrix/client/r0/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 登录重定向或认证结果                                  | `200` `400`                   |
-| GET  | `/_matrix/client/r0/login/saml/callback`         | r0 条件 | `SAMLResponse?` `RelayState?`                    | 登录结果                                              | `200` `400` `401`             |
-| POST | `/_matrix/client/r0/login/saml/callback`         | r0 条件 | `SAMLResponse` `RelayState?`                     | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401`             |
-| GET  | `/_matrix/client/r0/logout/saml`                 | r0 条件 | 无                                               | 登出跳转或结果                                        | `200` `302`                   |
-| GET  | `/_matrix/client/r0/logout/saml/callback`        | r0 条件 | `SAMLResponse` `RelayState?`                     | 登出回调结果                                          | `200` `400`                   |
-| GET  | `/_matrix/client/r0/saml/metadata`               | r0 条件 | 无                                               | `metadata`                                            | `200`                         |
-| GET  | `/_matrix/client/r0/saml/sp_metadata`            | r0 条件 | 无                                               | `metadata`                                            | `200`                         |
+| GET  | `/_matrix/client/v3/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 跳转到 IdP 或返回重定向信息                           | `200` `302` `400`             |
+| POST | `/_matrix/client/v3/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 登录重定向或认证结果                                  | `200` `400`                   |
+| GET  | `/_matrix/client/v3/login/saml/callback`         | r0 条件 | `SAMLResponse?` `RelayState?`                    | 登录结果                                              | `200` `400` `401`             |
+| POST | `/_matrix/client/v3/login/saml/callback`         | r0 条件 | `SAMLResponse` `RelayState?`                     | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401`             |
+| GET  | `/_matrix/client/v3/logout/saml`                 | r0 条件 | 无                                               | 登出跳转或结果                                        | `200` `302`                   |
+| GET  | `/_matrix/client/v3/logout/saml/callback`        | r0 条件 | `SAMLResponse` `RelayState?`                     | 登出回调结果                                          | `200` `400`                   |
+| GET  | `/_matrix/client/v3/saml/metadata`               | r0 条件 | 无                                               | `metadata`                                            | `200`                         |
+| GET  | `/_matrix/client/v3/saml/sp_metadata`            | r0 条件 | 无                                               | `metadata`                                            | `200`                         |
 
 ## 二维码登录端点
 
-| 方法 | 路径                                                  | 认证           | 说明                 |
-| ---- | ----------------------------------------------------- | -------------- | -------------------- |
-| GET  | `/_matrix/client/v1/login/get_qr_code`                | 公开           | 获取二维码内容       |
-| POST | `/_matrix/client/v1/login/qr/start`                   | 公开           | 启动二维码登录事务   |
-| POST | `/_matrix/client/v1/login/qr/confirm`                 | 用户态或事务态 | 确认二维码登录       |
-| GET  | `/_matrix/client/v1/login/qr/{transaction_id}/status` | 公开           | 查询二维码登录状态   |
-| POST | `/_matrix/client/v1/login/qr/invalidate`              | 公开           | 使二维码登录事务失效 |
+| 方法 | 路径                                | 认证 | 说明                                       |
+| ---- | ----------------------------------- | ---- | ------------------------------------------ |
+| POST | `/_matrix/client/v1/login/qr_token` | 用户 | 生成短时登录令牌，经安全通道交给新设备兑换 |
+
+> ⚠️ 后端只实现 `POST /login/qr_token`（`assembly.rs`）。MSC4108 的
+> `login/qr/{start,confirm,invalidate}` 与 `login/get_qr_code` **本后端未注册**（2026-10-10 实测
+> ledger 零命中），故不再列出；SDK 侧对应实现见 `rendezvous/MSC4108SignInWithQR.ts`。
 
 ## 账户端点
 
 | 方法     | 路径                                                       | 版本     | 主要请求参数      | 主要响应字段                             | 认证            |
 | -------- | ---------------------------------------------------------- | -------- | ----------------- | ---------------------------------------- | --------------- |
 | GET      | `/_matrix/client/v1/account/whoami`                        | v1       | 无                | `user_id` `device_id?` `is_guest?`       | 用户            |
-| GET      | `/_matrix/client/r0/account/whoami`                        | r0       | 无                | 同上                                     | 用户            |
+| GET      | `/_matrix/client/v3/account/whoami`                        | r0       | 无                | 同上                                     | 用户            |
 | GET      | `/_matrix/client/v3/account/whoami`                        | v3       | 无                | 同上                                     | 用户            |
 | POST     | `/_matrix/client/v1/account/password`                      | v1       | 密码修改 UIA 请求 | 空对象 / UIA 流程                        | 用户            |
-| POST     | `/_matrix/client/r0/account/password`                      | r0       | 同上              | 同上                                     | 用户            |
+| POST     | `/_matrix/client/v3/account/password`                      | r0       | 同上              | 同上                                     | 用户            |
 | POST     | `/_matrix/client/v3/account/password`                      | v3       | 同上              | 同上                                     | 用户            |
 | POST     | `/_matrix/client/v1/account/deactivate`                    | v1       | 注销请求体        | 空对象                                   | 用户            |
-| POST     | `/_matrix/client/r0/account/deactivate`                    | r0       | 同上              | 空对象                                   | 用户            |
+| POST     | `/_matrix/client/v3/account/deactivate`                    | r0       | 同上              | 空对象                                   | 用户            |
 | POST     | `/_matrix/client/v3/account/deactivate`                    | v3       | 同上              | 空对象                                   | 用户            |
 | GET/POST | `/_matrix/client/{v1,r0,v3}/account/3pid`                  | v1/r0/v3 | 3PID 查询/新增    | 3PID 列表 / 空对象                       | 用户            |
 | POST     | `/_matrix/client/{v1,r0,v3}/account/3pid/add`              | v1/r0/v3 | 3PID 参数         | 空对象                                   | 用户            |
@@ -122,9 +122,9 @@ last_reviewed: 2026-05-03
 
 | 方法           | 路径                                                             | 版本    | 说明                                    | 认证            |
 | -------------- | ---------------------------------------------------------------- | ------- | --------------------------------------- | --------------- |
-| POST           | `/_matrix/client/r0/user_directory/search`                       | r0      | 搜索用户目录                            | 用户            |
+| POST           | `/_matrix/client/v3/user_directory/search`                       | r0      | 搜索用户目录                            | 用户            |
 | POST           | `/_matrix/client/v3/user_directory/search`                       | v3      | 搜索用户目录                            | 用户            |
-| POST           | `/_matrix/client/r0/user_directory/list`                         | r0      | 列举用户目录                            | 用户            |
+| POST           | `/_matrix/client/v3/user_directory/list`                         | r0      | 列举用户目录                            | 用户            |
 | POST           | `/_matrix/client/v3/user_directory/list`                         | v3      | 列举用户目录                            | 用户            |
 | GET            | `/_matrix/client/r0/user_directory/profiles/{user_id}`           | r0      | 获取目录资料                            | 公开            |
 | GET            | `/_matrix/client/v3/user_directory/profiles/{user_id}`           | v3      | 获取目录资料                            | 公开            |
@@ -134,7 +134,7 @@ last_reviewed: 2026-05-03
 | GET/PUT/DELETE | `/_matrix/client/v3/directory/room/{room_alias}`                 | v3      | 解析/设置/删除别名                      | 用户            |
 | GET            | `/_matrix/client/r0/directory/room/{room_id}/alias`              | r0 专用 | 获取房间别名列表                        | 用户            |
 | PUT/DELETE     | `/_matrix/client/r0/directory/room/{room_id}/alias/{room_alias}` | r0 专用 | 维护房间别名                            | 用户            |
-| GET/POST       | `/_matrix/client/r0/publicRooms`                                 | r0      | 获取/查询公开房间                       | 公开            |
+| GET/POST       | `/_matrix/client/v3/publicRooms`                                 | r0      | 获取/查询公开房间                       | 公开            |
 | GET/POST       | `/_matrix/client/v3/publicRooms`                                 | v3      | 获取/查询公开房间                       | 公开            |
 | GET            | `/_matrix/client/v1/user/{user_id}/appservice`                   | v1      | 查询用户关联的应用服务信息              | 用户本人/管理员 |
 | GET            | `/_matrix/app/v1/users/{user_id}`                                | app v1  | 依据 `user_id` 检查应用服务用户是否存在 | 应用服务        |
