@@ -18,28 +18,13 @@
     "crossLineRef": "release/contract-entrypoint",
     "gates": {
         "scripts/quality/check-admin-response-contract.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。",
-        "scripts/quality/check-api-contract-doc-paths.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-audit-doc-integrity.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-coverage-critical-files.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-cross-line-gate-parity.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。（本条是**本门禁自己**：它在 develop 落地后立刻出现于此 —— 说明台账是对称的，不给自己开后门。）",
-        "scripts/quality/check-docs-counts.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-docs-examples.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-gate-reachability.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-git-hooks.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-msc-changes.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-public-api-docs.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-repo-coverage.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
         "scripts/quality/check-route-set-parity.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。",
         "scripts/quality/check-url-constructors.mjs": "F2/F3 待移植（**与 verify-path-contract 同批**）：本门禁 `import { loadBackendRoutes, matchAgainstLedger, normalizePath } from \"./verify-path-contract.mjs\"`，只读仓内镜像 `docs/api-contract/generated/route-manifest.all.json`（不需后端兄弟仓），但**必须与 `verify-path-contract.mjs`（F3 高依赖组）同批移植到 release 线**，并带上其 `url-constructor-ledger.json` + `.d.mts` + spec（批次 K2）。",
-        "scripts/quality/check-waiver-expiry.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
         "scripts/quality/check-wire-format.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。",
-        "scripts/quality/find-lowest-coverage-files.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/find-lowest-coverage-modules.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/run-granular-coverage-gates.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
         "scripts/quality/verify-path-contract.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。"
     },
     "support": {
-        "count": 57,
+        "count": 30,
         "note": "非门禁差集（lib/ 支撑 + .d.mts 声明 + 台账/基线）的条数。只做棘轮（只降不升），不逐条登记 —— 它们的意义是『上面那些门禁跑不跑得起来』。"
     }
 }
