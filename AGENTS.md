@@ -230,3 +230,28 @@ Test config lives in `spec/integ/real-backend/TestConfig.ts`. See `docs/SDK真�
 - Integration tests use mock servers (`matrix-mock-request`).
 - Real backend tests verify against actual synapse-rust with database validation.
 - Tests should verify both API responses AND database state for critical operations.
+
+## Formatting Discipline (added 2026-10-10)
+
+**Long audit documents under `artifacts/**` are subject to prettier too.\*\*
+
+`.lintstagedrc` already routes every `*.md` (which includes `artifacts/**/*.md`) through
+`prettier --write`, so a badly formatted committed doc **will** be rewritten by the hook.
+Run `prettier --write <file>` yourself first — reviewing your own change is far easier than
+reverse-engineering a reflow the hook injected into your staging area.
+
+Recurring traps (each one turned `pnpm lint` red at least once):
+
+- **Hand-aligning CJK table columns.** prettier recomputes column widths; your alignment is undone
+  (and the diff becomes unreadable).
+- **Writing continuation lines that start with `+ ` or `- `.** prettier re-parses them as list items
+  and reflows the whole block.
+- **Landing a ledger / baseline with raw `JSON.stringify`.** These must go through
+  `scripts/quality/lib/write-json.mjs` → `writeJsonFormatted()`, which pipes the payload through the
+  prettier CLI with `--stdin-filepath` so the on-disk artifact passes `prettier --check`
+  (statically guarded by `spec/unit/ledger-json-format.spec.ts`).
+
+> Why this is called out explicitly: the main audit document
+> (`artifacts/remaining-issues-and-optimization-plan-2026-10-08.md`, 2000+ lines) was the **sole**
+> recurring source of prettier reds for several rounds — it was maintained outside prettier's rules
+> until G1 closed it. Any new long-form doc inherits the same failure mode.
