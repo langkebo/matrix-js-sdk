@@ -4,7 +4,7 @@
  *
  * Module:        Auth / Account / Discovery 契约
  * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
- * Entries:       110 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       104 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `auth` module (mirrored from the backend contract). */
@@ -18,7 +18,6 @@ export const AUTH_ROUTES = [
     { method: "DELETE", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device" },
     { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device" },
     { method: "PUT", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device" },
-    { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events" },
     { method: "GET", path: "/_matrix/client/unstable/org.matrix.msc4143/rtc/transports" },
     { method: "GET", path: "/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}" },
     { method: "DELETE", path: "/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}" },
@@ -38,11 +37,6 @@ export const AUTH_ROUTES = [
     { method: "POST", path: "/_matrix/client/v1/account/password/email/submitToken" },
     { method: "GET", path: "/_matrix/client/v1/account/whoami" },
     { method: "GET", path: "/_matrix/client/v1/config/client" },
-    { method: "GET", path: "/_matrix/client/v1/login/get_qr_code" },
-    { method: "POST", path: "/_matrix/client/v1/login/qr/confirm" },
-    { method: "POST", path: "/_matrix/client/v1/login/qr/invalidate" },
-    { method: "POST", path: "/_matrix/client/v1/login/qr/start" },
-    { method: "GET", path: "/_matrix/client/v1/login/qr/{transaction_id}/status" },
     { method: "GET", path: "/_matrix/client/v1/media/config" },
     { method: "GET", path: "/_matrix/client/v1/profile/{user_id}" },
     { method: "GET", path: "/_matrix/client/v1/profile/{user_id}/avatar_url" },

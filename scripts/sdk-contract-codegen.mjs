@@ -1210,6 +1210,35 @@ function render(module, lookups) {
             entries.push(e);
         }
     }
+    // 死条目剪枝（§13.31）：既有条目里「既不在 ledger、也不在 ROUTE_CONTRACT.md」的
+    // (method, path) 是**死条目** —— 它们正是「单调并集残留」的载体（该形态已复发 8 次，
+    // 每次都要人工「删磁盘条目 → 改/删文档 → 重跑 codegen」三步收口）。与下面的 r0 pruning
+    // 同型：直接剔除并逐条打印，让 route-table 镜像现实；依赖这些路径的 manager 会在
+    // `tsc` 阶段报错 —— 那正是「该路径已死」的正确信号，而不是继续被静默保留。
+    {
+        const contractKeys = new Set(contractEntries.map((e) => `${e.method} ${e.path}`));
+        const prunedStale = [];
+        const kept = [];
+        for (const e of entries) {
+            const key = `${e.method} ${e.path}`;
+            if (globalLedgerKeys.has(key) || contractKeys.has(key)) {
+                kept.push(e);
+            } else {
+                prunedStale.push(key);
+            }
+        }
+        if (prunedStale.length > 0) {
+            console.log(
+                `  codegen-prune: ${module.sdkDir} dropped ${prunedStale.length} stale existing entr${
+                    prunedStale.length === 1 ? "y" : "ies"
+                } (neither in ledger nor ROUTE_CONTRACT.md): ${prunedStale.slice(0, 5).join(", ")}${
+                    prunedStale.length > 5 ? " …" : ""
+                }`,
+            );
+        }
+        entries = kept;
+    }
+
     // R0 pruning: if ledger has ZERO client r0 routes, all client r0 routes
     // are dead (backend removed them in B1-3).  Strip them from the merged
     // output so the route-table mirrors reality and the drift gate stops
