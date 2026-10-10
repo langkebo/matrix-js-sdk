@@ -243,21 +243,19 @@ describe("OidcManager", () => {
     // ============ SSO Redirect ============
 
     describe("ssoRedirect", () => {
-        it("should get SSO redirect URL", async () => {
-            transport.respondWith({
-                url: "https://sso.test/redirect",
-            });
+        it("是纯 URL 构造器：不发请求，返回绝对地址（W-05：后端该端点恒 302，不是 JSON）", () => {
+            const result = oidcManager.ssoRedirect("https://app.test/callback");
 
-            const result = await oidcManager.ssoRedirect("https://app.test/callback");
-
-            expect(result).toBe("https://sso.test/redirect");
-            transport.expectCalledWithArgs(
-                "GET",
-                "/login/sso/redirect",
-                { redirectUrl: "https://app.test/callback" },
-                undefined,
-                { prefix: "/_matrix/client/v3" },
+            expect(result).toBe(
+                "https://matrix.test/_matrix/client/v3/login/sso/redirect?redirectUrl=https%3A%2F%2Fapp.test%2Fcallback",
             );
+            // 旧实现走 request() 读 JSON ⇒ 后端恒 302 ⇒ 恒 undefined。现在必须零请求。
+            expect(transport.request).not.toHaveBeenCalled();
+        });
+
+        it("无 redirectUrl 时不拼查询串", () => {
+            expect(oidcManager.ssoRedirect()).toBe("https://matrix.test/_matrix/client/v3/login/sso/redirect");
+            expect(transport.request).not.toHaveBeenCalled();
         });
     });
 

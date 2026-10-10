@@ -360,7 +360,7 @@
             "throwsWithoutTag": 1
         },
         "OidcManager": {
-            "missingJsDoc": 13,
+            "missingJsDoc": 12,
             "missingExample": 1,
             "throwsWithoutTag": 0
         },

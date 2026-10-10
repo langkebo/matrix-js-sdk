@@ -161,6 +161,9 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get CAS login URL
+     *
+     * 后端把 CAS 注册在 **`/_matrix/client/v3/login/sso/redirect/cas`**（`cas` 是**末尾**
+     * 字面量段），**不是** `/login/cas/redirect`。见方案文档 §9.14.3（W-06）。
      */
     public getCasLoginUrl(redirectUrl: string): string {
         return this.getSsoLoginUrl(redirectUrl, "cas");
@@ -168,12 +171,23 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get SSO login URL
+     *
+     * ⚠️ 本后端的路径模型是 `/_matrix/client/v3/login/sso/redirect[/{provider}]`，
+     * `{provider}` 是**末尾字面量段**（实测仅 `cas` / `saml`），**不存在 `{idp_id}` 形态**
+     * （`docs/api-contract/generated/route-manifest.all.json` 全仓零命中）。故：
+     *
+     *   - `loginType = "sso"`（默认）⇒ `/login/sso/redirect`
+     *   - 其它（`cas` / `saml`）⇒ `/login/sso/redirect/{loginType}`
+     *
+     * 旧实现拼的是 `/login/{loginType}/redirect[/{idpId}]` ⇒ `getCasLoginUrl()` 会得到
+     * `/login/cas/redirect`（**404**），带 `idpId` 会得到 `/login/sso/redirect/{idpId}`
+     * （**404**，除非恰为 `cas`/`saml`）。
+     *
+     * `idpId` 形参已删除：本后端的 IdP 选择靠**路径段**而非查询参数，该形参没有落点
+     * （留着即撒谎）。见方案文档 §9.14.3（W-06）。
      */
-    public getSsoLoginUrl(redirectUrl: string, loginType = "sso", idpId?: string, action?: SSOAction): string {
-        let url = "/login/" + loginType + "/redirect";
-        if (idpId) {
-            url += "/" + idpId;
-        }
+    public getSsoLoginUrl(redirectUrl: string, loginType = "sso", action?: SSOAction): string {
+        const url = loginType === "sso" ? "/login/sso/redirect" : `/login/sso/redirect/${loginType}`;
 
         const params = {
             redirectUrl,

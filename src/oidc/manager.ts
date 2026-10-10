@@ -310,18 +310,33 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         return this.builtinLogin(body);
     }
 
-    async ssoRedirect(redirectUrl?: string): Promise<string> {
-        return this.withRetry(async () => {
-            const queryParams = redirectUrl ? { redirectUrl } : undefined;
-            const response = await this.request<{ url: string }>({
-                method: Method.Get,
-                path: op("/login/sso/redirect"),
-                queryParams: queryParams,
-                prefix: ClientPrefix.V3,
-                authenticated: false,
-            });
-            return response.url;
-        }, "ssoRedirect");
+    /**
+     * 构造 SSO 登录跳转 URL（**纯字符串拼接，不发请求**；由调用方自行导航浏览器）。
+     *
+     * ⚠️ 旧实现把它当请求做：`GET /login/sso/redirect` 并读 JSON `response.url`。
+     * 但后端 `sso_redirect` 的签名是 `Result<Redirect, ApiError>` —— 三条分支
+     * （OIDC / SAML / 未启用）**全部返回 302 `Redirect::temporary`**，**没有任何 JSON 分支**
+     * （`synapse-web/src/routes/oidc/sso.rs:108-137`）⇒ `response.url` 恒 `undefined`；
+     * 且 SDK 的 fetch 用 `redirect: "follow"`，会先跟到 IdP 页面再按 JSON 解析而失败。
+     * ⇒ 该封装**不可用**。见方案文档 §9.14.3（W-05）。
+     *
+     * 与 `SamlAuthManager.getLoginRedirectUrl` 同型：返回的地址交给浏览器，
+     * 由 homeserver 自己 302 到 IdP。
+     *
+     * @param redirectUrl - SSO 完成后回跳的地址（可选）
+     * @returns 供浏览器跳转的**绝对 URL**
+     *
+     * @example
+     * ```typescript
+     * const url = client.getOidcManager().ssoRedirect(window.location.href);
+     * window.location.href = url; // 浏览器访问 homeserver → 302 → IdP
+     * ```
+     */
+    public ssoRedirect(redirectUrl?: string): string {
+        const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
+        const path = op("/login/sso/redirect");
+        const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
+        return `${baseUrl}/_matrix/client/v3${path}${params}`;
     }
 
     /**

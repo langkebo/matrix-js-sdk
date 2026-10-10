@@ -25,21 +25,21 @@ describe("SSO login URL", function () {
         const redirectUri = "https://test.com/foo";
 
         it("No action", function () {
-            const urlString = client.client.getSsoLoginUrl(redirectUri, undefined, undefined, undefined);
+            const urlString = client.client.getSsoLoginUrl(redirectUri);
             const url = new URL(urlString);
             expect(url.searchParams.has("org.matrix.msc3824.action")).toBe(false);
             expect(url.searchParams.has("action")).toBe(false);
         });
 
         it("register", function () {
-            const urlString = client.client.getSsoLoginUrl(redirectUri, undefined, undefined, SSOAction.REGISTER);
+            const urlString = client.client.getSsoLoginUrl(redirectUri, undefined, SSOAction.REGISTER);
             const url = new URL(urlString);
             expect(url.searchParams.get("org.matrix.msc3824.action")).toEqual("register");
             expect(url.searchParams.get("action")).toEqual("register");
         });
 
         it("login", function () {
-            const urlString = client.client.getSsoLoginUrl(redirectUri, undefined, undefined, SSOAction.LOGIN);
+            const urlString = client.client.getSsoLoginUrl(redirectUri, undefined, SSOAction.LOGIN);
             const url = new URL(urlString);
             expect(url.searchParams.get("org.matrix.msc3824.action")).toEqual("login");
             expect(url.searchParams.get("action")).toEqual("login");

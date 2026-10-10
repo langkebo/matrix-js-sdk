@@ -77,18 +77,20 @@ describe("OidcManager", () => {
         );
     });
 
-    it("ssoRedirect uses request() on the public v3 redirect route", async () => {
-        request.mockResolvedValueOnce({ url: "https://issuer.example.com/sso" });
+    it("ssoRedirect 是纯 URL 构造器：不发请求，返回可交给浏览器跳转的绝对地址（W-05）", () => {
+        // 后端 `sso_redirect` 恒返回 302（oidc/sso.rs:108-137），旧实现当 JSON 读 `response.url`
+        // ⇒ 恒 undefined。改成 URL 构造器后**不得再发任何请求**。
+        const url = manager.ssoRedirect("https://app.example.com/after-login");
 
-        await manager.ssoRedirect("https://app.example.com/after-login");
-
-        expect(request).toHaveBeenCalledWith(
-            Method.Get,
-            "/login/sso/redirect",
-            { redirectUrl: "https://app.example.com/after-login" },
-            undefined,
-            { prefix: ClientPrefix.V3 },
+        expect(url).toBe(
+            "https://hs.example.com/_matrix/client/v3/login/sso/redirect?redirectUrl=https%3A%2F%2Fapp.example.com%2Fafter-login",
         );
+        expect(request).not.toHaveBeenCalled();
+    });
+
+    it("ssoRedirect 无 redirectUrl 时不拼查询串", () => {
+        expect(manager.ssoRedirect()).toBe("https://hs.example.com/_matrix/client/v3/login/sso/redirect");
+        expect(request).not.toHaveBeenCalled();
     });
 
     it("buildCallbackUrl binds the v3 callback route", () => {

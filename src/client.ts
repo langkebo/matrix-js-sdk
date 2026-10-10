@@ -3601,8 +3601,8 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountManager().getCasLoginUrl(redirectUrl);
     }
 
-    public getSsoLoginUrl(redirectUrl: string, loginType = "sso", idpId?: string, action?: SSOAction): string {
-        return this.getAccountManager().getSsoLoginUrl(redirectUrl, loginType, idpId, action);
+    public getSsoLoginUrl(redirectUrl: string, loginType = "sso", action?: SSOAction): string {
+        return this.getAccountManager().getSsoLoginUrl(redirectUrl, loginType, action);
     }
 
     /**

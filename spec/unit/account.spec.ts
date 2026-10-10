@@ -125,43 +125,61 @@ describe("AccountManager", () => {
     });
 
     describe("getCasLoginUrl", () => {
-        it("should return CAS login URL", () => {
+        it("builds the CAS login URL at /login/sso/redirect/cas（W-06：旧实现在 /login/cas/redirect ⇒ 404）", () => {
             mockClient.http.getUrl.mockReturnValue({
-                href: "https://example.com/login/cas/redirect?redirectUrl=abc",
+                href: "https://example.com/_matrix/client/v3/login/sso/redirect/cas?redirectUrl=abc",
             });
             const url = accountManager.getCasLoginUrl("https://example.com/callback");
-            expect(url).toContain("/login/cas/redirect");
+            expect(url).toContain("/login/sso/redirect/cas");
+            // 判据落在**实际拼出的路径**上（真正的缺陷位），而不是 mock 回来的 href
+            expect(mockClient.http.getUrl).toHaveBeenCalledWith(
+                "/login/sso/redirect/cas",
+                expect.objectContaining({ redirectUrl: "https://example.com/callback" }),
+            );
         });
     });
 
     describe("getSsoLoginUrl", () => {
-        it("should return SSO login URL", () => {
-            mockClient.http.getUrl.mockReturnValue({
-                href: "https://example.com/login/sso/redirect?redirectUrl=abc",
-            });
-            const url = accountManager.getSsoLoginUrl("https://example.com/callback");
-            expect(url).toContain("/login/sso/redirect");
+        it("loginType 默认 sso ⇒ /login/sso/redirect", () => {
+            mockClient.http.getUrl.mockReturnValue({ href: "https://example.com/x" });
+            accountManager.getSsoLoginUrl("https://example.com/callback");
+            expect(mockClient.http.getUrl).toHaveBeenCalledWith(
+                "/login/sso/redirect",
+                expect.objectContaining({ redirectUrl: "https://example.com/callback" }),
+            );
         });
 
-        it("should include idpId when provided", () => {
-            mockClient.http.getUrl.mockReturnValue({
-                href: "https://example.com/login/sso/redirect/idp1?redirectUrl=abc",
-            });
-            const url = accountManager.getSsoLoginUrl("https://example.com/callback", "sso", "idp1");
-            expect(url).toContain("/login/sso/redirect/idp1");
+        it("loginType=saml ⇒ /login/sso/redirect/saml（段在末尾，不是 /login/saml/redirect）", () => {
+            mockClient.http.getUrl.mockReturnValue({ href: "https://example.com/x" });
+            accountManager.getSsoLoginUrl("https://example.com/callback", "saml");
+            expect(mockClient.http.getUrl).toHaveBeenCalledWith(
+                "/login/sso/redirect/saml",
+                expect.objectContaining({ redirectUrl: "https://example.com/callback" }),
+            );
+        });
+
+        it("idpId 形参已删除（W-06）：第 4 个实参不再被接受", () => {
+            mockClient.http.getUrl.mockReturnValue({ href: "https://example.com/x" });
+            // 形参已收窄为 (redirectUrl, loginType?, action?)。谁把 idpId 加回来，
+            // 本行就从"预期报错"变成"不该报错" ⇒ `pnpm lint:types` 报 TS2578 立刻变红。
+            // @ts-expect-error 本后端无 {idp_id} 形态，idpId 形参已删除
+            const url = accountManager.getSsoLoginUrl("https://example.com/callback", "sso", undefined, "idp1");
+            // 运行时第 4 个实参被直接丢弃 ⇒ 仍走默认路径（真正的判据在编译期那行）
+            expect(url).toBe("https://example.com/x");
+            expect(mockClient.http.getUrl).toHaveBeenCalledWith("/login/sso/redirect", expect.anything());
         });
 
         it("should include action parameter", () => {
-            mockClient.http.getUrl.mockReturnValue({
-                href: "https://example.com/login/sso/redirect?redirectUrl=abc&action=login",
-            });
-            const url = accountManager.getSsoLoginUrl(
-                "https://example.com/callback",
-                "sso",
-                undefined,
-                SSOAction.LOGIN,
+            mockClient.http.getUrl.mockReturnValue({ href: "https://example.com/x" });
+            accountManager.getSsoLoginUrl("https://example.com/callback", "sso", SSOAction.LOGIN);
+            expect(mockClient.http.getUrl).toHaveBeenCalledWith(
+                "/login/sso/redirect",
+                expect.objectContaining({
+                    redirectUrl: "https://example.com/callback",
+                    action: "login",
+                    "org.matrix.msc3824.action": "login",
+                }),
             );
-            expect(url).toContain("action=login");
         });
     });
 
