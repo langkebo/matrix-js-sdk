@@ -16,7 +16,7 @@
 2. **直接 `git merge` 不可行**：`src/` 下有 **156 个文件两侧都改过**，会产生大量文本冲突；更危险的是**语义冲突** —— `release` 删掉的 API，`develop` 可能仍在改进或使用。全量 merge 会把 `release` 的减法与 `develop` 的加法硬拼，结果既不是干净契约面、也不是完整 dev 面。
 3. **推荐的终态不是「一次 merge」，而是「分阶段收敛」**：让 `develop` 保持唯一 trunk，把 `release` 线从「长期分叉分支」降级为**「按需生成的受控发布快照 + 版本标签」**。这样 develop 迭代零干扰、Tjg 改为 pin 发布标签、双线维护成本归零。详见 §4 方案 A。
 4. **合并/收敛对 Tjg 的唯一硬影响是「重新打包 + 重钉 pin」**：`sdk_commit` / `tarball_sha256` / `sdk_lib_fingerprint`（可能还有 `sdk_version`）必须同步更新，`ledger_schema` 与跨仓镜像绑定必须保持成立。Tjg 消费的 **19 个 SDK 子路径在两条线上都存在**（exports 映射唯一的差异是 `./notifications`↔`./notification`，Tjg 未消费），因此**只要重钉流程走对，Tjg 侧无需改代码**。
-5. **方向已裁决为方案 A，阶段 0（冻结与落定）已执行**：release worktree 的 83 条改动已落定为 `802781b4f`，并建立 `backup/pre-consolidation-*` 备份分支与基线记录。后续阶段 1/2 待用户进一步指示。详见 §7 与 §11。
+5. **方向已裁决为方案 A，阶段 0（冻结与落定）已执行、阶段 1（分批裁剪）已闭环**：release worktree 的 83 条改动已落定为 `802781b4f`，并建立 `backup/pre-consolidation-*` 备份分支与基线记录；阶段 1 在 `develop` 上分批执行 release 收窄政策，batch1–5 已提交、batch6 为空批（净效应已收敛）。阶段 2 待触发。详见 §7 与 §11。
 
 ---
 
@@ -290,9 +290,9 @@ git branch backup/pre-consolidation-release  release/contract-entrypoint
 
 > 阶段 0 结果：release worktree 工作树干净，HEAD 前移至 `802781b4f`；两个备份分支就位。Tjg 消费的 tarball 与 pin 均未改动，消费侧零影响。
 
-### 阶段 1：在 develop 上分批执行 release 的裁剪政策 — ⏸ 待触发
+### 阶段 1：在 develop 上分批执行 release 的裁剪政策 — ✅ 已完成
 
-> 已裁决公共面政策 = **release 面（收窄）**；当前暂停于阶段 0，待用户指示后再执行。
+> 已裁决公共面政策 = **release 面（收窄）**。阶段 1 已分批执行完毕：release 线全部裁剪净效应均已沉淀于 develop，batch6 勘查为空批（无代码可应用）。
 
 ```bash
 # 1.1 逐类取 release 的删除净效应（示例：废弃纯委托包装）
@@ -301,6 +301,22 @@ git diff develop release/contract-entrypoint -- src/space src/dm > /tmp/release-
 pnpm lint && pnpm quality:contracts && pnpm test
 # 1.3 每批一个提交，提交信息注明「收窄公共面（收敛至 release 政策）」+ 撤回能力
 ```
+
+**批次台账（release 面收窄政策：逐批一提交、三命令全绿）**
+
+| 批次   | 主题                                                 | 提交        | 状态                        |
+| ------ | ---------------------------------------------------- | ----------- | --------------------------- |
+| batch1 | C4+C6：死后端残留 + 零调用者包装                     | `5b1ecf1dc` | ✅ 三命令全绿               |
+| batch2 | C2：room-summary invite                              | `0915bd94e` | ✅ 三命令全绿               |
+| batch3 | C5：54 处 `@deprecated` 纯委托包装                   | `6c15152cf` | ✅ 三命令全绿               |
+| batch4 | C1：widget 整层                                      | `0522b8d39` | ✅ 三命令全绿               |
+| batch5 | C6：signatures/cas 重复入口与二选一前缀              | `ab708d2d5` | ✅ 三命令全绿               |
+| batch6 | 契约镜像 / vendor ISSUE-13 / codegen 剪枝 / 聚合出口 | —（空批）   | ✅ 已收敛，无代码可应用     |
+| 收尾   | 阶段 1 终态全量门禁 + 日历相关假红修正               | `b1e066f4f` | ✅ 三命令全绿（7016 tests） |
+
+> batch6 勘查结论：四类裁剪净效应均已在 develop 收敛 —— 契约镜像（develop `contract:check` 49 modules/1008 entries，为更新后端 ledger）、vendor 前缀（`check-vendor-prefix-migration` EXIT=0）、codegen cas 死条目（route-table 仅存全路径）、聚合出口（`src/contract/index.ts` 39 modules + `package.json#./contract`，`check-contract-entrypoint` EXIT=0）。因无代码改动，按「不虚构改动、不建空提交」原则未生成 batch6 提交。
+>
+> 收尾 `b1e066f4f` 为非裁剪类的测试稳健性修正：`check-contract-freshness.mjs` 对 `diffDays===1` 输出 `yesterday`，而断言正则仅允许 `today`/`N day(s) ago`，在镜像 age 恰落 1 天窗口时产生与代码改动无关的日历假红；补全正则分支。
 
 ### 阶段 2：产出发布快照并重钉 Tjg
 
@@ -381,9 +397,10 @@ git worktree list                                             # 确认两个 wor
 - **方向**：方案 **A（推荐）** —— `develop` 保持唯一 trunk，`release/contract-entrypoint` 降级为「按需生成的受控发布快照 + 版本标签」。
 - **公共面政策**：**release 面（收窄）** —— 把 release 线的裁剪净效应沉淀为可复现补丁序列，逐一保留 develop 的功能增量；终态面与当前 Tjg 消费面一致。
 - **阶段 0**：已执行（落定 `802781b4f` + 备份分支 + 基线）。
-- **执行节奏**：**暂停于阶段 0** —— 保持「可回滚的干净基线」，阶段 1/2 待用户下一步指示后再执行。
+- **阶段 1**：**已执行并闭环** —— 在 `develop` 上分批执行 release 裁剪政策，batch1–5 已提交（`5b1ecf1dc`/`0915bd94e`/`6c15152cf`/`0522b8d39`/`ab708d2d5`），batch6 勘查为空批（release 裁剪净效应已全部收敛），终态三命令全绿（`pnpm lint` + `pnpm quality:contracts` + `pnpm test` 7016 tests）。台账见 §7。
+- **执行节奏**：每批一提交、每批跑门禁；改动留工作树、不 push（除非显式授权）。
 
 待用户进一步指示：
 
-- **阶段 1 触发**：在 `develop` 上分批执行 release 裁剪补丁（按 §7 阶段 1），每批一提交、跑门禁。
+- **阶段 2 触发**：从已收敛的 `develop` 产出发布快照（`release/contract-entrypoint-next`）+ 打版本标签 + 重钉 Tjg（按 §7 阶段 2 / §6）。
 - **Tjg 重钉时机**：收敛到位后统一重钉（阶段 2），或每批次增量重钉。
