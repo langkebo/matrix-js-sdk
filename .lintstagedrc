@@ -2,5 +2,6 @@
     "*.(ts|tsx)": ["eslint --fix", "prettier --write"],
     "*.(mts|cts)": ["prettier --write"],
     "*.(py|md|yaml|yml)": ["prettier --write"],
-    "*.(mjs|cjs|js)": ["prettier --write"]
+    "*.(mjs|cjs|js)": ["prettier --write"],
+    "{package.json,CLAUDE.md,AGENTS.md,src/**,docs/api-contract/**}": "node scripts/quality/check-docs-counts.mjs"
 }

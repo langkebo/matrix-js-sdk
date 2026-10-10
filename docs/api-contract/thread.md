@@ -103,11 +103,11 @@ last_reviewed: 2026-05-03
 
 | 后端端点                                                                  | SDK 模块           | 方法                        | 现状                                                                                   |
 | ------------------------------------------------------------------------- | ------------------ | --------------------------- | -------------------------------------------------------------------------------------- |
-| `GET /_matrix/client/v1/threads`                                          | `ThreadingManager` | `getGlobalThreadList()`     | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/threads/subscribed`                               | `ThreadingManager` | `getSubscribedThreads()`    | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/threads/unread`                                   | `ThreadingManager` | `getGlobalUnreadThreads()`  | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/threads`                                          | `ThreadingManager` | `getGlobalThreadList()`     | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/threads/subscribed`                               | `ThreadingManager` | `getSubscribedThreads()`    | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/threads/unread`                                   | `ThreadingManager` | `getGlobalUnreadThreads()`  | ✅ 已直接封装                                                                          |
 | `GET /_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads`           | `ThreadingManager` | `getLegacyRoomThreadList()` | ✅ 已直接封装；现已补齐 `include_all` 查询支持                                         |
-| `POST /_matrix/client/v1/threads`                                         | `ThreadingManager` | `createGlobalThread()`      | ✅ 已直接封装                                                                          |
+| `POST /_matrix/vendor/v1/threads`                                         | `ThreadingManager` | `createGlobalThread()`      | ✅ 已直接封装                                                                          |
 | `POST /_matrix/client/v1/rooms/{room_id}/threads`                         | `ThreadingManager` | `createRoomThread()`        | ✅ 已直接封装                                                                          |
 | `GET /_matrix/client/v1/rooms/{room_id}/threads`                          | `ThreadingManager` | `getRoomThreadList()`       | ✅ 已直接封装                                                                          |
 | `GET /_matrix/client/v1/rooms/{room_id}/threads/search`                   | `ThreadingManager` | `searchRoomThreads()`       | ✅ 已直接封装                                                                          |

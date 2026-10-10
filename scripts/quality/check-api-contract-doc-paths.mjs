@@ -19,8 +19,14 @@
  *
  * - 判据：`docs/api-contract/*.md` 每个 Markdown 表格行里反引号包起来的
  *   `/_matrix/...`、`/_synapse/...` 路径，必须出现在 ledger 镜像（默认
- *   `docs/api-contract/generated/route-manifest.all.json`）的路径集合里；
+ *   `docs/api-contract/generated/route-manifest.all.json`）的路径集合里。
+ *   两种写法都扫（D-04）：① 裸路径单反引号 `` `/path` ``；② **方法 + 路径同反引号**
+ *   `` `GET /path` `` —— 后者是「后端端点」列的主写法，早期判据（只认反引号后紧跟 `/`）
+ *   把它整列漏扫。比对前先剥 query（`` `/register?kind=guest` `` 的真身是 `/register`）；
  *   尾斜杠差异按"去尾斜杠后存在"放过（ledger 自身有 5 对尾斜杠孪生）。
+ * - 豁免：SDK 侧**已登记**在 `path-contract-waivers.json` 里的路径（后端确实没有、属有意
+ *   超前封装或兼容其他 homeserver）不算"陈旧引用"—— 它是**有主有期限的已知差距**，而非
+ *   文档漂移。豁免的期限另由 `quality:waiver-expiry` 管辖。
  * - 棘轮：历史债已知且巨大，直接判失败等于门禁恒红（同 `quality:wire-format` 的处理）。
  *   因此对照 `api-contract-doc-paths-baseline.json`：**只降不升**；`--write-baseline`
  *   用于在真正刷新完页面后下调上限。
@@ -43,9 +49,18 @@ const projectRoot = process.cwd();
 const DOCS_DIR = path.join(projectRoot, "docs", "api-contract");
 const MANIFEST = path.join(DOCS_DIR, "generated", "route-manifest.all.json");
 const BASELINE = path.join(projectRoot, "scripts", "quality", "api-contract-doc-paths-baseline.json");
+const WAIVERS = path.join(projectRoot, "scripts", "quality", "path-contract-waivers.json");
 
 const SKIP_PAGES = new Set(["README.md", "CHANGELOG.md", "AUDIT_INDEX.md", "CONTRACT_INDEX.md"]);
+/**
+ * 两种写法都要扫：
+ * - ① 裸路径单反引号：`` `/_matrix/client/v3/sync` ``
+ * - ② 方法 + 路径同反引号：`` `GET /_matrix/client/v3/sync` ``（「后端端点」列的主写法）
+ * 旧判据只有 ①，而 ① 要求反引号后紧跟 `/` ⇒ ② 整列漏扫（D-04）。
+ */
 const PATH_RE = /`(\/(?:_matrix|_synapse)[^`\s|]*)`/g;
+const METHOD_PATH_RE = /`(?:GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\s+(\/(?:_matrix|_synapse)[^`\s|]*)`/g;
+const PATH_PATTERNS = [PATH_RE, METHOD_PATH_RE];
 /**
  * 「纯前缀提及」不是端点引用，不参与判定：
  * 表格里的 `/_matrix/client/v3` / `/_matrix/client/r0` / `/_matrix/vendor/v1` /
@@ -60,12 +75,12 @@ function isBarePrefix(p) {
     return BARE_PREFIX_RE.test(p.replace(/\/$/, ""));
 }
 
-function ledgerPaths() {
-    if (!fs.existsSync(MANIFEST)) {
-        console.error(`[api-contract-doc-paths] 环境问题：读不到 ${MANIFEST}`);
+function ledgerPaths(manifestPath = MANIFEST) {
+    if (!fs.existsSync(manifestPath)) {
+        console.error(`[api-contract-doc-paths] 环境问题：读不到 ${manifestPath}`);
         process.exit(2);
     }
-    const manifest = JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     const entries = manifest.entries ?? manifest.routes ?? [];
     const paths = new Set();
     for (const e of entries) {
@@ -76,27 +91,67 @@ function ledgerPaths() {
     return paths;
 }
 
-function scan() {
-    const paths = ledgerPaths();
+/**
+ * SDK 侧**已登记豁免**的路径集合（`path-contract-waivers.json` 的 `sdkCall` 去掉 method）。
+ * 这些路径后端确实没有，但属"有主有期限的已知差距"，不是文档漂移 ⇒ 门禁放过。
+ * 缺文件时按"无豁免"处理（严格），并在下方提示。
+ */
+function waivedPaths(waiversPath = WAIVERS) {
+    if (!fs.existsSync(waiversPath)) {
+        console.warn(`[api-contract-doc-paths] 提示：读不到 ${waiversPath}，按无豁免处理`);
+        return new Set();
+    }
+    const payload = JSON.parse(fs.readFileSync(waiversPath, "utf8"));
+    const set = new Set();
+    for (const w of payload.waivers ?? []) {
+        const call = typeof w?.sdkCall === "string" ? w.sdkCall.trim() : "";
+        if (!call) continue;
+        const sp = call.indexOf(" ");
+        const p = sp === -1 ? call : call.slice(sp + 1);
+        set.add(p);
+        set.add(p.replace(/\/$/, ""));
+    }
+    return set;
+}
+
+/**
+ * 扫描 `docs/api-contract/*.md` 里逐行列出的路由路径，返回引用了 ledger 中不存在路径
+ * 的行。可传入夹具目录用于单测（见 `spec/unit/api-contract-doc-paths-gate.spec.ts`）；
+ * 默认全部走仓内真实路径。
+ *
+ * @param {{docsDir?: string, manifest?: string, waivers?: string, skipPages?: Set<string>}} [options]
+ * @returns {{byPage: Record<string, {line: number, path: string}[]>, total: number}}
+ */
+export function scan(options = {}) {
+    const docsDir = options.docsDir ?? DOCS_DIR;
+    const skipPages = options.skipPages ?? SKIP_PAGES;
+    const paths = ledgerPaths(options.manifest);
+    const waived = waivedPaths(options.waivers);
     /** @type {Record<string, {line: number, path: string}[]>} */
     const byPage = {};
     let total = 0;
-    for (const name of fs.readdirSync(DOCS_DIR)) {
-        if (!name.endsWith(".md") || SKIP_PAGES.has(name)) continue;
-        const file = path.join(DOCS_DIR, name);
+    for (const name of fs.readdirSync(docsDir)) {
+        if (!name.endsWith(".md") || skipPages.has(name)) continue;
+        const file = path.join(docsDir, name);
         if (!fs.statSync(file).isFile()) continue;
         const lines = fs.readFileSync(file, "utf8").split("\n");
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             if (!line.trim().startsWith("|")) continue;
-            for (const m of line.matchAll(PATH_RE)) {
-                const p = m[1];
-                // 通配/模板路径不参与逐字比对
-                if (p.includes("{") || p.includes("*") || p.includes("...")) continue;
-                if (isBarePrefix(p)) continue;
-                if (paths.has(p) || paths.has(p.replace(/\/$/, ""))) continue;
-                (byPage[name] ??= []).push({ line: i + 1, path: p });
-                total += 1;
+            for (const re of PATH_PATTERNS) {
+                for (const m of line.matchAll(re)) {
+                    const p = m[1];
+                    // 通配/模板路径不参与逐字比对
+                    if (p.includes("{") || p.includes("*") || p.includes("...")) continue;
+                    if (isBarePrefix(p)) continue;
+                    // 剥 query：`/register?kind=guest` 的真身是 `/register`（否则查 ledger 必然落空、造假缺陷）
+                    const bare = p.split("?")[0].replace(/\/$/, "");
+                    if (paths.has(bare) || paths.has(`${bare}/`)) continue;
+                    // 已登记豁免的后端缺失端点不算陈旧
+                    if (waived.has(bare) || waived.has(`${bare}/`)) continue;
+                    (byPage[name] ??= []).push({ line: i + 1, path: p });
+                    total += 1;
+                }
             }
         }
     }
@@ -167,4 +222,6 @@ function main() {
     return 0;
 }
 
-process.exit(main());
+if (import.meta.url === `file://${process.argv[1]}`) {
+    process.exit(main());
+}

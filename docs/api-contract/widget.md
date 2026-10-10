@@ -111,8 +111,8 @@ last_reviewed: 2026-05-03
 
 | 后端端点                                                                  | SDK Manager     | 方法                       | 现状                                                  |
 | ------------------------------------------------------------------------- | --------------- | -------------------------- | ----------------------------------------------------- |
-| `POST /_matrix/client/v1/widgets`                                         | `WidgetManager` | `addWidget()`              | ✅ 请求路径与主要字段一致                             |
-| `POST /_matrix/client/v3/widgets/create`                                  | `WidgetManager` | `createWidget()`           | ✅ 已新增直连 `v3` 创建入口                           |
+| `POST /_matrix/vendor/v1/widgets`                                         | `WidgetManager` | `createWidget()`           | ✅ 请求路径与主要字段一致                             |
+| `POST /_matrix/vendor/v1/widgets/create`                                  | `WidgetManager` | `createWidgetV3()`         | ⚠️ 后端未实现（已登记豁免 `backend-missing`）         |
 | `GET /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `getWidget()`              | ✅ 已封装                                             |
 | `PUT /_matrix/client/v1/widgets/{widget_id}`                              | `WidgetManager` | `updateWidget()`           | ✅ 已封装                                             |
 | `DELETE /_matrix/client/v1/widgets/{widget_id}`                           | `WidgetManager` | `removeWidget()`           | ✅ 已封装                                             |
@@ -132,10 +132,10 @@ last_reviewed: 2026-05-03
 ## 当前对齐结论
 
 - `widget.rs` 的 18 个端点已独立建档，不再依赖总表中的路径族摘要。
-- SDK 已覆盖 `v1` widget CRUD、权限与会话接口，以及 `v3` 的 `create`、房间级 `capabilities` 路径。
+- SDK 已覆盖 `vendor` widget CRUD、权限与会话接口，以及 `vendor` 的 `create`、房间级 `capabilities` 路径。
 - `createWidgetSession()` 仍可兼容携带 body 中的 `widget_id`，但后端现在以路径参数为单一真实来源；若两处不一致则返回 `400`。
 - `v1` widget CRUD、权限与 session 查询/终止接口现已显式要求认证，不再是公开接口；对象级访问也已收敛为创建者、房间成员、管理员或显式授权用户。
-- `WidgetManager.createWidget()` 与 `WidgetManager.addWidget()` 现分别对应 `v3 /widgets/create` 与 `v1 /widgets` 两条创建链路。
+- `WidgetManager.createWidgetV3()` 与 `WidgetManager.createWidget()` 现分别对应 `vendor /widgets/create`（后端未实现，已登记豁免）与 `vendor /widgets` 两条创建链路。
 
 ## 封装覆盖率
 

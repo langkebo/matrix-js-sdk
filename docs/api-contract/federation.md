@@ -90,8 +90,8 @@ last_reviewed: 2026-05-03
 | SDK 方法                      | 路径                                                                | 认证         |
 | ----------------------------- | ------------------------------------------------------------------- | ------------ |
 | `getBlacklist()`              | `GET /_synapse/admin/v1/federation/blacklist`                       | 管理员 token |
-| `addToBlacklist()`            | `POST /_synapse/admin/v1/federation/blacklist/add`                  | 管理员 token |
-| `removeFromBlacklist()`       | `POST /_synapse/admin/v1/federation/blacklist/remove`               | 管理员 token |
+| `addToBlacklist()`            | `POST /_synapse/admin/v1/federation/blacklist/{server_name}`        | 管理员 token |
+| `removeFromBlacklist()`       | `DELETE /_synapse/admin/v1/federation/blacklist/{server_name}`      | 管理员 token |
 | `getServerStatus()`           | `GET /_synapse/admin/v1/federation/status/{serverName}`             | 管理员 token |
 | `getFederationDestinations()` | `GET /_synapse/admin/v1/federation/destinations`                    | 管理员 token |
 | `disconnectServer()`          | `POST /_synapse/admin/v1/federation/disconnect/{serverName}`        | 管理员 token |

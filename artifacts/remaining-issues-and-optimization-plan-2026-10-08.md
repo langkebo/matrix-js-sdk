@@ -2496,18 +2496,18 @@ release 独有                       0 个
 
 ##### 四、本轮**未完成**项与原因（据实登记）
 
-| 批次                        | 状态 | 原因                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| --------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **F2 / F3 / F4**            | ⏸    | "每个在 release 上 `exit 0`" 需要**为 release 侧重建整套台账**（覆盖率台账 / 路径契约覆盖率 / wire-format 台账都按各线代码生成）⇒ 不是"复制文件"而是"重放一遍门禁工程"，且 release 线自身要先有 `lcov.info` / 契约镜像新鲜度等前置产物。**已由 F5 钉成可见数字（18 条）**，可增量推进                                                                                                                                                                                                                                                             |
-| **F5 的 CI 生效**           | ⏸    | 门禁已挂进 `quality:contracts`，但 CI 的浅 checkout 拿不到 `release/*` ref ⇒ 目前**本地生效、CI SKIP**。要闭环需在 workflow 里 `git fetch --depth=1 origin <ref>`（改动 CI，未做）                                                                                                                                                                                                                                                                                                                                                                |
-| **K1–K4（URL 构造器门禁）** | ⏸    | 已量比对面：`http.getUrl()` 调用点 13 处、返回 URL 的方法约 10 个（`account/index.ts` ×2、`saml/index.ts` ×2、`oidc/manager.ts` ×1、`client.ts` 委托 ×2、identity-server 5 处**不在本后端 manifest**）。判据需要**对 TS 表达式做抽象求值**（`loginType === "sso" ? … : \`…/${loginType}\`` 这类条件拼接要枚举分支）⇒ 属独立的抽取器工程，本轮未开工                                                                                                                                                                                               |
-| **L1–L3（前端裸调门禁）**   | ⏸    | 跨仓（Tjg 侧），且依赖 K 的 manifest 读取约定；未开工                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **H1–H3**                   | ⏸    | **本轮量到比文档记的更多**：探针实测「方法+路径同一反引号」形态里 ledger 不存在的是 **28 行**（文档记 11 行），分布 8 个页面（`voice.md` 10 / `thread.md` 4 / `widget.md` 4 / `friend.md` 3 / `auth.md` 2 / `federation.md` 2 / `guest.md` 2 / `sync.md` 1）。且发现**必须先剥 query** 才能比对（`guest.md:17` 的 `POST /_matrix/client/v3/register?kind=guest` 若不剥 `?kind=guest` 会命中不到 `/register` ⇒ **造出假缺陷**，与 §9.14.4 记录的"扫描器必须把默认前缀算进去"是同一类错）。⇒ 需要**逐行回源核对 28 行**后才能改判据与文档，本轮未做 |
-| **I2 / I3**                 | ⏸    | I2 的 `synapse_rust_commit` 未变（后端路由面未动，`cross-repo-pin` 本就绿）；I3（`docs-counts` 前移 pre-commit）未做                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **J（长期项）**             | ⏸    | 5 项长期项（C1 剩余 8 / wire-format 889 桶 / knip 94 差集 / `check-public-api-docs` 单测 / 未封装路由决策）本轮均未动                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 批次                        | 状态 | 原因                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **F2 / F3 / F4**            | ⏸    | "每个在 release 上 `exit 0`" 需要**为 release 侧重建整套台账**（覆盖率台账 / 路径契约覆盖率 / wire-format 台账都按各线代码生成）⇒ 不是"复制文件"而是"重放一遍门禁工程"，且 release 线自身要先有 `lcov.info` / 契约镜像新鲜度等前置产物。**已由 F5 钉成可见数字（18 条）**，可增量推进                                                                                                                                                                                                                                                                                                                   |
+| **F5 的 CI 生效**           | ⏸    | 门禁已挂进 `quality:contracts`，但 CI 的浅 checkout 拿不到 `release/*` ref ⇒ 目前**本地生效、CI SKIP**。要闭环需在 workflow 里 `git fetch --depth=1 origin <ref>`（改动 CI，未做）                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **K1–K4（URL 构造器门禁）** | ⏸    | 已量比对面：`http.getUrl()` 调用点 13 处、返回 URL 的方法约 10 个（`account/index.ts` ×2、`saml/index.ts` ×2、`oidc/manager.ts` ×1、`client.ts` 委托 ×2、identity-server 5 处**不在本后端 manifest**）。判据需要**对 TS 表达式做抽象求值**（`loginType === "sso" ? … : \`…/${loginType}\`` 这类条件拼接要枚举分支）⇒ 属独立的抽取器工程，本轮未开工                                                                                                                                                                                                                                                     |
+| **L1–L3（前端裸调门禁）**   | ⏸    | 跨仓（Tjg 侧），且依赖 K 的 manifest 读取约定；未开工                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **H1–H3**                   | ⏸    | **本轮量到的「28 行」是**未限定作用域**的探针**（对**全文**做「方法+路径」匹配、只跳模板/通配 ⇒ 把**非表格行**（散文/说明里的路径引用）也算了进来）。按门禁**契约口径**（**只扫表格行** + 跳 `{...}`/`*` 模板 + 剥 query + 跳裸前缀 + 跳 waiver）复核，真值是 **11 行 / 4 页**（`federation.md` 2 / `thread.md` 4 / `voice.md` 3 / `widget.md` 2）。**该判据与 11 行的订正后由批次 H 落地（§9.14.14）**。另：**必须先剥 query**（`guest.md` 的 `POST /_matrix/client/v3/register?kind=guest` 不剥 `?kind=guest` 会命中不到 `/register` ⇒ **造出假缺陷**，与 §9.14.4「扫描器必须把默认前缀算进去」同类） |
+| **I2 / I3**                 | ⏸    | I2 的 `synapse_rust_commit` 未变（后端路由面未动，`cross-repo-pin` 本就绿）；I3（`docs-counts` 前移 pre-commit）未做                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **J（长期项）**             | ⏸    | 5 项长期项（C1 剩余 8 / wire-format 889 桶 / knip 94 差集 / `check-public-api-docs` 单测 / 未封装路由决策）本轮均未动                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 > 📌 **本轮的经验（写在最前面用）**：**"剩余任务"不是一个批次，是一份需要逐项量比对面的清单。**
-> F1 量出 70（不是 32）、H 量出 28（不是 11）——两次都与文档里的**估计值**差一倍以上。
+> F1 量出 70（不是 32）；H 探针量出 28，**但 28 是「未限定只扫表格行」的超集**（§9.14.14 定性）——门禁契约口径下当初文档记的 **11 行**才是对的。
 > 这正是本仓既有纪律「抽取器改造前先量比对面」的又一次印证：**估计值不能当工作量与风险的依据。**
 
 #### 9.14.12 2026-10-10 第二十轮续七：批次 K（URL 构造器门禁）落地 —— 堵 §9.14.4 盲区 1
@@ -2594,9 +2594,328 @@ F 属跨仓（需单独授权 + release worktree 重放），K 是本仓自洽�
 
 ##### 五、本轮**未完成**项
 
-| 项                        | 状态 | 原因                                                                                                                                        |
-| ------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **K4 的「同步 release」** | ⏸    | 与 F2/F3/F4 同批：须先把 `verify-path-contract.mjs`（高依赖组）与 `url-constructor-ledger.json` 搬到 release 线，**需单独授权**（见批次 F） |
+| 项                        | 状态 | 原因                                                                                                                                              |
+| ------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **K4 的「同步 release」** | ⏸    | ⊂ **F3**（高依赖组，决策 A「暂不接链」）：`check-url-constructors` import `verify-path-contract`，无法脱离 F3 单独搬 ⇒ 随 F3 一并解除（见批次 F） |
+
+#### 9.14.13 2026-10-10 第二十轮续八：批次 F2 + F4（release 线门禁移植与接链）落地 —— 消 §10 最高优先项
+
+**触发**：用户「继续处理剩余的台账未闭环项」。§10 优先级 **F > K > M > L > H/I/J**：F1/F5 已落地
+（§9.14.11），本轮推进 **F2（无依赖组整体移植）** 与 **F4（接进 release 的 `lint` / `quality:contracts`）**。
+
+**本轮完成**：F2｜F4（两门禁在 release 上双 `exit 0`）｜连带消解 2 处迁移遗留（见「四」）。
+**未完成（决策 A 原样保留）**：F3 高依赖组 **5** 条仍登记在 release 侧 waivers —— 棘轮数字只降不升。
+
+##### 一、F2 —— 无依赖组整体移植（脚本 + lib + 台账 + `.d.mts` + spec）
+
+把 develop 独有、且**不依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）**的一组连同其支撑整体搬到 release 线：
+
+| 类别                  | 条目                                                                                                                                                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 门禁（`check-*`，12） | `api-contract-doc-paths`、`audit-doc-integrity`、`coverage-critical-files`、`cross-line-gate-parity`、`docs-counts`、`docs-examples`、`gate-reachability`、`git-hooks`、`msc-changes`、`public-api-docs`、`repo-coverage`、`waiver-expiry` |
+| 直接支撑脚本（3）     | `find-lowest-coverage-files.mjs`、`find-lowest-coverage-modules.mjs`、`run-granular-coverage-gates.mjs`                                                                                                                                    |
+| `lib/`                | `baseline-update`、`spec-import-graph`、`write-json`                                                                                                                                                                                       |
+| 台账 / 基线           | `*-baseline.json`、`*-ledger.json`、`coverage-targets.json`、`gate-reachability-waivers.json`、`path-contract-waivers.json`、`route-set-parity-waivers.json`                                                                               |
+| spec                  | `spec/unit/*-gate.spec.ts` 共 13 例                                                                                                                                                                                                        |
+| 必要文档输入          | `docs/guide/**`（5 篇）、`docs/MSC_SDK_MAPPING.md`、`docs/api-contract/contract-artifacts.md`（`docs-counts` 的计数与锚点输入）                                                                                                            |
+
+> 即 F1 依赖表里「无依赖组」的 15 条受管辖门禁；移植后 **develop 侧** waiver 里这 15 条在 release ref
+> 前移后会变成「腐烂条目」，须在 develop 侧删除（棘轮只降不升，见「五」）。
+
+##### 二、F4 —— 接链（对齐 develop 的次序）
+
+**F4a `package.json`**
+
+- `lint` 末尾追加 15 段：`quality:no-default-key` / `quality:real-backend-types` / `quality:timer-pairing` /
+  `quality:contract-drift` / `quality:docs-counts` / `quality:audit-doc-integrity` /
+  `quality:coverage:critical-files` / `quality:waiver-expiry:strict` / `quality:git-hooks` /
+  `quality:gate-reachability` …；
+- 新增 **21** 条 `quality:*` 别名（coverage / parity / git-hooks / freshness / provenance / docs / msc / waiver 等）；
+- `quality:contracts` 末尾追加 **7** 段（**跳过全部 F3**）：`contract-freshness` / `public-api-docs` /
+  `api-contract-doc-paths` / `docs-examples` / `cross-line-parity`（`CROSS_LINE_REF=develop`）/ `msc` / `waiver-expiry`；
+- `quality:swallow-fallbacks` 对齐 develop 的 `--strict-baseline` 模式。
+
+**F4b `.github/workflows/systemic_refactor_quality_gate.yml`**：补 **7** 步 —— `contract-provenance`（PR only、
+自跳过）/ `granular-coverage` / `msc`（非 strict）/ `waiver-expiry:strict` / `coverage:repo` /
+`coverage:weak-files` / `coverage:weak-modules`。**workflow 是可达性的根之一**，这一步直接把「不可达门禁」清零。
+
+##### 三、验收（release 线实测）
+
+| 判据              | 命令                                                                           | 实测                                                               |
+| ----------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| F4 验收 1         | `pnpm lint`                                                                    | ✅ `exit 0`（全链，含 `prettier --check .`）                       |
+| F4 验收 2         | `pnpm quality:contracts`                                                       | ✅ `exit 0`（16 段全跑通，末段 `waiver-expiry` passed）            |
+| 可达性（F1 遗留） | `node scripts/quality/check-gate-reachability.mjs`                             | ✅ 无死门禁（可达 54 / 豁免 4）；孤岛 3 个（均已登记）             |
+| 跨线棘轮          | `CROSS_LINE_REF=develop node scripts/quality/check-cross-line-gate-parity.mjs` | ✅ 受管辖门禁差集 **5** 条已登记（= F3）；非门禁差集 **29 = 上限** |
+| 契约镜像          | `pnpm contract:codegen:check`                                                  | ✅ 47 supported module helper sets are in sync                     |
+
+> 可达性从 F1 实测的「35 个不可达门禁」降到 **0**：根因是 `lint` / `quality:contracts` / workflow 三个根
+> 此前都没接到 F2 门禁；**F4a（npm 链）+ F4b（workflow）** 补齐后闭合。
+
+##### 四、连带消解的两处迁移遗留
+
+| #   | 现象                                                       | 根因                                                                                                                                         | 处置                                                                                    |
+| --- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1   | `pnpm lint` 首跑红于 `lint:js` → `prettier --check .`      | `docs/MSC_SDK_MAPPING.md`（迁移新增 `AM`）未 prettier 化                                                                                     | `prettier --write` ⇒ 复检通过                                                           |
+| 2   | `pnpm quality:contracts` 首跑红于 `contract:codegen:check` | release 的 `src/admin/__generated__/dto.ts` 是陈旧副本（release 落后 develop 222 提交；admin DTO 已演进而 manifest 已由 contract-sync 更新） | `node scripts/sdk-contract-codegen.mjs` 重生成 ⇒ 与 develop **字节一致**（`diff` 0 行） |
+
+##### 五、本轮**未完成**项（据实记）
+
+| 项                                | 状态        | 原因                                                                                                                                  |
+| --------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **F3 高依赖组**                   | ⏸（决策 A） | 4 条需后端兄弟仓 + serde 抽取器 / `ledger_export_sdk` fixture；`check-url-constructors` 与 `verify-path-contract` 同批 ⇒ 5 条整体仍阻 |
+| **K4 的「同步 release」**         | ⏸           | ⊂ F3（`check-url-constructors` 无法脱离 `verify-path-contract` 单独搬）⇒ 随 F3 一并解除                                               |
+| release worktree 落地为**未提交** | ⏸           | 用户明确**不 push**；本工作树改动已 stage，待授权后再提交                                                                             |
+| develop 侧 waivers 的 15 条回收   | ⏸           | release ref 未前移前它们在 develop 侧仍是「真差异」；release 提交落地后须删除（否则 develop 侧 parity 报腐烂条目）                    |
+
+> 📌 **通则**：**「接链」是门禁从「存在」到「生效」的唯一一步。** F2 把判据搬到了 Tjg 消费的线上，
+> 但只要不接进 `lint` / `quality:contracts` / workflow 三个根，它们对 CI 就等于不存在 ——
+> F4 才是让 F2 真正长出牙齿的动作。
+
+---
+
+#### 9.14.14 2026-10-10 第二十轮续九：批次 H（门禁鉴别力补强）落地 —— 消 D-04 假空白 + 订正 11 行陈旧路径
+
+**触发**：用户「继续处理剩余的台账未闭环项」。D-04（§9.14.11）指出 `check-api-contract-doc-paths`
+此前只扫「裸路径单反引号」一种写法，对「**方法+路径同反引号**」的表格行（本仓文档的主流写法）**视而不见**
+⇒ 判据存在假空白。本批补第二判据并订正被扫出的陈旧路径。
+
+**用户裁定**：`widget.md` 的 `createWidgetV3()` / `POST /_matrix/vendor/v1/widgets/create`（后端 ledger 无此路由）
+**采用「门禁识别 waivers」**——不硬删，登记 `backend-missing` 豁免，门禁读 waiver 放过。
+
+**本轮完成**：H1（第二判据 + 剥 query + waiver 豁免 + 参数化 `scan()`）｜H2（4 页 11 行订正，含 M6）｜H3（组件级 spec 12 例）。
+
+##### 一、H1 —— 判据扩展（`scripts/quality/check-api-contract-doc-paths.mjs`）
+
+原判据只有 `PATH_RE`（**裸路径单反引号**）。新增 `METHOD_PATH_RE`（**方法+路径同反引号**），
+两条判据统一走同一套作用域规则：
+
+| 规则            | 说明                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 只扫表格行      | `line.trim().startsWith("\|")` —— 散文/说明里的路径引用不纳入（这正是「28 vs 11」的差）                                  |
+| **先剥 query**  | `p.split("?")[0]`（`guest.md` 的 `POST …/register?kind=guest` 不剥 `?kind=guest` 命中不到 `/register` ⇒ 造出**假缺陷**） |
+| 跳模板 / 通配   | 含 `{` / `*` / `...`                                                                                                     |
+| 跳裸前缀        | `BARE_PREFIX_RE`                                                                                                         |
+| **waiver 豁免** | 读 `scripts/quality/path-contract-waivers.json`，条目 `sdkCall` 去 method 得 path（用户裁定「门禁识别 waivers」）        |
+
+`scan({ docsDir, manifest, waivers, skipPages })` 参数化以便 spec 直接 `import`；CLI 走
+`if (import.meta.url === \`file://${process.argv[1]}\`) process.exit(main())` 守卫。
+
+##### 二、H2 —— 11 行订正（含 M6；`federation` 2 / `thread` 4 / `voice` 3 / `widget` 2）
+
+| 文档            | 陈旧（改前）                                                                                       | 订正（改后）                                                                                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `federation.md` | `POST …/blacklist/add`；`POST …/blacklist/remove`                                                  | `POST …/blacklist/{server_name}`；`DELETE …/blacklist/{server_name}`（方法与形状都错）                                                                          |
+| `thread.md`     | `GET/POST /_matrix/client/v1/threads[…/subscribed\|/unread]`（4 行）                               | `/_matrix/vendor/v1/threads…`（v1 → vendor）                                                                                                                    |
+| `voice.md`      | `POST /_matrix/client/r0/voice/upload`；`GET …/r0/voice/stats`；`POST …/v1/voice/transcription`    | `POST /_matrix/vendor/v1/voice/upload`；`GET …/vendor/v1/voice/stats`；`POST …/vendor/v1/voice/{media_id}/transcription`（r0/v1 → vendor）                      |
+| `widget.md`     | `POST /_matrix/client/v1/widgets`（`addWidget()`）；`POST …/v3/widgets/create`（`createWidget()`） | `POST /_matrix/vendor/v1/widgets`（`createWidget()`）；`POST …/vendor/v1/widgets/create`（`createWidgetV3()`，**⚠️ 后端未实现，已登记豁免 `backend-missing`**） |
+
+> `widget.md` 另同步 2 行**散文**（「`v1`/`v3` widget …」→「`vendor` widget …」、「`createWidget()` 与 `addWidget()` …」→
+> 「`createWidgetV3()` 与 `createWidget()` …」）—— 散文不计入门禁口径，但随表一起订正以保持文档自洽。
+
+##### 三、H3 —— 组件级 spec（`spec/unit/api-contract-doc-paths-gate.spec.ts`，12 例全绿）
+
+`import { scan } from "../../scripts/quality/check-api-contract-doc-paths.mjs";`，用**内存 md + 内存 ledger / waivers** 驱动：
+
+- 三条规则各一例：**裸路径陈旧 ⇒ 红**｜**方法+路径陈旧 ⇒ 红**｜**waiver 命中 ⇒ 放过（0）**；
+- 判据②的**阴性对照**（方法+路径命中 ledger ⇒ 不报）；
+- 两种**探针形态**：剥 query（`?kind=guest` 不计入）｜含 `{...}` 模板 ⇒ 跳过；
+- 既有口径**不回归**：ledger 命中不报 / 裸前缀不报 / 尾斜杠归一 / **只扫表格行**（散文行命中不报）；
+- 对真实仓跑 `scan()` 断言 `total === 0`。
+
+##### 四、「28 → 11」的复现与定性（订正 §9.14.11 的记录）
+
+§9.14.11 记「方法+路径陈旧 **28 行 / 8 页**」。本轮用临时探针对 `git show HEAD:` 的改前文档复核，
+把口径逐层收紧后复现：
+
+| 口径（逐层收紧）                                       | 命中   |
+| ------------------------------------------------------ | ------ |
+| 全文「方法+路径」匹配、只跳模板/通配（**不限表格行**） | 27     |
+| ↑ 再限定**只扫表格行** + 剥 query + 跳裸前缀           | **11** |
+
+⇒ 27 与 11 之差 **16 行全部是「非表格行」**（散文 / 说明里的路径引用）。故 **28 是超集**：
+§9.14.11 的 28 是「未限定只扫表格行」的探针值（另有 1 行属文档漂移），门禁**契约口径**真值是 **11 行 / 4 页**。
+结论：**原文档记的 11 行才是对的**，28 不作为工作量依据。
+
+##### 五、验收
+
+| 判据             | 命令                                                                     | 实测                                                                            |
+| ---------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| 改文档前棘轮真值 | `node scripts/quality/check-api-contract-doc-paths.mjs --json`           | ✅ `{"total":11,"pages":4,…}`（`federation` 2/`thread` 4/`voice` 3/`widget` 2） |
+| H2 后归零        | 同上                                                                     | ✅ `{"total":0,"pages":0,"byPage":{}}`                                          |
+| 棘轮写盘         | `node scripts/quality/check-api-contract-doc-paths.mjs --write-baseline` | ✅ `api-contract-doc-paths-baseline.json` 写入 `total:0`                        |
+| 普通运行         | 同上（无 `--json`）                                                      | ✅ `exit 0`，`✅ 未超过上限：0 行 / 0 个页面`                                   |
+| 组件级 spec      | `npx vitest run spec/unit/api-contract-doc-paths-gate.spec.ts`           | ✅ 12/12 passed，`exit 0`                                                       |
+
+> 📌 **通则**：**「每补一层判据就有一层新盲区」。** 本批的第一条判据（裸路径）上线时文档是绿的，
+> 但它漏掉了本仓文档**主流写法**（表格里的「方法+路径」）—— 判据的**作用域**（只扫表格行）与
+> **形态覆盖**（单/双写法）必须一起设计；且**归一化（剥 query）要在匹配前做**，否则会把正常文档判成缺陷。
+
+#### 9.14.15 2026-10-10 第二十轮续十：批次 I3 —— `docs-counts` 前移到 pre-commit
+
+##### 一、背景：计数纪律只在 CI 兜底，漏了"本地提交"这一层
+
+`check-docs-counts.mjs` 的 11 条规则把 `contract-artifacts.md` / `CLAUDE.md` / `AGENTS.md` 里的
+**声明式计数**与从代码/生成物**实时算出的值**做比对 —— 任何"清账类提交"（新增/删除导出、增删 manager、
+增删 `.md`）都可能让某个数字对不上。§9.14.11 已登记**两条同型事故**（`735 → 729`、`exports 计数漂移`），
+痛点是：**校验只在 CI 跑**，本地 `git commit` 会先落一个注定变红的提交，等 CI 才发现。
+
+I3 的动作原文：「把"清账类提交必须同步 `docs-counts`"**前移到 pre-commit**（脚本已有 remediation hint，
+可做成提交前的 `--check`）」。
+
+##### 二、做法：`.lintstagedrc` 增一条 glob 钩子
+
+在 [`.lintstagedrc`](../../.lintstagedrc) 追加一行（改后全文见文件），把 **规则所依赖的源文件集合**都纳入触发条件：
+
+```json
+"{package.json,CLAUDE.md,AGENTS.md,src/**,docs/api-contract/**}": "node scripts/quality/check-docs-counts.mjs"
+```
+
+设计取舍（避免重犯仓内既有抱怨）：
+
+- **用「粗粒度但完整」的 glob，而不是精确枚举 `METRICS` 的每一个来源文件**。精确枚举会引入第二条
+  "来源清单"，一旦与 `METRICS` 漂移就会漏触发；`src/**` + `docs/api-contract/**` 是**超集**，只多不漏。
+- 该钩子是**普通 `--check`**（不带 `--write`）：计数不对就 `exit 1` 拦下提交，并打印脚本自带的
+  `REMEDIATION_TEXT`（告诉人改哪个文件的哪个锚点），**不自动改写**——计数是语义，不该由机器猜。
+- `check-docs-counts.mjs` **不读 `argv`**（`process.argv` 仅用于 CLI 守卫），故 lint-staged 追加的
+  文件名参数无副作用；glob 未命中任何 files 的形态下本行不执行。
+
+##### 三、端到端验证（真实 stage 一次）
+
+| 步骤                    | 命令                                                                 | 观测                                                                             |
+| ----------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| glob 命中（真实 stage） | `git add docs/api-contract/federation.md && npx lint-staged --debug` | 新钩子 `[STARTED]`/`[COMPLETED] node scripts/quality/check-docs-counts.mjs` 命中 |
+| glob 不命中（阴性对照） | 同上，stage `spec/unit/foo.spec.ts`                                  | 本钩子**不**触发                                                                 |
+| 工作树无副作用          | `git restore --staged docs/api-contract/federation.md && git status` | 回到 stage 前原样                                                                |
+| 脚本自身                | `node scripts/quality/check-docs-counts.mjs`                         | ✅ `[docs-counts] OK — 11 rules consistent`                                      |
+
+> 阳性/阴性对照都用 micromatch 实测过：命中 `package.json` / `CLAUDE.md` / `AGENTS.md` / `src/**` /
+> `docs/api-contract/**`（含 `src/admin/__generated__/route-table.ts` 与 `route-manifest.all.json`）。
+
+##### 四、验收
+
+| 判据             | 命令                                         | 实测                                              |
+| ---------------- | -------------------------------------------- | ------------------------------------------------- |
+| 命中的提交会被拦 | `git add <改过的 src 或 docs> && git commit` | ✅ pre-commit 跑 `docs-counts`，不一致即 `exit 1` |
+| 未命中的提交不拦 | stage 纯 `spec/**`                           | ✅ 本钩子不执行                                   |
+| 脚本口径未变     | `node scripts/quality/check-docs-counts.mjs` | ✅ 11 rules consistent                            |
+
+> 📌 **通则**：**门禁的价值 = 它离"人做决定的那一刻"有多近。** 同一个检查，放 CI 是"事后抓"，
+> 放 pre-commit 是"当场拦"。IIFE 化的判据 + 声明式规则表（本脚本两个前提）让"把检查前移"几乎零成本 ——
+> 这是结构化门禁相对脚本堆的复利。
+
+#### 9.14.16 2026-10-10 第二十轮续十一：台账订正（批次 M）＋ F5 的 CI 生效定性 ＋ I2 复核
+
+**触发**：用户指令「继续剩余未闭环项，需要裁决的给出建议按建议执行」。
+
+##### 一、订正 §10 批次 M 的两行**陈旧台账**（M1 / M4 实为已完成）
+
+§10 批次 M 的表格停在 §9.14.6 的时点，未随后续 §9.14.8 / §9.14.9 更新，留下两行与工作树不符的记录：
+
+| 行  | 订正前                                           | 实际状态（回源）                                                                                                                                     |
+| --- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | 「**待完成**：release 复刻 + 重打包 + 重钉 pin」 | ✅ **已完成**（§9.14.9）：`sdk_commit=9740e1ef2927…` / `tarball_sha256=sha256-76b1c14c…` / `verify:sdk-pin` ok；release worktree HEAD 即 `9740e1ef2` |
+| M4  | 「⏸ **未动（未裁定）**」                         | ✅ **已完成**（§9.14.8）：删掉 Tjg 第二份 SSO URL 实现 + 2 条点状守卫；`grep 'static '` 实测 `MatrixAuthService` 已无 `getSsoLoginUrl`               |
+
+**已同步订正**（§10）：批次 M 标题（补 M4）、M1 / M4 两行、M1 之下那段「待完成不是代码问题」的注解、
+「依赖与顺序」块里的 `M4 / M6 / M1 的 release 收尾` 一行，以及批次 F 的 F5 行与批次 I 的 I2 行。
+
+##### 二、F5 的「CI 生效」—— **真因不是浅 checkout，而是该分支不在任何 remote 上**（裁决：登记为已知限制）
+
+§9.14.11 把 F5 在 CI 失效归因于「浅 checkout 拿不到 `release/*` ref」，登记的待办是「在 workflow 里
+`git fetch --depth=1 origin <ref>`」。本轮**回源复核**发现真因更强：
+
+| 复核项                                           | 实测                                                                                                                                                                                                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `systemic_refactor_quality_gate.yml` 的 checkout | `actions/checkout` 带 `fetch-depth: 0`（第 18 行）——**已是全历史**，不是浅 checkout                                                                                                                                                 |
+| `release/contract-entrypoint` 在 remote 上吗     | **否**。`git branch -r` 无 `origin/release/contract-entrypoint`；`git ls-remote --heads origin \| grep entrypoint` 为空 ⇒ 它是**本地分支**（`git branch` 显示 `+ release/contract-entrypoint`，即 `.wt-sdk-clean` worktree 的检出） |
+| 门禁在 CI 的行为                                 | `git ls-tree release/contract-entrypoint` 解析不到 ⇒ 走 SKIP banner、`exit 0`（**不是 pass**，符合其设计）                                                                                                                          |
+
+⇒ **归因订正**：不是「checkout 太浅」，而是 `check-cross-line-gate-parity.mjs` 要比对的那条线**从未离开本机**。
+`fetch-depth: 0` 会抓全 `refs/heads/*`，但只对**存在**的 remote 分支生效；`CROSS_LINE_REF=origin/…` 同样无解
+（远端没有这条）。
+
+**裁决（按用户「给建议并按建议执行」）**：在**不 push** 的约束下，F5 的跨线比对**不可能**在 CI 生效
+（要生效必须把 `release/contract-entrypoint` 推到一个 CI 能 fetch 的 remote）。故**登记为「受不 push 约束阻塞」
+的已知限制**，**不做任何 CI 改动** —— 任何「补 `git fetch`」的改动都会是**无效写入**（ref 不存在）。
+本地侧门禁照常生效（开发时 `quality:contracts` 会真跑比对、变异自证见 §9.14.11）。
+
+> 📌 **通则**：**「SKIP」必须与「环境拿不到输入」严格区分。** F5 的 SKIP 文案自己写明「不是 pass」，
+> 这正是它比"静默绿"诚实的地方 —— 但它也意味着：一条门禁的「CI 生效」取决于它的**跨线输入是否在
+> CI 里可得**，而这往往不是 workflow 能单方面解决的问题（此处是「那条线还没推上去」）。
+
+##### 三、I2 复核 —— `cross-repo-pin --strict` 在 release 上**仍红**（阻塞于跨仓重同步）
+
+I2 原文：「Tjg 重钉 pin（`synapse_rust_commit` → 当前后端 HEAD），并确认 `cross-repo-pin --strict` 在 release 上绿」。
+§9.14.11 曾判「后端路由面未动 ⇒ 本就绿」。本轮在 **release worktree**（`.wt-sdk-clean`）实测：
+
+| 字段                  | pin 值             | 实际                     | 判定         |
+| --------------------- | ------------------ | ------------------------ | ------------ |
+| `sdk_commit`          | `9740e1ef2927…`    | release HEAD `9740e1ef2` | ✅ ok        |
+| `synapse_rust_commit` | `998d2ad2b…`       | 后端 HEAD `3fb43e31…`    | ❌ **drift** |
+| `ledger_schema`       | `4`                | 两端一致                 | ✅ ok        |
+| `tarball_sha256`      | `sha256-76b1c14c…` | `sha256(vendor/*.tgz)`   | ✅ ok        |
+
+⇒ §9.14.11 的「后端路由面未动」**已被证伪**：`998d2ad2b..3fb43e31` 有 **25 个提交**，且**含路由面改动**
+（`docs/openapi/route-table.json`、`scripts/api_test/gen_route_table.py`、
+`synapse-web/src/routes/{admin/register,auth_compat,friend_room}.rs`、`synapse-services/src/wiring/admin*.rs` 等）。
+**诚实重钉不能只改一个哈希** —— 必须对后端新 HEAD 重跑 `pnpm contract:sync`（重建镜像）→ 重打包 tarball →
+重钉 Tjg，属**跨仓重放**，与 F3 / K4-release 同类。
+
+**裁决**：I2 **保持 ⏸**，并**升级其阻塞原因**（从「后端未动、本就绿」改为「后端已动 25 提交，须跨仓重同步」）。
+
+##### 四、本轮补漏：批次 H 的两个文件**漏做 prettier**（`lint:js` 红 → 已修复）
+
+跑 `pnpm lint:js` 全链核验时发现格式门禁**仍红**，两个文件是批次 H 自己引入却未过 prettier 的：
+
+| 文件                                            | 归属                  | 现象            | 处置                                            |
+| ----------------------------------------------- | --------------------- | --------------- | ----------------------------------------------- |
+| `docs/api-contract/voice.md`                    | H2（改 3 行陈旧路径） | `[warn]` 需重排 | ✅ `prettier --write`；重排后门禁 `{"total":0}` |
+| `spec/unit/api-contract-doc-paths-gate.spec.ts` | H3（新增 12 例）      | `[warn]` 需重排 | ✅ `prettier --write`；12 例仍全绿              |
+
+⇒ 复核 `pnpm lint:js` **exit 0**（0 errors，仅存量 warning）；`check-api-contract-doc-paths.mjs` `total:0`；
+`api-contract-doc-paths-gate.spec.ts` 12/12 通过。**教训**：批次 H 落地时只跑了对应门禁、未跑
+`lint:js` 全链，故新增/改动的两个文件漏过 prettier —— 与 G1 的"长文档漏 prettier"同源，属**同一类纪律缺口**。
+
+#### 9.14.17 2026-10-10 第二十轮续十二：H3 漏建 `.d.mts` ⇒ 连带两个台账订正，`pnpm lint` 全链复绿
+
+批次 H 落地后跑 `pnpm lint` **全链**（此前只单跑了 H 对应的 `check-api-contract-doc-paths.mjs`），暴露
+三处**次生红**——均非新增缺陷，而是「新增文件/改标题」触发的台账棘轮，逐条订正如下。
+
+**其一：H3 的 spec 漏建同名 `.d.mts` ⇒ `lint:types` TS7016。**
+`spec/unit/api-contract-doc-paths-gate.spec.ts` 直接 `import { scan } from` 门禁脚本，而
+`scripts/quality/check-api-contract-doc-paths.mjs` 无相邻声明文件，`tsc --noEmit` 报
+`TS7016: Could not find a declaration file`。**本仓惯例**：被 spec 导入的 `scripts/quality/*.mjs`
+须有同名 `.d.mts`（vitest 走真实 `.mjs`、tsc 走 `.d.mts`，两者同步）。已补
+[check-api-contract-doc-paths.d.mts](../../scripts/quality/check-api-contract-doc-paths.d.mts)（只声明 spec 用到的
+`scan` 与 `DocPathsScanOptions/Result` 等纯类型），`pnpm lint:types` 复绿。
+
+**其二：该 `.d.mts` 使 cross-line-parity 的非门禁差集 `support.count` 56 → 57。**
+`check-cross-line-gate-parity.mjs` 把 `scripts/quality/**` 的 `.d.mts` 归入 `types`（计入 support 棘轮），
+新增一个合法的支撑文件即 +1；门禁**只降不升**，故报红。**依据既有实践**：本台账历史上
+`support.count` 曾 **52 → 54 → 56** 被正常上调（§9.14 前序轮次），对「新增必需支撑文件」+1 并**显式登记**
+是既定机制，非破坏纪律。已 `node scripts/quality/check-cross-line-gate-parity.mjs --write-waivers` 登记
+`support=57`，门禁转为 `ok（非门禁差集 57 条，上限 57）`。
+
+**其三：批次 H / K / M / F 四个章节标题由「待办态」改为「落地态」⇒ audit-doc-integrity 报「章节丢失」。**
+`check-audit-doc-integrity.mjs` 的台账**只增不减**，标题正文精确比对（只归一化日期与破折号后的计数）。本轮把
+四个批次标题补上落地注记（如 `### 批次 H ……（🟡）**—— H1 / H2 / H3 ✅ 已落地（§9.14.14）**`），旧标题即从
+当前文档消失，被哨兵记为"丢失"。**这是**「改标题」而非「丢章节」——门禁文件头已明示处置路径：
+「确实要删或改标题时，手工编辑本台账」。据既有实践（基线里批次 F/M 的标题本已是带 ✅ 的落地态）手工把
+台账
+[audit-doc-integrity-baseline.json](../../scripts/quality/audit-doc-integrity-baseline.json) 的这 4 条标题**替换**为落地态
+（非仅追加），哨兵转 `✅ 10 份审计文档的承诺章节都在`。
+
+| 次生红                            | 触发源                            | 处置（台账显式订正）                                    | 复验                |
+| --------------------------------- | --------------------------------- | ------------------------------------------------------- | ------------------- |
+| `lint:types` TS7016               | H3 spec 导入的 `.mjs` 缺 `.d.mts` | 新建 `check-api-contract-doc-paths.d.mts`               | `lint:types` exit 0 |
+| cross-line `support 56→57`        | 上述 `.d.mts` 计入 support 棘轮   | `--write-waivers` 登记 `support=57`（依 52→54→56 先例） | 门禁 `ok`，exit 0   |
+| audit-doc-integrity「章节丢失」×4 | 4 个批次标题改落地态              | 手工**替换**台账中这 4 条标题为落地态                   | 哨兵 ✅，10 份文档  |
+
+⇒ **`pnpm lint` 全链 exit 0**（0 errors，仅存量 warning）；`quality:cross-line-parity` 亦绿。**教训**：批次 H 落地时
+只跑了对应门禁、未跑 `pnpm lint` 全链，故 `.d.mts` 缺失与标题改名的**台账连带影响**直到本轮才暴露 —— 与
+§9.14.16「四」的 prettier 漏做同源：**新增/改动 `scripts/quality/**` 文件或其导入关系时，必须同批跑全链\*\*，
+否则台账棘轮会在提交时才咬人。
 
 ---
 
@@ -2607,15 +2926,15 @@ F 属跨仓（需单独授权 + release worktree 重放），K 是本仓自洽�
 > **第二十轮增补**：新增批次 **K / L / M**（对应 §9.14.3 的 W-03～W-06 与 §9.14.4 的两处结构性盲区），
 > 并把批次 G 按实测状态销号。
 
-### 批次 F —— release 线门禁对齐（🔴 最高优先，结构性）**—— F1 / F5 ✅ 已落地（§9.14.11）；F2/F3/F4 ⏸**
+### 批次 F —— release 线门禁对齐（🔴 最高优先，结构性）**—— F1 / F2 / F4 / F5 ✅ 已落地（§9.14.11 / §9.14.13）；F3 ⏸（决策 A：暂不接链）**
 
-| 步     | 动作                                                                                                                                                                                         | 验收                                                                        |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| ~~F1~~ | **已完成（§9.14.11）**：实测 develop **132** vs release **62**，release 缺 **70**（18 门禁 + 12 lib + 24 `.d.mts` + 16 台账）⇒ 门禁分 14 低依赖 / 4 高依赖两组                               | ✅ 依赖表见 §9.14.11 + 台账 `$comment`                                      |
-| F2     | 无依赖组整体移植（脚本 + 台账 + `.d.mts` + spec）：`path-contract`、`waiver-expiry`、`docs-counts`、`msc`、`log-sensitive`、`audit-doc-integrity`、`debt-markers` 等                         | 每个在 release 上 `exit 0`                                                  |
-| F3     | 有依赖组先移植依赖再移植门禁：`wire-format` 需后端的 serde 抽取器与 `ledger_export_sdk` fixture；`api-contract-doc-paths` 需 `docs/api-contract/generated/**`                                | 同上                                                                        |
-| F4     | 接链：挂进 release 的 `lint` / `quality:contracts`（对齐 develop 的次序）                                                                                                                    | `pnpm lint` 与 `pnpm quality:contracts` 在 release 上 `exit 0`              |
-| ~~F5~~ | **已完成（§9.14.11）**：`check-cross-line-gate-parity.mjs`（复用 `isGoverned` 的受管辖判据）+ 台账 + spec 16 例，挂进 `quality:contracts`；CI 浅 checkout 下 ref 不可得 ⇒ SKIP（已登记待办） | ✅ 变异 B：真删 release 一个门禁 ⇒ 红且点名；变异 C（差集为空）⇒ 报腐烂条目 |
+| 步     | 动作                                                                                                                                                                                                                                                                                                                                                                       | 验收                                                                        |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| ~~F1~~ | **已完成（§9.14.11）**：实测 develop **132** vs release **62**，release 缺 **70**（18 门禁 + 12 lib + 24 `.d.mts` + 16 台账）⇒ 门禁分 14 低依赖 / 4 高依赖两组                                                                                                                                                                                                             | ✅ 依赖表见 §9.14.11 + 台账 `$comment`                                      |
+| F2     | **✅ 已完成（§9.14.13）**：无依赖组整体移植（脚本 + lib + 台账 + `.d.mts` + spec）：`path-contract`、`waiver-expiry`、`docs-counts`、`msc`、`log-sensitive`、`audit-doc-integrity`、`debt-markers` 等                                                                                                                                                                      | ✅ 每个在 release 上 `exit 0`                                               |
+| F3     | ⏸ **未动（决策 A：暂不接链）**：有依赖组先移植依赖再移植门禁：`wire-format` 需后端的 serde 抽取器与 `ledger_export_sdk` fixture；`api-contract-doc-paths` 需 `docs/api-contract/generated/**`                                                                                                                                                                              | ⏸ release 侧仍登记 5 条 waiver（棘轮不升）                                  |
+| F4     | **✅ 已完成（§9.14.13）**：接链：挂进 release 的 `lint` / `quality:contracts`（对齐 develop 的次序）                                                                                                                                                                                                                                                                       | ✅ `pnpm lint` 与 `pnpm quality:contracts` 在 release 上 `exit 0`           |
+| ~~F5~~ | **已完成（§9.14.11）**：`check-cross-line-gate-parity.mjs`（复用 `isGoverned` 的受管辖判据）+ 台账 + spec 16 例，挂进 `quality:contracts`；**CI 侧 SKIP 的真因**（§9.14.16 订正）：`release/contract-entrypoint` **不在任何 remote**（`git branch -r` / `ls-remote` 均无），`fetch-depth: 0` 已全历史也抓不到 ⇒ **登记为「受不 push 约束阻塞」的已知限制**，本地侧照常生效 | ✅ 变异 B：真删 release 一个门禁 ⇒ 红且点名；变异 C（差集为空）⇒ 报腐烂条目 |
 
 **为什么排最高**：这是"Tjg 消费的线缺契约判据"的根因；F5 是防止它**再次**漂移的唯一机制。
 
@@ -2630,21 +2949,21 @@ F 属跨仓（需单独授权 + release worktree 重放），K 是本仓自洽�
 > G1/G2 已由第二十轮实测确认闭环（`pnpm lint` 全链 `exit 0`，含 `prettier --check .`）。
 > **G3 仍有价值**：本轮再次验证——本文档此前长期未 prettier 化，是"prettier 红反复出现"的唯一来源。
 
-### 批次 H —— 门禁鉴别力补强（🟡）
+### 批次 H —— 门禁鉴别力补强（🟡）**—— H1 / H2 / H3 ✅ 已落地（§9.14.14）**
 
-| 步  | 动作                                                                                                                                                                                     | 验收                                                               |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| H1  | `api-contract-doc-paths` 的判据扩到「方法+路径同反引号」形态（或新增第二判据）⚠️ **实测是 28 行不是 11 行**（§9.14.11），且**必须先剥 query**（否则 `register?kind=guest` 会变成假缺陷） | 那 28 行**进入**棘轮（总数由 0 变 ≥28），`--write-baseline` 后可见 |
-| H2  | 修 `thread.md` / `voice.md` / `widget.md` / `federation.md` 那 11 行的陈旧路径                                                                                                           | 两个判据都归零                                                     |
-| H3  | 补 `spec/unit/api-contract-doc-paths-gate.spec.ts`（三条规则各一例 + 本轮的两种探针形态）                                                                                                | 组件级红证明                                                       |
+| 步  | 动作                                                                                                                                                                                                                                                                       | 验收                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| H1  | ✅ **已完成（§9.14.14）**：新增第二判据 `METHOD_PATH_RE`（扫「方法+路径同反引号」）+ 剥 query + **读 `path-contract-waivers.json` 豁免**（用户裁定「门禁识别 waivers」）+ 参数化 `scan()`。⚠️ §9.14.11 记的「28 行」是**未限定表格行**的超集，门禁契约口径真值是 **11 行** | ✅ 改文档前 `--json` 恰为 `total:11, pages:4`             |
+| H2  | ✅ **已完成（§9.14.14）**：修 `federation.md` 2 / `thread.md` 4 / `voice.md` 3 / `widget.md` 2，共 **11 行**陈旧路径                                                                                                                                                       | 两个判据都归零（✅ `total:0`，`--write-baseline` 写入 0） |
+| H3  | ✅ **已完成（§9.14.14）**：补 `spec/unit/api-contract-doc-paths-gate.spec.ts`（三条规则各一例 + 本轮的两种探针形态）                                                                                                                                                       | 组件级红证明（✅ 12 例全绿）                              |
 
 ### 批次 I —— 跨仓 pin 与计数纪律（🟡）
 
-| 步  | 动作                                                                                                         |
-| --- | ------------------------------------------------------------------------------------------------------------ |
-| I1  | `contract-artifacts.md` 735 → 729（**已随本轮修好**，见 D-03）                                               |
-| I2  | Tjg 重钉 pin（`synapse_rust_commit` → 当前后端 HEAD），并确认 `cross-repo-pin --strict` 在 release 上绿      |
-| I3  | 把"清账类提交必须同步 `docs-counts`"前移到 pre-commit（脚本已有 remediation hint，可做成提交前的 `--check`） |
+| 步  | 动作                                                                                                                                                                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I1  | `contract-artifacts.md` 735 → 729（**已随本轮修好**，见 D-03）                                                                                                                                                                                                                  |
+| I2  | ⏸ **阻塞（跨仓重同步，§9.14.16 复核）**：release worktree 上 `cross-repo-pin --strict` **仍红**——`synapse_rust_commit` pin 在 `998d2ad2b`，后端 HEAD `3fb43e31` 已**领先 25 提交且含路由面改动**；诚实重钉须重跑 `contract:sync` → 重打包 → 重钉（同 F3/K4-release 的跨仓重放） |
+| I3  | ✅ **已完成（§9.14.15）**：`docs-counts` 前移到 pre-commit —— `.lintstagedrc` 增一条 glob 钩子，`src/**` / `docs/api-contract/**` / `package.json` / `CLAUDE.md` / `AGENTS.md` 被 stage 时自动跑 `check-docs-counts.mjs`                                                        |
 
 ### 批次 J —— 长期项（沿用，不重复展开）
 
@@ -2654,14 +2973,14 @@ F 属跨仓（需单独授权 + release worktree 重放），K 是本仓自洽�
 - `check-public-api-docs.mjs` 自身补单测（现以变异自证替代）；
 - 未封装路由的逐条决策（`artifacts/sdk-contract-gap-report.md` §2），补时必须走 `rp()` 契约绑定。
 
-### 批次 K —— **「URL 构造器」门禁**（🔴 高优先，堵 §9.14.4 盲区 1）**—— K1/K2/K3 ✅ 已落地；K4 挂链+登记 ✅，同步 release ⏸**
+### 批次 K —— **「URL 构造器」门禁**（🔴 高优先，堵 §9.14.4 盲区 1）**—— K1/K2/K3 ✅ 已落地；K4 挂链+登记 ✅，同步 release ⏸（⊂ F3）**
 
-| 步     | 动作                                                                                                                                                             | 验收                                                   |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| ~~K1~~ | **已完成（§9.14.12）**：抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态），登记成 15 条台账 | ✅ 清单（方法 → 拼出的 path 模板），先量比对面再定判据 |
-| ~~K2~~ | **已完成（§9.14.12）**：三层判据（存在性 / 路径命中 / 覆盖率守卫）+ 具名桶棘轮（`template-slot=1` / `identity-server=3`）                                        | ✅ 门禁 `exit 0`，桶计数入库                           |
-| ~~K3~~ | **已完成（§9.14.12）**：**变异自证 3/3 全 RED**（A/B 守卫缺失、C 未登记构造点），还原后字节一致                                                                  | ✅ 三处都变红；还原后 `exit 0`、字节一致               |
-| ~~K4~~ | **已完成（§9.14.12）**：挂进 `quality:contracts`（`quality:url-constructors`）+ 台账 `gates=20`/`support=56`；**未完成**：同步 release（见批次 F，需单独授权）   | ✅ 挂链+登记完成；⏸ 整链 release `exit 0` 待批次 F     |
+| 步     | 动作                                                                                                                                                             | 验收                                                                                                                    |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ~~K1~~ | **已完成（§9.14.12）**：抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态），登记成 15 条台账 | ✅ 清单（方法 → 拼出的 path 模板），先量比对面再定判据                                                                  |
+| ~~K2~~ | **已完成（§9.14.12）**：三层判据（存在性 / 路径命中 / 覆盖率守卫）+ 具名桶棘轮（`template-slot=1` / `identity-server=3`）                                        | ✅ 门禁 `exit 0`，桶计数入库                                                                                            |
+| ~~K3~~ | **已完成（§9.14.12）**：**变异自证 3/3 全 RED**（A/B 守卫缺失、C 未登记构造点），还原后字节一致                                                                  | ✅ 三处都变红；还原后 `exit 0`、字节一致                                                                                |
+| ~~K4~~ | **已完成（§9.14.12）**：挂进 `quality:contracts`（`quality:url-constructors`）+ 台账 `gates=20`/`support=56`；**未完成**：同步 release（⊂ F3，见批次 F）         | ✅ 挂链+登记完成；✅ release `lint`/`quality:contracts` `exit 0`（F4，§9.14.13）；⏸ release 侧 `url-constructors` 待 F3 |
 
 **为什么排第二**：`wire-format` 上线后仍漏掉 W-06 那 4 个 404，说明"每补一层判据就有一层新盲区"——
 **先建判据再修实例**（本仓既有纪律），否则修完 W-06 下次换个方法又会静默复发。
@@ -2674,20 +2993,20 @@ F 属跨仓（需单独授权 + release worktree 重放），K 是本仓自洽�
 | L2  | 判据：裸调路径必须命中 SDK 侧镜像 manifest（跨仓依赖：读 `matrix-js-sdk/docs/api-contract/generated/route-manifest.all.json`，路径可用 `meta/sdk-pin.json` 的 `sdk_commit` 定位）                   | 门禁 `exit 0`                                  |
 | L3  | 与 W-03/W-04 联动：修完后裸调计数下降；把"该收敛到 SDK 的方法"登记成显式清单（不静默）                                                                                                              | 棘轮只降不升                                   |
 
-### 批次 M —— W-03～W-06 实例修复（M1/M2/M3/M5 ✅ 已按裁定落地）
+### 批次 M —— W-03～W-06 实例修复（M1/M2/M3/M4/M5/M6 ✅ 已按裁定落地，见 §9.14.16 订正表）
 
-| 步     | 对象               | 动作与状态                                                                                                                                                                                                                    |
-| ------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M1** | **W-06**（🔴 404） | ✅ **已落地**（§9.14.6）：`getSsoLoginUrl` 删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]` ⇒ `getCasLoginUrl()` 得 `/login/sso/redirect/cas`。**待完成**：release 复刻 + 重打包 + 重钉 pin（Tjg 吃 pin 住的 tarball） |
-| **M2** | **W-06 前端侧**    | ✅ **已落地**：Tjg 调用点不再传第二参/IdP；**删除** `augmentations.d.ts` 里那两行错误重复声明（`deviceName`）                                                                                                                 |
-| **M3** | **W-03**           | ✅ **已落地**：前端 `handleSamlCallback` 收敛到 SDK `handleCallback`，删 `sessionId`（后端 `SamlCallbackBody` 是 `deny_unknown_fields` 且无该字段）                                                                           |
-| **M4** | **W-04**           | ⏸ **未动（未裁定）**：`MatrixAuthService.getSsoLoginUrl(idpId?, redirectUrl?)` 的 `idp_id` 被后端**静默丢弃**；修法需先定（删形参 vs 收敛到 `OidcManager`——后者须先有 M5 的正确封装）                                         |
-| **M5** | **W-05**           | ✅ **已落地**：`OidcManager.ssoRedirect` 改为**纯 URL 构造器**（sync），不再发请求                                                                                                                                            |
-| **M6** | **W-06 文档侧**    | ⏸ **待做**：`docs/api-contract/thread.md:105-107` 等 11 行前缀纠正（并入批次 H2）                                                                                                                                             |
+| 步     | 对象               | 动作与状态                                                                                                                                                                                                                                                                                                              |
+| ------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M1** | **W-06**（🔴 404） | ✅ **已完成**（§9.14.6 代码 + §9.14.9 release 收尾）：`getSsoLoginUrl` 删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]` ⇒ `getCasLoginUrl()` 得 `/login/sso/redirect/cas`；**release 复刻 + 重打包 + 重钉 pin 亦已完成**（`sdk_commit=9740e1ef2927…` / `tarball_sha256=sha256-76b1c14c…` / `verify:sdk-pin` ok） |
+| **M2** | **W-06 前端侧**    | ✅ **已落地**：Tjg 调用点不再传第二参/IdP；**删除** `augmentations.d.ts` 里那两行错误重复声明（`deviceName`）                                                                                                                                                                                                           |
+| **M3** | **W-03**           | ✅ **已落地**：前端 `handleSamlCallback` 收敛到 SDK `handleCallback`，删 `sessionId`（后端 `SamlCallbackBody` 是 `deny_unknown_fields` 且无该字段）                                                                                                                                                                     |
+| **M4** | **W-04**           | ✅ **已完成**（§9.14.8）：删掉 Tjg 第二份 SSO URL 实现 + 2 条点状守卫；`grep 'static '` 实测 `MatrixAuthService` 已无 `getSsoLoginUrl`（`idp_id` 静默丢弃问题随实现一并消除）                                                                                                                                           |
+| **M5** | **W-05**           | ✅ **已落地**：`OidcManager.ssoRedirect` 改为**纯 URL 构造器**（sync），不再发请求                                                                                                                                                                                                                                      |
+| **M6** | **W-06 文档侧**    | ✅ **已落地（并入批次 H2，§9.14.14）**：`thread.md` 等 **11 行**前缀纠正（v1/r0 → vendor）                                                                                                                                                                                                                              |
 
-> **M1 的"待完成"不是代码问题**：Tjg 吃 pin 住的 tarball（`sdk_mode: "tarball"`），release 线的
-> `getSsoLoginUrl` 仍是旧实现 ⇒ 要让 release 受益必须走 release 复刻 + 重打包 + 重钉 pin
-> （同 W-02 的 `1ea98dbc` 流程）。**但 Tjg 的实际 404 已经好了** —— "少传第二参"这一步对旧 SDK 也成立。
+> **M1 的 release 收尾已闭环**（§9.14.9）：Tjg 吃 pin 住的 tarball（`sdk_mode: "tarball"`），故 release 线
+> 的 `getSsoLoginUrl` 旧实现必须经 release 复刻 + 重打包 + 重钉 pin 才消除；该流程（同 W-02 的 `1ea98dbc`）
+> 已完成，实测 release worktree HEAD 即 pin 的 `9740e1ef2`。**Tjg 的实际 404 也随之彻底消失。**
 
 ### 依赖与顺序（第二十轮修订）
 
@@ -2696,8 +3015,8 @@ F1 → F2 → F3 → F4 → F5      （release 门禁对齐：跨仓、需单独
 G3                          （低风险，可随时做）
 K1 → K2 → K3 → K4           （先建判据：M 已修完的 4 条实例，K 正是防它们复发的那道门）
 L1 → L2 → L3                （需 Tjg 侧配合；可与 K 并行）
-M4 / M6 / M1 的 release 收尾 （M1/M2/M3/M5 已落地，见 §9.14.6；M4 待裁定）
-H1 → H2 → H3                （H2 顺带覆盖 M6）
+M1 / M4 / M6 的收尾         （全部已完成：M1 §9.14.9 release 复刻+重打包+重钉 pin；M4 §9.14.8 删 Tjg 第二份实现；M6 ⊂ H2）
+H1 → H2 → H3                （✅ 已落地，§9.14.14；H2 顺带覆盖 M6）
 I2 → I3                     （I2 需要后端内容先冻结）
 ```
 
