@@ -61,12 +61,13 @@
 
 ### 房间与社交类
 
-| MSC 编号    | 状态     | 前端文件                  | 后端实现 | SDK 影响面             | 备注                                       |
-| ----------- | -------- | ------------------------- | -------- | ---------------------- | ------------------------------------------ |
-| **MSC2403** | Stable   | `src/client-api-types.ts` | ✅       | Knock rooms            | `m.knock` join rule                        |
-| **MSC3417** | Stable   | `src/models/room.ts`      | ✅       | Call rooms             | `m.call` room type                         |
-| **MSC4267** | Stable   | `src/room/RoomManager.ts` | ✅       | Atomic leave + forget  | `POST /rooms/{roomId}/leave {forget:true}` |
-| **MSC4497** | Unstable | `src/room-state/index.ts` | ✅       | State events filtering | `?type=` query param                       |
+| MSC 编号    | 状态     | 前端文件                                              | 后端实现 | SDK 影响面                   | 备注                                       |
+| ----------- | -------- | ----------------------------------------------------- | -------- | ---------------------------- | ------------------------------------------ |
+| **MSC2403** | Stable   | `src/client-api-types.ts`                             | ✅       | Knock rooms                  | `m.knock` join rule                        |
+| **MSC3417** | Stable   | `src/models/room.ts`                                  | ✅       | Call rooms                   | `m.call` room type                         |
+| **MSC4267** | Stable   | `src/room/RoomManager.ts`                             | ✅       | Atomic leave + forget        | `POST /rooms/{roomId}/leave {forget:true}` |
+| **MSC4291** | Stable   | `src/common/validators.ts`, `src/admin/validators.ts` | ✅       | Room v12 domainless room IDs | `!` + 43 个 base64url 字符，无 `:server`   |
+| **MSC4497** | Unstable | `src/room-state/index.ts`                             | ✅       | State events filtering       | `?type=` query param                       |
 
 ### 推送与通知类
 

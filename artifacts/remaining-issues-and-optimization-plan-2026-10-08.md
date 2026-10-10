@@ -13,23 +13,23 @@
 
 ## 0. 结论速览
 
-| 级别                              | 问题                                                                                           | 一句话                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 是否阻断 CI              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| **✅ 已闭环**                     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                                                                                                                                                                                                                                                                                                                                                                         | 否（不再拦）             |
-| **🔴 P1（最高）**                 | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类 8 条亦已修**（§9.13.1）（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3；✅ **2026-10-10 已按路线 ③ 收口**，见 §9.11.4）。门禁 `quality:wire-format` **已落地**（§9.11）                                                                                                                                                                                                                                                                                            | **是（门禁已挂 CI 链）** |
-| **✅ N-02**                       | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 环绕用例原循环 258 个成员、满负载撞 30s 墙钟 ⇒ CI 间歇红；**已修**（`3eb764b0a` / `a389b259c`：改「注入索引」版，`membersToTest = 4`），见 §9.13.2                                                                                                                                                                                                                                                                                                                                                             | 否（已消）               |
-| **🟡 P1-1**                       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 否（棘轮已钉住）         |
-| **🟡 P1-2**                       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 否（已登记 waiver）      |
-| **P1-3**                          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 否（策略债）             |
-| **P2**                            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 否                       |
-| **🔴 盲区 1（新）**               | **「URL 构造器」无任何门禁**（§9.14.4）                                                        | `wire-format` 只看 `request()` 调用点；而 `getSsoLoginUrl`/`getCasLoginUrl`/`getLoginRedirectUrl` 等**纯拼 URL**、零调用点 ⇒ **W-06 的 4 个 404 全部隐形**。处置 = §10 批次 K                                                                                                                                                                                                                                                                                                                                                     | **否（当前无覆盖）**     |
+| 级别                              | 问题                                                                                           | 一句话                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 是否阻断 CI                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **✅ 已闭环**                     | P0-1 prettier 红（7 文件）/ P0-2 `coverage:critical-files` 台账腐烂 2 条 / P0-3 提交钩子未安装 | 三条**均已修**（2026-10-10 实测：prettier 干净、台账 `exit 0`「无违规」、`core.hooksPath=.husky/_` 且 `pre-commit` 在位）                                                                                                                                                                                                                                                                                                                                                                                                         | 否（不再拦）                           |
+| **🔴 P1（最高）**                 | **SDK↔后端 wire-format 缺陷**                                                                  | A 类 11 条**已修**；**B/C/D 类 8 条亦已修**（§9.13.1）（P-13 已修，见 §9.8）+ **W-01 / W-02**（同一功能的 3 份实现，§9.11.1 / §9.11.3；✅ **2026-10-10 已按路线 ③ 收口**，见 §9.11.4）。门禁 `quality:wire-format` **已落地**（§9.11）                                                                                                                                                                                                                                                                                            | **是（门禁已挂 CI 链）**               |
+| **✅ N-02**                       | **测试基建负载敏感假红**                                                                       | `MatrixRTCSession` 环绕用例原循环 258 个成员、满负载撞 30s 墙钟 ⇒ CI 间歇红；**已修**（`3eb764b0a` / `a389b259c`：改「注入索引」版，`membersToTest = 4`），见 §9.13.2                                                                                                                                                                                                                                                                                                                                                             | 否（已消）                             |
+| **🟡 P1-1**                       | 覆盖率 / 契约盲区                                                                              | 未校验路径调用点 **139 → 8**（逐条定性毕）；3 个未覆盖包装器；路由集合对账已建                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 否（棘轮已钉住）                       |
+| **🟡 P1-2**                       | 契约语义不匹配 / 后端缺路由                                                                    | `invite/blocklist` 整体替换 vs 逐个增删；`deleteFeatureFlag` 后端无 DELETE                                                                                                                                                                                                                                                                                                                                                                                                                                                        | 否（已登记 waiver）                    |
+| **P1-3**                          | 豁免与基线纪律不一致                                                                           | baseline 更新无条件全量重写；swallow 白名单过期只 warn                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 否（策略债）                           |
+| **P2**                            | 长尾与工程卫生                                                                                 | 3 个聚合/生成脚本无 spec；2 个已登记孤岛（提交积压**已清**：ahead/behind 0/0）                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 否                                     |
+| **✅ 盲区 1（已覆盖）**           | **「URL 构造器」门禁已落地**（曾无门禁，§9.14.4）                                              | `wire-format` 只看 `request()` 调用点；而 `getSsoLoginUrl`/`getCasLoginUrl`/`getLoginRedirectUrl` 等**纯拼 URL**、零调用点 ⇒ 曾使 **W-06 的 4 个 404 全部隐形**。**已按 §10 批次 K 落地**（K1 清单 15 条 / K2 三层判据 + 具名桶 / K3 变异 3/3 / K4 挂链），见 §9.14.12                                                                                                                                                                                                                                                            | **否（门禁已挂 `quality:contracts`）** |
 | **✅ W-06（已修）**               | SDK `getSsoLoginUrl`/`getCasLoginUrl` **拼错路径段 ⇒ 404**（§9.14.3）                          | **已按裁定修好（§9.14.6）**：删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]` ⇒ `getCasLoginUrl()` 得 `/login/sso/redirect/cas`；Tjg 侧不再把 `'Tjg Client'` 当第二参（那是 `loginType`，会拼成路径段）⇒ 实际 404 已消。**仍待**：release 复刻 + 重打包 + 重钉 pin（Tjg 吃 tarball）                                                                                                                                                                                                                                       |
 | **✅ W-03/W-05/W-04（全部已修）** | 同族 3 条（§9.14.3 登记；§9.14.6、§9.14.8 收口）                                               | ✅ **W-03** 前端 `handleSamlCallback` 收敛到 SDK `handleCallback`、删 `session_id`（§9.14.6）；✅ **W-05** `OidcManager.ssoRedirect` 改纯 URL 构造器；✅ **W-04**（§9.14.8）`MatrixAuthService.getSsoLoginUrl` **整方法删除** —— 除已知的 `idp_id` 被静默丢弃外，本轮实查还有两处更重：期望 JSON 而后端恒 **302**、且用**带认证**的 `authedRequestWithPath` 打**登录前**端点；零调用点 + `MatrixClientAuth.getSSOLoginUrl` 已是规范实现                                                                                           |
 | **✅ N-03 / N-04（已修）**        | `Large file change guard` 的两处结构缺陷（§9.14.7）                                            | **N-03** 该门禁**不在任何本地链**（`pnpm lint`/`quality:contracts` 都不含）⇒ 本地永久预演不到、只能等 CI，且**无 per-change 批准**（唯一出口是**全局**旁路）；**N-04** push 事件 `GITHUB_BASE_SHA` 为空 ⇒ 只看 tip 提交 ⇒ **非 tip 提交改大文件不拦**（实测：1766 行文件改 **855 行** 未被拦）。**已修**：加第二判据 `LARGE_FILE_DIFF_LINES`（≥50 行才要求评审 + fail-closed + 打印豁免名单）+ `resolveDiffRange` 改用 `GITHUB_EVENT_BEFORE`                                                                                      |
 | **✅ W-07（已按裁定修）**         | 前端调用 SDK **已删除**的方法（§9.14.9 / §9.14.10）                                            | `Tjg SecurityService.getBackups` → `AdminManager.listBackups()`，该方法已随 release `a321796e2` 删除；后端 `admin/server.rs:488-493` 有**专测**断言 `/_synapse/admin/v1/backups` **不在** manifest。**用户裁定删除**：卡片 + `backupColumns` + `useAdminMaintenance` 全链 + 2 处 subtitle **及 5 个 i18n key** 一并清除；另由测试发现并清掉一个**中文用例名**（`渲染备份列表到表格`）。验收 30 文件 / 305 例绿                                                                                                                    |
 | **✅ N-05（已补判据）**           | `node_modules` 与 `vendor/*.tgz` **可不同步**（§9.14.9 / §9.14.10）                            | 根因：旧判据只比「tarball sha256」与 **版本字符串**，而 release 线改代码**不改版本号** ⇒ 长期假绿。**已补**：pin 增 `sdk_lib_fingerprint`（包内 `lib/` 内容指纹）+ `verify:sdk-pin` fail-closed 比对（缺字段 / 取不到 / 不等三态皆失败）+ schema 扩展 + spec **14 例**；**变异自证 3/3**（含"删比对块 ⇒ 篡改被放过"的反证）。⚠️ 性能：同步版 21.5s ⇒ 并发 16 路 **5.8s**                                                                                                                                                          |
 | **✅ F1/F5/G3（本轮）**           | 剩余任务首轮盘点与落地（§9.14.11）                                                             | **F1** 实测两线差集 develop **132** vs release **62**（缺 70 = 18 门禁 + 12 lib + 24 `.d.mts` + 16 台账；门禁 14 低依赖 / 4 高依赖）；**F5** 新增「两线门禁集合差集」守卫（复用 `isGoverned`、双向查、三态判据、棘轮「修一条删一条」）+ spec 16 例 + 变异自证 2/2，挂进 `quality:contracts`；**G3** `.lintstagedrc` 实测已覆盖 `artifacts/**/*.md` ⇒ 只需在两份 agent 文档里补「Formatting Discipline」。⏸ 未完成：F2/F3/F4（需为 release 重建整套台账）、K（需表达式求值抽取器）、L（跨仓）、H（实测 28 行需逐行核对）、I2/I3、J |
-| **🟡 D-01（复核）**               | release 线门禁面窄于 develop                                                                   | **实测 53 vs 85** 个门禁类脚本；抽查 7 个全缺（含 `path-contract`/`wire-format`）⇒ Tjg 消费的线上**路径与报文都无机器判据**（§9.14.2）                                                                                                                                                                                                                                                                                                                                                                                            | 否（结构性）             |
+| **🟡 D-01（复核）**               | release 线门禁面窄于 develop                                                                   | **实测 53 vs 85** 个门禁类脚本；抽查 7 个全缺（含 `path-contract`/`wire-format`）⇒ Tjg 消费的线上**路径与报文都无机器判据**（§9.14.2）                                                                                                                                                                                                                                                                                                                                                                                            | 否（结构性）                           |
 
 > **⚠️ 新增最高优先事项**：2026-10-09 与后端 `ROUTE_CONTRACT.md` 附录 B 的**联审**发现
 > **27 条 wire-format 缺陷**（其中 19 条会导致 400 或静默返回空数据）；2026-10-10 又在当前 HEAD 上
@@ -2510,6 +2510,94 @@ release 独有                       0 个
 > F1 量出 70（不是 32）、H 量出 28（不是 11）——两次都与文档里的**估计值**差一倍以上。
 > 这正是本仓既有纪律「抽取器改造前先量比对面」的又一次印证：**估计值不能当工作量与风险的依据。**
 
+#### 9.14.12 2026-10-10 第二十轮续七：批次 K（URL 构造器门禁）落地 —— 堵 §9.14.4 盲区 1
+
+**触发**：用户裁定「继续处理剩余的台账未闭环项」。§10 优先级 **F > K > M > L > H/I/J**：
+F 属跨仓（需单独授权 + release worktree 重放），K 是本仓自洽的最高优先项 ⇒ 本轮推进 K。
+
+**本轮完成**：K1（清单）｜K2（门禁判据）｜K3（变异自证 3/3）｜K4（挂链 + 台账/spec 登记）。
+**未完成**：K4 里的「同步 release（批次 F）」—— 与 F2/F3/F4 同批，**需单独授权**。
+
+##### 一、K1 —— 先量比对面：清单（不是估计值）
+
+§9.14.4 的盲区是「纯拼 URL、零 `request()` 调用点 ⇒ 在 `wire-format` 视角下隐形」。本轮先把这类
+**返回 URL / 路径字符串**的方法体逐条抽出，登记成 `scripts/quality/url-constructor-ledger.json`
+（15 条），覆盖两种形态：
+
+| 形态                 | 判据来源                           | 例                                |
+| -------------------- | ---------------------------------- | --------------------------------- |
+| **纯字符串拼接**     | `return \`…${baseUrl}…\``          | `account/index.ts:getSsoLoginUrl` |
+| **委托 http.getUrl** | `this.client.http.getUrl(path, …)` | `media/index.ts:getDownloadUrl`   |
+
+15 条分布：`account/index.ts` ×3（`getSsoLoginUrl` / `getCasLoginUrl` / `getFallbackAuthUrl`）、
+`identity-server/index.ts` ×2、`media/index.ts` ×2、`oidc/manager.ts` ×2、`saml/index.ts` ×2、
+`cas/index.ts` ×1、`content-repo.ts` ×1、`http-api/index.ts` ×1、
+`rendezvous/transports/MSC4108RendezvousSession.ts` ×1。
+
+每条登记 `{file, symbol, method, guards[], paths[{path, expect}]}`：`guards` 是**源码子串**，
+用于钉住"这段拼接还在原地"（含条件分支的两种写法各列一条，见下）。
+
+##### 二、K2 —— 门禁判据（三层 + 具名桶棘轮）
+
+`scripts/quality/check-url-constructors.mjs`（复用 `verify-path-contract.mjs` 的
+`loadBackendRoutes` / `matchAgainstLedger` / `normalizePath`，**判据单一来源**）：
+
+- **层 1（存在性）**：登记项的 `guards` 子串必须都在源码里 ⇒ 否则 `stale-guard`
+  （防"方法被重写、台账未更新"）。
+- **层 2（路径命中）**：`expect: "manifest"` 的 path 必须命中镜像 manifest
+  （`{…}` 段按段通配，命中即 `exact`/`wildcard`）⇒ 否则 `manifest-miss`；
+  `expect: "bucket:<name>"` 的 path 必须**不**命中 ⇒ 否则 `bucket-now-in-manifest`。
+- **层 3（覆盖率守卫）**：扫 `src/**`（排除 `__generated__`/`__tests__`/`.d.ts`），
+  三条正则找"构造点"：R1 `new URL(\`…\`)`、R2 `.getUrl(`、R3
+``return `…${(baseUrl|BaseUrl|getHomeserverUrl)…}` ``；**未登记的构造点 ⇒ `unregistered-site`**。
+  ⇒ 这是 K2 的关键：**新写的 URL 构造器若不登记，门禁就红\*\*，否则审计表面迟早腐烂。
+
+**具名桶（只降不升）**：认不出的形态落桶 —— `template-slot=1`
+（`/login/sso/redirect/${loginType}` 这类运行期模板槽，无法静态求值）、`identity-server=3`
+（identity-server 路径**不在本后端 manifest**，属外部域名空间）。桶计数入库到 `buckets`；
+`--refresh` 仅在**无非桶问题**时重写，`grown` ⇒ `bucket-grown`，`shrink`/清空 ⇒
+`bucket-stale`（"修一条删一条"）。`src/http-api/fetch.ts` 作 `ignoredSites`（HTTP 传输层 plumbing）。
+
+**设计张力（据实记）**：K2 验收原本写"判据需对 TS 表达式做抽象求值（枚举条件分支）"。实测后
+**不启用通用求值器**：改为把每条登记项的**分支各列一条 `paths`**（如 `getSsoLoginUrl` 同时列
+`/login/sso/redirect` 与 `/login/sso/redirect/${loginType}`），即**人工枚举分支 + 机器验证每个分支**
+—— 比写一个只会假绿的求值器更稳，且与"登记表"纪律一致。
+
+##### 三、K3 —— 变异自证（3/3 全 RED，逐字节还原）
+
+| 变异  | 手法                                                                                     | 期望                | 实测                                                          |
+| ----- | ---------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------- |
+| **A** | `getSsoLoginUrl` 体改回旧实现 `/login/…/redirect`                                        | `stale-guard`       | ✅ RED（两条守卫子串缺失）                                    |
+| **B** | `getCasLoginUrl` 的 `"cas"` → `"casLogin"`                                               | `stale-guard`       | ✅ RED（守卫 `this.getSsoLoginUrl(redirectUrl, "cas")` 缺失） |
+| **C** | 在**未登记符号** `loginRequest` 内插 `this.client.http.getUrl("/k3-mutation-probe", {})` | `unregistered-site` | ✅ RED（R2 构造点未登记）                                     |
+
+- 变异 A/B 证明**层 1（存在性）**真拦；变异 C 证明**层 3（覆盖率守卫）**真拦 —— 即"台账腐烂"
+  与"新构造器逃逸"两条路都堵上了。
+- 还原验证：`src/account/index.ts` `git diff --quiet` CLEAN，
+  **hash `85cbd5fa8eb92a93c57e761642c4ee3eb63d3697`（字节一致）**，门禁复跑 `exit 0`。
+
+##### 四、K4 —— 挂链 + 登记
+
+- `package.json`：新增 `quality:url-constructors`，并插进 `quality:contracts` 链
+  （在 `quality:path-contract` 之后）；`cross-line-gate-parity-waivers.json` 随之刷新为
+  **`gates=20` / `support.count=56`**，本门禁 reason 定制为「F2/F3 待移植（与
+  `verify-path-contract` 同批）」。
+- spec `spec/unit/url-constructors-gate.spec.ts`（参照 `vendor-prefix-migration-gate.spec.ts`）
+  **24 例**：各纯函数 + 三种判据形态（`exact` / 模板归一化命中 / `manifest-miss` /
+  `bucket` / `bucket-now-in-manifest` / `bad-expect`）+ `diffBuckets`。
+- 交叉校验：`check-cross-line-gate-parity` **`exit 0`**（20 条已登记 / 非门禁差集 56 = 上限）；
+  `check-gate-reachability` **`exit 0`**（无死门禁：可达 59 / 豁免 4；孤岛 2 均登记）；
+  镜像 manifest 实测 **`entry_count=1027`**。
+
+> 📌 **通则（与本轮 K3 同源）**：**判据的可信度不来自"它检查了什么"，而来自"它能否证明自己会红"。**
+> K2 若不配 K3 的三种变异，就无从分辨它是"真的在守"还是"路过时总是恰好为真"。
+
+##### 五、本轮**未完成**项
+
+| 项                        | 状态 | 原因                                                                                                                                        |
+| ------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **K4 的「同步 release」** | ⏸    | 与 F2/F3/F4 同批：须先把 `verify-path-contract.mjs`（高依赖组）与 `url-constructor-ledger.json` 搬到 release 线，**需单独授权**（见批次 F） |
+
 ---
 
 ## 10. 下一阶段优化方案（2026-10-10 第十九轮制定，第二十轮增补 F~M）
@@ -2566,14 +2654,14 @@ release 独有                       0 个
 - `check-public-api-docs.mjs` 自身补单测（现以变异自证替代）；
 - 未封装路由的逐条决策（`artifacts/sdk-contract-gap-report.md` §2），补时必须走 `rp()` 契约绑定。
 
-### 批次 K —— **「URL 构造器」门禁**（🔴 高优先，堵 §9.14.4 盲区 1）
+### 批次 K —— **「URL 构造器」门禁**（🔴 高优先，堵 §9.14.4 盲区 1）**—— K1/K2/K3 ✅ 已落地；K4 挂链+登记 ✅，同步 release ⏸**
 
-| 步  | 动作                                                                                                                                                                                                        | 验收                                                    |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| K1  | 抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态）：`getSsoLoginUrl`/`getCasLoginUrl`/`getLoginRedirectUrl`/`getLogoutRedirectUrl` 起手 | 一份清单（方法 → 拼出的 path 模板），先量比对面再定判据 |
-| K2  | 判据：拼出的 `(method, path)` 必须命中镜像 manifest（`{…}` 段按段通配）；认不出的一律落**具名桶**且只降不升                                                                                                 | 门禁 `exit 0`，桶计数入库                               |
-| K3  | **变异自证（样本已现成）**：`getCasLoginUrl` 传 `"cas"` ⇒ 应报 `/login/cas/redirect` 不存在；`getSsoLoginUrl(…, "sso", idpId)` ⇒ 应报 `{idp_id}` 形态不存在                                                 | 两处都变红；还原后 `exit 0`、字节一致                   |
-| K4  | 挂进 `quality:contracts`；同步 release（见批次 F）                                                                                                                                                          | 整链 `exit 0`                                           |
+| 步     | 动作                                                                                                                                                             | 验收                                                   |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| ~~K1~~ | **已完成（§9.14.12）**：抽取 SDK 里**返回 URL / 路径字符串**的方法体（`return \`…${baseUrl}…\``与`this.client.http.getUrl(path, …)` 两种形态），登记成 15 条台账 | ✅ 清单（方法 → 拼出的 path 模板），先量比对面再定判据 |
+| ~~K2~~ | **已完成（§9.14.12）**：三层判据（存在性 / 路径命中 / 覆盖率守卫）+ 具名桶棘轮（`template-slot=1` / `identity-server=3`）                                        | ✅ 门禁 `exit 0`，桶计数入库                           |
+| ~~K3~~ | **已完成（§9.14.12）**：**变异自证 3/3 全 RED**（A/B 守卫缺失、C 未登记构造点），还原后字节一致                                                                  | ✅ 三处都变红；还原后 `exit 0`、字节一致               |
+| ~~K4~~ | **已完成（§9.14.12）**：挂进 `quality:contracts`（`quality:url-constructors`）+ 台账 `gates=20`/`support=56`；**未完成**：同步 release（见批次 F，需单独授权）   | ✅ 挂链+登记完成；⏸ 整链 release `exit 0` 待批次 F     |
 
 **为什么排第二**：`wire-format` 上线后仍漏掉 W-06 那 4 个 404，说明"每补一层判据就有一层新盲区"——
 **先建判据再修实例**（本仓既有纪律），否则修完 W-06 下次换个方法又会静默复发。

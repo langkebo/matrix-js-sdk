@@ -1,5 +1,5 @@
 {
-    "generatedAt": "2026-10-07T11:29:49.917Z",
+    "generatedAt": "2026-10-10T11:39:43.531Z",
     "note": "SDK source MSC reference snapshot. Update with --update-baseline after registering new MSCs in docs/MSC_SDK_MAPPING.md.",
     "total": 63,
     "entries": {
@@ -12,7 +12,6 @@
         "2676": ["src/models/event.ts"],
         "2716": ["src/@types/event.ts", "src/models/room-state.ts", "src/models/room.ts", "src/sync.ts"],
         "2746": ["src/web-rtc/call.ts"],
-        "2965": ["src/client-auth.ts"],
         "2966": ["src/oidc/register.ts"],
         "3088": ["src/@types/event.ts"],
         "3089": [
@@ -90,6 +89,7 @@
             "src/rust-crypto/rust-crypto.ts"
         ],
         "4284": ["src/@types/event.ts", "src/admin/index.ts", "src/admin/sub-managers/admin-policy-manager.ts"],
+        "4291": ["src/admin/validators.ts", "src/common/validators.ts"],
         "4310": ["src/matrix-rtc/types.ts"],
         "4312": ["src/interactive-auth.ts"],
         "4341": ["src/oidc/register.ts", "src/oidc/validate.ts"],
@@ -97,7 +97,10 @@
             "src/client.ts",
             "src/embedded.ts",
             "src/matrix-rtc/MatrixRTCSession.ts",
-            "src/sliding-sync/__generated__/dto.ts"
+            "src/room-summary/room-summary-base-manager.ts",
+            "src/room/RoomManager.ts",
+            "src/sliding-sync/__generated__/dto.ts",
+            "src/thread/index.ts"
         ],
         "4362": ["src/client.ts", "src/models/event.ts", "src/rust-crypto/rust-crypto.ts"],
         "4380": ["src/invite-blocklist/index.ts"],
