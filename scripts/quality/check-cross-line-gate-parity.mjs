@@ -128,8 +128,29 @@ export function findWaiverProblems(gateDiff, waivers) {
     return problems;
 }
 
-/** 用 `git ls-tree` 列出某个 ref 下的 `scripts/quality/**`（避免依赖 worktree 是否在场）。 */
-function listQualityFiles(ref) {
+/**
+ * 列出**本线**的 `scripts/quality/**`：**index + 未跟踪文件（尊重 .gitignore）**。
+ *
+ * 为什么不用 `git ls-tree HEAD`：那样**提交前预演不到"新门禁自己也需要登记"** ——
+ * 新文件还没进 HEAD，差集里看不见它，于是本地跑是绿的、提交之后才突然变红。
+ * 2026-10-10 实测踩到（本门禁自己的首次提交就是这样漏掉一条登记）。
+ *
+ * 用 `--others --exclude-standard` 而非 `git status`：前者尊重 .gitignore，
+ * 而且给出的就是"即将进入本线的文件集合"，正是本判据需要比较的东西。
+ */
+function listQualityFilesThisLine() {
+    const out = execFileSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "--", QUALITY_PREFIX], {
+        cwd: projectRoot,
+        encoding: "utf8",
+    });
+    return out
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+}
+
+/** 列出**另一线**某个 ref 下的 `scripts/quality/**`（不依赖 worktree 是否在场）。 */
+function listQualityFilesAtRef(ref) {
     const out = execFileSync("git", ["ls-tree", "-r", "--name-only", ref, "--", QUALITY_PREFIX], {
         cwd: projectRoot,
         encoding: "utf8",
@@ -150,15 +171,17 @@ function main() {
 
     let thisLine;
     try {
-        thisLine = listQualityFiles("HEAD");
+        thisLine = listQualityFilesThisLine();
     } catch (err) {
-        process.stderr.write(`check-cross-line-gate-parity: cannot read HEAD via git: ${err?.message || err}\n`);
+        process.stderr.write(
+            `check-cross-line-gate-parity: cannot list the working line via git: ${err?.message || err}\n`,
+        );
         process.exit(2);
     }
 
     let otherLine;
     try {
-        otherLine = listQualityFiles(ref);
+        otherLine = listQualityFilesAtRef(ref);
     } catch {
         // ref 不在本地（浅 checkout / SDK-only checkout）⇒ 显式 SKIP，不算 pass。
         process.stdout.write(
