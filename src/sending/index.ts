@@ -79,6 +79,20 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         return txnId ?? this.client.makeTxnId();
     }
 
+    /**
+     * 向房间发送事件（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 事件类型
+     * @param content - 事件内容
+     * @param txnId - 可选事务 ID（整个重试生命周期内复用，用于幂等去重）
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendEvent("!room:example.org", "m.room.message", { msgtype: "m.text", body: "hi" });
+     * ```
+     */
     public async sendEvent(
         roomId: string,
         eventType: string | EventType,
@@ -129,6 +143,19 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         );
     }
 
+    /**
+     * 向房间发送消息事件（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param content - 消息内容
+     * @param txnId - 可选事务 ID
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendMessage("!room:example.org", { msgtype: "m.text", body: "hi" });
+     * ```
+     */
     public async sendMessage(
         roomId: string,
         content: RoomMessageEventContent,
@@ -169,6 +196,19 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         );
     }
 
+    /**
+     * 发送纯文本消息（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param text - 消息文本
+     * @param txnId - 可选事务 ID
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendTextMessage("!room:example.org", "hello");
+     * ```
+     */
     public async sendTextMessage(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendTextMessage(
         roomId: string,
@@ -201,6 +241,19 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         );
     }
 
+    /**
+     * 发送 HTML 消息（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param body - 纯文本回退内容
+     * @param html - HTML 内容
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendHtmlMessage("!room:example.org", "hello", "<b>hello</b>");
+     * ```
+     */
     public async sendHtmlMessage(roomId: string, body: string, html: string): Promise<ISendEventResponse>;
     public async sendHtmlMessage(
         roomId: string,
@@ -228,6 +281,19 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         } as RoomMessageEventContent);
     }
 
+    /**
+     * 发送 emote（/me）消息（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param text - 消息文本
+     * @param txnId - 可选事务 ID
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendEmote("!room:example.org", "waves");
+     * ```
+     */
     public async sendEmote(roomId: string, text: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendEmote(
         roomId: string,
@@ -258,6 +324,19 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         );
     }
 
+    /**
+     * 发送 notice 消息（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param body - 消息文本
+     * @param txnId - 可选事务 ID
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendNotice("!room:example.org", "maintenance soon");
+     * ```
+     */
     public async sendNotice(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public async sendNotice(
         roomId: string,
@@ -287,6 +366,20 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         );
     }
 
+    /**
+     * 发送图片消息（支持带 threadId 的两种重载形式）。
+     *
+     * @param roomId - 房间 ID
+     * @param url - 图片 mxc:// URL
+     * @param info - 可选图片信息
+     * @param text - 可选消息正文
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendImage("!room:example.org", "mxc://example.org/abc");
+     * ```
+     */
     public async sendImage(roomId: string, url: string, info?: IImageInfo, text?: string): Promise<ISendEventResponse>;
     public async sendImage(
         roomId: string,
@@ -320,6 +413,19 @@ export class SendingManager extends BaseManager<keyof SendingManagerEvents, Send
         } as RoomMessageEventContent);
     }
 
+    /**
+     * 发送文件消息。
+     *
+     * @param roomId - 房间 ID
+     * @param content - 文件消息内容
+     * @param txnId - 可选事务 ID
+     * @returns 发送结果（含 event_id）
+     *
+     * @example
+     * ```typescript
+     * await client.getSendingManager().sendFile("!room:example.org", { msgtype: "m.file", body: "a.pdf", filename: "a.pdf" });
+     * ```
+     */
     public async sendFile(roomId: string, content: IFileContent, txnId?: string): Promise<ISendEventResponse> {
         const effectiveTxnId = this.resolveTxnId(txnId);
         return this.withRetry(

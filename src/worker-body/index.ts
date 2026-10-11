@@ -96,13 +96,40 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         }, "request");
     }
 
-    /** POST /_synapse/worker/v1/workers/{worker_id}/heartbeat */
+    /**
+     * 上报 Worker 心跳。
+     * POST /_synapse/worker/v1/workers/{worker_id}/heartbeat
+     *
+     * @param workerId - Worker ID，必填
+     * @param req - 心跳请求，包含状态与负载信息
+     * @returns 心跳响应
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const res = await client.getWorkerBodyManager().heartbeat("worker-1", {
+     *     status: "up",
+     *     load_stats: { cpu_usage: 0.2 },
+     * });
+     * ```
+     */
     async heartbeat(workerId: string, req: HeartbeatRequest): Promise<HeartbeatResponse> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.doRequest(Method.Post, wb(`/v1/workers/${encodeURIComponent(workerId)}/heartbeat`), undefined, req);
     }
 
-    /** POST /_synapse/worker/v1/workers/{worker_id}/connect */
+    /**
+     * 建立 Worker 连接。
+     * POST /_synapse/worker/v1/workers/{worker_id}/connect
+     *
+     * @param workerId - Worker ID，必填
+     * @param address - 连接地址
+     * @returns 连接响应
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const res = await client.getWorkerBodyManager().connectWorker("worker-1", "127.0.0.1:8008");
+     * ```
+     */
     async connectWorker(workerId: string, address: string): Promise<ConnectWorkerResponse> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.doRequest(Method.Post, wb(`/v1/workers/${encodeURIComponent(workerId)}/connect`), undefined, {
@@ -110,26 +137,72 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         });
     }
 
-    /** POST /_synapse/worker/v1/workers/{worker_id}/disconnect */
+    /**
+     * 断开 Worker 连接。
+     * POST /_synapse/worker/v1/workers/{worker_id}/disconnect
+     *
+     * @param workerId - Worker ID，必填
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerBodyManager().disconnectWorker("worker-1");
+     * ```
+     */
     async disconnectWorker(workerId: string): Promise<void> {
         if (!workerId) throw new ValidationError("workerId is required");
         await this.doRequest(Method.Post, wb(`/v1/workers/${encodeURIComponent(workerId)}/disconnect`));
     }
 
-    /** GET /_synapse/worker/v1/workers/{worker_id}/commands */
+    /**
+     * 列出指定 Worker 的待处理命令。
+     * GET /_synapse/worker/v1/workers/{worker_id}/commands
+     *
+     * @param workerId - Worker ID，必填
+     * @param limit - 可选，返回数量上限
+     * @returns 待处理命令列表
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const { commands } = await client.getWorkerBodyManager().listPendingCommands("worker-1", 20);
+     * ```
+     */
     async listPendingCommands(workerId: string, limit?: number): Promise<{ commands: WorkerCommandResponse[] }> {
         if (!workerId) throw new ValidationError("workerId is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
         return this.doRequest(Method.Get, wb(`/v1/workers/${encodeURIComponent(workerId)}/commands`), q);
     }
 
-    /** POST /_synapse/worker/v1/commands/{command_id}/complete */
+    /**
+     * 将命令标记为完成。
+     * POST /_synapse/worker/v1/commands/{command_id}/complete
+     *
+     * @param commandId - 命令 ID，必填
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `commandId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerBodyManager().completeCommand("command-1");
+     * ```
+     */
     async completeCommand(commandId: string): Promise<void> {
         if (!commandId) throw new ValidationError("commandId is required");
         await this.doRequest(Method.Post, wb(`/v1/commands/${encodeURIComponent(commandId)}/complete`));
     }
 
-    /** POST /_synapse/worker/v1/commands/{command_id}/fail */
+    /**
+     * 将命令标记为失败。
+     * POST /_synapse/worker/v1/commands/{command_id}/fail
+     *
+     * @param commandId - 命令 ID，必填
+     * @param error - 失败原因
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `commandId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerBodyManager().failCommand("command-1", "unexpected error");
+     * ```
+     */
     async failCommand(commandId: string, error: string): Promise<void> {
         if (!commandId) throw new ValidationError("commandId is required");
         await this.doRequest(Method.Post, wb(`/v1/commands/${encodeURIComponent(commandId)}/fail`), undefined, {
@@ -137,7 +210,19 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         });
     }
 
-    /** POST /_synapse/worker/v1/tasks/{task_id}/complete */
+    /**
+     * 将任务标记为完成。
+     * POST /_synapse/worker/v1/tasks/{task_id}/complete
+     *
+     * @param taskId - 任务 ID，必填
+     * @param result - 可选，任务结果
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `taskId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerBodyManager().completeTask("task-1", { ok: true });
+     * ```
+     */
     async completeTask(taskId: string, result?: unknown): Promise<void> {
         if (!taskId) throw new ValidationError("taskId is required");
         await this.doRequest(Method.Post, wb(`/v1/tasks/${encodeURIComponent(taskId)}/complete`), undefined, {
@@ -145,13 +230,37 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         });
     }
 
-    /** POST /_synapse/worker/v1/tasks/{task_id}/fail */
+    /**
+     * 将任务标记为失败。
+     * POST /_synapse/worker/v1/tasks/{task_id}/fail
+     *
+     * @param taskId - 任务 ID，必填
+     * @param error - 失败原因
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `taskId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerBodyManager().failTask("task-1", "unexpected error");
+     * ```
+     */
     async failTask(taskId: string, error: string): Promise<void> {
         if (!taskId) throw new ValidationError("taskId is required");
         await this.doRequest(Method.Post, wb(`/v1/tasks/${encodeURIComponent(taskId)}/fail`), undefined, { error });
     }
 
-    /** GET /_synapse/worker/v1/replication/{worker_id}/position */
+    /**
+     * 获取指定 Worker 的复制位置。
+     * GET /_synapse/worker/v1/replication/{worker_id}/position
+     *
+     * @param workerId - Worker ID，必填
+     * @param streamName - 流名称
+     * @returns 复制位置
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const pos = await client.getWorkerBodyManager().getReplicationPosition("worker-1", "events");
+     * ```
+     */
     async getReplicationPosition(workerId: string, streamName: string): Promise<ReplicationPosition> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.doRequest(Method.Get, wb(`/v1/replication/${encodeURIComponent(workerId)}/position`), {
@@ -159,7 +268,20 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         });
     }
 
-    /** PUT /_synapse/worker/v1/replication/{worker_id}/{stream_name} */
+    /**
+     * 更新指定 Worker 的复制位置。
+     * PUT /_synapse/worker/v1/replication/{worker_id}/{stream_name}
+     *
+     * @param workerId - Worker ID，必填
+     * @param streamName - 流名称，必填
+     * @param position - 新的复制位置
+     * @returns 更新后的复制位置
+     * @throws {ValidationError} 当 `workerId` 或 `streamName` 为空时抛出
+     * @example
+     * ```typescript
+     * const pos = await client.getWorkerBodyManager().updateReplicationPosition("worker-1", "events", 42);
+     * ```
+     */
     async updateReplicationPosition(
         workerId: string,
         streamName: string,
@@ -176,7 +298,17 @@ export class WorkerBodyManager extends BaseManager<string, Record<string, never>
         );
     }
 
-    /** GET /_synapse/worker/v1/events */
+    /**
+     * 拉取事件。
+     * GET /_synapse/worker/v1/events
+     *
+     * @param streamId - 可选，起始 stream ID
+     * @returns 事件响应
+     * @example
+     * ```typescript
+     * const { events } = await client.getWorkerBodyManager().getEvents(100);
+     * ```
+     */
     async getEvents(streamId?: number): Promise<WorkerEventsResponse> {
         const q = streamId !== undefined ? { stream_id: String(streamId) } : undefined;
         return this.doRequest(Method.Get, wb("/v1/events"), q);

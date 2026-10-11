@@ -161,6 +161,13 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
     /**
      * Set profile information
+     *
+     * @example
+     * ```typescript
+     * await client.getProfileManager().setProfileInfo("displayname", { displayname: "Alice" });
+     * ```
+     *
+     * @throws {SdkError} 如果 API 调用失败
      */
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }): Promise<EmptyObject>;
     public setProfileInfo(info: "displayname", data: { displayname: string }): Promise<EmptyObject>;
@@ -424,6 +431,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
 
     /**
      * Helper to get an HTTP URL for a MXC URL
+     *
+     * @example
+     * ```typescript
+     * const url = client.getProfileManager().getHttpUriForMxc("mxc://example.com/abc", 96, 96);
+     * ```
      */
     public getHttpUriForMxc(
         mxcUrl: string,
@@ -435,6 +447,14 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         return getHttpUriForMxc(this.client.getHomeserverUrl(), mxcUrl, width, height, method, allowDirectLinks);
     }
 
+    /**
+     * 将 MXC URL 转换为可访问的 HTTP URL（`getHttpUriForMxc` 的别名）。
+     *
+     * @example
+     * ```typescript
+     * const url = client.getProfileManager().mxcUrlToHttp("mxc://example.com/abc", 96, 96);
+     * ```
+     */
     public mxcUrlToHttp(
         mxcUrl: string,
         width?: number,
@@ -451,6 +471,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * Determine if the server supports extended profiles, as described by MSC4133.
      *
      * @returns `true` if supported, otherwise `false`
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.getProfileManager().doesServerSupportExtendedProfiles();
+     * ```
      */
     public async doesServerSupportExtendedProfiles(): Promise<boolean> {
         return (
@@ -481,6 +506,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @param userId The user ID to fetch the profile of.
      * @returns A set of keys to property values.
      *
+     * @example
+     * ```typescript
+     * const profile = await client.getProfileManager().getExtendedProfile("@alice:example.com");
+     * ```
+     *
      * @throws An error if the server does not support MSC4133.
      * @throws A M_NOT_FOUND error if the profile could not be found.
      */
@@ -500,6 +530,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @param userId The user ID to fetch the profile of.
      * @param key The key of the property to fetch.
      * @returns The property value.
+     *
+     * @example
+     * ```typescript
+     * const value = await client.getProfileManager().getExtendedProfileProperty("@alice:example.com", "com.example.foo");
+     * ```
      *
      * @throws An error if the server does not support MSC4133.
      * @throws A M_NOT_FOUND error if the key was not set OR the profile could not be found.
@@ -521,6 +556,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @param key The key of the property to set.
      * @param value The value to set on the property.
      *
+     * @example
+     * ```typescript
+     * await client.getProfileManager().setExtendedProfileProperty("com.example.foo", "bar");
+     * ```
+     *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
     public async setExtendedProfileProperty(key: string, value: unknown): Promise<void> {
@@ -539,6 +579,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      *
      * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
      * @param key The key of the property to delete.
+     *
+     * @example
+     * ```typescript
+     * await client.getProfileManager().deleteExtendedProfileProperty("com.example.foo");
+     * ```
      *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
@@ -563,6 +608,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @param userId The user ID to set the property for.
      * @param key The key of the property to set.
      * @param value The raw value to set.
+     *
+     * @example
+     * ```typescript
+     * await client.getProfileManager().setExtendedProfilePropertyForUser("@alice:example.com", "com.example.foo", "bar");
+     * ```
      *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
@@ -590,6 +640,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @param userId The user ID to delete the property for.
      * @param key The key of the property to delete.
      *
+     * @example
+     * ```typescript
+     * await client.getProfileManager().deleteExtendedProfilePropertyForUser("@alice:example.com", "com.example.foo");
+     * ```
+     *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
     public async deleteExtendedProfilePropertyForUser(userId: string, key: string): Promise<void> {
@@ -613,6 +668,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @param profile The profile object to merge with the existing profile.
      * @returns The newly merged profile.
      *
+     * @example
+     * ```typescript
+     * const profile = await client.getProfileManager().patchExtendedProfile({ "com.example.foo": "bar" });
+     * ```
+     *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
     public async patchExtendedProfile(profile: IExtendedProfile): Promise<IExtendedProfile> {
@@ -632,6 +692,11 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
      * @see https://github.com/tcpipuk/matrix-spec-proposals/blob/main/proposals/4133-extended-profiles.md
      * @param profile The profile object to set.
      *
+     * @example
+     * ```typescript
+     * await client.getProfileManager().setExtendedProfile({ displayname: "Alice" });
+     * ```
+     *
      * @throws An error if the server does not support MSC4133 OR the server disallows editing the user profile.
      */
     public async setExtendedProfile(profile: IExtendedProfile): Promise<void> {
@@ -644,10 +709,26 @@ export class ProfileManager extends BaseManager<ProfileEvent, ProfileManagerEven
         );
     }
 
+    /**
+     * 获取资料缓存的统计信息（条目数、命中/未命中次数与命中率）。
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getProfileManager().getCacheStats();
+     * ```
+     */
     public getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.profileCache.getStats();
     }
 
+    /**
+     * 清空资料缓存。
+     *
+     * @example
+     * ```typescript
+     * client.getProfileManager().clearCache();
+     * ```
+     */
     public clearCache(): void {
         this.profileCache.clear();
     }

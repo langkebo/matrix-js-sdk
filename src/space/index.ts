@@ -118,6 +118,17 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
     // ===== 顶层协调方法 =====
 
+    /**
+     * 聚合所有 sub-manager 的缓存与请求统计，用于性能监控。
+     *
+     * 缓存维度分别汇总 query（高/低频、space、总计）与 hierarchy 的命中率；请求维度
+     * 汇总 5 个 sub-manager 的 total / successful / failed / retried 计数。
+     *
+     * @returns SpaceManagerMetrics —— 缓存统计与请求统计的快照。
+     * @example
+     * const metrics = client.getSpaceManager().getMetrics();
+     * console.log(`${metrics.requests.total} 次请求，失败 ${metrics.requests.failed} 次`);
+     */
     public getMetrics(): SpaceManagerMetrics {
         const queryAggregated = this.query.getAggregatedCacheStats();
         const hierarchyCache = this.hierarchy.getCacheStats();
@@ -146,15 +157,36 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         };
     }
 
+    /**
+     * 清空 query 与 hierarchy 两个 sub-manager 的缓存。
+     *
+     * 适用于缓存数据可能已过期、需要强制重新拉取的场景（如切换账号或长时间离线后）。
+     *
+     * @example
+     * client.getSpaceManager().clearCache();
+     */
     clearCache(): void {
         this.query.clearCache();
         this.hierarchy.clearHierarchyCache();
     }
 
+    /**
+     * 启动 SpaceManager —— 当前实现为清空 query 缓存，确保以干净状态开始。
+     *
+     * @example
+     * client.getSpaceManager().start();
+     */
     start(): void {
         this.query.clearCache();
     }
 
+    /**
+     * 停止 SpaceManager：清空 query 缓存，并移除所有 sub-manager 上的事件转发监听器，
+     * 防止 stop() 之后仍收到事件回调（监听器泄漏）。
+     *
+     * @example
+     * client.getSpaceManager().stop();
+     */
     stop(): void {
         this.query.clearCache();
         // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
@@ -174,6 +206,9 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
      *
      * @param roomId - The room ID (typically a space room)
      * @returns Array of raw state event objects
+     * @example
+     * const events = await client.getSpaceManager().getRoomStateEventsRaw("!abc:example.com");
+     * console.log(`${events.length} 个状态事件`);
      */
     public async getRoomStateEventsRaw(roomId: string): Promise<Array<Record<string, unknown>>> {
         const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });

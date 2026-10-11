@@ -80,6 +80,20 @@ export class SamlAuthManager extends BaseManager {
         super(client, opts);
     }
 
+    /**
+     * 发起 SAML SSO 登录（POST），返回后端生成的登录跳转地址。
+     *
+     * @param redirectUrl 登录成功后的回跳地址，可选。
+     * @returns 供浏览器跳转的登录 URL。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const url = await mgr.initiateLogin("https://app.example.com/login");
+     * window.location.href = url;
+     * ```
+     */
     async initiateLogin(redirectUrl?: string): Promise<string> {
         return await this.withRetry(async () => {
             const response = await this.request<SamlLoginResponse>({
@@ -122,6 +136,13 @@ export class SamlAuthManager extends BaseManager {
      *
      * @param redirectUrl - Optional URL to redirect to after SSO completion
      * @returns The redirect URL to navigate the browser to
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const result = await mgr.initiateLoginGet("https://app.example.com/login");
+     * ```
      */
     async initiateLoginGet(redirectUrl?: string): Promise<SamlLoginResponse> {
         return await this.withRetry(async () => {
@@ -135,12 +156,39 @@ export class SamlAuthManager extends BaseManager {
         }, "initiateLoginGet");
     }
 
+    /**
+     * 拼出 SAML 登出的浏览器跳转地址（纯 URL 拼接，**不发网络请求**）。
+     *
+     * @param redirectUrl 登出后的回跳地址，传空串则不拼 `?redirectUrl=`。
+     * @returns 供浏览器整页跳转的绝对 URL。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const url = mgr.getLogoutRedirectUrl("https://app.example.com/goodbye");
+     * window.location.href = url;
+     * ```
+     */
     getLogoutRedirectUrl(redirectUrl?: string): string {
         const baseUrl = this.client.getHomeserverUrl();
         const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
         return `${baseUrl}/_matrix/client/v3/logout/saml${params}`;
     }
 
+    /**
+     * 发起 SAML 登出（GET /logout/saml），返回后端给出的登出结果。
+     *
+     * @param redirectUrl 登出后的回跳地址，可选。
+     * @returns 登出响应对象。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const result = await mgr.initiateLogout("https://app.example.com/goodbye");
+     * ```
+     */
     async initiateLogout(redirectUrl?: string): Promise<SamlLogoutResponse> {
         return await this.withRetry(async () => {
             const params = redirectUrl ? { redirectUrl } : undefined;
@@ -153,6 +201,20 @@ export class SamlAuthManager extends BaseManager {
         }, "initiateLogout");
     }
 
+    /**
+     * 处理 IdP 回调（POST /login/saml/callback），用 SAMLResponse 换取认证结果。
+     *
+     * @param samlResponse IdP 返回的 SAMLResponse（Base64 编码）。
+     * @param relayState 可选的 RelayState，用于关联原始请求。
+     * @returns SAML 认证结果（访问令牌、用户 ID 等）。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const result = await mgr.handleCallback(samlResponse, relayState);
+     * ```
+     */
     async handleCallback(samlResponse: string, relayState?: string): Promise<SamlAuthResult> {
         return await this.withRetry(async () => {
             return await this.request<SamlAuthResult>({
@@ -169,6 +231,13 @@ export class SamlAuthManager extends BaseManager {
      * Convenience method that uses GET instead of POST for the SAML callback endpoint.
      *
      * @param params - Optional query parameters to include in the callback request
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const result = await mgr.getLoginCallback({ SAMLResponse: samlResponse });
+     * ```
      */
     async getLoginCallback(params?: Record<string, string>): Promise<SamlAuthResult> {
         return await this.withRetry(async () => {
@@ -186,6 +255,13 @@ export class SamlAuthManager extends BaseManager {
      * Convenience method that uses GET to retrieve the SAML SSO redirect URL.
      *
      * @param redirectUrl - Optional redirect URL after SSO completion
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const url = await mgr.getSsoRedirect("https://app.example.com/login");
+     * ```
      */
     async getSsoRedirect(redirectUrl?: string): Promise<string> {
         return await this.withRetry(async () => {
@@ -200,6 +276,19 @@ export class SamlAuthManager extends BaseManager {
         }, "getSsoRedirect");
     }
 
+    /**
+     * 执行 SAML 登出（GET /logout/saml），返回后端给出的登出结果。
+     *
+     * @param redirectUrl 登出后的回跳地址，可选。
+     * @returns 登出响应对象。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const result = await mgr.logout("https://app.example.com/goodbye");
+     * ```
+     */
     async logout(redirectUrl?: string): Promise<SamlLogoutResponse> {
         return await this.withRetry(async () => {
             const params = redirectUrl ? { redirectUrl } : undefined;
@@ -212,6 +301,18 @@ export class SamlAuthManager extends BaseManager {
         }, "logout");
     }
 
+    /**
+     * 处理 SAML 登出回调（GET /logout/saml/callback），完成登出流程收尾。
+     *
+     * @returns 无返回值。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * await mgr.handleLogoutCallback();
+     * ```
+     */
     async handleLogoutCallback(): Promise<void> {
         await this.withRetry(async () => {
             await this.request<Record<string, unknown>>({
@@ -223,6 +324,18 @@ export class SamlAuthManager extends BaseManager {
         }, "handleLogoutCallback");
     }
 
+    /**
+     * 获取 IdP 的 SAML 元数据（GET /saml/metadata）。
+     *
+     * @returns IdP 元数据对象。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const metadata = await mgr.getIdpMetadata();
+     * ```
+     */
     async getIdpMetadata(): Promise<SamlMetadata> {
         return await this.withRetry(async () => {
             return await this.request<SamlMetadata>({
@@ -233,6 +346,18 @@ export class SamlAuthManager extends BaseManager {
         }, "getIdpMetadata");
     }
 
+    /**
+     * 获取本服务提供方（SP）的 SAML 元数据（GET /saml/sp_metadata）。
+     *
+     * @returns SP 元数据对象。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const spMetadata = await mgr.getSpMetadata();
+     * ```
+     */
     async getSpMetadata(): Promise<SamlSpMetadata> {
         return await this.withRetry(async () => {
             return await this.request<SamlSpMetadata>({
@@ -243,18 +368,69 @@ export class SamlAuthManager extends BaseManager {
         }, "getSpMetadata");
     }
 
+    /**
+     * 获取管理端的 SAML 配置（GET /_synapse/admin/v1/saml/config）。
+     *
+     * @returns 当前 SAML 管理配置。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const config = await mgr.getAdminConfig();
+     * ```
+     */
     async getAdminConfig(): Promise<SamlAdminConfig> {
         return await this.samlAdminRequest<SamlAdminConfig>(Method.Get, ap("/saml/config"));
     }
 
+    /**
+     * 更新管理端的 SAML 配置（PUT /_synapse/admin/v1/saml/config），返回更新后的配置。
+     *
+     * @param config 需要更新的配置字段（部分更新）。
+     * @returns 更新后的完整 SAML 管理配置。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const config = await mgr.updateAdminConfig({ enabled: true });
+     * ```
+     */
     async updateAdminConfig(config: Partial<SamlAdminConfig>): Promise<SamlAdminConfig> {
         return await this.samlAdminRequest<SamlAdminConfig>(Method.Put, ap("/saml/config"), undefined, config);
     }
 
+    /**
+     * 触发管理端重新拉取 IdP 元数据（POST /_synapse/admin/v1/saml/metadata/refresh）。
+     *
+     * @returns 元数据刷新结果。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const result = await mgr.refreshMetadata();
+     * ```
+     */
     async refreshMetadata(): Promise<SamlRefreshResult> {
         return await this.samlAdminRequest<SamlRefreshResult>(Method.Post, ap("/saml/metadata/refresh"));
     }
 
+    /**
+     * 分页获取管理端的 SAML 用户映射列表（GET /_synapse/admin/v1/saml/mappings）。
+     *
+     * @param limit 每页返回数量，可选。
+     * @param from 分页起始游标，可选。
+     * @returns 用户映射分页结果。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const page = await mgr.getUserMappings(50);
+     * ```
+     */
     async getUserMappings(limit?: number, from?: string): Promise<SamlUserMappingPage> {
         const params: Record<string, string | number> = {};
         if (limit) params.limit = limit;
@@ -262,6 +438,19 @@ export class SamlAuthManager extends BaseManager {
         return await this.samlAdminRequest<SamlUserMappingPage>(Method.Get, ap("/saml/mappings"), params);
     }
 
+    /**
+     * 获取指定 NameID 的单个 SAML 用户映射（GET /_synapse/admin/v1/saml/mapping/{nameId}）。
+     *
+     * @param nameId SAML NameID 标识。
+     * @returns 对应的用户映射。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const mapping = await mgr.getUserMapping("user@example.com");
+     * ```
+     */
     async getUserMapping(nameId: string): Promise<SamlUserMapping> {
         return await this.samlAdminRequest<SamlUserMapping>(
             Method.Get,
@@ -269,6 +458,20 @@ export class SamlAuthManager extends BaseManager {
         );
     }
 
+    /**
+     * 创建或更新指定 NameID 的 SAML 用户映射（PUT /_synapse/admin/v1/saml/mapping/{nameId}）。
+     *
+     * @param nameId SAML NameID 标识。
+     * @param mapping 需要写入的映射字段（部分字段）。
+     * @returns 更新后的用户映射。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * const mapping = await mgr.updateUserMapping("user@example.com", { matrix_id: "@user:example.com" });
+     * ```
+     */
     async updateUserMapping(nameId: string, mapping: Partial<SamlUserMapping>): Promise<SamlUserMapping> {
         return await this.samlAdminRequest<SamlUserMapping>(
             Method.Put,
@@ -278,10 +481,36 @@ export class SamlAuthManager extends BaseManager {
         );
     }
 
+    /**
+     * 删除指定 NameID 的 SAML 用户映射（DELETE /_synapse/admin/v1/saml/mapping/{nameId}）。
+     *
+     * @param nameId SAML NameID 标识。
+     * @returns 无返回值。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * await mgr.removeUserMapping("user@example.com");
+     * ```
+     */
     async removeUserMapping(nameId: string): Promise<void> {
         await this.samlAdminRequest(Method.Delete, ap(`/saml/mapping/${encodeURIComponent(nameId)}`));
     }
 
+    /**
+     * 以管理员身份登出指定用户（POST /_synapse/admin/v1/saml/logout）。
+     *
+     * @param userId 需要被登出的用户 ID。
+     * @returns 无返回值。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSamlAuthManager();
+     * await mgr.adminLogout("@user:example.com");
+     * ```
+     */
     async adminLogout(userId: string): Promise<void> {
         await this.samlAdminRequest(Method.Post, ap("/saml/logout"), undefined, { user_id: userId });
     }

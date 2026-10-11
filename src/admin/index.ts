@@ -777,7 +777,14 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         this.server.on(AdminServerEvent.ServerStatsUpdated, (stats) => this.emit(AdminEvent.ServerStatsUpdated, stats));
     }
 
-    /** 停止 AdminManager，清理所有 sub-manager 的转发监听器 */
+    /**
+     * 停止 AdminManager，清理所有 sub-manager 的转发监听器
+     *
+     * @example
+     * ```typescript
+     * client.getAdminManager().stop();
+     * ```
+     */
     stop(): void {
         // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
         this.users.removeAllListeners();

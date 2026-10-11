@@ -88,6 +88,11 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * @param options.order_by - 排序字段 (e.g., "name", "joined_members")
      * @param options.sort_order - 排序顺序 ("asc" 或 "desc")
      * @returns 统一格式的分页响应
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().rooms.getRoomsPaginated({ limit: 50, search: "test" });
+     * console.log(page.items.length, page.next);
+     * ```
      */
     async getRoomsPaginated(options?: {
         from?: string;
@@ -121,6 +126,20 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return toPaginatedResult<RoomInfo>(response as unknown as Record<string, unknown>, "rooms");
     }
 
+    /**
+     * 全库搜索房间（GET 变体）。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/search`，后端返回
+     * `{results, count, total, limit, next_batch}`。
+     *
+     * @param options - 查询参数（如 `search_term`、`limit`、`order_by`）
+     * @returns 房间搜索结果分页
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().rooms.searchRooms({ search_term: "general", limit: 20 });
+     * console.log(page.results.length, page.total);
+     * ```
+     */
     async searchRooms(options?: Record<string, string | number | boolean | undefined>): Promise<AdminRoomSearchPage> {
         const query: Record<string, string> = {};
         if (options) {
@@ -131,6 +150,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, "/rooms/search", query);
     }
 
+    /**
+     * 全库搜索房间（POST 变体）。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/search`，请求体字段见 {@link RoomSearchPayload}。
+     *
+     * @param payload - 搜索条件
+     * @returns 房间搜索结果分页
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().rooms.searchRoomsPost({ search_term: "general", limit: 20 });
+     * console.log(page.results.length, page.total);
+     * ```
+     */
     async searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchPage> {
         return await this.adminRequest(Method.Post, "/rooms/search", {}, payload);
     }
@@ -139,7 +171,14 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * 获取房间详情
      *
      * @param roomId - 房间 ID
-     * @returns 房间详情
+     * @param throwOnError - 为 `false` 时，房间不存在（404）返回 `null` 而不抛错
+     * @returns 房间详情；`throwOnError` 为 `false` 且房间不存在时为 `null`
+     * @throws {Error} 房间不存在且 `throwOnError` 为 `true`，或请求失败时
+     * @example
+     * ```typescript
+     * const room = await client.getAdminManager().rooms.getRoom("!room:example.org");
+     * console.log(room?.name, room?.member_count);
+     * ```
      */
     async getRoom(roomId: string, throwOnError = true): Promise<RoomInfo | null> {
         AdminValidators.validateRoomId(roomId);
@@ -212,12 +251,31 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      *
      * @param roomId - 房间 ID
      * @param payload - 后端忽略（仅为不破坏公开 API 而保留）
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.deleteRoomAdmin("!room:example.org", { purge: true });
+     * ```
      */
     async deleteRoomAdmin(roomId: string, payload?: RoomDeletePayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}`, {}, payload ?? {});
     }
 
+    /**
+     * 清除房间历史事件。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/purge_history`，后端返回
+     * `{success, deleted_events, dry_run}`。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 清除范围（`purge_up_to_ts`）与 `dry_run` 开关，可选
+     * @returns 清除结果（含删除事件数与是否 dry-run）
+     * @example
+     * ```typescript
+     * const result = await client.getAdminManager().rooms.purgeRoomHistory("!room:example.org", { purge_up_to_ts: Date.now() });
+     * console.log(result.deleted_events, result.dry_run);
+     * ```
+     */
     async purgeRoomHistory(roomId: string, payload?: PurgeHistoryPayload): Promise<AdminPurgeHistoryResult> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(
@@ -234,6 +292,10 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * @param roomId - 房间 ID
      * @param block - 是否封锁房间
      * @param reason - 原因
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.blockRoom("!room:example.org", true, "spam");
+     * ```
      */
     async blockRoom(roomId: string, block: boolean, reason?: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
@@ -245,6 +307,18 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         this.emit(AdminRoomEvent.RoomBlocked, roomId, block);
     }
 
+    /**
+     * 解封房间。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/unblock`。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 解封原因，可选
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.unblockRoom("!room:example.org", { reason: "误封已复核" });
+     * ```
+     */
     async unblockRoom(roomId: string, payload?: AdminReasonPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/unblock`, {}, payload ?? {});
@@ -279,6 +353,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return { members, total: response.total ?? members.length, next_batch: response.next_batch ?? null };
     }
 
+    /**
+     * 强制把用户加入房间。
+     *
+     * 对应 `PUT /_synapse/admin/v1/rooms/{room_id}/members/{user_id}`。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @param payload - 加入原因，可选
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.addRoomMember("!room:example.org", "@alice:example.org");
+     * ```
+     */
     async addRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
@@ -290,6 +377,18 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
+    /**
+     * 把用户移出房间。
+     *
+     * 对应 `DELETE /_synapse/admin/v1/rooms/{room_id}/members/{user_id}`。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.removeRoomMember("!room:example.org", "@alice:example.org");
+     * ```
+     */
     async removeRoomMember(roomId: string, userId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
@@ -301,6 +400,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
+    /**
+     * 禁止成员进入房间。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/ban/{user_id}`。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @param payload - 封禁原因，可选
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.banRoomMember("!room:example.org", "@spammer:example.org", { reason: "spam" });
+     * ```
+     */
     async banRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
@@ -312,6 +424,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
+    /**
+     * 将成员踢出房间。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/kick/{user_id}`。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @param payload - 踢出原因，可选
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.kickRoomMember("!room:example.org", "@alice:example.org", { reason: "flooding" });
+     * ```
+     */
     async kickRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
@@ -323,6 +448,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
+    /**
+     * 解除对成员的封禁。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/unban/{user_id}`。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @param payload - 解封原因，可选
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.unbanRoomMember("!room:example.org", "@alice:example.org");
+     * ```
+     */
     async unbanRoomMember(roomId: string, userId: string, payload?: AdminReasonPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         AdminValidators.validateUserId(userId);
@@ -334,16 +472,56 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
+    /**
+     * 在房间内封禁用户。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/ban`，`user_id` 必填
+     * （见 {@link AdminBanKickPayload}）。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 目标用户与原因
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.banRoom("!room:example.org", { user_id: "@spammer:example.org", reason: "spam" });
+     * ```
+     */
     async banRoom(roomId: string, payload: AdminBanKickPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/ban`, {}, payload);
     }
 
+    /**
+     * 在房间内踢出用户。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/kick`，`user_id` 必填
+     * （见 {@link AdminBanKickPayload}）。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 目标用户与原因
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.kickRoom("!room:example.org", { user_id: "@alice:example.org", reason: "flooding" });
+     * ```
+     */
     async kickRoom(roomId: string, payload: AdminBanKickPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/kick`, {}, payload);
     }
 
+    /**
+     * 将用户提升为房间管理员。
+     *
+     * 对应 `PUT /_synapse/admin/v1/rooms/{room_id}/make_admin`；若后端返回 404，
+     * 则回退到 `POST` 变体。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 目标用户（`user_id` 必填，见 {@link AdminMakeRoomAdminPayload}）
+     * @throws {Error} `PUT` 失败且不属于可回退的 404 时，向上抛出原错误
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.makeRoomAdmin("!room:example.org", { user_id: "@alice:example.org" });
+     * ```
+     */
     async makeRoomAdmin(roomId: string, payload: AdminMakeRoomAdminPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         try {
@@ -363,6 +541,11 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      *
      * @param roomId - 房间 ID
      * @returns 房间状态事件列表
+     * @example
+     * ```typescript
+     * const { state } = await client.getAdminManager().rooms.getRoomState("!room:example.org");
+     * console.log(state.length);
+     * ```
      */
     async getRoomState(roomId: string): Promise<{ state: RoomStateEvent[] }> {
         AdminValidators.validateRoomId(roomId);
@@ -425,6 +608,11 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      * @param reason - 删除原因
+     * @throws {ValidationError} `eventId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.deleteRoomMessage("!room:example.org", "$event:example.org", "spam");
+     * ```
      */
     async deleteRoomMessage(roomId: string, eventId: string, reason?: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
@@ -460,6 +648,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * @param roomId - 房间 ID
      * @param payload - 时间范围 / 条数 / 原因过滤条件，全部可选
      * @returns 实际被撤回的事件条数
+     * @throws {ValidationError} `limit` 不是 1..10000 的整数时
      * @example
      * ```typescript
      * const { redacted } = await client
@@ -486,21 +675,76 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         });
     }
 
+    /**
+     * 获取房间的全部别名。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/aliases`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间别名列表
+     * @example
+     * ```typescript
+     * const { aliases } = await client.getAdminManager().rooms.getRoomAliases("!room:example.org");
+     * console.log(aliases);
+     * ```
+     */
     async getRoomAliases(roomId: string): Promise<{ aliases: string[] }> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/aliases`);
     }
 
+    /**
+     * 获取房间版本。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/version`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间版本信息
+     * @example
+     * ```typescript
+     * const { room_version } = await client.getAdminManager().rooms.getRoomVersion("!room:example.org");
+     * console.log(room_version);
+     * ```
+     */
     async getRoomVersion(roomId: string): Promise<AdminRoomVersionResponse> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/version`);
     }
 
+    /**
+     * 获取房间封锁状态。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/block`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 封锁状态（未封锁时只返回 `block: false`）
+     * @example
+     * ```typescript
+     * const status = await client.getAdminManager().rooms.getRoomBlockStatus("!room:example.org");
+     * console.log(status.block, status.blocked_at);
+     * ```
+     */
     async getRoomBlockStatus(roomId: string): Promise<AdminRoomBlockStatus> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/block`);
     }
 
+    /**
+     * 获取指定事件的前后文。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/event_context/{event_id}`，
+     * 后端返回 `{event, events_before, events_after, state}`。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 目标事件及其前后文
+     * @throws {ValidationError} `eventId` 为空时
+     * @example
+     * ```typescript
+     * const ctx = await client.getAdminManager().rooms.getRoomEventContext("!room:example.org", "$event:example.org");
+     * console.log(ctx.event.event_id, ctx.events_after.length);
+     * ```
+     */
     async getRoomEventContext(roomId: string, eventId: string): Promise<AdminEventContext> {
         AdminValidators.validateRoomId(roomId);
         if (!eventId) throw new ValidationError("Event ID is required");
@@ -527,26 +771,90 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/forward_extremities`);
     }
 
+    /**
+     * 获取房间的 token 同步信息。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/token_sync`，后端返回分页的
+     * token 列表与汇总统计。
+     *
+     * @param roomId - 房间 ID
+     * @returns token 同步结果
+     * @example
+     * ```typescript
+     * const sync = await client.getAdminManager().rooms.getRoomTokenSync("!room:example.org");
+     * console.log(sync.total, sync.summary.active_token_count);
+     * ```
+     */
     async getRoomTokenSync(roomId: string): Promise<AdminTokenSync> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/token_sync`);
     }
 
+    /**
+     * 搜索房间内的消息事件。
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/search`，`search_term` 必填
+     * （见 {@link RoomEventSearchPayload}）。
+     *
+     * @param roomId - 房间 ID
+     * @param payload - 搜索条件（`search_term` 必填）
+     * @returns 命中的事件列表
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().rooms.searchRoomEvents("!room:example.org", { search_term: "hello" });
+     * console.log(page.count, page.results.length);
+     * ```
+     */
     async searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomEventSearchPage> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/search`, {}, payload);
     }
 
+    /**
+     * 获取房间的目录可见性状态。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/listings`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间公开/目录状态
+     * @example
+     * ```typescript
+     * const listings = await client.getAdminManager().rooms.getRoomListings("!room:example.org");
+     * console.log(listings.public, listings.in_directory);
+     * ```
+     */
     async getRoomListings(roomId: string): Promise<AdminRoomListings> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/listings`);
     }
 
+    /**
+     * 将房间设为公开目录可见。
+     *
+     * 对应 `PUT /_synapse/admin/v1/rooms/{room_id}/listings/public`。
+     *
+     * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.setRoomPublicListing("!room:example.org");
+     * ```
+     */
     async setRoomPublicListing(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Put, `/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
     }
 
+    /**
+     * 取消房间的公开目录可见性。
+     *
+     * 对应 `DELETE /_synapse/admin/v1/rooms/{room_id}/listings/public`。
+     *
+     * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.deleteRoomPublicListing("!room:example.org");
+     * ```
+     */
     async deleteRoomPublicListing(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
@@ -575,7 +883,17 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest<RoomStatsOverview>(Method.Get, "/room_stats", queryParams);
     }
 
-    /** 获取单个房间的统计信息（`GET /room_stats/{room_id}`） */
+    /**
+     * 获取单个房间的统计信息（`GET /room_stats/{room_id}`）。
+     *
+     * @param roomId - 房间 ID
+     * @returns 该房间的统计信息
+     * @example
+     * ```typescript
+     * const stats = await client.getAdminManager().rooms.getRoomStatsByRoom("!room:example.org");
+     * console.log(stats.member_count, stats.message_count);
+     * ```
+     */
     async getRoomStatsByRoom(roomId: string): Promise<RoomStats> {
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest<RoomStats>(Method.Get, `/room_stats/${encodeURIComponent(roomId)}`);
@@ -615,22 +933,78 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, "/reports", query);
     }
 
+    /**
+     * 获取单条事件举报详情。
+     *
+     * 对应 `GET /_synapse/admin/v1/reports/{report_id}`。
+     *
+     * @param reportId - 举报 ID
+     * @returns 举报详情
+     * @throws {ValidationError} `reportId` 为空时
+     * @example
+     * ```typescript
+     * const report = await client.getAdminManager().rooms.getReport("42");
+     * console.log(report.id, report.status);
+     * ```
+     */
     async getReport(reportId: string): Promise<AdminReport> {
         if (!reportId) throw new ValidationError("Report ID is required");
         return await this.adminRequest(Method.Get, `/reports/${encodeURIComponent(reportId)}`);
     }
 
+    /**
+     * 删除单条事件举报。
+     *
+     * 对应 `DELETE /_synapse/admin/v1/reports/{report_id}`。
+     *
+     * @param reportId - 举报 ID
+     * @throws {ValidationError} `reportId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.deleteReport("42");
+     * ```
+     */
     async deleteReport(reportId: string): Promise<void> {
         if (!reportId) throw new ValidationError("Report ID is required");
         await this.adminRequest(Method.Delete, `/reports/${encodeURIComponent(reportId)}`);
     }
 
+    /**
+     * 列出某个房间的事件举报。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/reports`，
+     * 后端返回 `{reports, total}`；`from` 后端不读。
+     *
+     * @param roomId - 房间 ID
+     * @param options - 分页选项（`from` 后端不读，`limit` 生效）
+     * @returns 该房间的举报分页结果
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().rooms.listRoomReports("!room:example.org", { limit: 50 });
+     * console.log(page.total, page.reports.length);
+     * ```
+     */
     async listRoomReports(roomId: string, options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         AdminValidators.validateRoomId(roomId);
         const query = buildPaginationParams(options?.limit, options?.from);
         return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/reports`, query);
     }
 
+    /**
+     * 获取某个房间内指定事件的举报详情。
+     *
+     * 对应 `GET /_synapse/admin/v1/rooms/{room_id}/reports/{report_id}`。
+     *
+     * @param roomId - 房间 ID
+     * @param reportId - 举报 ID
+     * @returns 举报详情
+     * @throws {ValidationError} `reportId` 为空时
+     * @example
+     * ```typescript
+     * const report = await client.getAdminManager().rooms.getRoomReport("!room:example.org", "42");
+     * console.log(report.id, report.status);
+     * ```
+     */
     async getRoomReport(roomId: string, reportId: string): Promise<AdminReport> {
         AdminValidators.validateRoomId(roomId);
         if (!reportId) throw new ValidationError("Report ID is required");
@@ -640,6 +1014,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         );
     }
 
+    /**
+     * 获取指定 Space 的信息。
+     *
+     * 对应 `GET /_synapse/admin/v1/spaces/{space_id}`。
+     *
+     * @param spaceId - Space 的房间 ID
+     * @returns Space 信息
+     * @example
+     * ```typescript
+     * const space = await client.getAdminManager().rooms.getSpace("!space:example.org");
+     * console.log(space.space_id, space.name);
+     * ```
+     */
     async getSpace(spaceId: string): Promise<SpaceInfo> {
         AdminValidators.validateRoomId(spaceId);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}`);
@@ -660,6 +1047,17 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, "/spaces", query);
     }
 
+    /**
+     * 删除指定 Space。
+     *
+     * 对应 `DELETE /_synapse/admin/v1/spaces/{space_id}`。
+     *
+     * @param spaceId - Space 的房间 ID
+     * @example
+     * ```typescript
+     * await client.getAdminManager().rooms.deleteSpace("!space:example.org");
+     * ```
+     */
     async deleteSpace(spaceId: string): Promise<void> {
         AdminValidators.validateRoomId(spaceId);
         await this.adminRequest(Method.Delete, `/spaces/${encodeURIComponent(spaceId)}`);
@@ -682,6 +1080,19 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
     }
 
+    /**
+     * 获取指定 Space 的统计信息。
+     *
+     * 对应 `GET /_synapse/admin/v1/spaces/{space_id}/stats`。
+     *
+     * @param spaceId - Space 的房间 ID
+     * @returns Space 统计（成员数、子房间数等）
+     * @example
+     * ```typescript
+     * const stats = await client.getAdminManager().rooms.getSpaceStats("!space:example.org");
+     * console.log(stats.member_count, stats.child_room_count);
+     * ```
+     */
     async getSpaceStats(spaceId: string): Promise<SpaceStats> {
         AdminValidators.validateRoomId(spaceId);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/stats`);

@@ -143,6 +143,22 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
 
     // ==================== Messages ====================
 
+    /**
+     * 拉取房间的消息时间线片段（`/messages`）。
+     *
+     * @param roomId - 房间 ID
+     * @param params - 拉取参数：起始 token、方向、结束 token、数量上限与时间线过滤器
+     * @returns 消息片段响应
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getEventManager().getMessages("!room:example.org", {
+     *     from: "t1-0",
+     *     dir: "b",
+     *     limit: 20,
+     * });
+     * ```
+     */
     public async getMessages(
         roomId: string,
         params: {
@@ -183,6 +199,24 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         return response;
     }
 
+    /**
+     * 构造并发送 `/messages` 请求（返回未 await 的 Promise）。
+     *
+     * @param roomId - 房间 ID
+     * @param fromToken - 起始分页 token；null 表示从头开始
+     * @param limit - 返回数量上限
+     * @param dir - 翻页方向
+     * @param timelineFilter - 时间线过滤器，可选
+     * @param lazyLoadMembers - 是否惰性加载成员
+     * @returns `/messages` 响应
+     *
+     * @example
+     * ```typescript
+     * const response = await client
+     *     .getEventManager()
+     *     .createMessagesRequest("!room:example.org", null, 20, Direction.Backward);
+     * ```
+     */
     public createMessagesRequest(
         roomId: string,
         fromToken: string | null,
@@ -207,6 +241,25 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         });
     }
 
+    /**
+     * 拉取房间的线程列表消息片段。
+     *
+     * @param roomId - 房间 ID
+     * @param fromToken - 起始分页 token；null 表示从头开始
+     * @param limit - 返回数量上限
+     * @param dir - 翻页方向
+     * @param threadListType - 线程过滤类型
+     * @param timelineFilter - 时间线过滤器，可选
+     * @param lazyLoadMembers - 是否惰性加载成员
+     * @returns 线程列表消息响应
+     *
+     * @example
+     * ```typescript
+     * const response = await client
+     *     .getEventManager()
+     *     .createThreadListMessagesRequest("!room:example.org", null);
+     * ```
+     */
     public async createThreadListMessagesRequest(
         roomId: string,
         fromToken: string | null,
@@ -243,6 +296,25 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         };
     }
 
+    /**
+     * 向房间发送事件。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 事件类型
+     * @param content - 事件内容
+     * @param txnId - 事务 ID，可选；用于幂等与重试
+     * @param workflowContext - 发送工作流上下文，可选
+     * @returns 发送回执
+     * @throws {InvalidParamError} 当 eventType 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getEventManager().sendEvent("!room:example.org", "m.room.message", {
+     *     msgtype: "m.text",
+     *     body: "hello",
+     * });
+     * ```
+     */
     public async sendEvent(
         roomId: string,
         eventType: string,
@@ -310,6 +382,18 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
 
     // ==================== State ====================
 
+    /**
+     * 获取房间的完整状态事件列表（带本地缓存）。
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 是否强制刷新缓存
+     * @returns 房间状态事件列表
+     *
+     * @example
+     * ```typescript
+     * const state = await client.getEventManager().getState("!room:example.org");
+     * ```
+     */
     public async getState(roomId: string, forceRefresh = false): Promise<IStateEvent[]> {
         validateRoomId(roomId);
 
@@ -333,6 +417,20 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         return response;
     }
 
+    /**
+     * 获取房间的某条状态事件内容。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 状态事件类型
+     * @param stateKey - 状态键，默认空字符串
+     * @returns 状态事件内容
+     * @throws {InvalidParamError} 当 eventType 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const content = await client.getEventManager().getStateEvent("!room:example.org", "m.room.name");
+     * ```
+     */
     public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<IContent> {
         validateRoomId(roomId);
         if (!eventType) {
@@ -362,6 +460,23 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         return response;
     }
 
+    /**
+     * 发送房间状态事件。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 状态事件类型
+     * @param content - 状态事件内容
+     * @param stateKey - 状态键，默认空字符串
+     * @returns 发送回执
+     * @throws {InvalidParamError} 当 eventType 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getEventManager().sendStateEvent("!room:example.org", "m.room.topic", {
+     *     topic: "hello",
+     * });
+     * ```
+     */
     public async sendStateEvent(
         roomId: string,
         eventType: string,
@@ -401,6 +516,18 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
 
     // ==================== Events ====================
 
+    /**
+     * 获取房间内的单条事件。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 房间事件
+     *
+     * @example
+     * ```typescript
+     * const event = await client.getEventManager().getEvent("!room:example.org", "$event");
+     * ```
+     */
     public async getEvent(roomId: string, eventId: string): Promise<IRoomEvent> {
         validateRoomId(roomId);
         this.validateEventId(eventId);
@@ -419,6 +546,19 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         return response;
     }
 
+    /**
+     * 获取某条事件的上下文（前后相邻事件）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param params - 可选参数：数量上限、过滤器、是否惰性加载成员
+     * @returns 归一化后的事件上下文响应
+     *
+     * @example
+     * ```typescript
+     * const context = await client.getEventManager().getEventContext("!room:example.org", "$event", { limit: 10 });
+     * ```
+     */
     public async getEventContext(
         roomId: string,
         eventId: string,
@@ -447,6 +587,20 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
         return normalizeEventContextResponse(response);
     }
 
+    /**
+     * 废止（redact）房间内的一条事件。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param reasonOrContent - 废止原因字符串或内容对象，可选
+     * @param txnId - 事务 ID，可选
+     * @returns 发送回执
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getEventManager().redactEvent("!room:example.org", "$event", "spam");
+     * ```
+     */
     public async redactEvent(
         roomId: string,
         eventId: string,
@@ -485,6 +639,11 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
      * @param event - The event to resend
      * @param room - The room the event belongs to
      * @param deps - Dependencies from the client
+     *
+     * @example
+     * ```typescript
+     * await client.getEventManager().resendEvent(event, room, deps);
+     * ```
      */
     public async resendEvent(
         event: MatrixEvent,
@@ -505,6 +664,10 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
      * @param event - The event to cancel
      * @param deps - Dependencies from the client
      * @throws Error if the event is not in QUEUED, NOT_SENT or ENCRYPTING state
+     * @example
+     * ```typescript
+     * client.getEventManager().cancelPendingEvent(event, deps);
+     * ```
      */
     public cancelPendingEvent(
         event: MatrixEvent,
@@ -534,6 +697,11 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
      * Decrypt an event if needed.
      * @param event - The event to decrypt
      * @param deps - Dependencies from the client
+     *
+     * @example
+     * ```typescript
+     * await client.getEventManager().decryptEventIfNeeded(event, deps);
+     * ```
      */
     public async decryptEventIfNeeded(
         event: MatrixEvent,
@@ -569,6 +737,13 @@ export class EventManager extends BaseManager<EventManagerEvent, EventManagerEve
      * @param content - The event content
      * @param stateKey - The state key
      * @param deps - Dependencies from the client
+     *
+     * @example
+     * ```typescript
+     * const response = await client
+     *     .getEventManager()
+     *     .sendStateEventWithEncryption("!room:example.org", "m.room.topic", { topic: "Hi" });
+     * ```
      */
     public async sendStateEventWithEncryption(
         roomId: string,

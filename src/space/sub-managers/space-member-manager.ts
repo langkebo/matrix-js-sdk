@@ -47,6 +47,20 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
         this.parent = parent;
     }
 
+    /**
+     * 获取指定 Space 的成员列表。
+     *
+     * 结果默认走成员缓存；传 `options.forceRefresh = true` 可跳过缓存强制拉取。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param options - 查询选项；`forceRefresh` 为 `true` 时忽略缓存。
+     * @returns 归一化后的成员数组（每项回填 `space_id`）。
+     * @throws {ValidationError} 当 Space ID 格式无效时抛出。
+     * @throws {ApiError} 当后端请求失败时抛出。
+     * @example
+     * const members = await client.getSpaceManager().member.getSpaceMembers("!abc:example.com");
+     * console.log(members.length);
+     */
     async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceMember[]> {
         try {
             // 使用 getOrFetch 自动处理缓存
@@ -69,6 +83,20 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
         }
     }
 
+    /**
+     * 邀请指定用户加入 Space。
+     *
+     * `body` 会与 `{ user_id }` 合并后提交，可用于附加额外邀请参数。邀请成功后会
+     * 失效该 Space 的成员缓存。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param userId - 被邀请用户的 Matrix ID（如 `@alice:example.com`）。
+     * @param body - 附加的请求体字段，会与 `user_id` 合并。
+     * @throws {ValidationError} 当 Space ID 无效时抛出。
+     * @throws {ApiError} 当后端请求失败时抛出。
+     * @example
+     * await client.getSpaceManager().member.inviteToSpace("!abc:example.com", "@alice:example.com");
+     */
     async inviteToSpace(spaceId: string, userId: string, body: JsonObject = {}): Promise<void> {
         try {
             await this.withRetry(async () => {
@@ -85,6 +113,20 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
         }
     }
 
+    /**
+     * 当前用户加入指定 Space。
+     *
+     * 加入成功后会失效成员缓存，并触发 `SpaceEvent.MemberJoined` 事件。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param body - 可选的加入请求体（如 `reason`）。
+     * @returns 后端返回的原始响应对象。
+     * @throws {ValidationError} 当 Space ID 无效时抛出。
+     * @throws {ApiError} 当后端请求失败时抛出。
+     * @example
+     * const result = await client.getSpaceManager().member.joinSpace("!abc:example.com");
+     * console.log(result);
+     */
     async joinSpace(spaceId: string, body: JsonObject = {}): Promise<JsonObject> {
         try {
             const result = await this.withRetry(async () => {
@@ -105,6 +147,18 @@ export class SpaceMemberManager extends BaseManager<SpaceEvent, SpaceManagerEven
         }
     }
 
+    /**
+     * 当前用户离开指定 Space。
+     *
+     * 离开成功后会失效成员缓存、清空 query 缓存，并触发 `SpaceEvent.MemberLeft` 事件。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param body - 可选的离开请求体（如 `reason`）。
+     * @throws {ValidationError} 当 Space ID 无效时抛出。
+     * @throws {ApiError} 当后端请求失败时抛出。
+     * @example
+     * await client.getSpaceManager().member.leaveSpace("!abc:example.com");
+     */
     async leaveSpace(spaceId: string, body: JsonObject = {}): Promise<void> {
         try {
             await this.withRetry(async () => {

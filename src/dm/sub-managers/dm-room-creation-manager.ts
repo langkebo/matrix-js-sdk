@@ -170,6 +170,9 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      *
      * @param roomId - 房间 ID
      * @param userId - DM 伙伴用户 ID
+     * @throws {ValidationError} 当 roomId 或 userId 为空时抛出
+     * @example
+     * await client.getDirectMessageManager().creation.setDmRoom("!room:example.com", "@alice:example.com");
      */
     async setDmRoom(roomId: string, userId: string): Promise<void> {
         if (!roomId) {
@@ -206,6 +209,9 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      *
      * @param roomId - 房间 ID
      * @param userId - DM 伙伴用户 ID
+     * @throws {ValidationError} 当 roomId 或 userId 为空时抛出
+     * @example
+     * await client.getDirectMessageManager().creation.removeDmRoom("!room:example.com", "@alice:example.com");
      */
     async removeDmRoom(roomId: string, userId: string): Promise<void> {
         if (!roomId) {
@@ -249,6 +255,13 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      * @param userId - 对端用户 ID
      * @param options - 可选配置
      * @returns 后端原始响应
+     * @throws {ValidationError} 当 userId 为空或格式无效时抛出
+     * @example
+     * const response = await client.getDirectMessageManager().creation.createDmRoomDetailed(
+     *     "@alice:example.com",
+     *     { name: "Chat with Alice" },
+     * );
+     * console.log("新房间:", response.room_id);
      */
     async createDmRoomDetailed(userId: string, options?: CreateDmRoomOptions): Promise<CreateDmRoomResponse> {
         if (!userId) {
@@ -288,6 +301,10 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      * @param userId - 对端用户 ID
      * @param options - 可选配置
      * @returns 新创建的 DM 房间 ID
+     * @throws {Error} 当创建 DM 房间失败时抛出
+     * @example
+     * const roomId = await client.getDirectMessageManager().creation.createDmRoom("@alice:example.com");
+     * console.log("新 DM 房间:", roomId);
      */
     async createDmRoom(userId: string, options?: CreateDmRoomOptions): Promise<string> {
         try {
@@ -312,6 +329,21 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
         }
     }
 
+    /**
+     * 更新房间的 DM 关系（synapse-rust 私有端点）。
+     * PUT /_matrix/client/v3/direct/{room_id}
+     *
+     * @param roomId - 房间 ID
+     * @param userIds - DM 伙伴用户 ID 列表，或包含 userIds / content 的配置对象
+     * @returns 后端更新的 DM 关系响应
+     * @throws {ValidationError} 当 roomId 为空或用户 ID 格式无效时抛出
+     * @example
+     * const result = await client.getDirectMessageManager().creation.updateDirectRoom(
+     *     "!room:example.com",
+     *     ["@alice:example.com"],
+     * );
+     * console.log("更新结果:", result);
+     */
     async updateDirectRoom(roomId: string, userIds: string[]): Promise<UpdateDirectRoomResponse>;
     async updateDirectRoom(roomId: string, options: UpdateDirectRoomOptions): Promise<UpdateDirectRoomResponse>;
     async updateDirectRoom(

@@ -123,6 +123,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Tells the RustBackupManager to stop.
      * The RustBackupManager is scheduling background uploads of keys to the backup, this
      * call allows to cancel the process when the client is stoppped.
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类，由 RustCrypto 持有；停止客户端时会经其调用。
+     * this.backupManager.stop();
+     * ```
      */
     public stop(): void {
         this.stopped = true;
@@ -130,6 +136,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
 
     /**
      * Get the backup version we are currently backing up to, if any
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const version = await crypto.getActiveSessionBackupVersion();
+     * console.log(version); // 例："1"；未启用备份时为 null
+     * ```
      */
     public async getActiveBackupVersion(): Promise<string | null> {
         if (this.stopped) return null;
@@ -150,6 +163,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * It will always return the details of the active backup if key backup is enabled.
      *
      * If there was no backup on the server, `null`. If our attempt to check resulted in an error, `undefined`.
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const info = await crypto.getKeyBackupInfo();
+     * console.log(info?.version); // 例："1"；无备份或出错时为 null
+     * ```
      */
     public async getServerBackupInfo(): Promise<KeyBackupInfo | null | undefined> {
         await this.checkKeyBackupAndEnable(true, false);
@@ -160,6 +180,16 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Determine if a key backup can be trusted.
      *
      * @param info - key backup info dict from {@link CryptoApi.getKeyBackupInfo}.
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const info = await crypto.getKeyBackupInfo();
+     * if (info) {
+     *     const trust = await crypto.isKeyBackupTrusted(info);
+     *     console.log(trust.trusted, trust.matchesDecryptionKey);
+     * }
+     * ```
      */
     public async isKeyBackupTrusted(info: KeyBackupInfo): Promise<BackupTrustInfo> {
         const signatureVerification: SignatureVerification = await this.olmMachine.verifyBackup(info);
@@ -179,6 +209,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      *
      * @param force - whether we should force a re-check even if one has already happened.
      * @param throwOnError - Whether to throw on error (default true)
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const check = await crypto.checkKeyBackupAndEnable();
+     * console.log(check?.backupInfo?.version, check?.trustInfo.trusted);
+     * ```
      */
     public checkKeyBackupAndEnable(force: boolean, throwOnError = true): Promise<KeyBackupCheck | null> {
         if (!force && this.checkedForBackup) {
@@ -200,6 +237,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * @param secret - The secret as received from a `m.secret.send` event for secret `m.megolm_backup.v1`.
      * @param throwOnError - Whether to throw on error (default true)
      * @returns true if the secret is valid and has been stored, false otherwise.
+     * @throws 当 `throwOnError` 为 true 且密钥请求失败或密钥无效时，抛出底层错误。
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；RustCrypto 收到 `m.megolm_backup.v1` 秘密时会经此处理。
+     * const stored = await this.backupManager.handleBackupSecretReceived(secret, false);
+     * ```
      */
     public async handleBackupSecretReceived(secret: string, throwOnError = true): Promise<boolean> {
         // Currently we only receive the decryption key without any key backup version. It is important to
@@ -261,6 +305,21 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
         return false;
     }
 
+    /**
+     * 保存备份解密私钥，并将其缓存到本地 crypto store。
+     *
+     * 保存成功后会发出 {@link CryptoEvent.KeyBackupDecryptionKeyCached} 事件，以便 SDK 据此开始从备份导入密钥。
+     *
+     * @param backupDecryptionKey - 备份解密私钥
+     * @param version - 该私钥对应的备份版本
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；公开等价入口是 client.getCrypto().storeSessionBackupPrivateKey(...)。
+     * const key = RustSdkCryptoJs.BackupDecryptionKey.createRandomKey();
+     * await this.backupManager.saveBackupDecryptionKey(key, "1");
+     * ```
+     */
     public async saveBackupDecryptionKey(
         backupDecryptionKey: RustSdkCryptoJs.BackupDecryptionKey,
         version: string,
@@ -277,6 +336,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * @param keys - a list of session export objects
      * @param opts - options object
      * @returns a promise which resolves once the keys have been imported
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const keys = await crypto.exportRoomKeys();
+     * await crypto.importRoomKeys(keys);
+     * ```
      */
     public async importRoomKeys(keys: IMegolmSessionData[], opts?: ImportRoomKeysOpts): Promise<void> {
         await this.importRoomKeysAsJson(JSON.stringify(keys), opts);
@@ -289,6 +355,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      *    each of which is an IMegolmSessionData
      * @param opts - options object
      * @returns a promise which resolves once the keys have been imported
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const json = await crypto.exportRoomKeysAsJson();
+     * await crypto.importRoomKeysAsJson(json);
+     * ```
      */
     public async importRoomKeysAsJson(jsonKeys: string, opts?: ImportRoomKeysOpts): Promise<void> {
         await this.olmMachine.importExportedRoomKeys(jsonKeys, (progress: bigint, total: bigint): void => {
@@ -304,6 +377,13 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
 
     /**
      * Implementation of {@link CryptoBackend#importBackedUpRoomKeys}.
+     *
+     * @example
+     * ```ts
+     * const crypto = client.getCrypto()!;
+     * const keys: IMegolmSessionData[] = [];
+     * await crypto.importBackedUpRoomKeys(keys, "1");
+     * ```
      */
     public async importBackedUpRoomKeys(
         keys: IMegolmSessionData[],
@@ -425,6 +505,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Restart the backup key loop if there is an active trusted backup.
      * Doesn't try to check the backup server side. To be called when a new
      * megolm key is known locally.
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；本地新增 megolm 密钥时由 RustCrypto.onRoomKeysUpdated 调用。
+     * await this.backupManager.maybeUploadKey();
+     * ```
      */
     public async maybeUploadKey(): Promise<void> {
         if (this.activeBackupVersion != null) {
@@ -585,6 +671,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      *
      * @param version - The version of the backup to get information about.
      * @returns Information object from API or null if there is no active backup.
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；由 RustCrypto.restoreKeyBackup 等内部路径调用。
+     * const info = await this.backupManager.requestKeyBackupVersion("1");
+     * ```
      */
     public async requestKeyBackupVersion(version?: string): Promise<KeyBackupInfo | null> {
         if (this.stopped) {
@@ -603,6 +695,14 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * @param signObject - Method that should sign the backup with existing device and
      * existing identity.
      * @returns a KeyBackupCreationInfo - All information related to the backup.
+     * @throws 当创建备份版本失败，或服务器返回需交互式认证（UIA）时抛出 {@link UIAError}。
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；公开入口是 client.getCrypto().resetKeyBackup()。
+     * const info = await this.backupManager.setupKeyBackup((authData) => this.signObject(authData));
+     * await client.getCrypto()!.storeSessionBackupPrivateKey(decodeBase64(info.decryptionKey.toBase64()), info.version);
+     * ```
      */
     public async setupKeyBackup(
         signObject: (authData: AuthData) => Promise<void>,
@@ -668,6 +768,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Deletes all key backups.
      *
      * Will call the API to delete active backup until there is no more present.
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；由 RustCrypto.resetEncryption 调用。
+     * await this.backupManager.deleteAllKeyBackupVersions();
+     * ```
      */
     public async deleteAllKeyBackupVersions(): Promise<void> {
         // there could be several backup versions. Delete all to be safe.
@@ -685,6 +791,11 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Deletes the given key backup.
      *
      * @param version - The backup version to delete.
+     *
+     * @example
+     * ```ts
+     * await client.getCrypto()!.deleteKeyBackupVersion("1");
+     * ```
      */
     public async deleteKeyBackupVersion(version: string): Promise<void> {
         this.logger.debug(`deleteKeyBackupVersion v:${version}`);
@@ -702,6 +813,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
     /**
      * Creates a new backup decryptor for the given private key.
      * @param decryptionKey - The private key to use for decryption.
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；公开入口是 client.getCrypto().getBackupDecryptor()。
+     * const decryptor = this.backupManager.createBackupDecryptor(decryptionKey);
+     * ```
      */
     public createBackupDecryptor(decryptionKey: RustSdkCryptoJs.BackupDecryptionKey): BackupDecryptor {
         return new RustBackupDecryptor(this.logger, decryptionKey);
@@ -714,6 +831,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * @param backupDecryptor - The backup decryptor to use to decrypt the keys.
      * @param opts - Options for the restore.
      * @returns The total number of keys and the total imported.
+     *
+     * @example
+     * ```ts
+     * const result = await client.getCrypto()!.restoreKeyBackup();
+     * console.log(`imported ${result.imported} of ${result.total} keys`);
+     * ```
      */
     public async restoreKeyBackup(
         backupVersion: string,
@@ -729,6 +852,12 @@ export class RustBackupManager extends TypedEventEmitter<RustBackupCryptoEvents,
      * Download and import the keys for a given room from the current backup version.
      *
      * @param roomId - The room in question.
+     *
+     * @example
+     * ```ts
+     * // RustBackupManager 为内部类；由 RustCrypto.shareRoomHistoryWithUser 调用。
+     * await this.backupManager.downloadLatestRoomKeyBackup("!room:example.org");
+     * ```
      */
     public async downloadLatestRoomKeyBackup(roomId: string): Promise<void> {
         const { backupVersion, decryptionKey } = await this.olmMachine.getBackupKeys();

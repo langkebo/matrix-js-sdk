@@ -58,6 +58,14 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * @param options - 选项
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 层级结构
+     * @throws {SdkError} 当请求失败且 throwOnError 为 true 时
+     * @example
+     * ```typescript
+     * const hierarchy = await client
+     *     .getRoomSummaryManager()
+     *     .search.getRoomHierarchy("!space:example.com", { limit: 50 });
+     * console.log(hierarchy);
+     * ```
      */
     public async getRoomHierarchy(
         roomId: string,
@@ -89,6 +97,12 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * @param options - 选项
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 公共房间列表
+     * @throws {SdkError} 当请求失败且 throwOnError 为 true 时
+     * @example
+     * ```typescript
+     * const rooms = await client.getRoomSummaryManager().search.getPublicRooms("matrix.org", { limit: 20 });
+     * console.log(rooms?.chunk.length);
+     * ```
      */
     public async getPublicRooms(
         server = "",
@@ -120,6 +134,11 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * @param server - 服务器名
      * @param limit - 限制数量
      * @returns 公共房间列表
+     * @example
+     * ```typescript
+     * const rooms = await client.getRoomSummaryManager().search.searchPublicRooms("matrix", "matrix.org", 20);
+     * console.log(rooms.length);
+     * ```
      */
     public async searchPublicRooms(query: string, server = "", limit = 20): Promise<IPublicRoomsChunkRoom[]> {
         try {
@@ -137,6 +156,11 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * @param server - 服务器名
      * @param limit - 限制数量
      * @returns 推荐公共房间列表
+     * @example
+     * ```typescript
+     * const rooms = await client.getRoomSummaryManager().search.getRecommendedRooms("matrix.org", 10);
+     * console.log(rooms.length);
+     * ```
      */
     public async getRecommendedRooms(server = "", limit = 20): Promise<IPublicRoomsChunkRoom[]> {
         try {
@@ -152,6 +176,11 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * 获取收藏的房间
      *
      * @returns 收藏的房间摘要列表
+     * @example
+     * ```typescript
+     * const rooms = await client.getRoomSummaryManager().search.getFavoriteRooms();
+     * console.log(rooms.map((room) => room.room_id));
+     * ```
      */
     public async getFavoriteRooms(): Promise<RoomSummary[]> {
         try {
@@ -187,6 +216,11 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      *
      * @param limit - 限制数量
      * @returns 最近活跃的房间摘要列表
+     * @example
+     * ```typescript
+     * const rooms = await client.getRoomSummaryManager().search.getRecentRooms(10);
+     * console.log(rooms.length);
+     * ```
      */
     public async getRecentRooms(limit = 10): Promise<RoomSummary[]> {
         try {
@@ -225,6 +259,13 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param body - 搜索请求体
      * @returns 搜索结果
+     * @example
+     * ```typescript
+     * const result = await client
+     *     .getRoomSummaryManager()
+     *     .search.searchRoom("!room:example.com", { search_term: "hello", limit: 20 });
+     * console.log(result);
+     * ```
      */
     public async searchRoom(roomId: string, body: RoomSearchBody): Promise<RoomSearchResult> {
         this.validateRoomId(roomId);

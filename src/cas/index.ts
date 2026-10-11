@@ -236,6 +236,12 @@ export class CasManager extends BaseManager {
     /**
      * 删除 CAS 服务
      * 对应 DELETE /_synapse/admin/v1/cas/services/{id}（服务管理的**唯一**注册面）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().deleteService("my-service");
+     * console.log(result.id);
+     * ```
      */
     public async deleteService(serviceId: string): Promise<CasServiceDeleteResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
@@ -252,6 +258,12 @@ export class CasManager extends BaseManager {
     /**
      * 获取用户属性
      * 对应 GET /_synapse/admin/v1/cas/users/{id}/attributes（服务管理的**唯一**注册面）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().getUserAttributes("@alice:example.org");
+     * console.log(result.attributes);
+     * ```
      */
     public async getUserAttributes(userId: string): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
@@ -268,6 +280,14 @@ export class CasManager extends BaseManager {
     /**
      * 设置用户属性
      * 对应 POST /_synapse/admin/v1/cas/users/{id}/attributes（服务管理的**唯一**注册面）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().setUserAttributes("@alice:example.org", {
+     *     attributes: { role: ["admin"] },
+     * });
+     * console.log(result.attributes);
+     * ```
      */
     public async setUserAttributes(userId: string, data: CasUserAttributes): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
@@ -282,6 +302,21 @@ export class CasManager extends BaseManager {
         }, "setUserAttributes");
     }
 
+    /**
+     * CAS 2.0 serviceValidate：校验 service ticket（返回 text/plain，SDK 解析为结构化结果）。
+     *
+     * @param service - 目标服务 URL
+     * @param ticket - 可选 service ticket
+     * @param pgtUrl - 可选代理回调 URL（对应 `pgt_url`）
+     * @param renew - 是否强制重新认证
+     * @returns 校验结果（含 authenticationSuccess / authenticationFailure）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().serviceValidate("https://app.example.com", "ST-abc");
+     * console.log(result.serviceResponse.authenticationSuccess?.user);
+     * ```
+     */
     public async serviceValidate(
         service: string,
         ticket?: string,
@@ -305,6 +340,21 @@ export class CasManager extends BaseManager {
         }, "serviceValidate");
     }
 
+    /**
+     * CAS 2.0 proxyValidate：校验 service ticket 与 proxy ticket（返回 XML，SDK 解析为结构化结果）。
+     *
+     * @param service - 目标服务 URL
+     * @param ticket - 可选 service ticket
+     * @param pgtUrl - 可选代理回调 URL（对应 `pgt_url`）
+     * @param renew - 是否强制重新认证
+     * @returns 校验结果（含 authenticationSuccess / authenticationFailure）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().proxyValidate("https://app.example.com", "ST-abc");
+     * console.log(result.serviceResponse.authenticationSuccess?.user);
+     * ```
+     */
     public async proxyValidate(
         service: string,
         ticket?: string,
@@ -328,6 +378,21 @@ export class CasManager extends BaseManager {
         }, "proxyValidate");
     }
 
+    /**
+     * CAS 3.0 p3/serviceValidate：校验 service ticket 并返回属性（返回 XML，SDK 解析为结构化结果）。
+     *
+     * @param service - 目标服务 URL
+     * @param ticket - 可选 service ticket
+     * @param pgtUrl - 可选代理回调 URL（对应 `pgt_url`）
+     * @param renew - 是否强制重新认证
+     * @returns 校验结果（含 authenticationSuccess / authenticationFailure）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().p3ServiceValidate("https://app.example.com", "ST-abc");
+     * console.log(result.serviceResponse.authenticationSuccess?.attributes);
+     * ```
+     */
     public async p3ServiceValidate(
         service: string,
         ticket?: string,
@@ -389,12 +454,32 @@ export class CasManager extends BaseManager {
         }, "proxy");
     }
 
+    /**
+     * 构造 CAS 登录跳转 URL（`/_synapse/cas/login`）。
+     *
+     * @param redirectUrl - 可选登录成功后的重定向地址
+     * @returns 拼接好的登录 URL
+     *
+     * @example
+     * ```typescript
+     * const url = client.getCasManager().getLoginUrl("https://app.example.com/callback");
+     * window.location.href = url;
+     * ```
+     */
     public getLoginUrl(redirectUrl?: string): string {
         const baseUrl = this.client.getHomeserverUrl();
         const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
         return `${baseUrl}${CAS_PROTOCOL_PREFIX}/login${params}`;
     }
 
+    /**
+     * 执行 CAS 登出（调用 `/_synapse/cas/logout`）。
+     *
+     * @example
+     * ```typescript
+     * await client.getCasManager().handleLogout();
+     * ```
+     */
     public async handleLogout(): Promise<void> {
         await this.request<Record<string, unknown> /* Dynamic: CAS logout response varies by server */>({
             method: Method.Get,

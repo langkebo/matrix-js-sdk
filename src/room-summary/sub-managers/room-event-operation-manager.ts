@@ -143,6 +143,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param options - 分页选项
+     * @example
+     * ```typescript
+     * const notifications = await client.getRoomSummaryManager().eventOps.getRoomNotifications("!room:example.com", { limit: 20 });
+     * console.log(notifications.notifications.length, notifications.next_batch);
+     * ```
      */
     public async getRoomNotifications(
         roomId: string,
@@ -177,6 +182,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间能力
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const capabilities = await client.getRoomSummaryManager().eventOps.getRoomCapabilities("!room:example.com");
+     * console.log(capabilities);
+     * ```
      */
     public async getRoomCapabilities(roomId: string): Promise<RoomCapabilities> {
         this.validateRoomId(roomId);
@@ -193,6 +203,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param options - 同步选项
+     * @example
+     * ```typescript
+     * const sync = await client.getRoomSummaryManager().eventOps.getRoomSync("!room:example.com", { since: "s_1", timeout_ms: 30000 });
+     * console.log(sync.next_batch);
+     * ```
      */
     public async getRoomSync(
         roomId: string,
@@ -217,6 +232,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param type - 数据类型
+     * @throws {InvalidParamError} 当 type 为空时
+     * @example
+     * ```typescript
+     * const data = await client.getRoomSummaryManager().eventOps.getRoomAccountData("!room:example.com", "m.fully_read");
+     * console.log(data);
+     * ```
      */
     public async getRoomAccountData(roomId: string, type: string): Promise<RoomAccountDataResult> {
         this.validateRoomId(roomId);
@@ -235,6 +256,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param type - 数据类型
      * @param content - 数据内容
+     * @throws {InvalidParamError} 当 type 为空时
+     * @example
+     * ```typescript
+     * await client.getRoomSummaryManager().eventOps.setRoomAccountDataV3("!room:example.com", "m.fully_read", { event_id: "$event" });
+     * ```
      */
     public async setRoomAccountDataV3(roomId: string, type: string, content: IContent): Promise<RoomAccountDataResult> {
         this.validateRoomId(roomId);
@@ -253,6 +279,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间邀请列表
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const invites = await client.getRoomSummaryManager().eventOps.getRoomInvites("!room:example.com");
+     * console.log(invites);
+     * ```
      */
     public async getRoomInvites(roomId: string): Promise<RoomInvitesResult> {
         this.validateRoomId(roomId);
@@ -267,6 +298,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param receiptType - 回执类型
      * @param eventId - 事件 ID
+     * @throws {InvalidParamError} 当 receiptType 或 eventId 为空时
+     * @example
+     * ```typescript
+     * const receipts = await client.getRoomSummaryManager().eventOps.getRoomReceipts("!room:example.com", "m.read", "$event");
+     * console.log(receipts);
+     * ```
      */
     public async getRoomReceipts(roomId: string, receiptType: string, eventId: string): Promise<RoomReceiptsResult> {
         this.validateRoomId(roomId);
@@ -289,6 +326,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param options - 时间线选项
+     * @example
+     * ```typescript
+     * const timeline = await client.getRoomSummaryManager().eventOps.getRoomTimeline("!room:example.com", { dir: "b", limit: 30 });
+     * console.log(timeline);
+     * ```
      */
     public async getRoomTimeline(
         roomId: string,
@@ -314,6 +356,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间未读计数
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const unread = await client.getRoomSummaryManager().eventOps.getRoomUnreadCount("!room:example.com");
+     * console.log(unread.unread_notifications, unread.unread_highlight_count);
+     * ```
      */
     public async getRoomUnreadCount(roomId: string): Promise<UnreadCountResult> {
         this.validateRoomId(roomId);
@@ -335,6 +382,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间元数据
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const metadata = await client.getRoomSummaryManager().eventOps.getRoomMetadata("!room:example.com");
+     * console.log(metadata.created_at, metadata.is_encrypted);
+     * ```
      */
     public async getRoomMetadata(roomId: string): Promise<RoomMetadata> {
         this.validateRoomId(roomId);
@@ -355,6 +407,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间 vault 数据
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const vault = await client.getRoomSummaryManager().eventOps.getRoomVaultData("!room:example.com");
+     * console.log(vault);
+     * ```
      */
     public async getRoomVaultData(roomId: string): Promise<RoomVaultDataResult | null> {
         this.validateRoomId(roomId);
@@ -371,6 +428,10 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param data - vault 数据
+     * @example
+     * ```typescript
+     * await client.getRoomSummaryManager().eventOps.setRoomVaultData("!room:example.com", { key: "value" });
+     * ```
      */
     public async setRoomVaultData(roomId: string, data: IContent): Promise<void> {
         this.validateRoomId(roomId);
@@ -389,6 +450,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间 retention 策略
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const retention = await client.getRoomSummaryManager().eventOps.getRoomRetention("!room:example.com");
+     * console.log(retention);
+     * ```
      */
     public async getRoomRetention(roomId: string): Promise<RetentionPolicy | null> {
         this.validateRoomId(roomId);
@@ -401,6 +467,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间外部关联 ID
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const externalIds = await client.getRoomSummaryManager().eventOps.getRoomExternalIds("!room:example.com");
+     * console.log(externalIds);
+     * ```
      */
     public async getRoomExternalIds(roomId: string): Promise<ExternalId[]> {
         this.validateRoomId(roomId);
@@ -413,6 +484,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间所属的 space 列表
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const spaces = await client.getRoomSummaryManager().eventOps.getRoomSpaces("!room:example.com");
+     * console.log(spaces);
+     * ```
      */
     public async getRoomSpaces(roomId: string): Promise<RoomSpace[]> {
         this.validateRoomId(roomId);
@@ -427,6 +503,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      * @param options - 可选参数
+     * @example
+     * ```typescript
+     * const perspective = await client.getRoomSummaryManager().eventOps.getRoomEventPerspective("!room:example.com", "$event");
+     * console.log(perspective);
+     * ```
      */
     public async getRoomEventPerspective(
         roomId: string,
@@ -452,6 +533,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间权限信息
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const permissions = await client.getRoomSummaryManager().eventOps.getRoomPermissions("!room:example.com");
+     * console.log(permissions);
+     * ```
      */
     public async getRoomPermissions(roomId: string): Promise<RoomPermissionsResult> {
         this.validateRoomId(roomId);
@@ -464,6 +550,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间解析信息
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const resolved = await client.getRoomSummaryManager().eventOps.getRoomResolve("!room:example.com");
+     * console.log(resolved);
+     * ```
      */
     public async getRoomResolve(roomId: string): Promise<RoomResolveResult> {
         this.validateRoomId(roomId);
@@ -477,6 +568,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param options - 查询选项
+     * @example
+     * ```typescript
+     * const queue = await client.getRoomSummaryManager().eventOps.getRoomMessageQueue("!room:example.com", { limit: 50 });
+     * console.log(queue);
+     * ```
      */
     public async getRoomMessageQueue(
         roomId: string,
@@ -499,6 +595,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间服务类型
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const serviceTypes = await client.getRoomSummaryManager().eventOps.getRoomServiceTypes("!room:example.com");
+     * console.log(serviceTypes);
+     * ```
      */
     public async getRoomServiceTypes(roomId: string): Promise<RoomServiceTypesResult> {
         this.validateRoomId(roomId);
@@ -511,6 +612,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间降采样事件
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const reduced = await client.getRoomSummaryManager().eventOps.getRoomReducedEvents("!room:example.com");
+     * console.log(reduced);
+     * ```
      */
     public async getRoomReducedEvents(roomId: string): Promise<RoomReducedEventsResult> {
         this.validateRoomId(roomId);
@@ -523,6 +629,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间渲染结果
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const rendered = await client.getRoomSummaryManager().eventOps.getRoomRendered("!room:example.com");
+     * console.log(rendered);
+     * ```
      */
     public async getRoomRendered(roomId: string): Promise<RoomRenderedResult> {
         this.validateRoomId(roomId);
@@ -536,6 +647,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param userId - 用户 ID
+     * @example
+     * ```typescript
+     * const fragments = await client.getRoomSummaryManager().eventOps.getRoomFragments("!room:example.com", "@alice:example.com");
+     * console.log(fragments);
+     * ```
      */
     public async getRoomFragments(roomId: string, userId: string): Promise<RoomFragmentsResult> {
         this.validateRoomId(roomId);
@@ -556,6 +672,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param deviceId - 设备 ID
+     * @throws {InvalidParamError} 当 deviceId 为空时
+     * @example
+     * ```typescript
+     * const device = await client.getRoomSummaryManager().eventOps.getRoomDevice("!room:example.com", "DEVICEID");
+     * console.log(device);
+     * ```
      */
     public async getRoomDevice(roomId: string, deviceId: string): Promise<RoomDeviceResult> {
         this.validateRoomId(roomId);
@@ -578,6 +700,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
+     * @throws {InvalidParamError} 当 eventId 为空时
+     * @example
+     * ```typescript
+     * const url = await client.getRoomSummaryManager().eventOps.getRoomEventUrl("!room:example.com", "$event");
+     * console.log(url);
+     * ```
      */
     public async getRoomEventUrl(roomId: string, eventId: string): Promise<RoomEventUrlResult> {
         this.validateRoomId(roomId);
@@ -604,6 +732,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *   - `target_lang`: 目标语言代码（如 "en", "zh", "ja"），默认使用后端配置
      *   - `source_lang`: 源语言代码（可选，不指定则自动检测）
      *   - `text`: 待翻译文本（可选，不指定则使用事件 body）
+     * @throws {InvalidParamError} 当 eventId 为空时
+     * @example
+     * ```typescript
+     * const translated = await client.getRoomSummaryManager().eventOps.translateRoomEvent("!room:example.com", "$event", { target_lang: "zh" });
+     * console.log(translated);
+     * ```
      */
     public async translateRoomEvent(
         roomId: string,
@@ -633,6 +767,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      * @param body - 转换请求体
+     * @throws {InvalidParamError} 当 eventId 为空时
+     * @example
+     * ```typescript
+     * const converted = await client.getRoomSummaryManager().eventOps.convertRoomEvent("!room:example.com", "$event", { format: "html" });
+     * console.log(converted);
+     * ```
      */
     public async convertRoomEvent(
         roomId: string,
@@ -662,6 +802,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      * @param body - 签名请求体
+     * @throws {InvalidParamError} 当 eventId 为空时
+     * @example
+     * ```typescript
+     * const signed = await client.getRoomSummaryManager().eventOps.signRoomEvent("!room:example.com", "$event", { key_id: "ed25519:1" });
+     * console.log(signed);
+     * ```
      */
     public async signRoomEvent(roomId: string, eventId: string, body: SignEventBody = {}): Promise<RoomSignResult> {
         this.validateRoomId(roomId);
@@ -687,6 +833,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      * @param body - 验证请求体
+     * @throws {InvalidParamError} 当 eventId 为空时
+     * @example
+     * ```typescript
+     * const verified = await client.getRoomSummaryManager().eventOps.verifyRoomEvent("!room:example.com", "$event", { signature: "..." });
+     * console.log(verified);
+     * ```
      */
     public async verifyRoomEvent(
         roomId: string,
@@ -714,6 +866,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取房间 TURN 服务器配置
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const turnServer = await client.getRoomSummaryManager().eventOps.getRoomTurnServer("!room:example.com");
+     * console.log(turnServer);
+     * ```
      */
     public async getRoomTurnServer(roomId: string): Promise<TurnServerConfig> {
         this.validateRoomId(roomId);
@@ -729,6 +886,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @returns 防截屏设置 { enabled: boolean }
+     * @example
+     * ```typescript
+     * const antiScreenshot = await client.getRoomSummaryManager().eventOps.getAntiScreenshot("!room:example.com");
+     * console.log(antiScreenshot.enabled);
+     * ```
      */
     public async getAntiScreenshot(roomId: string): Promise<{ enabled: boolean }> {
         this.validateRoomId(roomId);
@@ -749,6 +911,10 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param enabled - 是否启用防截屏
+     * @example
+     * ```typescript
+     * await client.getRoomSummaryManager().eventOps.setAntiScreenshot("!room:example.com", true);
+     * ```
      */
     public async setAntiScreenshot(roomId: string, enabled: boolean): Promise<void> {
         this.validateRoomId(roomId);
@@ -766,6 +932,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取 sticky events
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const stickyEvents = await client.getRoomSummaryManager().eventOps.getStickyEvents("!room:example.com");
+     * console.log(stickyEvents);
+     * ```
      */
     public async getStickyEvents(roomId: string): Promise<StickyEvent[]> {
         this.validateRoomId(roomId);
@@ -780,6 +951,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventType - 事件类型
      * @param content - 事件内容
+     * @example
+     * ```typescript
+     * const sticky = await client.getRoomSummaryManager().eventOps.setStickyEvent("!room:example.com", "m.room.message", { body: "pinned" });
+     * console.log(sticky);
+     * ```
      */
     public async setStickyEvent(roomId: string, eventType: string, content: IContent): Promise<StickyEvent> {
         this.validateRoomId(roomId);
@@ -801,6 +977,10 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @param eventType - 事件类型
+     * @example
+     * ```typescript
+     * await client.getRoomSummaryManager().eventOps.deleteStickyEvent("!room:example.com", "m.room.message");
+     * ```
      */
     public async deleteStickyEvent(roomId: string, eventType: string): Promise<void> {
         this.validateRoomId(roomId);
@@ -818,6 +998,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 获取 m.room.power_levels
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * const powerLevels = await client.getRoomSummaryManager().eventOps.getRoomPowerLevels("!room:example.com");
+     * console.log(powerLevels);
+     * ```
      */
     public async getRoomPowerLevels(roomId: string): Promise<RoomAccountDataResult> {
         this.validateRoomId(roomId);
@@ -826,6 +1011,22 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
         }, "getRoomPowerLevels");
     }
 
+    /**
+     * 翻译文本
+     *
+     * 调用私有扩展端点 `POST /_matrix/vendor/v1/translate`，将给定文本从源语言
+     * 翻译为目标语言。未指定 `sourceLang` 时由后端自动检测。
+     *
+     * @param content - 待翻译的文本内容
+     * @param sourceLang - 源语言代码（可选，不指定则自动检测）
+     * @param targetLang - 目标语言代码（可选，不指定则使用后端配置）
+     * @returns 翻译结果
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().eventOps.translate("Hello world", "en", "zh");
+     * console.log(result);
+     * ```
+     */
     public async translate(content: string, sourceLang?: string, targetLang?: string): Promise<TranslateResult> {
         this.requireNonEmptyString(content, "content");
         return await this.withRetry(async () => {
@@ -846,6 +1047,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param body - 请求体
      * @returns 房间摘要，若失败返回 null
+     * @throws {SdkError} 当请求失败时（错误已归一化）
+     * @example
+     * ```typescript
+     * const summary = await client.getRoomSummaryManager().eventOps.createOrRefreshSummary("!room:example.com", { topic: "hello" });
+     * console.log(summary);
+     * ```
      */
     public async createOrRefreshSummary(roomId: string, body: IContent = {}): Promise<RoomSummary | null> {
         this.validateRoomId(roomId);
@@ -876,6 +1083,12 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param body - 更新请求体
      * @returns 更新后的房间摘要
+     * @throws {SdkError} 当请求失败时（错误已归一化）
+     * @example
+     * ```typescript
+     * const summary = await client.getRoomSummaryManager().eventOps.updateSummary("!room:example.com", { topic: "updated" });
+     * console.log(summary);
+     * ```
      */
     public async updateSummary(roomId: string, body: UpdateSummaryBody): Promise<RoomSummary | null> {
         this.validateRoomId(roomId);
@@ -901,6 +1114,10 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * 删除房间摘要
      *
      * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * await client.getRoomSummaryManager().eventOps.deleteSummary("!room:example.com");
+     * ```
      */
     public async deleteSummary(roomId: string): Promise<void> {
         this.validateRoomId(roomId);
@@ -917,6 +1134,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param body - 请求体
      * @returns 同步结果
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().eventOps.syncSummary("!room:example.com", { since: "s_1" });
+     * console.log(result);
+     * ```
      */
     public async syncSummary(roomId: string, body: IContent = {}): Promise<SyncSummaryResult> {
         this.validateRoomId(roomId);
@@ -936,6 +1158,11 @@ export class RoomSummaryEventOperationManager extends RoomSummaryBaseManager {
      *
      * @param body - 请求体
      * @returns 处理结果
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().eventOps.processSummaryUpdates({ limit: 100 });
+     * console.log(result);
+     * ```
      */
     public async processSummaryUpdates(body: { limit?: number } = {}): Promise<ProcessUpdatesResult> {
         return this.withRetry(async () => {

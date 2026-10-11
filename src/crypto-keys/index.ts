@@ -112,6 +112,20 @@ export class CryptoKeysManager extends BaseManager {
         });
     }
 
+    /**
+     * 上传本设备的设备密钥、一次性密钥（OTK）与兜底密钥（POST /keys/upload）。
+     *
+     * @param content 待上传的密钥内容（设备密钥、一次性密钥等）。
+     * @returns 各算法已上传的一次性密钥数量。
+     * @throws {SdkError} 请求失败（网络错误或后端 HTTP 错误会被归一化为 SdkError）。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const result = await mgr.uploadKeys({ device_keys: deviceKeys });
+     * ```
+     */
     async uploadKeys(content: IKeysUploadRequest): Promise<IKeysUploadResponse> {
         try {
             const response = await this.withRetry(async () => {
@@ -129,6 +143,21 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 查询指定用户的设备密钥（POST /keys/query），命中本地缓存时直接返回。
+     *
+     * @param userIds 需要查询的用户 ID 列表。
+     * @param opts 可选参数：`token` 增量查询游标、`timeout` 超时毫秒数。
+     * @returns 设备密钥查询结果（含 `device_keys` 与 `failures`）。
+     * @throws {SdkError} 请求失败。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const result = await mgr.queryKeys(["@alice:example.com"]);
+     * ```
+     */
     async queryKeys(userIds: string[], opts: { token?: string; timeout?: number } = {}): Promise<IDownloadKeyResult> {
         const cacheKey = `query:${userIds.join(",")}`;
         const cached = this.deviceKeysCache.get(cacheKey);
@@ -176,6 +205,22 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 认领指定设备的一次性密钥（POST /keys/claim）。
+     *
+     * @param devices `[userId, deviceId]` 二元组列表。
+     * @param keyAlgorithm 期望的密钥算法，默认 `signed_curve25519`。
+     * @param timeout 可选超时毫秒数。
+     * @returns 认领到的一次性密钥结果。
+     * @throws {SdkError} 请求失败。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const result = await mgr.claimKeys([["@alice:example.com", "DEVICEID"]]);
+     * ```
+     */
     async claimKeys(
         devices: [string, string][],
         keyAlgorithm = "signed_curve25519",
@@ -210,6 +255,21 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取指定同步区间内密钥发生变化的用户（GET /keys/changes）。
+     *
+     * @param from 起始同步令牌。
+     * @param to 结束同步令牌。
+     * @returns 变化/离场用户列表（`changed` 与 `left`）。
+     * @throws {SdkError} 请求失败。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const changes = await mgr.getKeysChanges(fromToken, toToken);
+     * ```
+     */
     async getKeysChanges(from: string, to: string): Promise<IKeysChangesResponse> {
         try {
             const response = await this.withRetry(async () => {
@@ -227,6 +287,19 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 上报本设备列表已更新（POST /keys/device_list/update）。
+     *
+     * @returns 无返回值。
+     * @throws {SdkError} 请求失败。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * await mgr.updateDeviceList();
+     * ```
+     */
     async updateDeviceList(): Promise<void> {
         try {
             await this.withRetry(async () => {
@@ -242,6 +315,20 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 上传密钥交叉签名（POST /keys/signatures/upload）。
+     *
+     * @param signatures 签名映射（按用户 / 密钥组织）。
+     * @returns 上传结果（含失败项信息）。
+     * @throws {SdkError} 请求失败。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const result = await mgr.uploadKeySignatures(signatures);
+     * ```
+     */
     async uploadKeySignatures(signatures: KeySignatures): Promise<IUploadKeySignaturesResponse> {
         try {
             const response = await this.withRetry(async () => {
@@ -262,6 +349,21 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 上传设备签名密钥（主密钥 / 自签名密钥，POST /keys/device_signing/upload）。
+     *
+     * @param masterKey 可选的主密钥（master key）。
+     * @param selfSigningKey 可选的自签名密钥（self-signing key）。
+     * @returns 无返回值。
+     * @throws {SdkError} 请求失败。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * await mgr.uploadDeviceSigning(masterKey, selfSigningKey);
+     * ```
+     */
     async uploadDeviceSigning(masterKey?: IDeviceKeys, selfSigningKey?: IDeviceKeys): Promise<void> {
         const content: IDeviceSigningUploadRequest = {};
         if (masterKey) content.master_key = masterKey;
@@ -287,6 +389,15 @@ export class CryptoKeysManager extends BaseManager {
      * @param roomId - 房间 ID
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 分发信息
+     * @throws {NotFoundError} `throwOnError` 为 true 且房间密钥分发不存在时抛出。
+     * @throws {SdkError} 其它请求失败（`throwOnError` 为 true 时）。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const dist = await mgr.getRoomKeyDistribution("!room:example.com");
+     * ```
      */
     async getRoomKeyDistribution(roomId: string, throwOnError = true): Promise<IRoomKeyDistributionResponse | null> {
         try {
@@ -313,14 +424,52 @@ export class CryptoKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 从本地缓存读取指定设备的设备密钥（不发起网络请求）。
+     *
+     * @param userId 用户 ID。
+     * @param deviceId 设备 ID。
+     * @returns 缓存的设备密钥；未命中时返回 `undefined`。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const deviceKeys = mgr.getDeviceKeysFromCache("@alice:example.com", "DEVICEID");
+     * ```
+     */
     getDeviceKeysFromCache(userId: string, deviceId: string): IDeviceKeys | undefined {
         return this.deviceKeysCache.get(`${userId}:${deviceId}`);
     }
 
+    /**
+     * 清空设备密钥缓存。
+     *
+     * @returns 无返回值。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * mgr.clearCache();
+     * ```
+     */
     clearCache(): void {
         this.deviceKeysCache.clear();
     }
 
+    /**
+     * 获取设备密钥缓存的命中统计。
+     *
+     * @returns 缓存大小、命中次数、未命中次数与命中率。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getCryptoKeysManager();
+     * const stats = mgr.getCacheStats();
+     * ```
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.deviceKeysCache.getStats();
     }

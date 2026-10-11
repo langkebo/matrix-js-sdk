@@ -62,6 +62,11 @@ export class TypingManager extends BaseManager {
      * @param isTyping - Whether the user is typing
      * @param timeoutMs - The length of time in milliseconds to mark this user as typing
      * @returns Promise which resolves to an empty object if successful
+     * @throws {ValidationError} 用户 ID 缺失时
+     * @example
+     * ```typescript
+     * await client.getTypingManager().sendTyping("!room:example.org", true, 20000);
+     * ```
      */
     async sendTyping(roomId: string, isTyping: boolean, timeoutMs: number): Promise<EmptyObject> {
         if (this.client.isGuest()) {
@@ -110,6 +115,10 @@ export class TypingManager extends BaseManager {
      * @param isTyping - Whether the user is typing
      * @param timeoutMs - The length of time in milliseconds to mark this user as typing
      * @returns Promise which resolves to an empty object if successful
+     * @example
+     * ```typescript
+     * await client.getTypingManager().postTyping("!room:example.org", "@alice:example.org", true, 20000);
+     * ```
      */
     async postTyping(roomId: string, userId: string, isTyping: boolean, timeoutMs?: number): Promise<EmptyObject> {
         if (this.client.isGuest()) {
@@ -247,6 +256,16 @@ export class TypingManager extends BaseManager {
 
     /**
      * 批量获取多个房间的打字状态
+     *
+     * @param rooms - 房间 ID 列表
+     * @returns 房间 ID 到打字用户列表的映射（仅包含有用户正在打字的房间）
+     * @example
+     * ```typescript
+     * const typing = await client.getTypingManager().getRoomsTyping(["!a:example.org", "!b:example.org"]);
+     * for (const [roomId, users] of typing) {
+     *     console.log(roomId, users);
+     * }
+     * ```
      */
     async getRoomsTyping(rooms: string[]): Promise<Map<string, TypingUser[]>> {
         const result = new Map<string, TypingUser[]>();
@@ -263,6 +282,14 @@ export class TypingManager extends BaseManager {
 
     /**
      * 检查用户是否正在打字
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @returns 该用户是否正在输入
+     * @example
+     * ```typescript
+     * const typing = await client.getTypingManager().isUserTyping("!room:example.org", "@alice:example.org");
+     * ```
      */
     async isUserTyping(roomId: string, userId: string): Promise<boolean> {
         const users = await this.getTypingUsers(roomId);
@@ -274,6 +301,14 @@ export class TypingManager extends BaseManager {
      *
      * 与 `getTypingUsers` 不同，此方法绕过本地 `m.typing` 缓存，直接向后端
      * 发起请求，适用于 sync 还未完成或需要实时数据的场景。
+     *
+     * @param roomId - 房间 ID
+     * @returns 正在打字的用户列表
+     * @example
+     * ```typescript
+     * const users = await client.getTypingManager().fetchTypingUsers("!room:example.org");
+     * console.log(users.map((u) => u.userId));
+     * ```
      */
     async fetchTypingUsers(roomId: string): Promise<TypingUser[]> {
         validateRoomId(roomId);
@@ -296,6 +331,14 @@ export class TypingManager extends BaseManager {
 
     /**
      * 查询单个用户是否在某个房间内打字（GET /rooms/{room_id}/typing/{user_id}）。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @returns 该用户是否正在输入
+     * @example
+     * ```typescript
+     * const typing = await client.getTypingManager().fetchUserTyping("!room:example.org", "@alice:example.org");
+     * ```
      */
     async fetchUserTyping(roomId: string, userId: string): Promise<boolean> {
         validateRoomId(roomId);
@@ -315,6 +358,14 @@ export class TypingManager extends BaseManager {
      * 批量查询多个房间的打字状态（POST /rooms/typing）。
      *
      * 返回值为 roomId -> TypingUser[] 的映射。
+     *
+     * @param rooms - 房间 ID 列表
+     * @returns 房间 ID 到打字用户列表的映射
+     * @example
+     * ```typescript
+     * const typing = await client.getTypingManager().fetchRoomsTyping(["!a:example.org", "!b:example.org"]);
+     * console.log(typing.size);
+     * ```
      */
     async fetchRoomsTyping(rooms: string[]): Promise<Map<string, TypingUser[]>> {
         for (const roomId of rooms) {
@@ -350,6 +401,11 @@ export class TypingManager extends BaseManager {
 
     /**
      * 清除所有打字定时器
+     *
+     * @example
+     * ```typescript
+     * client.getTypingManager().clearAllTimers();
+     * ```
      */
     clearAllTimers(): void {
         for (const timer of this.typingTimers.values()) {
@@ -358,10 +414,26 @@ export class TypingManager extends BaseManager {
         this.typingTimers.clear();
     }
 
+    /**
+     * 启动打字管理器
+     *
+     * @example
+     * ```typescript
+     * client.getTypingManager().start();
+     * ```
+     */
     start(): void {
         // 可以添加事件监听
     }
 
+    /**
+     * 停止打字管理器并清除所有定时器
+     *
+     * @example
+     * ```typescript
+     * client.getTypingManager().stop();
+     * ```
+     */
     stop(): void {
         this.clearAllTimers();
     }

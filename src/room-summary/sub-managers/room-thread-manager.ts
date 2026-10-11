@@ -42,6 +42,13 @@ export class RoomSummaryThreadManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventId - 事件 ID
      * @returns 事件密钥结果
+     * @throws {InvalidParamError} 当 roomId 或 eventId 无效时
+     * @throws {SdkError} 当请求失败时
+     * @example
+     * ```typescript
+     * const keys = await client.getRoomSummaryManager().threads.getEventKeys("!room:example.com", "$event");
+     * console.log(keys);
+     * ```
      */
     public async getEventKeys(roomId: string, eventId: string): Promise<EventKeysResult> {
         this.validateRoomId(roomId);
@@ -69,6 +76,13 @@ export class RoomSummaryThreadManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param eventId - 线程根事件 ID
      * @returns 线程详情，包含根事件、回复和参与者
+     * @throws {InvalidParamError} 当 roomId 或 eventId 无效时
+     * @throws {SdkError} 当请求失败时
+     * @example
+     * ```typescript
+     * const thread = await client.getRoomSummaryManager().threads.getRoomThread("!room:example.com", "$root");
+     * console.log(thread);
+     * ```
      */
     public async getRoomThread(roomId: string, eventId: string): Promise<RoomThreadResult> {
         this.validateRoomId(roomId);
@@ -96,6 +110,13 @@ export class RoomSummaryThreadManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param threadId - 线程 ID
      * @returns 线程详情
+     * @throws {InvalidParamError} 当 roomId 或 threadId 无效时
+     * @throws {SdkError} 当请求失败时
+     * @example
+     * ```typescript
+     * const thread = await client.getRoomSummaryManager().threads.getRoomThreadById("!room:example.com", "$thread");
+     * console.log(thread);
+     * ```
      */
     public async getRoomThreadById(roomId: string, threadId: string): Promise<RoomThreadDetailResult> {
         this.validateRoomId(roomId);

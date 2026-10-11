@@ -153,6 +153,16 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         this.baseUrl = baseUrl;
     }
 
+    /**
+     * 以游客（guest）身份向服务端注册新账号，成功后缓存游客信息并发出 {@link GuestEvent.GuestRegistered}。
+     *
+     * @param deviceId - 可选设备 ID
+     * @param initialDeviceDisplayName - 可选初始设备显示名
+     * @returns 注册响应（含 `user_id` / `access_token` 等）
+     * @throws 当服务端注册失败时原样抛出
+     * @example
+     * const res = await client.getGuestManager().registerGuest("DEVICE", "Web");
+     */
     async registerGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestRegisterResponse> {
         try {
             const body: GuestRegisterBody = {
@@ -195,6 +205,16 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 以游客身份登录，成功后缓存游客信息并发出 {@link GuestEvent.GuestLoggedIn}。
+     *
+     * @param deviceId - 可选设备 ID
+     * @param initialDeviceDisplayName - 可选初始设备显示名
+     * @returns 登录响应（含 `user_id` / `access_token` 等）
+     * @throws 当登录失败时原样抛出
+     * @example
+     * const res = await client.getGuestManager().loginGuest("DEVICE", "Web");
+     */
     async loginGuest(deviceId?: string, initialDeviceDisplayName?: string): Promise<IGuestLoginResponse> {
         try {
             const body: GuestLoginBody = {
@@ -237,6 +257,14 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 判断指定用户（缺省为当前用户）是否为游客。
+     *
+     * @param userId - 可选用户 ID，缺省使用当前登录用户
+     * @returns 是否为游客；查询失败时按「非游客」处理并返回 false
+     * @example
+     * const guest = await client.getGuestManager().isGuest();
+     */
     async isGuest(userId?: string): Promise<boolean> {
         try {
             const targetUserId = userId || this.client.getUserId();
@@ -264,6 +292,13 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         return false;
     }
 
+    /**
+     * 获取当前游客账号的访问令牌。
+     *
+     * @returns 访问令牌；无游客信息或已过期时返回 null
+     * @example
+     * const token = await client.getGuestManager().getGuestAccessToken();
+     */
     async getGuestAccessToken(): Promise<string | null> {
         if (!this.guestInfo) {
             return null;
@@ -277,6 +312,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         return this.guestInfo.accessToken;
     }
 
+    /**
+     * 通过设置密码将当前游客账号升级为普通账号。
+     *
+     * @param password - 新账号密码
+     * @param authDict - 可选交互式认证参数
+     * @throws 当不存在可升级的游客账号，或升级请求失败时
+     * @example
+     * await client.getGuestManager().upgradeGuestAccount("s3cret");
+     */
     async upgradeGuestAccount(password: string, authDict?: IAuthDict): Promise<void> {
         if (!this.guestInfo) {
             throw new Error("No guest account to upgrade");
@@ -307,6 +351,13 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 获取缓存的游客信息副本。
+     *
+     * @returns 游客信息；无游客信息或已过期时返回 null
+     * @example
+     * const info = client.getGuestManager().getGuestInfo();
+     */
     getGuestInfo(): IGuestInfo | null {
         if (!this.guestInfo) {
             return null;
@@ -320,6 +371,13 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         return { ...this.guestInfo };
     }
 
+    /**
+     * 列出当前游客账号可访问的房间。
+     *
+     * @returns 房间 ID 列表；非游客或查询失败时返回空数组
+     * @example
+     * const rooms = await client.getGuestManager().getGuestRooms();
+     */
     async getGuestRooms(): Promise<string[]> {
         if (!this.guestInfo) {
             return [];
@@ -334,6 +392,15 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         return [];
     }
 
+    /**
+     * 以游客身份加入指定房间。
+     *
+     * @param roomIdOrAlias - 房间 ID 或别名
+     * @returns 加入后的房间 ID
+     * @throws 当不存在游客账号，或加入失败时
+     * @example
+     * const { roomId } = await client.getGuestManager().joinRoomAsGuest("!abc:example.org");
+     */
     async joinRoomAsGuest(roomIdOrAlias: string): Promise<{ roomId: string }> {
         if (!this.guestInfo) {
             throw new Error("No guest account available");
@@ -349,6 +416,14 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 判断当前游客是否可加入指定房间：别名走目录服务查询，房间 ID 走本地已知房间判断。
+     *
+     * @param roomIdOrAlias - 房间 ID 或别名
+     * @returns 是否可加入；查询失败时返回 false
+     * @example
+     * const ok = await client.getGuestManager().canJoinRoom("#room:example.org");
+     */
     async canJoinRoom(roomIdOrAlias: string): Promise<boolean> {
         try {
             if (!roomIdOrAlias) {
@@ -374,10 +449,23 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         return false;
     }
 
+    /**
+     * 清空缓存的游客信息。
+     *
+     * @example
+     * client.getGuestManager().clearGuestInfo();
+     */
     clearGuestInfo(): void {
         this.guestInfo = null;
     }
 
+    /**
+     * 判断当前缓存的游客令牌是否仍然有效（存在且未过期）。
+     *
+     * @returns 令牌是否有效
+     * @example
+     * const valid = client.getGuestManager().isGuestTokenValid();
+     */
     isGuestTokenValid(): boolean {
         if (!this.guestInfo) {
             return false;
@@ -391,6 +479,14 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         return true;
     }
 
+    /**
+     * 从服务端拉取当前用户的游客信息，并发出 {@link GuestEvent.GuestInfoReceived}。
+     *
+     * @returns 服务端返回的游客信息
+     * @throws 当请求失败时原样抛出
+     * @example
+     * const info = await client.getGuestManager().getGuestInfoFromServer();
+     */
     public async getGuestInfoFromServer(): Promise<IServerGuestInfo> {
         try {
             const response = (await this.withRetry(async () => {
@@ -411,6 +507,17 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 通过服务端接口将游客账号升级为普通账号。
+     *
+     * @param request - 升级请求（`username` 必填）
+     * @returns 升级响应
+     * @throws {ValidationError} 当 `username` 缺失时；以及不存在可升级账号或请求失败时
+     * @example
+     * const res = await client
+     *     .getGuestManager()
+     *     .upgradeGuestAccountOnServer({ username: "alice", password: "s3cret" });
+     */
     public async upgradeGuestAccountOnServer(request: IUpgradeGuestRequest): Promise<IUpgradeGuestResponse> {
         if (!this.guestInfo && !this.client.getUserId()) {
             throw new Error("No guest account to upgrade");
@@ -448,6 +555,16 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 通过服务端专用接口注册游客账号，成功后缓存游客信息并发出 {@link GuestEvent.GuestRegistered}。
+     *
+     * @param deviceId - 可选设备 ID
+     * @param initialDeviceDisplayName - 可选初始设备显示名
+     * @returns 注册响应
+     * @throws 当注册请求失败时原样抛出
+     * @example
+     * const res = await client.getGuestManager().registerGuestOnServer();
+     */
     public async registerGuestOnServer(
         deviceId?: string,
         initialDeviceDisplayName?: string,
@@ -491,6 +608,12 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         }
     }
 
+    /**
+     * 停止管理器并清空缓存的游客信息。
+     *
+     * @example
+     * client.getGuestManager().stop();
+     */
     stop(): void {
         this.guestInfo = null;
     }

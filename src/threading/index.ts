@@ -349,6 +349,17 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         }
     }
 
+    /**
+     * 从本地已加载的房间中按线程 ID 查找线程模型。
+     *
+     * @param threadId - 线程 ID
+     * @returns 找到的 {@link Thread}；未找到返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const thread = client.getThreadingManager().getThread("$thread-id");
+     * ```
+     */
     public getThread(threadId: string): Thread | null {
         const rooms = this.client.getRooms();
         for (const room of rooms) {
@@ -358,6 +369,16 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return null;
     }
 
+    /**
+     * 汇总所有已加载房间内的线程列表。
+     *
+     * @returns 线程模型数组
+     *
+     * @example
+     * ```typescript
+     * const threads = client.getThreadingManager().getThreadList();
+     * ```
+     */
     public getThreadList(): Thread[] {
         const threads: Thread[] = [];
         const rooms = this.client.getRooms();
@@ -368,14 +389,46 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return threads;
     }
 
+    /**
+     * {@link getThreadList} 的别名，返回所有已加载房间内的线程。
+     *
+     * @returns 线程模型数组
+     *
+     * @example
+     * ```typescript
+     * const threads = client.getThreadingManager().getThreads();
+     * ```
+     */
     public getThreads(): Thread[] {
         return this.getThreadList();
     }
 
+    /**
+     * 判断本地是否已加载指定线程。
+     *
+     * @param threadId - 线程 ID
+     * @returns 存在返回 `true`，否则返回 `false`
+     *
+     * @example
+     * ```typescript
+     * const exists = client.getThreadingManager().hasThread("$thread-id");
+     * ```
+     */
     public hasThread(threadId: string): boolean {
         return this.getThread(threadId) !== null;
     }
 
+    /**
+     * 获取全局线程列表（vendor 端点）。
+     *
+     * @param query - 分页与过滤参数
+     * @returns 线程列表响应
+     *
+     * @example
+     * ```typescript
+     * const list = await client.getThreadingManager().getGlobalThreadList({ limit: 20 });
+     * ```
+     */
     public async getGlobalThreadList(query: ThreadListQuery = {}): Promise<ThreadListResponse> {
         return await this.requestThreadVendor(
             "getGlobalThreadList",
@@ -385,6 +438,17 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取当前用户订阅的线程列表。
+     *
+     * @param query - 分页参数
+     * @returns 订阅线程响应
+     *
+     * @example
+     * ```typescript
+     * const subs = await client.getThreadingManager().getSubscribedThreads({ limit: 20 });
+     * ```
+     */
     public async getSubscribedThreads(
         query: { limit?: number; from?: string } = {},
     ): Promise<SubscribedThreadsResponse> {
@@ -396,10 +460,32 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取全局未读线程汇总（vendor 端点）。
+     *
+     * @returns 未读线程响应
+     *
+     * @example
+     * ```typescript
+     * const unread = await client.getThreadingManager().getGlobalUnreadThreads();
+     * ```
+     */
     public async getGlobalUnreadThreads(): Promise<ThreadUnreadResponse> {
         return await this.requestThreadVendor("getGlobalUnreadThreads", Method.Get, tv("/threads/unread"));
     }
 
+    /**
+     * 获取指定房间的线程列表。
+     *
+     * @param roomId - 房间 ID
+     * @param query - 分页与过滤参数
+     * @returns 线程列表响应
+     *
+     * @example
+     * ```typescript
+     * const list = await client.getThreadingManager().getRoomThreadList("!room:example.org", { limit: 20 });
+     * ```
+     */
     public async getRoomThreadList(roomId: string, query: ThreadListQuery = {}): Promise<ThreadListResponse> {
         return await this.requestThreadV1(
             "getRoomThreadList",
@@ -409,6 +495,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 在指定房间内搜索线程。
+     *
+     * @param roomId - 房间 ID
+     * @param query - 搜索关键词与分页参数
+     * @returns 匹配的线程摘要数组
+     *
+     * @example
+     * ```typescript
+     * const results = await client.getThreadingManager().searchRoomThreads("!room:example.org", { q: "hello" });
+     * ```
+     */
     public async searchRoomThreads(roomId: string, query: ThreadSearchQuery): Promise<ThreadSummaryResponse[]> {
         return await this.requestThreadVendor(
             "searchRoomThreads",
@@ -418,6 +516,21 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取指定用户在指定房间内的线程列表（遗留端点）。
+     *
+     * @param userId - 用户 ID
+     * @param roomId - 房间 ID
+     * @param query - 分页与过滤参数
+     * @returns 遗留线程搜索响应
+     *
+     * @example
+     * ```typescript
+     * const list = await client
+     *     .getThreadingManager()
+     *     .getLegacyRoomThreadList("@alice:example.org", "!room:example.org", { limit: 20 });
+     * ```
+     */
     public async getLegacyRoomThreadList(
         userId: string,
         roomId: string,
@@ -431,6 +544,17 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取指定房间的未读线程汇总。
+     *
+     * @param roomId - 房间 ID
+     * @returns 未读线程响应
+     *
+     * @example
+     * ```typescript
+     * const unread = await client.getThreadingManager().getRoomUnreadThreads("!room:example.org");
+     * ```
+     */
     public async getRoomUnreadThreads(roomId: string): Promise<ThreadUnreadResponse> {
         return await this.requestThreadVendor(
             "getRoomUnreadThreads",
@@ -439,6 +563,21 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取指定房间内某线程的详情。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @param query - 回复包含与分页参数
+     * @returns 线程详情响应
+     *
+     * @example
+     * ```typescript
+     * const detail = await client
+     *     .getThreadingManager()
+     *     .getRoomThread("!room:example.org", "$thread-id", { includeReplies: true });
+     * ```
+     */
     public async getRoomThread(
         roomId: string,
         threadId: string,
@@ -452,6 +591,19 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 创建全局线程（vendor 端点）。
+     *
+     * @param params - 线程创建参数
+     * @returns 线程创建响应
+     *
+     * @example
+     * ```typescript
+     * const created = await client
+     *     .getThreadingManager()
+     *     .createGlobalThread({ roomId: "!room:example.org", rootEventId: "$event-id" });
+     * ```
+     */
     public async createGlobalThread(params: ThreadCreateParams): Promise<ThreadCreateResponse> {
         return await this.requestThreadVendor("createGlobalThread", Method.Post, tv("/threads"), undefined, {
             room_id: params.roomId,
@@ -461,6 +613,21 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         });
     }
 
+    /**
+     * 在指定房间内创建线程。
+     *
+     * @param roomId - 房间 ID
+     * @param rootEventId - 线程根事件 ID
+     * @param options - 可选的线程内容与时间戳
+     * @returns 线程创建响应
+     *
+     * @example
+     * ```typescript
+     * const created = await client
+     *     .getThreadingManager()
+     *     .createRoomThread("!room:example.org", "$root-event-id");
+     * ```
+     */
     public async createRoomThread(
         roomId: string,
         rootEventId: string,
@@ -479,6 +646,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 删除指定房间内的线程。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @returns 删除完成时 resolves
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadingManager().deleteRoomThread("!room:example.org", "$thread-id");
+     * ```
+     */
     public async deleteRoomThread(roomId: string, threadId: string): Promise<void> {
         await this.requestThreadVendor(
             "deleteRoomThread",
@@ -487,6 +666,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 冻结指定线程（不再接受新回复）。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @returns 冻结完成时 resolves
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadingManager().freezeThread("!room:example.org", "$thread-id");
+     * ```
+     */
     public async freezeThread(roomId: string, threadId: string): Promise<void> {
         await this.requestThreadVendor(
             "freezeThread",
@@ -495,6 +686,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 解冻指定线程。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @returns 解冻完成时 resolves
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadingManager().unfreezeThread("!room:example.org", "$thread-id");
+     * ```
+     */
     public async unfreezeThread(roomId: string, threadId: string): Promise<void> {
         await this.requestThreadVendor(
             "unfreezeThread",
@@ -503,6 +706,23 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 向指定线程添加回复。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @param params - 回复创建参数
+     * @returns 回复响应
+     *
+     * @example
+     * ```typescript
+     * const reply = await client.getThreadingManager().addThreadReply("!room:example.org", "$thread-id", {
+     *     eventId: "$reply-event-id",
+     *     rootEventId: "$root-event-id",
+     *     content: { body: "hello", msgtype: "m.text" },
+     * });
+     * ```
+     */
     public async addThreadReply(
         roomId: string,
         threadId: string,
@@ -523,6 +743,21 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取指定线程的回复列表。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @param query - 分页参数
+     * @returns 回复响应数组
+     *
+     * @example
+     * ```typescript
+     * const replies = await client
+     *     .getThreadingManager()
+     *     .getThreadReplies("!room:example.org", "$thread-id", { limit: 20 });
+     * ```
+     */
     public async getThreadReplies(
         roomId: string,
         threadId: string,
@@ -536,6 +771,21 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 订阅指定线程以接收通知。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @param notificationLevel - 通知级别，默认 `"all"`
+     * @returns 订阅响应
+     *
+     * @example
+     * ```typescript
+     * const sub = await client
+     *     .getThreadingManager()
+     *     .subscribeToThread("!room:example.org", "$thread-id", "all");
+     * ```
+     */
     public async subscribeToThread(
         roomId: string,
         threadId: string,
@@ -550,6 +800,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 取消订阅指定线程。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @returns 取消订阅完成时 resolves
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadingManager().unsubscribeFromThread("!room:example.org", "$thread-id");
+     * ```
+     */
     public async unsubscribeFromThread(roomId: string, threadId: string): Promise<void> {
         await this.requestThreadV1(
             "unsubscribeFromThread",
@@ -558,6 +820,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 静音指定线程。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @returns 更新后的订阅响应
+     *
+     * @example
+     * ```typescript
+     * const sub = await client.getThreadingManager().muteThread("!room:example.org", "$thread-id");
+     * ```
+     */
     public async muteThread(roomId: string, threadId: string): Promise<ThreadSubscriptionResponse> {
         return await this.requestThreadVendor(
             "muteThread",
@@ -566,6 +840,22 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 将指定线程标记为已读。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @param eventId - 已读位置的事件 ID
+     * @param originServerTs - 事件时间戳，默认当前时间
+     * @returns 已读回执响应
+     *
+     * @example
+     * ```typescript
+     * const receipt = await client
+     *     .getThreadingManager()
+     *     .markThreadRead("!room:example.org", "$thread-id", "$event-id");
+     * ```
+     */
     public async markThreadRead(
         roomId: string,
         threadId: string,
@@ -581,6 +871,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 获取指定线程的统计信息。
+     *
+     * @param roomId - 房间 ID
+     * @param threadId - 线程 ID
+     * @returns 统计响应；不存在时返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getThreadingManager().getThreadStats("!room:example.org", "$thread-id");
+     * ```
+     */
     public async getThreadStats(roomId: string, threadId: string): Promise<ThreadStatisticsResponse | null> {
         return await this.requestThreadVendor(
             "getThreadStats",
@@ -589,6 +891,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 撤回指定线程回复。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 要撤回的事件 ID
+     * @returns 撤回完成时 resolves
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadingManager().redactThreadReply("!room:example.org", "$reply-event-id");
+     * ```
+     */
     public async redactThreadReply(roomId: string, eventId: string): Promise<void> {
         await this.requestThreadVendor(
             "redactThreadReply",
@@ -597,6 +911,18 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         );
     }
 
+    /**
+     * 基于本地房间内的事件创建线程模型。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 线程根事件 ID
+     * @returns 创建的 {@link Thread}；房间或事件不存在时返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const thread = await client.getThreadingManager().createThread("!room:example.org", "$event-id");
+     * ```
+     */
     public async createThread(roomId: string, eventId: string): Promise<Thread | null> {
         const room = this.client.getRoom(roomId);
         if (!room) return null;
@@ -607,6 +933,22 @@ export class ThreadingManager extends BaseManager<keyof ThreadingManagerEvents, 
         return room.createThread?.(eventId, event, [], false) || null;
     }
 
+    /**
+     * 为指定事件构建线程时间线。
+     *
+     * @param timelineSet - 目标线程的时间线集合
+     * @param eventId - 线程根事件 ID
+     * @returns 构建的 {@link EventTimeline}；不适用时返回 `undefined`
+     *
+     * @throws {Error} 客户端不支持线程、或时间线集合不是房间/线程时间线时抛出
+     *
+     * @example
+     * ```typescript
+     * const timeline = await client
+     *     .getThreadingManager()
+     *     .getThreadTimeline(threadTimelineSet, "$event-id");
+     * ```
+     */
     public async getThreadTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | undefined> {
         const clientInternals = this.internalClient as unknown as ClientInternals;
 

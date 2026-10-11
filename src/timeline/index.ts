@@ -89,11 +89,34 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
         super(client, opts);
     }
 
+    /**
+     * 获取指定房间的时间线集合。
+     *
+     * @param roomId - 房间 ID
+     * @returns 对应的 EventTimelineSet；房间不存在时返回 null
+     *
+     * @example
+     * ```typescript
+     * const timelineSet = client.getTimelineManager().getTimelineForRoom("!room:example.org");
+     * ```
+     */
     public getTimelineForRoom(roomId: string): EventTimelineSet | null {
         const room = this.client.getRoom(roomId);
         return room?.getUnfilteredTimelineSet() || null;
     }
 
+    /**
+     * 同步获取指定事件所在的时间线（不发起网络请求）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 对应的 EventTimeline；房间或事件不存在时返回 null
+     *
+     * @example
+     * ```typescript
+     * const timeline = client.getTimelineManager().getEventTimelineSync("!room:example.org", "$event");
+     * ```
+     */
     public getEventTimelineSync(roomId: string, eventId: string): EventTimeline | null {
         const room = this.client.getRoom(roomId);
         if (!room) return null;
@@ -102,6 +125,18 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
         return timelineSet?.getTimelineForEvent(eventId) || null;
     }
 
+    /**
+     * 在本地房间中查找指定事件及其评论。
+     *
+     * @param eventId - 事件 ID
+     * @returns 事件与评论列表；未找到时返回 null
+     *
+     * @example
+     * ```typescript
+     * const result = client.getTimelineManager().getEventAndComments("$event");
+     * console.log(result?.event);
+     * ```
+     */
     public getEventAndComments(eventId: string): { event: unknown; comments: unknown[] } | null {
         const rooms = this.client.getRooms();
         for (const room of rooms) {
@@ -117,14 +152,46 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
         return null;
     }
 
+    /**
+     * 窥视（peek）指定房间，无需加入即可读取事件。
+     *
+     * @param roomId - 房间 ID
+     * @returns 对应的 Room；窥视失败时返回 null
+     *
+     * @example
+     * ```typescript
+     * const room = await client.getTimelineManager().peekRoom("!room:example.org");
+     * ```
+     */
     public async peekRoom(roomId: string): Promise<Room | null> {
         return await this.client.peekInRoom(roomId);
     }
 
+    /**
+     * 停止对房间的窥视。
+     *
+     * @example
+     * ```typescript
+     * await client.getTimelineManager().stopPeeking();
+     * ```
+     */
     public async stopPeeking(): Promise<void> {
         this.client.stopPeeking?.();
     }
 
+    /**
+     * 获取指定事件所在的时间线，必要时从服务端加载上下文。
+     *
+     * @param timelineSet - 目标时间线集合
+     * @param eventId - 事件 ID
+     * @returns 对应的 EventTimeline；无法构造时返回 null
+     * @throws {Error} 未启用时间线支持、非房间时间线，或上下文响应缺少 event 字段时
+     *
+     * @example
+     * ```typescript
+     * const timeline = await client.getTimelineManager().getEventTimeline(timelineSet, "$event");
+     * ```
+     */
     public async getEventTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | null> {
         const clientInternals = this.internalClient as unknown as ClientInternals;
 
@@ -203,6 +270,12 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      *
      * @returns Promise which resolves:
      *    {@link EventTimeline} timeline with the latest events in the room
+     * @throws {Error} 未启用时间线支持、非房间时间线，或未取到任何消息时
+     *
+     * @example
+     * ```typescript
+     * const timeline = await client.getTimelineManager().getLatestTimeline(timelineSet);
+     * ```
      */
     public async getLatestTimeline(timelineSet: EventTimelineSet): Promise<EventTimeline | null> {
         const clientInternals = this.internalClient as unknown as ClientInternals;
@@ -268,6 +341,10 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      * @returns Promise which resolves: Room. If you are at the beginning
      * of the timeline, `Room.oldState.paginationToken` will be
      * `null`.
+     * @example
+     * ```typescript
+     * const room = await client.getTimelineManager().scrollback(room);
+     * ```
      */
     public scrollback(room: Room, limit = 30): Promise<Room> {
         const clientInternals = this.internalClient as unknown as ClientInternals;
@@ -349,6 +426,10 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      * @param room - the room the adds the threaded events
      * @param threadedEvents - an array of the threaded events
      * @param toStartOfTimeline - the direction in which we want to add the events
+     * @example
+     * ```typescript
+     * client.getTimelineManager().processThreadEvents(room, threadedEvents, false);
+     * ```
      */
     public processThreadEvents(room: Room, threadedEvents: MatrixEvent[], toStartOfTimeline: boolean): void {
         room.processThreadedEvents(threadedEvents, toStartOfTimeline);
@@ -360,6 +441,10 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      * @param threadedEvents - an array of thread roots
      * @param toStartOfTimeline - the direction
      * @param supportsThreads - whether threads are supported
+     * @example
+     * ```typescript
+     * client.getTimelineManager().processThreadRoots(room, threadRoots, false, true);
+     * ```
      */
     public processThreadRoots(
         room: Room,
@@ -375,6 +460,10 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      * Process beacon events
      * @param room - room the events belong to
      * @param events - timeline events to be processed
+     * @example
+     * ```typescript
+     * client.getTimelineManager().processBeaconEvents(room, events);
+     * ```
      */
     public processBeaconEvents(room?: Room, events?: MatrixEvent[]): void {
         this.processAggregatedTimelineEvents(room, events);
@@ -385,6 +474,10 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
      * Polls and location beacons
      * @param room - room the events belong to
      * @param events - timeline events to be processed
+     * @example
+     * ```typescript
+     * client.getTimelineManager().processAggregatedTimelineEvents(room, events);
+     * ```
      */
     public processAggregatedTimelineEvents(room?: Room, events?: MatrixEvent[]): void {
         if (!events?.length) return;
@@ -398,6 +491,10 @@ export class TimelineManager extends BaseManager<keyof TimelineManagerEvents, Ti
     /**
      * Common logic for processing events received from pagination.
      * @internal
+     * @example
+     * ```typescript
+     * client.getTimelineManager().processPaginationEvents(timeline, events, true, token);
+     * ```
      */
     public processPaginationEvents(
         eventTimeline: EventTimeline,

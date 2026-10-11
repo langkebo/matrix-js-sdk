@@ -76,6 +76,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * 后端实现: synapse-rust/src/web/routes/dm.rs:268-281
      *
      * @returns DM 房间信息列表
+     * @throws {Error} 当 m.direct 读取或房间扫描失败时抛出
+     * @example
+     * const rooms = await client.getDirectMessageManager().list.getDMRooms();
+     * console.log("DM 房间数量:", rooms.length);
      */
     async getDMRooms(): Promise<DmRoomInfo[]> {
         try {
@@ -238,6 +242,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * 如果缓存未更新，可能返回过时数据
      *
      * @returns m.direct 映射 { [userId]: [roomId, ...] }
+     * @throws {Error} 当账户数据读取失败时抛出
+     * @example
+     * const dmMap = client.getDirectMessageManager().list.getDirectRoomsByUserSync();
+     * console.log("DM 用户:", Object.keys(dmMap));
      */
     public getDirectRoomsByUserSync(): IDirectRoomsMap {
         try {
@@ -307,6 +315,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * 正确: client.getAccountData(EventType.Direct)
      *
      * @returns m.direct 映射 { [userId]: [roomId, ...] }
+     * @throws {Error} 当 m.direct 账户数据读取失败时抛出
+     * @example
+     * const dmMap = await client.getDirectMessageManager().list.getDirectRoomsByUser();
+     * console.log(dmMap["@alice:example.com"]);
      */
     async getDirectRoomsByUser(): Promise<IDirectRoomsMap> {
         try {
@@ -329,6 +341,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      *
      * @param roomId - 房间 ID
      * @returns DM 房间信息
+     * @throws {Error} 当 DM 房间信息构建失败时抛出
+     * @example
+     * const info = await client.getDirectMessageManager().list.getDmRoomInfo("!room:example.com");
+     * if (info) console.log(info.lastMessage?.content);
      */
     async getDmRoomInfo(roomId: string): Promise<DmRoomInfo | null> {
         const cached = this.dmRoomsCache.get(roomId);
@@ -353,21 +369,33 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
     }
 
     /**
-     * 获取缓存的 DM 房间列表
+     * 获取缓存的 DM 房间列表。
+     *
+     * @example
+     * const rooms = client.getDirectMessageManager().list.getCachedDmRooms();
+     * console.log("缓存 DM 房间数量:", rooms.length);
      */
     getCachedDmRooms(): DmRoomInfo[] {
         return this.dmRoomsCache.values();
     }
 
     /**
-     * 获取缓存的用户 DM 房间 ID
+     * 获取缓存的用户 DM 房间 ID。
+     *
+     * @example
+     * const roomId = client.getDirectMessageManager().list.getCachedDmForUser("@alice:example.com");
+     * if (roomId) console.log("缓存的 DM 房间:", roomId);
      */
     getCachedDmForUser(userId: string): string | null {
         return this.userDmMapCache.get(userId) || null;
     }
 
     /**
-     * 获取所有 DM 房间信息（使用缓存）
+     * 获取所有 DM 房间信息（使用缓存）。
+     *
+     * @example
+     * const infos = await client.getDirectMessageManager().list.getDmRoomInfos();
+     * console.log(infos.map((info) => info.roomId));
      */
     async getDmRoomInfos(): Promise<DmRoomInfo[]> {
         return this.getCachedDmRooms();
@@ -382,6 +410,9 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      *
      * @param roomId - 房间 ID
      * @returns 是否为 DM 房间
+     * @example
+     * const isDm = await client.getDirectMessageManager().list.checkRoomIsDm("!room:example.com");
+     * console.log("是否为 DM:", isDm);
      */
     async checkRoomIsDm(roomId: string): Promise<boolean> {
         const dmMap = this.getDirectRoomsByUserSync();
@@ -409,6 +440,9 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      *
      * @param roomId - 房间 ID
      * @returns 伙伴用户 ID 或 null
+     * @example
+     * const partner = await client.getDirectMessageManager().list.getDmPartner("!room:example.com");
+     * if (partner) console.log("DM 伙伴:", partner);
      */
     async getDmPartner(roomId: string): Promise<string | null> {
         const dmPartner = this.getDmPartnerFromDirect(roomId);
@@ -434,6 +468,13 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      *
      * @param userIds - 用户 ID 列表
      * @returns 匹配的 DM 房间列表
+     * @throws {Error} 当 m.direct 读取失败时抛出
+     * @example
+     * const rooms = await client.getDirectMessageManager().list.getDmRoomsByUserIds([
+     *     "@alice:example.com",
+     *     "@bob:example.com",
+     * ]);
+     * console.log("匹配的 DM 房间数量:", rooms.length);
      */
     async getDmRoomsByUserIds(userIds: string[]): Promise<Room[]> {
         try {
@@ -467,6 +508,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      *
      * @param roomId - 房间 ID
      * @returns Room 对象或 null
+     * @throws {Error} 当 throwOnError 为 true 且房间不存在时抛出
+     * @example
+     * const room = await client.getDirectMessageManager().list.getDmRoom("!room:example.com");
+     * if (room) console.log(room.name);
      */
     async getDmRoom(roomId: string, throwOnError = true): Promise<Room | null> {
         const room = this.client.getRoom(roomId);
@@ -485,6 +530,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * 后端实现: GET /_matrix/client/v3/direct
      *
      * @returns m.direct 映射 { [userId]: [roomId, ...] }
+     * @throws {Error} 当服务器请求失败时抛出
+     * @example
+     * const dmMap = await client.getDirectMessageManager().list.getDirectRoomsFromServer();
+     * console.log("服务器 m.direct 映射:", dmMap);
      */
     async getDirectRoomsFromServer(): Promise<IDirectRoomsMap> {
         try {
@@ -518,6 +567,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      *
      * @param roomId - 房间 ID
      * @returns 后端原始 DM 检查响应
+     * @throws {ValidationError} 当房间 ID 为空时抛出
+     * @example
+     * const check = await client.getDirectMessageManager().list.getRoomDm("!room:example.com");
+     * console.log("是否 DM:", check["m.direct"]);
      */
     async getRoomDm(roomId: string): Promise<DmRoomCheckResponse> {
         if (!roomId) {
@@ -539,6 +592,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * @param roomId - 房间 ID
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 是否为 DM 房间
+     * @throws {ValidationError} 当房间 ID 为空时抛出
+     * @example
+     * const isDm = await client.getDirectMessageManager().list.isDmRoomFromServer("!room:example.com");
+     * console.log("服务器判定为 DM:", isDm);
      */
     async isDmRoomFromServer(roomId: string, throwOnError = true): Promise<boolean> {
         if (!roomId) {
@@ -569,6 +626,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
      * @param roomId - 房间 ID
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时使用兼容 fallback）
      * @returns 伙伴信息
+     * @throws {ValidationError} 当房间 ID 为空时抛出
+     * @example
+     * const partner = await client.getDirectMessageManager().list.getDmPartnerFromServer("!room:example.com");
+     * if (partner) console.log("伙伴信息:", partner);
      */
     async getDmPartnerFromServer(roomId: string, throwOnError = true): Promise<DmPartnerResponse | null> {
         if (!roomId) {
@@ -602,6 +663,10 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
     /**
      * 设置房间为 DM 关系（synapse-rust 私有端点）。
      * PUT /_matrix/client/v3/direct/{room_id}
+     *
+     * @throws {ValidationError} 当房间 ID 为空时抛出
+     * @example
+     * await client.getDirectMessageManager().list.setDirect("!room:example.com");
      */
     async setDirect(roomId: string): Promise<void> {
         if (!roomId) {
@@ -617,13 +682,24 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
         }, "setDirect");
     }
 
-    /** 清空缓存（供顶层 DirectMessageManager.stop() 委托） */
+    /**
+     * 清空缓存（供顶层 DirectMessageManager.stop() 委托）。
+     *
+     * @example
+     * client.getDirectMessageManager().list.clearCache();
+     */
     clearCache(): void {
         this.dmRoomsCache.clear();
         this.userDmMapCache.clear();
     }
 
-    /** 返回缓存统计（供顶层 DirectMessageManager.getCacheStats() 委托） */
+    /**
+     * 返回缓存统计（供顶层 DirectMessageManager.getCacheStats() 委托）。
+     *
+     * @example
+     * const stats = client.getDirectMessageManager().list.getCacheStats();
+     * console.log("DM 房间缓存命中率:", stats.dmRooms.hitRate);
+     */
     getCacheStats(): {
         dmRooms: { size: number; hits: number; misses: number; hitRate: number };
         userDmMap: { size: number; hits: number; misses: number; hitRate: number };

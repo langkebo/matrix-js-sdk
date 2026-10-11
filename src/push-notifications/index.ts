@@ -45,10 +45,31 @@ export class PushNotificationsManager {
     // `getPusherData()` —— 这 4 个方法在本 fork 的 MatrixClient 上**运行时并不存在**
     // （类型表却声明了它们：src/matrix-client-extensions.ts:690-694），调用即 TypeError。
 
+    /**
+     * 获取当前账号已注册的全部推送器。
+     *
+     * @returns 包含推送器数组的响应对象
+     *
+     * @example
+     * ```typescript
+     * const { pushers } = await client.getPushNotificationsManager().getPushers();
+     * ```
+     */
     public async getPushers(): Promise<IPushersResponse> {
         return { pushers: await this.client.getPushManager().getPushers() };
     }
 
+    /**
+     * 批量注册推送器，逐个下发到底层 PushManager。
+     *
+     * @param pushers - 待注册的推送器数组
+     * @returns 全部注册完成后 resolve 的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.getPushNotificationsManager().setPushers([pusher]);
+     * ```
+     */
     // 逐个下发 —— `PushManager.setPusher` 一次只处理一个推送器。
     public async setPushers(pushers: IPusher[]): Promise<void> {
         const pushManager = this.client.getPushManager();
@@ -57,6 +78,17 @@ export class PushNotificationsManager {
         }
     }
 
+    /**
+     * 删除指定推送器。
+     *
+     * @param pusherData - 要删除的推送器信息（使用其 pushkey、app_id、device_id）
+     * @returns 删除完成后 resolve 的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.getPushNotificationsManager().removePusher(pusher);
+     * ```
+     */
     public async removePusher(pusherData: IPusher): Promise<void> {
         await this.client.getPushManager().removePusher(pusherData.pushkey, pusherData.app_id, pusherData.device_id);
     }

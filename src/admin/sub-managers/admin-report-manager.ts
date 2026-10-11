@@ -125,6 +125,12 @@ export class AdminReportManager extends AdminBaseManager {
      * @param reportId - 举报 ID
      * @returns 举报详情
      *
+     * @example
+     * ```typescript
+     * const report = await client.getAdminManager().reports.get(42);
+     * console.log(report.room_id, report.reason);
+     * ```
+     *
      * @throws NotFoundError 如果举报不存在
      */
     async get(reportId: number): Promise<EventReport> {
@@ -142,6 +148,11 @@ export class AdminReportManager extends AdminBaseManager {
      *
      * @param reportId - 举报 ID
      *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().reports.delete(42);
+     * ```
+     *
      * @throws NotFoundError 如果举报不存在
      */
     async delete(reportId: number): Promise<void> {
@@ -154,6 +165,12 @@ export class AdminReportManager extends AdminBaseManager {
      * @param roomId - 房间 ID
      * @param options - 分页选项
      * @returns 举报列表
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getAdminManager().reports.getByRoom("!room:example.org", { limit: 20 });
+     * console.log(result.total, result.reports.length);
+     * ```
      *
      * @throws NotFoundError 如果房间不存在
      */
@@ -181,6 +198,12 @@ export class AdminReportManager extends AdminBaseManager {
      * @param reportId - 举报 ID
      * @returns 举报详情
      *
+     * @example
+     * ```typescript
+     * const report = await client.getAdminManager().reports.getRoomReport("!room:example.org", 42);
+     * console.log(report.event_id, report.status);
+     * ```
+     *
      * @throws NotFoundError 如果举报或房间不存在
      */
     async getRoomReport(roomId: string, reportId: number): Promise<EventReport> {
@@ -198,6 +221,11 @@ export class AdminReportManager extends AdminBaseManager {
      *
      * @param roomId - 房间 ID
      * @param reportId - 举报 ID
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().reports.deleteRoomReport("!room:example.org", 42);
+     * ```
      *
      * @throws NotFoundError 如果举报或房间不存在
      */

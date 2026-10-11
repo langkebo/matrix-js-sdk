@@ -44,12 +44,36 @@ export class CapabilitiesManager extends BaseManager<keyof CapabilitiesManagerEv
         super(client, opts);
     }
 
+    /**
+     * 获取服务器能力（优先返回缓存）。
+     *
+     * 先读取本地缓存，缓存未命中时再向服务器拉取。
+     *
+     * @returns 服务器能力；服务不可用时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const capabilities = await client.getCapabilitiesManager().getCapabilities();
+     * console.log(capabilities?.capabilities);
+     * ```
+     */
     public async getCapabilities(): Promise<IServerCapabilities | undefined> {
         const cached = this.getCachedCapabilities();
         if (cached) return cached;
         return this.fetchCapabilities();
     }
 
+    /**
+     * 获取已缓存的服务器能力（不发起网络请求）。
+     *
+     * @returns 已缓存的服务器能力；无缓存时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getCapabilitiesManager().getCachedCapabilities();
+     * console.log(cached?.capabilities);
+     * ```
+     */
     public getCachedCapabilities(): IServerCapabilities | undefined {
         return (
             this.internalClient as unknown as {
@@ -60,6 +84,17 @@ export class CapabilitiesManager extends BaseManager<keyof CapabilitiesManagerEv
         ).serverCapabilitiesService?.getCachedCapabilities();
     }
 
+    /**
+     * 强制从服务器拉取能力（忽略本地缓存）。
+     *
+     * @returns 服务器能力；服务不可用时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const capabilities = await client.getCapabilitiesManager().fetchCapabilities();
+     * console.log(capabilities?.capabilities);
+     * ```
+     */
     public async fetchCapabilities(): Promise<IServerCapabilities | undefined> {
         return this.withRetry(async () => {
             const service = (

@@ -156,32 +156,93 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     // ===== Workers =====
 
-    /** POST /_synapse/worker/v1/register */
+    /**
+     * 注册一个新的 Worker。
+     * POST /_synapse/worker/v1/register
+     *
+     * @param req - Worker 注册请求，`worker_id` 必填
+     * @returns 注册后的 Worker 信息
+     * @throws {ValidationError} 当 `req.worker_id` 为空时抛出
+     * @example
+     * ```typescript
+     * const info = await client.getWorkerAdminManager().registerWorker({
+     *     worker_id: "worker-1",
+     *     worker_name: "worker-1",
+     *     worker_type: "federation_sender",
+     *     host: "127.0.0.1",
+     *     port: 8008,
+     * });
+     * ```
+     */
     async registerWorker(req: RegisterWorkerRequest): Promise<WorkerInfo> {
         if (!req.worker_id) throw new ValidationError("worker_id is required");
         return this.doRequest(Method.Post, wa("/v1/register"), undefined, req);
     }
 
-    /** GET /_synapse/worker/v1/workers */
+    /**
+     * 列出所有已注册的 Worker。
+     * GET /_synapse/worker/v1/workers
+     *
+     * @param limit - 可选，返回数量上限
+     * @returns Worker 列表及总数
+     * @example
+     * ```typescript
+     * const { workers } = await client.getWorkerAdminManager().listWorkers(50);
+     * ```
+     */
     async listWorkers(limit?: number): Promise<{ workers: WorkerInfo[]; total?: number }> {
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
         return this.doRequest(Method.Get, wa("/v1/workers"), q);
     }
 
-    /** GET /_synapse/worker/v1/workers/type/{worker_type} */
+    /**
+     * 按 Worker 类型列出 Worker。
+     * GET /_synapse/worker/v1/workers/type/{worker_type}
+     *
+     * @param workerType - Worker 类型，必填
+     * @param limit - 可选，返回数量上限
+     * @returns 指定类型的 Worker 列表
+     * @throws {ValidationError} 当 `workerType` 为空时抛出
+     * @example
+     * ```typescript
+     * const { workers } = await client.getWorkerAdminManager().listWorkersByType("federation_sender");
+     * ```
+     */
     async listWorkersByType(workerType: string, limit?: number): Promise<{ workers: WorkerInfo[] }> {
         if (!workerType) throw new ValidationError("workerType is required");
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
         return this.doRequest(Method.Get, wa(`/v1/workers/type/${encodeURIComponent(workerType)}`), q);
     }
 
-    /** GET /_synapse/worker/v1/workers/{worker_id} */
+    /**
+     * 获取指定 Worker 的详情。
+     * GET /_synapse/worker/v1/workers/{worker_id}
+     *
+     * @param workerId - Worker ID，必填
+     * @returns Worker 详情
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const worker = await client.getWorkerAdminManager().getWorker("worker-1");
+     * ```
+     */
     async getWorker(workerId: string): Promise<WorkerInfo> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.doRequest(Method.Get, wa(`/v1/workers/${encodeURIComponent(workerId)}`));
     }
 
-    /** DELETE /_synapse/worker/v1/workers/{worker_id} */
+    /**
+     * 注销指定 Worker。
+     * DELETE /_synapse/worker/v1/workers/{worker_id}
+     *
+     * @param workerId - Worker ID，必填
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerAdminManager().unregisterWorker("worker-1");
+     * ```
+     */
     async unregisterWorker(workerId: string): Promise<void> {
         if (!workerId) throw new ValidationError("workerId is required");
         await this.doRequest(Method.Delete, wa(`/v1/workers/${encodeURIComponent(workerId)}`));
@@ -189,7 +250,22 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     // ===== Commands =====
 
-    /** POST /_synapse/worker/v1/workers/{worker_id}/commands */
+    /**
+     * 向指定 Worker 发送命令。
+     * POST /_synapse/worker/v1/workers/{worker_id}/commands
+     *
+     * @param workerId - 目标 Worker ID，必填
+     * @param req - 命令请求
+     * @returns 创建后的命令
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const command = await client.getWorkerAdminManager().sendCommand("worker-1", {
+     *     command_type: "reload",
+     *     command_data: {},
+     * });
+     * ```
+     */
     async sendCommand(workerId: string, req: SendCommandRequest): Promise<WorkerCommand> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.doRequest(Method.Post, wa(`/v1/workers/${encodeURIComponent(workerId)}/commands`), undefined, req);
@@ -197,24 +273,70 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     // ===== Tasks =====
 
-    /** POST /_synapse/worker/v1/tasks */
+    /**
+     * 分配一个任务。
+     * POST /_synapse/worker/v1/tasks
+     *
+     * @param req - 任务分配请求
+     * @returns 创建后的任务
+     * @example
+     * ```typescript
+     * const task = await client.getWorkerAdminManager().assignTask({
+     *     task_type: "send_email",
+     *     task_data: {},
+     * });
+     * ```
+     */
     async assignTask(req: AssignTaskRequest): Promise<WorkerTask> {
         return this.doRequest(Method.Post, wa("/v1/tasks"), undefined, req);
     }
 
-    /** GET /_synapse/worker/v1/tasks */
+    /**
+     * 列出待处理的任务。
+     * GET /_synapse/worker/v1/tasks
+     *
+     * @param limit - 可选，返回数量上限
+     * @returns 待处理任务列表
+     * @example
+     * ```typescript
+     * const { tasks } = await client.getWorkerAdminManager().getPendingTasks(20);
+     * ```
+     */
     async getPendingTasks(limit?: number): Promise<{ tasks: WorkerTask[] }> {
         const q = limit !== undefined ? { limit: String(limit) } : undefined;
         return this.doRequest(Method.Get, wa("/v1/tasks"), q);
     }
 
-    /** POST /_synapse/worker/v1/tasks/claim/{worker_id} */
+    /**
+     * 为指定 Worker 领取下一个任务。
+     * POST /_synapse/worker/v1/tasks/claim/{worker_id}
+     *
+     * @param workerId - Worker ID，必填
+     * @returns 领取到的任务，无可用任务时返回 `null`
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const task = await client.getWorkerAdminManager().claimTask("worker-1");
+     * ```
+     */
     async claimTask(workerId: string): Promise<WorkerTask | null> {
         if (!workerId) throw new ValidationError("workerId is required");
         return this.doRequest(Method.Post, wa(`/v1/tasks/claim/${encodeURIComponent(workerId)}`));
     }
 
-    /** POST /_synapse/worker/v1/tasks/{task_id}/claim/{worker_id} */
+    /**
+     * 为指定 Worker 领取指定任务。
+     * POST /_synapse/worker/v1/tasks/{task_id}/claim/{worker_id}
+     *
+     * @param taskId - 任务 ID，必填
+     * @param workerId - Worker ID，必填
+     * @returns 领取到的任务
+     * @throws {ValidationError} 当 `taskId` 或 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const task = await client.getWorkerAdminManager().claimSpecificTask("task-1", "worker-1");
+     * ```
+     */
     async claimSpecificTask(taskId: string, workerId: string): Promise<WorkerTask> {
         if (!taskId || !workerId) throw new ValidationError("taskId/workerId are required");
         return this.doRequest(
@@ -225,17 +347,46 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     // ===== Statistics / Routing =====
 
-    /** GET /_synapse/worker/v1/statistics */
+    /**
+     * 获取所有 Worker 的统计信息。
+     * GET /_synapse/worker/v1/statistics
+     *
+     * @returns Worker 统计条目列表
+     * @example
+     * ```typescript
+     * const stats = await client.getWorkerAdminManager().getStatistics();
+     * ```
+     */
     async getStatistics(): Promise<WorkerStatisticsEntry[]> {
         return this.doRequest(Method.Get, wa("/v1/statistics"));
     }
 
-    /** GET /_synapse/worker/v1/statistics/types */
+    /**
+     * 按类型获取 Worker 统计信息。
+     * GET /_synapse/worker/v1/statistics/types
+     *
+     * @returns 按类型分组的统计信息列表
+     * @example
+     * ```typescript
+     * const stats = await client.getWorkerAdminManager().getStatisticsByType();
+     * ```
+     */
     async getStatisticsByType(): Promise<WorkerTypeStatistics[]> {
         return this.doRequest(Method.Get, wa("/v1/statistics/types"));
     }
 
-    /** GET /_synapse/worker/v1/select/{task_type} */
+    /**
+     * 为给定任务类型选择 Worker。
+     * GET /_synapse/worker/v1/select/{task_type}
+     *
+     * @param taskType - 任务类型，必填
+     * @returns 选择结果
+     * @throws {ValidationError} 当 `taskType` 为空时抛出
+     * @example
+     * ```typescript
+     * const { selected_worker } = await client.getWorkerAdminManager().selectWorker("send_email");
+     * ```
+     */
     async selectWorker(taskType: string): Promise<SelectWorkerResponse> {
         if (!taskType) throw new ValidationError("taskType is required");
         return this.doRequest(Method.Get, wa(`/v1/select/${encodeURIComponent(taskType)}`));
@@ -243,12 +394,30 @@ export class WorkerAdminManager extends BaseManager<string, Record<string, never
 
     // ===== Topology =====
 
-    /** GET /_synapse/worker/v1/topology */
+    /**
+     * 获取 Worker 拓扑信息。
+     * GET /_synapse/worker/v1/topology
+     *
+     * @returns 拓扑信息
+     * @example
+     * ```typescript
+     * const topology = await client.getWorkerAdminManager().getTopology();
+     * ```
+     */
     async getTopology(): Promise<Record<string, unknown>> {
         return this.doRequest(Method.Get, wa("/v1/topology"));
     }
 
-    /** GET /_synapse/worker/v1/topology/validate */
+    /**
+     * 校验 Worker 拓扑。
+     * GET /_synapse/worker/v1/topology/validate
+     *
+     * @returns 校验结果
+     * @example
+     * ```typescript
+     * const { valid } = await client.getWorkerAdminManager().validateTopology();
+     * ```
+     */
     async validateTopology(): Promise<{ valid: boolean; errors?: string[] }> {
         return this.doRequest(Method.Get, wa("/v1/topology/validate"));
     }

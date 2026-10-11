@@ -53,6 +53,13 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param body - 申领请求体
      * @returns 申领结果
+     * @example
+     * ```typescript
+     * const result = await client
+     *     .getRoomSummaryManager()
+     *     .keys.claimRoomKeys("!room:example.com", { one_time_keys: {} });
+     * console.log(result.failures);
+     * ```
      */
     public async claimRoomKeys(roomId: string, body: ClaimKeysRequest): Promise<RoomKeyClaimResult> {
         this.validateRoomId(roomId);
@@ -71,6 +78,11 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @returns 密钥计数结果
+     * @example
+     * ```typescript
+     * const count = await client.getRoomSummaryManager().keys.getRoomKeyCount("!room:example.com");
+     * console.log(count.count);
+     * ```
      */
     public async getRoomKeyCount(roomId: string): Promise<RoomKeyCountResult> {
         this.validateRoomId(roomId);
@@ -114,6 +126,11 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      *
      * @param roomId - 房间 ID
      * @returns 密钥版本结果
+     * @example
+     * ```typescript
+     * const version = await client.getRoomSummaryManager().keys.getRoomKeysVersion("!room:example.com");
+     * console.log(version);
+     * ```
      */
     public async getRoomKeysVersion(roomId: string): Promise<RoomKeysVersionResult> {
         this.validateRoomId(roomId);
@@ -131,6 +148,13 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param body - 转发请求体
      * @returns 转发结果
+     * @example
+     * ```typescript
+     * const result = await client
+     *     .getRoomSummaryManager()
+     *     .keys.forwardRoomKeys("!room:example.com", { sessions: [] });
+     * console.log(result);
+     * ```
      */
     public async forwardRoomKeys(roomId: string, body: IContent): Promise<RoomForwardKeysResult> {
         this.validateRoomId(roomId);
@@ -150,6 +174,13 @@ export class RoomSummaryKeyManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @param options - 查询选项
      * @returns 加密事件结果
+     * @example
+     * ```typescript
+     * const events = await client
+     *     .getRoomSummaryManager()
+     *     .keys.getEncryptedEvents("!room:example.com", { limit: 50 });
+     * console.log(events);
+     * ```
      */
     public async getEncryptedEvents(
         roomId: string,

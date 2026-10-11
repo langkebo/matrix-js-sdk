@@ -146,6 +146,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Check if authenticated
+     *
+     * @example
+     * ```typescript
+     * const authed = client.getAuthManager().isAuthenticated();
+     * ```
      */
     public isAuthenticated(): boolean {
         const clientWithAuth = this.client as MatrixClientWithAuth;
@@ -154,6 +159,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get auth login type
+     *
+     * @example
+     * ```typescript
+     * const type = client.getAuthManager().getAuthLoginType();
+     * ```
      */
     public getAuthLoginType(): string | undefined {
         const clientWithAuth = this.client as MatrixClientWithAuth;
@@ -162,6 +172,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Set auth payload
+     *
+     * @example
+     * ```typescript
+     * client.getAuthManager().setAuthPayload({ type: "m.login.password" });
+     * ```
      */
     public setAuthPayload(payload: unknown): void {
         const clientWithAuth = this.client as MatrixClientWithAuth;
@@ -170,6 +185,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get fallback text
+     *
+     * @example
+     * ```typescript
+     * const text = client.getAuthManager().getFallbackRetryText();
+     * ```
      */
     public getFallbackRetryText(): string {
         const clientWithAuth = this.client as MatrixClientWithAuth;
@@ -178,6 +198,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Set fallback text
+     *
+     * @example
+     * ```typescript
+     * client.getAuthManager().setFallbackRetryText("请稍后重试");
+     * ```
      */
     public setFallbackRetryText(text: string): void {
         const clientWithAuth = this.client as MatrixClientWithAuth;
@@ -235,6 +260,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get supported registration flows
+     *
+     * @example
+     * ```typescript
+     * const flows = await client.getAuthManager().getRegisterFlows(true);
+     * ```
      *
      * 后端实现: synapse-rust/src/web/routes/auth_compat.rs:261-269
      */
@@ -436,6 +466,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      *
      * @param body - JSON HTTP body to provide
      * @returns Promise which resolves to RegisterResponse
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getAuthManager().registerGuest();
+     * console.log(response.user_id);
+     * ```
      */
     public async registerGuest(body?: RegisterRequest): Promise<RegisterResponse> {
         return this.withRetry(
@@ -453,6 +489,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Clear cache
+     *
+     * @example
+     * ```typescript
+     * client.getAuthManager().clearCache();
+     * ```
      */
     public clearCache(): void {
         this.loginFlowCache.clear();
@@ -461,6 +502,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Get cache statistics
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getAuthManager().getCacheStats();
+     * console.log(stats.loginFlows.hitRate);
+     * ```
      */
     public getCacheStats(): {
         loginFlows: { size: number; hits: number; misses: number; hitRate: number };
@@ -474,6 +521,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * 获取数据约束常量
+     *
+     * @example
+     * ```typescript
+     * const constraints = AuthManager.getConstraints();
+     * console.log(constraints.USERNAME_MAX_LENGTH);
+     * ```
      */
     public static getConstraints(): {
         USERNAME_MAX_LENGTH: number;
@@ -491,6 +544,14 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * 验证用户名格式（客户端验证）
      * @param username - 用户名
      * @returns 验证结果和错误消息
+     *
+     * @example
+     * ```typescript
+     * const result = AuthManager.validateUsernameFormat("alice");
+     * if (!result.valid) {
+     *     console.error(result.error);
+     * }
+     * ```
      */
     public static validateUsernameFormat(username: string): { valid: boolean; error?: string } {
         if (!username || username.length === 0) {
@@ -510,6 +571,14 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * 验证密码格式（客户端验证）
      * @param password - 密码
      * @returns 验证结果和错误消息
+     *
+     * @example
+     * ```typescript
+     * const result = AuthManager.validatePasswordFormat("securePassword123");
+     * if (!result.valid) {
+     *     console.error(result.error);
+     * }
+     * ```
      */
     public static validatePasswordFormat(password: string): { valid: boolean; error?: string } {
         if (!password || password.length === 0) {
@@ -528,6 +597,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Get captcha challenge for registration
      * GET /_matrix/client/v3/register/captcha
+     *
+     * @example
+     * ```typescript
+     * const captcha = await client.getAuthManager().getCaptcha();
+     * console.log(captcha.public_key);
+     * ```
      */
     public async getCaptcha(): Promise<CaptchaResponse> {
         return this.withRetry(async () => {
@@ -543,6 +618,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Get current user info
      * GET /_matrix/client/v3/account/whoami
+     *
+     * @example
+     * ```typescript
+     * const { user_id } = await client.getAuthManager().whoami();
+     * console.log(user_id);
+     * ```
      */
     public async whoami(): Promise<WhoamiResponse> {
         return this.withRetry(async () => {
@@ -557,6 +638,11 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Logout current session
      * POST /_matrix/client/v3/logout
+     *
+     * @example
+     * ```typescript
+     * await client.getAuthManager().logout();
+     * ```
      */
     public async logout(): Promise<void> {
         return this.withRetry(async () => {
@@ -571,6 +657,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Get server versions
      * GET /_matrix/client/versions
+     *
+     * @example
+     * ```typescript
+     * const { versions } = await client.getAuthManager().getVersions();
+     * console.log(versions);
+     * ```
      */
     public async getVersions(): Promise<VersionsResponse> {
         return this.withRetry(async () => {
@@ -585,6 +677,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Requests an email verification token for the purposes of registration.
+     *
+     * @example
+     * ```typescript
+     * const { sid } = await client.getAuthManager().requestRegisterEmailToken("alice@example.org", "secret", 1);
+     * console.log(sid);
+     * ```
      */
     public requestRegisterEmailToken(
         email: string,
@@ -601,6 +699,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
 
     /**
      * Requests a text message verification token for the purposes of registration.
+     *
+     * @example
+     * ```typescript
+     * const { sid } = await client.getAuthManager().requestRegisterMsisdnToken("86", "13800138000", "secret", 1);
+     * console.log(sid);
+     * ```
      */
     public requestRegisterMsisdnToken(
         phoneCountry: string,
@@ -619,6 +723,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Requests an email verification token for the purposes of adding a
      * third party identifier to an account.
+     *
+     * @example
+     * ```typescript
+     * const { sid } = await client.getAuthManager().requestAdd3pidEmailToken("alice@example.org", "secret", 1);
+     * console.log(sid);
+     * ```
      */
     public requestAdd3pidEmailToken(
         email: string,
@@ -636,6 +746,12 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
     /**
      * Requests a text message verification token for the purposes of adding a
      * third party identifier to an account.
+     *
+     * @example
+     * ```typescript
+     * const { sid } = await client.getAuthManager().requestAdd3pidMsisdnToken("86", "13800138000", "secret", 1);
+     * console.log(sid);
+     * ```
      */
     public requestAdd3pidMsisdnToken(
         phoneCountry: string,
@@ -655,6 +771,16 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * Check whether a username is available prior to registration.
      * @param username - The username to check the availability of.
      * @returns Promise which resolves to boolean of whether the username is available.
+     *
+     * @throws {ApiError} 当查询用户名可用性失败（用户名已被占用除外）时
+     *
+     * @example
+     * ```typescript
+     * const available = await client.getAuthManager().isUsernameAvailable("alice");
+     * if (available) {
+     *     console.log("username is free");
+     * }
+     * ```
      */
     public async isUsernameAvailable(username: string): Promise<boolean> {
         try {
@@ -679,6 +805,14 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * @param data - parameters for registration request
      * @param kind - type of user to register. may be "guest"
      * @returns Promise which resolves to the /register response
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getAuthManager().registerRequest(
+     *     { auth: { type: "m.login.dummy" }, username: "alice", password: "securePassword123" },
+     * );
+     * console.log(response.user_id);
+     * ```
      */
     public registerRequest(data: RegisterRequest, kind?: string): Promise<RegisterResponse> {
         const params: { kind?: string } = {};
@@ -699,6 +833,14 @@ export class AuthManager extends BaseManager<AuthEvent, AuthEventMap> {
      * Refreshes an access token using a provided refresh token.
      * @param refreshToken - The refresh token.
      * @returns Promise which resolves to the new token.
+     *
+     * @throws {ApiError} 当刷新请求失败（errcode 非 M_UNRECOGNIZED）时
+     *
+     * @example
+     * ```typescript
+     * const refreshed = await client.getAuthManager().refreshToken("my_refresh_token");
+     * console.log(refreshed.access_token);
+     * ```
      */
     public async refreshToken(refreshToken: string): Promise<IRefreshTokenResponse> {
         const performRefreshRequestWithPrefix = (prefix: ClientPrefix): Promise<IRefreshTokenResponse> =>

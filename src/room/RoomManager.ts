@@ -250,14 +250,53 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Room Info ====================
 
+    /**
+     * 获取本地 store 中已缓存的房间对象。
+     *
+     * 注意：这是**纯本地**查询，不会发起网络请求；房间不在 store 中时返回 `null`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 匹配的房间对象，未找到时为 `null`
+     * @example
+     * ```typescript
+     * const room = client.getRoomManager().getRoom("!room:example.com");
+     * if (room) {
+     *     console.log(room.getMyMembership());
+     * }
+     * ```
+     */
     public getRoom(roomId: string | undefined): Room | null {
         return this.client.store.getRoom(roomId!);
     }
 
+    /**
+     * 列出本地 store 中缓存的**全部**房间（含已离开的房间）。
+     *
+     * 纯本地操作，不发起网络请求。
+     *
+     * @returns 本地已知的房间数组
+     * @example
+     * ```typescript
+     * const rooms = client.getRoomManager().getRooms();
+     * console.log(rooms.length, "rooms known locally");
+     * ```
+     */
     public getRooms(): Room[] {
         return this.client.store.getRooms();
     }
 
+    /**
+     * 列出本地 store 中**对当前用户可见**的房间，即成员状态为 `join` 或 `invite` 的房间。
+     *
+     * 与 {@link getRooms} 的区别：已离开/被封禁的房间会被过滤掉。
+     *
+     * @returns 可见的房间数组
+     * @example
+     * ```typescript
+     * const visible = client.getRoomManager().getVisibleRooms();
+     * console.log(visible.length, "visible rooms");
+     * ```
+     */
     public getVisibleRooms(_msc3946ProcessDynamicPredecessor = false): Room[] {
         // Implementation moved from MatrixClient
         const rooms = this.client.store.getRooms();
@@ -267,6 +306,22 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         });
     }
 
+    /**
+     * 获取房间的 room version（synapse-rust 私有端点）。
+     *
+     * 对应 `GET /_matrix/vendor/v1/rooms/{roomId}/version`；结果按房间缓存，
+     * `forceRefresh` 可绕过缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 为 `true` 时跳过缓存重新拉取，默认 `false`
+     * @returns room version 字符串（如 `"10"`）
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const version = await client.getRoomManager().getRoomVersion("!room:example.com");
+     * console.log("room version:", version);
+     * ```
+     */
     public async getRoomVersion(roomId: string, forceRefresh = false): Promise<string> {
         validateRoomId(roomId);
 
@@ -290,6 +345,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response.room_version;
     }
 
+    /**
+     * 获取房间的能力（capabilities）（synapse-rust 私有端点）。
+     *
+     * 对应 `GET /_matrix/vendor/v1/rooms/{roomId}/capabilities`；结果按房间缓存，
+     * `forceRefresh` 可绕过缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 为 `true` 时跳过缓存重新拉取，默认 `false`
+     * @returns 含 `capabilities` 映射的响应
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const capabilities = await client.getRoomManager().getRoomCapabilities("!room:example.com");
+     * ```
+     */
     public async getRoomCapabilities(roomId: string, forceRefresh = false): Promise<IRoomCapabilitiesResponse> {
         validateRoomId(roomId);
 
@@ -313,6 +383,22 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 获取房间的元数据（synapse-rust 私有端点）。
+     *
+     * 对应 `GET /_matrix/vendor/v1/rooms/{roomId}/metadata`；结果按房间缓存，
+     * `forceRefresh` 可绕过缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 为 `true` 时跳过缓存重新拉取，默认 `false`
+     * @returns 房间元数据（`room_id`、`name`、`topic` 等）
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const metadata = await client.getRoomManager().getRoomMetadata("!room:example.com");
+     * console.log(metadata.name);
+     * ```
+     */
     public async getRoomMetadata(roomId: string, forceRefresh = false): Promise<IRoomMetadataResponse> {
         validateRoomId(roomId);
 
@@ -338,6 +424,23 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Room Lifecycle ====================
 
+    /**
+     * 创建新房间。
+     *
+     * 对应 `POST /_matrix/client/v3/createRoom`。若 `options.invite_3pid` 中的条目缺少
+     * `id_access_token` 且已配置 identity server，会自动补齐。创建成功后触发
+     * {@link RoomEvent.RoomCreated}。
+     *
+     * @param options - 建房选项（`preset`、`name`、`topic`、`invite`、`initial_state` 等）
+     * @returns 含新房间 `room_id` 的对象
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomManager().createRoom({
+     *     name: "我的房间",
+     *     preset: "private_chat",
+     * });
+     * ```
+     */
     public async createRoom(options: ICreateRoomOpts): Promise<{ room_id: string }> {
         const invitesNeedingToken = (options.invite_3pid || []).filter(
             (i: { id_access_token?: string }) => !i.id_access_token,
@@ -399,6 +502,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 加入房间（接受房间 ID 或别名）。
+     *
+     * 对应 `POST /_matrix/client/v3/join/{roomIdOrAlias}`。若当前用户已是 `join` 状态，
+     * 直接返回本地房间对象；否则发起加入请求，并在需要时处理第三方签名与共享历史密钥分发。
+     *
+     * @param roomIdOrAlias - 房间 ID 或别名
+     * @param opts - 加入选项（`viaServers`、`inviteSignUrl`、`acceptSharedHistory` 等）
+     * @returns 加入后的房间对象
+     * @example
+     * ```typescript
+     * const room = await client.getRoomManager().joinRoom("!room:example.com");
+     * ```
+     */
     public async joinRoom(roomIdOrAlias: string, opts: IJoinRoomOpts = {}): Promise<Room> {
         const room = this.getRoom(roomIdOrAlias);
         const roomMember = room?.getMember(this.client.getSafeUserId());
@@ -456,6 +573,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return syncApi.createRoom(roomId);
     }
 
+    /**
+     * 申请加入房间（knock）。
+     *
+     * 对应 `POST /_matrix/client/v3/knock/{roomIdOrAlias}`。若当前用户已处于 `knock`
+     * 状态，直接返回本地房间 ID。
+     *
+     * @param roomIdOrAlias - 房间 ID 或别名
+     * @param opts - 选项（`viaServers`、`reason`）
+     * @returns 含目标房间 `room_id` 的对象
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomManager().knockRoom("!room:example.com", { reason: "想加入" });
+     * ```
+     */
     public async knockRoom(roomIdOrAlias: string, opts: KnockRoomOpts = {}): Promise<{ room_id: string }> {
         const room = this.getRoom(roomIdOrAlias);
         if (room?.hasMembershipState(this.client.getSafeUserId(), KnownMembership.Knock)) {
@@ -499,6 +630,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      *     need not issue a separate `/forget` request. The local store entry is dropped here too.
      *     Defaults to `false` for backwards compatibility with servers that have not enabled
      *     MSC4267 (they ignore the field and the client can still call `forget()` explicitly).
+     * @example
+     * ```typescript
+     * await client.getRoomManager().leave("!room:example.com");
+     * ```
      */
     public async leave(roomId: string, opts?: { forget?: boolean }): Promise<EmptyObject> {
         validateRoomId(roomId);
@@ -523,6 +658,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 忘记一个已离开的房间。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/forget`。当 `deleteRoom` 为 `true` 时，
+     * 会同时从本地 store 移除该房间并触发 {@link ClientEvent.DeleteRoom}。
+     *
+     * @param roomId - 房间 ID
+     * @param deleteRoom - 是否同时从本地 store 删除该房间，默认 `true`
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().forget("!room:example.com");
+     * ```
+     */
     public async forget(roomId: string, deleteRoom = true): Promise<EmptyObject> {
         validateRoomId(roomId);
 
@@ -546,6 +696,22 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Members ====================
 
+    /**
+     * 获取房间成员事件列表。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/members`。未传 `params` 时结果会被缓存；
+     * 传了过滤参数或 `forceRefresh` 为 `true` 则跳过缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param params - 过滤条件（`membership`、`not_membership`、`at`）
+     * @param forceRefresh - 为 `true` 时强制刷新，默认 `false`
+     * @returns 成员状态事件数组
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const members = await client.getRoomManager().getMembers("!room:example.com", { membership: "join" });
+     * ```
+     */
     public async getMembers(
         roomId: string,
         params?: {
@@ -579,6 +745,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response.chunk;
     }
 
+    /**
+     * 获取房间中已加入成员的概要信息。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/joined_members`；结果会被缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 为 `true` 时强制刷新，默认 `false`
+     * @returns 以用户 ID 为键、含 `display_name`/`avatar_url` 的映射
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const { joined } = await client.getRoomManager().getJoinedMembers("!room:example.com");
+     * console.log(Object.keys(joined).length, "joined members");
+     * ```
+     */
     public async getJoinedMembers(roomId: string, forceRefresh = false): Promise<IJoinedMembersResponse> {
         validateRoomId(roomId);
 
@@ -609,6 +790,11 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * @param userId - user ID
      * @param throwOnError - Whether to throw on error (default true, pass false to keep compatibility fallback)
      * @returns membership event
+     * @throws 请求失败时抛出原始错误；当 `throwOnError` 为 `false` 时仅将 404 视为 `null`，其它错误仍会抛出
+     * @example
+     * ```typescript
+     * const membership = await client.getRoomManager().getMembership("!room:example.com", "@peer:example.com");
+     * ```
      */
     public async getMembership(roomId: string, userId: string, throwOnError = true): Promise<IStateEvent | null> {
         validateRoomId(roomId);
@@ -640,6 +826,23 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Member Actions ====================
 
+    /**
+     * 邀请用户加入房间。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/invite`。当 `opts.shareEncryptedHistory`
+     * 为 `true` 时，会先尝试与目标用户共享加密历史；成功后清除成员缓存并触发
+     * {@link RoomEvent.MemberJoined}。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被邀请用户的 MXID
+     * @param opts - 选项对象，或直接传字符串作为 `reason`
+     * @returns 空对象
+     * @throws InvalidParamError / ValidationError `userId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().invite("!room:example.com", "@peer:example.com", { reason: "欢迎" });
+     * ```
+     */
     public async invite(roomId: string, userId: string, opts: InviteOpts | string = {}): Promise<EmptyObject> {
         validateRoomId(roomId);
         validateUserId(userId);
@@ -669,10 +872,39 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 通过邮箱地址邀请用户加入房间。
+     *
+     * 是 {@link inviteByThreePid} 以 `"email"` 为 medium 的便捷封装。
+     *
+     * @param roomId - 房间 ID
+     * @param email - 被邀请者的邮箱地址
+     * @returns 空对象
+     * @example
+     * ```typescript
+     * await client.getRoomManager().inviteByEmail("!room:example.com", "peer@example.com");
+     * ```
+     */
     public async inviteByEmail(roomId: string, email: string): Promise<EmptyObject> {
         return this.inviteByThreePid(roomId, "email", email);
     }
 
+    /**
+     * 通过第三方标识（3PID）邀请用户加入房间。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/invite`，使用 identity server 解析
+     * `medium` + `address`。
+     *
+     * @param roomId - 房间 ID
+     * @param medium - 3PID 类型（如 `"email"`、`"msisdn"`）
+     * @param address - 对应的地址
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().inviteByThreePid("!room:example.com", "email", "peer@example.com");
+     * ```
+     */
     public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         const identityAccessToken = this.client.identityServer?.getAccessToken
@@ -696,6 +928,22 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 将用户踢出房间。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/kick`；成功后清除成员缓存并触发
+     * {@link RoomEvent.MemberLeft}。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被踢用户的 MXID
+     * @param reason - 可选原因
+     * @returns 空对象
+     * @throws InvalidParamError / ValidationError `userId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().kick("!room:example.com", "@peer:example.com", "违反规则");
+     * ```
+     */
     public async kick(roomId: string, userId: string, reason?: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         validateUserId(userId);
@@ -714,6 +962,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 封禁用户，禁止其进入房间。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/ban`；成功后清除成员缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被封禁用户的 MXID
+     * @param reason - 可选原因
+     * @returns 空对象
+     * @throws InvalidParamError / ValidationError `userId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().ban("!room:example.com", "@spammer:example.com", "刷屏");
+     * ```
+     */
     public async ban(roomId: string, userId: string, reason?: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         validateUserId(userId);
@@ -731,6 +994,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 解除对用户的封禁。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/unban`；成功后清除成员缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被解封用户的 MXID
+     * @returns 空对象
+     * @throws InvalidParamError / ValidationError `userId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().unban("!room:example.com", "@peer:example.com");
+     * ```
+     */
     public async unban(roomId: string, userId: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         validateUserId(userId);
@@ -754,14 +1031,56 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== State ====================
 
+    /**
+     * 获取房间当前的状态事件列表。
+     *
+     * 委托给 EventManager（`client.getEventManager().getState`）。
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 为 `true` 时强制刷新，默认 `false`
+     * @returns 状态事件数组
+     * @example
+     * ```typescript
+     * const state = await client.getRoomManager().getState("!room:example.com");
+     * ```
+     */
     public async getState(roomId: string, forceRefresh = false): Promise<IStateEvent[]> {
         return this.client.getEventManager().getState(roomId, forceRefresh);
     }
 
+    /**
+     * 获取指定类型的房间状态事件内容。
+     *
+     * 委托给 EventManager（`client.getEventManager().getStateEvent`）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 状态事件类型（如 `m.room.name`）
+     * @param stateKey - 状态键，默认为空字符串
+     * @returns 该状态事件的 content 内容
+     * @example
+     * ```typescript
+     * const name = await client.getRoomManager().getStateEvent("!room:example.com", "m.room.name");
+     * ```
+     */
     public async getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<IContent> {
         return this.client.getEventManager().getStateEvent(roomId, eventType, stateKey);
     }
 
+    /**
+     * 发送房间状态事件。
+     *
+     * 委托给 EventManager（`client.getEventManager().sendStateEvent`）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 状态事件类型
+     * @param content - 事件内容
+     * @param stateKey - 状态键，默认为空字符串
+     * @returns 含 `event_id` 的发送结果
+     * @example
+     * ```typescript
+     * await client.getRoomManager().sendStateEvent("!room:example.com", "m.room.topic", { topic: "hi" });
+     * ```
+     */
     public async sendStateEvent(
         roomId: string,
         eventType: string,
@@ -771,10 +1090,33 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return this.client.getEventManager().sendStateEvent(roomId, eventType, content, stateKey);
     }
 
+    /**
+     * 设置房间名称（`m.room.name` 状态事件）。
+     *
+     * @param roomId - 房间 ID
+     * @param name - 新的房间名称
+     * @returns 含 `event_id` 的发送结果
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setRoomName("!room:example.com", "新名称");
+     * ```
+     */
     public setRoomName(roomId: string, name: string): Promise<ISendEventResponse> {
         return this.client.sendStateEvent(roomId, "m.room.name", { name }, "");
     }
 
+    /**
+     * 设置房间主题（`m.room.topic` 状态事件）。
+     *
+     * @param roomId - 房间 ID
+     * @param topic - 纯文本主题
+     * @param htmlTopic - 可选 HTML 主题
+     * @returns 含 `event_id` 的发送结果
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setRoomTopic("!room:example.com", "公告栏");
+     * ```
+     */
     public setRoomTopic(roomId: string, topic?: string, htmlTopic?: string): Promise<ISendEventResponse> {
         const content = ContentHelpers.makeTopicContent(topic, htmlTopic);
         return this.client.sendStateEvent(roomId, EventType.RoomTopic, content, undefined);
@@ -782,6 +1124,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Events ====================
 
+    /**
+     * 按事件 ID 获取房间中的单个事件。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/event/{eventId}`。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 事件对象
+     * @throws ValidationError `roomId` 格式非法时；`InvalidParamError` 当 `eventId` 为空时
+     * @example
+     * ```typescript
+     * const event = await client.getRoomManager().getEvent("!room:example.com", "$event");
+     * ```
+     */
     public async getEvent(roomId: string, eventId: string): Promise<IRoomEvent> {
         validateRoomId(roomId);
         if (!eventId) {
@@ -799,6 +1155,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 获取某事件的前后文（上下文）。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/context/{eventId}`。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 目标事件 ID
+     * @param params - 选项：`limit` 单页数量、`filter` 事件过滤
+     * @returns 含事件前后文与分页 token 的上下文响应
+     * @throws ValidationError `roomId` 格式非法时；`InvalidParamError` 当 `eventId` 为空时
+     * @example
+     * ```typescript
+     * const ctx = await client.getRoomManager().getEventContext("!room:example.com", "$event", { limit: 10 });
+     * ```
+     */
     public async getEventContext(
         roomId: string,
         eventId: string,
@@ -823,6 +1194,23 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 撤回（redact）房间中的事件。
+     *
+     * 对应 `PUT /_matrix/client/v3/rooms/{roomId}/redact/{eventId}/{txnId}`；未提供
+     * `txnId` 时会自动生成一个事务 ID。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 被撤回的事件 ID
+     * @param reason - 可选撤回原因
+     * @param txnId - 可选事务 ID，缺省自动生成
+     * @returns 含新事件 `event_id` 的发送结果
+     * @throws ValidationError `roomId` 格式非法时；`InvalidParamError` 当 `eventId` 为空时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().redactEvent("!room:example.com", "$event", "内容不当");
+     * ```
+     */
     public async redactEvent(
         roomId: string,
         eventId: string,
@@ -849,6 +1237,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 获取房间的未读计数（synapse-rust 私有端点）。
+     *
+     * 对应 `GET /_matrix/vendor/v1/rooms/{roomId}/unread_count`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 含 `notification_count` 与 `highlight_count` 的对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const { notification_count } = await client.getRoomManager().getRoomUnreadCount("!room:example.com");
+     * ```
+     */
     public async getRoomUnreadCount(roomId: string): Promise<{ notification_count: number; highlight_count: number }> {
         validateRoomId(roomId);
 
@@ -866,6 +1267,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * 获取房间通话会话信息（synapse-rust voip_tracking 端点）。
      * GET /_matrix/client/v3/rooms/{room_id}/call/{call_id}
+     * @example
+     * ```typescript
+     * const call = await client.getRoomManager().getRoomCall("!room:example.com", "call-1");
+     * ```
      */
     public async getRoomCall(roomId: string, callId: string): Promise<Record<string, unknown>> {
         validateRoomId(roomId);
@@ -882,6 +1287,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * 翻译文本（synapse-rust 私有端点）。
      * POST /_matrix/client/v3/translate
+     * @example
+     * ```typescript
+     * const { translated_text } = await client.getRoomManager().translateText("hello", "zh");
+     * ```
      */
     public async translateText(
         text: string,
@@ -903,6 +1312,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * 获取房间 sticky events（synapse-rust 私有端点，MSC4354）。
      * GET /_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events
+     * @example
+     * ```typescript
+     * const sticky = await client.getRoomManager().getStickyEvents("!room:example.com");
+     * ```
      */
     public async getStickyEvents(roomId: string): Promise<Record<string, unknown>> {
         validateRoomId(roomId);
@@ -918,6 +1331,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * 设置房间 sticky events（synapse-rust 私有端点，MSC4354）。
      * POST /_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setStickyEvents("!room:example.com", { sticky: [] });
+     * ```
      */
     public async setStickyEvents(roomId: string, events: Record<string, unknown>): Promise<void> {
         validateRoomId(roomId);
@@ -933,6 +1350,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Tags ====================
 
+    /**
+     * 获取当前用户在房间上的标签（tags）。
+     *
+     * 对应 `GET /_matrix/client/v3/user/{userId}/rooms/{roomId}/tags`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 标签映射响应 `ITagsResponse`
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const { tags } = await client.getRoomManager().getRoomTags("!room:example.com");
+     * ```
+     */
     public async getRoomTags(roomId: string): Promise<ITagsResponse> {
         validateRoomId(roomId);
 
@@ -952,6 +1382,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 为房间设置/更新标签。
+     *
+     * 对应 `PUT /_matrix/client/v3/user/{userId}/rooms/{roomId}/tags/{tag}`。
+     *
+     * @param roomId - 房间 ID
+     * @param tagName - 标签名（如 `m.favourite`）
+     * @param metadata - 标签元数据，默认 `{}`
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时；`InvalidParamError` 当 `tagName` 为空时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setRoomTag("!room:example.com", "m.favourite", { order: 0.5 });
+     * ```
+     */
     public async setRoomTag(roomId: string, tagName: string, metadata: ITagMetadata = {}): Promise<EmptyObject> {
         validateRoomId(roomId);
         if (!tagName) {
@@ -976,6 +1421,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 删除房间上的某个标签。
+     *
+     * 对应 `DELETE /_matrix/client/v3/user/{userId}/rooms/{roomId}/tags/{tag}`。
+     *
+     * @param roomId - 房间 ID
+     * @param tagName - 待删除的标签名
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时；`InvalidParamError` 当 `tagName` 为空时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().deleteRoomTag("!room:example.com", "m.favourite");
+     * ```
+     */
     public async deleteRoomTag(roomId: string, tagName: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         if (!tagName) {
@@ -1001,6 +1460,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Account Data ====================
 
+    /**
+     * 设置房间级账号数据（room account data）。
+     *
+     * 对应 `PUT /_matrix/client/v3/rooms/{roomId}/account_data/{type}`。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 账号数据类型
+     * @param content - 数据内容
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时；`InvalidParamError` 当 `eventType` 为空时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setRoomAccountData("!room:example.com", "m.fully_read", { event_id: "$e" });
+     * ```
+     */
     public async setRoomAccountData<K extends keyof RoomAccountDataEvents>(
         roomId: string,
         eventType: K,
@@ -1030,6 +1504,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     // `/directory/list/room/{roomId}`，**不**为旧路径另开方法（见
     // `artifacts/sdk-encapsulation-completion-plan-2026-10-06.md` §3.1）。
 
+    /**
+     * 查询房间在目录中的可见性。
+     *
+     * 对应 `GET /_matrix/client/v3/directory/list/room/{roomId}`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 含 `visibility` 的对象（`public` / `private`）
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const { visibility } = await client.getRoomManager().getRoomDirectoryVisibility("!room:example.com");
+     * ```
+     */
     public async getRoomDirectoryVisibility(roomId: string): Promise<{ visibility: Visibility }> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
@@ -1042,6 +1529,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 设置房间在目录中的可见性。
+     *
+     * 对应 `PUT /_matrix/client/v3/directory/list/room/{roomId}`。
+     *
+     * @param roomId - 房间 ID
+     * @param visibility - 目标可见性（`public` / `private`）
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setRoomDirectoryVisibility("!room:example.com", Visibility.Public);
+     * ```
+     */
     public async setRoomDirectoryVisibility(roomId: string, visibility: Visibility): Promise<EmptyObject> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
@@ -1128,6 +1629,24 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }, "getMutualRooms");
     }
 
+    /**
+     * 获取空间（space）的房间层级结构。
+     *
+     * 优先使用 v1 稳定路径 `GET /_matrix/client/v1/rooms/{roomId}/hierarchy`；当后端返回
+     * `M_UNRECOGNIZED` 时回退到 `/_matrix/client/unstable/org.matrix.msc2946` 前缀重试。
+     *
+     * @param roomId - 空间/房间 ID
+     * @param limit - 单页数量上限
+     * @param maxDepth - 最大递归深度
+     * @param suggestedOnly - 仅返回被推荐（suggested）的子房间
+     * @param fromToken - 分页 token
+     * @returns 房间层级结构 `IRoomHierarchy`
+     * @throws ValidationError `roomId` 格式非法时；请求失败时抛出底层 `MatrixError`
+     * @example
+     * ```typescript
+     * const hierarchy = await client.getRoomManager().getRoomHierarchy("!space:example.com", 50, 2);
+     * ```
+     */
     public async getRoomHierarchy(
         roomId: string,
         limit?: number,
@@ -1164,6 +1683,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         }
     }
 
+    /**
+     * 根据房间别名解析出房间 ID。
+     *
+     * 对应 `GET /_matrix/client/v3/directory/room/{roomAlias}`。
+     *
+     * @param roomAlias - 房间别名（如 `#room:example.com`）
+     * @returns 含 `room_id` 与参与服务器列表的对象
+     * @throws InvalidParamError `roomAlias` 为空时
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomManager().getRoomIdForAlias("#room:example.com");
+     * ```
+     */
     public async getRoomIdForAlias(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
         const response = await this.withRetry(async () => {
@@ -1176,6 +1708,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 为房间创建本地别名。
+     *
+     * 对应 `PUT /_matrix/client/v3/directory/room/{roomAlias}`。
+     *
+     * @param roomAlias - 待创建的别名
+     * @param roomId - 目标房间 ID
+     * @returns 空对象
+     * @throws InvalidParamError `roomAlias` 为空时；`ValidationError` 当 `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().createAlias("#myroom:example.com", "!room:example.com");
+     * ```
+     */
     public async createAlias(roomAlias: string, roomId: string): Promise<EmptyObject> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
         validateRoomId(roomId);
@@ -1190,6 +1736,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 删除房间别名。
+     *
+     * 对应 `DELETE /_matrix/client/v3/directory/room/{roomAlias}`。
+     *
+     * @param roomAlias - 待删除的别名
+     * @returns 空对象
+     * @throws InvalidParamError `roomAlias` 为空时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().deleteAlias("#myroom:example.com");
+     * ```
+     */
     public async deleteAlias(roomAlias: string): Promise<EmptyObject> {
         if (!roomAlias) throw new InvalidParamError("roomAlias is required");
         const response = await this.withRetry(async () => {
@@ -1202,6 +1761,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 获取房间在本服务器上的本地别名列表。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/aliases`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 含 `aliases` 字符串数组的对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const { aliases } = await client.getRoomManager().getLocalAliases("!room:example.com");
+     * ```
+     */
     public async getLocalAliases(roomId: string): Promise<{ aliases: string[] }> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
@@ -1216,6 +1788,21 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Room Management ====================
 
+    /**
+     * 将房间升级到新的 room version。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/upgrade`。
+     *
+     * @param roomId - 待升级的房间 ID
+     * @param newVersion - 目标 room version
+     * @param additionalCreators - 可选，额外指定拥有升级后房间创建权限的用户
+     * @returns 含 `replacement_room`（新房间 ID）的对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const { replacement_room } = await client.getRoomManager().upgradeRoom("!room:example.com", "10");
+     * ```
+     */
     public async upgradeRoom(
         roomId: string,
         newVersion: string,
@@ -1240,6 +1827,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 举报房间。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/{roomId}/report`。
+     *
+     * @param roomId - 被举报的房间 ID
+     * @param reason - 举报原因
+     * @returns 空对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().reportRoom("!room:example.com", "垃圾信息");
+     * ```
+     */
     public async reportRoom(roomId: string, reason: string): Promise<EmptyObject> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
@@ -1253,6 +1854,19 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 对房间执行一次初始同步（initialSync）。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/initialSync`，返回该房间的完整初始状态与事件。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间初始同步响应
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const initial = await client.getRoomManager().roomInitialSync("!room:example.com");
+     * ```
+     */
     public async roomInitialSync(roomId: string): Promise<IRoomInitialSyncResponse> {
         validateRoomId(roomId);
         const response = await this.withRetry(async () => {
@@ -1265,6 +1879,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response;
     }
 
+    /**
+     * 配置房间的访客访问权限。
+     *
+     * 通过发送 `m.room.guest_access` 状态事件实现；当 `opts.allowRead` 为 `true` 时，
+     * 额外发送 `m.room.history_visibility = world_readable`。两个请求并发执行。
+     *
+     * @param roomId - 房间 ID
+     * @param opts - 访客访问选项：`allowJoin` 是否允许加入、`allowRead` 是否允许读取历史
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * await client.getRoomManager().setGuestAccess("!room:example.com", { allowJoin: true, allowRead: false });
+     * ```
+     */
     public async setGuestAccess(roomId: string, opts: IGuestAccessOpts): Promise<void> {
         validateRoomId(roomId);
         const writePromise = this.client.sendStateEvent(
@@ -1291,6 +1919,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Peeking ====================
 
+    /**
+     * 窥视（peek）房间，在不加入的情况下获取房间内容。
+     *
+     * 内部通过一个独立的 SyncApi 建立窥视会话。
+     *
+     * @param roomId - 房间 ID
+     * @param limit - 初始拉取的事件数量上限，默认 `20`
+     * @returns 窥视得到的房间对象
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const room = await client.getRoomManager().peekInRoom("!room:example.com", 10);
+     * ```
+     */
     public async peekInRoom(roomId: string, limit = 20): Promise<Room> {
         validateRoomId(roomId);
         const { nextPeekSync, peekPromise } = beginRoomPeek(
@@ -1303,12 +1945,33 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return peekPromise;
     }
 
+    /**
+     * 停止当前正在进行的房间窥视（peek）会话。
+     *
+     * @example
+     * ```typescript
+     * client.getRoomManager().stopPeeking();
+     * ```
+     */
     public stopPeeking(): void {
         this.peekSync = endRoomPeek(this.peekSync);
     }
 
     // ==================== Typing ====================
 
+    /**
+     * 获取房间中正在输入的用户列表。
+     *
+     * 对应 `GET /_matrix/client/v3/rooms/{roomId}/typing`。
+     *
+     * @param roomId - 房间 ID
+     * @returns 正在输入的用户 ID 数组
+     * @throws ValidationError `roomId` 格式非法时
+     * @example
+     * ```typescript
+     * const typing = await client.getRoomManager().getRoomTyping("!room:example.com");
+     * ```
+     */
     public async getRoomTyping(roomId: string): Promise<string[]> {
         validateRoomId(roomId);
         const path = `/rooms/${encodeURIComponent(roomId)}/typing`;
@@ -1320,6 +1983,18 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         return response.user_ids || [];
     }
 
+    /**
+     * 批量获取多个房间中正在输入的用户列表。
+     *
+     * 对应 `POST /_matrix/client/v3/rooms/typing`，请求体为 `{ room_ids }`。
+     *
+     * @param roomIds - 房间 ID 数组
+     * @returns 以房间 ID 为键、正在输入用户 ID 数组为值的映射
+     * @example
+     * ```typescript
+     * const typing = await client.getRoomManager().getBatchTyping(["!a:example.com", "!b:example.com"]);
+     * ```
+     */
     public async getBatchTyping(roomIds: string[]): Promise<Record<string, string[]>> {
         const path = "/rooms/typing";
         const response = await this.request<{
@@ -1335,6 +2010,20 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== URL Preview ====================
 
+    /**
+     * 获取 URL 的预览信息。
+     *
+     * 对应媒体端点 `GET /_matrix/media/v3/preview_url`。时间戳按分钟取整作为缓存键，
+     * 并对进行中的相同请求做合并去重。
+     *
+     * @param url - 待预览的 URL
+     * @param ts - 客户端当前时间戳（毫秒）
+     * @returns URL 预览响应
+     * @example
+     * ```typescript
+     * const preview = await client.getRoomManager().getUrlPreview("https://example.com", Date.now());
+     * ```
+     */
     public async getUrlPreview(url: string, ts: number): Promise<IPreviewUrlResponse> {
         const bucketedTs = Math.floor(ts / 60000) * 60000;
 
@@ -1355,6 +2044,15 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
 
     // ==================== Cache Management ====================
 
+    /**
+     * 清除某个房间的所有本地缓存条目（版本、能力、元数据、已加入成员、成员、状态）。
+     *
+     * @param roomId - 房间 ID
+     * @example
+     * ```typescript
+     * client.getRoomManager().clearRoomCache("!room:example.com");
+     * ```
+     */
     public clearRoomCache(roomId: string): void {
         this.roomInfoCache.delete(`version:${roomId}`);
         this.roomInfoCache.delete(`capabilities:${roomId}`);
@@ -1364,6 +2062,14 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
         this.stateCache.delete(`state:${roomId}`);
     }
 
+    /**
+     * 清空 RoomManager 的全部本地缓存（房间信息、成员、状态）。
+     *
+     * @example
+     * ```typescript
+     * client.getRoomManager().clearAllCaches();
+     * ```
+     */
     public clearAllCaches(): void {
         this.roomInfoCache.clear();
         this.membersCache.clear();
@@ -1376,6 +2082,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * Get all rooms for the current user, including join, invite, and leave status.
      * Custom endpoint for synapse-rust.
      * GET /_matrix/vendor/v1/my_rooms
+     * @example
+     * ```typescript
+     * const { rooms, total } = await client.getRoomManager().getMyRooms();
+     * ```
      */
     public async getMyRooms(): Promise<IMyRoomsResponse> {
         const response = await this.request<IMyRoomsResponse>({
@@ -1399,6 +2109,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * Search rooms by term (synapse-rust specific).
      * POST /_matrix/vendor/v1/search_rooms
+     * @example
+     * ```typescript
+     * const res = await client.getRoomManager().searchRooms("project", 20);
+     * ```
      */
     public async searchRooms(
         searchTerm: string,
@@ -1427,6 +2141,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * Get client-facing server config (synapse-rust specific).
      * GET /_matrix/client/v1/config/client
+     * @example
+     * ```typescript
+     * const config = await client.getRoomManager().getClientConfig();
+     * ```
      */
     public async getClientConfig(): Promise<{
         homeserver: { base_url: string; server_name: string };
@@ -1442,6 +2160,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
     /**
      * Get SSO/OIDC userinfo (synapse-rust specific).
      * GET /_matrix/client/v3/login/sso/userinfo
+     * @example
+     * ```typescript
+     * const info = await client.getRoomManager().getSSOUserInfo();
+     * ```
      */
     public async getSSOUserInfo(): Promise<{
         sub: string;
@@ -1461,6 +2183,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      *
      * Falls back to true for clients that do not expose centralized feature discovery
      * so existing proxy-based sliding-sync deployments keep working.
+     * @example
+     * ```typescript
+     * const supported = await client.getRoomManager().isSlidingSyncSupported();
+     * ```
      */
     public async isSlidingSyncSupported(): Promise<boolean> {
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.SlidingSync, true);
@@ -1472,6 +2198,10 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * @param _proxyBaseUrl - The base URL for the sliding sync proxy.
      * @param _abortSignal - Optional signal to abort request mid-flight.
      * @returns The sliding sync response.
+     * @example
+     * ```typescript
+     * const res = await client.getRoomManager().slidingSync({ timeout: 1000 });
+     * ```
      */
     public async slidingSync(
         req: MSC3575SlidingSyncRequest,

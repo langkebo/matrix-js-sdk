@@ -38,6 +38,18 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 获取当前账户已绑定的三方标识列表（`GET /account/3pid`）。
+     *
+     * @returns 包含 threepids 数组的响应
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getThreePidsManager();
+     * const { threepids } = await mgr.getThreePids();
+     * ```
+     */
     public async getThreePids(): Promise<{ threepids: IThreepid[] }> {
         return this.withRetry(
             async () =>
@@ -49,6 +61,20 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
         );
     }
 
+    /**
+     * 向当前账户添加三方标识（`POST /account/3pid/add`，不含身份服务器绑定）。
+     *
+     * @param clientSecret - 客户端密钥
+     * @param sid - 三方标识验证会话 ID
+     * @returns 空对象
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getThreePidsManager();
+     * await mgr.addThreePidOnly("client-secret", "sid-value");
+     * ```
+     */
     public async addThreePidOnly(clientSecret: string, sid: string): Promise<EmptyObject> {
         return this.withRetry(
             async () =>
@@ -64,6 +90,22 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
         );
     }
 
+    /**
+     * 将三方标识绑定到身份服务器（`POST /account/3pid/bind`），成功后触发 `threepid_bound` 事件。
+     *
+     * @param clientSecret - 客户端密钥
+     * @param sid - 三方标识验证会话 ID
+     * @param idServer - 身份服务器地址
+     * @param idAccessToken - 身份服务器访问令牌；不需要时传 null
+     * @returns 空对象
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getThreePidsManager();
+     * await mgr.bindThreePid("client-secret", "sid-value", "https://id.example.org", null);
+     * ```
+     */
     public async bindThreePid(
         clientSecret: string,
         sid: string,
@@ -88,6 +130,21 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
         return result;
     }
 
+    /**
+     * 从身份服务器解绑三方标识（`POST /account/3pid/unbind`），成功后触发 `threepid_unbound` 事件。
+     *
+     * @param medium - 三方标识类型（如 `email`、`msisdn`）
+     * @param address - 三方标识地址
+     * @param idServer - 身份服务器地址（可选）
+     * @returns 含 `id_server_unbind_result` 的响应
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getThreePidsManager();
+     * const res = await mgr.unbindThreePid("email", "alice@example.org");
+     * ```
+     */
     public async unbindThreePid(
         medium: string,
         address: string,
@@ -110,6 +167,21 @@ export class ThreePidsManager extends BaseManager<keyof ThreePidsManagerEvents, 
         return result;
     }
 
+    /**
+     * 删除三方标识（`POST /account/3pid/delete`），成功后触发 `threepid_deleted` 事件。
+     *
+     * @param medium - 三方标识类型（如 `email`、`msisdn`）
+     * @param address - 三方标识地址
+     * @param idServer - 身份服务器地址（可选）
+     * @returns 含 `id_server_unbind_result` 的响应
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getThreePidsManager();
+     * const res = await mgr.deleteThreePid("email", "alice@example.org");
+     * ```
+     */
     public async deleteThreePid(
         medium: string,
         address: string,

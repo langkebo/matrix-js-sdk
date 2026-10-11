@@ -68,8 +68,21 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
     }
 
     /**
-     * 通过联邦获取房间层级
-     * @param roomId - 房间 ID
+     * 通过联邦获取房间层级（space 树）信息。
+     *
+     * 对应 GET /_matrix/federation/v1/hierarchy/{room_id}，返回该房间自身及其子 space 的概要。
+     *
+     * @param roomId - 房间 ID（如 `!room:example.com`）。
+     * @returns 房间层级信息（含 room_id、name、children 等）。
+     *
+     * @example
+     * ```typescript
+     * const hierarchy = await client.getFederationManager().room.getHierarchy("!room:example.com");
+     * console.log(hierarchy.room_id, hierarchy.children?.length);
+     * ```
+     *
+     * @throws {ValidationError} 当 roomId 为空时抛出。
+     * @throws {Error} 当请求失败时抛出。
      */
     async getHierarchy(roomId: string): Promise<IFederationHierarchyResponse> {
         if (!roomId) {
@@ -83,9 +96,22 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
     }
 
     /**
-     * 通过联邦获取房间事件
-     * @param roomId - 房间 ID
-     * @param eventId - 事件 ID
+     * 通过联邦获取某个房间内的指定事件。
+     *
+     * 对应 GET /_matrix/federation/v1/room/{room_id}/{event_id}，返回该事件所在的完整事件数据。
+     *
+     * @param roomId - 房间 ID（如 `!room:example.com`）。
+     * @param eventId - 事件 ID（如 `$event:example.com`）。
+     * @returns 事件数据。
+     *
+     * @example
+     * ```typescript
+     * const event = await client.getFederationManager().room.getRoomEvent("!room:example.com", "$event:example.com");
+     * console.log(event.event_id);
+     * ```
+     *
+     * @throws {ValidationError} 当 roomId 或 eventId 为空时抛出。
+     * @throws {Error} 当请求失败时抛出。
      */
     async getRoomEvent(roomId: string, eventId: string): Promise<IFederationRoomEventResponse> {
         if (!roomId) {
@@ -102,9 +128,22 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
     }
 
     /**
-     * 通过联邦下载远端媒体
-     * @param serverName - 远端 server name
-     * @param mediaId - 媒体 ID
+     * 通过联邦下载远端服务器上的媒体内容。
+     *
+     * 对应 GET /_matrix/federation/v1/media/download/{server_name}/{media_id}，用于跨服务器拉取原始媒体文件。
+     *
+     * @param serverName - 媒体所属的远端 server name（如 `example.com`）。
+     * @param mediaId - 媒体 ID。
+     * @returns 媒体二进制流元数据（content_type、filename、data 等）。
+     *
+     * @example
+     * ```typescript
+     * const media = await client.getFederationManager().room.downloadMedia("example.com", "mediaId");
+     * console.log(media.content_type, media.filename);
+     * ```
+     *
+     * @throws {ValidationError} 当 serverName 或 mediaId 为空时抛出。
+     * @throws {Error} 当请求失败时抛出。
      */
     async downloadMedia(serverName: string, mediaId: string): Promise<IFederationMediaDownloadResponse> {
         if (!serverName) {
@@ -121,9 +160,22 @@ export class FederationRoomManager extends BaseManager<FederationRoomEvent, Fede
     }
 
     /**
-     * 通过联邦获取远端媒体缩略图
-     * @param serverName - 远端 server name
-     * @param mediaId - 媒体 ID
+     * 通过联邦获取远端服务器上的媒体缩略图。
+     *
+     * 对应 GET /_matrix/federation/v1/media/thumbnail/{server_name}/{media_id}，用于跨服务器拉取缩略图。
+     *
+     * @param serverName - 媒体所属的远端 server name（如 `example.com`）。
+     * @param mediaId - 媒体 ID。
+     * @returns 缩略图元数据（content_type、width、height、data 等）。
+     *
+     * @example
+     * ```typescript
+     * const thumb = await client.getFederationManager().room.getMediaThumbnail("example.com", "mediaId");
+     * console.log(thumb.width, thumb.height);
+     * ```
+     *
+     * @throws {ValidationError} 当 serverName 或 mediaId 为空时抛出。
+     * @throws {Error} 当请求失败时抛出。
      */
     async getMediaThumbnail(serverName: string, mediaId: string): Promise<IFederationMediaThumbnailResponse> {
         if (!serverName) {

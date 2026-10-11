@@ -48,12 +48,35 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
         super(client, opts);
     }
 
+    /**
+     * 获取指定房间的所有标签
+     *
+     * @param roomId - 房间 ID
+     * @returns 标签名称数组，房间不存在时返回空数组
+     * @example
+     * ```typescript
+     * const tags = client.getTagsManager().getRoomTags("!room:example.org");
+     * console.log(tags);
+     * ```
+     */
     public getRoomTags(roomId: string): string[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
         return Object.keys(room.tags);
     }
 
+    /**
+     * 获取指定房间指定事件类型的账户数据内容
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 账户数据事件类型
+     * @returns 账户数据内容，房间或事件不存在时返回 null
+     * @example
+     * ```typescript
+     * const content = client.getTagsManager().getRoomAccountData("!room:example.org", "m.tag");
+     * console.log(content);
+     * ```
+     */
     public getRoomAccountData(roomId: string, eventType: string): IContent | null {
         const room = this.client.getRoom(roomId);
         if (!room) return null;
@@ -61,6 +84,18 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
         return (event?.getContent() as IContent) ?? null;
     }
 
+    /**
+     * 设置指定房间的账户数据内容
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 账户数据事件类型
+     * @param content - 要写入的账户数据内容
+     * @returns 请求成功后返回空对象
+     * @example
+     * ```typescript
+     * await client.getTagsManager().setRoomAccountData("!room:example.org", "m.tag", { tags: {} });
+     * ```
+     */
     public async setRoomAccountData(roomId: string, eventType: string, content: IContent): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
@@ -72,6 +107,18 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
         }, "setRoomAccountData");
     }
 
+    /**
+     * 为指定房间添加标签
+     *
+     * @param roomId - 房间 ID
+     * @param tag - 标签名称
+     * @param content - 可选的标签内容（如排序信息）
+     * @returns 请求成功后返回空对象
+     * @example
+     * ```typescript
+     * await client.getTagsManager().addRoomTag("!room:example.org", "m.favourite", { order: 0.5 });
+     * ```
+     */
     public async addRoomTag(roomId: string, tag: string, content?: ITagContent): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomTagPath(this.client.credentials.userId!, roomId, tag);
@@ -83,6 +130,17 @@ export class TagsManager extends BaseManager<keyof TagsManagerEvents, TagsManage
         }, "addRoomTag");
     }
 
+    /**
+     * 移除指定房间的标签
+     *
+     * @param roomId - 房间 ID
+     * @param tag - 要移除的标签名称
+     * @returns 请求成功后返回空对象
+     * @example
+     * ```typescript
+     * await client.getTagsManager().removeRoomTag("!room:example.org", "m.favourite");
+     * ```
+     */
     public async removeRoomTag(roomId: string, tag: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = buildRoomTagPath(this.client.credentials.userId!, roomId, tag);

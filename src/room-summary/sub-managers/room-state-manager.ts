@@ -70,6 +70,11 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
      * @param roomId - 房间 ID
      * @returns 摘要状态列表
      * @throws {InvalidParamError} 当房间 ID 无效时
+     * @example
+     * ```typescript
+     * const states = await client.getRoomSummaryManager().state.getAllSummaryState("!room:example.com");
+     * console.log(states.length);
+     * ```
      */
     public async getAllSummaryState(roomId: string): Promise<IRoomSummaryState[]> {
         this.validateRoomId(roomId);
@@ -89,6 +94,13 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
      * @param stateKey - 状态键（默认为空字符串）
      * @returns 摘要状态内容
      * @throws {InvalidParamError} 当房间 ID 或事件类型无效时
+     * @example
+     * ```typescript
+     * const state = await client
+     *     .getRoomSummaryManager()
+     *     .state.getSummaryState("!room:example.com", "m.room.name");
+     * console.log(state);
+     * ```
      */
     public async getSummaryState(
         roomId: string,
@@ -117,6 +129,13 @@ export class RoomSummaryStateManager extends RoomSummaryBaseManager {
      * @param content - 状态内容
      * @returns 更新后的摘要状态内容
      * @throws {InvalidParamError} 当房间 ID 或事件类型无效时
+     * @example
+     * ```typescript
+     * const state = await client
+     *     .getRoomSummaryManager()
+     *     .state.updateSummaryState("!room:example.com", "m.room.topic", "", { topic: "Hello" });
+     * console.log(state);
+     * ```
      */
     public async updateSummaryState(
         roomId: string,

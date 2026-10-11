@@ -197,9 +197,31 @@ export class MembershipManager
     private readonly logger: Logger;
     protected callIntent: RTCCallIntent | undefined;
 
+    /**
+     * 判断 MembershipManager 是否已激活（即正处于尝试加入通话的状态）。
+     *
+     * @returns 已激活时返回 true
+     *
+     * @example
+     * ```typescript
+     * // membershipManager 由 MatrixRTCSession 根据当前 RTC 会话创建
+     * const activated = membershipManager.isActivated();
+     * ```
+     */
     public isActivated(): boolean {
         return this.activated;
     }
+
+    /**
+     * 判断当前成员是否已加入通话（`isActivated` 的旧别名）。
+     *
+     * @returns 已加入时返回 true
+     *
+     * @example
+     * ```typescript
+     * const joined = membershipManager.isJoined();
+     * ```
+     */
     // DEPRECATED use isActivated
     public isJoined(): boolean {
         return this.isActivated();
@@ -215,6 +237,14 @@ export class MembershipManager
      * transport selection will be used instead.
      * @param onError This will be called once the membership manager encounters an unrecoverable error.
      * This should bubble up the the frontend to communicate that the call does not work in the current environment.
+     *
+     * @example
+     * ```typescript
+     * // 加入通话：传入首选焦点、可选的多 SFU 焦点以及错误回调
+     * membershipManager.join(fociPreferred, multiSfuFocus, (error) => {
+     *     console.error("加入通话失败", error);
+     * });
+     * ```
      */
     public join(fociPreferred: Transport[], multiSfuFocus?: Transport, onError?: (error: unknown) => void): void {
         if (this.scheduler.running) {
@@ -252,6 +282,14 @@ export class MembershipManager
      * Leave from the call (Send an rtc session event with content: `{}`)
      * @param timeout the maximum duration this promise will take to resolve
      * @returns true if it managed to leave and false if the timeout condition happened.
+     *
+     * @example
+     * ```typescript
+     * const left = await membershipManager.leave(5000);
+     * if (!left) {
+     *     console.warn("离开通话超时");
+     * }
+     * ```
      */
     public leave(timeout?: number): Promise<boolean> {
         if (!this.scheduler.running) {
@@ -273,6 +311,17 @@ export class MembershipManager
 
     private leavePromiseResolvers?: PromiseWithResolvers<boolean>;
 
+    /**
+     * 在 RTC 会话成员列表更新时调用；若发现自己已不在成员列表中且仍处于激活状态，会触发重新加入。
+     *
+     * @param memberships - 当前 RTC 会话的全部成员信息
+     * @returns 处理完成后 resolve 的 Promise
+     *
+     * @example
+     * ```typescript
+     * await membershipManager.onRTCSessionMemberUpdate(session.memberships);
+     * ```
+     */
     public onRTCSessionMemberUpdate(memberships: CallMembership[]): Promise<void> {
         if (!this.isActivated()) {
             return Promise.resolve();
@@ -303,6 +352,19 @@ export class MembershipManager
         return Promise.resolve();
     }
 
+    /**
+     * 更新当前成员在通话中的 intent（例如 "audio"、"video"）。若未加入通话则抛出错误。
+     *
+     * @param callIntent - 新的通话意图
+     * @returns 更新完成后 resolve 的 Promise
+     *
+     * @example
+     * ```typescript
+     * await membershipManager.updateCallIntent("video");
+     * ```
+     *
+     * @throws {Error} 当尚未加入通话（未激活或没有自身成员信息）时
+     */
     public async updateCallIntent(callIntent: RTCCallIntent): Promise<void> {
         if (!this.activated || !this.ownMembership) {
             throw Error("You cannot update your intent before joining the call");

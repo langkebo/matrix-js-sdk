@@ -67,6 +67,18 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 获取公共房间列表。
+     *
+     * @param opts - 可选查询参数（server / limit / since）
+     * @returns 公共房间分页响应
+     *
+     * @example
+     * ```typescript
+     * const rooms = await client.getDirectoryManager().getPublicRoomsList({ limit: 20 });
+     * console.log(rooms.chunk.length);
+     * ```
+     */
     public async getPublicRoomsList(opts?: {
         server?: string;
         limit?: number;
@@ -87,6 +99,20 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         }, "getPublicRoomsList");
     }
 
+    /**
+     * 通过 POST 请求获取指定服务器的公共房间列表。
+     *
+     * @param server - 目标 homeserver 名称
+     * @param limit - 可选返回数量上限
+     * @param since - 可选分页 token
+     * @returns 公共房间分页响应
+     *
+     * @example
+     * ```typescript
+     * const rooms = await client.getDirectoryManager().getPublicRooms("matrix.org", 20);
+     * console.log(rooms.chunk.length);
+     * ```
+     */
     public async getPublicRooms(server: string, limit?: number, since?: string): Promise<IPublicRoomsResponse> {
         return this.withRetry(() => {
             if (typeof this.client.publicRooms === "function") {
@@ -106,6 +132,18 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         }, "getPublicRooms");
     }
 
+    /**
+     * 根据房间别名查询房间 ID。
+     *
+     * @param alias - 房间别名（如 `#room:example.org`）
+     * @returns 房间 ID 与可用服务器列表
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getDirectoryManager().getRoomIdForAlias("#room:example.org");
+     * console.log(info.room_id);
+     * ```
+     */
     public async getRoomIdForAlias(alias: string): Promise<IRoomAliasResponse> {
         return this.withRetry(() => {
             const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
@@ -116,6 +154,17 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         }, "getRoomIdForAlias");
     }
 
+    /**
+     * 为房间创建别名。
+     *
+     * @param roomId - 房间 ID
+     * @param alias - 要创建的别名
+     *
+     * @example
+     * ```typescript
+     * await client.getDirectoryManager().createRoomAlias("!room:example.org", "#room:example.org");
+     * ```
+     */
     public async createRoomAlias(roomId: string, alias: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
@@ -127,6 +176,16 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         }, "createRoomAlias");
     }
 
+    /**
+     * 删除房间别名。
+     *
+     * @param alias - 要删除的别名
+     *
+     * @example
+     * ```typescript
+     * await client.getDirectoryManager().deleteRoomAlias("#room:example.org");
+     * ```
+     */
     public async deleteRoomAlias(alias: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/directory/room/$alias", { $alias: alias });
@@ -137,6 +196,18 @@ export class DirectoryManager extends BaseManager<keyof DirectoryManagerEvents, 
         }, "deleteRoomAlias");
     }
 
+    /**
+     * 获取房间的所有别名。
+     *
+     * @param roomId - 房间 ID
+     * @returns 该房间的别名列表
+     *
+     * @example
+     * ```typescript
+     * const aliases = await client.getDirectoryManager().getAliasesForRoom("!room:example.org");
+     * console.log(aliases);
+     * ```
+     */
     public async getAliasesForRoom(roomId: string): Promise<string[]> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/aliases", { $roomId: roomId });

@@ -204,6 +204,15 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 上传设备密钥和一次性密钥
      * POST /_matrix/client/v3/keys/upload
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.uploadKeys({
+     *     oneTimeKeys: { "signed_curve25519:AAAAAQ": { key: "<key>" } },
+     * });
+     * console.log(res.one_time_key_counts);
+     * ```
      */
     async uploadKeys(options: UploadKeysOptions): Promise<UploadKeysResponse> {
         const body: { device_keys?: DeviceKeys; one_time_keys?: OneTimeKeys; fallback_keys?: FallbackKeys } = {};
@@ -237,6 +246,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 查询设备密钥
      * POST /_matrix/client/v3/keys/query
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.queryKeys({ device_keys: { "@alice:example.org": [] } });
+     * console.log(res.device_keys);
+     * ```
      */
     async queryKeys(request: QueryKeysRequest): Promise<QueryKeysResponse> {
         const response = await this.request<QueryKeysResponse>({
@@ -256,6 +272,15 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 声明一次性密钥
      * POST /_matrix/client/v3/keys/claim
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.claimKeys({
+     *     one_time_keys: { "@alice:example.org": { DEVICEID: "signed_curve25519" } },
+     * });
+     * console.log(res.one_time_keys);
+     * ```
      */
     async claimKeys(request: ClaimKeysRequest): Promise<ClaimKeysResponse> {
         const response = await this.request<ClaimKeysResponse>({
@@ -275,6 +300,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 获取密钥变化
      * GET /_matrix/client/v3/keys/changes
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.getKeyChanges("s72594_4483_1934");
+     * console.log(res.changed, res.left);
+     * ```
      */
     async getKeyChanges(from: string, to?: string): Promise<KeyChangesResponse> {
         const params: Record<string, string> = { from };
@@ -297,6 +329,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 更新设备列表
      * POST /_matrix/client/v3/keys/device_list/update
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.updateDeviceList(["@alice:example.org"]);
+     * console.log(res.changed, res.deleted, res.left);
+     * ```
      */
     async updateDeviceList(users: string[], since?: string): Promise<DeviceListUpdateResponse> {
         const body: { users: string[]; since?: string } = { users };
@@ -328,6 +367,12 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 上传设备签名密钥
      * POST /_matrix/client/v3/keys/device_signing/upload
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * await manager.uploadDeviceSigning({ master_key: masterKey, self_signing_key: selfSigningKey });
+     * ```
      */
     async uploadDeviceSigning(keys: {
         master_key?: CrossSigningKey;
@@ -345,6 +390,17 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 创建房间密钥请求
      * POST /_matrix/client/v3/room_keys/request
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const { request_id } = await manager.createRoomKeyRequest({
+     *     room_id: "!room:example.org",
+     *     session_id: "<session id>",
+     *     algorithm: "m.megolm.v1.aes-sha2",
+     * });
+     * console.log(request_id);
+     * ```
      */
     async createRoomKeyRequest(request: {
         room_id: string;
@@ -366,6 +422,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 获取房间密钥请求
      * GET /_matrix/client/v3/room_keys/request
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.getRoomKeyRequests({ status: "pending", limit: 20 });
+     * console.log(res.requests);
+     * ```
      */
     async getRoomKeyRequests(options?: {
         status?: string;
@@ -399,6 +462,12 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 删除房间密钥请求
      * DELETE /_matrix/client/v3/room_keys/request/{request_id}
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * await manager.deleteRoomKeyRequest("request-id");
+     * ```
      */
     async deleteRoomKeyRequest(requestId: string): Promise<void> {
         await this.request<void>({
@@ -411,6 +480,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 获取房间密钥分发
      * GET /_matrix/client/v3/rooms/{room_id}/keys/distribution
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const dist = await manager.getRoomKeyDistribution("!room:example.org");
+     * console.log(dist.session_id, dist.session_key);
+     * ```
      */
     async getRoomKeyDistribution(roomId: string): Promise<KeyDistributionResponse> {
         return await this.request<KeyDistributionResponse>({
@@ -423,6 +499,14 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     /**
      * 发送设备消息
      * PUT /_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * await manager.sendToDevice("m.room_key_request", "txn-1", {
+     *     "@alice:example.org": { DEVICEID: { action: "request" } },
+     * });
+     * ```
      */
     async sendToDevice(eventType: string, transactionId: string, messages: SendToDeviceMessage): Promise<void> {
         await this.request<void>({
@@ -442,6 +526,26 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
     // 上传本设备的密钥。
     // 本 fork 没有 `client.uploadDeviceKeys`；真实入口是
     // `client.uploadKeysRequest({ device_keys })`（`POST /keys/upload`）。
+    /**
+     * 上传本设备的设备密钥。
+     * 委托给 {@link MatrixClient.uploadKeysRequest}（`POST /keys/upload`）。
+     *
+     * @param keys - 本设备的设备密钥
+     * @returns 上传结果，含一次性密钥计数
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const res = await manager.uploadDeviceKeys({
+     *     user_id: client.getUserId()!,
+     *     device_id: client.getDeviceId()!,
+     *     algorithms: ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"],
+     *     keys: { "curve25519:DEVICEID": "<key>" },
+     *     signatures: {},
+     * });
+     * console.log(res.one_time_key_counts);
+     * ```
+     */
     public async uploadDeviceKeys(keys: DeviceKeys): Promise<UploadKeysResponse> {
         return this.client.uploadKeysRequest({ device_keys: keys } as IUploadKeysRequest);
     }
@@ -455,6 +559,13 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
      *
      * @param userId - target MXID
      * @returns `deviceId → device content` map (empty object when none)
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const devices = await manager.getUserDevices("@alice:example.org");
+     * console.log(Object.keys(devices)); // 例：["DEVICEID"]
+     * ```
      */
     public async getUserDevices(userId: string): Promise<Record<string, IContent>> {
         return this.client.getUserDevices(userId);
@@ -462,10 +573,42 @@ export class DeviceKeysManager extends BaseManager<DeviceKeysEvent, DeviceKeysMa
 
     // 本 fork 没有 `client.hasDevice`；等价物是 `DeviceManager` 的缓存查询
     // （`getCachedDevice` 先查已拉取的设备列表，未命中返回 null ⇒ 即"没有这个设备"）。
+    /**
+     * 判断本用户是否已缓存指定设备。
+     *
+     * 基于 {@link DeviceManager.getCachedDevice} 的本地缓存查询（同步，不发网络请求）：
+     * 传入设备在已拉取的设备列表中存在则返回 `true`。
+     *
+     * @param deviceId - 目标设备 ID
+     * @returns 设备是否存在于本地缓存
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * if (manager.hasDevice(client.getDeviceId()!)) {
+     *     console.log("当前设备已在缓存中");
+     * }
+     * ```
+     */
     public hasDevice(deviceId: string): boolean {
         return this.client.getDeviceManager().getCachedDevice(deviceId) !== null;
     }
 
+    /**
+     * 获取指定设备的详细信息。
+     *
+     * 委托给 {@link DeviceManager.getDevice}；未找到时返回 `null`。
+     *
+     * @param deviceId - 目标设备 ID
+     * @returns 设备信息，未找到时为 `null`
+     *
+     * @example
+     * ```ts
+     * const manager = client.getDeviceKeysManager();
+     * const device = await manager.getDevice(client.getDeviceId()!);
+     * console.log(device?.display_name);
+     * ```
+     */
     public async getDevice(deviceId: string): Promise<IDevice | null> {
         // ⚠️ 不要写成 `this.client.getDevice(...)`：本 fork 已把设备读取移进 DeviceManager，
         // 类型表里那条 `MatrixClient.getDevice` 是**上游残留声明**（运行时 undefined）。

@@ -424,6 +424,15 @@ export class KeyRotationManager extends BaseManager {
     /**
      * POST variant of updateConfig.
      * Convenience method that uses POST instead of PUT for the same endpoint.
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const manager = client.getKeyRotationManager();
+     * const config = await manager.postConfig({ enabled: true, interval_ms: 86400000 });
+     * console.log(config.enabled);
+     *
+     * @throws {InvalidParamError} If any provided field has an invalid type or range.
+     * @throws {ApiError} If the API call fails.
      */
     public async postConfig(request: UpdateRotationConfigRequest): Promise<UpdateRotationConfigResponse> {
         if (request.enabled !== undefined && typeof request.enabled !== "boolean") {
@@ -463,6 +472,12 @@ export class KeyRotationManager extends BaseManager {
     /**
      * POST variant of getStatus.
      * Convenience method that uses POST instead of GET for the same endpoint.
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const manager = client.getKeyRotationManager();
+     * const status = await manager.postStatus();
+     * console.log(status.enabled);
      */
     public async postStatus(): Promise<KeyRotationStatus> {
         const result = await this.withRetry(async () => {
@@ -517,6 +532,16 @@ export class KeyRotationManager extends BaseManager {
         }, "checkKeyValidity");
     }
 
+    /**
+     * POST variant of checkKeyValidity.
+     * Convenience method that uses POST instead of GET for the same check endpoint.
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const manager = client.getKeyRotationManager();
+     * const check = await manager.postCheck();
+     * console.log(check.needs_rotation);
+     */
     public async postCheck(): Promise<PostCheckResponse> {
         return await this.withRetry(async () => {
             return await this.request<PostCheckResponse>({
@@ -529,6 +554,14 @@ export class KeyRotationManager extends BaseManager {
         }, "postCheck");
     }
 
+    /**
+     * 清除键轮换状态的本地缓存，使下一次 `getStatus` 重新向后端查询。
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const manager = client.getKeyRotationManager();
+     * manager.clearStatusCache();
+     */
     public clearStatusCache(): void {
         this.statusCache = null;
     }

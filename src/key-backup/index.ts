@@ -187,6 +187,15 @@ export class KeyBackupManager extends BaseManager {
     /**
      * 获取最新备份版本
      * 对应 GET /room_keys/version
+     *
+     * @param forceRefresh - 为 `true` 时跳过本地缓存，强制向服务器请求
+     * @returns 服务器上最新的备份版本信息
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const info = await mgr.getLatestBackupVersion(true);
      */
     async getLatestBackupVersion(forceRefresh = false): Promise<BackupVersionInfo> {
         if (!forceRefresh) {
@@ -226,6 +235,18 @@ export class KeyBackupManager extends BaseManager {
      * 只读检查，不会自动启用备份。
      *
      * 对应 GET /room_keys/version
+     *
+     * @param forceRefresh - 为 `true` 时跳过本地缓存，强制向服务器请求
+     * @returns 备份版本信息；服务器尚无备份（HTTP 404 / M_NOT_FOUND）时返回 `null`
+     * @throws {SdkError} 当请求失败且非 404 时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const info = await mgr.checkKeyBackup();
+     * if (info) {
+     *     console.log("Backup enabled:", info.version);
+     * }
      */
     async checkKeyBackup(forceRefresh = false): Promise<BackupVersionInfo | null> {
         try {
@@ -247,12 +268,35 @@ export class KeyBackupManager extends BaseManager {
 
     /**
      * 获取所有备份版本信息 (兼容旧版)
+     *
+     * @param forceRefresh - 为 `true` 时跳过本地缓存，强制向服务器请求
+     * @returns 以 `versions` 数组包装的备份版本列表（当前实现仅包含最新版本）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const { versions } = await mgr.getBackupVersions();
      */
     async getBackupVersions(forceRefresh = false): Promise<{ versions: BackupVersionInfo[] }> {
         const latest = await this.getLatestBackupVersion(forceRefresh);
         return { versions: [latest] };
     }
 
+    /**
+     * 创建新的密钥备份版本
+     * 对应 POST /room_keys/version
+     *
+     * @param algorithm - 备份算法，默认 `m.megolm_backup.v1.curve25519-aes-sha2`
+     * @param authData - 可选的认证数据
+     * @returns 新建备份的版本号
+     * @throws {ValidationError} 当算法为空时抛出
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const { version } = await mgr.createBackupVersion();
+     */
     async createBackupVersion(
         algorithm: string = "m.megolm_backup.v1.curve25519-aes-sha2",
         authData?: AuthData | Aes256AuthData,
@@ -277,6 +321,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 按版本号获取备份版本信息
+     * 对应 GET /room_keys/version/{version}
+     *
+     * @param version - 备份版本号
+     * @param forceRefresh - 为 `true` 时跳过本地缓存，强制向服务器请求
+     * @returns 指定版本的备份信息
+     * @throws {ValidationError} 当版本号为空时抛出
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const info = await mgr.getBackupVersion("1");
+     */
     async getBackupVersion(version: string, forceRefresh = false): Promise<BackupVersionInfo> {
         if (!version || version.trim().length === 0) {
             throw new ValidationError("Version is required");
@@ -304,6 +363,20 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 更新指定备份版本的认证数据
+     * 对应 PUT /room_keys/version/{version}
+     *
+     * @param version - 备份版本号
+     * @param authData - 新的认证数据
+     * @returns 更新后的备份版本号
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.updateBackupVersion("1", { public_key: "..." });
+     */
     async updateBackupVersion(version: string, authData: AuthData | Aes256AuthData): Promise<{ version: string }> {
         try {
             const result = await this.withRetry(async () => {
@@ -322,6 +395,19 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 删除指定备份版本
+     * 对应 DELETE /room_keys/version/{version}
+     *
+     * @param version - 备份版本号
+     * @returns 删除结果，含 `deleted` 标志与版本号
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.deleteBackupVersion("1");
+     */
     async deleteBackupVersion(version: string): Promise<{ deleted: boolean; version: string }> {
         try {
             const result = await this.withRetry(async () => {
@@ -344,6 +430,19 @@ export class KeyBackupManager extends BaseManager {
 
     // ==================== 密钥读写 ====================
 
+    /**
+     * 获取指定版本下的全部房间密钥
+     * 对应 GET /room_keys/keys?version={version}
+     *
+     * @param version - 备份版本号
+     * @returns 包含全部房间会话密钥的备份数据
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const keys = await mgr.getAllRoomKeys("1");
+     */
     async getAllRoomKeys(version: string): Promise<RoomKeyBackup> {
         try {
             return await this.withRetry(async () => {
@@ -359,6 +458,20 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 上传指定版本下的全部房间密钥
+     * 对应 PUT /room_keys/keys?version={version}
+     *
+     * @param version - 备份版本号
+     * @param body - 待上传的房间密钥数据
+     * @returns 上传结果，含密钥数量与 etag
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.putAllRoomKeys("1", { rooms: {} });
+     */
     async putAllRoomKeys(version: string, body: PutRoomKeysBody): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -375,6 +488,20 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取指定房间在备份中的会话密钥
+     * 对应 GET /room_keys/keys/{roomId}?version={version}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @returns 该房间的会话密钥集合
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const { sessions } = await mgr.getRoomKeys("1", "!room:example.com");
+     */
     async getRoomKeys(version: string, roomId: string): Promise<{ sessions: Record<string, SessionData> }> {
         try {
             return await this.withRetry(async () => {
@@ -390,6 +517,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 上传指定房间的会话密钥到备份
+     * 对应 PUT /room_keys/keys/{roomId}?version={version}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @param body - 该房间的会话密钥数据
+     * @returns 上传结果，含密钥数量与 etag
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.putRoomKeys("1", "!room:example.com", { sessions: {} });
+     */
     async putRoomKeys(version: string, roomId: string, body: PutRoomSessionsBody): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -406,6 +548,19 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 删除指定版本下的全部房间密钥
+     * 对应 DELETE /room_keys/keys?version={version}
+     *
+     * @param version - 备份版本号
+     * @returns 删除结果，含密钥数量与 etag
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.deleteAllRoomKeys("1");
+     */
     async deleteAllRoomKeys(version: string): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -421,6 +576,20 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 删除指定房间在备份中的密钥
+     * 对应 DELETE /room_keys/keys/{roomId}?version={version}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @returns 删除结果，含密钥数量与 etag
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.deleteRoomKeys("1", "!room:example.com");
+     */
     async deleteRoomKeys(version: string, roomId: string): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -436,6 +605,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取指定会话的密钥
+     * 对应 GET /room_keys/keys/{roomId}/{sessionId}?version={version}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @param sessionId - 会话 ID
+     * @returns 会话密钥的加密数据
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const session = await mgr.getSessionKey("1", "!room:example.com", "session-id");
+     */
     async getSessionKey(
         version: string,
         roomId: string,
@@ -455,6 +639,27 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 上传指定会话的密钥到备份
+     * 对应 PUT /room_keys/keys/{roomId}/{sessionId}?version={version}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @param sessionId - 会话 ID
+     * @param sessionData - 会话密钥数据
+     * @returns 上传结果，含密钥数量与 etag
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.putSessionKey("1", "!room:example.com", "session-id", {
+     *     first_message_index: 0,
+     *     forwarded_count: 0,
+     *     is_verified: false,
+     *     session_data: { ciphertext: "", ephemeral: "", mac: "" },
+     * });
+     */
     async putSessionKey(
         version: string,
         roomId: string,
@@ -476,6 +681,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 删除指定会话的备份密钥
+     * 对应 DELETE /room_keys/keys/{roomId}/{sessionId}?version={version}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @param sessionId - 会话 ID
+     * @returns 删除结果，含密钥数量与 etag
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.deleteSessionKey("1", "!room:example.com", "session-id");
+     */
     async deleteSessionKey(version: string, roomId: string, sessionId: string): Promise<UploadKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -493,6 +713,20 @@ export class KeyBackupManager extends BaseManager {
 
     // ==================== 恢复与校验 ====================
 
+    /**
+     * 从备份中恢复密钥
+     * 对应 POST /room_keys/recover
+     *
+     * @param version - 备份版本号
+     * @param rooms - 可选，限定要恢复的房间 ID 列表
+     * @returns 恢复结果，含已恢复的房间、总密钥数与已恢复密钥数
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.recoverKeys("1", ["!room:example.com"]);
+     */
     async recoverKeys(version: string, rooms?: string[]): Promise<RecoverKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -508,6 +742,19 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取指定版本的密钥恢复进度
+     * 对应 GET /room_keys/recovery/{version}/progress
+     *
+     * @param version - 备份版本号
+     * @returns 恢复进度信息
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const progress = await mgr.getRecoveryProgress("1");
+     */
     async getRecoveryProgress(version: string): Promise<RecoveryProgress> {
         try {
             return await this.withRetry(async () => {
@@ -522,6 +769,19 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 校验指定版本备份的完整性
+     * 对应 GET /room_keys/verify/{version}
+     *
+     * @param version - 备份版本号
+     * @returns 校验结果，含是否有效、算法与密钥数量
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const result = await mgr.verifyBackup("1");
+     */
     async verifyBackup(version: string): Promise<VerifyResult> {
         try {
             return await this.withRetry(async () => {
@@ -536,6 +796,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 批量恢复多个房间的密钥
+     * 对应 POST /room_keys/batch_recover
+     *
+     * @param version - 备份版本号
+     * @param roomIds - 待恢复的房间 ID 列表
+     * @param sessionLimit - 可选，单批返回的最大会话数
+     * @returns 批量恢复结果，含房间密钥、总会话数与分页信息
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.batchRecover("1", ["!room:example.com"], 100);
+     */
     async batchRecover(version: string, roomIds: string[], sessionLimit?: number): Promise<BatchRecoverResult> {
         try {
             return await this.withRetry(async () => {
@@ -551,6 +826,20 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 恢复指定房间的密钥
+     * 对应 GET /room_keys/recover/{version}/{roomId}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @returns 该房间恢复出的会话密钥列表
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.recoverRoomKeys("1", "!room:example.com");
+     */
     async recoverRoomKeys(version: string, roomId: string): Promise<RecoverRoomKeysResult> {
         try {
             return await this.withRetry(async () => {
@@ -565,6 +854,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 恢复指定会话的密钥
+     * 对应 GET /room_keys/recover/{version}/{roomId}/{sessionId}
+     *
+     * @param version - 备份版本号
+     * @param roomId - 房间 ID
+     * @param sessionId - 会话 ID
+     * @returns 该会话恢复出的密钥数据
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * await mgr.recoverSessionKey("1", "!room:example.com", "session-id");
+     */
     async recoverSessionKey(version: string, roomId: string, sessionId: string): Promise<RecoverSessionKeyResult> {
         try {
             return await this.withRetry(async () => {
@@ -583,6 +887,19 @@ export class KeyBackupManager extends BaseManager {
 
     // ==================== 导出与导入 ====================
 
+    /**
+     * 导出备份密钥
+     * 对应 GET /room_keys/export[/{version}]
+     *
+     * @param version - 可选，指定要导出的备份版本；省略时导出默认版本
+     * @returns 导出的房间密钥集合
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const exported = await mgr.exportKeys("1");
+     */
     async exportKeys(version?: string): Promise<ExportResult> {
         const path = version ? kb(`/room_keys/export/${version}`) : kb("/room_keys/export");
         try {
@@ -598,6 +915,21 @@ export class KeyBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 导入备份密钥
+     * 对应 POST /room_keys/import[/{version}]
+     *
+     * @param roomKeys - 待导入的房间密钥列表
+     * @param version - 可选，指定导入到的备份版本
+     * @returns 导入结果，含成功数、失败数与总数
+     * @throws {SdkError} 当请求失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const exported = await mgr.exportKeys();
+     * await mgr.importKeys(exported.room_keys, "1");
+     */
     async importKeys(roomKeys: ExportResult["room_keys"], version?: string): Promise<ImportResult> {
         const path = version ? kb(`/room_keys/import/${version}`) : kb("/room_keys/import");
         try {
@@ -616,14 +948,47 @@ export class KeyBackupManager extends BaseManager {
 
     // ==================== 辅助方法 ====================
 
+    /**
+     * 获取当前缓存的备份版本号
+     *
+     * @returns 当前版本号；尚未设置时返回 `null`
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const version = mgr.getCurrentVersion();
+     */
     getCurrentVersion(): string | null {
         return this.currentVersion;
     }
 
+    /**
+     * 设置当前备份版本号
+     *
+     * @param version - 版本号；传 `null` 表示清空
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * mgr.setCurrentVersion("1");
+     */
     setCurrentVersion(version: string | null): void {
         this.currentVersion = version;
     }
 
+    /**
+     * 确保存在可用的备份版本，返回其版本号
+     *
+     * 若已缓存当前版本则直接返回；否则拉取最新版本并缓存。
+     * @param _algorithm - 备份算法（当前实现未使用，保留以兼容签名）
+     * @returns 可用的备份版本号
+     * @throws {SdkError} 当拉取最新版本失败时抛出（经 `normalizeError` 归一化）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const version = await mgr.ensureBackupVersion();
+     */
     async ensureBackupVersion(_algorithm: string = "m.megolm.v1.aes-sha2"): Promise<string> {
         if (this.currentVersion) {
             return this.currentVersion;
@@ -634,10 +999,28 @@ export class KeyBackupManager extends BaseManager {
         return this.currentVersion;
     }
 
+    /**
+     * 清空版本信息缓存
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * mgr.clearCache();
+     */
     clearCache(): void {
         this.versionCache.clear();
     }
 
+    /**
+     * 获取版本信息缓存的统计信息
+     *
+     * @returns 缓存大小、命中数、未命中数与命中率
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getKeyBackupManager();
+     * const stats = mgr.getCacheStats();
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.versionCache.getStats();
     }

@@ -183,6 +183,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取房间内的所有话题列表
      * GET /_matrix/client/v1/rooms/{room_id}/threads
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getThreadManager().getRoomThreads("!room:example.com", { limit: 20 });
+     * ```
      */
     async getRoomThreads(
         roomId: string,
@@ -205,6 +210,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 在房间中创建新话题
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads
+     *
+     * @example
+     * ```typescript
+     * const thread = await client.getThreadManager().createThread("!room:example.com", { event_id: "$event" });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `event_id` 为空
      */
     async createThread(roomId: string, body: { event_id: string; name?: string }): Promise<IThreadRoot> {
         validateRoomId(roomId);
@@ -227,6 +239,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 搜索房间内的话题
      * GET /_matrix/vendor/v1/rooms/{room_id}/threads/search
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getThreadManager().searchThreads("!room:example.com", { term: "hello" });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果搜索词为空
      */
     async searchThreads(
         roomId: string,
@@ -252,6 +271,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取房间内未读话题列表
      * GET /_matrix/vendor/v1/rooms/{room_id}/threads/unread
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getThreadManager().getUnreadRoomThreads("!room:example.com");
+     * ```
      */
     async getUnreadRoomThreads(roomId: string): Promise<IThreadListResponse> {
         validateRoomId(roomId);
@@ -272,6 +296,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取话题详情
      * GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}
+     *
+     * @example
+     * ```typescript
+     * const detail = await client.getThreadManager().getThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async getThread(roomId: string, threadId: string): Promise<IThreadDetail> {
         validateRoomId(roomId);
@@ -291,6 +322,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 删除话题
      * DELETE /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadManager().deleteThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async deleteThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
@@ -310,6 +348,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 冻结话题（禁止新回复）
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadManager().freezeThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async freezeThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
@@ -330,6 +375,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 取消冻结话题
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadManager().unfreezeThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async unfreezeThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
@@ -350,6 +402,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 静音话题
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute
+     *
+     * @example
+     * ```typescript
+     * const subscription = await client.getThreadManager().muteThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async muteThread(roomId: string, threadId: string): Promise<IThreadSubscription> {
         validateRoomId(roomId);
@@ -370,6 +429,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 标记话题为已读
      * POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read
+     *
+     * @example
+     * ```typescript
+     * const receipt = await client.getThreadManager().markThreadRead("!room:example.com", "$thread", "$event");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 或 `readUpTo` 为空
      */
     async markThreadRead(roomId: string, threadId: string, readUpTo: string): Promise<IThreadReadReceipt> {
         validateRoomId(roomId);
@@ -391,6 +457,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 订阅话题
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe
+     *
+     * @example
+     * ```typescript
+     * const subscription = await client.getThreadManager().subscribeThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async subscribeThread(roomId: string, threadId: string): Promise<IThreadSubscription> {
         validateRoomId(roomId);
@@ -411,6 +484,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 取消订阅话题
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadManager().unsubscribeThread("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async unsubscribeThread(roomId: string, threadId: string): Promise<void> {
         validateRoomId(roomId);
@@ -433,6 +513,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取话题回复列表
      * GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies
+     *
+     * @example
+     * ```typescript
+     * const replies = await client.getThreadManager().getThreadReplies("!room:example.com", "$thread", { limit: 50 });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async getThreadReplies(
         roomId: string,
@@ -457,6 +544,17 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 创建话题回复
      * POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies
+     *
+     * @example
+     * ```typescript
+     * const reply = await client.getThreadManager().createThreadReply("!room:example.com", "$thread", {
+     *     event_id: "$reply",
+     *     root_event_id: "$thread",
+     *     content: { body: "Hello" },
+     * });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id`、`event_id`、`root_event_id` 或 `content` 为空
      */
     async createThreadReply(
         roomId: string,
@@ -484,6 +582,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 删除（红线）话题回复
      * POST /_matrix/vendor/v1/rooms/{room_id}/replies/{event_id}/redact
+     *
+     * @example
+     * ```typescript
+     * await client.getThreadManager().redactReply("!room:example.com", "$reply", "duplicate");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `event_id` 为空
      */
     async redactReply(roomId: string, eventId: string, reason?: string): Promise<void> {
         validateRoomId(roomId);
@@ -510,6 +615,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取话题统计信息
      * GET /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/stats
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getThreadManager().getThreadStats("!room:example.com", "$thread");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `thread_id` 为空
      */
     async getThreadStats(roomId: string, threadId: string): Promise<IThreadStats> {
         validateRoomId(roomId);
@@ -531,6 +643,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取全局所有话题
      * GET /_matrix/vendor/v1/threads
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getThreadManager().getAllThreads({ limit: 50 });
+     * ```
      */
     async getAllThreads(params?: { from?: string; limit?: number }): Promise<IThreadListResponse> {
         const path = tpv("/threads");
@@ -549,6 +666,15 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 创建话题（无需指定房间上下文）
      * POST /_matrix/vendor/v1/threads
+     *
+     * @example
+     * ```typescript
+     * const thread = await client
+     *     .getThreadManager()
+     *     .createGlobalThread({ room_id: "!room:example.com", event_id: "$event" });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果 `room_id` 或 `event_id` 为空
      */
     async createGlobalThread(body: { room_id: string; event_id: string; name?: string }): Promise<IThreadRoot> {
         if (!body.room_id) throw new InvalidParamError("room_id is required");
@@ -569,6 +695,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取已订阅的话题列表
      * GET /_matrix/vendor/v1/threads/subscribed
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getThreadManager().getSubscribedThreads();
+     * ```
      */
     async getSubscribedThreads(params?: { from?: string; limit?: number }): Promise<IThreadListResponse> {
         const path = tpv("/threads/subscribed");
@@ -587,6 +718,11 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取全局未读话题列表
      * GET /_matrix/vendor/v1/threads/unread
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getThreadManager().getAllUnreadThreads();
+     * ```
      */
     async getAllUnreadThreads(): Promise<IThreadListResponse> {
         const path = tpv("/threads/unread");
@@ -606,6 +742,13 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
     /**
      * 获取用户在某房间内的话题列表
      * GET /_matrix/vendor/v1/user/{user_id}/rooms/{room_id}/threads
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client
+     *     .getThreadManager()
+     *     .getUserThreads("@alice:example.com", "!room:example.com");
+     * ```
      */
     async getUserThreads(
         userId: string,
@@ -629,10 +772,26 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
 
     // ============ Lifecycle ============
 
+    /**
+     * 启动话题管理器（当前为占位实现）
+     *
+     * @example
+     * ```typescript
+     * client.getThreadManager().start();
+     * ```
+     */
     start(): void {
         // Initialize thread state
     }
 
+    /**
+     * 停止话题管理器（当前为占位实现）
+     *
+     * @example
+     * ```typescript
+     * client.getThreadManager().stop();
+     * ```
+     */
     stop(): void {
         // Clean up thread state
     }

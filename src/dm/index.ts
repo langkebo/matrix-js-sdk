@@ -101,7 +101,12 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
     // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
     private startPromise: Promise<void> | null = null;
 
-    /** 初始化 DM 管理器 */
+    /**
+     * 初始化 DM 管理器。
+     *
+     * @example
+     * await client.getDirectMessageManager().start();
+     */
     async start(): Promise<void> {
         if (this.isInitialized) return;
         if (this.startPromise) {
@@ -125,7 +130,12 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         return this.startPromise;
     }
 
-    /** 停止 DM 管理器 */
+    /**
+     * 停止 DM 管理器。
+     *
+     * @example
+     * client.getDirectMessageManager().stop();
+     */
     stop(): void {
         this.list.clearCache();
         this.isInitialized = false;
@@ -139,7 +149,13 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         this.operation.removeAllListeners();
     }
 
-    /** 获取缓存统计 */
+    /**
+     * 获取缓存统计。
+     *
+     * @example
+     * const stats = client.getDirectMessageManager().getCacheStats();
+     * console.log("DM 房间缓存命中率:", stats.dmRooms.hitRate);
+     */
     public getCacheStats(): {
         dmRooms: { size: number; hits: number; misses: number; hitRate: number };
         userDmMap: { size: number; hits: number; misses: number; hitRate: number };

@@ -140,6 +140,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取所有推送器
      * 对应 GET /_matrix/client/v3/pushers
+     * @param forceRefresh - 为 true 时跳过缓存，强制重新拉取。
+     * @returns 当前账号的全部推送器。
+     * @throws 请求失败时抛出规范化后的错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const pushers = await push.getPushers();
+     * ```
      */
     async getPushers(forceRefresh = false): Promise<IPusher[]> {
         if (!forceRefresh) {
@@ -181,6 +189,19 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 设置推送器
      * 对应 POST /_matrix/client/v3/pushers/set
+     * @param pusher - 推送器配置（pushkey / app_id 为必填）。
+     * @throws 缺少 pushkey 或 app_id，或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.setPusher({
+     *     pushkey: "key",
+     *     app_id: "com.example.app",
+     *     app_display_name: "Example",
+     *     device_display_name: "Phone",
+     *     lang: "en",
+     * });
+     * ```
      */
     async setPusher(pusher: IPusherRequest): Promise<void> {
         if (!pusher.pushkey) throw new InvalidParamError("pushkey is required");
@@ -213,6 +234,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 移除推送器
      * 对应 POST /_matrix/client/v3/pushers/set (kind=null)
+     * @param pushkey - 推送器唯一键。
+     * @param appId - 应用 ID。
+     * @param deviceId - 已废弃，后端按访问令牌绑定设备。
+     * @throws 缺少 pushkey 或 appId，或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.removePusher("key", "com.example.app");
+     * ```
      */
     async removePusher(pushkey: string, appId: string, deviceId?: string): Promise<void> {
         if (!pushkey) throw new InvalidParamError("pushkey is required");
@@ -229,6 +259,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         });
     }
 
+    /**
+     * 获取缓存的推送器（不会发起网络请求）。
+     * @returns 缓存的推送器列表；无缓存时返回空数组。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const cached = push.getCachedPushers();
+     * ```
+     */
     getCachedPushers(): IPusher[] {
         return this.pushersCache.get("pushers") || [];
     }
@@ -238,6 +277,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取所有推送规则
      * 对应 GET /_matrix/client/v3/pushrules
+     * @param forceRefresh - 为 true 时跳过缓存，强制重新拉取。
+     * @returns 当前账号的完整推送规则集合。
+     * @throws 请求失败时抛出规范化后的错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const rules = await push.getPushRules();
+     * ```
      */
     async getPushRules(forceRefresh = false): Promise<IPushRules> {
         if (!forceRefresh) {
@@ -266,6 +313,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取指定作用域的推送规则
      * 对应 GET /_matrix/client/v3/pushrules/{scope}
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @returns 该作用域下按 kind 分组的推送规则集合。
+     * @throws scope 为空或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const rules = await push.getPushRulesByScope("global");
+     * ```
      */
     async getPushRulesByScope(scope: string): Promise<IPushRuleSet> {
         if (!scope) throw new InvalidParamError("scope is required");
@@ -286,6 +341,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取指定类型的推送规则
      * 对应 GET /_matrix/client/v3/pushrules/{scope}/{kind}
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @returns 匹配的推送规则列表。
+     * @throws scope/kind 为空或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const rules = await push.getPushRulesByKind("global", "room");
+     * ```
      */
     async getPushRulesByKind(scope: string, kind: PushRuleKind): Promise<IPushRule[]> {
         if (!scope) throw new InvalidParamError("scope is required");
@@ -307,6 +371,17 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取特定推送规则
      * 对应 GET /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @param throwOnError - 为 false 时，404 返回 null 而非抛错。
+     * @returns 命中的推送规则；未找到且 throwOnError 为 false 时返回 null。
+     * @throws 参数为空，或请求失败且允许抛错时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const rule = await push.getPushRule("global", "room", "!room:example.org");
+     * ```
      */
     async getPushRule(
         scope: string,
@@ -336,6 +411,18 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 创建推送规则
      * 对应 POST /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @param rule - 规则内容（actions 必填）。
+     * @throws 参数为空、actions 缺失或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.createPushRule("global", "room", "!room:example.org", {
+     *     actions: ["dont_notify"],
+     * });
+     * ```
      */
     async createPushRule(
         scope: string,
@@ -369,6 +456,18 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 更新推送规则
      * 对应 PUT /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @param rule - 要更新的规则内容。
+     * @throws 参数为空或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.updatePushRule("global", "room", "!room:example.org", {
+     *     actions: ["notify"],
+     * });
+     * ```
      */
     async updatePushRule(
         scope: string,
@@ -401,6 +500,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 删除推送规则
      * 对应 DELETE /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @throws 参数为空或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.deletePushRule("global", "room", "!room:example.org");
+     * ```
      */
     async deletePushRule(scope: string, kind: PushRuleKind, ruleId: string): Promise<void> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
@@ -426,6 +534,17 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取推送规则是否启用
      * 对应 GET /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @param throwOnError - 为 false 时，404 返回 false 而非抛错。
+     * @returns 规则是否启用。
+     * @throws 参数为空，或请求失败且允许抛错时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const enabled = await push.getPushRuleEnabled("global", "room", "!room:example.org");
+     * ```
      */
     async getPushRuleEnabled(scope: string, kind: PushRuleKind, ruleId: string, throwOnError = true): Promise<boolean> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
@@ -452,6 +571,16 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 设置推送规则是否启用
      * 对应 PUT /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @param enabled - 是否启用该规则。
+     * @throws 参数为空或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.setPushRuleEnabled("global", "room", "!room:example.org", false);
+     * ```
      */
     async setPushRuleEnabled(scope: string, kind: PushRuleKind, ruleId: string, enabled: boolean): Promise<void> {
         if (!scope || !kind || !ruleId) throw new InvalidParamError("scope, kind, and ruleId are required");
@@ -478,6 +607,16 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 设置推送规则动作
      * 对应 PUT /_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions
+     * @param scope - 作用域，例如 "global" 或 "device"。
+     * @param kind - 规则类型。
+     * @param ruleId - 规则 ID。
+     * @param actions - 要设置的动作列表（不能为空）。
+     * @throws 参数为空、actions 缺失或请求失败时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.setPushRuleActions("global", "room", "!room:example.org", ["dont_notify"]);
+     * ```
      */
     async setPushRuleActions(
         scope: string,
@@ -507,6 +646,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         }
     }
 
+    /**
+     * 获取缓存的推送规则（不会发起网络请求）。
+     * @returns 缓存的推送规则；无缓存时返回 null。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const cached = push.getCachedPushRules();
+     * ```
+     */
     getCachedPushRules(): IPushRules | null {
         return this.pushRulesCache.get("pushRules") || null;
     }
@@ -516,6 +664,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 获取推送通知列表
      * 对应 GET /_matrix/client/v3/notifications
+     * @param params - 可选过滤/分页参数（limit、from、only）。
+     * @returns 通知列表与下一页令牌。
+     * @throws 请求失败时抛出规范化后的错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const { notifications } = await push.getNotifications({ limit: 20 });
+     * ```
      */
     async getNotifications(params?: { limit?: number; from?: string; only?: string }): Promise<INotificationsResponse> {
         try {
@@ -539,6 +695,14 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     /**
      * 确认通知
      * 对应 POST /_matrix/client/v3/notifications/{notification_id}/ack
+     * @param notificationId - 通知 ID。
+     * @param throwOnError - 为 false 时，404 静默返回而非抛错。
+     * @throws notificationId 为空，或请求失败且允许抛错时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.ackNotification("notification-id");
+     * ```
      */
     async ackNotification(notificationId: string, throwOnError = true): Promise<void> {
         if (!notificationId) throw new InvalidParamError("notificationId is required");
@@ -564,6 +728,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      * @param scope - "global" or device-specific.
      * @param roomId - the id of the room.
      * @returns the rule or undefined.
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const rule = push.getRoomPushRule("global", "!room:example.org");
+     * ```
      */
     getRoomPushRule(scope: "global" | "device", roomId: string): IPushRule | undefined {
         return getRoomPushRuleRequest(this.client.pushRules, scope, roomId);
@@ -577,6 +746,11 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
      * @param mute - the mute state.
      * @returns Promise which resolves: result object
      * @returns Rejects: with an error response.
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.setRoomMutePushRule("global", "!room:example.org", true);
+     * ```
      */
     setRoomMutePushRule(scope: "global" | "device", roomId: string, mute: boolean): Promise<void> | undefined {
         const roomPushRule = this.getRoomPushRule(scope, roomId);
@@ -592,6 +766,16 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         );
     }
 
+    /**
+     * 将房间设为静音（创建 room 类型的 DontNotify 推送规则）。
+     * @param roomId - 房间 ID。
+     * @returns 静音规则创建完成。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.muteRoom("!room:example.org");
+     * ```
+     */
     async muteRoom(roomId: string): Promise<void> {
         validateRoomId(roomId);
         await this.createPushRule("global", PushRuleKind.RoomSpecific, roomId, {
@@ -599,11 +783,31 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         });
     }
 
+    /**
+     * 取消房间静音（删除对应的 room 推送规则）。
+     * @param roomId - 房间 ID。
+     * @returns 静音规则删除完成。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.unmuteRoom("!room:example.org");
+     * ```
+     */
     async unmuteRoom(roomId: string): Promise<void> {
         validateRoomId(roomId);
         await this.deletePushRule("global", PushRuleKind.RoomSpecific, roomId);
     }
 
+    /**
+     * 判断房间是否处于静音状态。
+     * @param roomId - 房间 ID。
+     * @returns 房间已静音返回 true，否则返回 false。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * const muted = await push.isRoomMuted("!room:example.org");
+     * ```
+     */
     async isRoomMuted(roomId: string): Promise<boolean> {
         validateRoomId(roomId);
         try {
@@ -616,6 +820,17 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         return false;
     }
 
+    /**
+     * 添加关键词高亮规则。
+     * @param keyword - 要高亮的关键词。
+     * @returns 高亮规则创建完成。
+     * @throws keyword 为空时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.addKeywordHighlight("urgent");
+     * ```
+     */
     async addKeywordHighlight(keyword: string): Promise<void> {
         if (!keyword) throw new InvalidParamError("keyword is required");
         await this.createPushRule("global", PushRuleKind.ContentSpecific, keyword, {
@@ -627,11 +842,33 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         });
     }
 
+    /**
+     * 移除关键词高亮规则。
+     * @param keyword - 要移除的关键词。
+     * @returns 高亮规则删除完成。
+     * @throws keyword 为空时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.removeKeywordHighlight("urgent");
+     * ```
+     */
     async removeKeywordHighlight(keyword: string): Promise<void> {
         if (!keyword) throw new InvalidParamError("keyword is required");
         await this.deletePushRule("global", PushRuleKind.ContentSpecific, keyword);
     }
 
+    /**
+     * 忽略某个发送者（创建 sender 类型的 DontNotify 规则）。
+     * @param userId - 要忽略的用户 ID。
+     * @returns 忽略规则创建完成。
+     * @throws userId 为空时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.ignoreSender("@alice:example.org");
+     * ```
+     */
     async ignoreSender(userId: string): Promise<void> {
         if (!userId) throw new InvalidParamError("userId is required");
         await this.createPushRule("global", PushRuleKind.SenderSpecific, userId, {
@@ -639,6 +876,17 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         });
     }
 
+    /**
+     * 取消忽略某个发送者（删除对应的 sender 规则）。
+     * @param userId - 要取消忽略的用户 ID。
+     * @returns 忽略规则删除完成。
+     * @throws userId 为空时抛出错误。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.unignoreSender("@alice:example.org");
+     * ```
+     */
     async unignoreSender(userId: string): Promise<void> {
         if (!userId) throw new InvalidParamError("userId is required");
         await this.deletePushRule("global", PushRuleKind.SenderSpecific, userId);
@@ -649,6 +897,15 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
     // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
     private startPromise: Promise<void> | null = null;
 
+    /**
+     * 启动 PushManager，预热推送器与推送规则缓存。
+     * @returns 初始化完成；并发调用会复用同一次初始化。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * await push.start();
+     * ```
+     */
     async start(): Promise<void> {
         if (this.initialized) return;
         if (this.startPromise) {
@@ -667,11 +924,27 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
         return this.startPromise;
     }
 
+    /**
+     * 停止 PushManager，清空缓存并重置初始化状态。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * push.stop();
+     * ```
+     */
     stop(): void {
         this.clearCache();
         this.initialized = false;
     }
 
+    /**
+     * 清空推送器与推送规则缓存。
+     * @example
+     * ```typescript
+     * const push = client.getPushManager();
+     * push.clearCache();
+     * ```
+     */
     clearCache(): void {
         this.pushersCache.clear();
         this.pushRulesCache.clear();

@@ -44,6 +44,11 @@ export class AdminMediaManager extends AdminBaseManager {
      * @param fromOrLimit - 分页起点 (string) 或数量限制 (number)
      * @param limitOrFrom - 数量限制 (number) 或分页起点 (string)
      * @returns 媒体列表（含 `next_batch` 游标）
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().media.getMedia(50);
+     * console.log(page.media.length, page.next_batch);
+     * ```
      */
     async getMedia(fromOrLimit?: string | number, limitOrFrom?: number | string): Promise<MediaPage> {
         let from: string | undefined;
@@ -74,6 +79,12 @@ export class AdminMediaManager extends AdminBaseManager {
      *
      * @param mediaId - 媒体 ID
      * @returns 媒体详情
+     * @throws {ValidationError} `mediaId` 为空时（不会发出请求）
+     * @example
+     * ```typescript
+     * const info = await client.getAdminManager().media.getMediaInfo("abc123");
+     * console.log(info);
+     * ```
      */
     async getMediaInfo(mediaId: string): Promise<MediaInfo> {
         if (!mediaId) {
@@ -86,6 +97,11 @@ export class AdminMediaManager extends AdminBaseManager {
      * 删除媒体
      *
      * @param mediaId - 媒体 ID
+     * @throws {ValidationError} `mediaId` 为空时（不会发出请求）
+     * @example
+     * ```typescript
+     * await client.getAdminManager().media.deleteMedia("abc123");
+     * ```
      */
     async deleteMedia(mediaId: string): Promise<void> {
         if (!mediaId) {
@@ -98,6 +114,11 @@ export class AdminMediaManager extends AdminBaseManager {
      * 获取媒体配额
      *
      * @returns 媒体配额信息
+     * @example
+     * ```typescript
+     * const quota = await client.getAdminManager().media.getMediaQuota();
+     * console.log(quota);
+     * ```
      */
     async getMediaQuota(): Promise<MediaQuotaResponse> {
         return await this.adminRequest(Method.Get, "/media/quota");
@@ -115,6 +136,11 @@ export class AdminMediaManager extends AdminBaseManager {
      *
      * @param serverName - 媒体所属服务器名（本地媒体用 `client.getDomain()`）
      * @param mediaId - 媒体 ID
+     * @throws {ValidationError} `serverName` 或 `mediaId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().media.quarantineMedia(client.getDomain()!, "abc123");
+     * ```
      */
     async quarantineMedia(serverName: string, mediaId: string): Promise<void> {
         if (!serverName) {
@@ -139,6 +165,11 @@ export class AdminMediaManager extends AdminBaseManager {
      *
      * @param serverName - 媒体所属服务器名（本地媒体用 `client.getDomain()`）
      * @param mediaId - 媒体 ID
+     * @throws {ValidationError} `serverName` 或 `mediaId` 为空时
+     * @example
+     * ```typescript
+     * await client.getAdminManager().media.unquarantineMedia(client.getDomain()!, "abc123");
+     * ```
      */
     async unquarantineMedia(serverName: string, mediaId: string): Promise<void> {
         if (!serverName) {
@@ -239,6 +270,12 @@ export class AdminMediaManager extends AdminBaseManager {
      *
      * @param beforeTs - 清除此时间戳（毫秒）之前访问过的媒体（必须为正整数）
      * @returns 删除的媒体数量
+     * @throws {ValidationError} `beforeTs` 不是正整数时（不会发出请求）
+     * @example
+     * ```typescript
+     * const result = await client.getAdminManager().media.purgeMediaCache(Date.now() - 86_400_000);
+     * console.log(result.deleted);
+     * ```
      */
     async purgeMediaCache(beforeTs?: number): Promise<{ deleted: number }> {
         if (beforeTs !== undefined) {

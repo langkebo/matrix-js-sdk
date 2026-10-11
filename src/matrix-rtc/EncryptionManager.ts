@@ -119,6 +119,18 @@ export class EncryptionManager implements IEncryptionManager {
         return `${membership.userId}:${membership.deviceId}`;
     }
 
+    /**
+     * 返回当前已知的全部加密密钥。
+     *
+     * @returns 以 `userId:deviceId(memberId)` 为键的密钥环映射（含 keyIndex 与 rtcBackendIdentity）。
+     * @example
+     * ```ts
+     * // 内部类：由 MatrixRTCSession 在加入会话时创建并调用，无公开访问器。
+     * this.encryptionManager!.getEncryptionKeys().forEach((keyRing, mapKey) => {
+     *     // 将 keyRing 交给 LiveKit / 媒体加密层使用
+     * });
+     * ```
+     */
     public getEncryptionKeys(): ReadonlyMap<
         EncryptionKeyMapKey,
         ReadonlyArray<{
@@ -151,6 +163,16 @@ export class EncryptionManager implements IEncryptionManager {
 
     private joined = false;
 
+    /**
+     * 加入会话并启动密钥交换。
+     *
+     * @param joinConfig - 加密配置；`manageMediaKeys` 为真时自动生成并分发发送端密钥。
+     * @example
+     * ```ts
+     * // 内部类：由 MatrixRTCSession.joinRoomSession() 创建后调用。
+     * this.encryptionManager!.join(joinConfig);
+     * ```
+     */
     public join(joinConfig: EncryptionConfig): void {
         this.joinConfig = joinConfig;
         this.joined = true;
@@ -165,6 +187,15 @@ export class EncryptionManager implements IEncryptionManager {
         }
     }
 
+    /**
+     * 离开会话并清理本地密钥与定时器。
+     *
+     * @example
+     * ```ts
+     * // 内部类：由 MatrixRTCSession.leaveRoomSession() 调用。
+     * this.encryptionManager!.leave();
+     * ```
+     */
     public leave(): void {
         // clear our encryption keys as we're done with them now (we'll
         // make new keys if we rejoin). We leave keys for other participants
@@ -186,6 +217,16 @@ export class EncryptionManager implements IEncryptionManager {
         this.joined = false;
     }
 
+    /**
+     * 会话成员变更时由 MatrixRTCSession 调用，决定是否轮换或重发密钥。
+     *
+     * @param oldMemberships - 更新前的成员列表，用于对比出加入/离开/更新。
+     * @example
+     * ```ts
+     * // 内部类：由 MatrixRTCSession 在成员变化时调用。
+     * void this.encryptionManager?.onMembershipsUpdate(oldMemberships);
+     * ```
+     */
     public onMembershipsUpdate(oldMemberships: CallMembership[]): void {
         if (this.manageMediaKeys && this.joined) {
             const oldMembershipIds = new Set(

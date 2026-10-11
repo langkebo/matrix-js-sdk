@@ -188,6 +188,19 @@ export class E2EEManager extends BaseManager {
 
     // -------- compat (r0/v1/v3) ----------
 
+    /**
+     * 上传本设备的端到端加密密钥（设备密钥、一次性密钥、回退密钥）。
+     * POST /keys/upload
+     *
+     * @param body - 待上传的密钥集合，见 `UploadKeysOptions`
+     * @returns 上传结果，包含各类一次性密钥的剩余数量 `one_time_key_counts`
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const result = await mgr.uploadKeys({ oneTimeKeys: { "curve25519:AAAA": { key: "..." } } });
+     * console.log(result.one_time_key_counts);
+     */
     public async uploadKeys(body: UploadKeysOptions): Promise<UploadKeysResponse> {
         return this.post(ep("/keys/upload"), body, "uploadKeys");
     }
@@ -198,20 +211,66 @@ export class E2EEManager extends BaseManager {
      *
      * Same handler as `uploadKeys` but the device_id is taken from the URL
      * instead of the authenticated session.
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.uploadKeysToDevice("DEVICEID", { oneTimeKeys: { "curve25519:AAAA": { key: "..." } } });
      */
     public async uploadKeysToDevice(deviceId: string, body: UploadKeysOptions): Promise<UploadKeysResponse> {
         this.requireNonEmptyString(deviceId, "deviceId");
         return this.post(ep(`/keys/upload/${encodeURIComponent(deviceId)}`), body, "uploadKeysToDevice");
     }
 
+    /**
+     * 查询指定用户的设备密钥与交叉签名密钥。
+     * POST /keys/query
+     *
+     * @param body - 查询条件，`device_keys` 以 userId 映射到需要查询的 deviceId 列表
+     * @returns 匹配的设备密钥、交叉签名密钥及失败信息
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const keys = await mgr.queryKeys({ device_keys: { "@alice:example.org": [] } });
+     * console.log(keys.device_keys?.["@alice:example.org"]);
+     */
     public async queryKeys(body: QueryKeysRequest): Promise<QueryKeysResponse> {
         return this.post(ep("/keys/query"), body, "queryKeys");
     }
 
+    /**
+     * 为指定设备认领一次性密钥。
+     * POST /keys/claim
+     *
+     * @param body - 认领条件，`one_time_keys` 以 userId → deviceId → 算法 映射
+     * @returns 认领到的一次性密钥及失败信息
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const claimed = await mgr.claimKeys({
+     *     one_time_keys: { "@alice:example.org": { DEVICEID: "signed_curve25519" } },
+     * });
+     * console.log(claimed.one_time_keys);
+     */
     public async claimKeys(body: ClaimKeysRequest): Promise<ClaimKeysResponse> {
         return this.post(ep("/keys/claim"), body, "claimKeys");
     }
 
+    /**
+     * 获取自某个同步令牌以来设备密钥发生变化的用户列表。
+     * GET /keys/changes
+     *
+     * @param params - 分页参数；`from` 为起始令牌，`to` 为结束令牌（默认取当前同步位置）
+     * @returns 设备密钥发生变化或已离开的用户 ID 列表
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const changes = await mgr.getKeyChanges({ from: "s72595_4483_1934" });
+     * console.log(changes.changed);
+     */
     public async getKeyChanges(params: { from?: string; to?: string } = {}): Promise<KeyChangesResponse> {
         return await this.withRetry(async () => {
             return await this.request<KeyChangesResponse>({
@@ -223,6 +282,18 @@ export class E2EEManager extends BaseManager {
         }, "getKeyChanges");
     }
 
+    /**
+     * 提交设备列表变更（内部端点，用于设备列表同步）。
+     * POST /keys/device_list/update
+     *
+     * @param body - 设备更新与删除条目组成的数组
+     * @returns 无返回值
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.postDeviceListUpdate([{ user_id: "@alice:example.org", device_id: "DEVICEID" }]);
+     */
     public async postDeviceListUpdate(body: Array<DeviceListUpdateEntry | DeviceListDeletedEntry>): Promise<void> {
         return this.postVoid(ep("/keys/device_list/update"), body, "postDeviceListUpdate");
     }
@@ -237,6 +308,13 @@ export class E2EEManager extends BaseManager {
      *
      * @param body - The request body containing cross-signing keys to upload
      * @returns The response from the server (empty object on success)
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.uploadDeviceSigning({
+     *     master_key: { user_id: "@alice:example.org", usage: ["master"], keys: { "ed25519:abc": "..." } },
+     * });
      *
      * @throws {ValidationError} If validation fails before sending the request
      * @throws {ApiError} If the API call fails
@@ -298,6 +376,18 @@ export class E2EEManager extends BaseManager {
         return this.post(ep("/room_keys/request"), body, "createRoomKeyRequest");
     }
 
+    /**
+     * 列出当前用户的房间密钥请求。
+     * GET /room_keys/request
+     *
+     * @returns 房间密钥请求列表
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const { requests } = await mgr.listRoomKeyRequests();
+     * console.log(requests.length);
+     */
     public async listRoomKeyRequests(): Promise<RoomKeyRequestsResponse> {
         return await this.withRetry(async () => {
             return await this.request<RoomKeyRequestsResponse>({
@@ -308,6 +398,18 @@ export class E2EEManager extends BaseManager {
         }, "listRoomKeyRequests");
     }
 
+    /**
+     * 删除指定的房间密钥请求。
+     * DELETE /room_keys/request/{request_id}
+     *
+     * @param requestId - 待删除的请求 ID
+     * @returns 无返回值
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.deleteRoomKeyRequest("request-1");
+     */
     public async deleteRoomKeyRequest(requestId: string): Promise<void> {
         this.requireNonEmptyString(requestId, "requestId");
         return await this.withRetry(async () => {
@@ -319,6 +421,19 @@ export class E2EEManager extends BaseManager {
         }, "deleteRoomKeyRequest");
     }
 
+    /**
+     * 获取某个房间的密钥分发情况。
+     * GET /rooms/{room_id}/keys/distribution
+     *
+     * @param roomId - 目标房间 ID
+     * @returns 该房间内各 Megolm session 的分发信息
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const dist = await mgr.getRoomKeyDistribution("!room:example.org");
+     * console.log(dist.sessions);
+     */
     public async getRoomKeyDistribution(roomId: string): Promise<RoomKeyDistributionResponse> {
         this.requireNonEmptyString(roomId, "roomId");
         return await this.withRetry(async () => {
@@ -330,6 +445,23 @@ export class E2EEManager extends BaseManager {
         }, "getRoomKeyDistribution");
     }
 
+    /**
+     * 通过 to-device 消息向指定设备发送事件。
+     * PUT /sendToDevice/{event_type}/{transaction_id}
+     *
+     * @param eventType - to-device 事件类型（如 `m.room_key`）
+     * @param transactionId - 幂等事务 ID
+     * @param messages - userId → deviceId → 事件内容的映射
+     * @param version - API 版本，`"v3"`（默认）或 `"v1"`
+     * @returns 发送失败信息（成功时为空对象）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.sendToDevice("m.room_key", "txn-1", {
+     *     "@alice:example.org": { DEVICEID: { algorithm: "m.megolm.v1.aes-sha2" } },
+     * });
+     */
     public async sendToDevice(
         eventType: string,
         transactionId: string,
@@ -352,6 +484,22 @@ export class E2EEManager extends BaseManager {
         }, "sendToDevice");
     }
 
+    /**
+     * 使用 v1 前缀发送 to-device 消息（`sendToDevice` 的便捷封装）。
+     * PUT /sendToDevice/{event_type}/{transaction_id}（v1 前缀）
+     *
+     * @param eventType - to-device 事件类型
+     * @param transactionId - 幂等事务 ID
+     * @param messages - userId → deviceId → 事件内容的映射
+     * @returns 发送失败信息（成功时为空对象）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.sendToDeviceV1("m.room_key", "txn-1", {
+     *     "@alice:example.org": { DEVICEID: { algorithm: "m.megolm.v1.aes-sha2" } },
+     * });
+     */
     public async sendToDeviceV1(
         eventType: string,
         transactionId: string,
@@ -362,6 +510,27 @@ export class E2EEManager extends BaseManager {
 
     // -------- v3-only ----------
 
+    /**
+     * 创建一个新的安全备份（secure backup）。
+     * POST /keys/backup/secure
+     *
+     * 后端已移除 passphrase 模式：调用方须在客户端派生备份密钥，并同时提供
+     * 算法标识与对应的 `auth_data`。
+     *
+     * @param body - 备份创建参数，必须同时包含 `algorithm` 与 `auth_data`
+     * @returns 新建备份的信息
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const backup = await mgr.createSecureBackup({
+     *     algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+     *     auth_data: { public_key: "..." },
+     * });
+     * console.log(backup.backup_id);
+     *
+     * @throws {InvalidParamError} 当 `algorithm` 或 `auth_data` 缺失时
+     */
     public async createSecureBackup(body: SecurityBackupCreateBody): Promise<SecureBackupCreateResponse> {
         // The backend no longer accepts a passphrase; the key must be derived client-side.
         if (!body.algorithm || !body.auth_data) {
@@ -373,6 +542,12 @@ export class E2EEManager extends BaseManager {
     /**
      * GET /keys/backup/secure — 列出所有安全备份
      * 对应后端 get_secure_backup_list handler
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const { backups } = await mgr.getSecureBackupList();
+     * console.log(backups.map((b) => b.backup_id));
      */
     public async getSecureBackupList(): Promise<{ backups: SecureBackupInfo[] }> {
         return await this.withRetry(async () => {
@@ -384,6 +559,19 @@ export class E2EEManager extends BaseManager {
         }, "getSecureBackupList");
     }
 
+    /**
+     * 获取指定安全备份的元信息。
+     * GET /keys/backup/secure/{backup_id}
+     *
+     * @param backupId - 目标备份 ID
+     * @returns 该备份的版本、算法、auth_data 及密钥数量等信息
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const backup = await mgr.getSecureBackup("1");
+     * console.log(backup.version, backup.count);
+     */
     public async getSecureBackup(backupId: string): Promise<SecureBackupInfo> {
         this.requireNonEmptyString(backupId, "backupId");
         return await this.withRetry(async () => {
@@ -395,6 +583,18 @@ export class E2EEManager extends BaseManager {
         }, "getSecureBackup");
     }
 
+    /**
+     * 删除指定的安全备份。
+     * DELETE /keys/backup/secure/{backup_id}
+     *
+     * @param backupId - 待删除的备份 ID
+     * @returns 无返回值
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * await mgr.deleteSecureBackup("1");
+     */
     public async deleteSecureBackup(backupId: string): Promise<void> {
         this.requireNonEmptyString(backupId, "backupId");
         return await this.withRetry(async () => {
@@ -406,6 +606,22 @@ export class E2EEManager extends BaseManager {
         }, "deleteSecureBackup");
     }
 
+    /**
+     * 向指定安全备份写入会话密钥。
+     * POST /keys/backup/secure/{backup_id}/keys
+     *
+     * @param backupId - 目标备份 ID
+     * @param body - 待写入的会话密钥集合，见 `StoreSecureBackupKeysBody`
+     * @returns 备份中当前的密钥数量
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const result = await mgr.storeSecureBackupKeys("1", {
+     *     session_keys: [{ session_id: "session-1", session_data: { ciphertext: "..." } }],
+     * });
+     * console.log(result.count);
+     */
     public async storeSecureBackupKeys(
         backupId: string,
         body: StoreSecureBackupKeysBody,
@@ -414,6 +630,20 @@ export class E2EEManager extends BaseManager {
         return this.post(ep(`/keys/backup/secure/${encodeURIComponent(backupId)}/keys`), body, "storeSecureBackupKeys");
     }
 
+    /**
+     * 从指定安全备份恢复会话密钥。
+     * POST /keys/backup/secure/{backup_id}/restore
+     *
+     * @param backupId - 目标备份 ID
+     * @param body - 恢复参数，可通过 `rooms` 限定要恢复的房间，见 `RestoreSecureBackupBody`
+     * @returns 备份中的密钥总数及返回的会话密钥列表
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const restored = await mgr.restoreSecureBackup("1", { rooms: ["!room:example.org"] });
+     * console.log(restored.total_keys);
+     */
     public async restoreSecureBackup(
         backupId: string,
         body: RestoreSecureBackupBody,
@@ -426,6 +656,20 @@ export class E2EEManager extends BaseManager {
         );
     }
 
+    /**
+     * 校验安全备份的 passphrase。
+     * POST /keys/backup/secure/{backup_id}/verify
+     *
+     * @param backupId - 目标备份 ID
+     * @param body - 待校验的 passphrase，见 `VerifySecureBackupPassphraseBody`
+     * @returns 校验结果（`valid` 表示 passphrase 是否正确）
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const result = await mgr.verifySecureBackupPassphrase("1", { passphrase: "my passphrase" });
+     * console.log(result.valid);
+     */
     public async verifySecureBackupPassphrase(
         backupId: string,
         body: VerifySecureBackupPassphraseBody,
@@ -447,6 +691,14 @@ export class E2EEManager extends BaseManager {
      * @param params - Optional pagination parameters.
      * @param params.limit - Maximum number of entries to return (default 100, max 1000).
      * @param params.from - Pagination cursor from a previous response's `next_batch`.
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getE2EEManager();
+     * const history = await mgr.getKeyHistory({ limit: 50 });
+     * for (const entry of history.history) {
+     *     console.log(entry.id, entry.created_ts);
+     * }
      */
     public async getKeyHistory(params?: { limit?: number; from?: string }): Promise<KeyHistoryResponse> {
         return await this.withRetry(async () => {

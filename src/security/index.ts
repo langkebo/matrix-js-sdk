@@ -46,6 +46,14 @@ export class SecurityManager extends BaseManager {
      * 不能自己算、更不能写死：本方法此前把 `hasVerifiedDevices` 实现成
      * `devices.some((_d) => true)`（只要设备非空就恒为真），于是 "No verified devices"
      * 这条 issue 永远不可能被记录 —— 一个不会失败的门禁（铁律 8 的反面）。
+     *
+     * @returns 会话安全评估结果：`isSecure` 表示是否安全，`issues` 列出发现的问题
+     *
+     * @example
+     * ```typescript
+     * const { isSecure, issues } = await client.getSecurityManager().checkSessionSecurity();
+     * console.log(isSecure, issues);
+     * ```
      */
     public async checkSessionSecurity(): Promise<{
         isSecure: boolean;

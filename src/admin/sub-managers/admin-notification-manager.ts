@@ -166,6 +166,12 @@ export class AdminNotificationManager extends AdminBaseManager {
      * @param notificationId - 通知 ID
      * @returns 通知详情
      *
+     * @example
+     * ```typescript
+     * const notif = await client.getAdminManager().notifications.get(12);
+     * console.log(notif.title, notif.is_enabled);
+     * ```
+     *
      * @throws NotFoundError 如果通知不存在
      */
     async get(notificationId: number): Promise<ServerNotification> {
@@ -217,6 +223,12 @@ export class AdminNotificationManager extends AdminBaseManager {
      * @param payload - 更新内容（与创建同字段集，全部可选）
      * @returns 更新后的通知
      *
+     * @example
+     * ```typescript
+     * const notif = await client.getAdminManager().notifications.update(12, { title: "维护通知（已更新）" });
+     * console.log(notif.updated_ts);
+     * ```
+     *
      * @throws NotFoundError 如果通知不存在
      */
     async update(notificationId: number, payload: UpdateNotificationRequest): Promise<ServerNotification> {
@@ -233,6 +245,11 @@ export class AdminNotificationManager extends AdminBaseManager {
      * 删除通知
      *
      * @param notificationId - 通知 ID
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().notifications.delete(12);
+     * ```
      *
      * @throws NotFoundError 如果通知不存在
      */
@@ -254,6 +271,11 @@ export class AdminNotificationManager extends AdminBaseManager {
      * **在后端没有注册**，调用必失败。该差异已登记在
      * `scripts/quality/path-contract-waivers.json`（`semantic-mismatch`），
      * 保留原行为以免破坏既有调用方的编译；**新代码请用 `PUT /notifications/{id}/deactivate`**。
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().notifications.deactivate();
+     * ```
      */
     async deactivate(): Promise<void> {
         await this.adminRequest<void>(

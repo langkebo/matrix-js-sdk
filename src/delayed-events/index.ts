@@ -89,6 +89,11 @@ export class DelayedEventsManager extends BaseManager {
      *
      * @param delayId     服务端在调度延迟事件时返回的 delay_id
      * @param requestOpts 可选请求选项（localTimeoutMs / abortSignal / headers）
+     *
+     * @example
+     * ```typescript
+     * await client.getDelayedEventsManager().cancelScheduledDelayedEvent(42);
+     * ```
      */
     public async cancelScheduledDelayedEvent(
         delayId: string | number,
@@ -102,6 +107,11 @@ export class DelayedEventsManager extends BaseManager {
      *
      * @param delayId     服务端在调度延迟事件时返回的 delay_id
      * @param requestOpts 可选请求选项（localTimeoutMs / abortSignal / headers）
+     *
+     * @example
+     * ```typescript
+     * await client.getDelayedEventsManager().restartScheduledDelayedEvent(42);
+     * ```
      */
     public async restartScheduledDelayedEvent(
         delayId: string | number,
@@ -115,6 +125,11 @@ export class DelayedEventsManager extends BaseManager {
      *
      * @param delayId     服务端在调度延迟事件时返回的 delay_id
      * @param requestOpts 可选请求选项（localTimeoutMs / abortSignal / headers）
+     *
+     * @example
+     * ```typescript
+     * await client.getDelayedEventsManager().sendScheduledDelayedEvent(42);
+     * ```
      */
     public async sendScheduledDelayedEvent(delayId: string | number, requestOpts?: IRequestOpts): Promise<EmptyObject> {
         return await this.updateScheduledDelayedEvent(delayId, UpdateDelayedEventAction.Send, requestOpts);

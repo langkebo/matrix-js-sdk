@@ -683,6 +683,16 @@ export abstract class BaseManager<
 
     // ─── 重试 & 统计（向后兼容） ─────────────────────────────────
 
+    /**
+     * 更新该 manager 的默认重试选项（浅合并到现有配置之上）。
+     *
+     * @param options - 要覆盖的重试选项（如 maxRetries、retryDelay、backoffMultiplier 等）
+     *
+     * @example
+     * ```typescript
+     * client.getAdminManager().setRetryOptions({ maxRetries: 5, retryDelay: 500 });
+     * ```
+     */
     public setRetryOptions(options: RetryOptions): void {
         this.retryOptions = { ...this.retryOptions, ...options };
     }
@@ -876,13 +886,37 @@ export abstract class BaseManager<
      *
      * 默认 no-op。子类按需 override——在 `client.stop()` 时由
      * `stopClientLifecycleServices` 统一遍历调用。
+     *
+     * @example
+     * ```typescript
+     * client.getAdminManager().stop();
+     * ```
      */
     public stop(): void {}
 
+    /**
+     * 获取该 manager 的请求统计快照（总数、成功、失败、重试次数）。
+     *
+     * @returns 请求统计的浅拷贝
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getAdminManager().getRequestStats();
+     * console.log(stats.total, stats.successful, stats.failed, stats.retried);
+     * ```
+     */
     public getRequestStats(): RequestStats {
         return { ...this.requestStats };
     }
 
+    /**
+     * 将该 manager 的请求统计计数重置为 0。
+     *
+     * @example
+     * ```typescript
+     * client.getAdminManager().resetRequestStats();
+     * ```
+     */
     public resetRequestStats(): void {
         this.requestStats = {
             total: 0,

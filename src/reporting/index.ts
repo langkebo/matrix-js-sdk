@@ -45,6 +45,19 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 举报房间。
+     *
+     * @param roomId - 房间 ID
+     * @param reason - 举报原因
+     * @param description - 可选补充说明
+     * @returns 举报结果
+     *
+     * @example
+     * ```typescript
+     * await client.getReportingManager().reportRoom("!room:example.org", "spam");
+     * ```
+     */
     public async reportRoom(roomId: string, reason: string, description?: string): Promise<ReportResult> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report", { $roomId: roomId });
@@ -56,6 +69,20 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
         }, "reportRoom");
     }
 
+    /**
+     * 举报房间内的某个事件。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param score - 举报评分（-100 到 0）
+     * @param reason - 举报原因
+     * @returns 空对象
+     *
+     * @example
+     * ```typescript
+     * await client.getReportingManager().reportEvent("!room:example.org", "$event", -100, "abuse");
+     * ```
+     */
     public async reportEvent(roomId: string, eventId: string, score: number, reason: string): Promise<EmptyObject> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/report/$eventId", { $roomId: roomId, $eventId: eventId });
@@ -67,6 +94,18 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
         }, "reportEvent");
     }
 
+    /**
+     * 举报用户。
+     *
+     * @param userId - 用户 ID
+     * @param reason - 举报原因
+     * @returns 举报完成后的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.getReportingManager().reportUser("@spam:example.org", "spam");
+     * ```
+     */
     public async reportUser(userId: string, reason: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/users/$userId/report", { $userId: userId });
@@ -106,6 +145,11 @@ export class ReportingManager extends BaseManager<keyof ReportingManagerEvents, 
      * Get scanner info for a report
      * @param roomId - The room ID
      * @param eventId - The event ID
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getReportingManager().getScannerInfo("!room:example.org", "$event");
+     * ```
      */
     public async getScannerInfo(roomId: string, eventId: string): Promise<Record<string, unknown>> {
         // Dynamic: scanner info shape is server-defined

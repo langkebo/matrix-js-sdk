@@ -77,6 +77,14 @@ export class ToDeviceManager extends BaseManager {
     /**
      * 发送设备间消息
      * PUT /_matrix/client/v3/sendToDevice/{event_type}/{txnId}
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getToDeviceManager().sendToDevice("m.custom", {
+     *     "@alice:example.org": { DEVICEID: { hello: "world" } },
+     * });
+     * console.log(result.success);
+     * ```
      */
     async sendToDevice(eventType: string, messages: ToDeviceMessage, txnId?: string): Promise<ToDeviceResult> {
         const transactionId = txnId ?? this.makeTxnId();
@@ -97,6 +105,14 @@ export class ToDeviceManager extends BaseManager {
      * Send an event to a specific list of devices using SendToDeviceContentMap.
      * This is the client.ts-compatible API that accepts Map<string, Map<string, ...>> format.
      * PUT /_matrix/client/v3/sendToDevice/{event_type}/{txnId}
+     *
+     * @example
+     * ```typescript
+     * const contentMap = new Map([
+     *     ["@alice:example.org", new Map([["DEVICEID", { hello: "world" }]])],
+     * ]);
+     * await client.getToDeviceManager().sendToDeviceFromContentMap("m.custom", contentMap);
+     * ```
      */
     async sendToDeviceFromContentMap(
         eventType: string,
@@ -134,6 +150,14 @@ export class ToDeviceManager extends BaseManager {
 
     /**
      * Queue a ToDeviceBatch for batch sending via the client's ToDeviceMessageQueue.
+     *
+     * @example
+     * ```typescript
+     * await client.getToDeviceManager().queueToDeviceBatch({
+     *     eventType: "m.custom",
+     *     batch: { "@alice:example.org": { DEVICEID: { hello: "world" } } },
+     * });
+     * ```
      */
     async queueToDeviceBatch(batch: ModelToDeviceBatch): Promise<void> {
         // When running inside a widget (RoomWidgetClient), delegate to the
@@ -148,6 +172,17 @@ export class ToDeviceManager extends BaseManager {
 
     /**
      * 批量发送设备间消息
+     *
+     * @example
+     * ```typescript
+     * const results = await client.getToDeviceManager().sendBatchToDevice([
+     *     {
+     *         eventType: "m.custom",
+     *         batch: { "@alice:example.org": { DEVICEID: { hello: "world" } } },
+     *     },
+     * ]);
+     * console.log(results[0].success);
+     * ```
      */
     async sendBatchToDevice(batch: ToDeviceBatch[]): Promise<ToDeviceResult[]> {
         const results: ToDeviceResult[] = [];
@@ -178,6 +213,17 @@ export class ToDeviceManager extends BaseManager {
      * @param devices - The list of devices to send the event to.
      * @param payload - The payload to send. This will be encrypted.
      * @returns Promise which resolves once queued.
+     *
+     * @throws {Error} 当客户端不支持加密时抛出。
+     *
+     * @example
+     * ```typescript
+     * await client.getToDeviceManager().encryptAndSendToDevice(
+     *     "m.custom",
+     *     [{ userId: "@alice:example.org", deviceId: "DEVICEID" }],
+     *     { hello: "world" },
+     * );
+     * ```
      */
     async encryptAndSendToDevice(
         eventType: string,
@@ -202,6 +248,14 @@ export class ToDeviceManager extends BaseManager {
 
     /**
      * 发送加密的设备间消息
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getToDeviceManager().sendEncryptedToDevice("m.room.encrypted", {
+     *     "@alice:example.org": { DEVICEID: { algorithm: "m.olm.v1.curve25519-aes-sha2", ciphertext: {} } },
+     * });
+     * console.log(result.success);
+     * ```
      */
     async sendEncryptedToDevice(
         eventType: string,

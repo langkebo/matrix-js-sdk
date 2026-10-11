@@ -203,6 +203,16 @@ export class ServerCapabilitiesManager extends BaseManager<
         super(client, opts);
     }
 
+    /**
+     * 获取服务器的 capabilities 响应（带有约 6 小时的本地缓存）。
+     *
+     * @returns 服务器的 capabilities 响应
+     *
+     * @example
+     * ```typescript
+     * const capabilities = await client.getServerCapabilitiesManager().getServerCapabilities();
+     * ```
+     */
     public async getServerCapabilities(): Promise<Capabilities> {
         const now = Date.now();
         if (this.cachedCapabilities && now - this.capabilitiesFetchedAt < CAPABILITIES_CACHE_MS) {
@@ -228,6 +238,17 @@ export class ServerCapabilitiesManager extends BaseManager<
         }, "getServerCapabilities");
     }
 
+    /**
+     * 同步地查询服务器是否支持某个特性（基于本地 canSupport 映射）。
+     *
+     * @param feature - 要查询的特性名
+     * @returns 支持时返回 true
+     *
+     * @example
+     * ```typescript
+     * const supported = client.getServerCapabilitiesManager().hasServerSupport("m.thread");
+     * ```
+     */
     public hasServerSupport(feature: string): boolean {
         // Use doesServerSupportUnstableFeature which has independent logic via this.client.getVersions()
         // Note: doesServerSupportUnstableFeature is async, but hasServerSupport is sync.
@@ -235,6 +256,16 @@ export class ServerCapabilitiesManager extends BaseManager<
         return this.client.canSupport.get(feature as Feature) !== ServerSupport.Unsupported;
     }
 
+    /**
+     * 获取服务器支持的规范版本列表中的首个版本。
+     *
+     * @returns 首个规范版本字符串；服务器未返回版本时为空字符串
+     *
+     * @example
+     * ```typescript
+     * const version = await client.getServerCapabilitiesManager().getServerVersion();
+     * ```
+     */
     public async getServerVersion(): Promise<string> {
         const { versions } = await this.client.getVersions();
         return versions?.[0] ?? "";
@@ -244,6 +275,11 @@ export class ServerCapabilitiesManager extends BaseManager<
      * Check if a particular spec version is supported by the server.
      * @param version - The spec version (such as "r0.5.0") to check for.
      * @returns Whether it is supported
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.getServerCapabilitiesManager().isVersionSupported("v1.4");
+     * ```
      */
     public async isVersionSupported(version: string): Promise<boolean> {
         const { versions } = await this.client.getVersions();
@@ -255,6 +291,12 @@ export class ServerCapabilitiesManager extends BaseManager<
      * in the /versions response
      * @param feature - the feature name
      * @returns true if the feature is supported
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.getServerCapabilitiesManager()
+     *     .doesServerSupportUnstableFeature("org.matrix.msc3440");
+     * ```
      */
     public async doesServerSupportUnstableFeature(feature: string): Promise<boolean> {
         const response = await this.client.getVersions();
@@ -262,6 +304,18 @@ export class ServerCapabilitiesManager extends BaseManager<
         return isUnstableFeatureEnabled(response, feature);
     }
 
+    /**
+     * 查询服务器是否通过 /versions 或 /capabilities 声明支持某个 synapse-rust 特性。
+     *
+     * @param feature - 要查询的 synapse-rust 特性名
+     * @returns 声明支持时返回 true
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.getServerCapabilitiesManager()
+     *     .doesServerAdvertiseSynapseRustFeature("io.hula.friends");
+     * ```
+     */
     public async doesServerAdvertiseSynapseRustFeature(feature: SynapseRustFeatureName): Promise<boolean> {
         const [versions, capabilities] = await Promise.all([
             this.client.getVersions(),
@@ -275,6 +329,16 @@ export class ServerCapabilitiesManager extends BaseManager<
         );
     }
 
+    /**
+     * 一次性解析全部 synapse-rust 特性的支持情况。
+     *
+     * @returns 各特性是否受支持的映射
+     *
+     * @example
+     * ```typescript
+     * const support = await client.getServerCapabilitiesManager().getSynapseRustFeatureSupport();
+     * ```
+     */
     public async getSynapseRustFeatureSupport(): Promise<SynapseRustFeatureSupport> {
         const [versions, capabilities] = await Promise.all([
             this.client.getVersions(),
@@ -289,6 +353,12 @@ export class ServerCapabilitiesManager extends BaseManager<
      * @param presetName - The name of the preset to check.
      * @returns true if the server is forcing encryption
      * for the preset.
+     *
+     * @example
+     * ```typescript
+     * const forced = await client.getServerCapabilitiesManager()
+     *     .doesServerForceEncryptionForPreset("private_chat");
+     * ```
      */
     public async doesServerForceEncryptionForPreset(presetName: Preset): Promise<boolean> {
         const response = await this.client.getVersions();
@@ -303,6 +373,16 @@ export class ServerCapabilitiesManager extends BaseManager<
         return unstableFeatures && !!unstableFeatures[`io.element.e2ee_forced.${versionsPresetName}`];
     }
 
+    /**
+     * 判断服务器对线程（threads）及其列表、前向分页的支持程度。
+     *
+     * @returns 包含 threads、list、fwdPagination 三项支持程度的对象
+     *
+     * @example
+     * ```typescript
+     * const { threads } = await client.getServerCapabilitiesManager().doesServerSupportThread();
+     * ```
+     */
     public async doesServerSupportThread(): Promise<{
         threads: FeatureSupport;
         list: FeatureSupport;
@@ -344,6 +424,11 @@ export class ServerCapabilitiesManager extends BaseManager<
     /**
      * A helper to determine thread support
      * @returns a boolean to determine if threads are enabled
+     *
+     * @example
+     * ```typescript
+     * const enabled = client.getServerCapabilitiesManager().supportsThreads();
+     * ```
      */
     public supportsThreads(): boolean {
         return this.client.getClientOpts()?.threadSupport || false;
@@ -353,6 +438,11 @@ export class ServerCapabilitiesManager extends BaseManager<
      * A helper to determine intentional mentions support
      * @returns a boolean to determine if intentional mentions are enabled on the server
      * @experimental
+     *
+     * @example
+     * ```typescript
+     * const enabled = client.getServerCapabilitiesManager().supportsIntentionalMentions();
+     * ```
      */
     public supportsIntentionalMentions(): boolean {
         return this.client.canSupport.get(Feature.IntentionalMentions) !== ServerSupport.Unsupported;
@@ -361,11 +451,26 @@ export class ServerCapabilitiesManager extends BaseManager<
     /**
      * Get if lazy loading members is being used.
      * @returns Whether or not members are lazy loaded by this client
+     *
+     * @example
+     * ```typescript
+     * const lazyLoaded = client.getServerCapabilitiesManager().hasLazyLoadMembersEnabled();
+     * ```
      */
     public hasLazyLoadMembersEnabled(): boolean {
         return !!this.client.getClientOpts()?.lazyLoadMembers;
     }
 
+    /**
+     * 判断服务器是否支持位置（location）特性。
+     *
+     * @returns 支持时返回 true
+     *
+     * @example
+     * ```typescript
+     * const supported = client.getServerCapabilitiesManager().supportsLocation();
+     * ```
+     */
     public supportsLocation(): boolean {
         return this.client.canSupport.get(Feature.Location) !== ServerSupport.Unsupported;
     }
@@ -375,6 +480,13 @@ export class ServerCapabilitiesManager extends BaseManager<
      * unstable APIs it supports.
      * Caches the result and builds the feature support map.
      * @returns The server /versions response
+     *
+     * @example
+     * ```typescript
+     * const versions = await client.getServerCapabilitiesManager().getVersions();
+     * ```
+     *
+     * @throws {Error} 当 /versions 请求失败时（会清空缓存的 promise 并重新抛出该错误）
      */
     public async getVersions(): Promise<IServerVersions> {
         const client = this.internalClient as unknown as {

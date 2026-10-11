@@ -126,14 +126,46 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
         super(client, opts);
     }
 
+    /**
+     * 获取当前的通知时间线集合。
+     *
+     * @returns 通知时间线集合；尚未设置时返回 `null`
+     * @example
+     * ```typescript
+     * const timelineSet = client.getNotificationsManager().getNotifTimelineSet();
+     * if (timelineSet) {
+     *     console.log(timelineSet.getLiveTimeline().getEvents().length);
+     * }
+     * ```
+     */
     public getNotifTimelineSet(): EventTimelineSet | null {
         return this.notifTimelineSet;
     }
 
+    /**
+     * 设置通知时间线集合。
+     *
+     * @param set - 要使用的通知时间线集合
+     * @example
+     * ```typescript
+     * const timelineSet = new EventTimelineSet(undefined, { timelineSupport: true });
+     * client.getNotificationsManager().setNotifTimelineSet(timelineSet);
+     * ```
+     */
     public setNotifTimelineSet(set: EventTimelineSet): void {
         this.notifTimelineSet = set;
     }
 
+    /**
+     * 重置通知时间线（清空并回到实时末端）。
+     *
+     * 未设置时间线集合时为无操作。
+     *
+     * @example
+     * ```typescript
+     * client.getNotificationsManager().resetNotifTimelineSet();
+     * ```
+     */
     public resetNotifTimelineSet(): void {
         if (!this.notifTimelineSet) {
             return;
@@ -142,6 +174,19 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
         this.notifTimelineSet.resetLiveTimeline("end");
     }
 
+    /**
+     * 设置本设备的本地通知设置（写入账号数据）。
+     *
+     * @param deviceId - 设备 ID
+     * @param settings - 本地通知设置
+     * @returns 写入成功返回空对象
+     * @example
+     * ```typescript
+     * await client.getNotificationsManager().setLocalNotificationSettings("ABCDEF", {
+     *     is_silenced: true,
+     * });
+     * ```
+     */
     public async setLocalNotificationSettings(
         deviceId: string,
         settings: LocalNotificationSettings,
@@ -158,6 +203,11 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      * @param opts.limit - 返回数量限制（可选，默认由服务器决定）
      * @param opts.only - 过滤条件（可选，如 "highlight"）
      * @returns 通知列表和分页信息
+     * @example
+     * ```typescript
+     * const res = await client.getNotificationsManager().getNotifications({ limit: 10, only: "highlight" });
+     * console.log(res.notifications.length, res.next_token);
+     * ```
      */
     public async getNotifications(opts?: {
         from?: string;
@@ -185,6 +235,11 @@ export class NotificationsManager extends BaseManager<keyof NotificationsManager
      *
      * @param notificationId - 通知 ID (event_id)
      * @returns 成功返回空对象
+     * @throws ValidationError `notificationId` 为空时
+     * @example
+     * ```typescript
+     * await client.getNotificationsManager().ackNotification("$eventId");
+     * ```
      */
     public async ackNotification(notificationId: string): Promise<EmptyObject> {
         if (!notificationId) {

@@ -58,6 +58,18 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 获取房间的全部状态事件（可按事件类型过滤）
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 可选的事件类型，用于服务端过滤
+     * @returns 状态事件列表
+     * @example
+     * ```typescript
+     * const state = await client.getRoomStateManager().roomState("!room:example.com");
+     * console.log(state.length);
+     * ```
+     */
     public async roomState(roomId: string, eventType?: string): Promise<IStateEvent[]> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
@@ -71,6 +83,23 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         }, "roomState");
     }
 
+    /**
+     * 获取指定类型/状态键的状态事件
+     *
+     * 传入 `eventType` 时返回单个事件或事件数组；未传时返回房间全部状态事件。
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 可选的事件类型
+     * @param stateKey - 可选的状态键（默认为空字符串）
+     * @returns 单个状态事件或状态事件数组
+     * @example
+     * ```typescript
+     * const event = await client
+     *     .getRoomStateManager()
+     *     .getStateEvents("!room:example.com", "m.room.name", "");
+     * console.log(event);
+     * ```
+     */
     public async getStateEvents(
         roomId: string,
         eventType?: string,
@@ -91,6 +120,17 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         }, "getStateEvents");
     }
 
+    /**
+     * 获取房间的全部状态事件
+     *
+     * @param roomId - 房间 ID
+     * @returns 状态事件列表，失败时返回空数组
+     * @example
+     * ```typescript
+     * const events = await client.getRoomStateManager().getAllStateEvents("!room:example.com");
+     * console.log(events.length);
+     * ```
+     */
     public async getAllStateEvents(roomId: string): Promise<IStateEvent[]> {
         try {
             const state = await this.roomState(roomId);
@@ -101,6 +141,20 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         return [];
     }
 
+    /**
+     * 按事件类型获取房间状态事件
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 事件类型
+     * @returns 匹配的状态事件列表，失败时返回空数组
+     * @example
+     * ```typescript
+     * const events = await client
+     *     .getRoomStateManager()
+     *     .getStateEventsByType("!room:example.com", "m.room.member");
+     * console.log(events.length);
+     * ```
+     */
     public async getStateEventsByType(roomId: string, eventType: string): Promise<IStateEvent[]> {
         try {
             const result = await this.getStateEvents(roomId, eventType);
@@ -111,6 +165,22 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         return [];
     }
 
+    /**
+     * 发送房间状态事件
+     *
+     * @param roomId - 房间 ID
+     * @param eventType - 事件类型
+     * @param content - 状态事件内容
+     * @param stateKey - 可选的状态键（默认为空字符串）
+     * @returns 发送结果，包含事件 ID
+     * @example
+     * ```typescript
+     * const response = await client
+     *     .getRoomStateManager()
+     *     .sendStateEvent("!room:example.com", "m.room.topic", { topic: "Hello" });
+     * console.log(response.event_id);
+     * ```
+     */
     public async sendStateEvent(
         roomId: string,
         eventType: string,
@@ -131,6 +201,17 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         }, "sendStateEvent");
     }
 
+    /**
+     * 获取房间加密配置
+     *
+     * @param roomId - 房间 ID
+     * @returns 加密配置，房间未启用加密时返回 null
+     * @example
+     * ```typescript
+     * const encryption = await client.getRoomStateManager().getRoomEncryption("!room:example.com");
+     * console.log(encryption?.algorithm);
+     * ```
+     */
     public async getRoomEncryption(roomId: string): Promise<IEncryptionConfig | null> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state/m.room.encryption", { $roomId: roomId });
@@ -141,6 +222,22 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         }, "getRoomEncryption");
     }
 
+    /**
+     * 设置房间加密配置
+     *
+     * 等价于发送 `m.room.encryption` 状态事件。
+     *
+     * @param roomId - 房间 ID
+     * @param config - 加密配置
+     * @returns 发送结果，包含事件 ID
+     * @example
+     * ```typescript
+     * const response = await client
+     *     .getRoomStateManager()
+     *     .setRoomEncryption("!room:example.com", { algorithm: "m.megolm.v1.aes-sha2" });
+     * console.log(response.event_id);
+     * ```
+     */
     public async setRoomEncryption(roomId: string, config: IEncryptionConfig): Promise<ISendStateEventResponse> {
         return this.sendStateEvent(roomId, "m.room.encryption", config);
     }

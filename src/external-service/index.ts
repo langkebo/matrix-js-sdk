@@ -166,6 +166,18 @@ export class ExternalServiceManager extends BaseManager {
         }
     }
 
+    /**
+     * 列出外部服务。
+     *
+     * @param prefix - API 前缀，默认 `"synapse_admin"`
+     * @returns 外部服务列表
+     *
+     * @example
+     * ```typescript
+     * const services = await client.getExternalServiceManager().listServices();
+     * console.log(services.total);
+     * ```
+     */
     public async listServices(
         prefix: ExternalServiceApiPrefix = "synapse_admin",
     ): Promise<ExternalServiceListResponse> {
@@ -180,6 +192,22 @@ export class ExternalServiceManager extends BaseManager {
         }, "listServices");
     }
 
+    /**
+     * 创建外部服务。
+     *
+     * @param data - 创建请求体（类型、URL、可选配置与启用状态）
+     * @param prefix - API 前缀，默认 `"synapse_admin"`
+     * @returns 包含新服务 ID 的对象
+     *
+     * @example
+     * ```typescript
+     * const service = await client.getExternalServiceManager().createService({
+     *     type: "webhook",
+     *     url: "https://service.example.com/hook",
+     * });
+     * console.log(service.id);
+     * ```
+     */
     public async createService(
         data: ExternalServiceCreateRequest,
         prefix: ExternalServiceApiPrefix = "synapse_admin",
@@ -196,6 +224,20 @@ export class ExternalServiceManager extends BaseManager {
         }, "createService");
     }
 
+    /**
+     * 更新外部服务。
+     *
+     * @param serviceId - 服务 ID
+     * @param data - 更新请求体
+     * @param prefix - API 前缀，默认 `"synapse_admin"`
+     * @returns 包含被更新服务 ID 的对象
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getExternalServiceManager().updateService("svc-1", { enabled: false });
+     * console.log(result.id);
+     * ```
+     */
     public async updateService(
         serviceId: string,
         data: ExternalServiceUpdateRequest,
@@ -214,6 +256,19 @@ export class ExternalServiceManager extends BaseManager {
         }, "updateService");
     }
 
+    /**
+     * 删除外部服务。
+     *
+     * @param serviceId - 服务 ID
+     * @param prefix - API 前缀，默认 `"synapse_admin"`
+     * @returns 包含被删除服务 ID 的对象
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getExternalServiceManager().deleteService("svc-1");
+     * console.log(result.id);
+     * ```
+     */
     public async deleteService(
         serviceId: string,
         prefix: ExternalServiceApiPrefix = "synapse_admin",
@@ -230,6 +285,18 @@ export class ExternalServiceManager extends BaseManager {
         }, "deleteService");
     }
 
+    /**
+     * 获取外部服务整体健康状态。
+     *
+     * @param prefix - API 前缀，默认 `"synapse_admin"`
+     * @returns 健康状态响应
+     *
+     * @example
+     * ```typescript
+     * const health = await client.getExternalServiceManager().getHealth();
+     * console.log(health.status);
+     * ```
+     */
     public async getHealth(prefix: ExternalServiceApiPrefix = "synapse_admin"): Promise<ExternalServiceHealthResponse> {
         const prefixValue = this.resolvePrefix(prefix);
         const path = this.resolveHealthPath(prefix);
@@ -242,6 +309,18 @@ export class ExternalServiceManager extends BaseManager {
         }, "getHealth");
     }
 
+    /**
+     * 获取指定外部服务的健康状态。
+     *
+     * @param serviceId - 服务 ID
+     * @returns 单个服务的健康状态响应
+     *
+     * @example
+     * ```typescript
+     * const health = await client.getExternalServiceManager().getServiceHealth("svc-1");
+     * console.log(health.status);
+     * ```
+     */
     public async getServiceHealth(serviceId: string): Promise<ExternalServiceSingleHealthResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
@@ -254,6 +333,18 @@ export class ExternalServiceManager extends BaseManager {
         }, "getServiceHealth");
     }
 
+    /**
+     * 主动触发指定外部服务的健康检查。
+     *
+     * @param serviceId - 服务 ID
+     * @returns 健康检查结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getExternalServiceManager().checkServiceHealth("svc-1");
+     * console.log(result.healthy);
+     * ```
+     */
     public async checkServiceHealth(serviceId: string): Promise<ExternalServiceHealthCheckResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
@@ -266,6 +357,19 @@ export class ExternalServiceManager extends BaseManager {
         }, "checkServiceHealth");
     }
 
+    /**
+     * 触发指定服务的通用 Webhook（`/_synapse/external/webhook/{id}`）。
+     *
+     * @param serviceId - 服务 ID
+     * @param data - 可选 Webhook 载荷
+     * @returns Webhook 响应
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getExternalServiceManager().triggerWebhook("svc-1", { event: "ping" });
+     * console.log(result.success);
+     * ```
+     */
     public async triggerWebhook(serviceId: string, data?: WebhookPayload): Promise<ExternalServiceWebhookResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
         const encoded = encodeURIComponent(serviceId);
@@ -279,6 +383,19 @@ export class ExternalServiceManager extends BaseManager {
         }, "triggerWebhook");
     }
 
+    /**
+     * 触发 Openclaw 服务 Webhook（`/_synapse/external/openclaw/{id}/webhook`）。
+     *
+     * @param serviceId - 服务 ID
+     * @param data - 可选 Webhook 载荷
+     * @returns Webhook 响应
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getExternalServiceManager().triggerOpenclawWebhook("svc-1", { event: "ping" });
+     * console.log(result.success);
+     * ```
+     */
     public async triggerOpenclawWebhook(
         serviceId: string,
         data?: WebhookPayload,
@@ -295,6 +412,19 @@ export class ExternalServiceManager extends BaseManager {
         }, "triggerOpenclawWebhook");
     }
 
+    /**
+     * 触发 Trendradar 服务 Webhook（`/_synapse/external/trendradar/{id}/webhook`）。
+     *
+     * @param serviceId - 服务 ID
+     * @param data - 可选 Webhook 载荷
+     * @returns Webhook 响应
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getExternalServiceManager().triggerTrendradarWebhook("svc-1", { event: "ping" });
+     * console.log(result.success);
+     * ```
+     */
     public async triggerTrendradarWebhook(
         serviceId: string,
         data?: WebhookPayload,

@@ -49,6 +49,20 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
         super(client, opts);
     }
 
+    /**
+     * 获取当前身份服务器地址
+     *
+     * @param stripProto - 是否去掉协议前缀（http:// 或 https://），默认 false
+     * @returns 身份服务器地址；未设置时为 undefined
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const url = mgr.getIdentityServerUrl();
+     * const host = mgr.getIdentityServerUrl(true);
+     * ```
+     */
     public getIdentityServerUrl(stripProto = false): string | undefined {
         const idBaseUrl = this.client.idBaseUrl;
         if (stripProto && (idBaseUrl?.startsWith("http://") || idBaseUrl?.startsWith("https://"))) {
@@ -57,6 +71,18 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
         return idBaseUrl;
     }
 
+    /**
+     * 设置身份服务器地址（会去掉结尾斜杠并同步到 http 层）
+     *
+     * @param url - 身份服务器地址；传入 undefined 表示清除
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * mgr.setIdentityServerUrl("https://identity.example.com");
+     * ```
+     */
     public setIdentityServerUrl(url?: string): void {
         this.client.idBaseUrl = utils.ensureNoTrailingSlash(url);
         this.client.http.setIdBaseUrl(this.client.idBaseUrl);
@@ -74,6 +100,16 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * @returns Promise which resolves: with object containing an Identity
      * Server access token.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const openIdToken = await client.getOpenIdToken();
+     * const { access_token } = await mgr.registerWithIdentityServer(openIdToken);
+     * ```
+     *
+     * @throws Error 如果未设置身份服务器 base URL
      */
     public registerWithIdentityServer(hsOpenIdToken: IOpenIDToken): Promise<{
         access_token: string;
@@ -109,6 +145,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * @returns Promise which resolves with the token request response.
      * @returns Rejects: with an error response.
      * @throws Error if no identity server is set
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const res = await mgr.requestEmailToken("alice@example.com", "client-secret", 1);
+     * ```
      */
     public requestEmailToken(
         email: string,
@@ -160,6 +203,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * @returns Promise which resolves to an object with a sid string
      * @returns Rejects: with an error response.
      * @throws Error if no identity server is set
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const res = await mgr.requestMsisdnToken("GB", "07700900000", "client-secret", 1);
+     * ```
      */
     public requestMsisdnToken(
         phoneCountry: string,
@@ -207,6 +257,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * @returns Promise which resolves: Object, containing success boolean.
      * @returns Rejects: with an error response.
      * @throws Error if No identity server is set
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const res = await mgr.submitMsisdnToken("sid", "client-secret", "123456", "is-access-token");
+     * ```
      */
     public submitMsisdnToken(
         sid: string,
@@ -246,6 +303,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      *
      * @returns Promise which resolves: Object, containing success boolean.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const res = await mgr.submitMsisdnTokenOtherUrl("https://hs.example.com/submit", "sid", "client-secret", "123456");
+     * ```
      */
     public submitMsisdnTokenOtherUrl(
         url: string,
@@ -266,6 +330,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * lookups.
      * @param identityAccessToken - The access token for the identity server.
      * @returns The hashing information for the identity server.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const details = await mgr.getIdentityHashDetails("is-access-token");
+     * ```
      */
     public getIdentityHashDetails(identityAccessToken: string): Promise<{
         /**
@@ -296,6 +367,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      * @param identityAccessToken - The access token for the identity server.
      * @returns A collection of address mappings to
      * found MXIDs. Results where no user could be found will not be listed.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const results = await mgr.identityHashedLookup([["alice@example.com", "email"]], "is-access-token");
+     * ```
      */
     public async identityHashedLookup(
         addressPairs: [string, string][],
@@ -322,6 +400,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      *                                 object or the empty object if no mapping
      *                                 exists
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const mapping = await mgr.lookupThreePid("email", "alice@example.com", "is-access-token");
+     * ```
      */
     public async lookupThreePid(
         medium: string,
@@ -354,6 +439,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      *
      * @returns Promise which resolves: Lookup results from IS.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const res = await mgr.bulkLookupThreePids([["email", "alice@example.com"]], "is-access-token");
+     * ```
      */
     public async bulkLookupThreePids(
         query: [string, string][],
@@ -379,6 +471,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
      *
      * @returns Promise which resolves: an object with account info.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const account = await mgr.getIdentityAccount("is-access-token");
+     * ```
      */
     public getIdentityAccount(identityAccessToken: string): Promise<{ user_id: string }> {
         return this.client.http.idServerRequest(
@@ -392,6 +491,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
 
     /**
      * Get the terms of service for a service type
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * const terms = await mgr.getTerms("SERVICE_TYPE_IS", "https://identity.example.com");
+     * ```
      */
     public getTerms(serviceType: string, baseUrl: string): Promise<import("../@types/partials").Terms> {
         const url = this.termsUrlForService(serviceType, baseUrl);
@@ -400,6 +506,13 @@ export class IdentityServerManager extends BaseManager<keyof IdentityServerManag
 
     /**
      * Agree to the terms of service for a service type
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getIdentityServerManager();
+     * await mgr.agreeToTerms("SERVICE_TYPE_IS", "https://identity.example.com", "is-access-token", ["https://identity.example.com/terms"]);
+     * ```
      */
     public agreeToTerms(
         serviceType: string,

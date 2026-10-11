@@ -60,6 +60,16 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
         super(client, opts);
     }
 
+    /**
+     * 邀请用户加入房间。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被邀请用户的 ID
+     * @example
+     * ```typescript
+     * await client.getRoomMemberManager().invite("!room:example.org", "@alice:example.org");
+     * ```
+     */
     public async invite(roomId: string, userId: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
@@ -71,6 +81,17 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
         }, "invite");
     }
 
+    /**
+     * 通过第三方标识（如邮箱、手机号）邀请用户加入房间。
+     *
+     * @param roomId - 房间 ID
+     * @param medium - 第三方标识类型（如 `email`、`msisdn`）
+     * @param address - 第三方标识地址
+     * @example
+     * ```typescript
+     * await client.getRoomMemberManager().inviteByThreePid("!room:example.org", "email", "alice@example.org");
+     * ```
+     */
     public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/invite", { $roomId: roomId });
@@ -86,6 +107,19 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
         }, "inviteByThreePid");
     }
 
+    /**
+     * 将用户踢出房间。
+     *
+     * 通过发送 `m.room.member` 状态事件把目标成员的身份设置为 `leave`。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被踢出用户的 ID
+     * @param reason - 可选，踢出原因
+     * @example
+     * ```typescript
+     * await client.getRoomMemberManager().kick("!room:example.org", "@bob:example.org", "违规发言");
+     * ```
+     */
     public async kick(roomId: string, userId: string, reason?: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state/m.room.member/$userId", {
@@ -103,6 +137,17 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
         }, "kick");
     }
 
+    /**
+     * 封禁用户。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被封禁用户的 ID
+     * @param reason - 可选，封禁原因
+     * @example
+     * ```typescript
+     * await client.getRoomMemberManager().ban("!room:example.org", "@bob:example.org", "屡次违规");
+     * ```
+     */
     public async ban(roomId: string, userId: string, reason?: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/ban", { $roomId: roomId });
@@ -117,6 +162,16 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
         }, "ban");
     }
 
+    /**
+     * 解除对用户的封禁。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 被解除封禁用户的 ID
+     * @example
+     * ```typescript
+     * await client.getRoomMemberManager().unban("!room:example.org", "@bob:example.org");
+     * ```
+     */
     public async unban(roomId: string, userId: string): Promise<void> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/unban", { $roomId: roomId });
@@ -128,6 +183,17 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
         }, "unban");
     }
 
+    /**
+     * 获取指定成员在房间中的信息。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 用户 ID
+     * @returns 成员信息（含 `user_id`、`membership`、`displayname` 等）
+     * @example
+     * ```typescript
+     * const member = await client.getRoomMemberManager().getRoomMember("!room:example.org", "@alice:example.org");
+     * ```
+     */
     public async getRoomMember(roomId: string, userId: string): Promise<RoomMemberInfo> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/state/m.room.member/$userId", {
@@ -148,6 +214,10 @@ export class RoomMemberManager extends BaseManager<keyof RoomMemberManagerEvents
      * @param roomId - The room ID.
      * @param params - Optional parameters.
      * @param params.limit - Maximum number of events to return (default 100, max 1000).
+     * @example
+     * ```typescript
+     * const { events } = await client.getRoomMemberManager().getMembershipEvents("!room:example.org", { limit: 50 });
+     * ```
      */
     public async getMembershipEvents(roomId: string, params?: { limit?: number }): Promise<MembershipEventsResponse> {
         this.requireNonEmptyString(roomId, "roomId");

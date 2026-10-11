@@ -56,6 +56,24 @@ export class StateSendManager extends BaseManager<keyof StateSendManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 设置房间内用户的权限级别（发送 `m.room.power_levels` 状态事件）。
+     *
+     * 会先尝试从本地房间状态读取当前权限级别；本地不存在时回退到服务端查询，
+     * 查询返回 `M_NOT_FOUND` 时以空内容为起点。`powerLevel` 传 `null` / `undefined`
+     * 会删除对应用户的权限项。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 目标用户 ID，或用户 ID 数组
+     * @param powerLevel - 权限级别；传 `null` / `undefined` 表示移除该用户的权限项
+     * @returns 状态事件发送响应
+     * @throws {Error} 读取当前权限级别时遇到 `M_NOT_FOUND` 以外的错误
+     *
+     * @example
+     * ```typescript
+     * await client.getStateSendManager().setPowerLevel("!room:example.org", "@alice:example.org", 50);
+     * ```
+     */
     public async setPowerLevel(
         roomId: string,
         userId: string | string[],

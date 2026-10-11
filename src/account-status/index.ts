@@ -87,6 +87,11 @@ export class AccountStatusManager extends BaseManager {
      *
      * **fail closed**：探针缺失或抛错都返回 `false`（对应后端默认关闭 + 403 的行为），
      * 而不是乐观地放行（S-13）。
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.getAccountStatusManager().isSupported();
+     * ```
      */
     public async isSupported(): Promise<boolean> {
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.AccountStatus, false, (error) =>

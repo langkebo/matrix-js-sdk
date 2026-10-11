@@ -46,6 +46,14 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
      *
      * @param userId - 用户 ID
      * @returns 好友状态信息
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getFriendManager().blocks.getFriendStatusInfo("@alice:example.com");
+     * console.log(info.status);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空
      */
     async getFriendStatusInfo(userId: string): Promise<FriendStatusInfo> {
         if (!userId) {
@@ -64,6 +72,12 @@ export class FriendBlockManager extends BaseManager<FriendBlockManagerEvent, Fri
      *
      * @param userId - 用户 ID
      * @returns 状态字符串
+     *
+     * @example
+     * ```typescript
+     * const status = await client.getFriendManager().blocks.getFriendStatus("@alice:example.com");
+     * console.log(status === "blocked" ? "已屏蔽" : status);
+     * ```
      */
     async getFriendStatus(userId: string): Promise<string> {
         const response = await this.getFriendStatusInfo(userId);

@@ -72,14 +72,45 @@ export class SyncAccumulatorManager extends BaseManager<
 
     private accumulator: SyncAccumulator | null = null;
 
+    /**
+     * 获取当前持有的同步累积器。
+     *
+     * @returns 累积器实例；尚未创建时返回 null
+     *
+     * @example
+     * ```typescript
+     * const accumulator = client.getSyncAccumulatorManager().getSyncAccumulator();
+     * ```
+     */
     public getSyncAccumulator(): SyncAccumulator | null {
         return this.accumulator;
     }
 
+    /**
+     * 设置同步累积器实例。
+     *
+     * @param accumulator - 要使用的累积器
+     *
+     * @example
+     * ```typescript
+     * client.getSyncAccumulatorManager().setSyncAccumulator(new SyncAccumulator());
+     * ```
+     */
     public setSyncAccumulator(accumulator: SyncAccumulator): void {
         this.accumulator = accumulator;
     }
 
+    /**
+     * 累积一次 /sync 响应数据。
+     *
+     * @param data - /sync 响应数据
+     * @returns 累积完成后的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.getSyncAccumulatorManager().accumulateSyncData(syncResponse);
+     * ```
+     */
     public async accumulateSyncData(data: ISyncResponse): Promise<void> {
         if (!this.accumulator) {
             this.accumulator = new SyncAccumulator();
@@ -87,11 +118,29 @@ export class SyncAccumulatorManager extends BaseManager<
         this.accumulator.accumulate(data);
     }
 
+    /**
+     * 获取累积的同步数据。
+     *
+     * @returns 累积数据；尚未累积时返回 null
+     *
+     * @example
+     * ```typescript
+     * const data = client.getSyncAccumulatorManager().getAccumulatedData();
+     * ```
+     */
     public getAccumulatedData(): ISyncAccumulatedData | null {
         if (!this.accumulator) return null;
         return this.accumulator.getJSON() as ISyncAccumulatedData;
     }
 
+    /**
+     * 重置累积器，清空已有累积状态。
+     *
+     * @example
+     * ```typescript
+     * client.getSyncAccumulatorManager().resetAccumulator();
+     * ```
+     */
     public resetAccumulator(): void {
         this.accumulator = null;
     }

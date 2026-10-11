@@ -71,6 +71,12 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
      * @param forceRefresh - 是否强制刷新缓存
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 成员列表
+     * @throws {SdkError} 当请求失败且 throwOnError 为 true 时
+     * @example
+     * ```typescript
+     * const members = await client.getRoomSummaryManager().members.getRoomSummaryMembers("!room:example.com");
+     * console.log(members.length);
+     * ```
      */
     public async getRoomSummaryMembers(
         roomId: string,
@@ -110,6 +116,15 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
      * @param roomId - 房间 ID
      * @param members - 成员列表
      * @returns 写入后的成员列表
+     * @throws {InvalidParamError} 当 members 不是数组时
+     * @throws {SdkError} 当请求失败时
+     * @example
+     * ```typescript
+     * const members = await client.getRoomSummaryManager().members.writeSummaryMembers("!room:example.com", [
+     *     { user_id: "@alice:example.com", membership: "join", is_hero: true },
+     * ]);
+     * console.log(members.length);
+     * ```
      */
     public async writeSummaryMembers(roomId: string, members: RoomSummaryMember[]): Promise<RoomSummaryMember[]> {
         this.validateRoomId(roomId);
@@ -143,6 +158,13 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
      * @param userId - 用户 ID
      * @param member - 成员数据
      * @returns 更新后的成员数据
+     * @example
+     * ```typescript
+     * const member = await client
+     *     .getRoomSummaryManager()
+     *     .members.updateSummaryMember("!room:example.com", "@alice:example.com", { display_name: "Alice" });
+     * console.log(member.display_name);
+     * ```
      */
     public async updateSummaryMember(
         roomId: string,
@@ -169,6 +191,10 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
      *
      * @param roomId - 房间 ID
      * @param userId - 用户 ID
+     * @example
+     * ```typescript
+     * await client.getRoomSummaryManager().members.deleteSummaryMember("!room:example.com", "@alice:example.com");
+     * ```
      */
     public async deleteSummaryMember(roomId: string, userId: string): Promise<void> {
         this.validateRoomId(roomId);
@@ -186,6 +212,13 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
      * @param roomId - 房间 ID
      * @param options - 查询选项
      * @returns 最近成员变更结果
+     * @example
+     * ```typescript
+     * const recent = await client
+     *     .getRoomSummaryManager()
+     *     .members.getRoomMembersRecent("!room:example.com", { limit: 20 });
+     * console.log(recent);
+     * ```
      */
     public async getRoomMembersRecent(
         roomId: string,
@@ -210,6 +243,11 @@ export class RoomSummaryMemberManager extends RoomSummaryBaseManager<
      *
      * @param roomId - 房间 ID
      * @returns 缓存的成员列表，如无缓存则返回空数组
+     * @example
+     * ```typescript
+     * const cached = client.getRoomSummaryManager().members.getCachedMembers("!room:example.com");
+     * console.log(cached.length);
+     * ```
      */
     public getCachedMembers(roomId: string): RoomSummaryMember[] {
         return this.memberCache.get(roomId) || [];

@@ -166,6 +166,12 @@ export class EventReportManager extends BaseManager {
     /**
      * 获取所有举报
      * 对应 GET /_synapse/admin/v1/event_reports
+     *
+     * @example
+     * ```typescript
+     * const reports = await client.getEventReportManager().getAllReports({ limit: 20 });
+     * console.log(`fetched ${reports.length} reports`);
+     * ```
      */
     async getAllReports(params?: QueryParams): Promise<ReportResponse[]> {
         return this.listReports(params);

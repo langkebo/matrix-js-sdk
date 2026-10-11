@@ -195,22 +195,71 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         };
     }
 
+    /**
+     * 合并更新遥测配置。
+     *
+     * @param config - 需要覆盖的配置片段
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().configure({ enabled: true, sampleRate: 0.5 });
+     * ```
+     */
     public configure(config: Partial<TelemetryConfig>): void {
         this.config = { ...this.config, ...config };
     }
 
+    /**
+     * 启用遥测上报。
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().enable();
+     * ```
+     */
     public enable(): void {
         this.config.enabled = true;
     }
 
+    /**
+     * 关闭遥测上报。
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().disable();
+     * ```
+     */
     public disable(): void {
         this.config.enabled = false;
     }
 
+    /**
+     * 判断遥测当前是否已启用。
+     *
+     * @returns 启用返回 true，否则返回 false
+     *
+     * @example
+     * ```typescript
+     * if (client.getTelemetryManager().isEnabled()) {
+     *     console.log("telemetry is on");
+     * }
+     * ```
+     */
     public isEnabled(): boolean {
         return this.config.enabled;
     }
 
+    /**
+     * 上报一个自定义遥测事件；未启用或未命中采样率时会被忽略。
+     *
+     * @param event - 事件名
+     * @param data - 事件附带的任意数据
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().track("button_click", { button: "send" });
+     * ```
+     */
     public track(event: string, data?: Record<string, unknown> /* Dynamic: arbitrary event payload */): void {
         if (!this.config.enabled) return;
 
@@ -229,6 +278,17 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         }
     }
 
+    /**
+     * 记录一条已发送的消息。
+     *
+     * @param roomId - 消息所在房间 ID
+     * @param type - 消息类型（如 "m.text"）
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackMessageSent("!room:example.org", "m.text");
+     * ```
+     */
     public trackMessageSent(roomId: string, type: string): void {
         this.stats.messagesSent++;
         this.stats.lastActive = Date.now();
@@ -239,6 +299,17 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         });
     }
 
+    /**
+     * 记录一条已接收的消息。
+     *
+     * @param roomId - 消息所在房间 ID
+     * @param type - 消息类型（如 "m.text"）
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackMessageReceived("!room:example.org", "m.text");
+     * ```
+     */
     public trackMessageReceived(roomId: string, type: string): void {
         this.stats.messagesReceived++;
         this.stats.lastActive = Date.now();
@@ -249,6 +320,16 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         });
     }
 
+    /**
+     * 记录一次加入房间事件。
+     *
+     * @param roomId - 加入的房间 ID
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackRoomJoined("!room:example.org");
+     * ```
+     */
     public trackRoomJoined(roomId: string): void {
         this.stats.roomsJoined++;
         this.stats.lastActive = Date.now();
@@ -256,6 +337,16 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         this.track("room_joined", { room_id: roomId });
     }
 
+    /**
+     * 记录一次通话事件。
+     *
+     * @param type - 通话类型，语音或视频
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackCall("video");
+     * ```
+     */
     public trackCall(type: "voice" | "video"): void {
         this.stats.callsMade++;
         this.stats.lastActive = Date.now();
@@ -263,6 +354,17 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         this.track("call_made", { call_type: type });
     }
 
+    /**
+     * 记录一次媒体上传事件。
+     *
+     * @param size - 上传字节数
+     * @param type - 媒体 MIME 类型
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackMediaUploaded(1024, "image/png");
+     * ```
+     */
     public trackMediaUploaded(size: number, type: string): void {
         this.stats.mediaUploaded++;
         this.stats.lastActive = Date.now();
@@ -273,6 +375,17 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         });
     }
 
+    /**
+     * 记录一个错误事件。
+     *
+     * @param error - 需要上报的错误对象
+     * @param context - 附加上下文数据
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackError(new Error("boom"), { feature: "upload" });
+     * ```
+     */
     public trackError(error: Error, context?: Record<string, unknown> /* Dynamic: arbitrary error context */): void {
         this.track("error", {
             message: error.message,
@@ -281,6 +394,17 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         });
     }
 
+    /**
+     * 获取客户端信息（版本、平台、运行时与已启用特性）。
+     *
+     * @returns 客户端信息对象
+     *
+     * @example
+     * ```typescript
+     * const info = client.getTelemetryManager().getClientInfo();
+     * console.log(info.platform, info.runtime);
+     * ```
+     */
     public getClientInfo(): ClientMetrics {
         return {
             version: this.client.version || "unknown",
@@ -314,12 +438,35 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         return features;
     }
 
+    /**
+     * 获取当前使用统计的快照。
+     *
+     * @returns 使用统计副本
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getTelemetryManager().getUsageStats();
+     * console.log(stats.messagesSent, stats.roomsJoined);
+     * ```
+     */
     public getUsageStats(): UsageStats {
         return { ...this.stats };
     }
 
     // ===== Performance Metrics (扩展 getMetrics 功能) =====
 
+    /**
+     * 记录一次缓存命中/未命中事件。
+     *
+     * @param cacheName - 缓存名称
+     * @param hit - 是否命中
+     * @param duration - 可选，耗时（毫秒）
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackCacheHitMiss("rooms", true, 3);
+     * ```
+     */
     public trackCacheHitMiss(cacheName: string, hit: boolean, duration?: number): void {
         if (!this.config.enabled) return;
 
@@ -332,6 +479,19 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         this.track(key, data);
     }
 
+    /**
+     * 记录一次请求耗时；超过 200ms 时会额外上报慢请求事件。
+     *
+     * @param method - HTTP 方法
+     * @param durationMs - 耗时（毫秒）
+     * @param status - 请求结果状态
+     * @param endpoint - 可选，请求端点
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackRequestTiming("GET", 120, "success", "/sync");
+     * ```
+     */
     public trackRequestTiming(
         method: string,
         durationMs: number,
@@ -357,6 +517,18 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         }
     }
 
+    /**
+     * 记录一个性能基线指标。
+     *
+     * @param metric - 指标名
+     * @param value - 指标取值
+     * @param threshold - 可选，阈值；提供时会附带是否达标
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().trackPerformanceBaseline("sync_latency_ms", 150, 200);
+     * ```
+     */
     public trackPerformanceBaseline(metric: string, value: number, threshold?: number): void {
         if (!this.config.enabled) return;
 
@@ -367,30 +539,105 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         });
     }
 
+    /**
+     * 获取服务器遥测健康状态。
+     *
+     * @returns 服务器健康信息
+     *
+     * @example
+     * ```typescript
+     * const health = await client.getTelemetryManager().getServerHealth();
+     * console.log(health.status);
+     * ```
+     */
     public async getServerHealth(): Promise<ServerTelemetryHealth> {
         return this.adminRequest(Method.Get, tp("/telemetry/health"));
     }
 
+    /**
+     * 获取待上报事件队列的快照。
+     *
+     * @returns 事件队列副本
+     *
+     * @example
+     * ```typescript
+     * const pending = client.getTelemetryManager().getPendingEvents();
+     * console.log(pending.length);
+     * ```
+     */
     public getPendingEvents(): TelemetryEvent[] {
         return [...this.eventQueue];
     }
 
+    /**
+     * 获取当前会话已持续的时长。
+     *
+     * @returns 会话时长（毫秒）
+     *
+     * @example
+     * ```typescript
+     * const ms = client.getTelemetryManager().getSessionDuration();
+     * ```
+     */
     public getSessionDuration(): number {
         return Date.now() - this.sessionStart;
     }
 
+    /**
+     * 获取服务器遥测状态。
+     *
+     * @returns 服务器遥测状态
+     *
+     * @example
+     * ```typescript
+     * const status = await client.getTelemetryManager().getServerStatus();
+     * console.log(status.enabled);
+     * ```
+     */
     public async getServerStatus(): Promise<ServerTelemetryStatus> {
         return this.adminRequest(Method.Get, tp("/telemetry/status"));
     }
 
+    /**
+     * 获取服务器遥测属性。
+     *
+     * @returns 服务器遥测属性集合
+     *
+     * @example
+     * ```typescript
+     * const attrs = await client.getTelemetryManager().getServerAttributes();
+     * ```
+     */
     public async getServerAttributes(): Promise<ServerTelemetryAttributes> {
         return this.adminRequest(Method.Get, tp("/telemetry/attributes"));
     }
 
+    /**
+     * 获取服务器指标摘要。
+     *
+     * @returns 指标摘要
+     *
+     * @example
+     * ```typescript
+     * const summary = await client.getTelemetryManager().getServerMetricsSummary();
+     * console.log(summary.total_metrics);
+     * ```
+     */
     public async getServerMetricsSummary(): Promise<ServerTelemetryMetricsSummary> {
         return this.adminRequest(Method.Get, tp("/telemetry/metrics"));
     }
 
+    /**
+     * 查询服务器告警列表。
+     *
+     * @param query - 可选，按状态/严重级别过滤并控制是否刷新
+     * @returns 告警列表响应
+     *
+     * @example
+     * ```typescript
+     * const { alerts } = await client.getTelemetryManager().getServerAlerts({ severity: "warning", refresh: true });
+     * ```
+     */
     public async getServerAlerts(query?: ServerTelemetryAlertQuery): Promise<ServerTelemetryAlertsResponse> {
         const queryParams: Record<string, string> = {};
         if (query?.status) queryParams.status = query.status;
@@ -403,6 +650,19 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         );
     }
 
+    /**
+     * 确认一条服务器告警。
+     *
+     * @param alertId - 需要确认的告警 ID
+     * @returns 更新后的告警
+     *
+     * @throws {ValidationError} 当 alertId 为空时
+     *
+     * @example
+     * ```typescript
+     * await client.getTelemetryManager().acknowledgeServerAlert("alert-1");
+     * ```
+     */
     public async acknowledgeServerAlert(alertId: string): Promise<ServerTelemetryAlert> {
         if (!alertId) {
             throw new ValidationError("Alert ID is required");
@@ -410,6 +670,14 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         return this.adminRequest(Method.Post, tp(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack`));
     }
 
+    /**
+     * 将当前缓存的事件立即上报。
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().flush();
+     * ```
+     */
     public flush(): void {
         if (this.eventQueue.length === 0) return;
 
@@ -440,6 +708,14 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         }
     }
 
+    /**
+     * 重置使用统计。
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().resetStats();
+     * ```
+     */
     public resetStats(): void {
         this.stats = {
             messagesSent: 0,
@@ -451,6 +727,14 @@ export class TelemetryManager extends BaseManager<keyof TelemetryManagerEvents, 
         };
     }
 
+    /**
+     * 停止遥测并刷新剩余事件。
+     *
+     * @example
+     * ```typescript
+     * client.getTelemetryManager().stop();
+     * ```
+     */
     public stop(): void {
         this.flush();
     }

@@ -75,10 +75,32 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         });
     }
 
+    /**
+     * 获取置顶消息缓存的统计信息。
+     *
+     * @returns 缓存容量、命中/未命中次数与命中率
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getPinnedMessagesManager().getCacheStats();
+     * console.log(stats.size, stats.hitRate);
+     * ```
+     */
     public getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.pinnedEventsCache.getStats();
     }
 
+    /**
+     * 置顶消息（通过 m.room.pinned_events 状态事件）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 要置顶的事件 ID
+     *
+     * @example
+     * ```typescript
+     * await client.getPinnedMessagesManager().pinMessage("!room:example.org", "$event");
+     * ```
+     */
     public async pinMessage(roomId: string, eventId: string): Promise<void> {
         const room = this.client.getRoom(roomId);
         let pinned: string[] = [];
@@ -95,6 +117,17 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         await this.client.sendStateEvent(roomId, "m.room.pinned_events", { pinned }, "");
     }
 
+    /**
+     * 取消置顶消息（通过 m.room.pinned_events 状态事件）。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 要取消置顶的事件 ID
+     *
+     * @example
+     * ```typescript
+     * await client.getPinnedMessagesManager().unpinMessage("!room:example.org", "$event");
+     * ```
+     */
     public async unpinMessage(roomId: string, eventId: string): Promise<void> {
         const room = this.client.getRoom(roomId);
         if (!room) return;
@@ -105,6 +138,17 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         await this.client.sendStateEvent(roomId, "m.room.pinned_events", { pinned }, "");
     }
 
+    /**
+     * 从房间状态中读取当前置顶事件 ID 列表。
+     *
+     * @param roomId - 房间 ID
+     * @returns 置顶事件 ID 数组；房间或状态事件不存在时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const pinned = client.getPinnedMessagesManager().getPinnedMessages("!room:example.org");
+     * ```
+     */
     public getPinnedMessages(roomId: string): string[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
@@ -114,10 +158,34 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         return content.pinned || [];
     }
 
+    /**
+     * 判断房间是否存在置顶消息。
+     *
+     * @param roomId - 房间 ID
+     * @returns 置顶列表非空时为 true
+     *
+     * @example
+     * ```typescript
+     * const hasPinned = client.getPinnedMessagesManager().hasPinnedMessages("!room:example.org");
+     * ```
+     */
     public hasPinnedMessages(roomId: string): boolean {
         return this.getPinnedMessages(roomId).length > 0;
     }
 
+    /**
+     * 从服务端获取置顶事件列表（命中缓存则直接返回）。
+     *
+     * @param roomId - 房间 ID
+     * @returns 置顶事件信息数组
+     * @throws {ValidationError} roomId 为空时
+     *
+     * @example
+     * ```typescript
+     * const events = await client.getPinnedMessagesManager().getPinnedEventsFromServer("!room:example.org");
+     * console.log(events.map((e) => e.eventId));
+     * ```
+     */
     public async getPinnedEventsFromServer(roomId: string): Promise<IPinnedEventInfo[]> {
         if (!roomId) throw new ValidationError("Room ID is required");
         const cached = this.pinnedEventsCache.get(roomId);
@@ -144,6 +212,18 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         );
     }
 
+    /**
+     * 将事件置顶到服务端并更新本地缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 要置顶的事件 ID
+     * @throws {ValidationError} roomId 或 eventId 为空时
+     *
+     * @example
+     * ```typescript
+     * await client.getPinnedMessagesManager().pinEventToServer("!room:example.org", "$event");
+     * ```
+     */
     public async pinEventToServer(roomId: string, eventId: string): Promise<void> {
         if (!roomId) throw new ValidationError("Room ID is required");
         if (!eventId) throw new ValidationError("Event ID is required");
@@ -165,6 +245,18 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         );
     }
 
+    /**
+     * 取消服务端的置顶并更新本地缓存。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 要取消置顶的事件 ID
+     * @throws {ValidationError} roomId 或 eventId 为空时
+     *
+     * @example
+     * ```typescript
+     * await client.getPinnedMessagesManager().unpinEventFromServer("!room:example.org", "$event");
+     * ```
+     */
     public async unpinEventFromServer(roomId: string, eventId: string): Promise<void> {
         if (!roomId) throw new ValidationError("Room ID is required");
         if (!eventId) throw new ValidationError("Event ID is required");
@@ -187,13 +279,40 @@ export class PinnedMessagesManager extends BaseManager<PinnedEvent, PinnedMessag
         );
     }
 
+    /**
+     * 获取本地缓存的置顶事件。
+     *
+     * @param roomId - 房间 ID
+     * @returns 缓存的置顶事件信息数组；无缓存时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getPinnedMessagesManager().getCachedPinnedEvents("!room:example.org");
+     * ```
+     */
     public getCachedPinnedEvents(roomId: string): IPinnedEventInfo[] {
         return this.pinnedEventsCache.get(roomId) || [];
     }
 
+    /**
+     * 清空置顶消息缓存。
+     *
+     * @example
+     * ```typescript
+     * client.getPinnedMessagesManager().clearCache();
+     * ```
+     */
     public clearCache(): void {
         this.pinnedEventsCache.clear();
     }
+    /**
+     * 停止管理器并清空置顶消息缓存。
+     *
+     * @example
+     * ```typescript
+     * client.getPinnedMessagesManager().stop();
+     * ```
+     */
     public stop(): void {
         this.pinnedEventsCache.clear();
     }
