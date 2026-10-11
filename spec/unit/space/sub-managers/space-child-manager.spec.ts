@@ -18,6 +18,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { SpaceChildManager } from "../../../../src/space/sub-managers/space-child-manager";
 import { SpaceEvent } from "../../../../src/space/events";
+import type { UnifiedCacheManager } from "../../../../src/managers/cache-manager";
 
 describe("SpaceChildManager", () => {
     let manager: SpaceChildManager;
@@ -43,7 +44,7 @@ describe("SpaceChildManager", () => {
         manager._setParent(mockParent);
 
         // Clear cache between tests to ensure isolation
-        (manager as any).childrenCache.invalidate(["*"]);
+        (manager as unknown as { childrenCache: UnifiedCacheManager }).childrenCache.invalidate(["*"]);
     });
 
     describe("getSpaceChildren", () => {
@@ -126,7 +127,11 @@ describe("SpaceChildManager", () => {
                 { prefix: "/_matrix/vendor/v1" },
             );
             // 验证缓存已失效，使用统一缓存策略
-            expect((manager as any).childrenCache.has("children:!space:test")).toBe(false);
+            expect(
+                (manager as unknown as { childrenCache: UnifiedCacheManager }).childrenCache.has(
+                    "children:!space:test",
+                ),
+            ).toBe(false);
         });
 
         it("emits SpaceError on failure", async () => {
@@ -155,7 +160,11 @@ describe("SpaceChildManager", () => {
                 { prefix: "/_matrix/vendor/v1" },
             );
             // 验证缓存已失效，使用统一缓存策略
-            expect((manager as any).childrenCache.has("children:!space:test")).toBe(false);
+            expect(
+                (manager as unknown as { childrenCache: UnifiedCacheManager }).childrenCache.has(
+                    "children:!space:test",
+                ),
+            ).toBe(false);
         });
 
         it("emits SpaceError on failure", async () => {

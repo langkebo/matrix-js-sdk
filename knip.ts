@@ -156,6 +156,7 @@ export default {
         "src/core.ts",
         "src/advanced.ts",
         "src/legacy.ts",
+        "src/contract/index.ts",
         // Vitest configs invoked via CLI `--config` flag (not statically imported):
         "vitest.real-backend.config.ts",
         // XXX: these should be re-exported by one of the supported exports
@@ -169,8 +170,6 @@ export default {
     ignoreDependencies: [
         // Required for `action-validator`
         "@action-validator/*",
-        // Used for git pre-commit hooks
-        "husky",
         // Used by `vitest` (referenced as string in vitest.config.ts reporters array)
         "vitest-sonar-reporter",
         // ESLint plugins referenced in eslint.config.mjs (knip doesn't parse ESLint config):

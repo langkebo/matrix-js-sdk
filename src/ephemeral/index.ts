@@ -183,11 +183,10 @@ export class EphemeralManager extends BaseManager<EphemeralEvent, EphemeralManag
             const typingEvent = events.find((e) => e.type === "m.typing");
             const content = typingEvent?.content as { user_ids?: string[] } | undefined;
             return content?.user_ids || [];
-            // @swallow-error { owner: "ephemeral", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("EphemeralManager.getTypingEvents failed:", e);
-            return [];
         }
+        return [];
     }
 
     public async getReceiptEvents(roomId: string): Promise<Map<string, string>> {

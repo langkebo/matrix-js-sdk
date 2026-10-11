@@ -7,7 +7,14 @@ Please see LICENSE files in the repository root for full details.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { WorkerManager, type WorkerInfo } from "./worker";
+import {
+    WorkerManager,
+    type WorkerInfo,
+    type WorkerRegistration,
+    type CommandRequest,
+    type TaskAssignment,
+} from "./worker";
+import type { MatrixClient } from "../../client";
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { AuthError, NotFoundError, ApiError, RetryableError, ValidationError } from "../../errors";
@@ -21,8 +28,7 @@ describe("WorkerManager", () => {
         transport = {
             request: vi.fn().mockResolvedValue({}),
         };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        workerManager = new WorkerManager({} as any, { transport });
+        workerManager = new WorkerManager({} as unknown as MatrixClient, { transport });
     });
 
     // =========================================================================
@@ -141,7 +147,7 @@ describe("WorkerManager", () => {
                         worker_type: "frontend",
                         host: "127.0.0.1",
                         port: 8080,
-                    } as any),
+                    } as WorkerRegistration),
                 ).rejects.toThrow(ValidationError);
             });
 
@@ -150,10 +156,10 @@ describe("WorkerManager", () => {
                     workerManager.registerWorker({
                         worker_id: "worker-1",
                         worker_name: "Worker One",
-                        worker_type: "" as any,
+                        worker_type: "",
                         host: "127.0.0.1",
                         port: 8080,
-                    } as any),
+                    } as unknown as WorkerRegistration),
                 ).rejects.toThrow(ValidationError);
             });
 
@@ -314,7 +320,7 @@ describe("WorkerManager", () => {
                 workerManager.sendCommand("", {
                     command_type: "reload_config",
                     command_data: {},
-                } as any),
+                } as CommandRequest),
             ).rejects.toThrow(ValidationError);
         });
 
@@ -323,7 +329,7 @@ describe("WorkerManager", () => {
                 workerManager.sendCommand("worker-1", {
                     command_type: "",
                     command_data: {},
-                } as any),
+                } as CommandRequest),
             ).rejects.toThrow(ValidationError);
         });
 
@@ -427,7 +433,7 @@ describe("WorkerManager", () => {
                     workerManager.assignTask({
                         task_type: "",
                         task_data: {},
-                    } as any),
+                    } as TaskAssignment),
                 ).rejects.toThrow(ValidationError);
             });
 

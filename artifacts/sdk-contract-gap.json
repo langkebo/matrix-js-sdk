@@ -17,20 +17,20 @@
         },
         "sdk": {
             "routeTables": 39,
-            "t3Declared": 730,
-            "sourceFiles": 464,
-            "t1Callsites": 494,
-            "t2ConstructorHits": 715,
-            "prefixCandidates": 30
+            "t3Declared": 724,
+            "sourceFiles": 462,
+            "t1Callsites": 484,
+            "t2ConstructorHits": 722,
+            "prefixCandidates": 31
         },
         "idiomHistogram": {
-            "object-literal {path}": 128,
+            "object-literal {path}": 131,
             "builder: utils.encodeUri()": 53,
-            "adminRequest()": 202,
+            "adminRequest()": 196,
             "v2Request()": 5,
-            "request(Method, path)": 3,
+            "request(Method, path)": 2,
             "builder: sp()": 10,
-            "authedRequest(Method, path)": 28,
+            "authedRequest(Method, path)": 24,
             "builder: srp()": 3,
             "builder: encodeUri()": 17,
             "builder: friendPath()": 23,
@@ -38,28 +38,24 @@
             "builder: this.client.http.getUrl()": 3,
             "builder: this.internalSummaryPath()": 2,
             "builder: this.roomPath()": 1,
-            "builder: this.uncheckedRoomPath()": 2,
             "builder: spacePath()": 13
         },
         "buckets": {
-            "T3_DECLARED_ONLY": 63,
-            "T2_CONSTRUCTOR": 567,
+            "T3_DECLARED_ONLY": 54,
+            "T2_CONSTRUCTOR": 572,
             "GAP": 62,
-            "T1_CALLSITE": 334,
+            "T1_CALLSITE": 338,
             "CONDITIONAL": 1
         },
-        "gapScopeBreakdown": [
-            ["SERVER_ONLY", 55],
-            ["CLIENT_FACING", 7]
-        ],
+        "gapScopeBreakdown": [["SERVER_ONLY", 62]],
         "client": {
-            "total": 641,
-            "implemented": 583,
-            "t1": 104,
+            "total": 634,
+            "implemented": 587,
+            "t1": 108,
             "t2Only": 479,
-            "declaredOnly": 51,
+            "declaredOnly": 47,
             "drift": 0,
-            "gap": 7
+            "gap": 0
         },
         "declaredCoverage": {
             "covered": 729,
@@ -145,43 +141,43 @@
         {
             "method": "DELETE",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
             "method": "GET",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
             "method": "HEAD",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
             "method": "OPTIONS",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
             "method": "PATCH",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
             "method": "POST",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
             "method": "PUT",
             "path": "/_matrix/client/v1/proxy/{as_id}/{*path}",
-            "scope": "CLIENT_FACING",
+            "scope": "SERVER_ONLY",
             "registered_by": "app_service"
         },
         {
@@ -480,7 +476,7 @@
             "evidence": {
                 "literal": "/sync",
                 "file": "src/client/worker/worker.spec.ts",
-                "line": 408,
+                "line": 414,
                 "snippet": "task_data: { path: \"/sync\" },"
             }
         },
@@ -560,7 +556,7 @@
             "evidence": {
                 "literal": "/sync",
                 "file": "src/client/worker/worker.spec.ts",
-                "line": 408,
+                "line": 414,
                 "snippet": "task_data: { path: \"/sync\" },"
             }
         },
@@ -670,7 +666,7 @@
             "evidence": {
                 "literal": "/account/3pid/email/requestToken",
                 "file": "src/auth/index.ts",
-                "line": 649,
+                "line": 630,
                 "snippet": "\"/account/3pid/email/requestToken\","
             }
         },
@@ -700,7 +696,7 @@
             "evidence": {
                 "literal": "/account/deactivate",
                 "file": "src/account/index.ts",
-                "line": 313,
+                "line": 327,
                 "snippet": "path: ap(\"/account/deactivate\"),"
             }
         },
@@ -740,7 +736,7 @@
             "evidence": {
                 "literal": "/account/whoami",
                 "file": "src/auth/index.ts",
-                "line": 555,
+                "line": 551,
                 "snippet": "path: \"/account/whoami\","
             }
         },
@@ -749,9 +745,9 @@
             "path": "/_matrix/client/v1/keys/changes",
             "evidence": {
                 "literal": "/keys/changes",
-                "file": "src/client-crypto-requests.ts",
-                "line": 94,
-                "snippet": "return authedRequest<T>(Method.Get, \"/keys/changes\", qps);"
+                "file": "src/crypto-keys/index.ts",
+                "line": 218,
+                "snippet": "path: \"/keys/changes\","
             }
         },
         {
@@ -759,9 +755,9 @@
             "path": "/_matrix/client/v1/keys/claim",
             "evidence": {
                 "literal": "/keys/claim",
-                "file": "src/client-crypto-requests.ts",
-                "line": 82,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/claim\", undefined, content);"
+                "file": "src/crypto-keys/index.ts",
+                "line": 201,
+                "snippet": "path: \"/keys/claim\","
             }
         },
         {
@@ -780,7 +776,7 @@
             "evidence": {
                 "literal": "/keys/device_signing/upload",
                 "file": "src/client-crypto-requests.ts",
-                "line": 104,
+                "line": 40,
                 "snippet": "return authedRequest<T>(Method.Post, \"/keys/device_signing/upload\", undefined, data, {"
             }
         },
@@ -789,9 +785,9 @@
             "path": "/_matrix/client/v1/keys/query",
             "evidence": {
                 "literal": "/keys/query",
-                "file": "src/client-crypto-requests.ts",
-                "line": 58,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/query\", undefined, content);"
+                "file": "src/client.ts",
+                "line": 1368,
+                "snippet": "\"/keys/query\","
             }
         },
         {
@@ -799,9 +795,9 @@
             "path": "/_matrix/client/v1/keys/signatures/upload",
             "evidence": {
                 "literal": "/keys/signatures/upload",
-                "file": "src/client-crypto-requests.ts",
-                "line": 38,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/signatures/upload\", undefined, content);"
+                "file": "src/crypto-keys/index.ts",
+                "line": 250,
+                "snippet": "path: \"/keys/signatures/upload\","
             }
         },
         {
@@ -809,9 +805,9 @@
             "path": "/_matrix/client/v1/keys/upload",
             "evidence": {
                 "literal": "/keys/upload",
-                "file": "src/client-crypto-requests.ts",
-                "line": 34,
-                "snippet": "return authedRequest<T>(Method.Post, \"/keys/upload\", undefined, content);"
+                "file": "src/crypto-keys/index.ts",
+                "line": 120,
+                "snippet": "path: \"/keys/upload\","
             }
         },
         {
@@ -820,7 +816,7 @@
             "evidence": {
                 "literal": "/keys/upload/{}",
                 "file": "src/e2ee/index.ts",
-                "line": 211,
+                "line": 204,
                 "snippet": "return this.post(ep(`/keys/upload/${encodeURIComponent(deviceId)}`), body, \"uploadKeysToDevice\");"
             }
         },
@@ -830,7 +826,7 @@
             "evidence": {
                 "literal": "/media/config",
                 "file": "src/media/index.ts",
-                "line": 197,
+                "line": 202,
                 "snippet": "const path = useAuthenticatedMedia ? \"/media/config\" : \"/config\";"
             }
         },
@@ -1160,7 +1156,7 @@
             "evidence": {
                 "literal": "/room_keys/request",
                 "file": "src/client-crypto-requests.ts",
-                "line": 110,
+                "line": 46,
                 "snippet": "return authedRequest<T>(Method.Post, \"/room_keys/request\", undefined, request, {"
             }
         },
@@ -1170,7 +1166,7 @@
             "evidence": {
                 "literal": "/room_keys/request",
                 "file": "src/client-crypto-requests.ts",
-                "line": 110,
+                "line": 46,
                 "snippet": "return authedRequest<T>(Method.Post, \"/room_keys/request\", undefined, request, {"
             }
         },
@@ -1180,7 +1176,7 @@
             "evidence": {
                 "literal": "/room_keys/request/$requestId",
                 "file": "src/client-crypto-requests.ts",
-                "line": 122,
+                "line": 58,
                 "snippet": "const path = utils.encodeUri(\"/room_keys/request/$requestId\", {"
             }
         },
@@ -1280,7 +1276,7 @@
             "evidence": {
                 "literal": "/rooms/{}/keys/distribution",
                 "file": "src/crypto-keys/index.ts",
-                "line": 293,
+                "line": 296,
                 "snippet": "path: `/rooms/${encodeURIComponent(roomId)}/keys/distribution`,"
             }
         },
@@ -1350,7 +1346,7 @@
             "evidence": {
                 "literal": "/rooms/{}/summary",
                 "file": "src/room-summary/index.ts",
-                "line": 337,
+                "line": 328,
                 "snippet": "return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);"
             }
         },
@@ -1470,7 +1466,7 @@
             "evidence": {
                 "literal": "/sync",
                 "file": "src/client/worker/worker.spec.ts",
-                "line": 408,
+                "line": 414,
                 "snippet": "task_data: { path: \"/sync\" },"
             }
         },
@@ -1490,7 +1486,7 @@
             "evidence": {
                 "literal": "/account/3pid/email/requestToken",
                 "file": "src/auth/index.ts",
-                "line": 649,
+                "line": 630,
                 "snippet": "\"/account/3pid/email/requestToken\","
             }
         },
@@ -1510,7 +1506,7 @@
             "evidence": {
                 "literal": "/account/deactivate",
                 "file": "src/account/index.ts",
-                "line": 313,
+                "line": 327,
                 "snippet": "path: ap(\"/account/deactivate\"),"
             }
         },
@@ -1560,7 +1556,7 @@
             "evidence": {
                 "literal": "/auth/$loginType/fallback/web",
                 "file": "src/account/index.ts",
-                "line": 367,
+                "line": 381,
                 "snippet": "const path = utils.encodeUri(\"/auth/$loginType/fallback/web\", {"
             }
         },
@@ -1770,7 +1766,7 @@
             "evidence": {
                 "literal": "/keys/history",
                 "file": "src/e2ee/index.ts",
-                "line": 466,
+                "line": 455,
                 "snippet": "path: ep(\"/keys/history\"),"
             }
         },
@@ -1780,7 +1776,7 @@
             "evidence": {
                 "literal": "/keys/upload/{}",
                 "file": "src/e2ee/index.ts",
-                "line": 211,
+                "line": 204,
                 "snippet": "return this.post(ep(`/keys/upload/${encodeURIComponent(deviceId)}`), body, \"uploadKeysToDevice\");"
             }
         },
@@ -1798,10 +1794,10 @@
             "method": "GET",
             "path": "/_matrix/client/v3/login",
             "evidence": {
-                "literal": "/login/",
+                "literal": "/login",
                 "file": "src/account/index.ts",
-                "line": 173,
-                "snippet": "let url = \"/login/\" + loginType + \"/redirect\";"
+                "line": 156,
+                "snippet": "path: ap(\"/login\"),"
             }
         },
         {
@@ -1810,7 +1806,7 @@
             "evidence": {
                 "literal": "/login/saml/callback",
                 "file": "src/saml/index.ts",
-                "line": 143,
+                "line": 160,
                 "snippet": "path: cp(\"/login/saml/callback\"),"
             }
         },
@@ -1820,7 +1816,7 @@
             "evidence": {
                 "literal": "/login/saml/callback",
                 "file": "src/saml/index.ts",
-                "line": 143,
+                "line": 160,
                 "snippet": "path: cp(\"/login/saml/callback\"),"
             }
         },
@@ -1829,9 +1825,29 @@
             "path": "/_matrix/client/v3/login/sso/redirect",
             "evidence": {
                 "literal": "/login/sso/redirect",
-                "file": "src/oidc/manager.ts",
-                "line": 318,
-                "snippet": "path: op(\"/login/sso/redirect\"),"
+                "file": "src/account/index.ts",
+                "line": 179,
+                "snippet": "*   - `loginType = \"sso\"`（默认）⇒ `/login/sso/redirect`"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/login/sso/redirect/cas",
+            "evidence": {
+                "literal": "/_matrix/client/v3/login/sso/redirect/cas",
+                "file": "src/account/index.ts",
+                "line": 165,
+                "snippet": "* 后端把 CAS 注册在 **`/_matrix/client/v3/login/sso/redirect/cas`**（`cas` 是**末尾**"
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/_matrix/client/v3/login/sso/redirect/saml",
+            "evidence": {
+                "literal": "/login/sso/redirect/saml",
+                "file": "src/saml/index.ts",
+                "line": 87,
+                "snippet": "path: cp(\"/login/sso/redirect/saml\"),"
             }
         },
         {
@@ -1839,9 +1855,9 @@
             "path": "/_matrix/client/v3/login/sso/redirect/saml",
             "evidence": {
                 "literal": "/login/sso/redirect/saml",
-                "file": "src/auth/index.ts",
-                "line": 583,
-                "snippet": "path: \"/login/sso/redirect/saml\","
+                "file": "src/saml/index.ts",
+                "line": 87,
+                "snippet": "path: cp(\"/login/sso/redirect/saml\"),"
             }
         },
         {
@@ -1850,7 +1866,7 @@
             "evidence": {
                 "literal": "/logout/all",
                 "file": "src/account/index.ts",
-                "line": 254,
+                "line": 268,
                 "snippet": "path: ap(\"/logout/all\"),"
             }
         },
@@ -1860,7 +1876,7 @@
             "evidence": {
                 "literal": "/logout/saml",
                 "file": "src/saml/index.ts",
-                "line": 132,
+                "line": 149,
                 "snippet": "path: cp(\"/logout/saml\"),"
             }
         },
@@ -1870,7 +1886,7 @@
             "evidence": {
                 "literal": "/logout/saml/callback",
                 "file": "src/saml/index.ts",
-                "line": 203,
+                "line": 220,
                 "snippet": "path: cp(\"/logout/saml/callback\"),"
             }
         },
@@ -1880,7 +1896,7 @@
             "evidence": {
                 "literal": "/media/config",
                 "file": "src/media/index.ts",
-                "line": 197,
+                "line": 202,
                 "snippet": "const path = useAuthenticatedMedia ? \"/media/config\" : \"/config\";"
             }
         },
@@ -1910,7 +1926,7 @@
             "evidence": {
                 "literal": "/oidc/callback",
                 "file": "src/oidc/manager.ts",
-                "line": 334,
+                "line": 349,
                 "snippet": "const path = op(\"/oidc/callback\");"
             }
         },
@@ -2130,7 +2146,7 @@
             "evidence": {
                 "literal": "/pushers/set",
                 "file": "src/push/index.ts",
-                "line": 190,
+                "line": 199,
                 "snippet": "path: pp(\"/pushers/set\"),"
             }
         },
@@ -2140,7 +2156,7 @@
             "evidence": {
                 "literal": "/pushrules/{}",
                 "file": "src/push/index.ts",
-                "line": 267,
+                "line": 276,
                 "snippet": "path: pp(`/pushrules/${encodeURIComponent(scope)}`),"
             }
         },
@@ -2150,7 +2166,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}",
                 "file": "src/push/index.ts",
-                "line": 287,
+                "line": 296,
                 "snippet": "path: pp(`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}`),"
             }
         },
@@ -2200,7 +2216,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}/actions",
                 "file": "src/push/index.ts",
-                "line": 486,
+                "line": 495,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/actions`,"
             }
         },
@@ -2210,7 +2226,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}/enabled",
                 "file": "src/push/index.ts",
-                "line": 428,
+                "line": 437,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,"
             }
         },
@@ -2220,7 +2236,7 @@
             "evidence": {
                 "literal": "/pushrules/{}/{}/{}/enabled",
                 "file": "src/push/index.ts",
-                "line": 428,
+                "line": 437,
                 "snippet": "`/pushrules/${encodeURIComponent(scope)}/${encodeURIComponent(kind)}/${encodeURIComponent(ruleId)}/enabled`,"
             }
         },
@@ -2230,7 +2246,7 @@
             "evidence": {
                 "literal": "/register",
                 "file": "src/admin/sub-managers/admin-server-manager.ts",
-                "line": 408,
+                "line": 407,
                 "snippet": "return await this.adminRequest(Method.Post, \"/register\", {}, payload);"
             }
         },
@@ -2270,7 +2286,7 @@
             "evidence": {
                 "literal": "/register/email/requestToken",
                 "file": "src/auth/index.ts",
-                "line": 615,
+                "line": 596,
                 "snippet": "\"/register/email/requestToken\","
             }
         },
@@ -3010,7 +3026,7 @@
             "evidence": {
                 "literal": "/saml/metadata",
                 "file": "src/saml/index.ts",
-                "line": 213,
+                "line": 230,
                 "snippet": "path: cp(\"/saml/metadata\"),"
             }
         },
@@ -3020,7 +3036,7 @@
             "evidence": {
                 "literal": "/saml/sp_metadata",
                 "file": "src/saml/index.ts",
-                "line": 223,
+                "line": 240,
                 "snippet": "path: cp(\"/saml/sp_metadata\"),"
             }
         },
@@ -3320,7 +3336,7 @@
             "evidence": {
                 "literal": "/voip/turnServer",
                 "file": "src/client.ts",
-                "line": 3281,
+                "line": 3282,
                 "snippet": "return this.http.authedRequest(Method.Get, \"/voip/turnServer\");"
             }
         },
@@ -3340,7 +3356,7 @@
             "evidence": {
                 "literal": "/sync",
                 "file": "src/client/worker/worker.spec.ts",
-                "line": 408,
+                "line": 414,
                 "snippet": "task_data: { path: \"/sync\" },"
             }
         },
@@ -3350,7 +3366,7 @@
             "evidence": {
                 "literal": "/config",
                 "file": "src/admin/sub-managers/admin-server-manager.ts",
-                "line": 359,
+                "line": 358,
                 "snippet": "return await this.adminRequest(Method.Get, \"/config\");"
             }
         },
@@ -3360,7 +3376,7 @@
             "evidence": {
                 "literal": "/delete/{}/{}",
                 "file": "src/media/index.ts",
-                "line": 384,
+                "line": 389,
                 "snippet": "path: mp(`/delete/${serverName}/${mediaId}`),"
             }
         },
@@ -3370,7 +3386,7 @@
             "evidence": {
                 "literal": "/preview_url",
                 "file": "src/media/index.ts",
-                "line": 433,
+                "line": 438,
                 "snippet": "path: mp(\"/preview_url\"),"
             }
         },
@@ -3379,9 +3395,9 @@
             "path": "/_matrix/media/r0/upload",
             "evidence": {
                 "literal": "/upload",
-                "file": "src/device-keys/index.ts",
-                "line": 334,
-                "snippet": "* ⚠️ 2026-10-09 修正：此前打成 `/keys/signatures`（**漏了 `/upload`**）⇒ 必然 404，"
+                "file": "src/http-api/index.ts",
+                "line": 122,
+                "snippet": "const url = this.getUrl(\"/upload\", undefined, MediaPrefix.V3);"
             }
         },
         {
@@ -3390,7 +3406,7 @@
             "evidence": {
                 "literal": "/config",
                 "file": "src/admin/sub-managers/admin-server-manager.ts",
-                "line": 359,
+                "line": 358,
                 "snippet": "return await this.adminRequest(Method.Get, \"/config\");"
             }
         },
@@ -3400,7 +3416,7 @@
             "evidence": {
                 "literal": "/delete/{}/{}",
                 "file": "src/media/index.ts",
-                "line": 384,
+                "line": 389,
                 "snippet": "path: mp(`/delete/${serverName}/${mediaId}`),"
             }
         },
@@ -3410,7 +3426,7 @@
             "evidence": {
                 "literal": "/preview_url",
                 "file": "src/media/index.ts",
-                "line": 433,
+                "line": 438,
                 "snippet": "path: mp(\"/preview_url\"),"
             }
         },
@@ -3419,9 +3435,9 @@
             "path": "/_matrix/media/v1/upload",
             "evidence": {
                 "literal": "/upload",
-                "file": "src/device-keys/index.ts",
-                "line": 334,
-                "snippet": "* ⚠️ 2026-10-09 修正：此前打成 `/keys/signatures`（**漏了 `/upload`**）⇒ 必然 404，"
+                "file": "src/http-api/index.ts",
+                "line": 122,
+                "snippet": "const url = this.getUrl(\"/upload\", undefined, MediaPrefix.V3);"
             }
         },
         {
@@ -3430,7 +3446,7 @@
             "evidence": {
                 "literal": "/config",
                 "file": "src/admin/sub-managers/admin-server-manager.ts",
-                "line": 359,
+                "line": 358,
                 "snippet": "return await this.adminRequest(Method.Get, \"/config\");"
             }
         },
@@ -3440,7 +3456,7 @@
             "evidence": {
                 "literal": "/delete/{}/{}",
                 "file": "src/media/index.ts",
-                "line": 384,
+                "line": 389,
                 "snippet": "path: mp(`/delete/${serverName}/${mediaId}`),"
             }
         },
@@ -3450,7 +3466,7 @@
             "evidence": {
                 "literal": "/upload/{}/{}",
                 "file": "src/media/index.ts",
-                "line": 344,
+                "line": 349,
                 "snippet": "path: mp(`/upload/${serverName}/${mediaId}`),"
             }
         },
@@ -4230,7 +4246,7 @@
             "evidence": {
                 "literal": "/rooms/{}/summary",
                 "file": "src/room-summary/index.ts",
-                "line": 337,
+                "line": 328,
                 "snippet": "return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);"
             }
         },
@@ -4240,7 +4256,7 @@
             "evidence": {
                 "literal": "/rooms/{}/summary",
                 "file": "src/room-summary/index.ts",
-                "line": 337,
+                "line": 328,
                 "snippet": "return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);"
             }
         },
@@ -4250,7 +4266,7 @@
             "evidence": {
                 "literal": "/rooms/{}/summary",
                 "file": "src/room-summary/index.ts",
-                "line": 337,
+                "line": 328,
                 "snippet": "return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);"
             }
         },
@@ -4260,7 +4276,7 @@
             "evidence": {
                 "literal": "/rooms/{}/summary",
                 "file": "src/room-summary/index.ts",
-                "line": 337,
+                "line": 328,
                 "snippet": "return rsv(`/rooms/${encodeURIComponent(roomId)}/summary`);"
             }
         },
@@ -4580,7 +4596,7 @@
             "evidence": {
                 "literal": "/rooms/{}/widgets",
                 "file": "src/widget/index.ts",
-                "line": 163,
+                "line": 162,
                 "snippet": "const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets`);"
             }
         },
@@ -4590,7 +4606,7 @@
             "evidence": {
                 "literal": "/rooms/{}/widgets/jitsi/config",
                 "file": "src/widget/index.ts",
-                "line": 181,
+                "line": 180,
                 "snippet": "const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/jitsi/config`);"
             }
         },
@@ -4600,7 +4616,7 @@
             "evidence": {
                 "literal": "/rooms/{}/widgets/{}/capabilities",
                 "file": "src/widget/index.ts",
-                "line": 453,
+                "line": 452,
                 "snippet": "const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);"
             }
         },
@@ -4610,7 +4626,7 @@
             "evidence": {
                 "literal": "/rooms/{}/widgets/{}/capabilities",
                 "file": "src/widget/index.ts",
-                "line": 453,
+                "line": 452,
                 "snippet": "const path = wpv(`/rooms/${encodeURIComponent(roomId)}/widgets/${encodeURIComponent(widgetId)}/capabilities`);"
             }
         },
@@ -5080,7 +5096,7 @@
             "evidence": {
                 "literal": "/widgets",
                 "file": "src/widget/index.ts",
-                "line": 209,
+                "line": 208,
                 "snippet": "const path = wpv(\"/widgets\");"
             }
         },
@@ -5090,7 +5106,7 @@
             "evidence": {
                 "literal": "/widgets/sessions/{}",
                 "file": "src/widget/index.ts",
-                "line": 414,
+                "line": 413,
                 "snippet": "const path = wpv(`/widgets/sessions/${encodeURIComponent(sessionId)}`);"
             }
         },
@@ -5100,7 +5116,7 @@
             "evidence": {
                 "literal": "/widgets/sessions/{}",
                 "file": "src/widget/index.ts",
-                "line": 414,
+                "line": 413,
                 "snippet": "const path = wpv(`/widgets/sessions/${encodeURIComponent(sessionId)}`);"
             }
         },
@@ -5110,7 +5126,7 @@
             "evidence": {
                 "literal": "/widgets/{}",
                 "file": "src/widget/index.ts",
-                "line": 228,
+                "line": 227,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}`);"
             }
         },
@@ -5120,7 +5136,7 @@
             "evidence": {
                 "literal": "/widgets/{}",
                 "file": "src/widget/index.ts",
-                "line": 228,
+                "line": 227,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}`);"
             }
         },
@@ -5130,7 +5146,7 @@
             "evidence": {
                 "literal": "/widgets/{}",
                 "file": "src/widget/index.ts",
-                "line": 228,
+                "line": 227,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}`);"
             }
         },
@@ -5140,7 +5156,7 @@
             "evidence": {
                 "literal": "/widgets/{}/config",
                 "file": "src/widget/index.ts",
-                "line": 288,
+                "line": 287,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/config`);"
             }
         },
@@ -5150,7 +5166,7 @@
             "evidence": {
                 "literal": "/widgets/{}/permissions",
                 "file": "src/widget/index.ts",
-                "line": 308,
+                "line": 307,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/permissions`);"
             }
         },
@@ -5160,7 +5176,7 @@
             "evidence": {
                 "literal": "/widgets/{}/permissions",
                 "file": "src/widget/index.ts",
-                "line": 308,
+                "line": 307,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/permissions`);"
             }
         },
@@ -5170,7 +5186,7 @@
             "evidence": {
                 "literal": "/widgets/{}/permissions/{}",
                 "file": "src/widget/index.ts",
-                "line": 354,
+                "line": 353,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/permissions/${encodeURIComponent(userId)}`);"
             }
         },
@@ -5180,7 +5196,7 @@
             "evidence": {
                 "literal": "/widgets/{}/sessions",
                 "file": "src/widget/index.ts",
-                "line": 374,
+                "line": 373,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/sessions`);"
             }
         },
@@ -5190,7 +5206,7 @@
             "evidence": {
                 "literal": "/widgets/{}/sessions",
                 "file": "src/widget/index.ts",
-                "line": 374,
+                "line": 373,
                 "snippet": "const path = wpv(`/widgets/${encodeURIComponent(widgetId)}/sessions`);"
             }
         },
@@ -5205,32 +5221,12 @@
             }
         },
         {
-            "method": "GET",
-            "path": "/_synapse/cas/logout",
-            "evidence": {
-                "literal": "/_synapse/cas/logout",
-                "file": "src/cas/index.ts",
-                "line": 28,
-                "snippet": "* - `/_synapse/cas/login`、`/_synapse/cas/logout`"
-            }
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/cas/serviceValidate",
-            "evidence": {
-                "literal": "/_synapse/cas/serviceValidate",
-                "file": "src/cas/index.ts",
-                "line": 29,
-                "snippet": "* - `/_synapse/cas/serviceValidate`、`proxyValidate`、`p3/serviceValidate`、`proxy`"
-            }
-        },
-        {
             "method": "POST",
             "path": "/_synapse/room_summary/v1/summaries/batch",
             "evidence": {
                 "literal": "/_synapse/room_summary/v1/summaries/batch",
                 "file": "src/room-summary/index.ts",
-                "line": 452,
+                "line": 443,
                 "snippet": "* Uses the backend `/_synapse/room_summary/v1/summaries/batch` endpoint"
             }
         }
@@ -5335,11 +5331,6 @@
         {
             "method": "PUT",
             "path": "/_matrix/client/v1/room_keys/{version}/keys/{room_id}/{session_id}",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "GET",
-            "path": "/_matrix/client/v3/login/sso/redirect/cas",
             "scope": "CLIENT_FACING"
         },
         {
@@ -5473,31 +5464,6 @@
             "scope": "CLIENT_FACING"
         },
         {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/cas/services",
-            "scope": "SERVER_ONLY"
-        },
-        {
-            "method": "POST",
-            "path": "/_synapse/admin/v1/cas/services",
-            "scope": "SERVER_ONLY"
-        },
-        {
-            "method": "DELETE",
-            "path": "/_synapse/admin/v1/cas/services/{service_id}",
-            "scope": "SERVER_ONLY"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/admin/v1/cas/users/{user_id}/attributes",
-            "scope": "SERVER_ONLY"
-        },
-        {
-            "method": "POST",
-            "path": "/_synapse/admin/v1/cas/users/{user_id}/attributes",
-            "scope": "SERVER_ONLY"
-        },
-        {
             "method": "POST",
             "path": "/_synapse/admin/v1/push/cleanup",
             "scope": "SERVER_ONLY"
@@ -5516,21 +5482,6 @@
             "method": "POST",
             "path": "/_synapse/admin/v1/push/process",
             "scope": "SERVER_ONLY"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/cas/p3/serviceValidate",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/cas/proxy",
-            "scope": "CLIENT_FACING"
-        },
-        {
-            "method": "GET",
-            "path": "/_synapse/cas/proxyValidate",
-            "scope": "CLIENT_FACING"
         },
         {
             "method": "GET",

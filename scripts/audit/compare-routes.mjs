@@ -135,6 +135,11 @@ const isNamespaced = (p) => NAMESPACES.some((n) => p.startsWith(n));
 const SERVER_ONLY_RE = [
     /^\/_matrix\/federation\//,
     /^\/_matrix\/app\//,
+    // AS 代用户调用 C-S API 的入口（`registered_by=app_service`）：`{*path}` 通配符使 codegen
+    // 无法生成 route-table，且与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（已 SERVER_ONLY）为
+    // **孪生路由**。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 裁定「移出客户端面，不封装」——
+    // 故归入服务端排除组，7 条从 §2 移入 §6，避免被误报为"待补封装"的客户端面缺口。
+    /^\/_matrix\/client\/v\d+\/proxy\//,
     /^\/_matrix\/key\//,
     /^\/_synapse\/federation\//,
     /^\/_synapse\/worker/,
@@ -1058,6 +1063,9 @@ L.push(`## 2. 客户端面缺口（三级证据全无）— ${clientGap.length} 
 L.push("");
 if (clientGap.length === 0) {
     L.push("✅ 客户端面路由均有至少一级证据。");
+    // 必须补一个空行：否则紧跟其后的 `---`（§3 的分隔线）会被 Markdown 解析成
+    // setext H2 下划线，prettier 随即把它规范成 `## ✅ ...` 标题，污染报告标题树。
+    L.push("");
 } else {
     L.push(`判定口径：该 \`(method, path)\` 既无 L2 调用点、也无 L1 声明、也无 L3 路径构造证据。`);
     L.push("");
@@ -1259,13 +1267,14 @@ const VERIFIED = {
         evidence: "同上，`msc4156` 在 `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）。",
         action: "同上：补 `getSubscribedThreads()`，或明确该能力不在本期前端范围内。",
     },
+    "client/v1/proxy/{as_id}/{*path}": {
+        verdict: "⚪ 非前端面（已核实，登记豁免）",
+        evidence:
+            "后端 ledger `registered_by=app_service`；与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（7 方法，已在 `SERVER_ONLY_RE` 命中 `/_matrix/app/` → 归 §6）为**孪生路由**，仅前缀不同。`{*path}` 通配符使 codegen 无法生成 route-table；`grep -rn \"/proxy/\" src --include='*.ts'` 无任何消费点。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 明确裁定该 7 条「移出客户端面，归入 AS/服务端排除组（不封装）」。",
+        action: "**不封装**。已在 `scopeOf` 的 `SERVER_ONLY_RE` 增补 `/^\\/_matrix\\/client\\/v\\d+\\/proxy\\//`，这 7 条从 §2（客户端面缺口）移入 §6（服务端/非产品面缺口）。",
+    },
 };
 
-const lk = (p) => {
-    const segs = normalizeParams(p).split("/").filter(Boolean);
-    const cut = segs.findIndex((s) => /^(v\d+|r\d+|unstable)$/.test(s));
-    return segs.slice(cut + 1).join("/");
-};
 L.push(`---`);
 L.push("");
 L.push(`## 7. 人工复核记录（本轮，${localDate()}）`);

@@ -90,11 +90,10 @@ export class TagManager extends BaseManager<TagEvent, TagManagerEventMap> {
             this.roomTags.set(roomId, tags);
 
             return tags;
-            // @swallow-error { owner: "tags", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("TagManager.getRoomTags failed:", e);
-            return {};
         }
+        return {};
     }
 
     async addRoomTag(roomId: string, tag: string, order?: number): Promise<void> {

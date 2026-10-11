@@ -111,7 +111,7 @@ The CI gate `contract:codegen:check` ensures generated files stay in sync with t
 
 **Manager infrastructure** lives in `src/client-infra/`:
 
-- `manager-registry.ts` — centralized manager registration. The `ManagerName` union is the authoritative key list: 99 keys as of 2026-10-10. Note that `src/manager-extensions/index.ts` registers 97 modules and keys them in kebab-case (`account-data`), while this union is mostly camelCase (`accountData`) — the two lists are not directly key-comparable, and a few keys here are inconsistent (`"external-service"`, `"saml-auth"` are kebab-case; `BurnAfterReadManager` carries a stray `Manager` suffix).
+- `manager-registry.ts` — centralized manager registration. The `ManagerName` union is the authoritative key list: 99 keys as of 2026-10-10, all uniform camelCase (the 2026-10-11 cleanup renamed the three outliers `externalService` / `samlAuth` / `burnAfterRead`). Note that `src/manager-extensions/index.ts` registers 97 modules and keys them in kebab-case (`account-data`) — that is a **separate namespace** (extension module folders), not directly key-comparable with this union.
 - `request-context.ts` — shared request context types
 
 ### Manager Pattern

@@ -58,9 +58,6 @@ export type StripInternalSummary<P extends string> = StripPrefix<P, "/_synapse/r
 /** 剥离 `/_synapse/worker`。 */
 export type StripWorkerPrefix<P extends string> = StripPrefix<P, "/_synapse/worker">;
 
-/** 剥离 `/_matrix/admin/v1`。 */
-export type StripMatrixAdminV1<P extends string> = StripPrefix<P, "/_matrix/admin/v1">;
-
 /** 剥离 `/_matrix/client/unstable/org.matrix.simplified_msc3575`。 */
 export type StripSimplifiedSlidingSync<P extends string> = StripPrefix<
     P,

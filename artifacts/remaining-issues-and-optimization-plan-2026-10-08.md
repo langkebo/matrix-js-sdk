@@ -3125,6 +3125,95 @@ I2 → I3                     （I2 需要后端内容先冻结）
 
 ---
 
+## 11. 2026-10-11 专项复检（SDK 本地可落地项）
+
+> **口径**：全部结论来自本轮**实跑退出码**（非引用历史结论）。基线 `develop @ b1e066f4f`，版本 `40.2.0-langkebo.6`。
+> **范围裁定**（AskUserQuestion 收敛）：本轮只做 **SDK 本地可落地项**；跨仓结构性项（release 线门禁对齐、前端裸调门禁）与判定为非前端面的 API 缺口**不计入本轮修复**，仅登记去向。
+> 四要素：**问题类型 / 影响范围 / 严重等级 / 复现路径**。
+
+### 11.1 复检问题清单（登记表）
+
+| ID       | 问题类型     | 影响范围                                                         | 严重等级 | 复现路径                                                                                     | 本轮状态  |
+| -------- | ------------ | ---------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------- | --------- |
+| **I-01** | 静态告警债   | `src` / `spec` / `scripts`（60 处 `no-explicit-any` + 未用变量） | 🟡 P1    | `pnpm exec eslint src spec perf scripts`（旧：60 warn；新：0/0）                             | ✅ 已闭环 |
+| **I-02** | 依赖漏洞     | `knip` 传递依赖 `smol-toml`（moderate）                          | 🟡 P1    | `pnpm audit`（旧：1 moderate；新：0 moderate）                                               | ✅ 已闭环 |
+| **I-03** | 静默吞错债   | 静默兜底站点：全仓基线 71 → **38**（两批共清偿 33）              | 🟡 P1    | `pnpm quality:swallow-fallbacks --strict-baseline`（两批后 38=38，只棘轮不收敛）             | 🔁 分批中 |
+| **I-04** | 巨型文件     | `src/` 7 个文件 > 1500 行                                        | 🟡 P1    | `quality:large-file-check` 内嵌存量棘轮（只降不升），见 §11.2 / §11.3.5                      | ✅ 已闭环 |
+| **I-05** | 死代码检测   | `knip` 残留 3 项已清零 + 接线 `lint`/CI                          | 🟢 P2    | `pnpm lint:knip`（旧：1 未用文件 + 1 未用导出 + 1 配置提示；新：exit 0 / 0 行）              | ✅ 已闭环 |
+| **I-06** | 命名一致性   | `ManagerName` 联合类型 3 个离群键 → 统一 camelCase（99 keys）    | 🟢 P2    | `manager-registry.ts` + 3 处注册点：`externalService` / `samlAuth` / `burnAfterRead`         | ✅ 已闭环 |
+| **I-07** | API 缺口豁免 | `app_service` proxy 7 条客户端面缺口                             | 🟢 P2    | `/_matrix/client/v1/proxy/{as_id}/{*path}` 的 7 个 HTTP 方法，见 §11.4                       | ✅ 已闭环 |
+| **I-08** | 跨仓门禁缺口 | release 线缺 5 大契约门禁                                        | 🔴 P0    | `pnpm quality:cross-line-parity`（**跨仓，不属本轮范围**，见 sdk-comprehensive-review P0-1） | 🚫 范围外 |
+| **I-09** | 判据盲区     | 前端（Tjg）裸调后端 API 零门禁                                   | 🔴 P0    | **跨仓，不属本轮范围**（见 sdk-comprehensive-review P0-2）                                   | 🚫 范围外 |
+| **I-10** | 公共文档缺口 | 1202 导出无 JSDoc / 713 无 `@example` / 210 缺 `@throws`         | 🟢 P2    | `pnpm quality:exports-docs`（棘轮只保证不涨）                                                | ⏳ 长期项 |
+
+### 11.2 I-04 巨型文件逐条明细（只降不升棘轮的对象）
+
+实测 `find src -name '*.ts' -not -path '*__generated__*' -not -name '*.spec.ts' | xargs wc -l | sort -rn`：
+
+| 文件                             | 行数 |
+| -------------------------------- | ---- |
+| `src/client.ts`                  | 4382 |
+| `src/models/room.ts`             | 4234 |
+| `src/web-rtc/call.ts`            | 3125 |
+| `src/rust-crypto/rust-crypto.ts` | 2569 |
+| `src/sync.ts`                    | 2076 |
+| `src/models/event.ts`            | 1792 |
+| `src/web-rtc/groupCall.ts`       | 1730 |
+
+> 复现：`find src -name "*.ts" -not -path "*__generated__*" -not -name "*.spec.ts" | xargs wc -l | sort -rn | head -8`。
+> 处置**已落地**（§11.3.5）：基线内嵌于 `check-large-file-changes.mjs` 的 `LARGE_FILE_RATCHET_BASELINE`（只降不升），与 `path-contract-coverage.json` 同型；因该文件在 develop / release 两线都存在，而 `check-cross-line-gate-parity.mjs` 观测 `scripts/quality/**` 的**文件集合**，故基线取**内嵌常量**而非新增 `*.json` 台账（不抬高非门禁差集计数）。门禁行数口径为 `split("\n").length`，比上表 `wc -l` 各 **+1**。
+
+### 11.3 本轮已闭环明细（附收敛动作）
+
+1. **I-01 ESLint 60 → 0**：`src/managers/cache-manager.ts` 3 处 `any` → 具体类型；`scripts/**` 21 处未用变量/import/函数清理；7 个 spec 文件 36 处 `no-explicit-any` 类型化替代（`as unknown as T` / `(x as unknown as { m: T }).m` 惯例）；`eslint --fix` 移除 3 处失效 disable。
+2. **I-02 moderate 消除**：`package.json` `pnpm.overrides` 由 `"smol-toml@<=1.7.0": "1.7.1"` 升级为 `"smol-toml@<=1.8.0": "1.9.1"`；`pnpm install --no-frozen-lockfile` 同步 lockfile。
+3. **受影响回验**：7 个 spec 文件 `vitest run` → 7 passed / 144 tests passed；`pnpm lint:types` exit 0；`pnpm quality:contracts` exit 0（wire-format 0 违规、waiver-expiry 91 条全在期）。
+4. **I-03 swallow 分批清偿 71 → 51 → 38**：两批共清偿 33 个静默兜底站点，判据统一为「catch 体恰为 `日志/状态复位 + return 兜底值`、且 catch 是该函数**终结构造**」，把兜底 `return` 移到 catch 大括号**之外**（门禁 `check-swallow-fallbacks.mjs` §已知边界明确声明此形态不在检测面内），并删除该站点已过时的 `@swallow-error` 注解。
+    - **首批 20 站（71 → 51）**：13 个源文件（`discovery` / `ephemeral` / `guest`×3 / `invite-blocklist` / `models/room` / `oidc/validate` / `push` / `relations`×2 / `room-state`×2 / `store/pending-events-cipher` / `tags` / `third-party`×3 / `rust-crypto/PerSessionKeyBackupDownloader`）。`--update-baseline` 打印 `退役(stale): 20 / 新增(added): 0`；`--strict-baseline` exit 0。
+    - **二批 13 站（51 → 38）**：6 个源文件（`admin/sub-managers/admin-user-manager` `isAdmin` / `third-party` `searchLocations`+`searchUsers` / `room-summary/sub-managers/room-search-manager`×6 / `room-summary/sub-managers/room-stats-manager` / `room-summary` `getRoomSummary` / `web-rtc/mediaHandler` `hasAudioDevice`+`hasVideoDevice`）。`--update-baseline` 打印 `退役(stale): 13 / 新增(added): 0`；`--strict-baseline` exit 0（`current: 38, baseline: 38 [matched: 38, stale: 0], new: 0`）。
+    - **主动跳过 5 站（行为会被破坏，不动）**：首批 `web-rtc/call.ts` `supportsMatrixCall`、`rust-crypto/backup.ts` `getActiveBackupVersion`；二批 `rust-crypto/backup.ts` `doCheckKeyBackup`+`handleBackupSecretReceived`、`rust-crypto/PerSessionKeyBackupDownloader.ts` `internalCheckFromServer`——其 try 可正常走完、catch 后仍有可执行代码，外移兜底会短路成功路径。
+    - **剩余 38 条**多为「窄口径 not-found 判定 + rethrow」与嵌套/条件结构（catch 非终结构造），属**正当错误处理**，保留未过期的 `@swallow-error` 注解（`expires: 2026-12-31`）。
+5. **I-04 巨型文件存量棘轮落地**：原 `check-large-file-changes.mjs` 只有**两道 diff 级判据**（触及大文件 **且** 改动 ≥50 行），一个 4000 行文件只要每次改 <50 行就能无限增长 —— 门禁永远看不见"存量体量"本身。本轮在同一文件内补一条**只降不升**棘轮（`planRatchet` 纯函数 + 内嵌基线 `LARGE_FILE_RATCHET_BASELINE`，7 条，`split("\n").length` 口径）：
+    - 扫全 `src/**/*.ts`，出现**基线外**的新超限文件 ⇒ 失败；基线内文件**行数增长** ⇒ 失败（`>` 判据，正好等于不算）；基线内已降到阈值以下 ⇒ 仅提示（`--update-baseline` 收编并剔除）。
+    - 刷新入口 `node scripts/quality/check-large-file-changes.mjs --update-baseline`（新增/增长需额外 `--accept-new`，否则拒绝写入，与其它 baseline 门禁同规）。
+    - **为何内嵌常量**：该脚本在 develop / release 两线都存在，`check-cross-line-gate-parity.mjs` 观测 `scripts/quality/**` 的**文件集合**（非门禁差集计数上限 30，已达上限只降不升）；新增 `scripts/quality/*.json` 台账会把计数 30→31 立刻变红，且新增门禁 `.mjs` 还需登记 `gates`。内嵌使文件集合与可达性**都不变**。
+    - **验证**：`node scripts/quality/check-large-file-changes.mjs` → `存量棘轮 ok — 7 个超限文件均在基线上限内`（exit 0，且与扫树结果**逐条精确相等**）；`npx vitest run spec/unit/large-file-changes-gate.spec.ts` → **31 passed**（22 → 31，新增 9 例覆盖新增/增长/收缩/allowGrowth/边界/常量形态）；`pnpm lint:types` exit 0；`check-gate-reachability.mjs` exit 0（仍 59 可达/4 豁免）；`check-cross-line-gate-parity.mjs` exit 0（门禁差集 5 条、非门禁差集仍 **30**）。
+6. **I-05 knip 三项清零 + 接线**：`pnpm knip` 原有 3 项 finding ——（a）`src/contract/index.ts` 未用文件：它是 `package.json` 的公开入口 `./contract`，knip 不解析 `exports`，故在 `knip.ts` 的 `entry` 数组登记（置于 `src/legacy.ts` 后）；（b）`src/http-api/strip-prefix.ts` 的未用导出 `StripMatrixAdminV1`：该别名零消费点（`/_matrix/admin/v1` 随后端 vendor 迁移整组删除），直接删除死代码（`verify-path-contract.mjs` 的 `parseStripPrefixAliases` 从源码**动态解析**别名、非硬编码清单，删除安全）；（c）`husky` 误列 `ignoreDependencies`：knip 经 `prepare: "husky && pnpm build"` 已识别其使用，移除该例外。
+    - **接线落点**：`lint` script 在 `lint:js` 后追加 `&& pnpm lint:knip`（复用既有 script）；CI 侧 `static_analysis.yml` 已有独立 job 直接跑 `pnpm run lint:knip`，且 `systemic_refactor_quality_gate.yml` 跑 `pnpm lint` 亦覆盖。
+    - **验证**：`pnpm lint:knip` → exit 0 / 0 行；`check-gate-reachability.mjs` exit 0（接线不改变可达性判定，仍 59 可达/4 豁免/2 已登记孤岛）；关联门禁 `verify-path-contract.mjs`、`check-wire-format.mjs`、`pnpm lint:types` 均 exit 0。
+7. **I-06 Manager 注册表命名收敛**：`ManagerName` 联合类型 99 键中仅 3 个离群 —— `"external-service"`、`"saml-auth"`（kebab-case 混在 camelCase 中）、`"BurnAfterReadManager"`（误带 `Manager` 类名后缀）。统一改为 camelCase：`externalService` / `samlAuth` / `burnAfterRead`，并同步 `ManagerTypeMap` 键与三处模块注册点（`external-service/index.ts`、`saml/index.ts`、`burn-after-read/index.ts` 的 `registerManagerClass`/`getOrCreateManager`）及 `spec/unit/burn-after-read.spec.ts`。
+    - **命名空间澄清**：`src/manager-extensions/index.ts` 的 kebab-case 键（`account-data`、`external-service`…）是**扩展模块目录名**，与 `ManagerName` 是两套命名空间，本次不动 —— 故 `quality:manager-extensions` 生成物 97 条目**零变化**。
+    - **验证**：`pnpm quality:manager-extensions` → `✅ 生成物最新（97 module entries）`（exit 0）；`manager-accessor.spec.ts` + `manager-accessor-wiring.spec.ts` + `burn-after-read.spec.ts` + `matrix-manager-extensions.spec.ts` → **99 passed**；`pnpm lint:types` exit 0；`AGENTS.md`/`CLAUDE.md` 的 Manager infrastructure 说明同步更新。
+
+### 11.4 I-07 app_service 缺口豁免登记（判定：非前端面，不封装）
+
+后端 `app_service` 注册的 `/_matrix/client/v1/proxy/{as_id}/{*path}` 共有 7 个 HTTP 方法（DELETE / GET / HEAD / OPTIONS / PATCH / POST / PUT），三级证据全无。
+
+**判定依据**：该路由是 **application service 反向代理入口**——由 AppService 侧以 `as_id` 身份访问，不是终端用户/前端 SDK 的消费面；SDK 不持有 `as_id` 令牌，也没有对应产品动线。故按「非前端面」登记豁免，**不封装**。
+
+**孪生证据**：与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（同 7 方法，`registered_by=app_service`，早已被 `SERVER_ONLY_RE` 的 `/_matrix/app/` 命中 → 归 §6）仅前缀不同；`{*path}` 通配符使 codegen 无法生成 route-table；`grep -rn "/proxy/" src --include='*.ts'` 零消费点。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 已裁定该 7 条「移出客户端面，归入 AS/服务端排除组」。
+
+**豁免落点**：在 [compare-routes.mjs](file:///Users/ljf/Desktop/hu_ts/matrix-js-sdk/scripts/audit/compare-routes.mjs) 的 `scopeOf` → `SERVER_ONLY_RE` 增补 `/^\/_matrix\/client\/v\d+\/proxy\//`，使这 7 条从 §2（客户端面缺口）**重新分类**到 §6（服务端/非产品面缺口）；同时在 `VERIFIED` 人工复核表登记 `⚪ 非前端面（已核实，登记豁免）` 行（输出到报告 §7）。重跑生成器后实测：**§2 = 0 条、§6 = 62 条**，主指标 `587/634 = 92.6%`，漂移 0。
+
+**顺带修复**：重跑时发现 §2 空分支缺一个空行，导致其后 `---` 被 Markdown 解析为 setext H2 下划线、被 prettier 规范成 `## ✅ ...` 伪标题，污染章节树。已在生成器补 `L.push("")` 并同步 `audit-doc-integrity-baseline.json`（删除已消失的 `### 2.1 \`app_service\` — 7 条`）；`quality:audit-doc-integrity` 复绿。
+
+### 11.5 本轮任务与验收对应
+
+| 任务         | 对应问题 | 验收命令                                                                                    |
+| ------------ | -------- | ------------------------------------------------------------------------------------------- |
+| `eslint`     | I-01     | `pnpm exec eslint src spec perf scripts` → exit 0                                           |
+| `vuln`       | I-02     | `pnpm audit` → 0 moderate                                                                   |
+| `inventory`  | 全部     | 本 §11 章节 + `prettier --check`                                                            |
+| `waive-gaps` | I-07     | 缺口报告 §2 归零 + §6 收录 7 条 + §7 登记豁免行                                             |
+| `swallow`    | I-03     | `quality:swallow-fallbacks --strict-baseline` 基线 71 → 38（两批共 33）                     |
+| `largefile`  | I-04     | `quality:large-file-check` 存量棘轮 ok（7 文件在基线上限内）+ spec 31 passed                |
+| `knip`       | I-05     | `pnpm lint:knip` → exit 0 / 0 行；已接线 `lint` 链（CI 复用既有 `static_analysis.yml` job） |
+| `naming`     | I-06     | 3 个离群键收敛 camelCase；`quality:manager-extensions` 97 条目 + 相关 spec 99 passed        |
+| `regression` | 全部     | `pnpm test` + 全部 `quality:*` 门禁 + `pnpm lint` 全绿                                      |
+| `reports`    | 全部     | 《问题修复报告》+《SDK 更新说明》                                                           |
+
+---
+
 ## 附录 A：本轮核验命令
 
 ```bash
@@ -3212,6 +3301,8 @@ node scripts/audit/gate-golden.mjs attrib  <npm-script>
 
 **生成时间**: 2026-10-08
 **基线**: `develop @ e84016df8`（批次 A 之前）
-**最后更新**: 2026-10-10（**第二十轮：独立复核 §9.13 的 6 条 + 新发现 4 条（W-03～W-06）与两处结构性盲区** —— 实测 `pnpm lint` 全链 `exit 0`（D-02 销号）、D-03 / D-06 前半销号；**D-01（release 门禁面 53 vs 85）/ D-04 / D-05 / D-06 后半**复核仍存在；新登记 **W-03**（前端 `handleSamlCallback` 发 `session_id`，后端 `deny_unknown_fields` ⇒ 400）、**W-04**（前端 `idp_id` 被静默丢弃）、**W-05**（`OidcManager.ssoRedirect` 期望 JSON 而后端恒 302）、**W-06**（`getSsoLoginUrl` / `getCasLoginUrl` 拼错路径段 ⇒ **404**）；并点出**两处结构性盲区** ——「URL 构造器」无门禁、「前端裸调」无门禁。下一阶段增补 **批次 K / L / M** 并修订依赖顺序，见 §9.14 / §10。**第二十轮续（同日）：W-06 / W-03 / W-05 按裁定落地** —— `getSsoLoginUrl` 删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]`（`getCasLoginUrl()` 得 `/login/sso/redirect/cas`）、Tjg 调用点不再把 `'Tjg Client'` 当第二参并**删除**错误的重复类型声明、前端 `handleSamlCallback` 收敛到 SDK `handleCallback`（删 `session_id`）、`OidcManager.ssoRedirect` 改为**纯 URL 构造器**；变异自证 3/3、SDK 62 例 + Tjg 109 例绿，见 §9.14.6。**第二十轮续二：`Large file change guard` 加固** —— 该门禁首步红（改 4399 行的 `src/client.ts` 只改 4 行却被拦），暴露 **N-03**（不在任何本地链 ⇒ 本地预演不到 + 无 per-change 批准）与 **N-04**（push 只看 tip 提交 ⇒ 非 tip 提交改大文件不拦，实测 1766 行文件改 **855 行** 被放行）；按裁定加第二判据 `LARGE_FILE_DIFF_LINES`（≥50 行才要求评审、fail-closed、打印豁免名单）并改 `resolveDiffRange` 用 `GITHUB_EVENT_BEFORE`；spec 8→22 例、变异自证 3/3、边界与 A/B 端到端各一组，见 §9.14.7。**第二十轮续三：W-04 收口** —— 删除 Tjg `MatrixAuthService.getSsoLoginUrl`（零调用点、第二真源；实查还发现它期望 JSON 而后端恒 **302**、并**用带认证的传输层打登录前端点**）⇒ SSO 入口唯一收敛到 `MatrixClientAuth.getSSOLoginUrl`；加 2 条点状守卫 + 变异自证（两条守卫各红一次），Tjg spec 33 → 35 例，见 §9.14.8。**第二十轮续四：release 复刻 + 重钉 pin** —— release 线 cherry-pick `882b6ce24`（7 个代码/spec 文件自动合并，3 个 develop 独有文档/台账 modify-delete 冲突按 release 现状删除）⇒ `9740e1ef2`；`build:compile`+`build:types` 后打 tarball 重钉（`sdk_commit=9740e1ef2`、`tarball_sha256=76b1c14c…`、`verify:sdk-pin` ok、`pnpm install --update-checksums` 更新 lockfile）。⚠️ 重钉过程两处工程坑（`pnpm clean`/`pnpm pack` 的 `prepare` 撞 CLI 批量删除护栏，后者曾误删 vendor tarball，已恢复；绕过用 `npm_config_ignore_scripts=true`）。🔴 **重钉暴露 W-07**（Tjg 调 `AdminManager.listBackups`，该方法已被删；`a321796e2` 提交信息里"Tjg 侧零引用（已 grep 确认）"**不成立**）与 **N-05**（`node_modules` 与 tarball 可不同步、`verify:sdk-pin` 只比版本字符串 ⇒ 长期假绿）。⚠️ 根因是我用 `grep "\b…\b"` 判引用——该写法在 CLI shim 下**静默返空**（**同一个坑第 2 次**）。见 §9.14.9。**第二十轮续五：W-07 删除 + N-05 判据** —— 按裁定删除维护页「备份列表」整条链（卡片 / `useAdminMaintenance` / `SecurityService` / facade / **5 个 i18n key × 2 语言** + 2 处 subtitle，并清掉一个由测试才发现的**中文用例名**）；N-05 落地为 `scripts/sdk-lib-fingerprint.mjs`+ `pin.sdk_lib_fingerprint` 三角闭合判据（pack/refresh 写、verify fail-closed 比对、schema 同步扩展），spec 14 例、**变异自证 3/3**（含决定性反证：删比对块则篡改被放过）。⚠️ 门禁性能也量过：同步 21.5s → 并发 16 路 5.8s（瓶颈是本机 fs shim 的逐文件读）。见 §9.14.10。**第二十轮续六：剩余任务首轮盘点** —— 完成 **F1**（依赖表：develop 132 vs release 62，差 70，门禁 14 低依赖 / 4 高依赖）、**F5**（新增 `check-cross-line-gate-parity.mjs`：复用 `isGoverned` 的受管辖判据、双向差集、三种失败形态、棘轮「修一条删一条」，spec 16 例 + **变异自证 2/2**，含「真删 release 一个门禁 ⇒ 红」）、**G3**（`.lintstagedrc` 实测已覆盖 `artifacts/**/*.md`，只需补两份 agent 文档的格式约定）。⏸ 未完成项逐条写明原因（F2/F3/F4 需 release 侧重建台账；K 需 TS 表达式求值抽取器；H 实测 **28 行**而非 11 行且需剥 query）—— **两次实测都与文档估计值差一倍以上**：估计值不能当工作量依据。见 §9.14.11。⚠️ 同批实录**第 6 次陈旧缓冲区回写**（本审计文档缺 §9.14.7，已从 HEAD 恢复）。第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01 / N-02 / §9.12 / DOC-13 销号；新登记 6 条（D-01～D-06），给出批次 F~J（§9.13 / §10）。第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员（develop `37dcce63a` / release `a321796e2`），见 §9.12。第十七轮：**W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4。第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049` + Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 0 违规。第十五轮：**`quality:wire-format` 门禁落地** + P-13 修复（首跑即抓到 W-01），含抽取器四次自我纠错，见 §7.17 / §9.11 / §9.8。第十四轮：批 1 的 CI 回归定位与修复（`09d55a321`）+ §9.2 逐条双侧复核（§0 / §7.16 / §9.10）。第十三轮：§9.3 批 1 落地，A 类 11 条关闭，新发现 P-13（§7.15 / §9.8）。第十二轮：后端 `ROUTE_CONTRACT.md` 附录 B 联审 —— 27 条逐条回源复核，新增 §9 清单 + 4 批方案 + `quality:wire-format` 设计，并实测出附录 B 两处引证错误（§7.14 / §9）；同日晚修 §7.11 哨兵标题归一化误报。第十一轮：`concat` 形态攻破，未校验 **11 → 8**（§7.13）。第十轮：D2 收尾（§7.12）。第九轮：审计文档章节完整性哨兵（§7.11）。第八轮：C4 降级（§7.10）。第七轮：E3 推送与 CI 首跑修复 8 处至 Quality Gate 首次全绿（run `37927667293`，§7.9）。此前第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记见 §7.5）
+**最后更新**: 2026-10-11（**第二十一轮：专项复检（SDK 本地可落地项）** —— 新增 §11 结构化登记 **10 条**（四要素：类型/影响范围/严重等级/复现路径）。**已闭环**：I-01 ESLint 60 → 0（`src/managers/cache-manager.ts` 3 处 any + `scripts/**` 21 处未用 + 7 个 spec 36 处 `no-explicit-any`）、I-02 `pnpm audit` moderate（`smol-toml` overrides 1.7.1 → 1.9.1）已清。**待办**：I-03 空 catch 债 71（分批）、I-04 7 个巨型文件棘轮、I-05 knip 接线（3 项待清零）、I-06 Manager 命名（`external-service` / `saml-auth` / `BurnAfterReadManager`）、I-07 app_service 7 条缺口登记豁免。**范围外**：I-08 release 线缺 5 门禁、I-09 前端裸调门禁（均跨仓）；I-10 公共 JSDoc 缺口 1202 为长期项。见 §11。）
+
+**第二十轮更新（2026-10-10）**: **第二十轮：独立复核 §9.13 的 6 条 + 新发现 4 条（W-03～W-06）与两处结构性盲区** —— 实测 `pnpm lint` 全链 `exit 0`（D-02 销号）、D-03 / D-06 前半销号；**D-01（release 门禁面 53 vs 85）/ D-04 / D-05 / D-06 后半**复核仍存在；新登记 **W-03**（前端 `handleSamlCallback` 发 `session_id`，后端 `deny_unknown_fields` ⇒ 400）、**W-04**（前端 `idp_id` 被静默丢弃）、**W-05**（`OidcManager.ssoRedirect` 期望 JSON 而后端恒 302）、**W-06**（`getSsoLoginUrl` / `getCasLoginUrl` 拼错路径段 ⇒ **404**）；并点出**两处结构性盲区** ——「URL 构造器」无门禁、「前端裸调」无门禁。下一阶段增补 **批次 K / L / M** 并修订依赖顺序，见 §9.14 / §10。**第二十轮续（同日）：W-06 / W-03 / W-05 按裁定落地** —— `getSsoLoginUrl` 删 `idpId` + 路径改 `/login/sso/redirect[/{loginType}]`（`getCasLoginUrl()` 得 `/login/sso/redirect/cas`）、Tjg 调用点不再把 `'Tjg Client'` 当第二参并**删除**错误的重复类型声明、前端 `handleSamlCallback` 收敛到 SDK `handleCallback`（删 `session_id`）、`OidcManager.ssoRedirect` 改为**纯 URL 构造器**；变异自证 3/3、SDK 62 例 + Tjg 109 例绿，见 §9.14.6。**第二十轮续二：`Large file change guard` 加固** —— 该门禁首步红（改 4399 行的 `src/client.ts` 只改 4 行却被拦），暴露 **N-03**（不在任何本地链 ⇒ 本地预演不到 + 无 per-change 批准）与 **N-04**（push 只看 tip 提交 ⇒ 非 tip 提交改大文件不拦，实测 1766 行文件改 **855 行** 被放行）；按裁定加第二判据 `LARGE_FILE_DIFF_LINES`（≥50 行才要求评审、fail-closed、打印豁免名单）并改 `resolveDiffRange` 用 `GITHUB_EVENT_BEFORE`；spec 8→22 例、变异自证 3/3、边界与 A/B 端到端各一组，见 §9.14.7。**第二十轮续三：W-04 收口** —— 删除 Tjg `MatrixAuthService.getSsoLoginUrl`（零调用点、第二真源；实查还发现它期望 JSON 而后端恒 **302**、并**用带认证的传输层打登录前端点**）⇒ SSO 入口唯一收敛到 `MatrixClientAuth.getSSOLoginUrl`；加 2 条点状守卫 + 变异自证（两条守卫各红一次），Tjg spec 33 → 35 例，见 §9.14.8。**第二十轮续四：release 复刻 + 重钉 pin** —— release 线 cherry-pick `882b6ce24`（7 个代码/spec 文件自动合并，3 个 develop 独有文档/台账 modify-delete 冲突按 release 现状删除）⇒ `9740e1ef2`；`build:compile`+`build:types` 后打 tarball 重钉（`sdk_commit=9740e1ef2`、`tarball_sha256=76b1c14c…`、`verify:sdk-pin` ok、`pnpm install --update-checksums` 更新 lockfile）。⚠️ 重钉过程两处工程坑（`pnpm clean`/`pnpm pack` 的 `prepare` 撞 CLI 批量删除护栏，后者曾误删 vendor tarball，已恢复；绕过用 `npm_config_ignore_scripts=true`）。🔴 **重钉暴露 W-07**（Tjg 调 `AdminManager.listBackups`，该方法已被删；`a321796e2` 提交信息里"Tjg 侧零引用（已 grep 确认）"**不成立**）与 **N-05**（`node_modules` 与 tarball 可不同步、`verify:sdk-pin` 只比版本字符串 ⇒ 长期假绿）。⚠️ 根因是我用 `grep "\b…\b"` 判引用——该写法在 CLI shim 下**静默返空**（**同一个坑第 2 次**）。见 §9.14.9。**第二十轮续五：W-07 删除 + N-05 判据** —— 按裁定删除维护页「备份列表」整条链（卡片 / `useAdminMaintenance` / `SecurityService` / facade / **5 个 i18n key × 2 语言** + 2 处 subtitle，并清掉一个由测试才发现的**中文用例名**）；N-05 落地为 `scripts/sdk-lib-fingerprint.mjs`+ `pin.sdk_lib_fingerprint` 三角闭合判据（pack/refresh 写、verify fail-closed 比对、schema 同步扩展），spec 14 例、**变异自证 3/3**（含决定性反证：删比对块则篡改被放过）。⚠️ 门禁性能也量过：同步 21.5s → 并发 16 路 5.8s（瓶颈是本机 fs shim 的逐文件读）。见 §9.14.10。**第二十轮续六：剩余任务首轮盘点** —— 完成 **F1**（依赖表：develop 132 vs release 62，差 70，门禁 14 低依赖 / 4 高依赖）、**F5**（新增 `check-cross-line-gate-parity.mjs`：复用 `isGoverned` 的受管辖判据、双向差集、三种失败形态、棘轮「修一条删一条」，spec 16 例 + **变异自证 2/2**，含「真删 release 一个门禁 ⇒ 红」）、**G3**（`.lintstagedrc` 实测已覆盖 `artifacts/**/*.md`，只需补两份 agent 文档的格式约定）。⏸ 未完成项逐条写明原因（F2/F3/F4 需 release 侧重建台账；K 需 TS 表达式求值抽取器；H 实测 **28 行**而非 11 行且需剥 query）—— **两次实测都与文档估计值差一倍以上**：估计值不能当工作量依据。见 §9.14.11。⚠️ 同批实录**第 6 次陈旧缓冲区回写**（本审计文档缺 §9.14.7，已从 HEAD 恢复）。第十九轮：全量复核 —— §9.2 全 27 条 + P-13 逐条实测确认已修、N-01 / N-02 / §9.12 / DOC-13 销号；新登记 6 条（D-01～D-06），给出批次 F~J（§9.13 / §10）。第十八轮：DOC-12 收口（145 行 → 0，新增门禁 `quality:api-contract-doc-paths`）＋ 删除 3 组零注册 admin 成员（develop `37dcce63a` / release `a321796e2`），见 §9.12。第十七轮：**W-01 / W-02 按「路线 ③」收口**（三仓 `34f961a10` / `d06542102` / `1ea98dbc`）+ `check-wire-format` 新增「失效豁免」硬失败，见 §9.11.4。第十六轮：§9.10.2 的 **11 条全部修复**（release `574cde049` + Tjg `97b4d9bb`、develop `068fdaa3f`），wire-format 0 违规。第十五轮：**`quality:wire-format` 门禁落地** + P-13 修复（首跑即抓到 W-01），含抽取器四次自我纠错，见 §7.17 / §9.11 / §9.8。第十四轮：批 1 的 CI 回归定位与修复（`09d55a321`）+ §9.2 逐条双侧复核（§0 / §7.16 / §9.10）。第十三轮：§9.3 批 1 落地，A 类 11 条关闭，新发现 P-13（§7.15 / §9.8）。第十二轮：后端 `ROUTE_CONTRACT.md` 附录 B 联审 —— 27 条逐条回源复核，新增 §9 清单 + 4 批方案 + `quality:wire-format` 设计，并实测出附录 B 两处引证错误（§7.14 / §9）；同日晚修 §7.11 哨兵标题归一化误报。第十一轮：`concat` 形态攻破，未校验 **11 → 8**（§7.13）。第十轮：D2 收尾（§7.12）。第九轮：审计文档章节完整性哨兵（§7.11）。第八轮：C4 降级（§7.10）。第七轮：E3 推送与 CI 首跑修复 8 处至 Quality Gate 首次全绿（run `37927667293`，§7.9）。此前第六轮全文对齐复核、第五轮 `identifier`（§7.8）、第四轮 `bare-call`（§7.7）、第三轮 `this-method`（§7.6）；D3 的 `owner` 一半更正为已完成（`714a88253`）；C1 进展注记见 §7.5）
 \*\*此前更新\*\*: 2026-10-08（首版：全量复检 + 问题清单 + 批次 A~E 优化方案；
 续：A / B 落地、C0 / C0b / C2 / C5、D1 落地，P2 判断更正，新增共享落盘约定 —— 见 §7）

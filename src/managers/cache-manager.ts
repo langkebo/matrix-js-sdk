@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { LRUCache, CacheStats, CacheRegistry } from "../utils/lru-cache";
+import { LRUCache, CacheStats, CacheRegistry, AggregatedCacheStats } from "../utils/lru-cache";
 import { logger } from "../logger";
 
 /**
@@ -201,7 +201,6 @@ export class UnifiedCacheManager {
      */
     invalidate(patterns: string[]): void {
         const keysToDelete: string[] = [];
-        const prefix = `${this.config.namespace}:`;
 
         for (const pattern of patterns) {
             // Pattern 可能已包含或不包含前缀，统一加上前缀进行匹配
@@ -250,7 +249,7 @@ export class UnifiedCacheManager {
     /**
      * 获取缓存快照
      */
-    snapshot(): Map<string, any> {
+    snapshot(): Map<string, unknown> {
         return new Map(this.cache.entries());
     }
 }
@@ -350,7 +349,7 @@ export class CacheManagerFactory {
 export class CacheMonitor {
     private static instance: CacheMonitor | null = null;
     private enabled: boolean = false;
-    private statsLog: Array<{ timestamp: number; stats: any }> = [];
+    private statsLog: Array<{ timestamp: number; stats: AggregatedCacheStats }> = [];
 
     static getInstance(): CacheMonitor {
         if (!CacheMonitor.instance) {

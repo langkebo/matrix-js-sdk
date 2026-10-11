@@ -749,7 +749,7 @@ export class BurnAfterReadManager extends BaseManager<BurnAfterReadEvent, BurnAf
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getBurnAfterReadManager = function (): BurnAfterReadManager {
-        registerManagerClass("BurnAfterReadManager", BurnAfterReadManager);
-        return getOrCreateManager(this, "BurnAfterReadManager", () => new BurnAfterReadManager(this));
+        registerManagerClass("burnAfterRead", BurnAfterReadManager);
+        return getOrCreateManager(this, "burnAfterRead", () => new BurnAfterReadManager(this));
     };
 }

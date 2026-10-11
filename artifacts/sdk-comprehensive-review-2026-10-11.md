@@ -53,7 +53,9 @@ Tjg（另一仓）绕过 SDK 直接调后端 API 的调用点**无任何契约�
 
 #### P1-2 Manager 注册表命名不一致（99 keys）
 
-实测仍存在：`"external-service"`、`"saml-auth"` 为 kebab-case 混在 camelCase 联合类型中；`"BurnAfterReadManager"` 残留 Manager 后缀。`manager-accessor-wiring-baseline` 有守卫不会误接线，但认知负担高、新成员易错，且与 `manager-extensions/index.ts` 的 kebab-case 注册键**不可直接比对**。
+~~实测仍存在：`"external-service"`、`"saml-auth"` 为 kebab-case 混在 camelCase 联合类型中；`"BurnAfterReadManager"` 残留 Manager 后缀。~~
+
+**已修复（2026-10-11）**：`ManagerName` 联合类型三个离群键收敛为统一 camelCase —— `"external-service"` → `externalService`、`"saml-auth"` → `samlAuth`、`"BurnAfterReadManager"` → `burnAfterRead`，`ManagerTypeMap` 与三处 `registerManagerClass`/`getOrCreateManager` 调用点同步；`pnpm quality:manager-extensions` 97 条目不变、相关 spec 99 passed。`manager-extensions/index.ts` 的 kebab-case 属**另一命名空间**（扩展模块目录键），保持原样。
 
 #### P1-3 空 catch 基线债 71 处
 

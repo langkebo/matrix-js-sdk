@@ -95,22 +95,20 @@ export class RoomStateManager extends BaseManager<keyof RoomStateManagerEvents, 
         try {
             const state = await this.roomState(roomId);
             return Array.isArray(state) ? state : [];
-            // @swallow-error { owner: "room-state", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("RoomStateManager.getAllStateEvents failed:", e);
-            return [];
         }
+        return [];
     }
 
     public async getStateEventsByType(roomId: string, eventType: string): Promise<IStateEvent[]> {
         try {
             const result = await this.getStateEvents(roomId, eventType);
             return Array.isArray(result) ? result : [result].filter(Boolean);
-            // @swallow-error { owner: "room-state", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("RoomStateManager.getStateEventsByType failed:", e);
-            return [];
         }
+        return [];
     }
 
     public async sendStateEvent(

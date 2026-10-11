@@ -242,11 +242,10 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         try {
             const result = await this.fetchRelations(roomId, eventId, relationType);
             return result.total || 0;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("RelationsManager.getRelationCount failed", e);
-            return 0;
         }
+        return 0;
     }
 
     public async getLatestRelation(roomId: string, eventId: string, relationType: string): Promise<MatrixEvent | null> {
@@ -256,11 +255,10 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 return this.client.getEventMapper()(result.chunk[0]);
             }
             return null;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("RelationsManager.getLatestRelation failed", e);
-            return null;
         }
+        return null;
     }
 
     public async getRelationTypes(roomId: string, eventId: string): Promise<string[]> {

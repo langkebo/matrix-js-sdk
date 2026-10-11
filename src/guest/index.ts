@@ -248,11 +248,10 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
                 try {
                     const guestInfo = await this.getGuestInfoFromServer();
                     return guestInfo?.is_guest === true;
-                    // @swallow-error { owner: "guest", expires: "2026-12-31" }
                 } catch (e) {
                     logger.warn("GuestManager.isGuest failed:", e);
-                    return false;
                 }
+                return false;
             }
 
             return false;
@@ -260,10 +259,9 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
             // SECURITY: Returning false on error means a guest user may be treated as non-guest.
             // This is the safer default for most callers (e.g., sync, room access), but callers
             // that need definitive guest status should check separately.
-            // @swallow-error { owner: "guest", expires: "2026-12-31" }
             logger.error("GuestManager.isGuest failed - treating user as non-guest:", e);
-            return false;
         }
+        return false;
     }
 
     async getGuestAccessToken(): Promise<string | null> {
@@ -330,11 +328,10 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
         try {
             const rooms = this.client.getRooms?.() || [];
             return rooms.map((r: Room) => r.roomId);
-            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("GuestManager.getGuestRooms failed:", e);
-            return [];
         }
+        return [];
     }
 
     async joinRoomAsGuest(roomIdOrAlias: string): Promise<{ roomId: string }> {
@@ -371,11 +368,10 @@ export class GuestManager extends BaseManager<GuestEvent, GuestManagerEventMap> 
 
             // For room IDs, avoid probing join semantics with a non-standard GET request.
             return !!this.client.getRoom?.(roomIdOrAlias);
-            // @swallow-error { owner: "guest", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("GuestManager.canJoinRoom failed:", e);
-            return false;
         }
+        return false;
     }
 
     clearGuestInfo(): void {

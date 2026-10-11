@@ -54,7 +54,7 @@ function runCommand(cmd, silent = false) {
             stdio: silent ? "pipe" : "inherit",
             maxBuffer: 20 * 1024 * 1024,
         });
-    } catch (e) {
+    } catch {
         return null;
     }
 }
@@ -613,7 +613,7 @@ function collectTestStats() {
                 : "N/A",
             passed: Boolean(testResult.success),
         };
-    } catch (e) {
+    } catch {
         return { error: "Failed to parse test output" };
     }
 }

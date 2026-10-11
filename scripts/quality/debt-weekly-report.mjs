@@ -134,7 +134,6 @@ ${
 ${[...byOwner.entries()]
     .map(([owner, items]) => {
         const ownerNewItems = newItems.filter((i) => i.owner === owner);
-        const ownerResolvedItems = resolvedIds.size;
         return `| ${owner} | ${items.length} | ${ownerNewItems.length} | - | - |`;
     })
     .join("\n")}

@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type MockInstance } from "vitest";
 
 import { SpaceLifecycleManager } from "../../../../src/space/sub-managers/space-lifecycle-manager";
 import { SpaceEvent } from "../../../../src/space/events";
 import { ValidationError } from "../../../../src/errors";
 import type { UnifiedCacheManager } from "../../../../src/managers/cache-manager";
+import type { CreateSpaceOptions } from "../../../../src/space/types";
 
 describe("SpaceLifecycleManager", () => {
     let manager: SpaceLifecycleManager;
@@ -27,6 +28,7 @@ describe("SpaceLifecycleManager", () => {
     let mockClient: any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockParent: any;
+    let getOrFetchSpy: MockInstance;
 
     beforeEach(() => {
         mockClient = {
@@ -47,13 +49,12 @@ describe("SpaceLifecycleManager", () => {
         manager = new SpaceLifecycleManager(mockClient);
         manager._setParent(mockParent);
 
-        // Mock lifecycleCache.getOrFetch 方法
-        // 先用 UnifiedCacheManager["getOrFetch"] 固定签名，再 spy 方法本身，
-        // 避免 (manager as any) 让 vi.spyOn 把回调参数推断成 unknown
-        const lifecycleCache = (manager as any).lifecycleCache as {
-            getOrFetch: UnifiedCacheManager["getOrFetch"];
-        };
-        vi.spyOn(lifecycleCache, "getOrFetch").mockImplementation(async (_key, fetchFn) => fetchFn() as never);
+        // Mock lifecycleCache.getOrFetch 方法。
+        // 通过结构化类型访问私有成员并 spy 其 getOrFetch，保持回调签名。
+        const lifecycleCache = (manager as unknown as { lifecycleCache: UnifiedCacheManager }).lifecycleCache;
+        getOrFetchSpy = vi
+            .spyOn(lifecycleCache, "getOrFetch")
+            .mockImplementation(async (_key, fetchFn) => fetchFn() as never);
     });
 
     describe("createSpace", () => {
@@ -106,7 +107,9 @@ describe("SpaceLifecycleManager", () => {
         });
 
         it("throws ValidationError when room_id is missing", async () => {
-            await expect(manager.createSpace({ name: "No Room" } as any)).rejects.toThrow(ValidationError);
+            await expect(manager.createSpace({ name: "No Room" } as unknown as CreateSpaceOptions)).rejects.toThrow(
+                ValidationError,
+            );
         });
 
         it("throws ValidationError when name is too long", async () => {
@@ -141,12 +144,12 @@ describe("SpaceLifecycleManager", () => {
         it("returns cached space if available", async () => {
             const mockSpace = { space_id: "!cached:test", room_id: "!cached:test", name: "Cached" };
             // 模拟 lifecycleCache.getOrFetch 返回缓存的值
-            (manager as any).lifecycleCache.getOrFetch.mockResolvedValue(mockSpace);
+            getOrFetchSpy.mockResolvedValue(mockSpace);
 
             const result = await manager.getSpace("!cached:test");
 
             expect(result).toEqual(expect.objectContaining({ space_id: "!cached:test", name: "Cached" }));
-            expect((manager as any).lifecycleCache.getOrFetch).toHaveBeenCalled();
+            expect(getOrFetchSpy).toHaveBeenCalled();
         });
 
         it("emits SpaceError on failure", async () => {

@@ -306,7 +306,7 @@ export class SamlAuthManager extends BaseManager {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getSamlAuthManager = function (): SamlAuthManager {
-        registerManagerClass("saml-auth", SamlAuthManager);
-        return getOrCreateManager(this, "saml-auth", () => new SamlAuthManager(this));
+        registerManagerClass("samlAuth", SamlAuthManager);
+        return getOrCreateManager(this, "samlAuth", () => new SamlAuthManager(this));
     };
 }

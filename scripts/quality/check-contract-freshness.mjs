@@ -110,7 +110,6 @@ function main(argv) {
     }
 
     const index = readIndex();
-    const mirrorCommit = index.synapse_rust_commit;
     const mirrorGeneratedAt = index.generated_at;
     const mirrorEntries = index.ledger_entry_count;
     const freshness = index.freshness;

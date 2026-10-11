@@ -26,7 +26,6 @@
  *   node scripts/quality/check-timer-pairing.mjs --list         # 列出全部站点与处置
  */
 
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 

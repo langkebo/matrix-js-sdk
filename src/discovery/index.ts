@@ -228,11 +228,10 @@ export class DiscoveryManager extends BaseManager {
         try {
             const result = await this.getRoomIdForAlias(alias);
             return result.room_id;
-            // @swallow-error { owner: "discovery", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("DiscoveryManager.getAliasRoomId failed:", e);
-            return null;
         }
+        return null;
     }
 
     public async searchUserDirectory(searchTerm: string, limit?: number): Promise<UserDirectorySearchResponse> {

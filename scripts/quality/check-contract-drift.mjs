@@ -41,8 +41,6 @@ import { findLedgerModulesForSdkDir, findSdkDirForModule } from "../contract-mod
 
 const rootDir = process.cwd();
 const registryPath = path.join(rootDir, "scripts", "quality", "contract-drift-registry.json");
-const modulesDir = path.join(rootDir, "docs", "api-contract", "generated", "modules");
-const codegenPath = path.join(rootDir, "scripts", "sdk-contract-codegen.mjs");
 
 const shouldList = process.argv.includes("--list");
 const shouldEmitJson = process.argv.includes("--json");

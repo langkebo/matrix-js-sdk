@@ -898,16 +898,8 @@ describe("BurnAfterReadManager", () => {
         it("getOrCreateManager ensures same instance for same key", () => {
             const client = createMockClient();
 
-            const instance1 = getOrCreateManager(
-                client,
-                "BurnAfterReadManager",
-                () => new BurnAfterReadManager(client),
-            );
-            const instance2 = getOrCreateManager(
-                client,
-                "BurnAfterReadManager",
-                () => new BurnAfterReadManager(client),
-            );
+            const instance1 = getOrCreateManager(client, "burnAfterRead", () => new BurnAfterReadManager(client));
+            const instance2 = getOrCreateManager(client, "burnAfterRead", () => new BurnAfterReadManager(client));
 
             expect(instance1).toBe(instance2);
         });

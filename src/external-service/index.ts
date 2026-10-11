@@ -314,7 +314,7 @@ export class ExternalServiceManager extends BaseManager {
 
 export function extendMatrixClient(): void {
     MatrixClient.prototype.getExternalServiceManager = function (): ExternalServiceManager {
-        registerManagerClass("external-service", ExternalServiceManager);
-        return getOrCreateManager(this, "external-service", () => new ExternalServiceManager(this));
+        registerManagerClass("externalService", ExternalServiceManager);
+        return getOrCreateManager(this, "externalService", () => new ExternalServiceManager(this));
     };
 }

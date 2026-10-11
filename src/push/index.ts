@@ -610,11 +610,10 @@ export class PushManager extends BaseManager<PushEvent, PushManagerEventMap> {
             const rules = await this.getPushRulesByKind("global", PushRuleKind.RoomSpecific);
             const rule = rules.find((r) => r.rule_id === roomId);
             return !!rule && rule.enabled && rule.actions.includes(PushRuleActionName.DontNotify);
-            // @swallow-error { owner: "push", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("PushManager.isRoomMuted failed:", e);
-            return false;
         }
+        return false;
     }
 
     async addKeywordHighlight(keyword: string): Promise<void> {

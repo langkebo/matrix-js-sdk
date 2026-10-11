@@ -22,12 +22,13 @@ import {
 } from "../../../../src/room-summary/sub-managers/room-stats-manager";
 import { LRUCache } from "../../../../src/utils/lru-cache";
 import type { RoomSummaryErrorCallback } from "../../../../src/room-summary/room-summary-base-manager";
+import type { RoomStats } from "../../../../src/room-summary/types";
 
 describe("RoomSummaryStatsManager", () => {
     let manager: RoomSummaryStatsManager;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mockClient: any;
-    let statsCache: LRUCache<any>;
+    let statsCache: LRUCache<RoomStats>;
     let onError: RoomSummaryErrorCallback | undefined;
 
     beforeEach(() => {
@@ -45,10 +46,13 @@ describe("RoomSummaryStatsManager", () => {
 
     describe("getRoomSummaryStats", () => {
         it("returns cached stats when forceRefresh is false", async () => {
-            const cachedStats = {
+            const cachedStats: RoomStats = {
                 room_id: "!room:test",
-                num_messages: 100,
-                num_members: 50,
+                total_events: 100,
+                total_state_events: 20,
+                total_messages: 100,
+                total_media: 5,
+                storage_size: 1024,
             };
             statsCache.set("!room:test", cachedStats);
 
@@ -95,10 +99,13 @@ describe("RoomSummaryStatsManager", () => {
         });
 
         it("forces refresh when forceRefresh is true", async () => {
-            const cachedStats = {
+            const cachedStats: RoomStats = {
                 room_id: "!room:test",
-                num_messages: 50,
-                num_members: 25,
+                total_events: 50,
+                total_state_events: 10,
+                total_messages: 50,
+                total_media: 2,
+                storage_size: 512,
             };
             statsCache.set("!room:test", cachedStats);
 
@@ -236,10 +243,13 @@ describe("RoomSummaryStatsManager", () => {
 
     describe("getCachedStats", () => {
         it("returns cached stats", () => {
-            const cachedStats = {
+            const cachedStats: RoomStats = {
                 room_id: "!room:test",
-                num_messages: 100,
-                num_members: 50,
+                total_events: 100,
+                total_state_events: 20,
+                total_messages: 100,
+                total_media: 5,
+                storage_size: 1024,
             };
             statsCache.set("!room:test", cachedStats);
 

@@ -208,14 +208,13 @@ export class ThirdPartyManager extends BaseManager {
     ): Promise<ThirdPartyLocation[]> {
         try {
             return await this.getThirdpartyLocation(protocol, params);
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "searchLocations");
             }
             logger.warn("ThirdPartyManager.searchLocations failed:", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -247,14 +246,13 @@ export class ThirdPartyManager extends BaseManager {
     ): Promise<ThirdPartyUser[]> {
         try {
             return await this.getThirdpartyUser(protocol, params);
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "searchUsers");
             }
             logger.warn("ThirdPartyManager.searchUsers failed:", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -359,11 +357,10 @@ export class ThirdPartyManager extends BaseManager {
                 };
             }
             return null;
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("ThirdPartyManager.getLocation failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**
@@ -382,11 +379,10 @@ export class ThirdPartyManager extends BaseManager {
                 };
             }
             return null;
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("ThirdPartyManager.getUser failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**
@@ -413,11 +409,10 @@ export class ThirdPartyManager extends BaseManager {
                 }
             }
             return null;
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("ThirdPartyManager.parseMatrixUri failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**

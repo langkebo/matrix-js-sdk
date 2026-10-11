@@ -544,14 +544,6 @@ function isTrackedRequestCall(callee) {
     return ["authedRequest", "request", "requestOtherUrl"].includes(callee);
 }
 
-function getRequestCallPrefixVariants(callee, args, sourceFile, node) {
-    if (callee === "requestOtherUrl") {
-        return [undefined];
-    }
-
-    return resolvePrefixVariants(args[4], sourceFile, node) ?? [undefined];
-}
-
 /**
  * Extracts method, path, and prefix from a tracked request call,
  * supporting BOTH calling conventions:

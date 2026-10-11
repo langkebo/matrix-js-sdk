@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -40,7 +39,6 @@ function getHeapStatistics() {
 
 function measureOperation(name, operation, iterations = 100) {
     const beforeMemory = getMemoryUsage();
-    const beforeHeap = getHeapStatistics();
 
     const start = performance.now();
     for (let i = 0; i < iterations; i++) {
@@ -49,7 +47,6 @@ function measureOperation(name, operation, iterations = 100) {
     const elapsed = performance.now() - start;
 
     const afterMemory = getMemoryUsage();
-    const afterHeap = getHeapStatistics();
 
     return {
         name,

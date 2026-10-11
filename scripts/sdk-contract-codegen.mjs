@@ -535,19 +535,6 @@ function prettyModuleName(value) {
         .join(" ");
 }
 
-function parseFrontmatter(text) {
-    if (!text.startsWith("---\n")) return {};
-    const end = text.indexOf("\n---\n", 4);
-    if (end < 0) return {};
-    const out = {};
-    for (const line of text.slice(4, end).split("\n")) {
-        const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*?)\s*$/);
-        if (!match) continue;
-        out[match[1]] = match[2];
-    }
-    return out;
-}
-
 function extractDocHeading(text) {
     const headingMatch = text.match(/^#\s+(.+)$/m);
     return headingMatch ? headingMatch[1].trim() : null;
@@ -571,7 +558,6 @@ export function discoverSupportedModules(contractMdText) {
     if (contractMdText === undefined) {
         contractMdText = fs.existsSync(BACKEND_CONTRACT_MD) ? fs.readFileSync(BACKEND_CONTRACT_MD, "utf8") : "";
     }
-    const byLabel = parseBackendContractMd(contractMdText);
     // Reverse map: sdkDir -> [backend contract labels]
     const sdkToLabels = new Map();
     for (const [label, sdkDir] of Object.entries(CONTRACT_MODULE_MAP)) {

@@ -68,7 +68,7 @@ describe("RoomSummaryManager 门面层", () => {
         };
         manager = new RoomSummaryManager(mockClient);
         // request 是 BaseManager 的 protected 方法，从外部 spy
-        vi.spyOn(manager as any, "request").mockResolvedValue(clientSummary() as never);
+        vi.spyOn(manager as unknown as { request: RequestSpy }, "request").mockResolvedValue(clientSummary() as never);
     });
 
     /**

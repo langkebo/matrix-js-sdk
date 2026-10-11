@@ -1,6 +1,6 @@
 # SDK 契约缺口报告：后端路由 ↔ SDK 封装面
 
-> 生成时间：2026-10-10 01:03:20
+> 生成时间：2026-10-11 11:01:42
 > 后端事实来源：`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json`（RouteLedger schema v4，profile=`all`）
 > SDK 镜像底座：`docs/api-contract/generated/route-manifest.all.json` @ `14f892e3`
 > 生成器：`matrix-js-sdk/scripts/audit/compare-routes.mjs`（可重跑，无人工维护的映射表）
@@ -28,20 +28,19 @@
 
 | 惯用法                                | 条数 |
 | ------------------------------------- | ---- |
-| `adminRequest()`                      | 202  |
-| `object-literal {path}`               | 128  |
+| `adminRequest()`                      | 196  |
+| `object-literal {path}`               | 131  |
 | `builder: utils.encodeUri()`          | 53   |
-| `authedRequest(Method, path)`         | 28   |
+| `authedRequest(Method, path)`         | 24   |
 | `builder: friendPath()`               | 23   |
 | `builder: encodeUri()`                | 17   |
 | `builder: spacePath()`                | 13   |
 | `builder: sp()`                       | 10   |
 | `v2Request()`                         | 5    |
-| `request(Method, path)`               | 3    |
 | `builder: srp()`                      | 3    |
 | `builder: this.client.http.getUrl()`  | 3    |
+| `request(Method, path)`               | 2    |
 | `builder: this.internalSummaryPath()` | 2    |
-| `builder: this.uncheckedRoomPath()`   | 2    |
 | `builder: this.getUrl()`              | 1    |
 | `builder: this.roomPath()`            | 1    |
 
@@ -49,7 +48,7 @@
 
 - 版本前缀**不**互替：`v1` / `v3` / `r0` / `unstable` 视为不同租约，避免把 v1 与 v3 误判为同一端点。
 - L2 只解析**字面量/纯字面量拼接**路径；变量路径（`authedRequest(Method.Get, path)`）无法静态求值，由 L3 兜底。
-- L3 按 `BaseManager.KNOWN_PREFIXES` + prefix.ts 枚举共 **30** 个候选前缀逐个尝试拼接，因此 **L3 命中不保证前缀正确**，仅证明"这条路径被构造过"。
+- L3 按 `BaseManager.KNOWN_PREFIXES` + prefix.ts 枚举共 **31** 个候选前缀逐个尝试拼接，因此 **L3 命中不保证前缀正确**，仅证明"这条路径被构造过"。
 - L3 **不校验 HTTP method**（路径级证据），故 T2 桶里可能包含同一路径的不同 method 变体。
 - 因此 **T2 是强证据、但不是"已接通"的证明**；T3 是弱证据。本报告的"缺口"= 三者全无——**不会把已封装路由漏报为缺口**，但存在把"构造了却没接通"记为已实现的风险，已在 §3 单列待人工确认。
 
@@ -60,24 +59,24 @@
 | 维度                                  | 数量                  | 说明                                                     |
 | ------------------------------------- | --------------------- | -------------------------------------------------------- |
 | 后端注册路由（事实面）                | **1027**              | distinct 1022                                            |
-| └ 客户端面 `CLIENT_FACING`            | **641**               | 前端 SDK 应封装的面                                      |
-| └ 服务端/运维面 `SERVER_ONLY`         | 383                   | federation / appservice / key 交换 / admin，**不应**封装 |
+| └ 客户端面 `CLIENT_FACING`            | **634**               | 前端 SDK 应封装的面                                      |
+| └ 服务端/运维面 `SERVER_ONLY`         | 390                   | federation / appservice / key 交换 / admin，**不应**封装 |
 | └ 根级与 SSO `ROOT_OR_SSO`            | 2                     | 探活、CAS/SSO 重定向，浏览器处理                         |
 | └ 非 Matrix 命名空间 `NON_NAMESPACED` | 1                     | —                                                        |
-| **实现面覆盖（T1∪T2，客户端面）**     | **583 / 641 = 91.0%** | 主指标                                                   |
-| └ 其中 T1 有真实调用点                | 104                   | 最强证据                                                 |
+| **实现面覆盖（T1∪T2，客户端面）**     | **587 / 634 = 92.6%** | 主指标                                                   |
+| └ 其中 T1 有真实调用点                | 108                   | 最强证据                                                 |
 | └ 其中 T2 仅构造证据                  | 479                   | 见 §3 需复核                                             |
 | **声明面覆盖（T3，全后端）**          | **71.3%**             | 729/1022                                                 |
-| **缺口（三级证据全无）**              | **62**                | 其中客户端面 7                                           |
+| **缺口（三级证据全无）**              | **62**                | 其中客户端面 0                                           |
 | 版本/前缀漂移                         | 0                     | 签名相同、前缀不同                                       |
 
 ### 1.1 后端路由的证据分布（全量）
 
 | 证据等级      | 条数 | 含义                             |
 | ------------- | ---- | -------------------------------- |
-| T1 调用点命中 | 334  | Manager 真实发起请求             |
-| T2 构造命中   | 567  | 有路径构造器，无精确调用点       |
-| T3 仅声明     | 63   | route-table 有常量、仓内无调用方 |
+| T1 调用点命中 | 338  | Manager 真实发起请求             |
+| T2 构造命中   | 572  | 有路径构造器，无精确调用点       |
+| T3 仅声明     | 54   | route-table 有常量、仓内无调用方 |
 | 漂移          | 0    | 末段签名一致、前缀/版本不同      |
 | 缺口          | 62   | 三级证据全无                     |
 
@@ -86,17 +85,16 @@
 | 优先级 | 动作                                                         | 为什么                                                                                                                                  | 验证方式                                               |
 | ------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
 | **P0** | 刷新 SDK 底座：`pnpm contract:sync && pnpm contract:codegen` | SDK 镜像已落后后端 **0** 条（镜像停留在 `14f892e3`）。底座不刷新时，codegen 渲染的 route-table 与"真相"不一致，任何覆盖率数字都不可信。 | 重跑本脚本，§1.4 归零                                  |
-| **P1** | 补 7 条客户端面真缺口（§2）                                  | 已被人工核实为「后端有、SDK 完全无」。其中 `admin/room/{id}/redact` 属运维面，可先确认是否由前端直连。                                  | 补完后 §2 归零；`pnpm quality:manager-codegen` 仍绿    |
+| **P1** | 补 0 条客户端面真缺口（§2）                                  | 已被人工核实为「后端有、SDK 完全无」。其中 `admin/room/{id}/redact` 属运维面，可先确认是否由前端直连。                                  | 补完后 §2 归零；`pnpm quality:manager-codegen` 仍绿    |
 | **P1** | 对照 Sprint 4 交付范围核实 MSC4155 / MSC4156（§7）           | 两个不稳定端点在本仓 `src` 中 **0 命中**，与「Sprint 4 已交付」的记忆不一致；需确认是只交付了后端，还是前端走了 `relations` 自建实现。  | `grep -rn "msc4155\\                                   | msc4156" src --include='\*.ts' \| grep -v **generated**` |
 | **P2** | 清理 §3 的 479 条 T2 弱证据                                  | 这些端点只有构造点、没有可静态求值的调用点，混着「变量路径（真已封装）」与「死构造器（真问题）」两类。                                  | 按 §3 结论逐模块抽查，把确认已封装的补进 §7 人工复核表 |
 | **P3** | 把 §7 人工复核结论回写进 `contract-module-map`/审计文档      | 让下轮审计不必重复人工判断；同时 §7.1 的解析器盲区可作为下一版生成器的待办。                                                            | 本轮结束后重跑，§7 结论与 §2/§3.5 不冲突               |
 
 ### 1.3 缺口按范围拆分（决定该不该补）
 
-| 范围            | 条数   | 是否应在 SDK 封装             |
-| --------------- | ------ | ----------------------------- |
-| `SERVER_ONLY`   | **55** | ❌ 否 — 服务端/运维面         |
-| `CLIENT_FACING` | **7**  | ⚠️ **是** — 需逐个判定，见 §2 |
+| 范围          | 条数   | 是否应在 SDK 封装     |
+| ------------- | ------ | --------------------- |
+| `SERVER_ONLY` | **62** | ❌ 否 — 服务端/运维面 |
 
 ### 1.4 底座漂移（后端已注册、SDK 镜像未收录）
 
@@ -104,21 +102,9 @@
 
 ---
 
-## 2. 客户端面缺口（三级证据全无）— 7 条
+## 2. 客户端面缺口（三级证据全无）— 0 条
 
-判定口径：该 `(method, path)` 既无 L2 调用点、也无 L1 声明、也无 L3 路径构造证据。
-
-### 2.1 `app_service` — 7 条
-
-| Method    | Path                                       | registered_by | 处置建议                   |
-| --------- | ------------------------------------------ | ------------- | -------------------------- |
-| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
-| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
-| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
-| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
-| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
-| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
-| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}` | `app_service` | 需补封装或确认无前端消费者 |
+✅ 客户端面路由均有至少一级证据。
 
 ---
 
@@ -153,7 +139,7 @@
 | `presence`           | 9    |
 | `relations`          | 9    |
 | `search`             | 8    |
-| `saml`               | 7    |
+| `saml`               | 8    |
 | `oidc`               | 7    |
 | `burn_after_read`    | 7    |
 | `rendezvous`         | 6    |
@@ -166,8 +152,8 @@
 | `guest`              | 3    |
 | `captcha`            | 3    |
 | `external_service`   | 3    |
-| `cas`                | 3    |
 | `delayed_events`     | 2    |
+| `cas`                | 2    |
 | `thirdparty`         | 2    |
 | `msc4108_rendezvous` | 1    |
 | `sync`               | 1    |
@@ -285,35 +271,35 @@
 | `POST`   | `/_matrix/client/v1/account/3pid/add`                                                 | `src/client-profile-requests.ts:143` (/account/3pid/add)                                |
 | `POST`   | `/_matrix/client/v1/account/3pid/bind`                                                | `src/client-profile-requests.ts:147` (/account/3pid/bind)                               |
 | `POST`   | `/_matrix/client/v1/account/3pid/delete`                                              | `src/client-profile-requests.ts:175` (/account/3pid/delete)                             |
-| `POST`   | `/_matrix/client/v1/account/3pid/email/requestToken`                                  | `src/auth/index.ts:649` (/account/3pid/email/requestToken)                              |
+| `POST`   | `/_matrix/client/v1/account/3pid/email/requestToken`                                  | `src/auth/index.ts:630` (/account/3pid/email/requestToken)                              |
 | `POST`   | `/_matrix/client/v1/account/3pid/email/submitToken`                                   | `src/account/index.ts:54` (/account/3pid/email/submitToken)                             |
 | `POST`   | `/_matrix/client/v1/account/3pid/unbind`                                              | `src/client-profile-requests.ts:158` (/account/3pid/unbind)                             |
-| `POST`   | `/_matrix/client/v1/account/deactivate`                                               | `src/account/index.ts:313` (/account/deactivate)                                        |
+| `POST`   | `/_matrix/client/v1/account/deactivate`                                               | `src/account/index.ts:327` (/account/deactivate)                                        |
 | `POST`   | `/_matrix/client/v1/account/password`                                                 | `src/guest/index.ts:299` (/account/password)                                            |
 | `POST`   | `/_matrix/client/v1/account/password/email/requestToken`                              | `src/password-reset/index.ts:51` (/account/password/email/requestToken)                 |
 | `POST`   | `/_matrix/client/v1/account/password/email/submitToken`                               | `src/account/index.ts:53` (/account/password/email/submitToken)                         |
-| `GET`    | `/_matrix/client/v1/account/whoami`                                                   | `src/auth/index.ts:555` (/account/whoami)                                               |
-| `GET`    | `/_matrix/client/v1/media/config`                                                     | `src/media/index.ts:197` (/media/config)                                                |
+| `GET`    | `/_matrix/client/v1/account/whoami`                                                   | `src/auth/index.ts:551` (/account/whoami)                                               |
+| `GET`    | `/_matrix/client/v1/media/config`                                                     | `src/media/index.ts:202` (/media/config)                                                |
 | `GET`    | `/_matrix/client/v1/profile/{user_id}`                                                | `src/client-profile-requests.ts:25` (/profile/$userId)                                  |
 | `GET`    | `/_matrix/client/v1/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
 | `PUT`    | `/_matrix/client/v1/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
 | `GET`    | `/_matrix/client/v1/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
 | `PUT`    | `/_matrix/client/v1/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
 | `POST`   | `/_matrix/client/v3/account/3pid`                                                     | `src/client-profile-requests.ts:136` (/account/3pid)                                    |
-| `POST`   | `/_matrix/client/v3/account/3pid/email/requestToken`                                  | `src/auth/index.ts:649` (/account/3pid/email/requestToken)                              |
+| `POST`   | `/_matrix/client/v3/account/3pid/email/requestToken`                                  | `src/auth/index.ts:630` (/account/3pid/email/requestToken)                              |
 | `POST`   | `/_matrix/client/v3/account/3pid/email/submitToken`                                   | `src/account/index.ts:54` (/account/3pid/email/submitToken)                             |
-| `POST`   | `/_matrix/client/v3/account/deactivate`                                               | `src/account/index.ts:313` (/account/deactivate)                                        |
+| `POST`   | `/_matrix/client/v3/account/deactivate`                                               | `src/account/index.ts:327` (/account/deactivate)                                        |
 | `POST`   | `/_matrix/client/v3/account/password/email/requestToken`                              | `src/password-reset/index.ts:51` (/account/password/email/requestToken)                 |
 | `POST`   | `/_matrix/client/v3/account/password/email/submitToken`                               | `src/account/index.ts:53` (/account/password/email/submitToken)                         |
-| `GET`    | `/_matrix/client/v3/auth/{auth_type}/fallback/web`                                    | `src/account/index.ts:367` (/auth/$loginType/fallback/web)                              |
+| `GET`    | `/_matrix/client/v3/auth/{auth_type}/fallback/web`                                    | `src/account/index.ts:381` (/auth/$loginType/fallback/web)                              |
 | `GET`    | `/_matrix/client/v3/directory/list/room/{room_id}`                                    | `src/room/RoomManager.ts:1030` (/directory/list/room/{roomId})                          |
 | `PUT`    | `/_matrix/client/v3/directory/list/room/{room_id}`                                    | `src/room/RoomManager.ts:1030` (/directory/list/room/{roomId})                          |
 | `GET`    | `/_matrix/client/v3/directory/room/{room_id}/alias`                                   | `src/discovery/index.ts:348` (/directory/room/{}/alias)                                 |
 | `DELETE` | `/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}`                      | `src/discovery/index.ts:358` (/directory/room/{}/alias/{})                              |
 | `PUT`    | `/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}`                      | `src/discovery/index.ts:358` (/directory/room/{}/alias/{})                              |
-| `GET`    | `/_matrix/client/v3/login`                                                            | ⚠️ `src/account/index.ts:173` (/login/)                                                 |
-| `POST`   | `/_matrix/client/v3/logout/all`                                                       | `src/account/index.ts:254` (/logout/all)                                                |
-| `GET`    | `/_matrix/client/v3/media/config`                                                     | `src/media/index.ts:197` (/media/config)                                                |
+| `GET`    | `/_matrix/client/v3/login`                                                            | ⚠️ `src/account/index.ts:156` (/login)                                                  |
+| `POST`   | `/_matrix/client/v3/logout/all`                                                       | `src/account/index.ts:268` (/logout/all)                                                |
+| `GET`    | `/_matrix/client/v3/media/config`                                                     | `src/media/index.ts:202` (/media/config)                                                |
 | `GET`    | `/_matrix/client/v3/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
 | `PUT`    | `/_matrix/client/v3/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
 | `GET`    | `/_matrix/client/v3/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
@@ -321,14 +307,14 @@
 | `DELETE` | `/_matrix/client/v3/profile/{user_id}/{key_name}`                                     | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
 | `GET`    | `/_matrix/client/v3/profile/{user_id}/{key_name}`                                     | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
 | `PUT`    | `/_matrix/client/v3/profile/{user_id}/{key_name}`                                     | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `GET`    | `/_matrix/client/v3/register`                                                         | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:408` (/register)                     |
-| `POST`   | `/_matrix/client/v3/register/email/requestToken`                                      | `src/auth/index.ts:615` (/register/email/requestToken)                                  |
+| `GET`    | `/_matrix/client/v3/register`                                                         | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:407` (/register)                     |
+| `POST`   | `/_matrix/client/v3/register/email/requestToken`                                      | `src/auth/index.ts:596` (/register/email/requestToken)                                  |
 | `POST`   | `/_matrix/client/v3/register/email/submitToken`                                       | `src/account/index.ts:52` (/register/email/submitToken)                                 |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/call/{call_id}`                                   | `src/room/RoomManager.ts:876` (/rooms/{}/call/{})                                       |
 | `POST`   | `/_matrix/client/v3/user_directory/list`                                              | `src/discovery/index.ts:256` (/user_directory/list)                                     |
 | `GET`    | `/_matrix/client/v3/user_directory/profiles/{user_id}`                                | `src/discovery/index.ts:262` (/user_directory/profiles/{})                              |
 | `GET`    | `/_matrix/client/v3/voip/config`                                                      | `src/turn-server/index.ts:104` (/voip/config)                                           |
-| `POST`   | `/_matrix/client/v3/voip/turnServer`                                                  | `src/client.ts:3281` (/voip/turnServer)                                                 |
+| `POST`   | `/_matrix/client/v3/voip/turnServer`                                                  | `src/client.ts:3282` (/voip/turnServer)                                                 |
 | `GET`    | `/_matrix/client/v3/voip/turnServer/guest`                                            | `src/turn-server/index.ts:129` (/voip/turnServer/guest)                                 |
 | `GET`    | `/_matrix/server_version`                                                             | `src/discovery/index.ts:188` (/\_matrix/server_version)                                 |
 
@@ -459,18 +445,18 @@
 
 | Method   | Path                                                            | 构造证据                                                                          |
 | -------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `GET`    | `/_matrix/client/v1/keys/changes`                               | `src/client-crypto-requests.ts:94` (/keys/changes)                                |
-| `POST`   | `/_matrix/client/v1/keys/claim`                                 | `src/client-crypto-requests.ts:82` (/keys/claim)                                  |
+| `GET`    | `/_matrix/client/v1/keys/changes`                               | `src/crypto-keys/index.ts:218` (/keys/changes)                                    |
+| `POST`   | `/_matrix/client/v1/keys/claim`                                 | `src/crypto-keys/index.ts:201` (/keys/claim)                                      |
 | `POST`   | `/_matrix/client/v1/keys/device_list/update`                    | `src/crypto-keys/index.ts:235` (/keys/device_list/update)                         |
-| `POST`   | `/_matrix/client/v1/keys/device_signing/upload`                 | `src/client-crypto-requests.ts:104` (/keys/device_signing/upload)                 |
-| `POST`   | `/_matrix/client/v1/keys/query`                                 | `src/client-crypto-requests.ts:58` (/keys/query)                                  |
-| `POST`   | `/_matrix/client/v1/keys/signatures/upload`                     | `src/client-crypto-requests.ts:38` (/keys/signatures/upload)                      |
-| `POST`   | `/_matrix/client/v1/keys/upload`                                | `src/client-crypto-requests.ts:34` (/keys/upload)                                 |
-| `POST`   | `/_matrix/client/v1/keys/upload/{device_id}`                    | `src/e2ee/index.ts:211` (/keys/upload/{})                                         |
-| `GET`    | `/_matrix/client/v1/room_keys/request`                          | `src/client-crypto-requests.ts:110` (/room_keys/request)                          |
-| `POST`   | `/_matrix/client/v1/room_keys/request`                          | `src/client-crypto-requests.ts:110` (/room_keys/request)                          |
-| `DELETE` | `/_matrix/client/v1/room_keys/request/{request_id}`             | `src/client-crypto-requests.ts:122` (/room_keys/request/$requestId)               |
-| `GET`    | `/_matrix/client/v1/rooms/{room_id}/keys/distribution`          | `src/crypto-keys/index.ts:293` (/rooms/{}/keys/distribution)                      |
+| `POST`   | `/_matrix/client/v1/keys/device_signing/upload`                 | `src/client-crypto-requests.ts:40` (/keys/device_signing/upload)                  |
+| `POST`   | `/_matrix/client/v1/keys/query`                                 | `src/client.ts:1368` (/keys/query)                                                |
+| `POST`   | `/_matrix/client/v1/keys/signatures/upload`                     | `src/crypto-keys/index.ts:250` (/keys/signatures/upload)                          |
+| `POST`   | `/_matrix/client/v1/keys/upload`                                | `src/crypto-keys/index.ts:120` (/keys/upload)                                     |
+| `POST`   | `/_matrix/client/v1/keys/upload/{device_id}`                    | `src/e2ee/index.ts:204` (/keys/upload/{})                                         |
+| `GET`    | `/_matrix/client/v1/room_keys/request`                          | `src/client-crypto-requests.ts:46` (/room_keys/request)                           |
+| `POST`   | `/_matrix/client/v1/room_keys/request`                          | `src/client-crypto-requests.ts:46` (/room_keys/request)                           |
+| `DELETE` | `/_matrix/client/v1/room_keys/request/{request_id}`             | `src/client-crypto-requests.ts:58` (/room_keys/request/$requestId)                |
+| `GET`    | `/_matrix/client/v1/rooms/{room_id}/keys/distribution`          | `src/crypto-keys/index.ts:296` (/rooms/{}/keys/distribution)                      |
 | `POST`   | `/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId)                    |
 | `PUT`    | `/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId)                    |
 | `GET`    | `/_matrix/client/v3/keys/backup/secure`                         | `src/secure-backup/index.ts:90` (/\_matrix/client/v3/keys/backup/secure)          |
@@ -479,8 +465,8 @@
 | `POST`   | `/_matrix/client/v3/keys/backup/secure/{backup_id}/keys`        | `src/client-secure-backup-requests.ts:39` (/keys/backup/secure/$backupId/keys)    |
 | `POST`   | `/_matrix/client/v3/keys/backup/secure/{backup_id}/restore`     | `src/client-secure-backup-requests.ts:43` (/keys/backup/secure/$backupId/restore) |
 | `POST`   | `/_matrix/client/v3/keys/backup/secure/{backup_id}/verify`      | `src/client-secure-backup-requests.ts:35` (/keys/backup/secure/$backupId/verify)  |
-| `GET`    | `/_matrix/client/v3/keys/history`                               | `src/e2ee/index.ts:466` (/keys/history)                                           |
-| `POST`   | `/_matrix/client/v3/keys/upload/{device_id}`                    | `src/e2ee/index.ts:211` (/keys/upload/{})                                         |
+| `GET`    | `/_matrix/client/v3/keys/history`                               | `src/e2ee/index.ts:455` (/keys/history)                                           |
+| `POST`   | `/_matrix/client/v3/keys/upload/{device_id}`                    | `src/e2ee/index.ts:204` (/keys/upload/{})                                         |
 | `POST`   | `/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId)                    |
 
 </details>
@@ -517,11 +503,11 @@
 
 | Method   | Path                                                                        | 构造证据                                                                                         |
 | -------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `GET`    | `/_matrix/client/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:337` (/rooms/{}/summary)                                              |
-| `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:337` (/rooms/{}/summary)                                              |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:337` (/rooms/{}/summary)                                              |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:337` (/rooms/{}/summary)                                              |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:337` (/rooms/{}/summary)                                              |
+| `GET`    | `/_matrix/client/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
+| `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/heroes/recalculate`             | `src/room-summary/sub-managers/room-stats-manager.ts:129` (/rooms/{}/summary/heroes/recalculate) |
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary/members`                        | `src/room-summary/sub-managers/room-member-manager.ts:55` (/rooms/{}/summary/members)            |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/members`                        | `src/room-summary/sub-managers/room-member-manager.ts:55` (/rooms/{}/summary/members)            |
@@ -534,7 +520,7 @@
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/stats/recalculate`              | `src/room-summary/sub-managers/room-stats-manager.ts:107` (/rooms/{}/summary/stats/recalculate)  |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/sync`                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:927` (/rooms/{}/summary/sync)     |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/unread/clear`                   | `src/room-summary/sub-managers/room-stats-manager.ts:144` (/rooms/{}/summary/unread/clear)       |
-| `POST`   | `/_synapse/room_summary/v1/summaries/batch`                                 | `src/room-summary/index.ts:452` (/\_synapse/room_summary/v1/summaries/batch)                     |
+| `POST`   | `/_synapse/room_summary/v1/summaries/batch`                                 | `src/room-summary/index.ts:443` (/\_synapse/room_summary/v1/summaries/batch)                     |
 
 </details>
 
@@ -542,22 +528,22 @@
 
 | Method   | Path                                                                  | 构造证据                                                      |
 | -------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets`                          | `src/widget/index.ts:163` (/rooms/{}/widgets)                 |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`             | `src/widget/index.ts:181` (/rooms/{}/widgets/jitsi/config)    |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:453` (/rooms/{}/widgets/{}/capabilities) |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:453` (/rooms/{}/widgets/{}/capabilities) |
-| `POST`   | `/_matrix/vendor/v1/widgets`                                          | ⚠️ `src/widget/index.ts:209` (/widgets)                       |
-| `DELETE` | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:414` (/widgets/sessions/{})              |
-| `GET`    | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:414` (/widgets/sessions/{})              |
-| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:228` (/widgets/{})                       |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:228` (/widgets/{})                       |
-| `PUT`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:228` (/widgets/{})                       |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/config`                       | `src/widget/index.ts:288` (/widgets/{}/config)                |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:308` (/widgets/{}/permissions)           |
-| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:308` (/widgets/{}/permissions)           |
-| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}`        | `src/widget/index.ts:354` (/widgets/{}/permissions/{})        |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:374` (/widgets/{}/sessions)              |
-| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:374` (/widgets/{}/sessions)              |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets`                          | `src/widget/index.ts:162` (/rooms/{}/widgets)                 |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`             | `src/widget/index.ts:180` (/rooms/{}/widgets/jitsi/config)    |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:452` (/rooms/{}/widgets/{}/capabilities) |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:452` (/rooms/{}/widgets/{}/capabilities) |
+| `POST`   | `/_matrix/vendor/v1/widgets`                                          | ⚠️ `src/widget/index.ts:208` (/widgets)                       |
+| `DELETE` | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:413` (/widgets/sessions/{})              |
+| `GET`    | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:413` (/widgets/sessions/{})              |
+| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:227` (/widgets/{})                       |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:227` (/widgets/{})                       |
+| `PUT`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:227` (/widgets/{})                       |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/config`                       | `src/widget/index.ts:287` (/widgets/{}/config)                |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:307` (/widgets/{}/permissions)           |
+| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:307` (/widgets/{}/permissions)           |
+| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}`        | `src/widget/index.ts:353` (/widgets/{}/permissions/{})        |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:373` (/widgets/{}/sessions)              |
+| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:373` (/widgets/{}/sessions)              |
 
 </details>
 
@@ -570,16 +556,16 @@
 | `POST`   | `/_matrix/client/v3/pushers`                                    | `src/push-notifications/index.ts:42` (/\_matrix/client/v3/pushers)                    |
 | `GET`    | `/_matrix/client/v3/pushers/`                                   | `src/push-notifications/index.ts:42` (/\_matrix/client/v3/pushers)                    |
 | `POST`   | `/_matrix/client/v3/pushers/`                                   | `src/push-notifications/index.ts:42` (/\_matrix/client/v3/pushers)                    |
-| `POST`   | `/_matrix/client/v3/pushers/set`                                | `src/push/index.ts:190` (/pushers/set)                                                |
-| `GET`    | `/_matrix/client/v3/pushrules/{scope}`                          | `src/push/index.ts:267` (/pushrules/{})                                               |
-| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}`                   | `src/push/index.ts:287` (/pushrules/{}/{})                                            |
+| `POST`   | `/_matrix/client/v3/pushers/set`                                | `src/push/index.ts:199` (/pushers/set)                                                |
+| `GET`    | `/_matrix/client/v3/pushrules/{scope}`                          | `src/push/index.ts:276` (/pushrules/{})                                               |
+| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}`                   | `src/push/index.ts:296` (/pushrules/{}/{})                                            |
 | `DELETE` | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
 | `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
 | `POST`   | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
 | `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
-| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions` | `src/push/index.ts:486` (/pushrules/{}/{}/{}/actions)                                 |
-| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:428` (/pushrules/{}/{}/{}/enabled)                                 |
-| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:428` (/pushrules/{}/{}/{}/enabled)                                 |
+| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions` | `src/push/index.ts:495` (/pushrules/{}/{}/{}/actions)                                 |
+| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:437` (/pushrules/{}/{}/{}/enabled)                                 |
+| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:437` (/pushrules/{}/{}/{}/enabled)                                 |
 
 </details>
 
@@ -628,17 +614,17 @@
 
 | Method | Path                                                | 构造证据                                                          |
 | ------ | --------------------------------------------------- | ----------------------------------------------------------------- |
-| `GET`  | `/_matrix/media/r0/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:359` (/config) |
-| `POST` | `/_matrix/media/r0/delete/{server_name}/{media_id}` | `src/media/index.ts:384` (/delete/{}/{})                          |
-| `GET`  | `/_matrix/media/r0/preview_url`                     | ⚠️ `src/media/index.ts:433` (/preview_url)                        |
-| `POST` | `/_matrix/media/r0/upload`                          | ⚠️ `src/device-keys/index.ts:334` (/upload)                       |
-| `GET`  | `/_matrix/media/v1/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:359` (/config) |
-| `POST` | `/_matrix/media/v1/delete/{server_name}/{media_id}` | `src/media/index.ts:384` (/delete/{}/{})                          |
-| `GET`  | `/_matrix/media/v1/preview_url`                     | ⚠️ `src/media/index.ts:433` (/preview_url)                        |
-| `POST` | `/_matrix/media/v1/upload`                          | ⚠️ `src/device-keys/index.ts:334` (/upload)                       |
-| `GET`  | `/_matrix/media/v3/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:359` (/config) |
-| `POST` | `/_matrix/media/v3/delete/{server_name}/{media_id}` | `src/media/index.ts:384` (/delete/{}/{})                          |
-| `PUT`  | `/_matrix/media/v3/upload/{server_name}/{media_id}` | `src/media/index.ts:344` (/upload/{}/{})                          |
+| `GET`  | `/_matrix/media/r0/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:358` (/config) |
+| `POST` | `/_matrix/media/r0/delete/{server_name}/{media_id}` | `src/media/index.ts:389` (/delete/{}/{})                          |
+| `GET`  | `/_matrix/media/r0/preview_url`                     | ⚠️ `src/media/index.ts:438` (/preview_url)                        |
+| `POST` | `/_matrix/media/r0/upload`                          | ⚠️ `src/http-api/index.ts:122` (/upload)                          |
+| `GET`  | `/_matrix/media/v1/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:358` (/config) |
+| `POST` | `/_matrix/media/v1/delete/{server_name}/{media_id}` | `src/media/index.ts:389` (/delete/{}/{})                          |
+| `GET`  | `/_matrix/media/v1/preview_url`                     | ⚠️ `src/media/index.ts:438` (/preview_url)                        |
+| `POST` | `/_matrix/media/v1/upload`                          | ⚠️ `src/http-api/index.ts:122` (/upload)                          |
+| `GET`  | `/_matrix/media/v3/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:358` (/config) |
+| `POST` | `/_matrix/media/v3/delete/{server_name}/{media_id}` | `src/media/index.ts:389` (/delete/{}/{})                          |
+| `PUT`  | `/_matrix/media/v3/upload/{server_name}/{media_id}` | `src/media/index.ts:349` (/upload/{}/{})                          |
 
 </details>
 
@@ -689,31 +675,32 @@
 
 </details>
 
-<details><summary><code>saml</code> — 7 条</summary>
+<details><summary><code>saml</code> — 8 条</summary>
 
-| Method | Path                                         | 构造证据                                           |
-| ------ | -------------------------------------------- | -------------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:143` (/login/saml/callback)     |
-| `POST` | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:143` (/login/saml/callback)     |
-| `POST` | `/_matrix/client/v3/login/sso/redirect/saml` | `src/auth/index.ts:583` (/login/sso/redirect/saml) |
-| `GET`  | `/_matrix/client/v3/logout/saml`             | `src/saml/index.ts:132` (/logout/saml)             |
-| `GET`  | `/_matrix/client/v3/logout/saml/callback`    | `src/saml/index.ts:203` (/logout/saml/callback)    |
-| `GET`  | `/_matrix/client/v3/saml/metadata`           | `src/saml/index.ts:213` (/saml/metadata)           |
-| `GET`  | `/_matrix/client/v3/saml/sp_metadata`        | `src/saml/index.ts:223` (/saml/sp_metadata)        |
+| Method | Path                                         | 构造证据                                          |
+| ------ | -------------------------------------------- | ------------------------------------------------- |
+| `GET`  | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:160` (/login/saml/callback)    |
+| `POST` | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:160` (/login/saml/callback)    |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect/saml` | `src/saml/index.ts:87` (/login/sso/redirect/saml) |
+| `POST` | `/_matrix/client/v3/login/sso/redirect/saml` | `src/saml/index.ts:87` (/login/sso/redirect/saml) |
+| `GET`  | `/_matrix/client/v3/logout/saml`             | `src/saml/index.ts:149` (/logout/saml)            |
+| `GET`  | `/_matrix/client/v3/logout/saml/callback`    | `src/saml/index.ts:220` (/logout/saml/callback)   |
+| `GET`  | `/_matrix/client/v3/saml/metadata`           | `src/saml/index.ts:230` (/saml/metadata)          |
+| `GET`  | `/_matrix/client/v3/saml/sp_metadata`        | `src/saml/index.ts:240` (/saml/sp_metadata)       |
 
 </details>
 
 <details><summary><code>oidc</code> — 7 条</summary>
 
-| Method | Path                                    | 构造证据                                        |
-| ------ | --------------------------------------- | ----------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/login/sso/redirect` | `src/oidc/manager.ts:318` (/login/sso/redirect) |
-| `GET`  | `/_matrix/client/v3/oidc/authorize`     | `src/oidc/manager.ts:176` (/oidc/authorize)     |
-| `GET`  | `/_matrix/client/v3/oidc/callback`      | `src/oidc/manager.ts:334` (/oidc/callback)      |
-| `POST` | `/_matrix/client/v3/oidc/login`         | `src/oidc/manager.ts:291` (/oidc/login)         |
-| `POST` | `/_matrix/client/v3/oidc/logout`        | `src/oidc/manager.ts:263` (/oidc/logout)        |
-| `POST` | `/_matrix/client/v3/oidc/token`         | `src/oidc/manager.ts:217` (/oidc/token)         |
-| `GET`  | `/_matrix/client/v3/oidc/userinfo`      | `src/oidc/manager.ts:238` (/oidc/userinfo)      |
+| Method | Path                                    | 构造证据                                         |
+| ------ | --------------------------------------- | ------------------------------------------------ |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect` | `src/account/index.ts:179` (/login/sso/redirect) |
+| `GET`  | `/_matrix/client/v3/oidc/authorize`     | `src/oidc/manager.ts:176` (/oidc/authorize)      |
+| `GET`  | `/_matrix/client/v3/oidc/callback`      | `src/oidc/manager.ts:349` (/oidc/callback)       |
+| `POST` | `/_matrix/client/v3/oidc/login`         | `src/oidc/manager.ts:291` (/oidc/login)          |
+| `POST` | `/_matrix/client/v3/oidc/logout`        | `src/oidc/manager.ts:263` (/oidc/logout)         |
+| `POST` | `/_matrix/client/v3/oidc/token`         | `src/oidc/manager.ts:217` (/oidc/token)          |
+| `GET`  | `/_matrix/client/v3/oidc/userinfo`      | `src/oidc/manager.ts:238` (/oidc/userinfo)       |
 
 </details>
 
@@ -786,10 +773,10 @@
 
 | Method | Path                                                          | 构造证据                                          |
 | ------ | ------------------------------------------------------------- | ------------------------------------------------- |
-| `POST` | `/_matrix/client/unstable/org.matrix.msc3575/sync`            | ⚠️ `src/client/worker/worker.spec.ts:408` (/sync) |
-| `POST` | `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` | ⚠️ `src/client/worker/worker.spec.ts:408` (/sync) |
-| `POST` | `/_matrix/client/v1/sync`                                     | ⚠️ `src/client/worker/worker.spec.ts:408` (/sync) |
-| `POST` | `/_matrix/client/v4/sync`                                     | ⚠️ `src/client/worker/worker.spec.ts:408` (/sync) |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc3575/sync`            | ⚠️ `src/client/worker/worker.spec.ts:414` (/sync) |
+| `POST` | `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` | ⚠️ `src/client/worker/worker.spec.ts:414` (/sync) |
+| `POST` | `/_matrix/client/v1/sync`                                     | ⚠️ `src/client/worker/worker.spec.ts:414` (/sync) |
+| `POST` | `/_matrix/client/v4/sync`                                     | ⚠️ `src/client/worker/worker.spec.ts:414` (/sync) |
 
 </details>
 
@@ -845,22 +832,21 @@
 
 </details>
 
-<details><summary><code>cas</code> — 3 条</summary>
-
-| Method | Path                            | 构造证据                                               |
-| ------ | ------------------------------- | ------------------------------------------------------ |
-| `GET`  | `/_synapse/cas/login`           | `src/cas/index.ts:28` (/\_synapse/cas/login)           |
-| `GET`  | `/_synapse/cas/logout`          | `src/cas/index.ts:28` (/\_synapse/cas/logout)          |
-| `GET`  | `/_synapse/cas/serviceValidate` | `src/cas/index.ts:29` (/\_synapse/cas/serviceValidate) |
-
-</details>
-
 <details><summary><code>delayed_events</code> — 2 条</summary>
 
 | Method | Path                                                                    | 构造证据                                               |
 | ------ | ----------------------------------------------------------------------- | ------------------------------------------------------ |
 | `GET`  | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}` | `src/client-delayed-events.ts:16` (/delayed_events/{}) |
 | `POST` | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}` | `src/client-delayed-events.ts:16` (/delayed_events/{}) |
+
+</details>
+
+<details><summary><code>cas</code> — 2 条</summary>
+
+| Method | Path                                        | 构造证据                                                                |
+| ------ | ------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect/cas` | `src/account/index.ts:165` (/\_matrix/client/v3/login/sso/redirect/cas) |
+| `GET`  | `/_synapse/cas/login`                       | `src/cas/index.ts:28` (/\_synapse/cas/login)                            |
 
 </details>
 
@@ -915,7 +901,7 @@
 
 | Method | Path                                                             | 模板证据                                                          | 范围          |
 | ------ | ---------------------------------------------------------------- | ----------------------------------------------------------------- | ------------- |
-| `POST` | `/_matrix/federation/unstable/org.matrix.msc3720/account_status` | `src/account/index.ts:356` (`/org.matrix.msc3720/account_status`) | `SERVER_ONLY` |
+| `POST` | `/_matrix/federation/unstable/org.matrix.msc3720/account_status` | `src/account/index.ts:370` (`/org.matrix.msc3720/account_status`) | `SERVER_ONLY` |
 
 ---
 
@@ -927,7 +913,7 @@
 
 ---
 
-## 5. 仅声明面命中（T3）— 63 条
+## 5. 仅声明面命中（T3）— 54 条
 
 **不是缺口**：后端路由已进入 SDK 的 route-table 声明面，但仓内没有调用方。
 已知系统性成因（来自 `pnpm quality:manager-codegen`）：admin / federation / voice / feature_flags /
@@ -998,22 +984,6 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 </details>
 
-<details><summary><code>cas</code> — 9 条</summary>
-
-| Method   | Path                                                | 范围            |
-| -------- | --------------------------------------------------- | --------------- |
-| `GET`    | `/_matrix/client/v3/login/sso/redirect/cas`         | `CLIENT_FACING` |
-| `GET`    | `/_synapse/admin/v1/cas/services`                   | `SERVER_ONLY`   |
-| `POST`   | `/_synapse/admin/v1/cas/services`                   | `SERVER_ONLY`   |
-| `DELETE` | `/_synapse/admin/v1/cas/services/{service_id}`      | `SERVER_ONLY`   |
-| `GET`    | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | `SERVER_ONLY`   |
-| `POST`   | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | `SERVER_ONLY`   |
-| `GET`    | `/_synapse/cas/p3/serviceValidate`                  | `CLIENT_FACING` |
-| `GET`    | `/_synapse/cas/proxy`                               | `CLIENT_FACING` |
-| `GET`    | `/_synapse/cas/proxyValidate`                       | `CLIENT_FACING` |
-
-</details>
-
 <details><summary><code>push_notification</code> — 4 条</summary>
 
 | Method | Path                              | 范围          |
@@ -1056,7 +1026,7 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 ---
 
-## 6. 服务端/非产品面缺口（登记，**不应**封装）— 55 条
+## 6. 服务端/非产品面缺口（登记，**不应**封装）— 62 条
 
 <details><summary><code>federation</code> — 30 条</summary>
 
@@ -1095,7 +1065,7 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 </details>
 
-<details><summary><code>app_service</code> — 13 条</summary>
+<details><summary><code>app_service</code> — 20 条</summary>
 
 | Method    | Path                                                       | 范围          |
 | --------- | ---------------------------------------------------------- | ------------- |
@@ -1111,6 +1081,13 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 | `PUT`     | `/_matrix/app/v1/transactions/{as_id}/{txn_id}`            | `SERVER_ONLY` |
 | `GET`     | `/_matrix/app/v1/users/{user_id}`                          | `SERVER_ONLY` |
 | `GET`     | `/_matrix/app/v1/{as_id}`                                  | `SERVER_ONLY` |
+| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
+| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
+| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
+| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
+| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
+| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
+| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
 | `GET`     | `/_synapse/admin/v1/appservices/{as_id}/state/{state_key}` | `SERVER_ONLY` |
 
 </details>
@@ -1136,20 +1113,21 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 ---
 
-## 7. 人工复核记录（本轮，2026-10-10）
+## 7. 人工复核记录（本轮，2026-10-11）
 
 > 本表由审计者人工维护，**重跑生成器不会覆盖**。机器只能给出"证据有几级"，
 > "该不该补"必须开源码看实现意图——这是本仓历史审计反复踩过的坑
 > （2026-08-17 那次曾把 8 个已实现的 `room-summary` 端点误判为待补）。
 
-| 端点（版本不敏感）                                       | 复核结论                        | 证据                                                                                                                                                                                                           | 处置                                                                                                                                                                                         |
-| -------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/client/unstable/org.matrix.msc2965/auth_issuer`        | 🔴 真缺口（已核实）             | `grep -rn "auth_issuer\\                                                                                                                                                                                       | msc2965" src --include='\*.ts' \| grep -v **generated**`→ **0 命中**；SDK 的 OIDC 走`src/oidc/discovery.ts`直接请求`.well-known/openid-configuration`，从不调用后端的 MSC2965 委派认证入口。 | 确认前端是否启用 MSC2965 委派认证；若启用，需补 `OidcManager.getAuthIssuer()`（`GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer`）；若不启用，登记为「后端有、前端不走」并保持缺口。                           |
-| `/client/v3/admin/room/{}/redact`                        | 🔴 真缺口（已核实）             | `grep -rn "redact" src/admin` → **0 命中**；SDK 仅有用户态 `PUT /_matrix/client/{v1,v3}/rooms/{roomId}/redact/{eventId}/{txnId}`，无 admin 房间级 redact。                                                     | 若运营后台需要房间级 redact：`AdminRoomManager` 补 `redactRoomEvent(roomId, eventId, reason)`；若由前端 `AdminFacadeService` 直连（C 类运维面），则登记不补。                                |
-| `/media/{}/download/{}/{}`                               | 🟡 版本别名（已核实，非缺口）   | `src/media/index.ts:461-462` `getDownloadUrl()`：`const version = options.version ?? "v3"` → `/_matrix/media/${version}/download/...`。r0 需调用方显式传 `version: "r0"`（默认 v3）。                          | 无需补封装。可选：在 `MediaDownloadUrlOptions.version` 处加 JSDoc 说明「r0 为兼容别名，默认 v3」，避免调用方误以为覆盖 r0。                                                                  |
-| `/client/unstable/org.matrix.msc4108/rendezvous/{}`      | 🟢 已实现（解析器盲区，非缺口） | `src/rendezvous/transports/MSC4108RendezvousSession.ts:106` `.getUrl("/org.matrix.msc4108/rendezvous", undefined, ClientPrefix.Unstable)`；GET/PUT/DELETE 三方法共用该基址，`{session_id}` 由 transport 追加。 | 无需改动。这是本解析器的已知盲区（`getUrl(relativePath, ..., prefix)` 形态 + 尾部参数后拼），已在 §7.1 登记。                                                                                |
-| `/client/unstable/org.matrix.msc4155/rooms/{}/threads`   | 🔴 真缺口（已核实）             | `grep -rn "msc4155\\                                                                                                                                                                                           | msc4156" src --include='\*.ts' \| grep -v **generated**`→ **0 命中**；全仓除`**generated**/route-table.ts`外**没有任何`/threads` 路径字面量\*\*。                                            | **须与 Sprint 4 交付范围对照**：MSC4155（房间线程列表）在 SDK 侧无任何调用点。若该 ticket 只交付了后端，则前端线程能力仍走 `relations`（`m.thread`）自建；若要启用不稳定端点，需在 `ThreadManager` 补 `getRoomThreads()`。 |
-| `/client/unstable/org.matrix.msc4156/threads/subscribed` | 🔴 真缺口（已核实）             | 同上，`msc4156` 在 `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）。                                                                                                              | 同上：补 `getSubscribedThreads()`，或明确该能力不在本期前端范围内。                                                                                                                          |
+| 端点（版本不敏感）                                       | 复核结论                        | 证据                                                                                                                                                                                                                                                                                                                                                                                                     | 处置                                                                                                                                                                                         |
+| -------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/client/unstable/org.matrix.msc2965/auth_issuer`        | 🔴 真缺口（已核实）             | `grep -rn "auth_issuer\\                                                                                                                                                                                                                                                                                                                                                                                 | msc2965" src --include='\*.ts' \| grep -v **generated**`→ **0 命中**；SDK 的 OIDC 走`src/oidc/discovery.ts`直接请求`.well-known/openid-configuration`，从不调用后端的 MSC2965 委派认证入口。 | 确认前端是否启用 MSC2965 委派认证；若启用，需补 `OidcManager.getAuthIssuer()`（`GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer`）；若不启用，登记为「后端有、前端不走」并保持缺口。                           |
+| `/client/v3/admin/room/{}/redact`                        | 🔴 真缺口（已核实）             | `grep -rn "redact" src/admin` → **0 命中**；SDK 仅有用户态 `PUT /_matrix/client/{v1,v3}/rooms/{roomId}/redact/{eventId}/{txnId}`，无 admin 房间级 redact。                                                                                                                                                                                                                                               | 若运营后台需要房间级 redact：`AdminRoomManager` 补 `redactRoomEvent(roomId, eventId, reason)`；若由前端 `AdminFacadeService` 直连（C 类运维面），则登记不补。                                |
+| `/media/{}/download/{}/{}`                               | 🟡 版本别名（已核实，非缺口）   | `src/media/index.ts:461-462` `getDownloadUrl()`：`const version = options.version ?? "v3"` → `/_matrix/media/${version}/download/...`。r0 需调用方显式传 `version: "r0"`（默认 v3）。                                                                                                                                                                                                                    | 无需补封装。可选：在 `MediaDownloadUrlOptions.version` 处加 JSDoc 说明「r0 为兼容别名，默认 v3」，避免调用方误以为覆盖 r0。                                                                  |
+| `/client/unstable/org.matrix.msc4108/rendezvous/{}`      | 🟢 已实现（解析器盲区，非缺口） | `src/rendezvous/transports/MSC4108RendezvousSession.ts:106` `.getUrl("/org.matrix.msc4108/rendezvous", undefined, ClientPrefix.Unstable)`；GET/PUT/DELETE 三方法共用该基址，`{session_id}` 由 transport 追加。                                                                                                                                                                                           | 无需改动。这是本解析器的已知盲区（`getUrl(relativePath, ..., prefix)` 形态 + 尾部参数后拼），已在 §7.1 登记。                                                                                |
+| `/client/unstable/org.matrix.msc4155/rooms/{}/threads`   | 🔴 真缺口（已核实）             | `grep -rn "msc4155\\                                                                                                                                                                                                                                                                                                                                                                                     | msc4156" src --include='\*.ts' \| grep -v **generated**`→ **0 命中**；全仓除`**generated**/route-table.ts`外**没有任何`/threads` 路径字面量\*\*。                                            | **须与 Sprint 4 交付范围对照**：MSC4155（房间线程列表）在 SDK 侧无任何调用点。若该 ticket 只交付了后端，则前端线程能力仍走 `relations`（`m.thread`）自建；若要启用不稳定端点，需在 `ThreadManager` 补 `getRoomThreads()`。 |
+| `/client/unstable/org.matrix.msc4156/threads/subscribed` | 🔴 真缺口（已核实）             | 同上，`msc4156` 在 `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）。                                                                                                                                                                                                                                                                                                        | 同上：补 `getSubscribedThreads()`，或明确该能力不在本期前端范围内。                                                                                                                          |
+| `/client/v1/proxy/{as_id}/{*path}`                       | ⚪ 非前端面（已核实，登记豁免） | 后端 ledger `registered_by=app_service`；与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（7 方法，已在 `SERVER_ONLY_RE` 命中 `/_matrix/app/` → 归 §6）为**孪生路由**，仅前缀不同。`{*path}` 通配符使 codegen 无法生成 route-table；`grep -rn "/proxy/" src --include='*.ts'` 无任何消费点。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 明确裁定该 7 条「移出客户端面，归入 AS/服务端排除组（不封装）」。 | **不封装**。已在 `scopeOf` 的 `SERVER_ONLY_RE` 增补 `/^\/_matrix\/client\/v\d+\/proxy\//`，这 7 条从 §2（客户端面缺口）移入 §6（服务端/非产品面缺口）。                                      |
 
 ### 7.1 本解析器的已知盲区（重跑时必须人工兜底）
 

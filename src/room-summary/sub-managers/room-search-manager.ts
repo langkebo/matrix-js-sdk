@@ -73,14 +73,13 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
                     options?.suggested ?? false,
                 );
             }, "getRoomHierarchy");
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "getRoomHierarchy");
             }
             this.handleError("getRoomHierarchy", e);
-            return null;
         }
+        return null;
     }
 
     /**
@@ -105,14 +104,13 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
                     filter: options?.query ? { generic_search_term: options.query } : undefined,
                 });
             }, "getPublicRooms");
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "getPublicRooms");
             }
             this.handleError("getPublicRooms", e);
-            return null;
         }
+        return null;
     }
 
     /**
@@ -127,11 +125,10 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
         try {
             const result = await this.getPublicRooms(server, { query, limit });
             return result?.chunk ?? [];
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("searchPublicRooms", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -145,11 +142,10 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
         try {
             const result = await this.getPublicRooms(server, { limit });
             return result?.chunk ?? [];
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getRecommendedRooms", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -180,11 +176,10 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
                     invited_member_count: 0,
                     heroes: [],
                 }));
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getFavoriteRooms", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -218,11 +213,10 @@ export class RoomSummarySearchManager extends RoomSummaryBaseManager {
                     invited_member_count: 0,
                     heroes: [],
                 }));
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             this.handleError("getRecentRooms", e);
-            return [];
         }
+        return [];
     }
 
     /**

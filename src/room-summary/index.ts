@@ -376,7 +376,6 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             this.summaryCache.set(roomIdOrAlias, summary);
             this.emit(RoomSummaryEvent.Updated, roomIdOrAlias, summary);
             return summary;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "getRoomSummary");
@@ -384,8 +383,8 @@ export class RoomSummaryManager extends BaseManager<RoomSummaryEvent, RoomSummar
             const sdkError = this.normalizeError(e, "getRoomSummary");
             logger.warn(sdkError.message);
             this.emit(RoomSummaryEvent.Error, sdkError);
-            return null;
         }
+        return null;
     }
 
     public async createOrRefreshSummary(roomId: string, body: IContent = {}): Promise<RoomSummary | null> {

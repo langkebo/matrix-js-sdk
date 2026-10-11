@@ -601,14 +601,13 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
                 `/users/${encodeURIComponent(userId)}/admin`,
             );
             return response.admin;
-            // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw e;
             }
             logger.warn(`AdminUserManager.isAdmin failed for ${userId}:`, e);
-            return false;
         }
+        return false;
     }
 
     /**

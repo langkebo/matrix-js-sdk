@@ -1180,7 +1180,7 @@ export function resolveTemplateLiteral(literal) {
     // 匹配第一个 `${...}` 表达式的类型
     const interpMatch = /^\$\{(\w+)\.(\w+)\}(.*)$/.exec(literal);
     if (interpMatch) {
-        const [_, group, key, rest] = interpMatch;
+        const [, group, key, rest] = interpMatch;
         const base = PREFIX_CONSTANTS[group]?.[key] || "";
         // 递归解析剩余部分（可能包含其他插值表达式）
         const restResult = rest.includes("$") ? resolveTemplateLiteral(rest) : rest;
@@ -1285,7 +1285,6 @@ export function splitTopLevelTernary(expr) {
 export function splitTopLevelPlus(expr) {
     const parts = [];
     let rest = expr;
-    let offset = 0;
     for (;;) {
         const p = findTopLevel(rest, (c, i) => c === "+" && rest[i - 1] !== "+" && rest[i + 1] !== "+");
         if (p < 0) {
@@ -1293,7 +1292,6 @@ export function splitTopLevelPlus(expr) {
             break;
         }
         parts.push(rest.slice(0, p).trim());
-        offset += p + 1;
         rest = rest.slice(p + 1);
     }
     return parts.filter((p) => p !== "");
@@ -1902,7 +1900,7 @@ function main() {
 
                     // 检查该 MSC 路径是否在后端已注册
                     let mscMatched = false;
-                    for (const [key, orig] of backendRoutes.entries()) {
+                    for (const orig of backendRoutes.values()) {
                         if (orig.includes(`org.matrix.msc${mscNum}`) || orig.includes(`msc${mscNum}`)) {
                             mscMatched = true;
                             break;

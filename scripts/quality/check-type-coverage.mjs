@@ -79,7 +79,7 @@ function runTypeCoverage(label, files, threshold) {
                     threshold,
                     passed: percent >= threshold,
                 });
-            } catch (error) {
+            } catch {
                 reject(new Error(`type-coverage returned unparsable output for ${label}:\n${stdout}`));
             }
         });
