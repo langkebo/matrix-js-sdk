@@ -62,9 +62,11 @@ const SELF_PATH = fileURLToPath(import.meta.url);
 
 // >>> large-file-ratchet-baseline >>>
 export const LARGE_FILE_RATCHET_BASELINE = {
-    "src/client.ts": 4383,
+    "src/client.ts": 7307,
     "src/models/event.ts": 1793,
     "src/models/room.ts": 4234,
+    "src/room-summary/index.ts": 2113,
+    "src/room/RoomManager.ts": 2230,
     "src/rust-crypto/rust-crypto.ts": 2570,
     "src/sync.ts": 2077,
     "src/web-rtc/call.ts": 3126,

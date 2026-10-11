@@ -80,20 +80,21 @@
 
 ### 事件与消息类
 
-| MSC 编号    | 状态     | 前端文件                                                     | 后端实现 | SDK 影响面                            | 备注                                              |
-| ----------- | -------- | ------------------------------------------------------------ | -------- | ------------------------------------- | ------------------------------------------------- |
-| **MSC1767** | Stable   | `src/@types/extensible_events.ts`                            | ✅       | Extensible events                     | m.text, m.image etc.                              |
-| **MSC2674** | Stable   | `src/@types/beacon.ts`                                       | ✅       | Relation support                      | `m.reference`                                     |
-| **MSC2676** | Stable   | `src/models/event.ts`                                        | ✅       | Redaction of state events restriction | 禁止通过 relation 替换 state event                |
-| **MSC3267** | Stable   | `src/@types/beacon.ts`                                       | ✅       | Reference relation                    | `m.reference` rel_type，配合 MSC2674              |
-| **MSC3389** | Unstable | `src/models/event.ts`, `src/models/room.ts`                  | ❌       | Redacted event replacement            | 未标准化                                          |
-| **MSC3531** | Unstable | `src/models/event.ts`                                        | ✅       | Visibility change                     | `m.hide/show`                                     |
-| **MSC3765** | Stable   | `src/@types/topic.ts`                                        | ✅       | Extensible topic event                | `m.topic` with extensible events                  |
-| **MSC3846** | Stable   | `src/embedded.ts`                                            | ✅       | TURN servers via widget API           | `widgetApi.requestCapability(MSC3846TurnServers)` |
-| **MSC3912** | Unstable | `src/@types/event.ts`, `src/client.ts`                       | ✅       | Relation-based redactions             | `_relation_based_redaction` UnstableValue         |
-| **MSC3925** | Stable   | `src/event-mapper.ts`                                        | ✅       | Event sanitization                    | 已标准化                                          |
-| **MSC3946** | Stable   | `src/models/room.ts`                                         | ✅       | Predecessor state event               | `m.predecessor`                                   |
-| **MSC4033** | Draft    | `src/models/compare-event-ordering.ts`, `src/models/room.ts` | ⚠️ Draft | Event ordering logic                  | 类型定义，未实现                                  |
+| MSC 编号    | 状态     | 前端文件                                                                     | 后端实现 | SDK 影响面                            | 备注                                                                            |
+| ----------- | -------- | ---------------------------------------------------------------------------- | -------- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| **MSC1767** | Stable   | `src/@types/extensible_events.ts`                                            | ✅       | Extensible events                     | m.text, m.image etc.                                                            |
+| **MSC2674** | Stable   | `src/@types/beacon.ts`                                                       | ✅       | Relation support                      | `m.reference`                                                                   |
+| **MSC2676** | Stable   | `src/models/event.ts`                                                        | ✅       | Redaction of state events restriction | 禁止通过 relation 替换 state event                                              |
+| **MSC3267** | Stable   | `src/@types/beacon.ts`                                                       | ✅       | Reference relation                    | `m.reference` rel_type，配合 MSC2674                                            |
+| **MSC3389** | Unstable | `src/models/event.ts`, `src/models/room.ts`                                  | ❌       | Redacted event replacement            | 未标准化                                                                        |
+| **MSC3531** | Unstable | `src/models/event.ts`                                                        | ✅       | Visibility change                     | `m.hide/show`                                                                   |
+| **MSC3765** | Stable   | `src/@types/topic.ts`                                                        | ✅       | Extensible topic event                | `m.topic` with extensible events                                                |
+| **MSC3846** | Stable   | `src/embedded.ts`                                                            | ✅       | TURN servers via widget API           | `widgetApi.requestCapability(MSC3846TurnServers)`                               |
+| **MSC3912** | Unstable | `src/@types/event.ts`, `src/client.ts`                                       | ✅       | Relation-based redactions             | `_relation_based_redaction` UnstableValue                                       |
+| **MSC3925** | Stable   | `src/event-mapper.ts`                                                        | ✅       | Event sanitization                    | 已标准化                                                                        |
+| **MSC3946** | Stable   | `src/models/room.ts`                                                         | ✅       | Predecessor state event               | `m.predecessor`                                                                 |
+| **MSC3952** | Stable   | `src/feature.ts`, `src/server-capabilities/index.ts`, `src/pushprocessor.ts` | ✅       | Intentional mentions                  | `m.mentions`，不稳定前缀 `org.matrix.msc3952_intentional_mentions`，已进入 v1.7 |
+| **MSC4033** | Draft    | `src/models/compare-event-ordering.ts`, `src/models/room.ts`                 | ⚠️ Draft | Event ordering logic                  | 类型定义，未实现                                                                |
 
 ### 多媒体与内容类
 
