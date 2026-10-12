@@ -1,14 +1,14 @@
 ---
 module: guest
 generated_from: docs/api-contract/generated/modules/guest.json
-generated_hash: sha256-36565396a528a425883ad8f2d6dfdd3f3d0bb21a9c29207fc903e8b958c0ad24
+generated_hash: sha256-28a50cea94b62b2297d74a2c1bc81d5032a97aa010868125d5d62cb225bde936
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # 访客契约
 
-> 审查来源: `synapse-rust/src/web/routes/guest.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/guest.rs`
 > SDK 入口: `src/guest/index.ts`
 
 ## 当前审计结论

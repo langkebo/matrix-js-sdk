@@ -1,14 +1,14 @@
 ---
 module: admin
 generated_from: docs/api-contract/generated/modules/admin.json
-generated_hash: sha256-989f209c83691cd491a195965b5340f507a10f0bcd27b3d95428c0b1b95ea671
+generated_hash: sha256-ac13a6047874760b4a2a1459fd5afd800f752d755e3ef6a8c823f6cd0b07a679
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Admin 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/admin/mod.rs` 及其子模块
+> 审查来源: `synapse-rust/synapse-web/src/routes/admin/mod.rs` 及其子模块
 > 挂载版本: `/_synapse/admin/v1`
 > 更新日期: 2026-05-11
 
@@ -168,7 +168,7 @@ last_reviewed: 2026-05-11
 
 ## 代码定位
 
-- 聚合入口: `synapse-rust/src/web/routes/admin/mod.rs`
+- 聚合入口: `synapse-rust/synapse-web/src/routes/admin/mod.rs`
 - 用户: `admin/user.rs`
 - 房间: `admin/room.rs`
 - 安全: `admin/security.rs`

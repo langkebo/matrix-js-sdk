@@ -1,7 +1,7 @@
 ---
 module: tags
 generated_from: docs/api-contract/generated/modules/tags.json
-generated_hash: sha256-33ede5b970b06d8b6e8532ac01c40a32e8d15c966adcaccb638ec37732a248bf
+generated_hash: sha256-05912c2fd3f16d2ad9eb687be857c07eeea586379bbec85fd2053a34a641a7a1
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -10,7 +10,7 @@ last_reviewed: 2026-05-03
 
 > **审计状态**: ✅ `RoomManager` / `MatrixClient` 标签入口与独立 `TagManager` 已绑定生成 `TagsPathPattern`
 >
-> 审查来源: `synapse-rust/src/web/routes/room.rs` (tags section)
+> 审查来源: `synapse-rust/synapse-web/src/routes/room.rs` (tags section)
 
 ## 真实后端路由
 

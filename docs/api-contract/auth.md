@@ -1,8 +1,8 @@
 ---
 umbrella: true
 umbrella_sources:
-    - synapse-rust/src/web/routes/assembly.rs
-    - synapse-rust/src/web/routes/admin/mod.rs
+    - synapse-rust/synapse-web/src/routes/assembly.rs
+    - synapse-rust/synapse-web/src/routes/admin/mod.rs
     - docs/api-contract/README.md
 ledger_schema: 4
 last_reviewed: 2026-05-03
@@ -220,10 +220,10 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 认证兼容路由: `synapse-rust/src/web/routes/assembly.rs`
-- 账户兼容路由: `synapse-rust/src/web/routes/assembly.rs`
-- 目录兼容路由: `synapse-rust/src/web/routes/assembly.rs`
-- 处理器入口: `synapse-rust/src/web/routes/auth_compat.rs`、`account_compat.rs`、`directory_reporting.rs`
+- 认证兼容路由: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 账户兼容路由: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 目录兼容路由: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 处理器入口: `synapse-rust/synapse-web/src/routes/auth_compat.rs`、`account_compat.rs`、`directory_reporting.rs`
 
 ## SDK Manager 对应关系
 

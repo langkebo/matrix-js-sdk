@@ -1,7 +1,7 @@
 ---
 module: voice
 generated_from: docs/api-contract/generated/modules/voice.json
-generated_hash: sha256-560b6268be5212e164d06278265d9c0f6896c3b6aef602d9d8af2d638155d330
+generated_hash: sha256-a26e8fb8826c8bed6dadaaccc05484928c316f45efd3de0e7e14b531c6884add
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -11,15 +11,21 @@ last_reviewed: 2026-05-03
 > 版本: v1.0.0
 > 更新日期: 2026-04-14
 > 对应 SDK 模块: `src/voice/index.ts`
-> 审查来源: `synapse-rust/src/web/routes/voice.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/voice.rs`
 > 审计状态: ✅ 当前 Ledger 仅统计 `voice/config` 与 `voice/upload` 两条主路径，SDK 已完成直连封装
 
 ## 挂载版本
 
-| 前缀                 | 路由                                                                                                                                                                                          |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/_matrix/client/r0` | `/voice/upload`、`/voice/stats`、`/voice/{message_id}`、`/voice/user/{user_id}`、`/voice/user/{user_id}/stats`、`/voice/room/{room_id}`、`/voice/config`、`/voice/convert`、`/voice/optimize` |
-| `/_matrix/client/v1` | `/voice/transcription`                                                                                                                                                                        |
+| 前缀                 | 路由                                                                                                                                                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/_matrix/vendor/v1` | `/voice/upload`、`/voice/stats`、`/voice/config`、`/voice/register`、`/voice/{media_id}`、`/voice/{media_id}/convert`、`/voice/{media_id}/optimize`、`/voice/{media_id}/transcription`、`/voice/user/{user_id}`、`/voice/user/{user_id}/stats`、`/voice/room/{room_id}`、`/voice/room/{room_id}/stats` |
+
+> **命名空间变更（2026-10-12 核对）**：voice 属**私有扩展模块**，其端点此前冒用
+> `/_matrix/client/{r0,v1}` 标准命名空间，后已按 ISSUE-13 统一迁至 `/_matrix/vendor/v1`。
+> 本页历史版本中列出的 `/_matrix/client/r0/voice/*`、`/_matrix/client/v1/voice/transcription`
+> 在后端**已不存在**（后端 `voice.rs` 现仅注册 `/_matrix/vendor/v1/voice/*`），
+> 打这些地址会得到 404。另注：后端注册模板用 `{media_id}`，本页早期写作 `{message_id}`，
+> 二者指同一路径段，现已对齐为 `{media_id}`；响应体字段名仍为 `message_id`（不受影响）。
 
 ## 路由清单
 
@@ -27,11 +33,11 @@ last_reviewed: 2026-05-03
 | ------ | --------------------------------------------------- | ---------------- | ---- |
 | POST   | `/_matrix/vendor/v1/voice/upload`                   | 上传语音消息     | 用户 |
 | GET    | `/_matrix/vendor/v1/voice/stats`                    | 获取当前用户统计 | 用户 |
-| GET    | `/_matrix/client/r0/voice/{message_id}`             | 获取语音内容     | 用户 |
-| DELETE | `/_matrix/client/r0/voice/{message_id}`             | 删除语音消息     | 用户 |
-| GET    | `/_matrix/client/r0/voice/user/{user_id}`           | 获取指定用户语音 | 用户 |
-| GET    | `/_matrix/client/r0/voice/room/{room_id}`           | 获取房间语音列表 | 用户 |
-| GET    | `/_matrix/client/r0/voice/user/{user_id}/stats`     | 获取指定用户统计 | 用户 |
+| GET    | `/_matrix/vendor/v1/voice/{media_id}`               | 获取语音内容     | 用户 |
+| DELETE | `/_matrix/vendor/v1/voice/{media_id}`               | 删除语音消息     | 用户 |
+| GET    | `/_matrix/vendor/v1/voice/user/{user_id}`           | 获取指定用户语音 | 用户 |
+| GET    | `/_matrix/vendor/v1/voice/room/{room_id}`           | 获取房间语音列表 | 用户 |
+| GET    | `/_matrix/vendor/v1/voice/user/{user_id}/stats`     | 获取指定用户统计 | 用户 |
 | GET    | `/_matrix/vendor/v1/voice/config`                   | 获取语音配置     | 公开 |
 | POST   | `/_matrix/vendor/v1/voice/{media_id}/convert`       | 转换语音格式     | 用户 |
 | POST   | `/_matrix/vendor/v1/voice/{media_id}/optimize`      | 压缩优化语音     | 用户 |
@@ -39,46 +45,46 @@ last_reviewed: 2026-05-03
 
 ## 请求体与稳定响应
 
-### `POST /_matrix/client/r0/voice/upload`
+### `POST /_matrix/vendor/v1/voice/upload`
 
 - 请求体稳定字段: `content`(base64)、`content_type`、`duration_ms`、可选 `room_id`、`session_id`
 - 处理器会校验 base64、音频 MIME、大小上限与 `duration_ms > 0`
 - 当携带 `room_id` 时，要求认证用户是该房间成员；非成员上传返回 `403 M_FORBIDDEN`
 - 成功时直接透传 `voice_service.save_voice_message(...)` 的 JSON 结果
 
-### `GET /_matrix/client/r0/voice/stats`
+### `GET /_matrix/vendor/v1/voice/stats`
 
 - 返回当前认证用户的统计对象
 - 处理器直接透传 `voice_service.get_user_stats(...)` 的 JSON 结果
 
-### `GET /_matrix/client/r0/voice/{message_id}`
+### `GET /_matrix/vendor/v1/voice/{media_id}`
 
 - 成功响应稳定字段: `message_id`、`content`(base64)、`content_type`、`size`
 - 仅允许消息所有者或关联房间成员读取；无权访问返回 `403 M_FORBIDDEN`
 
-### `DELETE /_matrix/client/r0/voice/{message_id}`
+### `DELETE /_matrix/vendor/v1/voice/{media_id}`
 
 - 成功响应稳定字段: `deleted`、`message_id`
 - 仅允许消息所有者删除；管理员可覆盖删除；其他用户返回 `403 M_FORBIDDEN`
 
-### `GET /_matrix/client/r0/voice/user/{user_id}`
+### `GET /_matrix/vendor/v1/voice/user/{user_id}`
 
 - 处理器固定按 `limit=50 offset=0` 查询
 - 仅允许认证用户读取自己的语音列表；跨用户访问返回 `403 M_FORBIDDEN`
 - 成功时直接透传 service 层返回对象
 
-### `GET /_matrix/client/r0/voice/room/{room_id}`
+### `GET /_matrix/vendor/v1/voice/room/{room_id}`
 
 - 处理器固定按 `limit=50` 查询
 - 仅允许房间成员读取该房间的语音列表；非成员访问返回 `403 M_FORBIDDEN`
 - 成功时直接透传 service 层返回对象
 
-### `GET /_matrix/client/r0/voice/user/{user_id}/stats`
+### `GET /_matrix/vendor/v1/voice/user/{user_id}/stats`
 
 - 返回指定用户的统计对象
 - 仅允许认证用户读取自己的统计；跨用户访问返回 `403 M_FORBIDDEN`
 
-### `GET /_matrix/client/r0/voice/config`
+### `GET /_matrix/vendor/v1/voice/config`
 
 - 稳定字段: `supported_formats`、`max_size_bytes`、`max_duration_ms`、`default_sample_rate`、`default_channels`
 
@@ -120,7 +126,7 @@ last_reviewed: 2026-05-03
 | -------------------------------------------------------- | --------------------- | ---------------------------- | --------------------------------------------------------- |
 | `POST /_matrix/vendor/v1/voice/upload`                   | `VoiceMessageManager` | `uploadVoiceMessageDirect()` | ✅ 已直连 `voice/upload`，按后端要求发送 base64 `content` |
 | `GET /_matrix/vendor/v1/voice/stats`                     | `VoiceMessageManager` | `getVoiceStats()`            | ❌ SDK 统计来自本地房间时间线，不调用后端                 |
-| `GET /_matrix/client/r0/voice/{message_id}`              | `VoiceMessageManager` | `getVoiceMessageInfo()`      | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端       |
+| `GET /_matrix/vendor/v1/voice/{media_id}`                | `VoiceMessageManager` | `getVoiceMessageInfo()`      | ❌ SDK 通过 `fetchRoomEvent()` 读取事件，不调用后端       |
 | `POST /_matrix/vendor/v1/voice/{media_id}/transcription` | `VoiceMessageManager` | 本轮未纳入 Ledger 统计       | 文档保留说明，当前 codegen 不再生成该路径                 |
 
 ## 当前对齐结论
@@ -143,11 +149,11 @@ last_reviewed: 2026-05-03
 
 ## 人工 Review 对齐
 
-- 新增 `uploadVoiceMessageDirect()` 作为 `POST /_matrix/client/r0/voice/upload` 的显式 SDK wrapper。
+- 新增 `uploadVoiceMessageDirect()` 作为 `POST /_matrix/vendor/v1/voice/upload` 的显式 SDK wrapper。
 - `uploadVoiceMessageDirect()` 会把二进制音频转成 base64 `content`，并按后端要求发送 `content_type`、`duration_ms`、`room_id`、`waveform`。
 - `getServerConfig()` 与 `uploadVoiceMessageDirect()` 均已绑定生成 `route-table`，单测覆盖 `GET /voice/config` 和 `POST /voice/upload`。
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/voice.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/voice.rs`
 - SDK 封装: `matrix-js-sdk/src/voice/index.ts`

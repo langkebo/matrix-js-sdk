@@ -1,15 +1,15 @@
 ---
 module: burn_after_read
 generated_from: docs/api-contract/generated/modules/burn_after_read.json
-generated_hash: sha256-fb55c81f7ba91757d3d27256c9c4717ab093ed8707a929563b0a23e921ca039b
+generated_hash: sha256-9566109f0038902863f683d82613ed9625a1d16e2932646f36984d40a0a49c04
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Burn After Read API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/burn_after_read.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/burn_after_read.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > SDK 入口: `src/burn-after-read/index.ts`  
 > 更新日期: 2026-05-11  
 > 挂载版本: `v1`
@@ -23,12 +23,12 @@ last_reviewed: 2026-05-11
     - `burn_at` 实际为 `created_at` / `delete_at`
     - 用户配置不是 `default_enabled/default_timeout_ms`，而是 `default_burn_ms`
     - 统计响应包含 `total_pending` 和 `rooms_with_burn_enabled`
-- `DELETE /_matrix/client/v1/rooms/{room_id}/burn/{event_id}` 真实存在，但旧文档遗漏了它在覆盖统计中的作用。
+- `DELETE /_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` 真实存在，但旧文档遗漏了它在覆盖统计中的作用。
 
 ## 二、路由前缀与认证
 
-- `/_matrix/client/v1/rooms/{room_id}/burn`
-- `/_matrix/client/v1/user/burn/*`
+- `/_matrix/vendor/v1/rooms/{room_id}/burn`
+- `/_matrix/vendor/v1/user/burn/*`（实际为 `/_matrix/vendor/v1/user/burn/config` 与 `/stats`）
 - 所有端点需要 `AuthenticatedUser`
 
 ## 三、核心请求与响应形状
@@ -89,11 +89,11 @@ interface BurnStats {
 
 | 方法   | 路径                                                 | SDK 方法                         |
 | ------ | ---------------------------------------------------- | -------------------------------- |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/burn`            | `getBurnSettings()`              |
-| PUT    | `/_matrix/client/v1/rooms/{room_id}/burn`            | `enableBurn()` / `disableBurn()` |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/burn/pending`    | `getPendingBurns()`              |
-| POST   | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `markBurnRead()`                 |
-| DELETE | `/_matrix/client/v1/rooms/{room_id}/burn/{event_id}` | `cancelBurn()`                   |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/burn`            | `getBurnSettings()`              |
+| PUT    | `/_matrix/vendor/v1/rooms/{room_id}/burn`            | `enableBurn()` / `disableBurn()` |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/burn/pending`    | `getPendingBurns()`              |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` | `markBurnRead()`                 |
+| DELETE | `/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` | `cancelBurn()`                   |
 | PUT    | `/_matrix/vendor/v1/user/burn/config`                | `setBurnConfig()`                |
 | GET    | `/_matrix/vendor/v1/user/burn/stats`                 | `getBurnStats()`                 |
 

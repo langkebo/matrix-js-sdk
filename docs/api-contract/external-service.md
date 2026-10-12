@@ -1,15 +1,15 @@
 ---
 module: external_service
 generated_from: docs/api-contract/generated/modules/external_service.json
-generated_hash: sha256-1c2c5be3789797333c2bd6c619688795034fa67879fb41af6b8bc2baf9fc6cfa
+generated_hash: sha256-b8e89d954a916071db9b68ac967d000e06bbaf46c8478b6ce77c00f63a1fb366
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # External Service API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/external_service.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/external_service.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v1`
 

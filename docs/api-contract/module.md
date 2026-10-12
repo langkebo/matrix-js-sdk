@@ -1,15 +1,15 @@
 ---
 module: module
 generated_from: docs/api-contract/generated/modules/module.json
-generated_hash: sha256-7495e5d4b192243f0b2f63d1a9347a689297e87aa0dbbb8a93da95c8c90dacf7
+generated_hash: sha256-d5d6fab92079100968cbebfb574ecddb88b3d3bcc36bfce2a2709130333eedd3
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Module System API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/module.rs`  
-> 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/module.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/admin/mod.rs`  
 > SDK 入口: `src/admin/index.ts`  
 > 更新日期: 2026-05-11  
 > 挂载版本: `v1` (Admin)

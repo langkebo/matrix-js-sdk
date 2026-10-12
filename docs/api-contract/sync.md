@@ -1,25 +1,30 @@
 ---
 module: sync
 generated_from: docs/api-contract/generated/modules/sync.json
-generated_hash: sha256-d34e6c9da605f25c7a05806c983f1fb0906cd8fc5001a6e3345627ccea541136
+generated_hash: sha256-f197ddce56bb71a02f01459d808083e86cfc6321d41fd40879f84fb055b11a62
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Sync 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/sync.rs` 与 `sliding_sync.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/sync.rs` 与 `sliding_sync.rs`
 > 审计状态: ✅ `joined_rooms`、`my_rooms` 与 simplified sliding sync 主入口已绑定生成契约，sync 主链路对齐完成
 
 ## 挂载版本
 
-| 前缀                                                     | 路由                                          |
-| -------------------------------------------------------- | --------------------------------------------- |
-| `/_matrix/client/r0`                                     | `/sync` `/events` `/joined_rooms`             |
-| `/_matrix/client/v1`                                     | `/sync`                                       |
-| `/_matrix/client/v3`                                     | `/sync` `/events` `/joined_rooms` `/my_rooms` |
-| `/_matrix/client/unstable/org.matrix.msc3575`            | `POST /sync`                                  |
-| `/_matrix/client/unstable/org.matrix.simplified_msc3575` | `POST /sync`                                  |
+| 前缀                                                     | 路由                                |
+| -------------------------------------------------------- | ----------------------------------- |
+| `/_matrix/client/unstable/org.matrix.msc3575`            | `/sync`                             |
+| `/_matrix/client/unstable/org.matrix.simplified_msc3575` | `/sync`                             |
+| `/_matrix/client/v1`                                     | `/sync`                             |
+| `/_matrix/client/v3`                                     | `/events`、`/joined_rooms`、`/sync` |
+| `/_matrix/client/v4`                                     | `/sync`                             |
+
+> **命名空间变更（2026-10-12 核对）**：`/_matrix/client/r0` 下的 `/sync`、`/events`、`/joined_rooms`
+> 已随 r0 退役**整体移除**；Sliding Sync 现挂 `/_matrix/client/v1`（简化版）、`/_matrix/client/v4`、
+> `/_matrix/client/unstable/org.matrix.msc3575`、`/_matrix/client/unstable/org.matrix.simplified_msc3575`；
+> 原 `/my_rooms` 已迁 `/_matrix/vendor/v1`（属 `room` 模块注册，本页仅作跨页指引）。
 
 ## GET 同步端点
 
@@ -160,9 +165,9 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由声明: `synapse-rust/src/web/routes/sync.rs`
-- Sliding Sync 路由: `synapse-rust/src/web/routes/sliding_sync.rs`
-- 处理器: `synapse-rust/src/web/routes/handlers/sync.rs`
+- 路由声明: `synapse-rust/synapse-web/src/routes/sync.rs`
+- Sliding Sync 路由: `synapse-rust/synapse-web/src/routes/sliding_sync.rs`
+- 处理器: `synapse-rust/synapse-web/src/routes/handlers/sync.rs`
 
 ## DTO Definitions
 

@@ -3,7 +3,7 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Burn After Read
- * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Source:        docs/api-contract/generated/modules/burn_after_read.json
  * Entries:       7 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 

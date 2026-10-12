@@ -1,14 +1,14 @@
 ---
 module: dm
 generated_from: docs/api-contract/generated/modules/dm.json
-generated_hash: sha256-7bcdac1525d3eb51da232907578e7d86838b0d907f6d6d79dcec626429730294
+generated_hash: sha256-1ae5880234f8beea8ffec07e064886e6e816b98217d4f8f1bb66f45234d02613
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # DM 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/dm.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/dm.rs`
 > 对应 SDK 模块: `src/dm/index.ts`
 
 ## 本次复核结论
@@ -37,11 +37,11 @@ last_reviewed: 2026-05-11
 | `POST` | `/_matrix/vendor/v1/create_dm`                  | 创建私聊房间兼容前缀         | SDK 默认走 `v3`              |
 | `POST` | `/_matrix/vendor/v1/create_dm`                  | 创建私聊房间                 | `createDmRoom()`             |
 | `GET`  | `/_matrix/vendor/v1/direct`                     | 获取 `m.direct` 映射兼容前缀 | SDK 默认走 `v3`              |
-| `PUT`  | `/_matrix/client/r0/direct/{room_id}`           | 更新 direct map 兼容前缀     | SDK 默认走 `v3`              |
+| `PUT`  | `/_matrix/vendor/v1/direct/{room_id}`           | 更新 direct map 兼容前缀     | SDK 默认走 `v3`              |
 | `GET`  | `/_matrix/vendor/v1/direct`                     | 获取当前用户 direct map      | `getDirectRoomsFromServer()` |
-| `PUT`  | `/_matrix/client/v3/direct/{room_id}`           | 更新某房间的 direct map      | `updateDirectRoom()`         |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/dm`         | 判断房间是否为 DM            | `isDmRoomFromServer()`       |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取 DM 对端资料             | `getDmPartnerFromServer()`   |
+| `PUT`  | `/_matrix/vendor/v1/direct/{room_id}`           | 更新某房间的 direct map      | `updateDirectRoom()`         |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm`         | 判断房间是否为 DM            | `isDmRoomFromServer()`       |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm/partner` | 获取 DM 对端资料             | `getDmPartnerFromServer()`   |
 
 ## 参数与返回值对齐
 

@@ -1,14 +1,14 @@
 ---
 module: push_notification
 generated_from: docs/api-contract/generated/modules/push_notification.json
-generated_hash: sha256-71d5f9b7418cd9a2ad521d07f9fdf76626cc04a07aba91060c8345a52116b8ed
+generated_hash: sha256-db65bd28b3d20a8db10b9fffcf7ca00b7b06d4f274d897ec1a55ff8241d3942e
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # 通知契约
 
-> 审查来源: `synapse-rust/src/web/routes/push_notification.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/push_notification.rs`
 
 ## 模块概述
 
@@ -75,6 +75,6 @@ export interface INotificationsResponse {
 
 ## 代码定位
 
-- 后端实现: `synapse-rust/src/web/routes/push_notification.rs`
+- 后端实现: `synapse-rust/synapse-web/src/routes/push_notification.rs`
 - SDK 实现: `src/notifications/index.ts`
 - 生成代码: `src/notifications/__generated__/`

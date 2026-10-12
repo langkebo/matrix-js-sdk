@@ -1,7 +1,7 @@
 ---
 module: reactions
 generated_from: docs/api-contract/generated/modules/reactions.json
-generated_hash: sha256-fac3eb546ecaa15ae00e37445135ce5daf7f8599ca84d365461afd99d85349a1
+generated_hash: sha256-e3006b3634408ca3bcdfa3d6277cbdc6584818b02920d297e6daf14de4c2b80a
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -9,7 +9,7 @@ last_reviewed: 2026-05-03
 # Reactions API 契约文档
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/reactions.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v3`
 

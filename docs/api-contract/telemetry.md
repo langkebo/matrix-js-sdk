@@ -1,14 +1,14 @@
 ---
 module: telemetry
 generated_from: docs/api-contract/generated/modules/telemetry.json
-generated_hash: sha256-6c4c5842e78bc5852993ff407aec247b05e7c1d90d1e0e3054941d27b8ccf13d
+generated_hash: sha256-cc229573c24e8888c2527946591e8ef6a80b1aab9203c78e211557531468b6c0
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Telemetry API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/telemetry.rs`
+> 后端代码: `synapse-rust/synapse-web/src/routes/telemetry.rs`
 > 挂载前缀: `/_synapse/admin/v1`
 > 对应 SDK 模块: `src/telemetry/index.ts`
 

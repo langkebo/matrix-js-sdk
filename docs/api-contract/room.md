@@ -1,23 +1,34 @@
 ---
 module: room
 generated_from: docs/api-contract/generated/modules/room.json
-generated_hash: sha256-fbf7597535d9806774f0b65714ce37df70c36caa1cafe5ee5b1bded977eff6b1
+generated_hash: sha256-fd1aff8eb55b68f2e1b0370ef0f7ba5739498b3ba9cac8845595cb0f1931e3db
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Room 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/room.rs`、`handlers/search.rs`、`moderation.rs`、`typing.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/room.rs`、`handlers/search.rs`、`moderation.rs`、`typing.rs`
 > 审计状态: ✅ `RoomManager` 已将当前已实现的房间主路径绑定到生成 `RoomPathPattern`
 
 ## 挂载版本
 
-| 前缀                 | 说明                                                                                               |
-| -------------------- | -------------------------------------------------------------------------------------------------- |
-| `/_matrix/client/r0` | 兼容主链路 + `createRoom` + `get_membership_events` + 事件举报                                     |
-| `/_matrix/client/v1` | `m.room.power_levels` 兼容读取 + `context` `hierarchy` `timestamp_to_event` + 事件举报相关房间路由 |
-| `/_matrix/client/v3` | 兼容主链路 + `context` `hierarchy` + typing + 扩展房间能力、通知、同步、密钥、粘性事件等           |
+| 前缀                                            | 条数 | 说明                                                                                                             |
+| ----------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------- |
+| `/_matrix/client/v3`                            | 38   | 标准主链路（`createRoom`、`joined_rooms`、`send`、`messages`、`context` …）                                      |
+| `/_matrix/vendor/v1`                            | 51   | **项目私有扩展**：`/my_rooms`、`capabilities`、`timeline`、`keys/*`、`notifications`、`metadata`、`fragments` 等 |
+| `/_matrix/client/unstable/org.matrix.msc4354`   | 3    | 粘性事件（`sticky_events`）                                                                                      |
+| `/_matrix/client/v1`                            | 2    | `m.room.power_levels` 兼容读写（带尾斜杠的学生模板）                                                             |
+| `/_matrix/client/unstable/uk.half-shot.msc2666` | 1    | `user/mutual_rooms`（MSC2666 共同房间）                                                                          |
+
+> **命名空间变更（2026-10-12 核对）**：本页旧版把 `/_matrix/client/r0` 列为「兼容主链路」，
+> 并称扩展能力（通知、同步、密钥、粘性事件）挂在 `/_matrix/client/v3`。实测后端 ledger：
+>
+> - `/_matrix/client/r0/*` 房间路由**已全部退役**（0 条）；
+> - 扩展能力已按 ISSUE-13 迁至 **`/_matrix/vendor/v1`**（51 条）；
+> - 粘性事件已迁至 **`/_matrix/client/unstable/org.matrix.msc4354`**（MSC4354 unstable 命名空间）。
+>
+> 打旧地址会得到 404，故本表按 ledger 重写。逐条见 `generated/modules/room.json`。
 
 ## 认证与通用响应
 
@@ -67,14 +78,14 @@ last_reviewed: 2026-05-11
 | POST         | `/_matrix/client/v3/rooms/{room_id}/report`                                  | `reason` `score?`                                     | 空对象                                                              |
 | POST         | `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}`               | `reason` `score?`                                     | 空对象                                                              |
 | PUT          | `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}/score`         | `score`                                               | 空对象                                                              |
-| GET          | `/_matrix/client/v1/rooms/{room_id}/report/{event_id}/scanner_info`          | `event_id`                                            | scanner 信息                                                        |
+| GET          | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info`          | `event_id`                                            | scanner 信息                                                        |
 
 ## r0 专用
 
 | 方法 | 路径                                                       | 说明                 |
 | ---- | ---------------------------------------------------------- | -------------------- |
 | POST | `/_matrix/client/v3/createRoom`                            | 创建房间             |
-| POST | `/_matrix/client/r0/rooms/{room_id}/get_membership_events` | 获取 membership 事件 |
+| POST | `/_matrix/vendor/v1/rooms/{room_id}/get_membership_events` | 获取 membership 事件 |
 
 ## v1 专用
 
@@ -85,44 +96,44 @@ last_reviewed: 2026-05-11
 
 ## v3 扩展房间端点
 
-| 方法     | 路径                                                            | 主要请求参数                       | 主要响应字段                                                                                  |
-| -------- | --------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
-| POST     | `/_matrix/client/v3/createRoom`                                 | 创建房间请求体                     | `room_id`                                                                                     |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/notifications`              | 分页查询参数                       | `notifications`                                                                               |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/capabilities`               | 无                                 | 房间能力                                                                                      |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/sync`                       | 查询参数                           | 房间级同步结果                                                                                |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/timeline`                   | 查询参数                           | 时间线                                                                                        |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/unread_count`               | 无                                 | 未读计数                                                                                      |
-| GET/PUT  | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}`           | GET 无；PUT 为 `typing` `timeout?` | 用户 typing 状态 / 空对象；读写均要求调用方为房间成员或管理员，且 PUT 仅允许更新自己的 typing |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/typing`                     | 无                                 | 房间内 typing 用户列表；要求调用方为房间成员或管理员                                          |
-| POST     | `/_matrix/client/v3/rooms/typing`                               | `room_ids` 列表                    | 各房间 typing 状态映射；请求中的每个房间都要求调用方为房间成员或管理员                        |
-| GET/PUT  | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}`        | account data 内容                  | account data                                                                                  |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/turn_server`                | 无                                 | TURN 配置                                                                                     |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/metadata`                   | 无                                 | 房间元数据                                                                                    |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/spaces`                     | 无                                 | 所属 space 列表                                                                               |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/keys`                       | 无                                 | 房间密钥                                                                                      |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/keys/count`                 | 无                                 | 密钥计数                                                                                      |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/keys/version`               | 无                                 | 密钥版本                                                                                      |
-| POST     | `/_matrix/client/v3/rooms/{room_id}/keys/claim`                 | claim body                         | claim 结果                                                                                    |
-| PUT      | `/_matrix/client/v3/rooms/{room_id}/room_keys/keys`             | 转发 room key                      | `count` `etag` `version`                                                                      |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/keys/{event_id}`            | `event_id`                         | 事件密钥                                                                                      |
-| GET      | `/_matrix/client/v3/rooms/{room_id}/thread/{event_id}`          | `event_id`                         | 线程视图                                                                                      |
-| POST     | `/_matrix/client/v3/join/{room_id_or_alias}`                    | 可选 via 信息                      | `room_id`                                                                                     |
-| POST     | `/_matrix/client/v3/knock/{room_id_or_alias}`                   | knock 请求体                       | `room_id` / 空对象                                                                            |
-| POST     | `/_matrix/client/v3/invite/{room_id}`                           | `user_id`                          | 空对象                                                                                        |
-| GET/POST | `/_matrix/client/v3/rooms/{room_id}/invite_blocklist`           | blocklist body                     | blocklist；GET 要求调用方为房间成员或管理员，POST 维持当前仅房间创建者可写                    |
-| GET/POST | `/_matrix/client/v3/rooms/{room_id}/invite_allowlist`           | allowlist body                     | allowlist；GET 要求调用方为房间成员或管理员，POST 维持当前仅房间创建者可写                    |
-| GET/POST | `/_matrix/client/v3/rooms/{room_id}/sticky_events`              | sticky event body                  | sticky events                                                                                 |
-| DELETE   | `/_matrix/client/v3/rooms/{room_id}/sticky_events/{event_type}` | `event_type`                       | 空对象                                                                                        |
+| 方法     | 路径                                                                                     | 主要请求参数                       | 主要响应字段                                                                                  |
+| -------- | ---------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| POST     | `/_matrix/client/v3/createRoom`                                                          | 创建房间请求体                     | `room_id`                                                                                     |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/notifications`                                       | 分页查询参数                       | `notifications`                                                                               |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/capabilities`                                        | 无                                 | 房间能力                                                                                      |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/sync`                                                | 查询参数                           | 房间级同步结果                                                                                |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/timeline`                                            | 查询参数                           | 时间线                                                                                        |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/unread_count`                                        | 无                                 | 未读计数                                                                                      |
+| GET/PUT  | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}`                                    | GET 无；PUT 为 `typing` `timeout?` | 用户 typing 状态 / 空对象；读写均要求调用方为房间成员或管理员，且 PUT 仅允许更新自己的 typing |
+| GET      | `/_matrix/client/v3/rooms/{room_id}/typing`                                              | 无                                 | 房间内 typing 用户列表；要求调用方为房间成员或管理员                                          |
+| POST     | `/_matrix/client/v3/rooms/typing`                                                        | `room_ids` 列表                    | 各房间 typing 状态映射；请求中的每个房间都要求调用方为房间成员或管理员                        |
+| GET/PUT  | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}`                                 | account data 内容                  | account data                                                                                  |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/turn_server`                                         | 无                                 | TURN 配置                                                                                     |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/metadata`                                            | 无                                 | 房间元数据                                                                                    |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/spaces`                                              | 无                                 | 所属 space 列表                                                                               |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/keys`                                                | 无                                 | 房间密钥                                                                                      |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/keys/count`                                          | 无                                 | 密钥计数                                                                                      |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/keys/version`                                        | 无                                 | 密钥版本                                                                                      |
+| POST     | `/_matrix/vendor/v1/rooms/{room_id}/keys/claim`                                          | claim body                         | claim 结果                                                                                    |
+| PUT      | `/_matrix/vendor/v1/rooms/{room_id}/room_keys/keys`                                      | 转发 room key                      | `count` `etag` `version`                                                                      |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/keys/{event_id}`                                     | `event_id`                         | 事件密钥                                                                                      |
+| GET      | `/_matrix/vendor/v1/rooms/{room_id}/thread/{event_id}`                                   | `event_id`                         | 线程视图                                                                                      |
+| POST     | `/_matrix/client/v3/join/{room_id_or_alias}`                                             | 可选 via 信息                      | `room_id`                                                                                     |
+| POST     | `/_matrix/client/v3/knock/{room_id_or_alias}`                                            | knock 请求体                       | `room_id` / 空对象                                                                            |
+| POST     | `/_matrix/client/v3/rooms/{room_id}/invite`                                              | `user_id`                          | 空对象                                                                                        |
+| GET/POST | `/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist`                                    | blocklist body                     | blocklist；GET 要求调用方为房间成员或管理员，POST 维持当前仅房间创建者可写                    |
+| GET/POST | `/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist`                                    | allowlist body                     | allowlist；GET 要求调用方为房间成员或管理员，POST 维持当前仅房间创建者可写                    |
+| GET/POST | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events`              | sticky event body                  | sticky events                                                                                 |
+| DELETE   | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events/{event_type}` | `event_type`                       | 空对象                                                                                        |
 
 ### 关键扩展响应字段
 
-- `GET /_matrix/client/v3/rooms/{room_id}/capabilities` 顶层字段为 `room_id`、`room_version`、`capabilities`、`features`、`join_rule`
-- `GET /_matrix/client/v3/rooms/{room_id}/notifications` 顶层字段为 `notifications`、`next_token`；列表项稳定字段为 `event_id`、`room_id`、`ts`、`notification_type`、`is_read`、`sender`、`content`、`client_action`
+- `GET /_matrix/vendor/v1/rooms/{room_id}/capabilities` 顶层字段为 `room_id`、`room_version`、`capabilities`、`features`、`join_rule`
+- `GET /_matrix/vendor/v1/rooms/{room_id}/notifications` 顶层字段为 `notifications`、`next_token`；列表项稳定字段为 `event_id`、`room_id`、`ts`、`notification_type`、`is_read`、`sender`、`content`、`client_action`
 - 其中 `capabilities` 当前稳定字段为 `knock`、`restricted`、`threading`、`read_receipts`、`typing_notifications`
 - 其中 `features` 当前稳定字段为 `encryption`、`federation`、`guest_access`
-- `GET /_matrix/client/v3/rooms/{room_id}/unread_count` 顶层字段为 `notification_count`、`highlight_count`
-- `GET /_matrix/client/v3/rooms/{room_id}/metadata` 顶层字段为 `room_id`、`name?`、`topic?`、`avatar_url?`、`canonical_alias?`、`join_rule?`、`history_visibility?`、`creator?`、`room_version?`、`encryption?`、`is_public?`、`member_count?`、`created_ts?`
+- `GET /_matrix/vendor/v1/rooms/{room_id}/unread_count` 顶层字段为 `notification_count`、`highlight_count`
+- `GET /_matrix/vendor/v1/rooms/{room_id}/metadata` 顶层字段为 `room_id`、`name?`、`topic?`、`avatar_url?`、`canonical_alias?`、`join_rule?`、`history_visibility?`、`creator?`、`room_version?`、`encryption?`、`is_public?`、`member_count?`、`created_ts?`
 - `GET /_matrix/client/{r0,v3}/rooms/{room_id}/messages` 与 `GET /_matrix/client/{r0,v3}/rooms/{room_id}/state*` 现已统一要求调用方为房间成员或管理员，避免跨房间直接读取时间线与状态快照
 - `typing` 相关端点现已统一要求调用方具备对应房间访问权，避免通过已知 `room_id` 直接探测他房输入状态
 - `invite_blocklist` / `invite_allowlist` 的 GET 路由现已要求调用方具备对应房间访问权，避免跨房间探测邀请限制名单
@@ -131,22 +142,22 @@ last_reviewed: 2026-05-11
 
 - `GET /_matrix/client/{r0,v3}/rooms/{room_id}/initialSync` 现已提供最小兼容实现，要求调用方已加入房间；响应包含 `room_id`、`membership`、`visibility`、`state`、`members`、`messages`、`pagination_chunk`、`presence`、`receipts`、`account_data` 等基础字段。
 - 下列扩展接口在后端 `room` 路由树中仍然挂载，属于当前 Ledger 契约范围；SDK 侧是否封装需以模块实现与单测为准，不应按“已移除/404”口径统计。
-- `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` 实际由 `widget.rs` 挂载，因此不计入“已挂载但未支持”列表。
+- `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` 实际由 `widget.rs` 挂载，因此不计入“已挂载但未支持”列表。
 
 | 方法 | 路径                                                      | 当前状态                              |
 | ---- | --------------------------------------------------------- | ------------------------------------- |
 | GET  | `/_matrix/client/{r0,v3}/rooms/{room_id}/initialSync`     | 已实现，返回基础房间快照              |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/fragments/{user_id}`  | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/service_types`        | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/event_perspective`    | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/reduced_events`       | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/rendered/`            | 后端已挂载，SDK 已封装（RoomSummary） |
-| POST | `/_matrix/client/v3/rooms/{room_id}/translate/{event_id}` | 后端已挂载，SDK 已封装（RoomSummary） |
-| POST | `/_matrix/client/v3/rooms/{room_id}/convert/{event_id}`   | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/vault_data`           | 后端已挂载，SDK 已封装（RoomSummary） |
-| PUT  | `/_matrix/client/v3/rooms/{room_id}/vault_data`           | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/external_ids`         | 后端已挂载，SDK 已封装（RoomSummary） |
-| GET  | `/_matrix/client/v3/rooms/{room_id}/device/{device_id}`   | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/fragments/{user_id}`  | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/service_types`        | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/event_perspective`    | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/reduced_events`       | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/rendered/`            | 后端已挂载，SDK 已封装（RoomSummary） |
+| POST | `/_matrix/vendor/v1/rooms/{room_id}/translate/{event_id}` | 后端已挂载，SDK 已封装（RoomSummary） |
+| POST | `/_matrix/vendor/v1/rooms/{room_id}/convert/{event_id}`   | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/vault_data`           | 后端已挂载，SDK 已封装（RoomSummary） |
+| PUT  | `/_matrix/vendor/v1/rooms/{room_id}/vault_data`           | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/external_ids`         | 后端已挂载，SDK 已封装（RoomSummary） |
+| GET  | `/_matrix/vendor/v1/rooms/{room_id}/device/{device_id}`   | 后端已挂载，SDK 已封装（RoomSummary） |
 
 ## 典型请求/响应
 
@@ -174,11 +185,11 @@ last_reviewed: 2026-05-11
 
 ## 代码定位
 
-- 路由声明: `synapse-rust/src/web/routes/room.rs`
-- 处理器主体: `synapse-rust/src/web/routes/handlers/room.rs`
-- 搜索/上下文补充路由: `synapse-rust/src/web/routes/handlers/search.rs`
-- 举报补充路由: `synapse-rust/src/web/routes/moderation.rs`
-- Typing 补充路由: `synapse-rust/src/web/routes/typing.rs`
+- 路由声明: `synapse-rust/synapse-web/src/routes/room.rs`
+- 处理器主体: `synapse-rust/synapse-web/src/routes/handlers/room/mod.rs`
+- 搜索/上下文补充路由: `synapse-rust/synapse-web/src/routes/handlers/search/mod.rs`
+- 举报补充路由: `synapse-rust/synapse-web/src/routes/moderation.rs`
+- Typing 补充路由: `synapse-rust/synapse-web/src/routes/typing.rs`
 
 ## DTO Definitions
 

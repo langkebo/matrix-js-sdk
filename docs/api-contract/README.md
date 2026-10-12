@@ -12,10 +12,10 @@ last_reviewed: 2026-05-03
 
 ## 审查基线
 
-- 主装配入口: `synapse-rust/src/web/routes/assembly.rs`
-- 管理端装配入口: `synapse-rust/src/web/routes/admin/mod.rs`
-- 联邦装配入口: `synapse-rust/src/web/routes/federation.rs`
-- 认证提取器: `synapse-rust/src/web/routes/extractors/auth.rs`
+- 主装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 管理端装配入口: `synapse-rust/synapse-web/src/routes/admin/mod.rs`
+- 联邦装配入口: `synapse-rust/synapse-web/src/routes/federation/mod.rs`
+- 认证提取器: `synapse-rust/synapse-web/src/routes/extractors/auth.rs`
 - 条件挂载模块: `SAML`、`OIDC`
 
 ## 文档索引
@@ -26,9 +26,9 @@ last_reviewed: 2026-05-03
 | `account-data.md`             | 用户级/房间级 account data、filter、openid、room tags     | 覆盖 `account_data.rs` 与 `tags.rs`                                                     |
 | `admin.md`                    | `/_synapse/admin/*`                                       | 覆盖用户、房间、媒体、安全、通知、令牌、联邦、报表、保留策略                            |
 | `device.md`                   | 设备管理与设备列表变更                                    | 覆盖 `device.rs`                                                                        |
-| `e2ee.md`                     | 核心 E2EE、设备信任、to-device                            | 覆盖 `e2ee_routes.rs`                                                                   |
-| `key-backup.md`               | Room key backup / recover / import-export / secure backup | 覆盖 `key_backup.rs` 与 `e2ee_routes.rs` 中 secure backup 路由                          |
-| `media.md`                    | Media API 与配额接口                                      | 覆盖 `media.rs`                                                                         |
+| `e2ee.md`                     | 核心 E2EE、设备信任、to-device                            | 覆盖 `e2ee/`                                                                            |
+| `key-backup.md`               | Room key backup / recover / import-export / secure backup | 覆盖 `key_backup.rs` 与 `e2ee/backup.rs` 中 secure backup 路由                          |
+| `media.md`                    | Media API 与配额接口                                      | 覆盖 `media/`                                                                           |
 | `voice.md`                    | Voice 上传、转换、优化、转写                              | 覆盖 `voice.rs`                                                                         |
 | `presence.md`                 | Presence 状态与 presence list                             | 覆盖 `presence.rs`                                                                      |
 | `room.md`                     | Room 主链路与扩展房间端点                                 | 覆盖 `room.rs` 的 `r0/v1/v3` 路由树                                                     |
@@ -124,7 +124,8 @@ last_reviewed: 2026-05-03
 
 以下路由文件存在实现，但当前未在主装配入口挂载，不计入“可达 API 契约”：
 
-- `synapse-rust/src/web/routes/websocket.rs`
+- （无）—— 原列出的 `websocket.rs` 已随后端改造**整体移除**：后端仓库中既无该文件，
+  也无任何 WebSocket 升级处理器，故本节当前无条目。
 
 ## 使用方式
 

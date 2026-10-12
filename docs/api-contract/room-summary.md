@@ -1,23 +1,28 @@
 ---
 module: room_summary
 generated_from: docs/api-contract/generated/modules/room_summary.json
-generated_hash: sha256-9b08a0e729944baafed8be07035c8082207ef66b2329e03b66e7296dd5af01ae
+generated_hash: sha256-ce1c794ca0afedfebaef76de6b081199fb24bcdc3ee21376cee6223f2389e480
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Room Summary 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/room_summary.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/room_summary.rs`
 > 审计状态: ✅ summary 主路由族与内部汇总接口已和 SDK 对齐；额外 room 扩展接口独立保留
 
 ## 挂载版本
 
-| 前缀                        | 说明                   |
-| --------------------------- | ---------------------- |
-| `/_matrix/client/r0`        | 只读 summary 路由      |
-| `/_matrix/client/v3`        | 读写与维护路由         |
-| `/_synapse/room_summary/v1` | 内部汇总与更新处理接口 |
+| 前缀                        | 条数 | 说明                                                                                          |
+| --------------------------- | ---- | --------------------------------------------------------------------------------------------- |
+| `/_matrix/client/v1`        | 1    | 只读 `GET /rooms/{room_id}/summary`（标准 CS 面）                                             |
+| `/_matrix/vendor/v1`        | 16   | 读写与维护路由：`summary` 的 POST/PUT/DELETE、`members`、`state`、`stats`、`heroes`、`unread` |
+| `/_synapse/room_summary/v1` | 4    | 内部汇总与更新处理接口（`summaries`、`summaries/batch`、`updates/process`）                   |
+
+> **命名空间变更（2026-10-12 核对）**：本页旧版把「读写与维护路由」记为 `/_matrix/client/r0`
+> 与 `/_matrix/client/v3`。实测后端 ledger 中这两组**均为 0 条** —— summary 的写维护面
+> 已按 ISSUE-13 迁至 `/_matrix/vendor/v1`（16 条），只读面保留在 `/_matrix/client/v1`（1 条）。
+> 逐条见 `generated/modules/room_summary.json`。
 
 ## 客户端路由
 
@@ -27,18 +32,18 @@ last_reviewed: 2026-05-03
 | GET    | `/_matrix/client/{r0,v3}/rooms/{room_id}/summary/members`                   | 获取摘要成员；要求调用方为房间成员或管理员，越权返回 `403`     |
 | GET    | `/_matrix/client/{r0,v3}/rooms/{room_id}/summary/state`                     | 获取摘要状态；要求调用方为房间成员或管理员，越权返回 `403`     |
 | GET    | `/_matrix/client/{r0,v3}/rooms/{room_id}/summary/stats`                     | 获取摘要统计；要求调用方为房间成员或管理员，越权返回 `403`     |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/summary`                                | 创建或刷新摘要；要求调用方为房间成员或管理员，越权返回 `403`   |
-| PUT    | `/_matrix/client/v3/rooms/{room_id}/summary`                                | 更新摘要；要求调用方为房间成员或管理员，越权返回 `403`         |
-| DELETE | `/_matrix/client/v3/rooms/{room_id}/summary`                                | 删除摘要；要求调用方为房间成员或管理员，越权返回 `403`         |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/summary/sync`                           | 同步摘要；要求调用方为房间成员或管理员，越权返回 `403`         |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/summary/members`                        | 批量写入成员摘要；要求调用方为房间成员或管理员，越权返回 `403` |
-| PUT    | `/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}`              | 更新单成员摘要；要求调用方为房间成员或管理员，越权返回 `403`   |
-| DELETE | `/_matrix/client/v3/rooms/{room_id}/summary/members/{user_id}`              | 删除单成员摘要；要求调用方为房间成员或管理员，越权返回 `403`   |
-| GET    | `/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}` | 获取特定状态摘要；要求调用方为房间成员或管理员，越权返回 `403` |
-| PUT    | `/_matrix/client/v3/rooms/{room_id}/summary/state/{event_type}/{state_key}` | 更新特定状态摘要；要求调用方为房间成员或管理员，越权返回 `403` |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/summary/stats/recalculate`              | 重算统计；要求调用方为房间成员或管理员，越权返回 `403`         |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/summary/heroes/recalculate`             | 重算 heroes；要求调用方为房间成员或管理员，越权返回 `403`      |
-| POST   | `/_matrix/client/v3/rooms/{room_id}/summary/unread/clear`                   | 清理未读摘要；要求调用方为房间成员或管理员，越权返回 `403`     |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | 创建或刷新摘要；要求调用方为房间成员或管理员，越权返回 `403`   |
+| PUT    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | 更新摘要；要求调用方为房间成员或管理员，越权返回 `403`         |
+| DELETE | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | 删除摘要；要求调用方为房间成员或管理员，越权返回 `403`         |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/summary/sync`                           | 同步摘要；要求调用方为房间成员或管理员，越权返回 `403`         |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/summary/members`                        | 批量写入成员摘要；要求调用方为房间成员或管理员，越权返回 `403` |
+| PUT    | `/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}`              | 更新单成员摘要；要求调用方为房间成员或管理员，越权返回 `403`   |
+| DELETE | `/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}`              | 删除单成员摘要；要求调用方为房间成员或管理员，越权返回 `403`   |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}` | 获取特定状态摘要；要求调用方为房间成员或管理员，越权返回 `403` |
+| PUT    | `/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}` | 更新特定状态摘要；要求调用方为房间成员或管理员，越权返回 `403` |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/summary/stats/recalculate`              | 重算统计；要求调用方为房间成员或管理员，越权返回 `403`         |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/summary/heroes/recalculate`             | 重算 heroes；要求调用方为房间成员或管理员，越权返回 `403`      |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/summary/unread/clear`                   | 清理未读摘要；要求调用方为房间成员或管理员，越权返回 `403`     |
 
 ## 内部路由
 
@@ -92,13 +97,13 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/room_summary.rs`
-- `RoomSummaryManager` 还额外封装了 `synapse-rust/src/web/routes/handlers/room.rs` 中的 `GET /rooms/{room_id}/thread/{event_id}` 与 `GET /rooms/{room_id}/threads/{thread_id}`；这两条线程读取接口不属于本页 summary 路由族，且响应结构彼此不同。
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/room_summary.rs`
+- `RoomSummaryManager` 还额外封装了 `synapse-rust/synapse-web/src/routes/handlers/room/mod.rs` 中的 `GET /rooms/{room_id}/thread/{event_id}` 与 `GET /rooms/{room_id}/threads/{thread_id}`；这两条线程读取接口不属于本页 summary 路由族，且响应结构彼此不同。
 
 ## SDK 对齐结论
 
 - `src/room-summary/index.ts` 已将本页 Ledger 统计的 summary/internal 主路径绑定到生成的 `RoomSummaryPathPattern`。
-- `GET|POST|PUT|DELETE /_matrix/client/v3/rooms/{room_id}/summary*` 路由族已由 `RoomSummaryManager` 显式封装。
+- `GET|POST|PUT|DELETE /_matrix/vendor/v1/rooms/{room_id}/summary*` 路由族已由 `RoomSummaryManager` 显式封装。
 - `GET /_matrix/client/{r0,v3}/rooms/{room_id}/summary*` 中的 `r0` 读路径视为兼容别名，SDK 默认走 `v3` 主路径。
 - `GET|POST /_synapse/room_summary/v1/summaries` 与 `POST /_synapse/room_summary/v1/updates/process` 已通过 `requestInternal()` 统一封装。
 - `RoomSummaryManager` 中的 `notifications`、`capabilities`、`timeline`、`vault_data`、`thread` 等额外能力属于 room 扩展接口，不计入本页 23 条 summary 契约覆盖率。

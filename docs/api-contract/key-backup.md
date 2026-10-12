@@ -1,7 +1,7 @@
 ---
 module: key_backup
 generated_from: docs/api-contract/generated/modules/key_backup.json
-generated_hash: sha256-7bf7aaaf3965cd6a9b00112438a046aedbaea8734e63ec14224c0335933be94e
+generated_hash: sha256-05816097d4e09384b1c47131352229d5e36a6a0648479d4e72d016ad1b33a6d9
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
@@ -9,7 +9,7 @@ last_reviewed: 2026-05-11
 # Key Backup 模块 API 审计报告
 
 > 审计日期: 2026-05-11
-> 后端实现: `/Users/ljf/Desktop/hu_ts/synapse-rust/src/web/routes/key_backup.rs`
+> 后端实现: `/Users/ljf/Desktop/hu_ts/synapse-rust/synapse-web/src/routes/key_backup.rs`
 > 对应 SDK 模块: `src/key-backup/index.ts`
 
 ## 本轮复核发现

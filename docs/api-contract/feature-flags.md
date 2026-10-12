@@ -1,15 +1,15 @@
 ---
 module: feature_flags
 generated_from: docs/api-contract/generated/modules/feature_flags.json
-generated_hash: sha256-a998ee077f7ce5a0d2267135137e3e436eda85525339c9b49d9c00d9cc724932
+generated_hash: sha256-8d0130375ed4124ab401f2fdf0abbe4bab6806d370cbfbaa377471bf192426e3
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Feature Flags API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/feature_flags.rs`  
-> 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/feature_flags.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/admin/mod.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v1` (Admin)
 

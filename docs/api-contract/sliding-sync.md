@@ -1,14 +1,14 @@
 ---
 module: sliding_sync
 generated_from: docs/api-contract/generated/modules/sliding_sync.json
-generated_hash: sha256-1e35eeda13da59d00a1800ddec855985e44bb8024ac047ec6a15fce8575e4950
+generated_hash: sha256-c123b3d10482b3fc75ade42892bb6fb8e552d0d06ad289553763d0a04e99cd7f
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Sliding Sync 契约
 
-> 审查来源: `synapse-rust/src/web/routes/sliding_sync.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/sliding_sync.rs`
 > 审计状态: ✅ `MatrixClient.slidingSync()` 已绑定生成 `SlidingSyncPathPattern`
 
 ## 真实后端路由

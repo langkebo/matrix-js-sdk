@@ -1,15 +1,15 @@
 ---
 module: background_update
 generated_from: docs/api-contract/generated/modules/background_update.json
-generated_hash: sha256-101b7dfd0b8726612ecad588367bce1a7d19636c7e238e338a416f2b5864affb
+generated_hash: sha256-68c0dad24e8f27e4e56dfabcbdce4f9aea30a23e86824123d69519759f70a78b
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Background Update API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/background_update.rs`  
-> 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/background_update.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/admin/mod.rs`  
 > SDK 入口: `src/background-update/index.ts`  
 > 更新日期: 2026-05-11  
 > 挂载版本: `v1` (Admin)

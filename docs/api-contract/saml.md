@@ -1,14 +1,14 @@
 ---
 module: saml
 generated_from: docs/api-contract/generated/modules/saml.json
-generated_hash: sha256-ef87f609cd8b611868769402e52d361fd371357b6a6fa6beec0d4fc6c8493f2f
+generated_hash: sha256-aa11d5ee28013fee10de80340f08068ffec8935c9cbb407af1fd94f641000115
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # SAML 契约
 
-> 审查来源: `synapse-rust/src/web/routes/saml.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/saml.rs`
 
 ## 真实后端路由
 

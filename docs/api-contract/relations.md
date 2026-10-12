@@ -1,7 +1,7 @@
 ---
 module: relations
 generated_from: docs/api-contract/generated/modules/relations.json
-generated_hash: sha256-b7f5cc64e03b7ce6bb0c0f352b51e5ecdde9f529e2e2908a5e02750fbaad42eb
+generated_hash: sha256-a28dd02f88111f8ae35750818f74b3b426c07fedf659697842f047d3b50727f6
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -9,7 +9,7 @@ last_reviewed: 2026-05-03
 # Relations API 契约文档
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/relations.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v1`, `v3`
 

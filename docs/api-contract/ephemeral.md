@@ -1,15 +1,15 @@
 ---
 module: ephemeral
 generated_from: docs/api-contract/generated/modules/ephemeral.json
-generated_hash: sha256-a1c88093aa93852071294d7725fd3d6e860fed0dbade71911b2766134c56934b
+generated_hash: sha256-6a092959b3a30a6feb8604769b9180dd894d3470ee434ff5e414dd62c1cadae3
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Ephemeral Events API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/ephemeral.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/ephemeral.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > SDK 入口: `src/ephemeral/index.ts`  
 > 更新日期: 2026-05-11  
 > 挂载版本: `v3`

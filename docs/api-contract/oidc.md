@@ -1,14 +1,14 @@
 ---
 module: oidc
 generated_from: docs/api-contract/generated/modules/oidc.json
-generated_hash: sha256-4c9ea31725cea17ec57a07d89060ed41623e6029a53ebadc4a8134ab06090324
+generated_hash: sha256-0a8c969bec491d46408cbb653842c2979c99f1936f199e6004722930be210d45
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # OIDC 契约
 
-> 审查来源: `synapse-rust/src/web/routes/oidc.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/oidc/mod.rs`
 
 ## 真实后端路由
 

@@ -1,14 +1,14 @@
 ---
 module: device
 generated_from: docs/api-contract/generated/modules/device.json
-generated_hash: sha256-d2280576feb334aaedb5dc1acc838f24453767c41542775c813a7486e9464f33
+generated_hash: sha256-4fa37b58bc93b0beaa433218b507313d95efc27d48f770ca097ba419ea175033
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Device 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/device.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/device.rs`
 > 审计状态: ✅ `DeviceManager` 已覆盖全部 6 条主端点，并绑定生成 `DevicePathPattern`
 
 ## 挂载版本
@@ -58,7 +58,7 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/device.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/device.rs`
 
 ## SDK Manager 对应关系
 

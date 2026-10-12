@@ -1,14 +1,14 @@
 ---
 module: e2ee
 generated_from: docs/api-contract/generated/modules/e2ee.json
-generated_hash: sha256-b7c8a53ff55550bbbcce232a61d868fc3f4428b733b4e8db3a6a9043faaca370
+generated_hash: sha256-6f3cfaae21d80586886ccdc564c7543499ca283eca1181ece66a6cad751a6b78
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # E2EE API 契约
 
-> 审查来源: `synapse-rust/src/web/routes/e2ee_routes.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/e2ee/mod.rs`
 > 对应 SDK 模块: `src/device-keys/index.ts`, `src/secure-backup/index.ts`, `src/e2ee/index.ts`
 
 ## 本次复核结论

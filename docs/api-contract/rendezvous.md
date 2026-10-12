@@ -1,7 +1,7 @@
 ---
 module: rendezvous
 generated_from: docs/api-contract/generated/modules/rendezvous.json
-generated_hash: sha256-d5978891cc8f9a8f455fada583c6dc4baa4e7d1b64500eb6e14fd5aeda71c2a1
+generated_hash: sha256-999ed26b7b99f34b3c49b6e26ecd40ea886399d0e1c865dd311ab4969790c43f
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
@@ -11,7 +11,7 @@ last_reviewed: 2026-05-11
 > 版本: v1.0.0
 > 更新日期: 2026-05-11
 > 对应 SDK 模块: `src/rendezvous/RendezvousManager.ts`
-> 审查来源: `synapse-rust/src/web/routes/rendezvous.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/rendezvous.rs`
 
 ---
 
@@ -436,5 +436,5 @@ await rendezvousManager.updateSession(sessionId, "completed", sessionKey);
 
 ## 代码定位
 
-- 后端路由: `synapse-rust/src/web/routes/rendezvous.rs`
+- 后端路由: `synapse-rust/synapse-web/src/routes/rendezvous.rs`
 - SDK 封装: `src/rendezvous/RendezvousManager.ts`

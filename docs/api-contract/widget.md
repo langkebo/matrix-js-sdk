@@ -1,7 +1,7 @@
 ---
 module: widget
 generated_from: docs/api-contract/generated/modules/widget.json
-generated_hash: sha256-bed59ffd515c9d947fdfabfca2088be7413abeb69fce45fdc1fa0fe2492bcc82
+generated_hash: sha256-a479fa3cc2bd02648ecd415261ac48f9b83318a627032b7c5b3ccbfe1ca1a0df
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -11,67 +11,66 @@ last_reviewed: 2026-05-03
 > 版本: v1.0.0
 > 更新日期: 2026-04-13
 > 对应 SDK 模块: `src/widget/index.ts`
-> 审查来源: `synapse-rust/src/web/routes/widget.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/widget.rs`
 > 审计状态: ✅ 已拆分独立契约，后端 `v1/v3` widget 鉴权与 session 路径语义已对齐，SDK 直连端点已补齐
 
 ## 挂载版本
 
-| 前缀                 | 路由                                                                                                                                                                                                                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/_matrix/client/v1` | `/widgets`、`/widgets/{widget_id}`、`/widgets/{widget_id}/config`、`/widgets/{widget_id}/permissions`、`/widgets/{widget_id}/permissions/{user_id}`、`/widgets/{widget_id}/sessions`、`/widgets/sessions/{session_id}`、`/rooms/{room_id}/widgets`、`/rooms/{room_id}/widgets/jitsi/config` |
-| `/_matrix/client/v3` | `/rooms/{room_id}/widgets/{widget_id}/capabilities`                                                                                                                                                                                                                                         |
+| 前缀                 | 路由                                                                                                                                                                                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/_matrix/vendor/v1` | `/rooms/{room_id}/widgets`、`/rooms/{room_id}/widgets/jitsi/config`、`/rooms/{room_id}/widgets/{widget_id}/capabilities`、`/widgets`、`/widgets/sessions/{session_id}`、`/widgets/{widget_id}`、`/widgets/{widget_id}/config`、`/widgets/{widget_id}/permissions`、`/widgets/{widget_id}/permissions/{user_id}`、`/widgets/{widget_id}/sessions` |
 
 ## 路由清单
 
 | 方法   | 路径                                                                  | 说明               | 认证 |
 | ------ | --------------------------------------------------------------------- | ------------------ | ---- |
 | POST   | `/_matrix/vendor/v1/widgets`                                          | 创建小组件         | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}`                              | 获取小组件详情     | 用户 |
-| PUT    | `/_matrix/client/v1/widgets/{widget_id}`                              | 更新小组件         | 用户 |
-| DELETE | `/_matrix/client/v1/widgets/{widget_id}`                              | 删除小组件         | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}/config`                       | 获取小组件配置     | 用户 |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/widgets`                          | 获取房间小组件列表 | 用户 |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`             | 获取 Jitsi 配置    | 公开 |
-| GET    | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | 获取房间小组件能力 | 用户 |
-| PUT    | `/_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities` | 设置房间小组件能力 | 用户 |
-| POST   | `/_matrix/client/v1/widgets/{widget_id}/permissions`                  | 设置小组件权限     | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}/permissions`                  | 获取小组件权限列表 | 用户 |
-| DELETE | `/_matrix/client/v1/widgets/{widget_id}/permissions/{user_id}`        | 删除小组件权限     | 用户 |
-| POST   | `/_matrix/client/v1/widgets/{widget_id}/sessions`                     | 创建小组件会话     | 用户 |
-| GET    | `/_matrix/client/v1/widgets/{widget_id}/sessions`                     | 获取小组件会话列表 | 用户 |
-| GET    | `/_matrix/client/v1/widgets/sessions/{session_id}`                    | 获取单个会话       | 用户 |
-| DELETE | `/_matrix/client/v1/widgets/sessions/{session_id}`                    | 终止会话           | 用户 |
+| GET    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | 获取小组件详情     | 用户 |
+| PUT    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | 更新小组件         | 用户 |
+| DELETE | `/_matrix/vendor/v1/widgets/{widget_id}`                              | 删除小组件         | 用户 |
+| GET    | `/_matrix/vendor/v1/widgets/{widget_id}/config`                       | 获取小组件配置     | 用户 |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/widgets`                          | 获取房间小组件列表 | 用户 |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`             | 获取 Jitsi 配置    | 公开 |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | 获取房间小组件能力 | 用户 |
+| PUT    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | 设置房间小组件能力 | 用户 |
+| POST   | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | 设置小组件权限     | 用户 |
+| GET    | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | 获取小组件权限列表 | 用户 |
+| DELETE | `/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}`        | 删除小组件权限     | 用户 |
+| POST   | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | 创建小组件会话     | 用户 |
+| GET    | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | 获取小组件会话列表 | 用户 |
+| GET    | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | 获取单个会话       | 用户 |
+| DELETE | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | 终止会话           | 用户 |
 
 ## 请求体与稳定响应
 
-### `POST /_matrix/client/v1/widgets`
+### `POST /_matrix/vendor/v1/widgets`
 
 - 请求体稳定字段: `room_id?`、`widget_type`、`url`、`name`、`data?`
 - 若传入 `room_id`，处理器会先校验房间存在性
 - 成功时返回 `{ "widget": ... }`
 
-### `GET/PUT/DELETE /_matrix/client/v1/widgets/{widget_id}`
+### `GET/PUT/DELETE /_matrix/vendor/v1/widgets/{widget_id}`
 
 - `GET` 与 `PUT` 成功时均返回 `{ "widget": ... }`
 - `DELETE` 成功时返回 `{ "deleted": true }`
 - `PUT` 请求体可选字段: `url`、`name`、`data`
 - 三个端点都要求登录，并校验请求用户是否为 widget 创建者、房间成员、管理员或显式授权用户
 
-### `GET /_matrix/client/v1/widgets/{widget_id}/config`
+### `GET /_matrix/vendor/v1/widgets/{widget_id}/config`
 
 - 稳定字段: `widget_id`、`room_id`、`url`、`name`、`data`、`type`
 - 要求登录，并沿用 widget 读取权限判断
 
-### `GET /_matrix/client/v1/rooms/{room_id}/widgets`
+### `GET /_matrix/vendor/v1/rooms/{room_id}/widgets`
 
 - 成功时返回 `{ "total": number, "widgets": [...] }`
 - 要求登录，且请求用户必须是房间成员或管理员
 
-### `GET /_matrix/client/v1/rooms/{room_id}/widgets/jitsi/config`
+### `GET /_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`
 
 - 稳定字段: `conf_id`、`name`、`domain`、`app_id`、`jwt`
 
-### `GET/PUT /_matrix/client/v3/rooms/{room_id}/widgets/{widget_id}/capabilities`
+### `GET/PUT /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities`
 
 - 两个处理器都会校验请求用户是否为房间成员或管理员
 - 若 widget 不属于该房间，返回 `400`
@@ -151,5 +150,5 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/widget.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/widget.rs`
 - SDK 封装: `matrix-js-sdk/src/widget/index.ts`

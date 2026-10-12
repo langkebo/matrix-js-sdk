@@ -1,15 +1,15 @@
 ---
 module: cas
 generated_from: docs/api-contract/generated/modules/cas.json
-generated_hash: sha256-4e7891b42037c405b1fdf60e08c01514dc2375f69d22f6502e0f3bff1ff2168b
+generated_hash: sha256-231d04856e1547da2f6723c0b2f00f589dc482a62d2a335877b2a9426a9591ac
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # CAS Authentication API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/cas.rs`
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`
+> 后端代码: `synapse-rust/synapse-web/src/routes/cas.rs`
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`
 
 ## 真实后端路由
 

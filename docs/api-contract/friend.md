@@ -1,14 +1,14 @@
 ---
 module: friend_room
 generated_from: docs/api-contract/generated/modules/friend_room.json
-generated_hash: sha256-e9403f10b2bc9971dc23d262869175e9e106b03440bd413553ebe157996051a3
+generated_hash: sha256-eb70e7d62737cea8bbc586c3ee63983a9b6566346a62977b242755db7e35de40
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Friend 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/friend_room.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/friend_room.rs`
 > 对应 SDK 模块: `src/friend/index.ts`
 
 ## 本次复核结论

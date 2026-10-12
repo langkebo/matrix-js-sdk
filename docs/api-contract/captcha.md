@@ -1,15 +1,15 @@
 ---
 module: captcha
 generated_from: docs/api-contract/generated/modules/captcha.json
-generated_hash: sha256-ac9e0e69f4ec6016df1f4a573337f92d0e44b2551cb2059bc066939508a5e150
+generated_hash: sha256-4340e57a4d5841184a958ab6e86bb055c7052309dc66d68670a23d6e5f81d973
 ledger_schema: 4
 last_reviewed: 2026-06-01
 ---
 
 # CAPTCHA API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/captcha.rs`
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`
+> 后端代码: `synapse-rust/synapse-web/src/routes/captcha.rs`
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`
 
 ## 真实后端路由
 

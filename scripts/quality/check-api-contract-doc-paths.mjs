@@ -69,7 +69,7 @@ const PATH_PATTERNS = [PATH_RE, METHOD_PATH_RE];
  * 恰恰没有后代，用后代判断反而会把它算成陈旧端点（2026-10-10 实测 32+8 处）。
  */
 const BARE_PREFIX_RE =
-    /^\/(?:_matrix\/(?:client(?:\/(?:r0|v1|v3|unstable[^/]*|unstable\/[^/]+))?|vendor\/v1|federation\/v[12]|app\/v1|media\/(?:r0|r1|v1|v3))|_synapse\/(?:admin(?:\/v1)?|room_summary\/v1))$/;
+    /^\/(?:_matrix\/(?:client(?:\/(?:(?:r0|v1|v3|v\d+)(?:\/media)?|unstable[^/]*|unstable\/[^/]+))?|vendor\/v1|federation\/v[12]|app\/v1|media\/(?:r0|r1|v1|v3))|_synapse\/(?:admin(?:\/v1)?|room_summary\/v1))$/;
 
 function isBarePrefix(p) {
     return BARE_PREFIX_RE.test(p.replace(/\/$/, ""));

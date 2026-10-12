@@ -1,7 +1,7 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "14f892e356c3ea259781bc5b6b202bab2b6c8dc4",
+  "synapse_rust_commit": "122aaf109a883a078861fce740e9ce1af416f1b0",
   "state_profile": "worker",
   "profile_flags": {
     "oidc_enabled": false,
@@ -4246,7 +4246,13 @@
       "path": "/_matrix/media/v1/upload/chunk",
       "registered_by": "media",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "chunk_index",
+        "filename",
+        "total_chunks",
+        "total_size",
+        "upload_id"
+      ]
     },
     {
       "method": "POST",
@@ -4267,7 +4273,9 @@
       "path": "/_matrix/media/v1/upload/chunk/progress",
       "registered_by": "media",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "upload_id"
+      ]
     },
     {
       "method": "POST",

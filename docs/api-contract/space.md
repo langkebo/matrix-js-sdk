@@ -1,14 +1,14 @@
 ---
 module: space
 generated_from: docs/api-contract/generated/modules/space.json
-generated_hash: sha256-b96dd3e6ab60838649226a9231d378b87a7641f59ffe00c8d5528b5a2af73b92
+generated_hash: sha256-a7bb71f26b7c61b40a6d34292e784f12b8710db8456b9d80ce3bb455d281576a
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Space 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/space.rs`、`space/lifecycle_query.rs`、`space/children_hierarchy.rs`、`space/membership_state.rs`、`space/summary.rs`、`space/types.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/space.rs`、`space/lifecycle_query.rs`、`space/children_hierarchy.rs`、`space/membership_state.rs`、`space/summary.rs`、`space/types.rs`
 > 更新日期: 2026-04-27
 > 审计状态: ✅ 核心 `spaces/*` 路由族已与 SDK 对齐，SDK 默认收敛到 `v3` 主路径
 
@@ -173,9 +173,9 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由装配: `synapse-rust/src/web/routes/space.rs`
-- 生命周期/查询: `synapse-rust/src/web/routes/space/lifecycle_query.rs`
-- 子房间与层级: `synapse-rust/src/web/routes/space/children_hierarchy.rs`
-- 成员与状态: `synapse-rust/src/web/routes/space/membership_state.rs`
-- 摘要: `synapse-rust/src/web/routes/space/summary.rs`
-- DTO: `synapse-rust/src/web/routes/space/types.rs`
+- 路由装配: `synapse-rust/synapse-web/src/routes/space.rs`
+- 生命周期/查询: `synapse-rust/synapse-web/src/routes/space/lifecycle_query.rs`
+- 子房间与层级: `synapse-rust/synapse-web/src/routes/space/children_hierarchy.rs`
+- 成员与状态: `synapse-rust/synapse-web/src/routes/space/membership_state.rs`
+- 摘要: `synapse-rust/synapse-web/src/routes/space/summary.rs`
+- DTO: `synapse-rust/synapse-web/src/routes/space/types.rs`

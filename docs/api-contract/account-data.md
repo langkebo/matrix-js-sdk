@@ -1,14 +1,14 @@
 ---
 module: account_data
 generated_from: docs/api-contract/generated/modules/account_data.json
-generated_hash: sha256-da99d3658a5932ca85a853f77c38de8bda36b4513f4b553e305cfcb74a9340e0
+generated_hash: sha256-eb38cb18caa26bc9bd0eec56c1847e1a7f48434275c42dc9d2bdaae680c0f6df
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Account Data 模块契约
 
-> **审查来源**: `synapse-rust/src/web/routes/account_data.rs`、`synapse-rust/src/web/routes/tags.rs`
+> **审查来源**: `synapse-rust/synapse-web/src/routes/account_data.rs`、`synapse-rust/synapse-web/src/routes/tags.rs`
 > **数据库表**: `account_data`, `room_account_data`, `filters`, `openid_tokens`, `room_tags`
 > **最后更新**: 2026-04-27
 > **审计状态**: ✅ `AccountDataManager`、account-data request helpers 与 `MatrixClient` 的 filter / OpenID 入口已绑定生成 `AccountDataPathPattern`
@@ -404,7 +404,7 @@ CREATE TABLE IF NOT EXISTS room_tags (
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/account_data.rs`
-- 标签路由: `synapse-rust/src/web/routes/tags.rs`
-- 数据库迁移: `synapse-rust/migrations/00000000_unified_schema_v6.sql`
-- 动态建表补充: `synapse-rust/src/services/database_initializer.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/account_data.rs`
+- 标签路由: `synapse-rust/synapse-web/src/routes/tags.rs`
+- 数据库迁移: `synapse-rust/migrations/00000000_unified_schema_v12.sql`
+- 动态建表补充: `synapse-rust/synapse-services/src/database_initializer/mod.rs`

@@ -1,14 +1,14 @@
 ---
 module: federation
 generated_from: docs/api-contract/generated/modules/federation.json
-generated_hash: sha256-7c2ca9ff5eb1add1faa7ab0b723b67adf6c546f8f4bf194604ceecb21703cde0
+generated_hash: sha256-155807b46ff00771673cf2d6f786eef96d797173283b4f9606d06114387a90f4
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Federation 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/federation.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/federation/mod.rs`
 > 挂载版本: `federation v1/v2`、`key v2`
 > 更新日期: 2026-04-13
 

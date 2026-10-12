@@ -1,15 +1,15 @@
 ---
 module: app_service
 generated_from: docs/api-contract/generated/modules/app_service.json
-generated_hash: sha256-cbdf90808773b98f378f20d654223de1d4e17afa7d1a28bc6bc3d087fccbbf89
+generated_hash: sha256-19f13ac8201cd0ce788bacc837b77e9fc8be23ffebaa6b9a7025a6ddf2a9473a
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Application Service API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/app_service.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/app_service.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v1`
 

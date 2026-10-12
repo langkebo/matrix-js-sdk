@@ -1,22 +1,21 @@
 ---
 module: presence
 generated_from: docs/api-contract/generated/modules/presence.json
-generated_hash: sha256-3e28e273245e853ebaf113a7f5126c0a555a1554e32ea8decc7bc7f53ff554ef
+generated_hash: sha256-67893f43c760406ae1986753f4c08041e6a8500156e3c691f7ecfd4bdbfc5da0
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Presence 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/presence.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/presence.rs`
 
 ## 挂载版本
 
-| 前缀                 | 路由                                                                         |
-| -------------------- | ---------------------------------------------------------------------------- |
-| `/_matrix/client/v1` | `/presence/{user_id}/status`                                                 |
-| `/_matrix/client/r0` | `/presence/{user_id}/status`                                                 |
-| `/_matrix/client/v3` | `/presence/{user_id}/status`、`/presence/list` 与 `/presence/list/{user_id}` |
+| 前缀                 | 路由                                                                       |
+| -------------------- | -------------------------------------------------------------------------- |
+| `/_matrix/client/v1` | `/presence/{user_id}/status`                                               |
+| `/_matrix/client/v3` | `/presence/list`、`/presence/list/{user_id}`、`/presence/{user_id}/status` |
 
 ## 路由清单
 
@@ -48,8 +47,8 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由声明: `synapse-rust/src/web/routes/presence.rs`
-- 处理器: `synapse-rust/src/web/routes/handlers/presence.rs`
+- 路由声明: `synapse-rust/synapse-web/src/routes/presence.rs`
+- 处理器: `synapse-rust/synapse-web/src/routes/handlers/presence.rs`
 
 ---
 

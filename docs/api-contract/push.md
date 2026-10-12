@@ -1,23 +1,21 @@
 ---
 module: push
 generated_from: docs/api-contract/generated/modules/push.json
-generated_hash: sha256-acc8dbc3ba22036ebcd243b718ca23fcccf1e5039732dc2a79004682aa1874cb
+generated_hash: sha256-1d6460651855ae8ae0274334d377b5401d76827008c1508b924641ff9cc3fac6
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Push 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/push.rs`、`synapse-rust/src/web/routes/push_rules.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/push.rs`、`synapse-rust/synapse-web/src/routes/push_rules.rs`
 > 审计状态: ✅ PushManager 已覆盖 27 条主路径，并已绑定生成 `PushPathPattern`
 
 ## 挂载版本
 
-| 前缀                 | 路由                                                                 |
-| -------------------- | -------------------------------------------------------------------- |
-| `/_matrix/client/r0` | `pushers` `pushers/set` `pushrules*` `notifications*`                |
-| `/_matrix/client/v3` | `pushers` `pushers/set` `pushrules*` `notifications*`                |
-| `/_matrix/client/v3` | 额外支持 `/pushrules/{scope}/{kind}/{rule_id}/actions` 与 `/enabled` |
+| 前缀                 | 路由                                                                                                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/_matrix/client/v3` | `/notifications`、`/notifications/{notification_id}/ack`、`/pushers`、`/pushers/`、`/pushers/set`、`/pushrules`、`/pushrules/{scope}`、`/pushrules/{scope}/{kind}`、`/pushrules/{scope}/{kind}/{rule_id}`、`/pushrules/{scope}/{kind}/{rule_id}/actions`、`/pushrules/{scope}/{kind}/{rule_id}/enabled` |
 
 ## Pushers
 
@@ -106,4 +104,4 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/push.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/push.rs`

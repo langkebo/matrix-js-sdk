@@ -1,14 +1,14 @@
 ---
 module: search
 generated_from: docs/api-contract/generated/modules/search.json
-generated_hash: sha256-962e014516e67469e77e1cefb3110d7492781254e7b92ab21647701f2568223f
+generated_hash: sha256-bbcec3395ed5cd89e176816a105968a9baacaa49082178397342339915ae606b
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # 搜索契约
 
-> 审查来源: `synapse-rust/src/web/routes/handlers/search.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/handlers/search/mod.rs`
 > SDK 入口: `src/search/index.ts`、`src/client.ts`、`src/event/EventManager.ts`、`src/room/RoomManager.ts`
 
 ## 当前审计结论

@@ -1,7 +1,7 @@
 ---
 module: moderation
 generated_from: docs/api-contract/generated/modules/moderation.json
-generated_hash: sha256-aadf53689d90309782235ce3c996a6f7db42c702687487e3cf5b8ed227fadde2
+generated_hash: sha256-c4bb9357e6fb0562771b8cbf58f5bdd9047709eb27942e0e912bd4ae768e171a
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -9,7 +9,7 @@ last_reviewed: 2026-05-03
 # Moderation API 契约文档
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/moderation.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-10-09  
 > 挂载版本: `v1`, `v3`, `vendor`（`/_matrix/vendor/v1`）
 
