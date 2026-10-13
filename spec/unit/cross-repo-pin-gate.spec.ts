@@ -95,22 +95,79 @@ describe("跨仓 pin 门禁: commit / 哈希绑定", () => {
         expect(statuses).toEqual(["ok", "ok", "ok"]);
     });
 
-    it("HEAD 与 pin 不同 → drift，并给出 expected/actual 供人比对", () => {
-        const result = evaluate({ backendHead: "moved" }).find((check) => check.key === "synapse_rust_commit");
+    /**
+     * 2026-10-14：commit 判据从「严格等于 HEAD」改为「祖先 + 内容未变」。
+     *
+     * 旧的严格相等与 Tjg 自己的 `verify-sdk-pin.mjs` 矛盾（那边允许 pin 落后，只要区间内
+     * 没改变内容载体）。实测假阳性：后端 `ed09854e5` 只往 ledger 目录**新增 sidecar
+     * `manifest.json`**、三个 profile JSON 一字未改，本门禁报 drift。
+     */
+    it("HEAD 前进且内容载体真的变了 → drift，并给出 expected/actual 供人比对", () => {
+        const result = evaluate({ backendHead: "moved", backendLedgerChanged: true }).find(
+            (check) => check.key === "synapse_rust_commit",
+        );
 
         expect(result).toMatchObject({ status: "drift", expected: "bbb", actual: "moved" });
+        expect(result?.note).toContain("ledger");
+    });
+
+    it("HEAD 前进但内容载体未变 → ok（不需要重钉），并说明原因", () => {
+        const ledger = evaluate({ backendHead: "moved", backendLedgerChanged: false }).find(
+            (check) => check.key === "synapse_rust_commit",
+        );
+        expect(ledger).toMatchObject({ status: "ok" });
+        expect(ledger?.note).toContain("no re-pin needed");
+
+        const sdk = evaluate({ sdkHead: "moved", sdkContentChanged: false }).find(
+            (check) => check.key === "sdk_commit",
+        );
+        expect(sdk).toMatchObject({ status: "ok" });
+        expect(sdk?.note).toContain("src/");
+    });
+
+    it("HEAD 前进且 src/ 真变了 → drift", () => {
+        expect(
+            evaluate({ sdkHead: "moved", sdkContentChanged: true }).find((check) => check.key === "sdk_commit"),
+        ).toMatchObject({ status: "drift" });
+    });
+
+    it("比不出来（内容判据缺席）→ unknown，绝不报成 ok（--strict 下判红）", () => {
+        const result = evaluate({ backendHead: "moved" }).find((check) => check.key === "synapse_rust_commit");
+
+        expect(result?.status).toBe("unknown");
+        expect(result?.status).not.toBe("ok");
+        expect(result?.note).toContain("--strict");
+    });
+
+    it("pin 缺字段 → drift（这是配置问题，不是测不到）", () => {
+        const result = evaluate({ pin: { ...IN_SYNC_PIN, sdk_commit: "" } }).find(
+            (check) => check.key === "sdk_commit",
+        );
+
+        expect(result?.status).toBe("drift");
+        expect(result?.note).toContain("missing");
+    });
+
+    it("tarball_sha256 本身就是内容，无回落：不同 → drift（即便说内容未变也不放过）", () => {
+        expect(evaluate({ tarballSha: "sha256-other" }).find((check) => check.key === "tarball_sha256")).toMatchObject({
+            status: "drift",
+        });
     });
 
     it("有未过期 waiver → waived；过期 → expired-waiver", () => {
         const waiver = { check: "synapse_rust_commit", reason: "等后端合入", expires: "2026-12-31" };
 
         expect(
-            evaluate({ backendHead: "moved", waivers: [waiver] }).find((c) => c.key === "synapse_rust_commit"),
+            evaluate({ backendHead: "moved", backendLedgerChanged: true, waivers: [waiver] }).find(
+                (c) => c.key === "synapse_rust_commit",
+            ),
         ).toMatchObject({ status: "waived" });
 
         const expired = { ...waiver, expires: "2026-01-01" };
         expect(
-            evaluate({ backendHead: "moved", waivers: [expired] }).find((c) => c.key === "synapse_rust_commit"),
+            evaluate({ backendHead: "moved", backendLedgerChanged: true, waivers: [expired] }).find(
+                (c) => c.key === "synapse_rust_commit",
+            ),
         ).toMatchObject({ status: "expired-waiver" });
     });
 });
