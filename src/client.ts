@@ -269,7 +269,7 @@ import {
     buildSyncApiOptions as buildSyncApiOptionsHelper,
     startClientLifecycleServices,
 } from "./client-lifecycle-start";
-import { stopClientLifecycleServices } from "./client-lifecycle-stop";
+import { releaseCryptoBackend, stopClientLifecycleServices } from "./client-lifecycle-stop";
 import { clearClientStores } from "./client-store-cleanup";
 import { createGroupCallForRoom } from "./client-voip-group-call";
 import { EventManager } from "./event/EventManager";
@@ -1030,7 +1030,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * ```
      */
     public stopClient(): void {
-        this.cryptoBackend?.stop(); // crypto might have been initialised even if the client wasn't fully started
+        releaseCryptoBackend(this); // crypto may be live even if the client was never started
 
         this.off(ClientEvent.Sync, this.startMatrixRTC);
 

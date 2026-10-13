@@ -20,11 +20,34 @@ import { getAllManagersForClient, clearManagerRegistry } from "./client-infra/ma
 import { CacheRegistry } from "./utils/lru-cache";
 
 /**
+ * Release the client's crypto backend: stop it and **drop the binding** (A3).
+ *
+ * A stopped backend has already closed its `OlmMachine` — and with it the IndexedDB
+ * connection — so it can never serve another request. Worse, {@link MatrixClient.initRustCrypto}
+ * refuses to run while `cryptoBackend` is set, so leaving the dead instance bound turns the
+ * whole client into a **one-shot crypto host**: a host that reuses a client across a restart
+ * (e.g. reconnect after the OS resumes) would re-enable sync with no working crypto and
+ * silently stop decrypting — no error, no exception, just undecryptable events.
+ *
+ * Clearing the binding here is what keeps `initRustCrypto()` re-initialisable without adding
+ * a second public entry point (a `restartCrypto()` would duplicate what callers already do:
+ * stop → ensure crypto → start again).
+ *
+ * Idempotent, and safe to call on a client that never had crypto.
+ */
+export function releaseCryptoBackend(client: MatrixClient): void {
+    client.cryptoBackend?.stop();
+    client.cryptoBackend = undefined;
+}
+
+/**
  * Stop all client lifecycle services (crypto, sync, VOIP, queues, managers, room timers).
  * Extracted from stopClient to keep client.ts thin.
  */
 export function stopClientLifecycleServices(client: MatrixClient): void {
-    client.cryptoBackend?.stop();
+    // A3: stop crypto **and** release the binding — see releaseCryptoBackend for why a
+    // dead backend must not stay bound.
+    releaseCryptoBackend(client);
 
     client.syncApi?.stop();
     client.syncApi = undefined;

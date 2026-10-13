@@ -6,16 +6,18 @@ describe("client-lifecycle-stop", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let client: Record<string, any>;
     let syncApiMock: { stop: ReturnType<typeof vi.fn> };
+    let cryptoBackendMock: { stop: ReturnType<typeof vi.fn> };
     let callEventHandlerMock: { stop: ReturnType<typeof vi.fn> };
     let groupCallEventHandlerMock: { stop: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
         syncApiMock = { stop: vi.fn() };
+        cryptoBackendMock = { stop: vi.fn() };
         callEventHandlerMock = { stop: vi.fn() };
         groupCallEventHandlerMock = { stop: vi.fn() };
 
         client = {
-            cryptoBackend: { stop: vi.fn() },
+            cryptoBackend: cryptoBackendMock,
             syncApi: syncApiMock,
             peekSync: { stopPeeking: vi.fn() },
             callEventHandler: callEventHandlerMock,
@@ -35,7 +37,11 @@ describe("client-lifecycle-stop", () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stopClientLifecycleServices(client as any);
 
-        expect(client.cryptoBackend.stop).toHaveBeenCalled();
+        // mock reference captured before it gets cleared to undefined (A3)
+        expect(cryptoBackendMock.stop).toHaveBeenCalled();
+        // A3: the dead binding must be dropped too, otherwise the client can never be
+        // re-initialised (initRustCrypto bails out while cryptoBackend is set).
+        expect(client.cryptoBackend).toBeUndefined();
         // syncApi mock reference captured before it gets reassigned to undefined
         expect(syncApiMock.stop).toHaveBeenCalled();
         expect(client.syncApi).toBeUndefined();
