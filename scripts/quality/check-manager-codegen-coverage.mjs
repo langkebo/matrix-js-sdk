@@ -293,6 +293,9 @@ function main() {
         waived: 0,
         missing: 0,
         umbrella: [],
+        // 「未受 route-table 约束的路由条数」—— 口径见输出段注释（2026-10-13 新增）。
+        waivedRoutes: 0,
+        umbrellaRoutes: 0,
         missingModules: [],
         coveredModules: [],
         waivedModules: [],
@@ -313,6 +316,7 @@ function main() {
 
         if (moduleName === "assembly") {
             summary.umbrella.push({ moduleName, routes: moduleInfo.entry_count });
+            summary.umbrellaRoutes += moduleInfo.entry_count;
             log(
                 `  UMBRELLA: ${moduleName} (${moduleInfo.entry_count} routes) -> governed by umbrella docs/manager mapping`,
             );
@@ -332,6 +336,7 @@ function main() {
         if (verdict.status === "waived") {
             summary.waived += 1;
             summary.waivedModules.push(moduleName);
+            summary.waivedRoutes += moduleInfo.entry_count;
             usedWaivers.add(moduleName);
             // 弱证据（本模块自己在发 HTTP、但没人 import 它的表）单独记一栏：
             // "覆盖率 100%" 不该掩盖"这张表没人读"。
@@ -378,6 +383,14 @@ function main() {
         weak: summary.weak,
         waived: summary.waived,
         waivedModules: summary.waivedModules,
+        // 路由维度：WAIVED 模块多少条路由**没有** route-table 约束（模块维度之外的第二个视角）
+        waivedRoutes: summary.waivedRoutes,
+        umbrellaRoutes: summary.umbrellaRoutes,
+        // 含 WAIVED 的模块维度覆盖率 —— 与 coverageRate（剔除 WAIVED）并列，防止单看 100.0% 被误导
+        moduleCoverageRateWithWaivers:
+            summary.covered + summary.waived === 0
+                ? 100
+                : Number(((summary.covered / (summary.covered + summary.waived)) * 100).toFixed(1)),
         missing: summary.missing,
         missingModules: summary.missingModules,
         unusedWaivers,
@@ -398,9 +411,21 @@ function main() {
         `WAIVED 且**有表没人读**（弱证据，${summary.weak.length}）: ` + `${summary.weak.join(", ") || "（无）"}`,
     );
     console.log(`Covered: ${summary.covered}, Waived: ${summary.waived}, Missing: ${summary.missing}`);
+    // 2026-10-13：把「模块维度覆盖率」与「路由维度受约束率」分开打印。
+    //
+    // 原输出只有 `Coverage rate: 100.0% (38/38 ...)` —— 分母**排除了 WAIVED**，于是
+    // 10 个 WAIVED 模块（共 92 条路由）的"零类型约束"被一个孤零零的 100.0% 完全掩盖，
+    // 极易被读成"路径契约已全覆盖"。现在三档并列 + 明确给出未受约束路由条数。
+    const coveredPlusWaived = summary.covered + summary.waived;
+    const moduleCoverage = coveredPlusWaived === 0 ? "100.0" : ((summary.covered / coveredPlusWaived) * 100).toFixed(1);
     console.log(
         `Coverage rate: ${coverageRate}% (${summary.covered}/${effectiveTotal} modules consume codegen; ` +
             `${summary.waived} documented non-consumer(s))`,
+    );
+    console.log(
+        `  ↳ 含 WAIVED 的模块维度: ${moduleCoverage}% (${summary.covered}/${coveredPlusWaived}); ` +
+            `**无 route-table 约束的路由 ${summary.waivedRoutes} 条**（WAIVED ${summary.waived} 个模块）` +
+            `${summary.umbrellaRoutes > 0 ? `；另有 umbrella ${summary.umbrellaRoutes} 条由文档/管理器映射治理` : ""}`,
     );
 
     if (unusedWaivers.length > 0) {

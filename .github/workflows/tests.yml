@@ -4,7 +4,10 @@ on:
     merge_group:
         types: [checks_requested]
     push:
-        branches: [develop, master]
+        # `release/**` 是下游（Tjg）实际消费的分支：pin 的 sdk_commit 必须落在 release 线的
+        # 远端提交上。此前只有 `cross-repo-pin.yml` 覆盖该分支，于是「直接 push 到 release/**」
+        # 这条发布路径上单测/静态分析/质量门禁全都不跑（PR 路径本来已覆盖，缺的是直推）。
+        branches: [develop, master, "release/**"]
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
