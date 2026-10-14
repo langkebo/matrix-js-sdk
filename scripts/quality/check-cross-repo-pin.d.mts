@@ -51,6 +51,16 @@ export interface EvaluatePinInput {
     backendSchemaVersion: string;
     waivers: PinWaiver[];
     today?: Date;
+    /**
+     * 「commit 位置动了、但内容没动」的判定输入（§10 ②：位置 → 内容）。
+     *
+     * `check-cross-repo-pin.mjs` 用它把 `sdk_commit` / `synapse_rust_commit` 两条绑定
+     * 从「等于 HEAD」放宽为「HEAD 的祖先 + 区间内内容载体未变」。三态：
+     * `false` = 内容未变（`ok`）；`true` = 内容变了（`drift`）；`null` = 算不出来（`unknown`，
+     * 不得报成 `drift`）。
+     */
+    sdkContentChanged?: boolean | null;
+    backendLedgerChanged?: boolean | null;
 }
 
 /**
