@@ -9,4 +9,21 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type TagsContractDtoPlaceholder = never;
+export interface TagEntry {
+    /** 排序权重。后端 `unwrap_or(0.0)` ⇒ 响应中恒有。 */
+    order: number;
+}
+
+export interface RoomTagsResponse {
+    tags: Record<string, TagEntry>;
+}
+
+export interface GlobalTagsResponse {
+    tags: Record<string, Record<string, TagEntry>>;
+}
+
+export interface PutTagRequest {
+    order?: number;
+}
+
+export type TagWriteResponse = Record<string, never>;

@@ -1,8 +1,8 @@
 {
-    "generatedAt": "2026-10-14T03:26:56.768Z",
+    "generatedAt": "2026-10-14T08:50:26.455Z",
     "note": "生成 DTO 的 `= never` 空占位台账（只降不升）。新增占位必须显式 --accept-new；条目消失（模块补上真 DTO）属棘轮下降，请重跑 --update-baseline 回收。",
     "detector": "scripts/quality/check-generated-dto-placeholders.mjs",
-    "count": 15,
+    "count": 13,
     "dtoFileCount": 46,
     "modules": [
         {
@@ -11,10 +11,6 @@
         },
         {
             "module": "auth",
-            "count": 1
-        },
-        {
-            "module": "captcha",
             "count": 1
         },
         {
@@ -39,10 +35,6 @@
         },
         {
             "module": "space",
-            "count": 1
-        },
-        {
-            "module": "tags",
             "count": 1
         },
         {
@@ -80,12 +72,6 @@
             "line": 12
         },
         {
-            "module": "captcha",
-            "filePath": "src/captcha/__generated__/dto.ts",
-            "typeName": "CaptchaContractDtoPlaceholder",
-            "line": 12
-        },
-        {
             "module": "cas",
             "filePath": "src/cas/__generated__/dto.ts",
             "typeName": "CasContractDtoPlaceholder",
@@ -119,12 +105,6 @@
             "module": "space",
             "filePath": "src/space/__generated__/dto.ts",
             "typeName": "SpaceContractDtoPlaceholder",
-            "line": 12
-        },
-        {
-            "module": "tags",
-            "filePath": "src/tags/__generated__/dto.ts",
-            "typeName": "TagsContractDtoPlaceholder",
             "line": 12
         },
         {

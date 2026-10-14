@@ -9,4 +9,41 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type CaptchaContractDtoPlaceholder = never;
+export interface SendCaptchaRequest {
+    captcha_type: string;
+    /** 验证码投递目标（手机号 / 邮箱）。**必填**。 */
+    target: string;
+    template_name?: string;
+}
+
+export interface SendCaptchaResponse {
+    captcha_id: string;
+    /** 有效期，毫秒。 */
+    expires_in: number;
+    captcha_type: string;
+}
+
+export interface VerifyCaptchaRequest {
+    captcha_id: string;
+    code: string;
+}
+
+export interface VerifyCaptchaResponse {
+    verified: boolean;
+}
+
+export interface CaptchaStatusResponse {
+    captcha_id: string;
+    captcha_type: string;
+    target: string;
+    status: string;
+    attempt_count: number;
+    max_attempts: number;
+    expires_at: number;
+    created_at: number;
+}
+
+export interface CaptchaCleanupResponse {
+    cleaned_count: number;
+    message: string;
+}

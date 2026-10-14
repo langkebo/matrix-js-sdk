@@ -3,25 +3,60 @@ module: tags
 generated_from: docs/api-contract/generated/modules/tags.json
 generated_hash: sha256-05912c2fd3f16d2ad9eb687be857c07eeea586379bbec85fd2053a34a641a7a1
 ledger_schema: 4
-last_reviewed: 2026-05-03
+last_reviewed: 2026-10-14
 ---
 
 # 标签契约
 
 > **审计状态**: ✅ `RoomManager` / `MatrixClient` 标签入口与独立 `TagManager` 已绑定生成 `TagsPathPattern`
 >
-> 审查来源: `synapse-rust/synapse-web/src/routes/room.rs` (tags section)
+> 审查来源: `synapse-rust/synapse-web/src/routes/tags.rs`（**注意**：早先本页写的是 `room.rs` 的 tags section，
+> 且路径漏了 `/user/{user_id}` 前缀、还带着已退役的 `r0`；2026-10-14 按后端 `create_tags_router` 与
+> `docs/api-contract/generated/modules/tags.json` 订正为下表 4 条。）
 
 ## 真实后端路由
 
-| 方法   | 路径                                            | 说明         | 认证 |
-| ------ | ----------------------------------------------- | ------------ | ---- |
-| GET    | `/_matrix/client/r0/rooms/{room_id}/tags`       | 获取房间标签 | 用户 |
-| PUT    | `/_matrix/client/r0/rooms/{room_id}/tags/{tag}` | 设置房间标签 | 用户 |
-| DELETE | `/_matrix/client/r0/rooms/{room_id}/tags/{tag}` | 删除房间标签 | 用户 |
-| GET    | `/_matrix/client/v3/rooms/{room_id}/tags`       | 获取房间标签 | 用户 |
-| PUT    | `/_matrix/client/v3/rooms/{room_id}/tags/{tag}` | 设置房间标签 | 用户 |
-| DELETE | `/_matrix/client/v3/rooms/{room_id}/tags/{tag}` | 删除房间标签 | 用户 |
+| 方法   | 路径                                                           | 说明                       | 认证 |
+| ------ | -------------------------------------------------------------- | -------------------------- | ---- |
+| GET    | `/_matrix/client/v3/user/{user_id}/tags`                       | 获取全局标签（按房间分组） | 用户 |
+| GET    | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags`       | 获取房间标签               | 用户 |
+| PUT    | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}` | 设置房间标签               | 用户 |
+| DELETE | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}` | 删除房间标签               | 用户 |
+
+## 结构化类型（codegen 源）
+
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源。这些接口是
+> `src/tags/__generated__/dto.ts` 的单一权威。
+> 形状逐条对照 `synapse-rust/synapse-web/src/routes/tags.rs` 的处理器实现，**不凭印象**：
+> `get_tags` / `get_global_tags` 用 `tag.order.unwrap_or(0.0)` 组装响应 ⇒ **`order` 在响应里恒存在**，
+> 故 `TagEntry.order` 是必填（而 `src/tags/index.ts` 里手写的 `IRoomTags` 一直写的是 `order?:`，
+> 比后端**宽松**——这正是本机制要消除的人肉同步）；`put_tag` / `delete_tag` 返回 `empty_json()` ⇒ `{}`。
+
+```typescript
+/** 单个标签的元数据（`rooms/{room_id}/tags` 下每个标签一项）。 */
+export interface TagEntry {
+    /** 排序权重。后端 `unwrap_or(0.0)` ⇒ 响应中恒有。 */
+    order: number;
+}
+
+/** `GET /_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags` 响应。 */
+export interface RoomTagsResponse {
+    tags: Record<string, TagEntry>;
+}
+
+/** `GET /_matrix/client/v3/user/{user_id}/tags` 响应：`room_id → tag → TagEntry`。 */
+export interface GlobalTagsResponse {
+    tags: Record<string, Record<string, TagEntry>>;
+}
+
+/** `PUT /_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}` 请求体（后端 `TagContent`）。 */
+export interface PutTagRequest {
+    order?: number;
+}
+
+/** `PUT` / `DELETE .../tags/{tag}` 的响应（后端 `empty_json()`）。 */
+export type TagWriteResponse = Record<string, never>;
+```
 
 ## SDK 对齐状态
 
