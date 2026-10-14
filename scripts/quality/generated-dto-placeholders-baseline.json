@@ -1,0 +1,161 @@
+{
+    "generatedAt": "2026-10-14T03:26:56.768Z",
+    "note": "生成 DTO 的 `= never` 空占位台账（只降不升）。新增占位必须显式 --accept-new；条目消失（模块补上真 DTO）属棘轮下降，请重跑 --update-baseline 回收。",
+    "detector": "scripts/quality/check-generated-dto-placeholders.mjs",
+    "count": 15,
+    "dtoFileCount": 46,
+    "modules": [
+        {
+            "module": "account-data",
+            "count": 1
+        },
+        {
+            "module": "auth",
+            "count": 1
+        },
+        {
+            "module": "captcha",
+            "count": 1
+        },
+        {
+            "module": "cas",
+            "count": 1
+        },
+        {
+            "module": "dm",
+            "count": 1
+        },
+        {
+            "module": "federation",
+            "count": 1
+        },
+        {
+            "module": "push",
+            "count": 1
+        },
+        {
+            "module": "room-summary",
+            "count": 1
+        },
+        {
+            "module": "space",
+            "count": 1
+        },
+        {
+            "module": "tags",
+            "count": 1
+        },
+        {
+            "module": "thread",
+            "count": 1
+        },
+        {
+            "module": "voice",
+            "count": 1
+        },
+        {
+            "module": "widget",
+            "count": 1
+        },
+        {
+            "module": "worker-admin",
+            "count": 1
+        },
+        {
+            "module": "worker-body",
+            "count": 1
+        }
+    ],
+    "entries": [
+        {
+            "module": "account-data",
+            "filePath": "src/account-data/__generated__/dto.ts",
+            "typeName": "AccountDataContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "auth",
+            "filePath": "src/auth/__generated__/dto.ts",
+            "typeName": "AuthContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "captcha",
+            "filePath": "src/captcha/__generated__/dto.ts",
+            "typeName": "CaptchaContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "cas",
+            "filePath": "src/cas/__generated__/dto.ts",
+            "typeName": "CasContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "dm",
+            "filePath": "src/dm/__generated__/dto.ts",
+            "typeName": "DmContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "federation",
+            "filePath": "src/federation/__generated__/dto.ts",
+            "typeName": "FederationContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "push",
+            "filePath": "src/push/__generated__/dto.ts",
+            "typeName": "PushContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "room-summary",
+            "filePath": "src/room-summary/__generated__/dto.ts",
+            "typeName": "RoomSummaryContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "space",
+            "filePath": "src/space/__generated__/dto.ts",
+            "typeName": "SpaceContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "tags",
+            "filePath": "src/tags/__generated__/dto.ts",
+            "typeName": "TagsContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "thread",
+            "filePath": "src/thread/__generated__/dto.ts",
+            "typeName": "ThreadContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "voice",
+            "filePath": "src/voice/__generated__/dto.ts",
+            "typeName": "VoiceContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "widget",
+            "filePath": "src/widget/__generated__/dto.ts",
+            "typeName": "WidgetContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "worker-admin",
+            "filePath": "src/worker-admin/__generated__/dto.ts",
+            "typeName": "WorkerAdminContractDtoPlaceholder",
+            "line": 12
+        },
+        {
+            "module": "worker-body",
+            "filePath": "src/worker-body/__generated__/dto.ts",
+            "typeName": "WorkerBodyContractDtoPlaceholder",
+            "line": 12
+        }
+    ]
+}
