@@ -218,7 +218,7 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 `/_matrix/client/v3` 处理 ⇒ 把 `getVoiceStats(prefix: string = VendorPrefix)` 这类**正确**调用点
 误报为"契约不符"。已在抽取器里识别简写（记为不可解前缀而**跳过**，而不是猜默认值）。
 
-### 🔴 D. 由「模块级常量前缀」不可解而遮蔽的 3 条不符（2026-10-15；**#3 已处置**）
+### 🔴 D. 由「模块级常量前缀」不可解而遮蔽的 3 条不符（2026-10-15；**#1 判读已订正、#2/#3 已定调**）
 
 `quality:path-contract` 的 `--verbose` 会列出「动态跳过」的调用点。当前 **99 处**里，
 
@@ -230,18 +230,21 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 
 后一类里，用常量前缀解出后与 ledger 比对，**3 处不符**（已逐条回源 `synapse-rust` 核实）：
 
-| #   | 位置                                                                                        | SDK 实际发出                                                                                                       | 后端                                                                                                                     |
-| --- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| 1   | `src/dehydrated-device/index.ts:189` `claimDevice()`                                        | **POST** `…/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events`                                            | `derived_route_table_always.inc.rs:139-141` 注册的是 **GET** 同一路径                                                    |
-| 2   | `src/dehydrated-device/index.ts:275` `getDeviceEvent()`                                     | `GET …/dehydrated_device/{device_id}/**initial_device**`                                                           | **全仓无 `initial_device` 路由**（该族仅 5 条：`dehydrated_device` 的 GET/PUT/DELETE、`/status`、`/{device_id}/events`） |
-| 3   | `src/external-service/index.ts`（原 `triggerOpenclawWebhook` / `triggerTrendradarWebhook`） | `…/external/openclaw/{service_id}/webhook`（**后端已删**）`…/external/trendradar/{service_id}/webhook`（后端待删） | ✅ **已处置（2026-10-15）** —— 见下                                                                                      |
+| #   | 位置                                                                                        | SDK 实际发出                                                                                                       | 后端                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `src/dehydrated-device/index.ts:189` `claimDevice()`                                        | **POST** `…/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events`                                            | **后端 GET + POST 都注册了**（`assembly.rs:217-221` 为 `get(..).post(..)`）⇒ 这不是后端缺陷，是** ledger 只导出了 GET** —— 判读已订正，见下 |
+| 2   | `src/dehydrated-device/index.ts:275` `getDeviceEvent()`                                     | `GET …/dehydrated_device/{device_id}/**initial_device**`                                                           | **全仓无 `initial_device` 路由**（该族仅 5 条：`dehydrated_device` 的 GET/PUT/DELETE、`/status`、`/{device_id}/events`）                    |
+| 3   | `src/external-service/index.ts`（原 `triggerOpenclawWebhook` / `triggerTrendradarWebhook`） | `…/external/openclaw/{service_id}/webhook`（**后端已删**）`…/external/trendradar/{service_id}/webhook`（后端待删） | ✅ **已处置（2026-10-15）** —— 见下                                                                                                         |
 
 **判读与建议**（不擅自改，因为三条都需要产品/后端意图）：
 
-- **#1 是方法不符**：MSC3814 规定该方法为 `POST`（"send events to the dehydrated device"），
-  SDK 与规范一致，**疑为后端注册成了 GET** ⇒ 宜由后端线确认并修，SDK 侧不应改成 GET（会偏离 MSC）。
-- **#2 疑为笔误**：方法名叫 `getDeviceEvent`，而 MSC3814 中对应端点正是
-  `GET …/{device_id}/events`（后端**有**该路由且有 handler）。`initial_device` 很可能是早期写法残留。
+- **#1 ✅ 判读已订正（2026-10-15 二次核实，推翻上一版结论）**：上一版写「疑为后端注册成了 GET」—— **该判断有误**。
+  实测 `synapse-web/src/routes/assembly.rs:217-221` 为 `.route(path, get(..).post(..))`，即**后端 GET 与 POST 都注册了**，
+  且源码注释明确写「POST = MSC3814/ruma 规范形态；GET = Synapse v1.157 兼容别名（弃用中）」。
+  ⇒ 真正的问题是 **ledger 只导出了 GET**（`derived_route_table_always.inc.rs:139-141` 仅列 GET；
+  `route-manifest.all.json` 亦仅 GET），属**契约导出漏项**。**SDK 的 `claimDevice()`（POST）本来就是对的，不需要改**。
+- **#2 → 已定调：不是拼写笔误，而是「把请求体字段名误当路径段」的构造错误；建议**删除该方法**。**
+  三方证据（上游 synapse / 上游 matrix-js-sdk / MSC3814）+ 三档处置方案见 **§七 E**。
 - **#3 ✅ 已处置（2026-10-15）**：`openclaw` 在后端**全仓已无痕迹**（本轮实测确认），
   `trendradar` 由后端一并下线。SDK 侧两个封装 `triggerOpenclawWebhook()` 与
   `triggerTrendradarWebhook()` **已移除** —— 公共 API 变更记入 `CHANGELOG.md` 的 **BREAKING** 条目；
@@ -258,11 +261,80 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 > 再用常量前缀手工拼完整路径与 `docs/api-contract/generated/route-manifest.all.json` 比对。
 
 **下一步（未做）**：在抽取层支持**模块级字符串常量**前缀（`const X = "…"`）。
-它会让上面这些调用点进入校验，也会让另外 ~19 处位置形态的常量前缀调用点一并纳入 ——
-因此**必须先处置仍存的两条（#1 / #2）**（修 / 或按既有机制登记 waiver 并写明理由），否则门禁会直接转红。
-#3 已处置，不再构成阻碍。
+启用后上面这些调用点会一并进入校验，故有**两个前置**：
+
+1. **#2**：按 §七 E 选定处置（推荐方案 A：**删除**）—— 否则那条不存在的路径会直接把门禁打红；
+2. **#1**：**ledger 需先补 `POST …/{device_id}/events`** —— 后端**有**该路由（`assembly.rs:220`）而 ledger 只有 GET，
+   于是 SDK 的 `claimDevice()`（POST、规范形态）在 ledger 里「无对应条目」，启用校验后会同样被判不符。
+   补 ledger 属**契约/后端侧**动作（与 invite 那次同型的"导出不全"）。
 
 > **关于本节的路径写法**：表格里的 SDK 路径写成 `…/xxx`（省略前导 `/_synapse`）而非完整字面量，
 > 因为 `quality:api-contract-doc-paths` 会把**任何**反引号包裹的 `/_matrix` / `/_synapse` 路径
 > 拿去和 ledger 比对，而本节记录的正是"ledger 里不存在"的路径 ⇒ 写全会被该门禁判为"陈旧路由行"
 > （棘轮只降不升）。这是门禁判据正确的表现，不是文档偷懒。
+
+---
+
+## 七、`dehydrated_device`：一个完全不受契约管辖的模块（2026-10-15）
+
+### 7.1 结构盲区 —— 这是 §六 D 的 #2 能长期隐藏的根本原因
+
+`dehydrated_device` 的 5 条路由在 ledger 里归属 **`assembly` 桶**。而 codegen 的**模块枚举源**
+是本仓 `docs/api-contract/CONTRACT_INDEX.md` 的**文档链接**（不是后端文档）：
+
+- `CONTRACT_INDEX.md` **没有** dehydrated 行；
+- `docs/api-contract/` 下**没有**该模块页；
+- `scripts/contract-module-map.mjs` / `sdk-contract-codegen.mjs` 里**没有任何** `dehydrat` 登记。
+
+⇒ 该模块**从不进入 codegen 枚举**：既不在 `COVERED`，也不在 `WAIVED` / `SERVER_ONLY`，
+**连 `Missing` 都不报**（`Missing` 的判据是"枚举进来了却没交付"）。
+结果是 **SDK 侧从未生成 route-table、从未有 `PathAssert`** ⇒ `src/dehydrated-device/index.ts` 的
+**8 处调用点全部处于管辖外**。而门禁把 `assembly` 的 104 条按 `umbrella` 单列、**不计入覆盖率分母**，
+所以这个洞不会被任何数字暴露。
+
+> **与 `invite_blocklist` / `delayed_events` 同型** —— 不是"不需要表"，而是**登记缺失**。
+> 收编范式见 §五。本模块要补四件事：① 建 `docs/api-contract/dehydrated-device.md`（含 `module:` frontmatter）；
+> ② 加 `CONTRACT_INDEX.md` 索引行（并同步合计与页数）；③ 登记 `LEDGER_MODULE_ALIASES` / `CONTRACT_MODULE_MAP`
+> 并从 `SKIP_ROUTE_TABLE_MODULES` 之外确认；④ manager 消费生成的 route-table 并加 `PathAssert`（断言前需
+> `StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc3814.v1">`）。
+
+### 7.2 #2 的完整取证：`initial_device` 到底是什么
+
+**结论：它不是 `events` 的拼写笔误，而是「把请求体字段名误当路径段」。** 三方证据如下：
+
+| 来源                                                                            | `initial_device` 作为**路径段** | 说明                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 上游 `element-hq/synapse`（`develop`，全仓代码搜索）                            | ❌ 不存在                       | 该词仅以**字段** `initial_device_display_name` 出现（`rest/client/devices.py:448,475`、`handlers/device.py`、`rest/client/register.py` 等）—— 那是登录/注册时的「**初始设备显示名**」，与 dehydrated device 无关 |
+| 上游 msc3814 路由全集（`rest/client/devices.py`，唯一实现文件）                 | ❌ 不存在                       | 带 `device_id` 的只有一条：`…/dehydrated_device/{device_id}/events`；另有 `…/dehydrated_device` 的 GET/PUT/DELETE 与 `/status`                                                                                   |
+| 上游 `matrix-org/matrix-js-sdk`（`src/rust-crypto/DehydratedDeviceManager.ts`） | ❌ 不存在                       | 全文件 `initial_device` 出现 **0** 次；只调 `…/dehydrated_device` 与 `…/dehydrated_device/$device_id/events`；其响应类型注释即 `The response body of GET …/{device_id}/events`                                   |
+| MSC3814 / ruma `dehydrated_device::get_events`                                  | ❌ 不存在                       | 规范端点即 `…/{device_id}/events`（由后端 handler 注释与上游实现双向印证）                                                                                                                                       |
+| **本仓 `synapse-rust` + ledger**                                                | ❌ 不存在                       | 全族 **5 条**，无 `initial_device`                                                                                                                                                                               |
+| **本仓 SDK 自身**                                                               | ⚠️ **唯一出处**                 | `src/dehydrated-device/index.ts:14` 的**请求体字段** `initial_device_display_name?: string`（属 `CreateDehydratedDeviceRequest`）                                                                                |
+
+⇒ 该词在本模块里的**唯一出处就是这个请求体字段**，因此高度吻合已知根因
+「**照 API 清单补方法**而非照后端契约补」（见 `docs/sdk-encapsulation-audit.md`）。
+
+**更进一步：`getDeviceEvent()` 的方法意图本身就自相矛盾**（三个信号互不一致）：
+
+1. **名字** `getDeviceEvent`（单数）—— 同文件另有 `getDevices()`（复数、同为 `GET …/dehydrated_device`）；
+2. **jsdoc** 写「获取 dehydrated device 的 **initial_device 事件**」—— 但 `initial_device` 并不是事件名；
+3. **spec 里 mock 的响应形状**是 `{ algorithm: "test", account: "test" }` —— 那是 **`device_data`** 的形状，
+   而 events 端点的真实响应是 `{ events, next_batch }`（上游 `DehydratedDeviceEventsResp`）。
+
+**能力重复**：它想做的两件事都已被正确方法覆盖 ——
+取 `device_data` 用 `getDevice(deviceId)`（`GET …/dehydrated_device`）；
+拉 to-device 事件队列用 `claimDevice()`（`POST …/{device_id}/events`，规范形态）。
+
+**调用者**：全仓 `src` / `spec` / `docs` 仅命中本文件与它自己的 spec；**Tjg 前端侧零调用**
+（唯一命中来自 `Tjg/node_modules` 里的 SDK 包副本）。
+
+### 7.3 处置方案（三档，推荐 A）
+
+| 方案          | 动作                                                                                         | 评价                                                                                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A（推荐）** | **删除 `getDeviceEvent()`** + 删 spec 2 例 + `CHANGELOG` 加 BREAKING + 本页记录              | 与 `deleteRoomMessage`（后端无该端点）、`triggerOpenclawWebhook`（后端已删）**同型处置**：从未能工作的公开 API 不该留在公开面。无调用者、能力已有正确替代          |
+| B             | 改名 `claimDeviceEvents()` + 路径改为 `…/{device_id}/events`（GET，Synapse v1.157 兼容别名） | 仅当后端承诺长期保留 GET 别名时才有意义；后端自己标注「**弃用中**」，且与 `claimDevice()`（POST）重复 ⇒ 等于新增一个「弃用形态」的公开 API，与收敛公开面的方向相反 |
+| C             | 保留方法名，仅把 `initial_device` 改成 `events`                                              | 等同 B，但方法名仍不准确（`getDeviceEvent` 表达不了"分页拉取事件队列"）；不推荐                                                                                    |
+
+> **独立的第二条线（与选哪档无关，但必须做）**：把 `dehydrated_device` **纳入 codegen 管辖**（见 §7.1）。
+> 否则即使改了路径，它仍**没有 `PathAssert`**，同类问题下次照样漏 —— 这正是 §六 D 的 #2 能长期存在的原因。
