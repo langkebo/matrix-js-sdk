@@ -99,26 +99,29 @@ admin · federation · reactions
 
 ---
 
-## 五、剩余 4 个豁免的收编路径（2026-10-15 实测改造量）
+## 五、剩余 3 个豁免的收编路径（2026-10-15 实测改造量）
 
-`quality:manager-codegen` 当前 WAIVED **4 个模块 / 247 条**无 route-table 约束路由。
+`quality:manager-codegen` 当前 WAIVED **3 个模块 / 235 条**无 route-table 约束路由。
 逐个的体量与**实测**障碍（避免下次重新侦查）：
 
 | 模块         | 条数 | 障碍（2026-10-15 实测）                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------------ | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `admin`      |  179 | **最大块**，须逐点改造：`this.adminRequest(...)` 调用点 **241 处**（分布在 11 个 sub-manager），其中 **93 处**显式传了类型实参（`this.adminRequest<Foo>(…)`）。这 93 处使得「给 `adminRequest` 加 `const P extends string` 类型参数」的单点收编**不可行**——TS 要求显式实参之后的类型参数必须有默认值，而默认 `string` 会让 `PathAssert` 退化成放行（等于纸面覆盖）。现成的 `apu()` 挂载点只覆盖 13 处。 |
 | `federation` |   55 | **服务端面，本口径不适用**（不是"缺 consumer"）。已逐条实测：55 条全为 server-to-server / key-server API（`_matrix/federation/v1` 36 + `v2` 7 + `unstable` 1、`_synapse/federation/*` 7、`_matrix/key/v2` 4），**无客户端前缀混入** ⇒ 宜把 `CONTRACT_MODULE_MAP` 的 `联邦` 映射改为 `null`（与 `3PID` / `AI 连接` 同款），或在本门禁另立 `SERVER_ONLY` 类别。                                           |
-| `cas`        |   12 | 表**已生成**却"没人读"：manager 有 **5 处经变量传 path**（`path: path`，由上层方法传入）+ **2 套 prefix**（`AdminPrefix.V1` 与 `CAS_PROTOCOL_PREFIX = "/_synapse/cas"`）⇒ 须先重构成"按分支构造完整字面量路径"才能加断言。                                                                                                                                                                              |
 | `reactions`  |    1 | 唯一路由 `PUT /_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` 由 `src/reactions/index.ts` **委托**给 `client.reactToMessage` / `redactReaction`（薄包装）⇒ 真正的消费点在 `src/client.ts`（大型文件，会触碰 `quality:large-file-check`）。                                                                                                                                                 |
 
-**已收编（6 个模块 / 68 条）**：`delayed_events`(7)、`dm`(5)、`key-rotation`(9)、`feature-flags`(4)、
-`invite_blocklist`(4)、`app_service`(39)。收编通用范式见 `docs/api-contract/delayed-events.md` 与
+**已收编（7 个模块 / 80 条）**：`delayed_events`(7)、`dm`(5)、`key-rotation`(9)、`feature-flags`(4)、
+`invite_blocklist`(4)、`app_service`(39)、`cas`(12)。收编通用范式见 `docs/api-contract/delayed-events.md` 与
 `docs/api-contract/invite-blocklist.md` 的「当前审计结论」节。
 
 > **`app_service` 的收编还纠正了两处既有错误**：
 > ① **映射键写错**：`LEDGER_MODULE_ALIASES` 的键原为 `appservice`，而 SDK 目录实名是 **`app-service`**
 > ⇒ `findSdkDirForModule("app_service")` 指向不存在的目录，**ledger 通道永远取不到该模块**（实测
 > codegen 对 `src/app-service/` 输出 `(0 entries)`）；改为实名后表恢复 39 条。
+> **`cas` 的收编同理纠正了一处与代码不符的 waiver 描述**：原写"CasManager 经 `resolvePath` 运行时
+> 二元前缀拼接、从不 import route-table"——实际 11 处路径构造点全是「方法内局部常量 `const path = "…"`」
+> 或字面量，并无运行时拼接。接入 `apu()`/`cpu()` 断言后即受管辖（现仅剩 3 个豁免）。
+>
 > ② **豁免理由与事实不符**：原 waiver 按"纯服务端面"豁免，实际 39 条 = 17 条 admin 面 + 12 条 AS 面
 >
 > - 10 条客户端面，且 `src/app-service/index.ts` 的 21 处路径与之逐条对应（其中 4 处 thirdparty

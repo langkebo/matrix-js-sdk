@@ -63,21 +63,11 @@ export const WAIVED_MODULES = {
     // 该理由**不成立**：模块枚举源实际是**本仓** `CONTRACT_INDEX.md` 的文档链接，路由条目另走
     // ledger 通道（`LEDGER_MODULE_ALIASES` 早有 `invite-blocklist → invite_blocklist`）。
     // 建页 + manager 接 PathAssert 断言后即受管辖，故移除 waiver（与 `delayed_events` 同型订正）。
-    // cas：**真·表没人读**但原因可核验（2026-10-06 收口，见审计文档 §13.14.5）。
-    // cas 表 17 条其实覆盖 CasManager 实际调用的路由（/_synapse/admin/v1/cas/* 服务管理 5 条 +
-    // /_synapse/cas/* 协议面 6 条 + 规范 SSO 端点 /_matrix/client/v3/login/sso/redirect/cas 1 条 +
-    // ROUTE_CONTRACT.md 遗留 /admin/* 5 条）；但 CasManager 经 resolvePath 做运行时二元前缀拼接
-    // （synapse_admin → "/cas"+basePath 挂 /_synapse/admin/v1；cas → basePath 挂 /_synapse/cas），
-    // 从不 import route-table 类型 ⇒ 弱证据 NO_CONSUMER（核验：grep -rn "route-table" src/cas/index.ts 无命中）。
-    // 迁移到 PathAssert 需把双前缀分支改为按分支构造完整字面量路径（11 处路径构造点），属独立改造；
-    // 完成前以 waiver 显式记录，勿用"凑一个别名导入"的方式洗白成 covered。
-    cas: {
-        reason:
-            "cas 表 17 条覆盖 CasManager 实调路由（/_synapse/admin/v1/cas/* + /_synapse/cas/*），但 CasManager" +
-            "经 resolvePath 运行时二元前缀拼接构造路径、从不 import route-table ⇒ 弱证据 NO_CONSUMER；" +
-            "迁移 PathAssert 需改 11 处路径构造点为按分支完整字面量路径，属独立改造（见 docs/sdk-encapsulation-audit.md §13.14.5）",
-        expires: "2026-12-31",
-    },
+    // 注（2026-10-15）：此处原有 `cas` 的 waiver（"表 17 条有表没人读，因 CasManager 经 resolvePath
+    // 运行时二元前缀拼接、从不 import route-table"）。该描述**与实际代码不符**：CasManager 的 11 处路径
+    // 构造点都是「方法内局部常量 `const path = "…"`」或字面量，并未做运行时前缀拼接。现已在
+    // `const path` 声明处与字面量处接入 `apu()`（`StripAdminV1`）与 `cpu()`（`StripCasProtocol`）断言，
+    // 故移除 waiver。
 };
 
 /** The pre-existing heuristic for "this file talks to the server". */

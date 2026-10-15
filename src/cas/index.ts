@@ -39,6 +39,22 @@ import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { CasPath } from "./__generated__/route-table";
+import type { PathAssert, StripAdminV1, StripCasProtocol } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言（**按 prefix 分设两个助手**）。
+ *
+ * 本模块的路径横跨两个前缀：服务管理面 `AdminPrefix.V1`（`/_synapse/admin/v1`）与
+ * CAS SSO 协议面 `CAS_PROTOCOL_PREFIX`（`/_synapse/cas`）。分开断言可避免跨命名空间误匹配。
+ */
+function apu<const P extends string>(path: P & PathAssert<P, StripAdminV1<CasPath>>): P {
+    return path;
+}
+function cpu<const P extends string>(path: P & PathAssert<P, StripCasProtocol<CasPath>>): P {
+    return path;
+}
+
 /**
  * CAS 协议端点前缀（`/_synapse/cas`）。
  *
@@ -190,7 +206,7 @@ export class CasManager extends BaseManager {
      * ```
      */
     public async listServices(): Promise<CasServiceListResponse> {
-        const path = "/cas/services";
+        const path = apu("/cas/services");
         return await this.withRetry(async () => {
             // 后端 `cas.rs::list_services` 返回**裸数组**（`Json(Vec<ServiceResponse>)`），
             // 不是 `{ services }` ⇒ 此前 `.services` 恒 undefined。
@@ -222,7 +238,7 @@ export class CasManager extends BaseManager {
      * ```
      */
     public async createService(data: CasServiceCreateRequest): Promise<CasServiceCreateResponse> {
-        const path = "/cas/services";
+        const path = apu("/cas/services");
         return await this.withRetry(async () => {
             return await this.request<CasServiceCreateResponse>({
                 method: Method.Post,
@@ -245,7 +261,7 @@ export class CasManager extends BaseManager {
      */
     public async deleteService(serviceId: string): Promise<CasServiceDeleteResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
-        const path = `/cas/services/${encodeURIComponent(serviceId)}`;
+        const path = apu(`/cas/services/${encodeURIComponent(serviceId)}`);
         return await this.withRetry(async () => {
             return await this.request<CasServiceDeleteResponse>({
                 method: Method.Delete,
@@ -267,7 +283,7 @@ export class CasManager extends BaseManager {
      */
     public async getUserAttributes(userId: string): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
-        const path = `/cas/users/${encodeURIComponent(userId)}/attributes`;
+        const path = apu(`/cas/users/${encodeURIComponent(userId)}/attributes`);
         return await this.withRetry(async () => {
             return await this.request<CasUserAttributesResponse>({
                 method: Method.Get,
@@ -291,7 +307,7 @@ export class CasManager extends BaseManager {
      */
     public async setUserAttributes(userId: string, data: CasUserAttributes): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
-        const path = `/cas/users/${encodeURIComponent(userId)}/attributes`;
+        const path = apu(`/cas/users/${encodeURIComponent(userId)}/attributes`);
         return await this.withRetry(async () => {
             return await this.request<CasUserAttributesResponse>({
                 method: Method.Post,
@@ -331,7 +347,7 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const text = await this.request<string>({
                 method: Method.Get,
-                path: "/serviceValidate",
+                path: cpu("/serviceValidate"),
                 queryParams: queryParams,
                 prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
@@ -369,7 +385,7 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const xml = await this.request<string>({
                 method: Method.Get,
-                path: "/proxyValidate",
+                path: cpu("/proxyValidate"),
                 queryParams: queryParams,
                 prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
@@ -407,7 +423,7 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const xml = await this.request<string>({
                 method: Method.Get,
-                path: "/p3/serviceValidate",
+                path: cpu("/p3/serviceValidate"),
                 queryParams: queryParams,
                 prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
@@ -438,7 +454,7 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const xml = await this.request<string>({
                 method: Method.Get,
-                path: "/proxy",
+                path: cpu("/proxy"),
                 queryParams: queryParams,
                 prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
@@ -483,7 +499,7 @@ export class CasManager extends BaseManager {
     public async handleLogout(): Promise<void> {
         await this.request<Record<string, unknown> /* Dynamic: CAS logout response varies by server */>({
             method: Method.Get,
-            path: "/logout",
+            path: cpu("/logout"),
             prefix: CAS_PROTOCOL_PREFIX,
         });
     }
