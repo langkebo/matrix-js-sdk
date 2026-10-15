@@ -605,42 +605,14 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     }
 
     /**
-     * 删除房间消息
-     *
-     * @param roomId - 房间 ID
-     * @param eventId - 事件 ID
-     * @param reason - 删除原因
-     * @throws {ValidationError} `eventId` 为空时
-     * @example
-     * ```typescript
-     * await client.getAdminManager().rooms.deleteRoomMessage("!room:example.org", "$event:example.org", "spam");
-     * ```
-     */
-    async deleteRoomMessage(roomId: string, eventId: string, reason?: string): Promise<void> {
-        AdminValidators.validateRoomId(roomId);
-        if (!eventId) {
-            throw new ValidationError("Event ID is required");
-        }
-        const body: { reason?: string } = {};
-        if (reason) {
-            body.reason = reason;
-        }
-        await this.adminRequest(
-            Method.Delete,
-            `/rooms/${encodeURIComponent(roomId)}/messages/${encodeURIComponent(eventId)}`,
-            undefined,
-            body,
-        );
-    }
-
-    /**
      * 批量撤回房间内的事件（管理端，按时间范围过滤）。
      *
      * 对应后端 `POST /_matrix/client/v3/admin/room/{room_id}/redact`（模块 `admin::room`），
      * 语义与 Element Synapse 的同名管理端点一致：撤回 `origin_server_ts` 落在
      * `(after_ts, before_ts)` 区间内的事件，单次上限 `limit` 条。
      *
-     * 与 {@link deleteRoomMessage} 的分工：后者按单个 `event_id` 精确删除，
+     * （注：原 `deleteRoomMessage` 已于 2026-10-15 删除——后端无 `DELETE …/rooms/{room_id}/messages/{event_id}`
+     * 端点，该方法恒 404；需要删消息请用本方法的级联撤回。）
      * 本方法按时间范围批量撤回。
      *
      * 注意：该端点的前缀是 **C-S v3** 命名空间下的 `admin/` 子路径，

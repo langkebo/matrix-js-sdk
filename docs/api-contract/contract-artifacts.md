@@ -120,12 +120,20 @@ admin · federation
 给 `admin` 的 227 处调用点批量加 `PathAssert` 后，`tsc` 立刻报出 **42 处不匹配**。逐条回源核对
 （对照 `synapse-rust` 源码）后分两类 —— **这两类正是"收编"的价值所在**：
 
-### 🔴 A. 真实缺陷（SDK 调用后端不存在的端点 ⇒ 404）
+### 🔴 A. 真实缺陷（SDK 调用后端不存在的端点 ⇒ 404）— **均已修复（2026-10-15）**
 
 | 位置                                                                      | SDK 调用                                                         | 后端实际                                                                                                             |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `src/admin/sub-managers/admin-federation-manager.ts:221`                  | `POST /_synapse/admin/v1/federation/destinations/{server}/reset` | 仅注册 `…/reset_connection`（`admin/federation.rs:25`）；**同文件 L183 用的正是 `/reset_connection`** ⇒ 该处疑为笔误 |
 | `src/admin/sub-managers/admin-room-manager.ts:630`（`deleteRoomMessage`） | `DELETE /_synapse/admin/v1/rooms/{room_id}/messages/{event_id}`  | 后端只有 `GET …/rooms/{room_id}/messages`（`admin/room/mod.rs:120`）⇒ **无 DELETE 形态**，该方法恒 404               |
+
+**处置（2026-10-15）**：
+
+- `admin-federation-manager.resetFederationDestination` ⇒ 去掉 `/reset` 试探与 404 fallback，**单请求**直打
+  `…/destinations/{server}/reset_connection`（与 `delayed_events` 当年的 action-in-PATH 试探同型缺陷）；
+  `spec/unit/admin-new-endpoints.spec.ts` 的两个"prefers/falls back"用例合并为「只发一次请求」。
+- `admin-room-manager.deleteRoomMessage` ⇒ **删除该方法**（后端无对应端点，自加入起即恒 404；
+  需删消息请用同级 `cascadeRedactEvent`）。删的是方法体 + jsdoc，同文件对它的 `{@link}` 引用已改写。
 
 ### ⚠️ B. ledger 覆盖缺口（后端有注册、SDK 的契约镜像里没有 ⇒ 断言无处可依）
 

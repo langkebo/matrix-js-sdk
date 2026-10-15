@@ -201,12 +201,16 @@ export class AdminFederationManager extends AdminBaseManager {
     }
 
     /**
-     * 重置联邦目的地（尝试 /reset，404 时回退到 /reset_connection）
+     * 重置联邦目的地（**直接**打 `POST …/destinations/{server}/reset_connection`）。
+     *
+     * ⚠️ 修复（2026-10-15）：此前实现先尝试 `/reset`、仅在 404 时回退到 `/reset_connection`。
+     * 后端**从未注册过** `/reset`（`synapse-web/src/routes/admin/federation.rs:23-37` 只有
+     * `{destination}/reset_connection`）⇒ 每次调用都会先发出一个必然 404 的请求，再打真正
+     * 的端点（与 delayed_events 曾经的 action-in-PATH 试探同型）。现改为单请求。
      *
      * @param serverName - 服务器名称
      *
      * @throws {ValidationError} 如果 serverName 为空
-     * @throws {Error} 当两个端点均失败时，原样抛出底层错误
      *
      * @example
      * ```typescript
@@ -215,26 +219,12 @@ export class AdminFederationManager extends AdminBaseManager {
      */
     async resetFederationDestination(serverName: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
-        try {
-            await this.adminRequest(
-                Method.Post,
-                `/federation/destinations/${encodeURIComponent(serverName)}/reset`,
-                {},
-                undefined,
-            );
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(
-                    Method.Post,
-                    `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
-                    {},
-                    undefined,
-                );
-                return;
-            }
-            throw e;
-        }
+        await this.adminRequest(
+            Method.Post,
+            `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
+            {},
+            undefined,
+        );
     }
 
     /**

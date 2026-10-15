@@ -148,24 +148,13 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "5" });
         });
 
-        it("resetFederationDestination prefers /reset path", async () => {
+        it("resetFederationDestination 直接打 /reset_connection（不再试探 /reset）", async () => {
             await manager.resetFederationDestination("example.org");
+            // 后端从未注册过 /reset（admin/federation.rs 只有 {destination}/reset_connection）
+            // ⇒ 不应再发出必然 404 的试探请求：有且仅有一次调用
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset");
-        });
-
-        it("resetFederationDestination falls back to /reset_connection on 404", async () => {
-            req.mockRejectedValueOnce(
-                new MatrixError({
-                    errcode: "M_NOT_FOUND",
-                    httpStatus: 404,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any),
-            );
-            req.mockResolvedValueOnce({});
-            await manager.resetFederationDestination("example.org");
-            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset");
-            expect(req.mock.calls[1][1]).toBe("/federation/destinations/example.org/reset_connection");
+            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset_connection");
         });
     });
 
