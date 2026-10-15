@@ -203,3 +203,75 @@ A 的旧条目**永远剪不掉**，导致两表重复（`quality:contract-entry
 新判据下被剪（auth=99、有 prune 报告）。
 ⇒ **建议后端知悉**：模块/桶的**迁移**在 SDK 侧现已能自动收敛；但若将来再次调整 `registered_by`，
 SDK 侧需跑 `contract:sync` + `contract:codegen` 跟随（不会自动发生）。
+
+---
+
+## 六、2026-10-16 新增：wire-format 门禁修为单一归一化后**新暴露的 2 条缺陷**
+
+### 背景（为什么以前没看见）
+
+`quality:wire-format` 有两个 `normalizePath` 实现（占位符拼写 `{x}` vs `{X}`），
+导致**任何含动态段的路由两侧 key 永远对不上** ⇒ 被静默归进 `route-contract-unavailable`。
+已修为单一归一化（`adcfe0df3`）：未解析调用点 599 → **333**、真正做了比对的 24 → **51**，
+并因此**新暴露 3 条**（其中 1 条是 SDK 侧抽取器的假阳性，另行修）。
+
+### Q4（P1，**建议后端补**）`_synapse/admin/v1/federation/blacklist/{server_name}` 不接收 `reason`
+
+**证据（本仓后端自身，非上游）**：
+
+| 层                                                   | 现状                                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 模型 `AddBlacklistRequest`                           | **有** `reason: Option<String>`（还有 `expires_in_days: Option<i32>`）           |
+| 写路径 `AdminFederationService::add_to_blacklist`    | 签名只有 `(server_name, admin_user_id)`，内部**硬编码 `reason: None`**（`:402`） |
+| HTTP handler `admin/federation.rs::add_to_blacklist` | 只取 `Path(server_name)`，**无 `Json` 提取器** ⇒ 任何 body 被静默丢弃            |
+| 读路径 `get_blacklist`                               | **回传** `"reason": row.reason`                                                  |
+
+⇒ **写入丢字段、读取回传**，SDK 发 `body: { reason }` 完全正确却无效。
+
+**上游核对**：`element-hq/synapse` 的 `synapse/rest/admin/federation.py` **只有 `destinations` 族**
+（list / detail / rooms / `reset_connection`），**没有 blacklist 端点、也没有 reason**
+⇒ 该端点属本仓 fork 专有，**上游无法裁决**，应以本仓模型为准（模型与读路径都表明"设计上就该有 reason"）。
+
+**建议**：**后端补**——handler 接 body（`Json<...>`）并把 `reason`（一并 `expires_in_days`）透传到 service；
+service 已支持、存储已支持、读路径已回传，**改动集中在 web 层 + service 签名**。
+SDK 侧保持现状；在缺陷修好前以 waiver 占位（带 `expires`），到期提醒。
+
+### Q5（P1，**建议后端补信封**，备选方案见下）`GET /_matrix/vendor/v1/rooms/{room_id}/threads/search` 与 `list_threads` 不同形
+
+**证据**：
+
+| 端点                | Query                          | 响应                                     |
+| ------------------- | ------------------------------ | ---------------------------------------- |
+| `…/threads`（list） | `ListQuery`（**有 `from`**）   | `Json<ThreadListResponse>`（**信封**）   |
+| `…/threads/search`  | `SearchQuery`（**无 `from`**） | `Json<Vec<ThreadSummary>>`（**裸数组**） |
+
+后端自己的两个**同族**端点不同形；而 SDK 的 `IThreadListResponse { threads; next_batch? }`
+是照 **list 侧**建的 ⇒ `searchThreads` 目前**两头都错**：发了后端不认的 `from`，
+又按信封去读裸数组 ⇒ `result.threads` 恒为 `undefined`（**该方法当前不可用**）。
+
+**建议（首选）：后端让 `search_threads` 与 `list_threads` 同形** ——
+`Query<SearchQuery { q, limit, from }>` + 返回 `ThreadListResponse`（含 `next_batch`）。
+理由：① 同族接口一致优于让 SDK 为一个端点写特殊形状；② SDK 已有 `IThreadListResponse`
+可直接复用；③ 搜索结果的**分页是有意义的**（结果集可能很大，现在被静默截断）。
+
+**备选（若后端确认 search 就该返回裸数组）**：SDK 撤 `from` 并把返回类型改成 `ThreadSummary[]`。
+两种方案都请后端**明确选一个**，SDK 侧按选择对齐（当前状态是"两边都不对"，不能久留）。
+
+### 核实方式（可复现）
+
+```bash
+# Q4：写路径丢字段、读路径回传
+grep -n "struct AddBlacklistRequest" -A 12   synapse-rust/synapse-services/src/federation_blacklist_service.rs
+grep -n "fn add_to_blacklist" -A 16          synapse-rust/synapse-services/src/admin_federation_service.rs
+grep -n "pub async fn add_to_blacklist" -A 8 synapse-rust/synapse-web/src/routes/admin/federation.rs
+grep -n "\"reason\": row.reason"              synapse-rust/synapse-web/src/routes/admin/federation.rs
+
+# Q5：同族不同形
+grep -n "fn list_threads"   -A 18 synapse-rust/synapse-web/src/routes/handlers/thread.rs
+grep -n "fn search_threads" -A 12 synapse-rust/synapse-web/src/routes/handlers/thread.rs
+grep -n "struct SearchQuery" -A 5 synapse-rust/synapse-web/src/routes/handlers/thread.rs
+grep -n "struct ListQuery"   -A 8 synapse-rust/synapse-web/src/routes/handlers/thread.rs
+
+# 复现门禁新暴露结论（需后端在场）
+cd matrix-js-sdk && node scripts/quality/check-wire-format.mjs
+```

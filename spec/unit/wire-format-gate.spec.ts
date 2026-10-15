@@ -32,6 +32,7 @@ import {
     waiverMatch,
 } from "../../scripts/quality/check-wire-format.mjs";
 import { resolveWrapperIoPositions } from "../../scripts/quality/verify-path-contract.mjs";
+import { blankTsComments } from "../../scripts/quality/lib/admin-contract.mjs";
 
 const NO_OPTS = { identityHelpers: null, templateBuilders: null };
 
@@ -274,6 +275,72 @@ describe("gateRouteKey（后端 key 必须用本门禁的归一化）", () => {
         for (const k of ["GET /a/{x}/b", "GET /a/{user_id}/b", "GET /a/{x}/b/{y}"]) {
             expect(gateRouteKey(k)).not.toContain("{x}");
         }
+    });
+});
+
+/**
+ * `blankTsComments`：抽调用前先把注释**原地抹成空格**（保长）。
+ *
+ * 真实事故（2026-10-16 实测）：抽取器直接吃原文 ⇒ 会看见 JSDoc `@example` 里的用法示例。
+ * `src/friend/paths.ts:24` 的示例（`await this.request({ method: Method.Put, path: friendPath(...) })`）
+ * 与 `src/errors.ts:290` 的示例都被当成**真调用点**，前者还让门禁报出一条假的
+ * `request-required-missing`（后端 `UpdateStatusRequest.status` 必填，而"示例"没传）。
+ *
+ * 保长是**硬要求**：下游要按**原下标**做 `indexOf(pathRaw)` 与
+ * `findConstObjectBinding(source, callIndex, …)`，长度一变这些就全错位。
+ */
+describe("blankTsComments（保长空白化注释）", () => {
+    it("输出与输入**等长**，且换行数量不变（行号不漂）", () => {
+        const src = "// a\nconst x = 1; /* b\nc */\nconst y = 2;\n";
+        const out = blankTsComments(src);
+        expect(out).toHaveLength(src.length);
+        expect(out.split("\n")).toHaveLength(src.split("\n").length);
+    });
+
+    it("行注释 / 块注释 / JSDoc 都被抹成空格，代码本身保留", () => {
+        const src = [
+            "/**",
+            " * @example",
+            ' * await this.request({ method: Method.Get, path: "/rooms/123" });',
+            " */",
+            "function f() { return 1; } // tail",
+        ].join("\n");
+        const out = blankTsComments(src);
+        expect(out).not.toContain("request(");
+        expect(out).not.toContain("@example");
+        expect(out).not.toContain("// tail");
+        expect(out).toContain("function f() { return 1; }");
+    });
+
+    it("**不碰**字符串与模板字面量里的 `//` / `/*`", () => {
+        expect(blankTsComments('const a = "http://x";')).toBe('const a = "http://x";');
+        expect(blankTsComments("const a = '/* not a comment */';")).toBe("const a = '/* not a comment */';");
+        expect(blankTsComments("const a = `a//b`;")).toBe("const a = `a//b`;");
+    });
+
+    it("正则字面量里的 `//` 不被当行注释（沿用已验证的启发式）", () => {
+        const out = blankTsComments('const a = "x//y".replace(/\\/\\//g, "-");');
+        expect(out).toContain("replace(");
+        expect(out).toContain("-");
+    });
+
+    it("**回归守卫**：JSDoc 里的 `this.request({…})` 不再被抽成调用点", () => {
+        // 必须复刻**单行**示例的形态（`{` 落在行中）—— 多行示例的首块以 `*` 开头，
+        // 会被属性解析偶然丢掉，复现不出真事故。`src/friend/paths.ts:24` 就是单行形态。
+        // （真实站点用的是恒等助手 `friendPath(...)`；这里用字面量路径，机制相同。）
+        const src = [
+            "/**",
+            " * 校验并返回 friends 路径。",
+            " *",
+            " * @example",
+            ' * await this.request({ method: Method.Put, path: "/friends/x/status", prefix: VendorPrefix });',
+            " */",
+            "export function friendPath(p) { return p; }",
+        ].join("\n");
+        // 不空白化 ⇒ 会被当成真调用点（这就是那个假阳性）
+        expect(extractObjectFormCalls(src, "src/friend/paths.ts", NO_OPTS).calls).toHaveLength(1);
+        // 空白化后 ⇒ 不认得
+        expect(extractObjectFormCalls(blankTsComments(src), "src/friend/paths.ts", NO_OPTS).calls).toHaveLength(0);
     });
 });
 

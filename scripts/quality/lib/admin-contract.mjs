@@ -2010,6 +2010,99 @@ export function stripTsComments(src) {
 }
 
 /**
+ * 把 TS 注释**原地抹成空格**（保长）：只剥注释，字符串 / 模板 / 正则内容一律原样保留。
+ *
+ * 与 `stripTsComments` 的关系：扫描器**逐条镜像**它（含正则字面量启发式），唯一区别是
+ * `stripTsComments` **丢弃**注释字符会改变长度，而本函数把注释字符换成空格 ⇒
+ * **下标与行号完全不变**。这一点是硬要求：调用方拿它处理源码后仍要按**原下标**做
+ * `source.indexOf(pathRaw)` 与 `findConstObjectBinding(source, callIndex, …)`。
+ *
+ * 为什么需要它（2026-10-16 实测）：多个抽取器直接吃原文 ⇒ 它们会看见 JSDoc 里的
+ * 用法示例。实测 `src/friend/paths.ts` 的 `@example`（`await this.request({ method: Method.Put,
+ * path: friendPath(...), prefix: VendorPrefix });`）被当成**真调用点**，于是门禁报出一条
+ * 假的 `request-required-missing`。注释不是代码，先抹掉再抽取是唯一彻底的解法。
+ *
+ * ⚠️ 保留换行（注释内的换行也保留）——否则行号会漂，而门禁的报错全靠行号定位。
+ *
+ * @param {string} src
+ * @returns {string} 与入参**等长**的文本
+ */
+export function blankTsComments(src) {
+    const out = src.split("");
+    const n = src.length;
+    /** 把 `[from, to)` 之间除换行外的字符抹成空格。 */
+    const blank = (from, to) => {
+        for (let k = from; k < to && k < n; k++) if (src[k] !== "\n") out[k] = " ";
+    };
+    let i = 0;
+    let prevSignificant = "";
+    while (i < n) {
+        const c = src[i];
+        // 字符串 / 模板字面量：**原样保留**（内含的 `//` 与 `/*` 不是注释）
+        if (c === '"' || c === "'" || c === "`") {
+            const quote = c;
+            i++;
+            while (i < n) {
+                if (src[i] === "\\") {
+                    i += 2;
+                    continue;
+                }
+                if (src[i] === quote) {
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            continue;
+        }
+        if (c === "/" && src[i + 1] === "/") {
+            let k = i;
+            while (k < n && src[k] !== "\n") k++;
+            blank(i, k);
+            i = k;
+            continue;
+        }
+        if (c === "/" && src[i + 1] === "*") {
+            let k = i + 2;
+            while (k < n && !(src[k] === "*" && src[k + 1] === "/")) k++;
+            const stop = Math.min(n, k + 2);
+            blank(i, stop);
+            i = stop;
+            continue;
+        }
+        // 正则字面量：仅当上一有效字符不是标识符/右括号时才可能是除法
+        if (c === "/" && !/[\w$)\]]/.test(prevSignificant)) {
+            let k = i + 1;
+            let inClass = false;
+            let closed = false;
+            while (k < n) {
+                if (src[k] === "\\") {
+                    k += 2;
+                    continue;
+                }
+                if (src[k] === "[") inClass = true;
+                else if (src[k] === "]") inClass = false;
+                else if (src[k] === "/" && !inClass) {
+                    closed = true;
+                    k++;
+                    break;
+                } else if (src[k] === "\n") break;
+                k++;
+            }
+            if (closed) {
+                while (k < n && /[a-z]/.test(src[k])) k++;
+                i = k;
+                prevSignificant = "/";
+                continue;
+            }
+        }
+        if (!/\s/.test(c)) prevSignificant = c;
+        i++;
+    }
+    return out.join("");
+}
+
+/**
  * 把路径里的参数段归一化成 `{x}`，用于两侧对表。
  *
  * 后端写 `/_synapse/admin/v1/reports/{report_id}`，SDK 写

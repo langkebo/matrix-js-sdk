@@ -331,6 +331,14 @@ export function normalizeRoute(route: string): string;
 /** 去 TS 注释（保留字符串/模板/正则字面量）。 */
 export function stripTsComments(src: string): string;
 
+/**
+ * 把 TS 注释**原地抹成空格**（保长），字符串/模板/正则内容原样保留。
+ * 扫描器镜像 `stripTsComments`，但注释字符换成空格 ⇒ **下标与行号不变**
+ * （调用方仍要按原下标做 `indexOf` / `findConstObjectBinding`）。
+ * 用途：抽取前先抹注释，避免把 JSDoc `@example` 里的用法示例当成真调用点。
+ */
+export function blankTsComments(src: string): string;
+
 /** 取 `interface` / `type X = {…}` / 别名的第一层字段名（只收键集闭合的形状）。 */
 export function extractInterfaceFields(src: string): Map<string, string[]>;
 

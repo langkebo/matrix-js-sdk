@@ -69,7 +69,12 @@ import {
     resolvePrefixExpression,
     stripTsAssertion,
 } from "./verify-path-contract.mjs";
-import { collectRustAdminContract, parseSerdeStructs, stripRustComments } from "./lib/admin-contract.mjs";
+import {
+    blankTsComments,
+    collectRustAdminContract,
+    parseSerdeStructs,
+    stripRustComments,
+} from "./lib/admin-contract.mjs";
 import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -571,7 +576,12 @@ async function collectSdkCalls() {
     const options = { identityHelpers, templateBuilders };
     const calls = [];
     const badPath = [];
-    for (const [rel, source] of sourcesByFile) {
+    for (const [rel, sourceRaw] of sourcesByFile) {
+        // ⚠️ 抽取前先把注释**原地抹成空格**（保长 ⇒ 下标与行号不变）。
+        // 不这么做，JSDoc `@example` 里的用法示例会被当成真调用点 —— 实测
+        // `src/friend/paths.ts` 的示例产生了一条假的 `request-required-missing`。
+        // 注释不是代码；下游的 `resolveKeySet` / `indexOf(pathRaw)` 必须吃同一份文本。
+        const source = blankTsComments(sourceRaw);
         const { calls: positional } = extractWrapperCalls(source, rel, options);
         const { calls: object, unchecked } = extractObjectFormCalls(source, rel, options);
         const all = [...positional.map((c) => ({ ...c, form: "positional" })), ...object];
