@@ -8,6 +8,13 @@
 export function splitTopLevelObjectProps(inner: string): string[];
 
 /**
+ * 剥掉一段文本里的 TS 注释，**保留字符串与模板字面量的内容**（`path: "/a//b"` 不受影响）。
+ * 属性块必须先过它再判形态，否则「注释紧贴某属性」会让该属性整块被当注释丢掉：
+ * 粘 `method`/`path` ⇒ 调用点被静默丢弃；粘 `body`/`queryParams` ⇒ 被读成「确定不发」。
+ */
+export function stripCommentsInChunk(text: string): string;
+
+/**
  * 从对象字面量取顶层键集。fail-closed：`keys === null` 表示判不出来（`reason` 给出原因），
  * **绝不返回半份键集**。
  */

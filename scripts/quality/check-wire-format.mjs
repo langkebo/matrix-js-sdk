@@ -113,6 +113,68 @@ export function splitTopLevelObjectProps(inner) {
 }
 
 /**
+ * 剥掉一段文本里的 TS 注释（**保留字符串与模板字面量的内容**）。
+ *
+ * 为什么需要它（2026-10-15 实测的静默盲区）：
+ * 本文件按**顶层逗号**把对象字面量切成属性块，块首是 `//` 时整块被当纯注释跳过 ——
+ * 于是被注释「粘住」的那个属性**直接消失**，后果双向且都不报错：
+ *
+ *   · 粘 `method:` / `path:` ⇒ 该调用点**静默丢弃**（不进 `calls` 也不进 `unchecked`，
+ *     覆盖面以「分母变小」的方式缩水 —— 正是本脚本头注释警告的那种失效）；
+ *   · 粘 `body:` / `queryParams:` ⇒ 被读成「确定不发该字段」⇒ 凭空报缺必填。
+ *
+ * ⚠️ 只剥注释、**不碰字符串内容**：`path: "/a//b"` 里的 `//` 必须原样保留
+ * （否则会把路径读成截断值）。带引号与模板字面量的扫描负责这一点；也因此不需要
+ * 处理正则字面量（正则里的 `//` 不在字符串态，但把整段源码一起剥会更危险，故只在
+ * **属性块**这一层做）。
+ *
+ * 空注释块 `/** … *​/`（含 JSDoc）会被整体抹掉，于是注释里的用法示例不会再被当成调用点。
+ */
+export function stripCommentsInChunk(text) {
+    let out = "";
+    let i = 0;
+    while (i < text.length) {
+        const c = text[i];
+        const next = text[i + 1];
+        // 行注释：吃掉到行尾（保留换行，让调用方的 trim / 行号直觉不被破坏）
+        if (c === "/" && next === "/") {
+            const nl = text.indexOf("\n", i);
+            i = nl < 0 ? text.length : nl;
+            continue;
+        }
+        // 块注释：整体抹掉，用一个空格代替以免两侧 token 粘连
+        if (c === "/" && next === "*") {
+            const end = text.indexOf("*/", i + 2);
+            i = end < 0 ? text.length : end + 2;
+            out += " ";
+            continue;
+        }
+        // 字符串 / 模板字面量：**原样搬运**（含转义），确保内容里的 `//` 不被误剥
+        if (c === '"' || c === "'" || c === "`") {
+            out += c;
+            i += 1;
+            while (i < text.length) {
+                if (text[i] === "\\") {
+                    out += text[i] + (text[i + 1] ?? "");
+                    i += 2;
+                    continue;
+                }
+                out += text[i];
+                if (text[i] === c) {
+                    i += 1;
+                    break;
+                }
+                i += 1;
+            }
+            continue;
+        }
+        out += c;
+        i += 1;
+    }
+    return out;
+}
+
+/**
  * 从**对象字面量**取顶层键集。fail-closed：任一情形判不出来就返回 `null`（附 `reason`），
  * **绝不返回半份键集** —— 半份键集会凭空造出"少字段/多字段"的假缺陷。
  *
@@ -128,10 +190,10 @@ export function objectLiteralKeys(text) {
     if (!inner.trim()) return { keys: [], reason: null };
     const keys = [];
     for (const raw of splitTopLevelObjectProps(inner)) {
-        const prop = raw.replace(/^\s+|\s+$/g, "");
+        // 先剥注释再看属性：否则「注释紧贴某属性」会让该属性整块被当注释丢掉
+        const prop = stripCommentsInChunk(raw).replace(/^\s+|\s+$/g, "");
         if (!prop) continue;
         if (prop.startsWith("...")) return { keys: null, reason: "spread" };
-        if (prop.startsWith("//") || prop.startsWith("/*")) continue;
         const kv = /^(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:/.exec(prop);
         if (kv) {
             keys.push(kv[1] ?? kv[2] ?? kv[3]);
@@ -241,9 +303,11 @@ export function extractObjectFormCalls(source, relFile, options = {}) {
 
         // 顶层属性（只取 depth===1）。`{ method, path, body, prefix }` 这种**简写**必须一起认，
         // 否则 `body` 会被当成"没这个属性" ⇒ 报"缺必填"的假缺陷。
+        // ⚠️ 必须先剥注释：块首是 `//` 时下面两条正则都匹配不上，该属性会**直接消失**；
+        // 落在 `method`/`path` 上 ⇒ 整个调用点被第 260 行的 `continue` **静默丢弃**。
         const propText = new Map();
         for (const raw of splitTopLevelObjectProps(literal.slice(1, -1))) {
-            const p = raw.replace(/^\s+|\s+$/g, "");
+            const p = stripCommentsInChunk(raw).replace(/^\s+|\s+$/g, "");
             if (!p) continue;
             const kv = /^([A-Za-z_$][\w$]*)\s*:\s*([\s\S]*)$/.exec(p);
             if (kv) {

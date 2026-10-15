@@ -25,6 +25,7 @@ import {
     objectLiteralKeys,
     resolveKeySet,
     splitTopLevelObjectProps,
+    stripCommentsInChunk,
     violationKey,
     waiverCovers,
     waiverMatch,
@@ -153,6 +154,88 @@ describe("extractObjectFormCalls", () => {
         const r = extractObjectFormCalls(bad, "src/x.ts", NO_OPTS);
         expect(r.calls).toHaveLength(0);
         expect(r.unchecked).toHaveLength(1);
+    });
+});
+
+/**
+ * 「注释粘住属性」的回归守卫（2026-10-15 实测的静默盲区）。
+ *
+ * 判据按**顶层逗号**切块，块首是 `//` 时整块被当纯注释跳过 ⇒ 被粘住的那个属性消失。
+ * 后果双向且都不报错，所以必须逐条钉死：
+ *   · 粘 `method`/`path` ⇒ 该调用点被第 260 行 `continue` **静默丢弃**
+ *     （不进 `calls` 也不进 `unchecked`，覆盖面以"分母变小"的方式缩水）；
+ *   · 粘 `body`/`queryParams` ⇒ 被读成"确定不发"⇒ 凭空报缺必填。
+ * 真实命中：4 处纯丢弃 + 3 处读成"确定不发"（crypto-keys / media / room-state）。
+ */
+describe("stripCommentsInChunk / 注释不得改变判定", () => {
+    it("剥行注释与块注释（含 JSDoc），并保留换行", () => {
+        expect(stripCommentsInChunk("// c\nfoo").trim()).toBe("foo");
+        expect(stripCommentsInChunk("/* c */ foo").trim()).toBe("foo");
+        expect(stripCommentsInChunk("/** @example x */ foo").trim()).toBe("foo");
+        expect(stripCommentsInChunk("// a\n/** b */ foo").trim()).toBe("foo");
+    });
+
+    it('**不碰**字符串与模板字面量内容（`path: "/a//b"` 的 `//` 必须原样保留）', () => {
+        expect(stripCommentsInChunk('foo: "/a//b"')).toBe('foo: "/a//b"');
+        expect(stripCommentsInChunk("foo: '/x//y'")).toBe("foo: '/x//y'");
+        expect(stripCommentsInChunk("foo: `/a//b`")).toBe("foo: `/a//b`");
+        // 转义引号不提前结束字符串
+        expect(stripCommentsInChunk('foo: "a\\"//b"')).toBe('foo: "a\\"//b"');
+    });
+
+    it("objectLiteralKeys：注释不能吃掉它粘住的那个键", () => {
+        expect(objectLiteralKeys("{ // note\n a: 1, b: 2 }").keys).toEqual(["a", "b"]);
+        expect(objectLiteralKeys("{ /* note */ a: 1, b: 2 }").keys).toEqual(["a", "b"]);
+    });
+
+    it("注释紧贴 `method:` 时，调用点仍被抽出（原先被静默丢弃）", () => {
+        const src = [
+            "class M { m() {",
+            "  this.request({",
+            "    // 后端形状说明",
+            "    method: Method.Get,",
+            '    path: "/rooms",',
+            "    prefix: ClientPrefix.V3,",
+            "  });",
+            "} }",
+        ].join("\n");
+        const r = extractObjectFormCalls(src, "src/x.ts", NO_OPTS);
+        expect(r.calls).toHaveLength(1);
+        expect(r.calls[0].method).toBe("GET");
+        expect(r.unchecked).toHaveLength(0);
+    });
+
+    it("注释紧贴 `path:` 时，调用点仍被抽出（原先被静默丢弃）", () => {
+        const src = [
+            "class M { m() {",
+            "  this.request({",
+            "    method: Method.Post,",
+            "    // 路径说明",
+            '    path: "/rooms/create",',
+            "    prefix: ClientPrefix.V3,",
+            "  });",
+            "} }",
+        ].join("\n");
+        expect(extractObjectFormCalls(src, "src/x.ts", NO_OPTS).calls).toHaveLength(1);
+    });
+
+    it("注释紧贴 `body:` 时，body 不得被读成「确定不发」（原先会报假的缺必填）", () => {
+        const src = [
+            "class M { m() {",
+            "  this.request({",
+            "    method: Method.Post,",
+            '    path: "/keys/signatures/upload",',
+            "    // 请求体直接是签名映射",
+            "    body: { signatures: sigs },",
+            "    prefix: ClientPrefix.V3,",
+            "  });",
+            "} }",
+        ].join("\n");
+        const r = extractObjectFormCalls(src, "src/x.ts", NO_OPTS);
+        expect(r.calls).toHaveLength(1);
+        expect(r.calls[0].bodyArg).not.toBe("undefined");
+        // 键集确实解得出来，而不是"不可知"
+        expect(resolveKeySet(r.calls[0].bodyArg, src, r.calls[0].callIndex).keys).toEqual(["signatures"]);
     });
 });
 
