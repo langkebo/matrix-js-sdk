@@ -50,6 +50,7 @@ import type {
     RestartServerResponse,
     PurgeRoomResponse,
     WhoamiResponse,
+    RateLimitStatusResponse,
 } from "../types";
 import type { CreateNotificationRequest, UpdateNotificationRequest } from "./admin-notification-manager";
 import { MatrixClient } from "../../client";
@@ -696,5 +697,25 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             }
             throw e;
         }
+    }
+
+    /**
+     * 读取限流运行状态
+     *
+     * 对应 `GET /_synapse/admin/v1/rate-limit-status`（`admin/server.rs::get_rate_limit_status`）。
+     * 返回当前生效的限流配置与**运行时计数**：配置来自文件管理器（缺失则回落 env 配置），
+     * `metrics` 是进程内累计值（`rejected_ratio_percent` 由后端算好后 round）。
+     *
+     * 运维用途：确认限流是否真的启用、后端选到哪一档（`backend`）、Redis 是否可用，
+     * 以及拒绝率是否异常 —— 这些都是"配置文件里写了但运行时没生效"类问题的第一诊断点。
+     *
+     * @example
+     * ```typescript
+     * const st = await client.getAdminManager().server.getRateLimitStatus();
+     * console.log(st.enabled, st.backend, st.metrics.rejected_ratio_percent + "%");
+     * ```
+     */
+    async getRateLimitStatus(): Promise<RateLimitStatusResponse> {
+        return await this.adminRequest<RateLimitStatusResponse>(Method.Get, "/rate-limit-status");
     }
 }

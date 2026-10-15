@@ -57,6 +57,8 @@ import type {
     AdminMakeRoomAdminPayload,
     RoomEventSearchPayload,
     SpaceStats,
+    RoomBackfillResponse,
+    CascadeRedactResponse,
 } from "../types";
 import type { MatrixClient } from "../../client";
 
@@ -1113,5 +1115,95 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
         return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/users`, query);
+    }
+
+    /* ────────────────────────────────────────────────────────────────────────
+     * 缺口报告（artifacts/sdk-route-contract-gap-2026-10-15.md §2.C）补齐的两条
+     * admin 房间面端点；参数与响应按后端 handler 实读（2026-10-15）。
+     * ──────────────────────────────────────────────────────────────────────── */
+
+    /**
+     * 回填房间历史（联邦）
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/backfill`
+     * （`admin/room/management.rs::backfill_room`）。后端向**房间内有 joined 成员的联邦对端**
+     * 请求该房间最近本地已知事件之前的历史事件，并以完整 DAG 元数据落库。
+     *
+     * 房间不存在 ⇒ 后端 404（前端拿到 `NotFoundError`）。
+     *
+     * @param roomId - 房间 ID
+     * @param options.limit - **每个候选对端**请求的事件数（后端默认 100；省略即用默认）
+     * @returns `{room_id, source_server, persisted_events, candidates_tried}`
+     * @throws {ValidationError} `roomId` 不是合法房间 ID 时（不发请求）
+     * @throws {NotFoundError} 房间不存在时（后端 404）
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().rooms.backfillRoom("!r:example.org", { limit: 200 });
+     * console.log(`persisted ${res.persisted_events} events from ${res.source_server}`);
+     * ```
+     */
+    async backfillRoom(roomId: string, options?: { limit?: number }): Promise<RoomBackfillResponse> {
+        AdminValidators.validateRoomId(roomId);
+        const body: Record<string, number> = {};
+        if (options?.limit !== undefined) {
+            body.limit = options.limit;
+        }
+        return await this.adminRequest<RoomBackfillResponse>(
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/backfill`,
+            {},
+            body,
+        );
+    }
+
+    /**
+     * 级联删除事件（递归）
+     *
+     * 对应 `POST /_synapse/admin/v1/rooms/{room_id}/cascade_redact`
+     * （`admin/room/mod.rs::cascade_redact_event`）。递归删除所有通过关系字段
+     * （`m.in_reply_to` / `m.relates_to` / `m.replace`）**引用**目标事件的事件。
+     *
+     * ⚠️ 与单层 `PUT /rooms/{roomId}/redact/{eventId}/{txnId}`（MSC3912 客户端面）不同：
+     * 这是**运维动作**，**不会**落 `m.room.redaction` 事件（管理员可能不是房间成员，
+     * 合成事件过不了房间鉴权），归属记录只写在审计日志里。
+     *
+     * @param roomId - 房间 ID
+     * @param options.eventId - 级联起点事件 id（**必填**，后端缺字段即 400）
+     * @param options.maxDepth - 递归深度（后端默认 5，**clamp 到 ≤10**）
+     * @param options.reason - 删除理由（可选；仅用于审计日志，不落事件）
+     * @returns `{event_id, redacted_count, max_depth}`（`max_depth` 是后端**实际生效**值）
+     * @throws {ValidationError} `roomId` 非法或 `eventId` 为空时（后端对缺 `event_id` 返回 400）
+     * @throws {NotFoundError} 房间不存在时（后端 404）
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().rooms.cascadeRedactEvent("!r:example.org", {
+     *     eventId: "$root",
+     *     maxDepth: 8,
+     *     reason: "spam cleanup",
+     * });
+     * console.log(res.redacted_count, res.max_depth);
+     * ```
+     */
+    async cascadeRedactEvent(
+        roomId: string,
+        options: { eventId: string; maxDepth?: number; reason?: string },
+    ): Promise<CascadeRedactResponse> {
+        AdminValidators.validateRoomId(roomId);
+        if (!options?.eventId) {
+            throw new ValidationError("eventId is required");
+        }
+        const body: Record<string, unknown> = { event_id: options.eventId };
+        if (options.maxDepth !== undefined) {
+            body.max_depth = options.maxDepth;
+        }
+        if (options.reason !== undefined) {
+            body.reason = options.reason;
+        }
+        return await this.adminRequest<CascadeRedactResponse>(
+            Method.Post,
+            `/rooms/${encodeURIComponent(roomId)}/cascade_redact`,
+            {},
+            body,
+        );
     }
 }

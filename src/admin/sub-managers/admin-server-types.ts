@@ -419,3 +419,119 @@ export interface MediaQuarantineChangesResponse {
     /** Number of records in this response (后端 `total` = `changes.len()`) */
     total: number;
 }
+
+/**
+ * 全局隔离变更流的一条记录（`GET /_synapse/admin/v1/media/quarantine_changes`）。
+ *
+ * ⚠️ 与**单媒体**流（{@link MediaQuarantineChange}）**形状不同**：全局流每条只有
+ * `{origin, media_id, quarantined}`（后端 `admin/media.rs::get_global_media_quarantine_changes`
+ * 逐条 `json!` 构造，2026-10-15 实读）。`origin` 在 `server_name` 为空时由后端用本服务器名补全。
+ */
+export interface GlobalMediaQuarantineChange {
+    /** 媒体 origin（媒体所属服务器名；空则由后端补本服务器名） */
+    origin: string;
+    media_id: string;
+    /** `true` = 被隔离；`false` = 被解除隔离 */
+    quarantined: boolean;
+}
+
+/**
+ * 全局隔离变更流响应（`GET /_synapse/admin/v1/media/quarantine_changes`）。
+ *
+ * ⚠️ `next_batch` 是**数值**（= 本页最后一条的 `stream_id`，无新条目时回显请求的 `from`），
+ * 与其它媒体端点的**字符串**游标不同（后端 `get_global_media_quarantine_changes`）。
+ * 服务端 `limit` 固定 100，**不接受** `limit` 参数。
+ */
+export interface GlobalMediaQuarantineChangesResponse {
+    /** 下一次请求的 `from`（数值游标） */
+    next_batch: number;
+    changes: GlobalMediaQuarantineChange[];
+}
+
+/** `GET /_synapse/admin/v1/rooms/{room_id}/media` 的 `media[]` 元素。 */
+export interface RoomMediaItem {
+    media_id: string;
+    /** MIME 类型（后端 `content_type`） */
+    media_type: string;
+    /** 上传时的原始文件名（后端 `file_name`） */
+    upload_name: string;
+    created_ts: number;
+    /** 字节数 */
+    media_length: number;
+}
+
+/**
+ * 房间媒体分页（`GET /_synapse/admin/v1/rooms/{room_id}/media`）。
+ *
+ * ⚠️ `next_batch` 是**字符串**游标（后端 `"{created_ts}|{media_id}"` 编码，
+ * `decode_media_cursor`/`encode_media_cursor`），与全局隔离流的数值游标不同；
+ * `total` 是**本页条数**而非全量。
+ */
+export interface RoomMediaPage {
+    media: RoomMediaItem[];
+    total: number;
+    next_batch: string | null;
+}
+
+/**
+ * `POST /_synapse/admin/v1/rooms/{room_id}/media/quarantine` 响应。
+ *
+ * ⚠️ 三个隔离动作端点（房间隔离 / 房间解除隔离 / 用户隔离）的响应键**各不相同**，
+ * 因此拆成三个类型而不是一个带可选字段的联合 —— `quality:admin-response-contract`
+ * 逐端点比对键集，合并类型会被判「SDK 多 [user_id]」这类多键（2026-10-15 实测）。
+ */
+export interface RoomMediaQuarantineResponse {
+    /** 单调递增的隔离流位置 */
+    stream_id: number;
+    room_id: string;
+    /** 该端点恒为 `true`（后端硬编码） */
+    quarantined: true;
+    /** 执行该动作的管理员 user_id */
+    changed_by: string;
+}
+
+/** `POST /_synapse/admin/v1/rooms/{room_id}/media/unquarantine` 响应（比隔离版只差 `quarantined`）。 */
+export interface RoomMediaUnquarantineResponse {
+    stream_id: number;
+    room_id: string;
+    /** 该端点恒为 `false`（后端硬编码） */
+    quarantined: false;
+    changed_by: string;
+}
+
+/** `POST /_synapse/admin/v1/user/{user_id}/media/quarantine` 响应（注意是 `user_id` 而非 `room_id`）。 */
+export interface UserMediaQuarantineResponse {
+    stream_id: number;
+    /** 被隔离媒体的上传者 user_id */
+    user_id: string;
+    /** 该端点恒为 `true`（后端硬编码） */
+    quarantined: true;
+    changed_by: string;
+}
+
+/**
+ * 限流运行状态（`GET /_synapse/admin/v1/rate-limit-status`）。
+ *
+ * 字段与后端 `admin/server.rs::get_rate_limit_status` 的 `json!` 逐条对齐（2026-10-15 实读）：
+ * 配置来自文件管理器（缺失则回落 env 配置），`metrics` 来自运行时缓存计数器。
+ */
+export interface RateLimitStatusResponse {
+    enabled: boolean;
+    /** 后端 `{:?}` 序列化的枚举名（如 `"Auto"` / `"Redis"` / `"InMemory"`） */
+    backend: string;
+    redis_available: boolean;
+    /** 生效的限流规则数（`endpoints.len()`） */
+    active_rules: number;
+    /** 豁免路径数（`exempt_paths + exempt_path_prefixes`） */
+    exempt_paths: number;
+    metrics: {
+        requests_total: number;
+        rejected_total: number;
+        allowed_total: number;
+        exempt_total: number;
+        fail_open_total: number;
+        fail_closed_total: number;
+        /** 拒绝率百分比（已 round；无请求时为 0） */
+        rejected_ratio_percent: number;
+    };
+}
