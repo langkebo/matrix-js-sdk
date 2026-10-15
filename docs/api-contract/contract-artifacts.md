@@ -217,3 +217,42 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 而原正则只认 `prefix: X` ⇒ `prefixExpr` 为 `null` ⇒ `resolvePrefix(null)` **静默**按默认
 `/_matrix/client/v3` 处理 ⇒ 把 `getVoiceStats(prefix: string = VendorPrefix)` 这类**正确**调用点
 误报为"契约不符"。已在抽取器里识别简写（记为不可解前缀而**跳过**，而不是猜默认值）。
+
+### 🔴 D. 由「模块级常量前缀」不可解而遮蔽的 3 条不符（2026-10-15 发现，**均未处置**）
+
+`quality:path-contract` 的 `--verbose` 会列出「动态跳过」的调用点。当前 **99 处**里，
+
+| 前缀表达式                            |   处数 | 性质                                                                                      |
+| ------------------------------------- | -----: | ----------------------------------------------------------------------------------------- |
+| `""` / `authedRequest` / `request` 等 |     47 | 报告标签含糊（多为位置形态的位置推断）                                                    |
+| `prefix`（**ES 简写** `prefix,`）     |     22 | 已识别，正确记为"求不出"而跳过（见 §六 C）                                                |
+| **模块级字符串常量**                  | **30** | `const CAS_PROTOCOL_PREFIX = "/_synapse/cas";` 这类 —— **源码里就能解出，只是解析器没做** |
+
+后一类里，用常量前缀解出后与 ledger 比对，**3 处不符**（已逐条回源 `synapse-rust` 核实）：
+
+| #   | 位置                                                    | SDK 实际发出                                                            | 后端                                                                                                                     |
+| --- | ------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `src/dehydrated-device/index.ts:189` `claimDevice()`    | **POST** `…/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events` | `derived_route_table_always.inc.rs:139-141` 注册的是 **GET** 同一路径                                                    |
+| 2   | `src/dehydrated-device/index.ts:275` `getDeviceEvent()` | `GET …/dehydrated_device/{device_id}/**initial_device**`                | **全仓无 `initial_device` 路由**（该族仅 5 条：`dehydrated_device` 的 GET/PUT/DELETE、`/status`、`/{device_id}/events`） |
+| 3   | `src/external-service/index.ts:407`                     | `POST /_synapse/external/**openclaw**/{service_id}/webhook`             | 只有 `…/trendradar/{service_id}/webhook`（`external_service.rs:433`）与 `…/webhook/{service_id}`（L434）                 |
+
+**判读与建议**（不擅自改，因为三条都需要产品/后端意图）：
+
+- **#1 是方法不符**：MSC3814 规定该方法为 `POST`（"send events to the dehydrated device"），
+  SDK 与规范一致，**疑为后端注册成了 GET** ⇒ 宜由后端线确认并修，SDK 侧不应改成 GET（会偏离 MSC）。
+- **#2 疑为笔误**：方法名叫 `getDeviceEvent`，而 MSC3814 中对应端点正是
+  `GET …/{device_id}/events`（后端**有**该路由且有 handler）。`initial_device` 很可能是早期写法残留。
+- **#3 路径不存在**：`openclaw` 在后端全仓无痕迹（`trendradar` 是同族里真实存在的服务名）——
+  需确认是后端曾用名、还是 SDK 侧写错。
+
+> **复现命令**（不依赖任何门禁，只读）：
+>
+> ```
+> node scripts/quality/verify-path-contract.mjs --verbose   # 看「跳过的动态调用」
+> ```
+>
+> 再用常量前缀手工拼完整路径与 `docs/api-contract/generated/route-manifest.all.json` 比对。
+
+**下一步（未做）**：在抽取层支持**模块级字符串常量**前缀（`const X = "…"`）。
+它会让这 3 条浮出水面，也会让另外 ~19 处位置形态的常量前缀调用点进入校验 ——
+因此**必须先处置这 3 条**（修 / 或按既有机制登记 waiver 并写明理由），否则门禁会直接转红。
