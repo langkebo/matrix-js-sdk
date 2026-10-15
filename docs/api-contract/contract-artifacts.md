@@ -13,10 +13,10 @@
 | #   | 产物                                                                   | 口径（统计的是什么）                                                                                      | 数量 |
 | --- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---: |
 | 1   | `docs/api-contract/generated/route-manifest.all.json` 的 `entry_count` | **后端 ledger 声明的全部路由**。`state_profile=all`，即 oidc / worker / saml 三个特性开关全开时的最大集合 | 1032 |
-| 2   | `docs/api-contract/generated/modules/*.json` 文件数                    | 后端按 `registered_by` 拆出的**逐模块镜像**。文件名沿用后端模块名（snake_case）                           |   49 |
-| 3   | `src/*/__generated__/` 目录数                                          | 有 SDK 侧生成产物的模块。目录名是 **SDK 目录名**（kebab-case），经 `CONTRACT_MODULE_MAP` 折叠/改名而来    |   48 |
-| 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   47 |
-| 4b  | 上述 47 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  977 |
+| 2   | `docs/api-contract/generated/modules/*.json` 文件数                    | 后端按 `registered_by` 拆出的**逐模块镜像**。文件名沿用后端模块名（snake_case）                           |   50 |
+| 3   | `src/*/__generated__/` 目录数                                          | 有 SDK 侧生成产物的模块。目录名是 **SDK 目录名**（kebab-case），经 `CONTRACT_MODULE_MAP` 折叠/改名而来    |   49 |
+| 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   48 |
+| 4b  | 上述 48 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  977 |
 
 > 记忆锚点：**1032 是后端的，977 是前端的**；49 是后端模块视角，48/47 是 SDK 目录视角。
 
@@ -28,10 +28,10 @@
 
 `route-manifest.all.json` 的每条 entry 形如
 `{ method, path, registered_by, path_params, query_params }`，
-`entry_count` 就是 entry 数组长度。`modules/` 下的 49 个文件是同一批 entry 按 `registered_by` 分桶的结果，
-因此 **49 个文件合计的 entry 数 = 1032**（同一批数据，两种视图）。
+`entry_count` 就是 entry 数组长度。`modules/` 下的 50 个文件是同一批 entry 按 `registered_by` 分桶的结果，
+因此 **50 个文件合计的 entry 数 = 1032**（同一批数据，两种视图）。
 
-### 49 → 48：后端模块名与 SDK 目录名不是同名可比
+### 50 → 49：后端模块名与 SDK 目录名不是同名可比
 
 这是最容易误判的一层。两侧命名规约不同，且**多个后端模块会折叠到同一个 SDK 模块**：
 
@@ -42,7 +42,7 @@
 | `worker`                             | `worker-admin`                         |
 | `worker_body`                        | `worker-body`                          |
 | `thirdparty`                         | `third-party`                          |
-| `assembly`                           | （映射到多个 SDK 模块，本身无目录）    |
+| `assembly`                           | `auth`（umbrella 页承载）              |
 | `3PID` / `AI 连接` / `其他` / `装配` | **无 SDK 对应**（章节名映射为 `null`） |
 
 映射表是代码里的 `CONTRACT_MODULE_MAP`（`scripts/sdk-contract-codegen.mjs`），
@@ -51,7 +51,7 @@
 因此**不要**用文件名做集合差：`set(modules/*.json) - set(src/*/__generated__)` 会因为命名规约不同
 而报出一大堆假差异（实测两侧各有约 17-20 个「对不上」的名字，绝大多数是同一模块的两种写法）。
 
-### 48 → 47：1 个模块被显式跳过，只生成 DTO
+### 49 → 48：1 个模块被显式跳过，只生成 DTO
 
 `SKIP_ROUTE_TABLE_MODULES`（`scripts/sdk-contract-codegen.mjs`）列出 1 个**不生成 route-table** 的模块：
 
@@ -63,7 +63,7 @@ federation        # 服务端面（S2S / key-server），客户端 SDK 不承担
 COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适用）或 `WAIVED_MODULES`
 （有期限的欠账，每条带 reason + 过期时间）。**未归类而缺表会直接失败**（`missing` / `NO_CONSUMER`）。
 
-`federation` 的 `dto.ts` 仍然生成，所以 `__generated__` 目录数是 48 而不是 47。
+`federation` 的 `dto.ts` 仍然生成，所以 `__generated__` 目录数是 49 而不是 48。
 
 ### 977 vs 1032：两张表的构造规则不同
 
@@ -299,60 +299,6 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 > 见 `LEDGER_MODULE_TO_SDK_DIR`）⇒ 会生成一张**空表**（比没有更糟：看似受管辖、实则零约束）；
 > ② 也**登记不了** `LEDGER_MODULE_ALIASES`（ledger 侧没有这个模块名）。故本轮改为**借表**（见 7.4）。
 
-### 7.4 本轮实际做法：**借 `auth` 表**（已实施，零机制改动）
-
-**没有**新建该模块的独立契约表，而是按既有映射**借用 `auth` 表**做断言 —— `assembly → auth` 是
-`contract-module-map.mjs` 里**早已存在**的映射，`src/auth/__generated__/route-table.ts`（105 条）
-本就含这 6 条 msc3814 路由。这与 `room-events` 借 `ReactionsPath`、`app-service` 借 `ThirdpartyPath`、
-`room-summary` 借 `RoomPath` **完全同型**。
-
-实施：新增 `StripMsc3814`（剥离 `/_matrix/client/unstable/org.matrix.msc3814.v1`），
-本目录 **7 处** `path` 接入 `dp()`。auth 表里不带该前缀的条目会落到 `StripPrefix` 的 fallback（`never`）
-而被丢弃 ⇒ **实际放行的只有该前缀下的 6 条**。
-
-**变异自证（3 组，全部按预期报红）**：
-
-| 变异                                                            | 结果                                                |
-| --------------------------------------------------------------- | --------------------------------------------------- |
-| `/dehydrated_device` → `/dehydrated_devicez`                    | ❌ TS2345                                           |
-| `/dehydrated_device/status` → `/dehydrated_device/statuz`       | ❌ TS2345                                           |
-| **`…/events` → `…/initial_device`（复现 §六 D #2 的历史缺陷）** | ❌ **TS2345** —— 证明该断言**本可以拦住那个真缺陷** |
-
-**代价（已知、可接受）**：断言面是「auth 表里带 msc3814 前缀的条目」而非"独立成表"；
-且本目录**仍不在 `quality:manager-codegen` 的管辖清单里**（该门禁按 ledger 模块遍历，
-而 `dehydrated_device` 不是 ledger 模块）。
-
-### 7.5 若要让该模块"真正纳入管辖"：需要 codegen 的**子集切分**（待议，本轮未做）
-
-彻底办法是给 codegen 加"从某 ledger 模块按路径前缀切出子集"的机制，例如：
-
-```js
-// scripts/contract-module-map.mjs
-export const LEDGER_MODULE_SLICES = {
-    "dehydrated-device": {
-        fromLedgerModule: "assembly",
-        pathPrefix: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-    },
-};
-```
-
-再让 `loadLedgerEntriesForSdkDir` 优先走 slices、`contract-sync` 允许"多页共享同一镜像源"
-（两个页面的针脚同指 `assembly.json`）。
-
-**评估**：改动涉及 codegen 的模块发现、镜像指针与门禁枚举口径，属**机制扩展**；
-而收益是「断言面 6 条 vs 借表的 6 条」—— **实际等价**，额外收益仅是形式更干净与门禁可管辖。
-⇒ 本轮**不做**，仅记录。**更根本的做法在后端侧**（见 7.6）。
-
-### 7.6 后端建议：让 ledger 能给该族独立模块（P2）
-
-`dehydrated_device` 之所以不是独立模块，是因为它的路由由 `assembly::create_router` 直挂
-（`derived_route_table_always.inc.rs` 里的 `registered_by` 即 `assembly::create_router`），
-而 ledger 导出器按 `registered_by` 分桶（`ledger_export.rs` 的 `moduleKeyFor`）。
-
-若后端把 msc3814 那一族注册到**独立 sub-router**（`registered_by` 变成如
-`dehydrated_device::create_router`），ledger 就会给它独立模块 ⇒ SDK 侧可生成独立表并纳入门禁。
-已写入 `artifacts/sdk-backend-handoff-2026-10-15.md`。
-
 ### 7.2 #2 的完整取证：`initial_device` 到底是什么
 
 **结论：它不是 `events` 的拼写笔误，而是「把请求体字段名误当路径段」。** 三方证据如下：
@@ -393,3 +339,33 @@ export const LEDGER_MODULE_SLICES = {
 
 > **独立的第二条线（与选哪档无关，但必须做）**：把 `dehydrated_device` **纳入 codegen 管辖**（见 §7.1）。
 > 否则即使改了路径，它仍**没有 `PathAssert`**，同类问题下次照样漏 —— 这正是 §六 D 的 #2 能长期存在的原因。
+
+### 7.4 最终做法：**消费该模块自己的契约表**（后端改造后，2026-10-15 晚）
+
+**曾用的过渡做法（已废弃）**：后端改造前，该族在 ledger 里归 `assembly` 桶 ⇒ 本目录没有自己的表，
+故当时**借用 `auth` 表**（`StripMsc3814<AuthPath>`）做断言 —— 与 `room-events` 借 `ReactionsPath`、
+`app-service` 借 `ThirdpartyPath` **同型**。断言面因此是"assembly 桶里带该前缀的条目"，
+且本目录**不在 `quality:manager-codegen` 管辖清单内**。
+
+**最终做法**：后端把该族改为**独立 sub-router**（`registered_by: dehydrated_device`，`d2b76bfcb`）后：
+
+- ledger 独立成桶 ⇒ `contract:sync` 生成 `generated/modules/dehydrated_device.json`（6 条）；
+- `contract:codegen` 生成 `src/dehydrated-device/__generated__/route-table.ts`（6 条）；
+- manager 的 `dp()` 改为 `PathAssert<P, StripMsc3814<DehydratedDevicePath>>`（消费**自己的表**）；
+- 补齐四件套：`docs/api-contract/dehydrated-device.md` 页（含真实 DTO，使生成物无 `= never` 占位）、
+  `CONTRACT_INDEX.md` 索引行、`LEDGER_MODULE_ALIASES` 登记、`src/contract/index.ts` 聚合出口登记。
+
+⇒ `quality:manager-codegen` 由 `Missing 1`（`NO_CONSUMER`）转为 **Covered 48 / Waived 0 / Missing 0**（100%）；
+`assembly` 桶 **105 → 99**。原设想的"codegen 子集切分"方案**因此不再需要** ——
+后端给独立模块比在 SDK 侧按前缀切分更干净（且断言面等价：6 条 vs 6 条）。
+
+> **⚠️ 过程中发现 `codegen` 的一处判据盲区（已修）**：`sdk-contract-codegen.mjs` 的"死条目剪枝"
+> 原用**全局** ledger 键集（`globalLedgerKeys`）⇒「路径从 A 桶迁到 B 桶」时，A 的旧条目
+> **永远剪不掉**，导致两表重复（`quality:contract-entrypoint` 报 **6 条重复路由**）。
+> 已收紧为「**属于本目录**（`ownedByThisDir`）或本文档声明（`contractKeys`）」。
+>
+> **对照实验**：手工把那 6 条放回 `auth` 表后 —— 旧判据下**留存**（auth=105、无 `codegen-prune` 输出）；
+> 新判据下**被剪**（auth=99、有 prune 报告）。codegen 逐字节还原。
+>
+> **通用价值**：此后任何"模块/桶迁移"（`registered_by` 调整）在 SDK 侧都能**自动收敛**，
+> 不再需要人工"删磁盘条目 → 改文档 → 重跑 codegen"三步收口（该形态此前已复发多次）。

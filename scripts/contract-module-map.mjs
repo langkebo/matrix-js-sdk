@@ -23,6 +23,10 @@ export const LEDGER_MODULE_ALIASES = {
     captcha: "captcha",
     cas: "cas",
     "delayed-events": "delayed_events",
+    // 注（2026-10-15）：该族原由 `assembly::create_router` 直挂 ⇒ ledger 里没有独立模块，
+    // SDK 侧**无从收编**（建页会生成空表）。后端已把该族改为独立 sub-router
+    // （`registered_by: dehydrated_device`）⇒ 独立成桶，故在此登记。
+    "dehydrated-device": "dehydrated_device",
     device: "device",
     dm: "dm",
     e2ee: "e2ee_routes",

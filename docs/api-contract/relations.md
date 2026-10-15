@@ -1,7 +1,7 @@
 ---
 module: relations
 generated_from: docs/api-contract/generated/modules/relations.json
-generated_hash: sha256-c2d780db153081fe7e834533e0e3644cc606c350c7bc700ff5a3db93f5005eac
+generated_hash: sha256-62c216d2ca66bb35afbe55025e7f41daa2de40b579eb657f6ed7f164a8a977da
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

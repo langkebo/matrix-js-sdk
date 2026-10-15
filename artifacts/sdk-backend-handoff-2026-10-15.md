@@ -121,7 +121,12 @@ node -e 'const j=require("matrix-js-sdk/docs/api-contract/generated/modules/admi
 > 两者相抵 ⇒ 后端全量仍 **1032**（内容变了，单看总数看不出来）。
 > SDK 镜像 stamp 已推进到 `3e36d6dbd`（提交 `1b827bbd7`）。
 
-### 5.2 建议 A（P2）：让 MSC3814 那一族有独立 `registered_by`
+### 5.2 建议 A（P2）：让 MSC3814 那一族有独立 `registered_by` —— ✅ **已实施**
+
+> ✅ **后端已实施（`d2b76bfcb`，10-15 20:59）**：该族改为独立 sub-router，`registered_by` 变为
+> **`dehydrated_device`**（`derived_route_table_always.inc.rs`、`ROUTE_CONTRACT.md`、两套 fixture 与快照同步）。
+> **SDK 侧随之完成收编**（见 5.6）：ledger 独立成桶 ⇒ 生成 `src/dehydrated-device/__generated__/`（6 条）
+> ⇒ 该模块**首次进入 `quality:manager-codegen` 管辖**；`assembly` 桶 105 → **99**。
 
 **现状**：该族 6 条路由由 `assembly::create_router` 直挂，而 ledger 导出器按 `registered_by` 分桶
 （`ledger_export.rs` 的 `moduleKeyFor`）⇒ 它们全归入 **`assembly` 桶**，**没有** `dehydrated_device`
@@ -138,7 +143,12 @@ node -e 'const j=require("matrix-js-sdk/docs/api-contract/generated/modules/admi
 
 > 同类情形：任何"核心 router 直挂"的功能域都会有同样后果，不止 msc3814。
 
-### 5.3 建议 B（P2）：`derived_route_table_always.inc.rs` 的"漏声明"防护
+### 5.3 建议 B（P2）：`derived_route_table_always.inc.rs` 的"漏声明"防护 —— ✅ **已实施**
+
+> ✅ **后端已实施（`8869abea1`，10-15 21:01）**：新增**反向守卫**（371 行）—— 扫描 router 源里的
+> 路径字面量，断言 **⊆ ledger 镜像声明**。实现含注释剥离、`match_delim` 括号配对、
+> `gated_mod_open_brace`、测试模块剥离、`any()` 展开为 7 个方法等方法学细节。
+> SDK 侧无对应动作；该守卫正是「POST 漏声明」那类问题的兜底。
 
 **现状**：`tests/integration/api_route_ledger_tests.rs:190` 的
 `declared_route_manifest_entries_are_actually_wired` 只覆盖**单向**「声明 → 接线」。
@@ -175,3 +185,21 @@ ledger → SDK 镜像 → codegen 一路"隐形"下去（SDK 侧看不见 ⇒ �
 `contract-sync` 在 workspace 用 `git rev-parse HEAD` 覆盖 ⇒ SDK 镜像的 `synapse_rust_commit`
 表达的是「**同步时后端工作区 HEAD**」，**不是内容来源 commit**（后端工作区若脏，stamp 与内容会不一致）。
 若生成脚本能写入真实 commit（或改为内容哈希），SDK 侧的"声明 ↔ 生成物自证"会多一个**内容侧锚点**。
+
+### 5.6 SDK 侧收编结果（`dehydrated_device`，2026-10-15 晚）
+
+| 指标                      | 收编前                                    | 收编后                                              |
+| ------------------------- | ----------------------------------------- | --------------------------------------------------- |
+| 该模块的契约约束          | **无**（无 route-table、无 `PathAssert`） | 独立 route-table（6 条）+ manager 7 处 `PathAssert` |
+| `quality:manager-codegen` | `Missing 1`（`NO_CONSUMER`）              | **Covered 48 / Waived 0 / Missing 0**（100%）       |
+| `assembly` 桶             | 105                                       | **99**（该族 6 条拆出）                             |
+| 产物口径                  | route-table 47 张 / 镜像 49 / 目录 48     | **48 张 / 50 / 49**（条目数因相抵仍 977）           |
+
+⚠️ **过程中发现 SDK 侧一处判据盲区**（后端可忽略，仅备案）：`scripts/sdk-contract-codegen.mjs` 的
+「死条目剪枝」原用**全局** ledger 键集（`globalLedgerKeys`）⇒「路径从 A 桶迁到 B 桶」时，
+A 的旧条目**永远剪不掉**，导致两表重复（`quality:contract-entrypoint` 报 **6 条重复路由**）。
+已收紧为「**属于本目录**（`ownedByThisDir`）或本文档声明（`contractKeys`）」，
+并做了**对照实验**：手工把那 6 条放回 `auth` 表后，旧判据下留存（auth=105、无 prune 输出）、
+新判据下被剪（auth=99、有 prune 报告）。
+⇒ **建议后端知悉**：模块/桶的**迁移**在 SDK 侧现已能自动收敛；但若将来再次调整 `registered_by`，
+SDK 侧需跑 `contract:sync` + `contract:codegen` 跟随（不会自动发生）。

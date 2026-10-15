@@ -1222,7 +1222,12 @@ function render(module, lookups) {
         const kept = [];
         for (const e of entries) {
             const key = `${e.method} ${e.path}`;
-            if (globalLedgerKeys.has(key) || contractKeys.has(key)) {
+            // 判据收紧（2026-10-15）：原用 **全局** `globalLedgerKeys`（只要该路径在 ledger 的
+            // **任意**模块里存在就保留）⇒「路径从 A 桶迁到 B 桶」时，A 的旧条目**永远剪不掉**，
+            // 造成两表重复（`contract-entrypoint` 报「重复路由」）。改用 `ownedByThisDir`
+            // （= ledger 把该路径**归给本目录**）⇒ 迁移会自然收敛。
+            // 仍需 `contractKeys` 兜住「ledger 未导出、但 ROUTE_CONTRACT.md 有声明」的历史路由。
+            if (ownedByThisDir.has(key) || contractKeys.has(key)) {
                 kept.push(e);
             } else {
                 prunedStale.push(key);

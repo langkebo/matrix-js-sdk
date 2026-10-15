@@ -33,6 +33,7 @@ import { BURN_AFTER_READ_ROUTES } from "../burn-after-read/__generated__/route-t
 import { CAPTCHA_ROUTES } from "../captcha/__generated__/route-table";
 import { CAS_ROUTES } from "../cas/__generated__/route-table";
 import { DELAYED_EVENTS_ROUTES } from "../delayed-events/__generated__/route-table";
+import { DEHYDRATED_DEVICE_ROUTES } from "../dehydrated-device/__generated__/route-table";
 import { DEVICE_ROUTES } from "../device/__generated__/route-table";
 import { DM_ROUTES } from "../dm/__generated__/route-table";
 import { E2EE_ROUTES } from "../e2ee/__generated__/route-table";
@@ -94,6 +95,7 @@ export const SDK_CONTRACT_ROUTE_TABLES = {
     captcha: CAPTCHA_ROUTES,
     cas: CAS_ROUTES,
     "delayed-events": DELAYED_EVENTS_ROUTES,
+    "dehydrated-device": DEHYDRATED_DEVICE_ROUTES,
     device: DEVICE_ROUTES,
     dm: DM_ROUTES,
     e2ee: E2EE_ROUTES,
@@ -162,6 +164,7 @@ export {
     BURN_AFTER_READ_ROUTES,
     CAPTCHA_ROUTES,
     CAS_ROUTES,
+    DEHYDRATED_DEVICE_ROUTES,
     DEVICE_ROUTES,
     E2EE_ROUTES,
     EPHEMERAL_ROUTES,
