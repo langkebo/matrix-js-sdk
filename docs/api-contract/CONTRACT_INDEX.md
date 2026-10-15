@@ -12,7 +12,7 @@
 
 | 模块     | 文档                               | 端点数 | SDK 覆盖率 | 优先级                                        |
 | -------- | ---------------------------------- | ------ | ---------- | --------------------------------------------- |
-| 认证     | [auth.md](auth.md)                 | 104    | 100%       | ✅ 完善 (umbrella 页，对应后端 `assembly` 桶) |
+| 认证     | [auth.md](auth.md)                 | 105    | 100%       | ✅ 完善 (umbrella 页，对应后端 `assembly` 桶) |
 | 账户数据 | [account-data.md](account-data.md) | 15     | 100%       | ✅ 完善                                       |
 | 设备管理 | [device.md](device.md)             | 6      | 100%       | ✅ 完善                                       |
 | 房间     | [room.md](room.md)                 | 95     | 100%       | ✅ 完善                                       |
@@ -103,7 +103,7 @@
 | SlidingSync | [sliding-sync.md](sliding-sync.md)         | 4      | 100%       | ✅ 完善 |
 | 游客        | [guest.md](guest.md)                       | 3      | 100%       | ✅ 完善 |
 | 临时事件    | [ephemeral.md](ephemeral.md)               | 1      | 100%       | ✅ 完善 |
-| 外部服务    | [external-service.md](external-service.md) | 12     | 100%       | ✅ 完善 |
+| 外部服务    | [external-service.md](external-service.md) | 11     | 100%       | ✅ 完善 |
 | WorkerBody  | [worker-body.md](worker-body.md)           | 11     | 100%       | ✅ 完善 |
 
 ## 总览统计
@@ -123,10 +123,10 @@
 > `contract-artifacts.md` 与 `CLAUDE.md`/`AGENTS.md` 的 8 个锚点，不覆盖本页。故 2026-10-15 逐条重新实测，
 > 订正两处端点数，并纠正一条错误解释：
 >
-> | 行              | 原值 |    实测 | 依据                                                                                             |
-> | --------------- | ---: | ------: | ------------------------------------------------------------------------------------------------ |
-> | `auth.md`       |  146 | **104** | 后端 `assembly` 桶 = 104，`src/auth/__generated__/route-table.ts` 实测同为 104；146 无可复现来源 |
-> | `rendezvous.md` |    6 |  **10** | 该 SDK 表同时承载 `rendezvous`(6) 与 `msc4108_rendezvous`(4)                                     |
+> | 行              | 原值 |          实测 | 依据                                                                                                                                                                                                                                                        |
+> | --------------- | ---: | ------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | `auth.md`       |  146 | **104 → 105** | 后端 `assembly` 桶原为 104（`src/auth/__generated__/route-table.ts` 实测同值）；146 无可复现来源。**2026-10-15 稍后**后端补齐 `POST …/dehydrated_device/{device_id}/events`（`assembly.rs:220`，MSC3814 规范形态）⇒ 桶 104 → **105**，本页与 `auth.md` 同步 |
+> | `rendezvous.md` |    6 |        **10** | 该 SDK 表同时承载 `rendezvous`(6) 与 `msc4108_rendezvous`(4)                                                                                                                                                                                                |
 >
 > 订正后合计**恰为 1032**。此前"与 1032 不等"的解释（称 `worker-body.md` 与 `worker-admin.md` 共享
 > `worker` 模块）**不成立**：两者分别对应 `worker_body`(11) 与 `worker`(15) 两个不同模块，不构成重复计。

@@ -289,7 +289,7 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 ⇒ 该模块**从不进入 codegen 枚举**：既不在 `COVERED`，也不在 `WAIVED` / `SERVER_ONLY`，
 **连 `Missing` 都不报**（`Missing` 的判据是"枚举进来了却没交付"）。
 结果是 **SDK 侧从未生成 route-table、从未有 `PathAssert`** ⇒ `src/dehydrated-device/index.ts` 的
-**8 处调用点全部处于管辖外**。而门禁把 `assembly` 的 104 条按 `umbrella` 单列、**不计入覆盖率分母**，
+**8 处调用点全部处于管辖外**。而门禁把 `assembly` 的 105 条按 `umbrella` 单列、**不计入覆盖率分母**，
 所以这个洞不会被任何数字暴露。
 
 > **与 `invite_blocklist` / `delayed_events` 同型** —— 不是"不需要表"，而是**登记缺失**。

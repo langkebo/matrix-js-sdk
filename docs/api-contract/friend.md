@@ -1,7 +1,7 @@
 ---
 module: friend_room
 generated_from: docs/api-contract/generated/modules/friend_room.json
-generated_hash: sha256-d93837deefe53828d12ea6ed1b83917535270e362714fe1a54c560cd435978b8
+generated_hash: sha256-5c789e89b8681c72b4b7cc8117e8f4b5d41652223647c0458fd90e18f6037262
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

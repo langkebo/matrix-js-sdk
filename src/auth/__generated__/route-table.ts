@@ -4,7 +4,7 @@
  *
  * Module:        Auth / Account / Discovery 契约
  * Source:        docs/api-contract/generated/modules/
- * Entries:       104 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       105 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `auth` module (mirrored from the backend contract). */
@@ -113,6 +113,7 @@ export const AUTH_ROUTES = [
     { method: "PUT", path: "/_matrix/client/v3/profile/{user_id}/{key_name}" },
     { method: "GET", path: "/_matrix/client/v3/upload/provider" },
     { method: "POST", path: "/_matrix/client/v3/upload/token" },
+    { method: "POST", path: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `AUTH_ROUTES`. */

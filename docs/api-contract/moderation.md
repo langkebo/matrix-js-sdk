@@ -1,7 +1,7 @@
 ---
 module: moderation
 generated_from: docs/api-contract/generated/modules/moderation.json
-generated_hash: sha256-1c7e2c3d5b73648b97de5c5c82642798ae395c0e411870f03d731b757bdff9b3
+generated_hash: sha256-e3b5522fd6e2c100d13a2096847a206634338641f9cb2cbc034cc901505d6518
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
