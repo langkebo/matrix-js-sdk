@@ -1,17 +1,10 @@
 {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-09T23:12:54.269Z",
+    "generatedAt": "2026-10-15T18:07:13.210Z",
     "generatedBy": "node scripts/quality/check-wire-format.mjs --refresh",
-    "backendCommit": "e23a133a950bb4cd6d2482552558c64d6752c096",
+    "backendCommit": "bb8256bf5481b662180a76ec7a02d7bed5a38947",
     "notice": "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。",
     "entries": {
-        "DELETE /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device": {
-            "handler": "delete_dehydrated_device",
-            "hasJson": false,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
         "DELETE /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{x}": {
             "handler": "delete_session",
             "hasJson": false,
@@ -348,6 +341,13 @@
             "body": null,
             "query": null
         },
+        "DELETE /dehydrated_device": {
+            "handler": "delete_dehydrated_device",
+            "hasJson": false,
+            "hasQuery": false,
+            "body": null,
+            "query": null
+        },
         "DELETE /devices/{x}": {
             "handler": "delete_device",
             "hasJson": true,
@@ -522,27 +522,6 @@
         },
         "GET /_matrix/client/unstable/org.matrix.msc2965/auth_metadata": {
             "handler": "get_auth_metadata",
-            "hasJson": false,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
-        "GET /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device": {
-            "handler": "get_dehydrated_device",
-            "hasJson": false,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
-        "GET /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{x}/events": {
-            "handler": "get_dehydrated_device_events",
-            "hasJson": false,
-            "hasQuery": true,
-            "body": null,
-            "query": null
-        },
-        "GET /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status": {
-            "handler": "get_dehydrated_device_status",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
@@ -2551,6 +2530,27 @@
                 "opaque": false
             }
         },
+        "GET /dehydrated_device": {
+            "handler": "get_dehydrated_device",
+            "hasJson": false,
+            "hasQuery": false,
+            "body": null,
+            "query": null
+        },
+        "GET /dehydrated_device/{x}/events": {
+            "handler": "get_dehydrated_device_events",
+            "hasJson": false,
+            "hasQuery": true,
+            "body": null,
+            "query": null
+        },
+        "GET /dehydrated_device/status": {
+            "handler": "get_dehydrated_device_status",
+            "hasJson": false,
+            "hasQuery": false,
+            "body": null,
+            "query": null
+        },
         "GET /devices": {
             "handler": "get_devices",
             "hasJson": false,
@@ -3867,7 +3867,7 @@
                     "sender_localpart",
                     "url"
                 ],
-                "required": ["as_token", "hs_token", "id", "url"],
+                "required": ["as_token", "hs_token", "id"],
                 "denyUnknown": true,
                 "opaque": false
             },
@@ -4979,19 +4979,6 @@
             },
             "query": null
         },
-        "POST /_synapse/external/trendradar/{x}/webhook": {
-            "handler": "handle_trendradar_webhook",
-            "hasJson": true,
-            "hasQuery": false,
-            "body": {
-                "type": "TrendRadarPayload",
-                "declared": ["content", "keywords", "metadata", "source", "timestamp", "title", "url"],
-                "required": ["content", "keywords", "source", "timestamp", "title"],
-                "denyUnknown": false,
-                "opaque": false
-            },
-            "query": null
-        },
         "POST /_synapse/external/webhook/{x}": {
             "handler": "handle_generic_webhook",
             "hasJson": true,
@@ -5195,6 +5182,13 @@
                 "denyUnknown": true,
                 "opaque": false
             },
+            "query": null
+        },
+        "POST /dehydrated_device/{x}/events": {
+            "handler": "post_dehydrated_device_events",
+            "hasJson": true,
+            "hasQuery": false,
+            "body": null,
             "query": null
         },
         "POST /delete_devices": {
@@ -5609,13 +5603,6 @@
             },
             "query": null
         },
-        "PUT /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device": {
-            "handler": "put_dehydrated_device",
-            "hasJson": true,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
         "PUT /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{x}": {
             "handler": "update_session",
             "hasJson": false,
@@ -6023,6 +6010,13 @@
                 "denyUnknown": false,
                 "opaque": false
             },
+            "query": null
+        },
+        "PUT /dehydrated_device": {
+            "handler": "put_dehydrated_device",
+            "hasJson": true,
+            "hasQuery": false,
+            "body": null,
             "query": null
         },
         "PUT /devices/{x}": {
