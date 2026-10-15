@@ -93,7 +93,20 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 - `quality:contract-entrypoint` —— 保证 `src/contract/index.ts` 的模块清单
   与磁盘上的 route-table 集合**双向严格一致**，且跨模块无重复路由。
 - `quality:docs-counts` —— 从生成物实时计算上表的数字，与**本文档**及
-  `CLAUDE.md` / `AGENTS.md` 中声明的数字比对，不一致即失败。
+  `CLAUDE.md` / `AGENTS.md` 中声明的数字比对，不一致即失败。它还守 `CONTRACT_INDEX.md`，
+  分两层：
+    - **标量层**：合计、页数、模块数等「句子里的数字」；
+    - **逐行层（2026-10-15 补）**：`CONTRACT_INDEX.md` 每一行的端点数必须等于
+      「该页 frontmatter `module:` 承载的 ledger 模块 `entry_count` 之和」，并且每个 ledger
+      模块必须被**恰好一行**认领。
+
+    为什么要补第二层：标量层守的是「合计」，而**合计是可抵消的**。实测过一次 `auth` 行多算 1、
+    `external-service` 行少算 1 —— 「合计 == 行和」与「合计 == 后端全量」**两条规则同时通过**，
+    门禁报 OK 而两行都错。对照实验：同一份变异的 `CONTRACT_INDEX.md`，旧脚本 `EXIT=0`，
+    补上逐行层后 `EXIT=1` 并把两行都精确报出。⚠️ 解析必须走页面 frontmatter（与
+    `contract-sync.mjs` 同源）而不是页名 —— 页名与 SDK 目录名**不保证同名**
+    （`thirdparty.md` → `src/third-party/`，`auth.md` 是 umbrella 页、根本不在别名表里）。
+
 - `contract:codegen:check` —— 保证 `__generated__` 与 manifest 同步。
 
 因此：**改动 codegen、增删模块、或调整豁免名单后，本文档的数字会被 CI 要求同步更新** ——

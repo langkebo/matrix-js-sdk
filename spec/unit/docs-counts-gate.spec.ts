@@ -23,8 +23,11 @@ import { describe, expect, it } from "vitest";
 
 import {
     METRICS,
+    evaluateContractIndexRows,
     evaluateDocsCounts,
+    hasContractIndexRowFailure,
     hasDocsCountsFailure,
+    renderContractIndexRowFailure,
     renderDocsCountsFailure,
 } from "../../scripts/quality/check-docs-counts.mjs";
 
@@ -252,6 +255,162 @@ describe("check-docs-counts / CONTRACT_INDEX 指标", () => {
         });
         expect(result.anchorMisses).toHaveLength(1);
         expect(result.anchorMisses[0].reason).toContain("anchor sentence not found");
+    });
+});
+
+/**
+ * `CONTRACT_INDEX.md` 的**逐行自证**（2026-10-15 新增）。
+ *
+ * 为什么需要它（真实事故形态）：标量规则守的是「合计」这一行，而**合计是可抵消的**。
+ * 实测过一次 `auth` 行多算 1、`external-service` 行少算 1 —— 两条标量规则
+ * （合计 == 行和 / 合计 == 后端全量）**同时通过**，门禁报 OK 而两行都错。
+ * 对照实验（同一份变异的 `CONTRACT_INDEX.md`）：旧脚本 EXIT=0，补上逐行自证后 EXIT=1。
+ *
+ * 另一个真实陷阱：**文档页名 ≠ SDK 目录名**（`thirdparty.md` → `src/third-party/`，
+ * `auth.md` 甚至不在别名表里）⇒ 解析必须以页面 frontmatter `module:` 为先，
+ * 页名只作缺省回退，再用 `findSdkDirForModule` 归一到目录。
+ */
+describe("check-docs-counts / CONTRACT_INDEX 逐行自证", () => {
+    /** 与真实映射同形的迷你映射：体现「页名 ≠ 目录名」与「多模块归一页」。 */
+    const RESOLVE = (name: string): string =>
+        ({
+            assembly: "auth",
+            account_data: "account-data",
+            push_notification: "notifications",
+            thirdparty: "third-party",
+        })[name] ?? name;
+
+    const base = { moduleNames: ["assembly", "account_data"], entryCountByModule: { assembly: 3, account_data: 2 } };
+
+    it("每行都等于其承载模块之和 -> 无失败", () => {
+        const result = evaluateContractIndexRows({
+            ...base,
+            rows: [
+                { page: "auth", claimed: 3 },
+                { page: "account-data", claimed: 2 },
+            ],
+            pageModules: { auth: null, "account-data": "account_data" },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(hasContractIndexRowFailure(result)).toBe(false);
+        expect(result.checked).toBe(2);
+        expect(result.orphanModules).toEqual([]);
+        expect(result.duplicateModules).toEqual([]);
+    });
+
+    it("真实事故形态：两行错值互相抵消（合计不变）-> 标量规则全过，逐行自证仍红", () => {
+        const rows = [
+            { page: "auth", claimed: 4 }, // +1
+            { page: "account-data", claimed: 1 }, // -1
+        ];
+        // 合计 5 == 真实合计 5 ⇒ 规则 1a/1b 都通过
+        expect(rows.reduce((s, r) => s + r.claimed, 0)).toBe(3 + 2);
+
+        const result = evaluateContractIndexRows({
+            ...base,
+            rows,
+            pageModules: { auth: null, "account-data": "account_data" },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(hasContractIndexRowFailure(result)).toBe(true);
+        expect(result.mismatches).toEqual([
+            {
+                page: "auth",
+                claimed: 4,
+                expected: 3,
+                modules: ["assembly"],
+                reason: "行端点数 ≠ 该页承载的 ledger 模块 entry_count 之和",
+            },
+            {
+                page: "account-data",
+                claimed: 1,
+                expected: 2,
+                modules: ["account_data"],
+                reason: "行端点数 ≠ 该页承载的 ledger 模块 entry_count 之和",
+            },
+        ]);
+    });
+
+    it("页面名 ≠ SDK 目录名：以 frontmatter module 为准（thirdparty.md -> third-party）", () => {
+        const result = evaluateContractIndexRows({
+            rows: [{ page: "thirdparty", claimed: 6 }],
+            pageModules: { thirdparty: "thirdparty" },
+            moduleNames: ["thirdparty"],
+            entryCountByModule: { thirdparty: 6 },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(hasContractIndexRowFailure(result)).toBe(false);
+        expect(result.orphanModules).toEqual([]);
+    });
+
+    it("页名不在映射里时靠 frontmatter 兜底（否则该行永远解析不到、静默失明）", () => {
+        // 现状 49 页里 `resolveSdkDir(页名)` 与 `resolveSdkDir(frontmatter module)` 恰好同值，
+        // 所以 frontmatter 在这里是**前瞻防护**：一旦出现页名与模块名脱钩的页
+        // （umbrella 页形态），只有 frontmatter 能把该行接回权威来源。
+        const withFrontmatter = evaluateContractIndexRows({
+            rows: [{ page: "auth-umbrella", claimed: 3 }],
+            pageModules: { "auth-umbrella": "assembly" },
+            moduleNames: ["assembly"],
+            entryCountByModule: { assembly: 3 },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(hasContractIndexRowFailure(withFrontmatter)).toBe(false);
+
+        const withoutFrontmatter = evaluateContractIndexRows({
+            rows: [{ page: "auth-umbrella", claimed: 3 }],
+            pageModules: { "auth-umbrella": null },
+            moduleNames: ["assembly"],
+            entryCountByModule: { assembly: 3 },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(hasContractIndexRowFailure(withoutFrontmatter)).toBe(true);
+        expect(withoutFrontmatter.mismatches).toHaveLength(1);
+        expect(withoutFrontmatter.mismatches[0].reason).toContain("解析不到");
+        expect(withoutFrontmatter.mismatches[0].expected).toBeNull();
+    });
+
+    it("ledger 模块无人认领 -> orphanModules（行和 == 全量 这条等式因此失去意义）", () => {
+        const result = evaluateContractIndexRows({
+            rows: [{ page: "auth", claimed: 3 }],
+            pageModules: { auth: null },
+            moduleNames: ["assembly", "account_data"],
+            entryCountByModule: { assembly: 3, account_data: 2 },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(result.orphanModules).toEqual(["account_data"]);
+        expect(hasContractIndexRowFailure(result)).toBe(true);
+    });
+
+    it("同一模块被两行认领 -> duplicateModules（合计因此虚高）", () => {
+        const result = evaluateContractIndexRows({
+            rows: [
+                { page: "push", claimed: 8 },
+                { page: "notifications", claimed: 8 },
+            ],
+            // push 页的 frontmatter 被写错成 push_notification ⇒ 两页抢同一模块
+            pageModules: { push: "push_notification", notifications: "push_notification" },
+            moduleNames: ["push_notification"],
+            entryCountByModule: { push_notification: 8 },
+            resolveSdkDir: RESOLVE,
+        });
+        expect(result.mismatches).toEqual([]);
+        expect(result.duplicateModules).toEqual([{ module: "push_notification", pages: ["push", "notifications"] }]);
+        expect(hasContractIndexRowFailure(result)).toBe(true);
+    });
+
+    it("渲染失败说明时同时给出页名、模块名、文档值与实际值", () => {
+        const result = evaluateContractIndexRows({
+            rows: [{ page: "auth", claimed: 4 }],
+            pageModules: { auth: null },
+            moduleNames: ["assembly", "account_data"],
+            entryCountByModule: { assembly: 3, account_data: 2 },
+            resolveSdkDir: RESOLVE,
+        });
+        const text = renderContractIndexRowFailure(result);
+        expect(text).toContain("逐行端点数与 ledger 不符");
+        expect(text).toContain("auth [assembly]: 文档写 4，实际 3");
+        expect(text).toContain("ledger 模块无人认领");
+        expect(text).toContain("account_data");
     });
 });
 
