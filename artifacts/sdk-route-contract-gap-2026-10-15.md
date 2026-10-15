@@ -221,3 +221,22 @@ node scripts/quality/check-manager-codegen-coverage.mjs
 ```
 
 > 后端事实源路径：`/Users/ljf/Desktop/hu_ts/synapse-rust/docs/synapse-rust/ROUTE_CONTRACT.md`（§模块级路由清单 L101-L1422；附录 A L1423-L1496；附录 B L1497-L1593）。
+
+## §6 处置进展（2026-10-15 下午，本仓 `release/contract-entrypoint-next`）
+
+| 序  | 报告条目                         | 处置                                                                                                                                                                                                                                                                                                             | 提交        |
+| --- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| ①   | §2.D 契约基座落后 5 条           | `pnpm contract:sync`：all profile **1027 → 1032**，`delayed_events` **2 → 7 条**；同步刷新 45 个模块文档的 `generated_hash` 针脚，以及 `contract-artifacts.md` 里被锚定的路由数（`quality:docs-counts` 会拦住不一致；该文档另有 5 处同义数字一并订正）                                                           | `24d29bfbe` |
+| ③   | §2.B **R-06 游标丢失（P1）**     | `RoomKeyRequestsResponse` 补 `next_batch?: string \| null`（注明「不透明，原样回传给 `from`」）；用**注入式 fake Transport** 一并钉住 P-11（`limit`/`from` 必须真的下发）。变异自证：把实现改成丢游标 ⇒ 新用例变红；回滚后 9/9 绿                                                                                | `d05c0512a` |
+| ②   | §2.A MSC4140 action-in-PATH 3 条 | **复核后判为「有意不封装」**（结论修正）：后端 `delayed_events.rs:345` 的 body 形态与 `:346-348` 的 path 形态**并存** ⇒ SDK 现有 `cancel/restart/send` **不是 404**（P2 评级成立，非 P1）。owner 已在模块头显式记录该取舍（body 单请求）。若日后对齐 MSC4140 终稿形态，可再补 3 个 path 方法（等值冗余，非缺陷） | —           |
+| ④   | §2.C admin 面 12 条              | **未开始**（federation 30 / app_service 20 属服务端面，不属前端 SDK 职责）                                                                                                                                                                                                                                       | —           |
+
+### 交叉验证（本轮新增，防止"同步后仍错"）
+
+- 并行会话 `12be5e358` 新增的 `listScheduledDelayedEvents`（`GET /delayed_events`）与 `scheduleDelayedEvent`（`PUT /rooms/{roomId}/delayed_event/{eventType}/{txnId}`）**逐字命中**新镜像：4/4 命中、0 未命中；
+- 后端 `list_delayed_events` 返回 `{ "delayed_events": [...] }`（`delayed_events.rs:244`），与 SDK 的解包键**一致**；
+- 镜像中 SDK 未构造的**只剩** 3 条 action-in-PATH —— 与 §2.A 的既有结论一致（复核后维持）。
+
+### ④ 待办明细（admin 面，Tjg 管理台相关）
+
+`admin::media` 9 条（`POST /media/delete`、`GET /media/quarantine_changes`、`DELETE /media/{server_name}/{media_id}` 等）、`admin::room` 2 条（`POST /rooms/{room_id}/backfill`、`POST /rooms/{room_id}/cascade_redact`）、`admin::server` 1 条（`GET /rate-limit-status`）。每条需按后端 handler **实读参数与响应形状**（同 R-06 的方法学）后补方法与单测；建议先确认 Tjg 管理台的实际需求，避免封装无人使用的端点。
