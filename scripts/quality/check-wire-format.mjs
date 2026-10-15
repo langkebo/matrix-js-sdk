@@ -605,6 +605,24 @@ async function collectSdkCalls() {
     return { calls, badPath };
 }
 
+/**
+ * 用**本门禁的** `normalizePath` 重建路由 key。
+ *
+ * ⚠️ 必须做这一步，因为仓里有**两个 `normalizePath` 实现，占位符拼写不同**：
+ *   · `lib/admin-contract.mjs` 自己的那个（`normalizeRoute` 用它建 `byRoute`）产出 `{x}`（小写）；
+ *   · 本文件从 `verify-path-contract.mjs` 转出的那个（候选 key 与 manifest key 都用它）产出 `{X}`（大写）。
+ * 不重建就直接比对 ⇒ **任何含动态段的路由，两侧 key 永远不相等**，于是它们被静默归进
+ * `route-contract-unavailable`（实测 263 个调用点；`comparable` 因此长期只有 24）。
+ * 那不是"覆盖率上限"，是**两个归一化函数拼写不一致造成的假上限**。
+ *
+ * 只重建 key、不改共享库：`check-admin-response-contract` 也用 `collectRustAdminContract`，
+ * 它的两侧 key 都出自同一个库（拼写自洽），改库会波及它。
+ */
+export function gateRouteKey(route) {
+    const m = /^([A-Z]+)\s+(.*)$/.exec(String(route));
+    return m ? `${m[1]} ${normalizePath(m[2])}` : normalizePath(String(route));
+}
+
 /** 抽后端每个路由的请求契约（body + query）。 */
 async function collectBackendContract() {
     const { byRoute } = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
@@ -652,7 +670,7 @@ async function collectBackendContract() {
                   opaque: Boolean(e.bodyStruct.opaque),
               }
             : null;
-        backend.set(route, {
+        backend.set(gateRouteKey(route), {
             handler: e.handler,
             hasJson: Boolean(e.io?.hasJson),
             hasQuery: Boolean(e.io?.hasQuery),

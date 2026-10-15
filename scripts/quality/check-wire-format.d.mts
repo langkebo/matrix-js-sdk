@@ -15,6 +15,15 @@ export function splitTopLevelObjectProps(inner: string): string[];
 export function stripCommentsInChunk(text: string): string;
 
 /**
+ * 用**本门禁的** `normalizePath` 重建后端路由 key。
+ *
+ * 存在的唯一理由：仓里有两个 `normalizePath` 实现且占位符拼写不同
+ * （`lib/admin-contract.mjs` 的产出 `{x}`，本文件转出的那个产出 `{X}`）。
+ * 不做这一步，含动态段的路由两侧 key 永远不相等，会静默落进 `route-contract-unavailable`。
+ */
+export function gateRouteKey(route: string): string;
+
+/**
  * 从对象字面量取顶层键集。fail-closed：`keys === null` 表示判不出来（`reason` 给出原因），
  * **绝不返回半份键集**。
  */

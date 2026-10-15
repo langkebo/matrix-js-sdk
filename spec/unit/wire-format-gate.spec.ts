@@ -22,6 +22,7 @@ import {
     countBuckets,
     diffBuckets,
     extractObjectFormCalls,
+    gateRouteKey,
     objectLiteralKeys,
     resolveKeySet,
     splitTopLevelObjectProps,
@@ -236,6 +237,43 @@ describe("stripCommentsInChunk / 注释不得改变判定", () => {
         expect(r.calls[0].bodyArg).not.toBe("undefined");
         // 键集确实解得出来，而不是"不可知"
         expect(resolveKeySet(r.calls[0].bodyArg, src, r.calls[0].callIndex).keys).toEqual(["signatures"]);
+    });
+});
+
+/**
+ * `gateRouteKey`：后端路由 key 必须用**本门禁的** `normalizePath` 重建。
+ *
+ * 真实事故（2026-10-16 实测）：仓里有两个 `normalizePath` —— `lib/admin-contract.mjs` 自己的
+ * 那个（`normalizeRoute` 用它建 `byRoute`）产出 `{x}`（小写），而本文件从
+ * `verify-path-contract.mjs` 转出的那个（候选 key 与 manifest key 都用它）产出 `{X}`（大写）。
+ * 不重建就直接 `effective.has(key)` ⇒ **任何含动态段的路由两侧 key 永远不相等**，
+ * 于是被静默归进 `route-contract-unavailable`：实测 599 个未解析调用点里有 **263** 个
+ * 只要把 `{X}` 换成 `{x}` 就能命中 ⇒ 那不是"覆盖率上限"，是拼写不一致造成的**假上限**。
+ * （`comparable` 长期只有 24，正是这个原因。）
+ */
+describe("gateRouteKey（后端 key 必须用本门禁的归一化）", () => {
+    it("占位符统一成 `{X}`（大写）—— 与候选 key / manifest key 的拼写一致", () => {
+        expect(gateRouteKey("GET /_matrix/client/v3/rooms/{room_id}/state")).toBe(
+            "GET /_matrix/client/v3/rooms/{X}/state",
+        );
+    });
+
+    it("已是 `{x}`（小写）的 byRoute key 也要被重新拼成 `{X}`", () => {
+        // 这正是修复点：byRoute 里存的是小写形态，直接比对必然失配
+        expect(gateRouteKey("PUT /_matrix/vendor/v1/friends/{x}/status")).toBe(
+            "PUT /_matrix/vendor/v1/friends/{X}/status",
+        );
+    });
+
+    it("静态路径（无占位符）不受影响", () => {
+        expect(gateRouteKey("POST /_matrix/client/v3/login")).toBe("POST /_matrix/client/v3/login");
+        expect(gateRouteKey("POST /_synapse/admin/v1/cleanup/all")).toBe("POST /_synapse/admin/v1/cleanup/all");
+    });
+
+    it("key 里不得残留小写 `{x}`（残留 = 比较必然失配）", () => {
+        for (const k of ["GET /a/{x}/b", "GET /a/{user_id}/b", "GET /a/{x}/b/{y}"]) {
+            expect(gateRouteKey(k)).not.toContain("{x}");
+        }
     });
 });
 
