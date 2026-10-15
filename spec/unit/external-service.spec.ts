@@ -165,48 +165,6 @@ describe("ExternalServiceManager", () => {
         await expect(manager.triggerWebhook("")).rejects.toThrow("serviceId is required");
     });
 
-    // ─── triggerOpenclawWebhook ────────────────────────────────────
-
-    it("triggerOpenclawWebhook should POST /openclaw/{id}/webhook", async () => {
-        transport.respondWith({ success: true });
-        const result = await manager.triggerOpenclawWebhook("svc1", { query: "hello" });
-        expect(result.success).toBe(true);
-        transport.expectCalledWithArgs(
-            Method.Post,
-            "/openclaw/svc1/webhook",
-            undefined,
-            { query: "hello" },
-            {
-                prefix: "/_synapse/external",
-            },
-        );
-    });
-
-    it("triggerOpenclawWebhook should throw ValidationError for empty service ID", async () => {
-        await expect(manager.triggerOpenclawWebhook("")).rejects.toThrow("serviceId is required");
-    });
-
-    // ─── triggerTrendradarWebhook ──────────────────────────────────
-
-    it("triggerTrendradarWebhook should POST /trendradar/{id}/webhook", async () => {
-        transport.respondWith({ success: true });
-        const result = await manager.triggerTrendradarWebhook("svc1", { topic: "AI" });
-        expect(result.success).toBe(true);
-        transport.expectCalledWithArgs(
-            Method.Post,
-            "/trendradar/svc1/webhook",
-            undefined,
-            { topic: "AI" },
-            {
-                prefix: "/_synapse/external",
-            },
-        );
-    });
-
-    it("triggerTrendradarWebhook should throw ValidationError for empty service ID", async () => {
-        await expect(manager.triggerTrendradarWebhook("")).rejects.toThrow("serviceId is required");
-    });
-
     // ─── extendMatrixClient export ─────────────────────────────────
 
     it("should export ExternalServiceManager class", () => {

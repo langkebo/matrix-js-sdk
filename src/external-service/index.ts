@@ -51,7 +51,7 @@ const WEBHOOK_PREFIX = "/_synapse/external";
 
 /**
  * Arbitrary configuration values for an external service.
- * Shape varies by service type (e.g. webhook, openclaw, trendradar).
+ * Shape varies by service type (e.g. the generic webhook entry).
  */
 export type ExternalServiceConfig = Record<string, unknown>; /* Dynamic: config shape varies by service type */
 
@@ -381,64 +381,6 @@ export class ExternalServiceManager extends BaseManager {
                 prefix: WEBHOOK_PREFIX,
             });
         }, "triggerWebhook");
-    }
-
-    /**
-     * 触发 Openclaw 服务 Webhook（`/_synapse/external/openclaw/{id}/webhook`）。
-     *
-     * @param serviceId - 服务 ID
-     * @param data - 可选 Webhook 载荷
-     * @returns Webhook 响应
-     *
-     * @example
-     * ```typescript
-     * const result = await client.getExternalServiceManager().triggerOpenclawWebhook("svc-1", { event: "ping" });
-     * console.log(result.success);
-     * ```
-     */
-    public async triggerOpenclawWebhook(
-        serviceId: string,
-        data?: WebhookPayload,
-    ): Promise<ExternalServiceWebhookResponse> {
-        this.requireNonEmptyString(serviceId, "serviceId");
-        const encoded = encodeURIComponent(serviceId);
-        return await this.withRetry(async () => {
-            return await this.request<ExternalServiceWebhookResponse>({
-                method: Method.Post,
-                path: `/openclaw/${encoded}/webhook`,
-                body: data,
-                prefix: WEBHOOK_PREFIX,
-            });
-        }, "triggerOpenclawWebhook");
-    }
-
-    /**
-     * 触发 Trendradar 服务 Webhook（`/_synapse/external/trendradar/{id}/webhook`）。
-     *
-     * @param serviceId - 服务 ID
-     * @param data - 可选 Webhook 载荷
-     * @returns Webhook 响应
-     *
-     * @example
-     * ```typescript
-     * const result = await client.getExternalServiceManager().triggerTrendradarWebhook("svc-1", { event: "ping" });
-     * console.log(result.success);
-     * ```
-     */
-    public async triggerTrendradarWebhook(
-        serviceId: string,
-        data?: WebhookPayload,
-    ): Promise<ExternalServiceWebhookResponse> {
-        this.requireNonEmptyString(serviceId, "serviceId");
-        const encoded = encodeURIComponent(serviceId);
-        return await this.withRetry(async () => {
-            return await this.request<ExternalServiceWebhookResponse>({
-                method: Method.Post,
-                path: `/trendradar/${encoded}/webhook`,
-                body: data,
-                prefix: WEBHOOK_PREFIX,
-            });
-        }, "triggerTrendradarWebhook");
     }
 }
 
