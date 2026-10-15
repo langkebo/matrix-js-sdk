@@ -1,7 +1,7 @@
 ---
 module: external_service
 generated_from: docs/api-contract/generated/modules/external_service.json
-generated_hash: sha256-a6792d58bffd90de8d2def181bb263931f9893fe698b7e696f82142d573892de
+generated_hash: sha256-d0907ce6ac76d28012cf96b2176c9f2dfd44b0de6638e6545ca3fad15236c260
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

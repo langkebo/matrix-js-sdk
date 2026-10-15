@@ -82,15 +82,16 @@
 
 ## 扩展模块
 
-| 模块     | 文档                                     | 端点数 | SDK 覆盖率 | 优先级                                   |
-| -------- | ---------------------------------------- | ------ | ---------- | ---------------------------------------- |
-| CAS 认证 | [cas.md](cas.md)                         | 12     | 100%       | ✅ 完善 (含协议端点 URL helper)          |
-| SAML     | [saml.md](saml.md)                       | 16     | 100%       | ✅ 完善                                  |
-| OIDC     | [oidc.md](oidc.md)                       | 10     | 100%       | ✅ 完善 (以 v3 为 canonical 封装面)      |
-| 验证码   | [captcha.md](captcha.md)                 | 5      | 100%       | ✅ 完善 (默认 v3，显式 r0 兼容)          |
-| 阅后即焚 | [burn-after-read.md](burn-after-read.md) | 7      | 100%       | ✅ 完善                                  |
-| 模块管理 | [module.md](module.md)                   | 23     | 100%       | ✅ 完善                                  |
-| 延迟事件 | [delayed-events.md](delayed-events.md)   | 7      | 100%       | ✅ 完善 (3 条 action-in-PATH 有意不封装) |
+| 模块     | 文档                                       | 端点数 | SDK 覆盖率 | 优先级                                   |
+| -------- | ------------------------------------------ | ------ | ---------- | ---------------------------------------- |
+| CAS 认证 | [cas.md](cas.md)                           | 12     | 100%       | ✅ 完善 (含协议端点 URL helper)          |
+| SAML     | [saml.md](saml.md)                         | 16     | 100%       | ✅ 完善                                  |
+| OIDC     | [oidc.md](oidc.md)                         | 10     | 100%       | ✅ 完善 (以 v3 为 canonical 封装面)      |
+| 验证码   | [captcha.md](captcha.md)                   | 5      | 100%       | ✅ 完善 (默认 v3，显式 r0 兼容)          |
+| 阅后即焚 | [burn-after-read.md](burn-after-read.md)   | 7      | 100%       | ✅ 完善                                  |
+| 模块管理 | [module.md](module.md)                     | 23     | 100%       | ✅ 完善                                  |
+| 延迟事件 | [delayed-events.md](delayed-events.md)     | 7      | 100%       | ✅ 完善 (3 条 action-in-PATH 有意不封装) |
+| 邀请名单 | [invite-blocklist.md](invite-blocklist.md) | 4      | 100%       | ✅ 完善                                  |
 
 ## 其他模块（MatrixClient 基类 / 独立入口处理）
 
@@ -107,12 +108,12 @@
 
 ## 总览统计
 
-- **模块文档页数**: 50（其中 `auth.md` 为 umbrella 页；46 页带 `module:` frontmatter，直接对应一个生成物模块）
+- **模块文档页数**: 51（其中 `auth.md` 为 umbrella 页；47 页带 `module:` frontmatter，直接对应一个生成物模块）
 - **生成物模块数**: 49（`generated/modules/*.json`）
 - **后端路由端点数**（`ledger_export_sdk` 三 profile）: `default` **1013** / `worker` **1024** / `all` **1032**
-- **索引表端点数合计**: 1066（页级 `entry_count` 之和；`auth.md` 为 umbrella 页，`worker-body.md` 与 `worker-admin.md` 共享 `worker` 模块，故与 1032 不等）
+- **索引表端点数合计**: 1070（页级 `entry_count` 之和；`auth.md` 为 umbrella 页，`worker-body.md` 与 `worker-admin.md` 共享 `worker` 模块，故与 1032 不等）
 - **平均 SDK 覆盖率**: 97.1%（2026-10-12 核算；2026-10-15 新增 `delayed-events.md` 为 100%，未重算整体均值）
-- **完善模块 (≥85%)**: 45 / 47
+- **完善模块 (≥85%)**: 46 / 48
 - **待提升模块 (50-84%)**: 0
 - **待封装模块 (<50%)**: 2 —— `admin.md` 31%、`federation.md` 35%
 

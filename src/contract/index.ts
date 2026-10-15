@@ -40,6 +40,7 @@ import { EXTERNAL_SERVICE_ROUTES } from "../external-service/__generated__/route
 import { FEATURE_FLAGS_ROUTES } from "../feature-flags/__generated__/route-table";
 import { FRIEND_ROUTES } from "../friend/__generated__/route-table";
 import { GUEST_ROUTES } from "../guest/__generated__/route-table";
+import { INVITE_BLOCKLIST_ROUTES } from "../invite-blocklist/__generated__/route-table";
 import { KEY_BACKUP_ROUTES } from "../key-backup/__generated__/route-table";
 import { KEY_ROTATION_ROUTES } from "../key-rotation/__generated__/route-table";
 import { MEDIA_ROUTES } from "../media/__generated__/route-table";
@@ -97,6 +98,7 @@ export const SDK_CONTRACT_ROUTE_TABLES = {
     "feature-flags": FEATURE_FLAGS_ROUTES,
     friend: FRIEND_ROUTES,
     guest: GUEST_ROUTES,
+    "invite-blocklist": INVITE_BLOCKLIST_ROUTES,
     "key-backup": KEY_BACKUP_ROUTES,
     "key-rotation": KEY_ROTATION_ROUTES,
     media: MEDIA_ROUTES,

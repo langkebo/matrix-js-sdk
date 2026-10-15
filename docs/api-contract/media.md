@@ -1,7 +1,7 @@
 ---
 module: media
 generated_from: docs/api-contract/generated/modules/media.json
-generated_hash: sha256-bae07ca08203c7ef2c841d4320ba82c2fe2f96a8952544906023ce246c8324b7
+generated_hash: sha256-963610f65a6acff757be06d277514da59801cd88311faab5a1ced4b71b60aa85
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

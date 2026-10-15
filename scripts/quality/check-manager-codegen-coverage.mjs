@@ -47,14 +47,11 @@ export const WAIVED_MODULES = {
     // `DelayedEventsManager`（6 个公开方法）。造成"无表"的真因是**登记缺失**——模块既不在
     // `LEDGER_MODULE_ALIASES`，后端文档章节也未映射到 SDK 目录，于是两条 codegen 通道都取不到它。
     // 现已补 alias + 章节映射 + `StripMsc4140`，manager 路径改为编译期 segment 级断言，故移除 waiver。
-    invite_blocklist: {
-        reason:
-            "把 invite allow/blocklist 从 vendor 分组归到功能域后，ledger 侧是独立模块；但 SDK codegen 以" +
-            "后端 ROUTE_CONTRACT.md 的章节枚举模块，而该文档按源文件分组（这几条注册在 assembly.rs 里），" +
-            "没有 invite 章节 ⇒ 暂无可生成的表。src/invite-blocklist 继续用 VendorPrefix + 手写路径" +
-            "（受路径契约门禁约束，迁移计划见 docs/sdk-optimization）。",
-        expires: "2026-12-31",
-    },
+    // 注（2026-10-15）：此处原有 `invite_blocklist` 的 waiver，理由是「codegen 按**后端**
+    // ROUTE_CONTRACT.md 的章节枚举模块，而该文档按源文件分组、没有 invite 章节 ⇒ 无可生成的表」。
+    // 该理由**不成立**：模块枚举源实际是**本仓** `CONTRACT_INDEX.md` 的文档链接，路由条目另走
+    // ledger 通道（`LEDGER_MODULE_ALIASES` 早有 `invite-blocklist → invite_blocklist`）。
+    // 建页 + manager 接 PathAssert 断言后即受管辖，故移除 waiver（与 `delayed_events` 同型订正）。
     // cas：**真·表没人读**但原因可核验（2026-10-06 收口，见审计文档 §13.14.5）。
     // cas 表 17 条其实覆盖 CasManager 实际调用的路由（/_synapse/admin/v1/cas/* 服务管理 5 条 +
     // /_synapse/cas/* 协议面 6 条 + 规范 SSO 端点 /_matrix/client/v3/login/sso/redirect/cas 1 条 +

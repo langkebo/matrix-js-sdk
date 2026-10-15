@@ -34,6 +34,20 @@ import { MatrixClient } from "../client";
 import { EventType, type InvitePermissionConfigContent } from "../@types/event";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { InviteBlocklistPath } from "./__generated__/route-table";
+import type { PathAssert, StripVendor } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `InviteBlocklistPath` 上。
+ *
+ * 契约表的路径带 `/_matrix/vendor/v1` 前缀、实现侧写相对路径（前缀由 `VendorPrefix` 提供），
+ * 故先 `StripVendor` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （见 `http-api/strip-prefix.ts` 的 `PathAssert`）。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripVendor<InviteBlocklistPath>>): P {
+    return path;
+}
+
 export enum InviteBlocklistEvent {
     BlocklistUpdated = "BlocklistUpdated",
     AllowlistUpdated = "AllowlistUpdated",
@@ -96,7 +110,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
             const response = await this.withRetry(async () => {
                 return await this.request<IBlocklistResponse>({
                     method: Method.Get,
-                    path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
+                    path: dp(`/rooms/${encodeURIComponent(roomId)}/invite_blocklist`),
                     prefix: VendorPrefix,
                 });
             }, "getBlocklist");
@@ -137,7 +151,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
             await this.withRetry(async () => {
                 await this.request({
                     method: Method.Post,
-                    path: `/rooms/${encodeURIComponent(roomId)}/invite_blocklist`,
+                    path: dp(`/rooms/${encodeURIComponent(roomId)}/invite_blocklist`),
                     body: { user_ids: userIds },
                     prefix: VendorPrefix,
                 });
@@ -224,7 +238,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
             const response = await this.withRetry(async () => {
                 return await this.request<IAllowlistResponse>({
                     method: Method.Get,
-                    path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
+                    path: dp(`/rooms/${encodeURIComponent(roomId)}/invite_allowlist`),
                     prefix: VendorPrefix,
                 });
             }, "getAllowlist");
@@ -265,7 +279,7 @@ export class InviteBlocklistManager extends BaseManager<InviteBlocklistEvent, In
             await this.withRetry(async () => {
                 await this.request({
                     method: Method.Post,
-                    path: `/rooms/${encodeURIComponent(roomId)}/invite_allowlist`,
+                    path: dp(`/rooms/${encodeURIComponent(roomId)}/invite_allowlist`),
                     body: { user_ids: userIds },
                     prefix: VendorPrefix,
                 });

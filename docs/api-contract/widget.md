@@ -1,7 +1,7 @@
 ---
 module: widget
 generated_from: docs/api-contract/generated/modules/widget.json
-generated_hash: sha256-85f163bcbb824bf662bd70df84dfef563f673f5ae66293b64b93d8afb4efe269
+generated_hash: sha256-02dc165155ddfe03060545267b8beaa2354af0ba4e1755fc37fd795bdb173143
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

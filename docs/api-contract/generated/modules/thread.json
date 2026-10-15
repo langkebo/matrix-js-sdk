@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "thread",
-  "synapse_rust_commit": "326d3fd451b06d824d604a13c1aa8efd6202b510",
+  "synapse_rust_commit": "6302798c3582d67b01d27677c8ca9db00376b1c3",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 21,
