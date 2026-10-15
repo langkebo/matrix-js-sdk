@@ -34,27 +34,29 @@
  *      它们既不计入分子也不计入分母 —— 但它们**不会静默消失**，会打印在 `unresolved` 里，
  *      且 `quality:path-contract` 对同一批调用点有「只降不升」的棘轮。
  *
- * ## ⚠️ 本工具当前**只给下限**，不是判据（2026-10-15 实测归属率 ≈38%）
+ * ## ⚠️ 本工具当前**只给下限**，不是判据（2026-10-15 实测合计 54.0%）
  *
- * 首版实现**实测严重低估**：合计读成 33.9%，而按 route-table 口径的合理值应在 90%+ 量级
- * （`admin` 单模块读 176/179 = 98.3%，与手工核算完全吻合 —— 说明**方法对、覆盖面不够**）。
- * 已定位 **4 处失明**，每一处都让整批模块读成 0%：
+ * 首版实现严重低估（33.9%）。已修两处失明后升到 **54.0%**（调用点 594 → 853）；
+ * `admin` 单模块读 **176/179 = 98.3%**，与手工核算完全吻合 —— **方法对、覆盖面仍不够**。
  *
- *   1. **恒等助手的名字跨文件复用**：`dp` 同时出现在 7 个文件、各带不同剥离前缀
- *      （`StripVendor` / `StripAdminV1` / `StripMsc4140`）。`indexIdentityPathHelpers` 按**名字**建索引，
- *      `resolveStripPrefixFromType` 又要求「恰好一个别名命中」，于是多前缀的名字解不出 ⇒ 整批走助手的
- *      调用点被丢弃。（`cpu` 只在一个文件里 ⇒ 反而能解出，这正是"部分模块 100%、部分 0%"的成因。）
- *   2. **对象形态抽取**：`this.request({ method, path: dp("…"), prefix })` 这种形态，
- *      `extractObjectCalls` 对 `dm` / `cas` 返回 **0** 个（尽管 `request` 在已注册名单里）—— 原因未查明。
- *   3. **`const path = …` 间接**：`cas` 把路径先赋给局部常量再传入 ⇒ 解不出（落在 `unchecked`）。
- *   4. **前缀解不出的调用点**：本版**曾**直接 `continue` 而不计数 —— 已修：现在计入 `unknownPrefix`，
- *      因为它正是"分母看起来小"的主因（实测 52 处）。
- *   5. **抽取器根本不吐出的调用点**（最隐蔽）：`dm` / `cas` 的 `this.request({ … path: dp("…") … })`
- *      连 `blindSpots` 都进不去 —— 它们不出现在任何桶里。**自检判据**：
- *      凡「表内条目 > 0 但已封装 = 0」的模块，一律按「抽取器对它失明」处理，**不可读作真实零覆盖**
- *      （本次 12 个模块命中此判据）。
+ * **已修**：
+ *   - ② **对象形态 + 恒等助手**（`this.request({ method, path: dp("…") })`）：原先**两个抽取器都看不见**
+ *     （`extractObjectCalls` 只认裸字面量，`extractWrapperCalls` 只扫位置形态）。已在抽取器里补
+ *     `identityHelpers` 展开（默认关闭以保持向后兼容，门禁主流程已启用）。
+ *     顺带修了它暴露的 **ES 简写 `prefix,`** 漏识别问题 —— 那个会让 `resolvePrefix(null)` **静默**
+ *     按默认 v3 前缀处理，把 22 处正确调用点误报为"契约不符"。
  *
- * ⇒ **结论：在把上述 5 处补完之前，任何基于本脚本的覆盖率数字都只应作为下限，不得接入门禁。**
+ * **仍存在**（故覆盖率仍只是下限）：
+ *   1. **恒等助手名字跨文件复用**：`dp` 出现在 7 个文件、各带不同剥离前缀。`indexIdentityPathHelpers`
+ *      按**名字**建索引，`resolvePrefix` 又要求「恰好一个别名命中」⇒ 多前缀的名字解不出，
+ *      整批走该助手的调用点仍被丢弃。（`cpu` 只在一个文件 ⇒ 反而解得出。）
+ *   3. **前缀静态求不出**：`prefix,` 简写、方法参数、以及**模块级常量**（`captchaPrefix`、
+ *      `CAS_PROTOCOL_PREFIX`、`MSC3814_PREFIX` …）—— 实测 99 处。
+ *   5. **抽取器仍不吐出的调用点**：**自检判据** —— 凡「表内 > 0 但已封装 = 0」的模块一律按
+ *      "抽取器失明"处理、**不可读作真实零覆盖**（本次 8/47 命中：burn-after-read / cas /
+ *      delayed-events / presence / reactions / relations / rendezvous）。
+ *
+ * ⇒ **在把上述补完之前，任何基于本脚本的覆盖率数字都只应作为下限，不得接入门禁。**
  * 本工具保留的价值在于：它把「抽取器盲区」量化并打印出来，而不是给出一个看起来权威的错误数字。
  * **它宁可说"我不知道"，也不猜。**
  *
@@ -172,11 +174,13 @@ export function computeWrapperCoverage({ sourcesByFile, byModule, index }) {
             unresolved.push({ file: item.file, line: item.line, wrapper: item.wrapper, expr: item.expr });
         }
 
-        // ⚠️ **两个抽取器都要跑**：对象形态（`request({method, path, prefix})`）由
-        // `extractObjectCalls` 负责，位置形态（`request(Method.X, path, …)`）由
-        // `extractWrapperCalls` 负责。只跑后者会**大幅漏统计**（实测：合计从 ~96% 掉到 30.5%，
-        // 且 `dm`/`cas`/`key-rotation` 等整批模块读成 0%）。同一调用可能被两者各命中一次，靠去重键合并。
-        const merged = [...extractObjectCalls(source), ...wrapperCalls];
+        // ⚠️ **两个抽取器都要跑**，且**都要拿到助手表**：
+        //   · 位置形态（`request(Method.X, apu("…"), …)`）→ `extractWrapperCalls`
+        //   · 对象形态（`request({ method, path: apu("…"), prefix })`）→ `extractObjectCalls`
+        //     —— 后者在**不传 `identityHelpers` 时会把这类调用点整批丢弃**（2026-10-15 修），
+        //     实测全仓约 287 处；本脚本早期版本因此把 23/47 个模块读成 0%。
+        // 同一调用可能被两者各命中一次，靠去重键合并。
+        const merged = [...extractObjectCalls(source, { identityHelpers: helpers }), ...wrapperCalls];
 
         for (const call of merged) {
             // 统一成「候选前缀集」：对象形态 → 单候选（`resolvePrefix`）；

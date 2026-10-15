@@ -189,3 +189,31 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 > **`cas` 的收编同理**纠正了一处与代码不符的 waiver 描述：原写"CasManager 经 `resolvePath` 运行时
 > 二元前缀拼接、从不 import route-table"—— 实际 11 处路径构造点全是「方法内局部常量
 > `const path = "…"`」或字面量，并无运行时拼接。接入 `apu()` / `cpu()` 断言后即受管辖。
+
+### 🔴 C. 补抽取器盲区后新发现的 1 条 404（2026-10-15 已修）
+
+**背景**：`quality:path-contract` 的两个抽取器存在一个**静默盲区** ——
+`this.request({ method, path: <恒等助手>("…"), prefix })` 这种**对象形态 × 助手包装**的调用点，
+位置抽取器（`extractWrapperCalls`）只扫位置形态，对象抽取器（`extractObjectCalls`）又只认
+`path:` 后**紧跟裸字面量** ⇒ **两边都看不见**。实测全仓约 **287 处**，其路径从未被本门禁校验过
+（也从未进"未校验"桶，故门禁长期恒绿）。
+
+**补法**：给 `extractObjectCalls` 加可选 `identityHelpers`，复用 `unwrapIdentityPath` 展开第一实参
+（默认不传 ⇒ 行为与修正前完全一致，便于灰度）。启用后当场报出 1 处不符：
+
+| 位置                                          | SDK 实际发出                                                                                 | 后端 / 契约表                                                                                           |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `src/room/RoomManager.ts` `createPrivateRoom` | `POST /_matrix/client/v3/rooms/create_private`（**调用点显式传 `prefix: ClientPrefix.V3`**） | `POST /_matrix/vendor/v1/rooms/create_private`（`synapse-web/src/routes/room.rs:170`；room 契约表 L64） |
+
+⇒ **运行时必然 404**，已改为 `prefix: VendorPrefix`（同文件另有 5 处 vendor 路由本来就这样写，属漏改）。
+
+> ⚠️ **顺带暴露一个断言设计的结构性缺口（未修，待议）**：
+> `PathAssert<P, StripXxx<XxxPath>>` 只保证「**相对路径字符串**在表内」，
+> **不校验调用点传入的 `prefix:` 是否与表项前缀一致**。本例中 `rp("/rooms/create_private")`
+> 能通过 `tsc`（该相对路径在表内存在，来自那条 vendor 条目），但运行时前缀却是 v3
+> ⇒ **`tsc` 与 `path-contract` 都抓不到，只有把对象形态纳入抽取后才暴露**。
+
+**顺带修掉一个假阳性类**：新纳入的调用点里有 22 处用 **ES 简写** `prefix,`（= `prefix: prefix`），
+而原正则只认 `prefix: X` ⇒ `prefixExpr` 为 `null` ⇒ `resolvePrefix(null)` **静默**按默认
+`/_matrix/client/v3` 处理 ⇒ 把 `getVoiceStats(prefix: string = VendorPrefix)` 这类**正确**调用点
+误报为"契约不符"。已在抽取器里识别简写（记为不可解前缀而**跳过**，而不是猜默认值）。

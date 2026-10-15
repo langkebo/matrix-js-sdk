@@ -1202,7 +1202,44 @@ export function resolveTemplateLiteral(literal) {
  * 难点：prefix 与 path 之间可能夹着整个 body 对象。所以不能靠正则的固定顺序，
  * 而是：先锚定 `method:`，再在该调用对象的括号配平范围内分别找 `path:` 和 `prefix:`。
  */
-export function extractObjectCalls(source) {
+/**
+ * 从对象字面量的 `path:` 位置展开「恒等助手」调用，返回解出的字面量与助手名。
+ *
+ * 抽出来单独放是因为它是 2026-10-15 补的一个**静默盲区**的补丁：见 `extractObjectCalls` 的注释。
+ */
+function unwrapObjectFormHelperPath(region, helpers) {
+    const keyM = /\bpath:\s*/.exec(region);
+    if (!keyM) return null;
+    const rest = region.slice(keyM.index + keyM[0].length);
+    // `path: dp("…")` 或 `path: this.somePath("…")`；`unwrapIdentityPath` 自己也会剥 `this.`
+    const callM = /^((?:this\.)?[A-Za-z_$][\w$]*)\s*\(/.exec(rest);
+    if (!callM) return null;
+    const openParen = callM[0].length - 1;
+    const closeParen = matchParen(rest, openParen);
+    if (closeParen < 0) return null;
+    const rawCall = rest.slice(0, closeParen + 1);
+    const unwrapped = unwrapIdentityPath(rawCall, helpers);
+    if (!unwrapped || !PATH_LITERAL_RE.test(unwrapped)) return null;
+    return { raw: unwrapped, helper: callM[1] };
+}
+
+/**
+ * 对象形态包装器的调用点（`this.request({ method: Method.Get, path: "/x", prefix: … })`）。
+ *
+ * ⚠️ **`identityHelpers` 不传时，`path` 值走恒等助手的调用点会被静默丢弃。**
+ *
+ * 原实现只认 `path:` 后**紧跟裸字面量**，于是 `path: dp("/direct")` / `path: apu("/cas/services")`
+ * 既不进本函数的返回值、也不进 `extractWrapperCalls` 的 `unchecked`（后者只扫**位置**形态）
+ * ⇒ **两个抽取器都看不见**，这些路径因此从未被 `quality:path-contract` 校验过。
+ *
+ * 实测（2026-10-15）全仓有 **287 处**这类调用点，分布在约 25 个文件
+ * （`friendPath` 33 / `rp` 31 / `dp` 27 / `pp` 22 / `ap` 21 / `kb` 20 / `er` 18 / `vp` 17 / `apu` 14 …）。
+ *
+ * 传了助手表后，本函数把助手展开到第一实参再按字面量摘出。**不传时行为与修正前完全一致**（默认 `null`），
+ * 便于灰度：门禁侧先量化影响面再决定是否启用。
+ */
+export function extractObjectCalls(source, options = {}) {
+    const identityHelpers = options.identityHelpers ?? null;
     const calls = [];
     const methodRe = /\bmethod:\s*Method\.(\w+)/g;
 
@@ -1218,20 +1255,43 @@ export function extractObjectCalls(source) {
 
         const region = source.slice(start, closeIdx);
 
-        const pathM = region.match(/\bpath:\s*(`[^`]*`|"[^"]*"|'[^']*')/);
-        if (!pathM) continue;
+        let pathRaw = region.match(/\bpath:\s*(`[^`]*`|"[^"]*"|'[^']*')/)?.[1] ?? null;
+        let pathHelper = null;
+        if (pathRaw === null && identityHelpers) {
+            const unwrapped = unwrapObjectFormHelperPath(region, identityHelpers);
+            if (unwrapped) {
+                pathRaw = unwrapped.raw;
+                pathHelper = unwrapped.helper;
+            }
+        }
+        if (pathRaw === null) continue;
 
         // prefix 允许在 path 之前或之后，null 表示"无显式前缀，用默认值"
         // 支持：标识符（ClientPrefix.V3）、普通字符串、模板字面量（`/_matrix/client/unstable/org.matrix.msc4143`）
+        //
+        // ⚠️ 还要认 **ES 简写** `prefix,`（= `prefix: prefix`）。漏掉它后果很重：
+        // `resolvePrefix(null)` 会**静默**按默认前缀 `/_matrix/client/v3` 处理，于是像
+        // `getVoiceStats(prefix: string = VendorPrefix)` 这种调用点会被算成 `/_matrix/client/v3/voice/stats`
+        // 而与 ledger 的 `/_matrix/vendor/v1/voice/stats` 不符 —— **假违规**（实测 22 处）。
+        // 简写时给出同名标识符，让 `resolvePrefix` 正确地判成"求不出"（跳过），而不是猜默认值。
+        //
+        // 注意用 `outer`（含 `{` 起、不含 `}` 止）而不是 `region`（起于 `method:`）：
+        //   · `{ prefix, method: … }` 的 prefix 在 region 之外；
+        //   · `{ method: …, prefix }` 的 `}` 在 outer 之外，故正则要带 `$` 分支。
+        // 另外 `prefix:` 形态由 `prefixM` 先命中，简写只在无冒号时才生效。
+        const outer = source.slice(openIdx, closeIdx);
+        const shortHand = /\bprefix\s*(?:[,}]|$)/.test(outer) ? "prefix" : null;
         const prefixM =
             region.match(/\bprefix:\s*(`[^`]*`|[\w.]+|"[^"]*"|'[^']*')/) ??
-            source.slice(openIdx, closeIdx).match(/\bprefix:\s*(`[^`]*`|[\w.]+|"[^"]*"|'[^']*')/);
+            outer.match(/\bprefix:\s*(`[^`]*`|[\w.]+|"[^"]*"|'[^']*')/);
 
         calls.push({
             method: m[1].toUpperCase(),
-            pathRaw: pathM[1],
+            pathRaw,
+            /** 非 null = 该路径来自恒等助手（`dp("/x")`），值为助手名，便于失败时定位。 */
+            pathHelper,
             // 有字面量就用它；null 会让 resolvePrefix 走默认前缀分支
-            prefixExpr: prefixM?.[1] ?? null,
+            prefixExpr: prefixM?.[1] ?? shortHand,
             line: source.slice(0, start).split("\n").length,
         });
     }
@@ -1741,7 +1801,10 @@ function main() {
         const seen = new Set();
         const wrapperResult = extractWrapperCalls(source, relFile, { identityHelpers, templateBuilders });
         uncheckedCalls.push(...wrapperResult.unchecked);
-        const calls = [...extractObjectCalls(source), ...wrapperResult.calls];
+        // 位置形态的路径实参由 extractWrapperCalls 展开（含 `Method.X, apu("…"), …`）；
+        // 对象形态的 `path: apu("…")` 由 extractObjectCalls 在传入助手表后展开 ——
+        // 不传的话这类调用点会**两个抽取器都看不见**（2026-10-15 修）。
+        const calls = [...extractObjectCalls(source, { identityHelpers }), ...wrapperResult.calls];
 
         for (const call of calls) {
             // 统一成「前缀候选集」：

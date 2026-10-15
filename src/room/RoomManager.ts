@@ -494,7 +494,12 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
                 method: Method.Post,
                 path: rp("/rooms/create_private"),
                 body: options,
-                prefix: ClientPrefix.V3,
+                // ⚠️ 必须是 **VendorPrefix**：该路由后端只注册在 `/_matrix/vendor/v1/rooms/create_private`
+                // （`synapse-web/src/routes/room.rs:170`），契约表同。此前写成 `ClientPrefix.V3` ⇒
+                // 实际打 `/_matrix/client/v3/rooms/create_private`（不存在）**必然 404**。
+                // `tsc` 抓不到这类错：`PathAssert` 只校验路径字符串在表内，**不校验调用点传的 `prefix`**
+                // 是否与表项前缀一致（2026-10-15 由 `quality:path-contract` 补上对象形态抽取后发现）。
+                prefix: VendorPrefix,
             });
         }, "createPrivateRoom");
 
