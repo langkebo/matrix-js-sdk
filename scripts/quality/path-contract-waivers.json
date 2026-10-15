@@ -44,51 +44,11 @@
             "expires": "2026-12-31"
         },
         {
-            "sdkCall": "POST /_synapse/admin/v1/invite/blocklist/{X}",
-            "file": "src/admin/sub-managers/admin-config-manager.ts",
-            "owner": "langkebo",
-            "category": "semantic-mismatch",
-            "reason": "后端注册 `POST /_synapse/admin/v1/invite/blocklist`（**无路径参数**），body 是 `{ user_ids: [...] }`，语义为**整表替换**；SDK 的 addToInviteBlocklist(userId) 是「加一个」。二者不能靠改路径对齐。删掉条件：产品决策——要么改为整表替换 API，要么用 读-改-写 实现单用户增删。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "DELETE /_synapse/admin/v1/invite/blocklist/{X}",
-            "file": "src/admin/sub-managers/admin-config-manager.ts",
-            "owner": "langkebo",
-            "category": "semantic-mismatch",
-            "reason": "后端 invite/blocklist 只注册 GET + POST（整表替换），没有 DELETE。同上，需产品决策。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_synapse/admin/v1/invite/allowlist/{X}",
-            "file": "src/admin/sub-managers/admin-config-manager.ts",
-            "owner": "langkebo",
-            "category": "semantic-mismatch",
-            "reason": "同 invite/blocklist：后端是 `POST /invite/allowlist` + `{ user_ids }` 整表替换，SDK 是单用户添加。需产品决策。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "DELETE /_synapse/admin/v1/invite/allowlist/{X}",
-            "file": "src/admin/sub-managers/admin-config-manager.ts",
-            "owner": "langkebo",
-            "category": "semantic-mismatch",
-            "reason": "同 invite/allowlist：后端无 DELETE。需产品决策。",
-            "expires": "2026-12-31"
-        },
-        {
             "sdkCall": "DELETE /_synapse/admin/v1/notifications/deactivate",
             "file": "src/admin/sub-managers/admin-notification-manager.ts",
             "owner": "langkebo",
             "category": "semantic-mismatch",
             "reason": "语义不同：SDK 的 deactivate() 是「停用**全部**通知发送」，而后端注册的是 `PUT /_synapse/admin/v1/notifications/{notification_id}/deactivate`（路径参数是 i64，**按单条**停用）。二者不是同一能力。删掉条件：产品决策——改为按 id 停用（SDK 已有 AdminServerManager.deactivateNotification(id) 覆盖该能力），或后端补全局停用端点。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "DELETE /_synapse/admin/v1/rooms/{X}/messages/{X}",
-            "file": "src/admin/sub-managers/admin-room-manager.ts",
-            "owner": "langkebo",
-            "category": "backend-missing",
-            "reason": "后端 `/_synapse/admin/v1/rooms/{room_id}/messages` 只注册 GET（读取事件）。按 event_id 精确删除房间消息的 DELETE 变体不存在。删掉条件：后端补 DELETE 路由，或产品决定改用已有的 cascade_redact / redact 能力。",
             "expires": "2026-12-31"
         },
         {
@@ -121,14 +81,6 @@
             "owner": "langkebo",
             "category": "backend-missing",
             "reason": "deleteFeatureFlag()。后端 feature_flags.rs 只注册 POST|GET /_synapse/admin/v1/feature-flags 与 GET|PATCH /feature-flags/{flag_key}，没有 DELETE（全仓搜索 delete_flag 无服务方法）。SDK 侧保留了该方法（不删是为了不破坏公开 API），但路径 2026-10-08 已从下划线 /feature_flags 改正为连字符。删掉条件：后端补上 DELETE 路由（届时本条豁免会因为「未被引用」而让门禁报红，强制删除），或产品决定移除该方法。停用 flag 请用 updateFeatureFlag(status=disabled)。",
-            "expires": "2026-12-31"
-        },
-        {
-            "sdkCall": "POST /_synapse/admin/v1/federation/destinations/{X}/reset",
-            "file": "src/admin/sub-managers/admin-federation-manager.ts",
-            "owner": "langkebo",
-            "category": "other-homeserver",
-            "reason": "resetFederationDestination() 的**有意双路径回退**：先打 `/reset`，收到 404 再回退到 `/reset_connection`（后端只注册后者：POST /_synapse/admin/v1/federation/destinations/{destination}/reset_connection）。保留首跳是为了兼容仅认 `/reset` 的部署。删掉条件：确认无需该兼容 —— 届时把首跳直接指向 `/reset_connection`，可顺带省掉每次一次必然 404 的往返。",
             "expires": "2026-12-31"
         },
         {

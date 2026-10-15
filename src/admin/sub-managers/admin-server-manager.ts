@@ -17,7 +17,7 @@ limitations under the License.
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
 import type {
     CleanupAllRequest,
@@ -83,7 +83,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async whoami(): Promise<WhoamiResponse> {
-        return await this.adminRequest<WhoamiResponse>(Method.Get, "/whoami", undefined, undefined, "whoami");
+        return await this.adminRequest<WhoamiResponse>(Method.Get, apu("/whoami"), undefined, undefined, "whoami");
     }
 
     /**
@@ -101,7 +101,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         // 后端只注册 `GET /_synapse/admin/v1/statistics`。
         // 早期版本在 404 时会回退到 `/server_stats`，而后端从未注册该路径 —— 那是条死分支
         // （由 `quality:path-contract` 门禁发现），已移除。
-        const stats = await this.adminRequest<ServerStats>(Method.Get, "/statistics");
+        const stats = await this.adminRequest<ServerStats>(Method.Get, apu("/statistics"));
         this.serverStats = stats;
         this.emit(AdminServerEvent.ServerStatsUpdated, stats);
         return stats;
@@ -134,7 +134,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async getServerStatus(): Promise<ServerStatus> {
-        return await this.adminRequest<ServerStatus>(Method.Get, "/status");
+        return await this.adminRequest<ServerStatus>(Method.Get, apu("/status"));
     }
 
     /**
@@ -150,7 +150,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async getServerHealth(): Promise<ServerHealth> {
         // `/server_health` 回退分支已删除：后端从未注册该路径（只注册 `/health`）。
-        return await this.adminRequest<ServerHealth>(Method.Get, "/health");
+        return await this.adminRequest<ServerHealth>(Method.Get, apu("/health"));
     }
 
     /**
@@ -198,7 +198,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         // 后端注册的是 `/cleanup/all`、`/cleanup/rooms`、`/cleanup/tokens`
         // （synapse-web/src/routes/admin/cleanup.rs），**没有**裸 `/cleanup`。
         // 本方法语义上做全量清理，故走 `/cleanup/all`。
-        return await this.adminRequest<CleanupAllResponse>(Method.Post, "/cleanup/all", undefined, options || {});
+        return await this.adminRequest<CleanupAllResponse>(Method.Post, apu("/cleanup/all"), undefined, options || {});
     }
 
     /**
@@ -229,7 +229,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             notices?: ServerNotice[];
             total?: number;
             next_batch?: string | null;
-        }>(Method.Get, "/server_notices", queryParams);
+        }>(Method.Get, apu("/server_notices"), queryParams);
         const notices = response.notices ?? [];
         return { notices, total: response.total ?? notices.length, next_batch: response.next_batch ?? null };
     }
@@ -270,7 +270,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             );
         }
         const body = { user_id: arg1, content: arg2 };
-        return await this.adminRequest<SendServerNoticeResult>(Method.Post, "/send_server_notice", {}, body);
+        return await this.adminRequest<SendServerNoticeResult>(Method.Post, apu("/send_server_notice"), {}, body);
     }
 
     /**
@@ -289,7 +289,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         if (!notificationId) {
             throw new ValidationError("Notification ID is required");
         }
-        await this.adminRequest(Method.Delete, `/server_notices/${encodeURIComponent(notificationId)}`);
+        await this.adminRequest(Method.Delete, apu(`/server_notices/${encodeURIComponent(notificationId)}`));
     }
 
     /**
@@ -308,7 +308,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async getServerNotice(noticeId: string): Promise<ServerNotice> {
         if (!noticeId) throw new ValidationError("Notice ID is required");
-        return await this.adminRequest(Method.Get, `/server_notices/${encodeURIComponent(noticeId)}`);
+        return await this.adminRequest(Method.Get, apu(`/server_notices/${encodeURIComponent(noticeId)}`));
     }
 
     /**
@@ -326,7 +326,11 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async listNotifications(from?: string, limit?: number): Promise<SystemNotificationPage> {
         const queryParams = buildPaginationParams(limit, from);
-        const response = await this.adminRequest<SystemNotificationPage>(Method.Get, "/notifications", queryParams);
+        const response = await this.adminRequest<SystemNotificationPage>(
+            Method.Get,
+            apu("/notifications"),
+            queryParams,
+        );
         return {
             notifications: response.notifications || [],
             next_batch: response.next_batch ?? null,
@@ -351,7 +355,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async createNotification(payload: CreateNotificationRequest): Promise<ServerNotification> {
-        return await this.adminRequest<ServerNotification>(Method.Post, "/notifications", {}, payload);
+        return await this.adminRequest<ServerNotification>(Method.Post, apu("/notifications"), {}, payload);
     }
 
     /**
@@ -370,7 +374,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async listActiveNotifications(): Promise<ServerNotification[]> {
-        return await this.adminRequest<ServerNotification[]>(Method.Get, "/notifications/active");
+        return await this.adminRequest<ServerNotification[]>(Method.Get, apu("/notifications/active"));
     }
 
     /**
@@ -391,7 +395,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<ServerNotification>(
             Method.Get,
-            `/notifications/${encodeURIComponent(notificationId)}`,
+            apu(`/notifications/${encodeURIComponent(notificationId)}`),
         );
     }
 
@@ -414,7 +418,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<ServerNotification>(
             Method.Put,
-            `/notifications/${encodeURIComponent(notificationId)}`,
+            apu(`/notifications/${encodeURIComponent(notificationId)}`),
             {},
             payload,
         );
@@ -436,7 +440,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         if (!notificationId) throw new ValidationError("Notification ID is required");
         await this.adminRequest(
             Method.Put,
-            `/notifications/${encodeURIComponent(notificationId)}/deactivate`,
+            apu(`/notifications/${encodeURIComponent(notificationId)}/deactivate`),
             {},
             undefined,
         );
@@ -456,7 +460,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async deleteNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        await this.adminRequest(Method.Delete, `/notifications/${encodeURIComponent(notificationId)}`, {}, undefined);
+        await this.adminRequest(
+            Method.Delete,
+            apu(`/notifications/${encodeURIComponent(notificationId)}`),
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -477,7 +486,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
         // `/server_config` 回退分支已删除：后端只注册 `GET /_synapse/admin/v1/config`，
         // 从未注册 `/server_config`（死分支，由 quality:path-contract 门禁发现）。
         try {
-            return await this.adminRequest(Method.Get, "/config");
+            return await this.adminRequest(Method.Get, apu("/config"));
         } catch (e) {
             if (!throwOnError) return {} as AdminServerConfig;
             throw e;
@@ -517,7 +526,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async getServerVersion(throwOnError = true): Promise<{ server_version: string; python_version: string }> {
         try {
-            return await this.adminRequest(Method.Get, "/server_version");
+            return await this.adminRequest(Method.Get, apu("/server_version"));
         } catch (e) {
             if (!throwOnError) return { server_version: "unknown", python_version: "unknown" };
             throw e;
@@ -536,7 +545,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async getRegisterNonce(): Promise<{ nonce: string }> {
-        return await this.adminRequest(Method.Get, "/register/nonce");
+        return await this.adminRequest(Method.Get, apu("/register/nonce"));
     }
 
     /**
@@ -553,7 +562,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async registerAdmin(payload: AdminRegisterRequest): Promise<AdminRegisterResult> {
-        return await this.adminRequest(Method.Post, "/register", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/register"), {}, payload);
     }
 
     /**
@@ -569,7 +578,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async restartServer(payload?: RestartServerPayload): Promise<RestartServerResponse> {
-        return await this.adminRequest(Method.Post, "/restart", {}, payload ?? {});
+        return await this.adminRequest(Method.Post, apu("/restart"), {}, payload ?? {});
     }
 
     /**
@@ -584,7 +593,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async getExperimentalFeatures(): Promise<AdminExperimentalFeatures> {
-        return await this.adminRequest(Method.Get, "/experimental_features");
+        return await this.adminRequest(Method.Get, apu("/experimental_features"));
     }
 
     /**
@@ -600,7 +609,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse> {
-        return await this.adminRequest(Method.Post, "/purge_room", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/purge_room"), {}, payload);
     }
 
     /**
@@ -616,7 +625,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult> {
-        return await this.adminRequest(Method.Post, "/purge_history", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/purge_history"), {}, payload);
     }
 
     /**
@@ -632,7 +641,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async shutdownRoom(payload: ShutdownRoomRequest): Promise<AdminShutdownRoomResult> {
-        return await this.adminRequest(Method.Post, "/shutdown_room", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/shutdown_room"), {}, payload);
     }
 
     /**
@@ -655,7 +664,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async cleanupAll(payload?: { min_age_ms?: number }): Promise<CleanupAllResponse> {
-        return await this.adminRequest(Method.Post, "/cleanup/all", {}, payload ?? {});
+        return await this.adminRequest(Method.Post, apu("/cleanup/all"), {}, payload ?? {});
     }
 
     /**
@@ -670,7 +679,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async cleanupTokens(): Promise<CleanupTokensResponse> {
-        return await this.adminRequest(Method.Post, "/cleanup/tokens", {}, undefined);
+        return await this.adminRequest(Method.Post, apu("/cleanup/tokens"), {}, undefined);
     }
 
     /**
@@ -689,11 +698,11 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      */
     async cleanupRooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse> {
         try {
-            return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
+            return await this.adminRequest(Method.Post, apu("/rooms/cleanup"), {}, payload ?? {});
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest(Method.Post, "/cleanup/rooms", {}, payload ?? {});
+                return await this.adminRequest(Method.Post, apu("/cleanup/rooms"), {}, payload ?? {});
             }
             throw e;
         }
@@ -716,6 +725,6 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async getRateLimitStatus(): Promise<RateLimitStatusResponse> {
-        return await this.adminRequest<RateLimitStatusResponse>(Method.Get, "/rate-limit-status");
+        return await this.adminRequest<RateLimitStatusResponse>(Method.Get, apu("/rate-limit-status"));
     }
 }

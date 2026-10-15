@@ -27,7 +27,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -112,7 +112,7 @@ export class AdminReportManager extends AdminBaseManager {
 
         return await this.adminRequest<ReportsListResponse>(
             Method.Get,
-            "/reports",
+            apu("/reports"),
             Object.keys(params).length > 0 ? params : undefined,
             undefined,
             "reports.listAll",
@@ -136,7 +136,7 @@ export class AdminReportManager extends AdminBaseManager {
     async get(reportId: number): Promise<EventReport> {
         return await this.adminRequest<EventReport>(
             Method.Get,
-            `/reports/${reportId}`,
+            apu(`/reports/${reportId}`),
             undefined,
             undefined,
             "reports.get",
@@ -156,7 +156,13 @@ export class AdminReportManager extends AdminBaseManager {
      * @throws NotFoundError 如果举报不存在
      */
     async delete(reportId: number): Promise<void> {
-        await this.adminRequest<void>(Method.Delete, `/reports/${reportId}`, undefined, undefined, "reports.delete");
+        await this.adminRequest<void>(
+            Method.Delete,
+            apu(`/reports/${reportId}`),
+            undefined,
+            undefined,
+            "reports.delete",
+        );
     }
 
     /**
@@ -184,7 +190,7 @@ export class AdminReportManager extends AdminBaseManager {
 
         return await this.adminRequest<ReportsListResponse>(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/reports`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports`),
             Object.keys(params).length > 0 ? params : undefined,
             undefined,
             "reports.getByRoom",
@@ -209,7 +215,7 @@ export class AdminReportManager extends AdminBaseManager {
     async getRoomReport(roomId: string, reportId: number): Promise<EventReport> {
         return await this.adminRequest<EventReport>(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`),
             undefined,
             undefined,
             "reports.getRoomReport",
@@ -232,7 +238,7 @@ export class AdminReportManager extends AdminBaseManager {
     async deleteRoomReport(roomId: string, reportId: number): Promise<void> {
         await this.adminRequest<void>(
             Method.Delete,
-            `/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`),
             undefined,
             undefined,
             "reports.deleteRoomReport",

@@ -62,9 +62,8 @@ const SKIP_ROUTE_TABLE_MODULES = new Set([
     // 注（2026-10-15）：`dm` / `feature-flags` / `key-rotation` 已从此表移除 —— 三者的 manager
     // 都是「自持前缀 + 字面量相对路径」（dm/key-rotation 走 `VendorPrefix`、feature-flags 走
     // `AdminPrefix.V1`，与契约表前缀一致），已改为消费生成的 route-table（PathAssert 编译期断言），
-    // 故不再需要"有意不生成表"。剩余 2 个：admin（179 条，待迁）、federation（服务端面、
-    // 本口径不适用）。
-    "admin",
+    // 故不再需要"有意不生成表"。剩余 1 个：federation（服务端面、本口径不适用，
+    // 已单列为 SERVER_ONLY 类别）。
     "federation",
 ]);
 

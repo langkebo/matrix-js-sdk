@@ -25,7 +25,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -95,7 +95,7 @@ export class AdminPolicyManager extends AdminBaseManager {
             enabled: boolean;
             endpoint: string | null;
             fail_mode: string;
-        }>(Method.Get, "/policy/status", undefined, undefined, "policy.getStatus");
+        }>(Method.Get, apu("/policy/status"), undefined, undefined, "policy.getStatus");
         return {
             enabled: res.enabled,
             endpoint: res.endpoint,
@@ -143,7 +143,7 @@ export class AdminPolicyManager extends AdminBaseManager {
 
         const res = await this.adminRequest<{ allowed: boolean; result: "allow" | "deny"; reason?: string }>(
             Method.Post,
-            "/policy/check",
+            apu("/policy/check"),
             undefined,
             { room_id: request.room_id, user_id: request.user_id, action: request.action },
             "policy.check",

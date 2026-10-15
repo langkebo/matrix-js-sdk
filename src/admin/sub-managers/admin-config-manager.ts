@@ -322,7 +322,7 @@ export class AdminConfigManager extends AdminBaseManager {
                 if (v !== undefined && v !== null) query[k] = String(v);
             }
         }
-        return await this.adminRequest(Method.Get, "/feature-flags", query);
+        return await this.adminRequest(Method.Get, apu("/feature-flags"), query);
     }
 
     /**
@@ -341,7 +341,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async updateFeatureFlag(flagId: string, payload: FeatureFlagUpdatePayload): Promise<FeatureFlag> {
-        return await this.adminRequest(Method.Patch, `/feature-flags/${encodeURIComponent(flagId)}`, {}, payload);
+        return await this.adminRequest(Method.Patch, apu(`/feature-flags/${encodeURIComponent(flagId)}`), {}, payload);
     }
 
     // ===== Modules =====
@@ -363,7 +363,7 @@ export class AdminConfigManager extends AdminBaseManager {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
         if (options?.from !== undefined) query.from = String(options.from);
-        return await this.adminRequest(Method.Get, "/modules", query);
+        return await this.adminRequest(Method.Get, apu("/modules"), query);
     }
 
     /**
@@ -380,7 +380,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async listModulesByType(moduleType: string): Promise<AdminModuleInfo[]> {
-        return await this.adminRequest(Method.Get, `/modules/type/${encodeURIComponent(moduleType)}`);
+        return await this.adminRequest(Method.Get, apu(`/modules/type/${encodeURIComponent(moduleType)}`));
     }
 
     /**
@@ -396,7 +396,12 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async updateModuleConfig(moduleId: string, config: DynamicConfig): Promise<AdminModuleInfo> {
-        return await this.adminRequest(Method.Put, `/modules/${encodeURIComponent(moduleId)}/config`, {}, { config });
+        return await this.adminRequest(
+            Method.Put,
+            apu(`/modules/${encodeURIComponent(moduleId)}/config`),
+            {},
+            { config },
+        );
     }
 
     /**
@@ -414,7 +419,7 @@ export class AdminConfigManager extends AdminBaseManager {
     async setModuleEnabled(moduleId: string, isEnabled: boolean): Promise<AdminModuleInfo> {
         return await this.adminRequest(
             Method.Post,
-            `/modules/${encodeURIComponent(moduleId)}/enable`,
+            apu(`/modules/${encodeURIComponent(moduleId)}/enable`),
             {},
             { is_enabled: isEnabled },
         );
@@ -441,7 +446,7 @@ export class AdminConfigManager extends AdminBaseManager {
         if (options?.from !== undefined) query.from = String(options.from);
         // 后端注册的是 `GET /modules/logs/{module_name}`（`logs` 在**前**、
         // module 名在后），旧实现写成 `/modules/{id}/logs` 把两段顺序写反了。
-        return await this.adminRequest(Method.Get, `/modules/logs/${encodeURIComponent(moduleId)}`, query);
+        return await this.adminRequest(Method.Get, apu(`/modules/logs/${encodeURIComponent(moduleId)}`), query);
     }
 
     /**
@@ -463,7 +468,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async checkModuleThirdPartyRule(payload: ThirdPartyRuleCheckPayload): Promise<ThirdPartyRuleCheckResult> {
-        return await this.adminRequest(Method.Post, "/modules/check_third_party_rule", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/modules/check_third_party_rule"), {}, payload);
     }
 
     /**
@@ -478,7 +483,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async getModuleSpamCheckResult(eventId: string): Promise<SpamCheckResult> {
-        return await this.adminRequest(Method.Get, `/modules/spam_check/${encodeURIComponent(eventId)}`);
+        return await this.adminRequest(Method.Get, apu(`/modules/spam_check/${encodeURIComponent(eventId)}`));
     }
 
     /**
@@ -499,7 +504,11 @@ export class AdminConfigManager extends AdminBaseManager {
     async listModuleSpamChecksBySender(sender: string, options?: { limit?: number }): Promise<SpamCheckResult[]> {
         const query: Record<string, string> = {};
         if (options?.limit !== undefined) query.limit = String(options.limit);
-        return await this.adminRequest(Method.Get, `/modules/spam_check/sender/${encodeURIComponent(sender)}`, query);
+        return await this.adminRequest(
+            Method.Get,
+            apu(`/modules/spam_check/sender/${encodeURIComponent(sender)}`),
+            query,
+        );
     }
 
     /**
@@ -514,7 +523,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async getModuleThirdPartyRuleResults(eventId: string): Promise<ThirdPartyRuleResult[]> {
-        return await this.adminRequest(Method.Get, `/modules/third_party_rule/${encodeURIComponent(eventId)}`);
+        return await this.adminRequest(Method.Get, apu(`/modules/third_party_rule/${encodeURIComponent(eventId)}`));
     }
 
     // ===== Reports =====
@@ -534,7 +543,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         const query = buildPaginationParams(options?.limit, options?.from);
-        return await this.adminRequest(Method.Get, "/reports", query);
+        return await this.adminRequest(Method.Get, apu("/reports"), query);
     }
 
     /**
@@ -551,7 +560,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async getReport(reportId: string): Promise<AdminReport> {
         if (!reportId) throw new ValidationError("Report ID is required");
-        return await this.adminRequest(Method.Get, `/reports/${encodeURIComponent(reportId)}`);
+        return await this.adminRequest(Method.Get, apu(`/reports/${encodeURIComponent(reportId)}`));
     }
 
     /**
@@ -566,7 +575,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async deleteReport(reportId: string): Promise<void> {
         if (!reportId) throw new ValidationError("Report ID is required");
-        await this.adminRequest(Method.Delete, `/reports/${encodeURIComponent(reportId)}`);
+        await this.adminRequest(Method.Delete, apu(`/reports/${encodeURIComponent(reportId)}`));
     }
 
     // ===== Audit =====
@@ -589,7 +598,7 @@ export class AdminConfigManager extends AdminBaseManager {
                 if (v !== undefined && v !== null) query[k] = String(v);
             }
         }
-        return await this.adminRequest(Method.Get, "/audit/events", query);
+        return await this.adminRequest(Method.Get, apu("/audit/events"), query);
     }
 
     /**
@@ -606,7 +615,7 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async getAuditEvent(eventId: string): Promise<AuditEvent> {
         if (!eventId) throw new ValidationError("Event ID is required");
-        return await this.adminRequest(Method.Get, `/audit/events/${encodeURIComponent(eventId)}`);
+        return await this.adminRequest(Method.Get, apu(`/audit/events/${encodeURIComponent(eventId)}`));
     }
 
     /**
@@ -628,7 +637,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async createAuditEvent(payload: AuditEventCreateRequest): Promise<AuditEvent> {
-        return await this.adminRequest(Method.Post, "/audit/events", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/audit/events"), {}, payload);
     }
 
     // ===== Registration Tokens =====
@@ -653,7 +662,7 @@ export class AdminConfigManager extends AdminBaseManager {
         const query = buildPaginationParams(options?.limit, options?.from);
         const response = await this.adminRequest<RegistrationTokenPage>(
             Method.Get,
-            "/registration_tokens",
+            apu("/registration_tokens"),
             Object.keys(query).length > 0 ? query : undefined,
         );
         return {
@@ -689,7 +698,7 @@ export class AdminConfigManager extends AdminBaseManager {
             typeof tokenOrPayload === "string"
                 ? { token: tokenOrPayload, uses_allowed: usesAllowed, expiry_time: expiryTime }
                 : { ...tokenOrPayload };
-        return await this.adminRequest<RegistrationToken>(Method.Post, "/registration_tokens", undefined, body);
+        return await this.adminRequest<RegistrationToken>(Method.Post, apu("/registration_tokens"), undefined, body);
     }
 
     /**
@@ -708,7 +717,7 @@ export class AdminConfigManager extends AdminBaseManager {
         if (!token) {
             throw new ValidationError("Token is required");
         }
-        await this.adminRequest(Method.Delete, `/registration_tokens/${encodeURIComponent(token)}`);
+        await this.adminRequest(Method.Delete, apu(`/registration_tokens/${encodeURIComponent(token)}`));
     }
 
     /**
@@ -738,7 +747,7 @@ export class AdminConfigManager extends AdminBaseManager {
         if (!token) throw new ValidationError("Token is required");
         return await this.adminRequest<RegistrationToken>(
             Method.Post,
-            `/registration_tokens/${encodeURIComponent(token)}`,
+            apu(`/registration_tokens/${encodeURIComponent(token)}`),
             undefined,
             payload,
         );
@@ -761,7 +770,7 @@ export class AdminConfigManager extends AdminBaseManager {
         if (!token) throw new ValidationError("Token is required");
         return await this.adminRequest<RegistrationToken>(
             Method.Get,
-            `/registration_tokens/${encodeURIComponent(token)}`,
+            apu(`/registration_tokens/${encodeURIComponent(token)}`),
         );
     }
 
@@ -782,7 +791,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async createAccountValidity(payload: AccountValidityRequest): Promise<AdminAccountValidityInfo> {
-        return await this.adminRequest(Method.Post, "/account_validity", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/account_validity"), {}, payload);
     }
 
     /**
@@ -797,7 +806,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async getAccountValidity(userId: string): Promise<AdminAccountValidityInfo> {
-        return await this.adminRequest(Method.Get, `/account_validity/${encodeURIComponent(userId)}`);
+        return await this.adminRequest(Method.Get, apu(`/account_validity/${encodeURIComponent(userId)}`));
     }
 
     /**
@@ -821,7 +830,7 @@ export class AdminConfigManager extends AdminBaseManager {
     ): Promise<AdminAccountValidityInfo> {
         return await this.adminRequest(
             Method.Post,
-            `/account_validity/${encodeURIComponent(userId)}/renew`,
+            apu(`/account_validity/${encodeURIComponent(userId)}/renew`),
             {},
             payload,
         );
@@ -839,7 +848,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async listPasswordAuthProviders(): Promise<AdminPasswordAuthProvider[]> {
-        return await this.adminRequest(Method.Get, "/password_auth_providers");
+        return await this.adminRequest(Method.Get, apu("/password_auth_providers"));
     }
 
     /**
@@ -858,7 +867,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async createPasswordAuthProvider(payload: CreatePasswordAuthProviderRequest): Promise<AdminPasswordAuthProvider> {
-        return await this.adminRequest(Method.Post, "/password_auth_providers", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/password_auth_providers"), {}, payload);
     }
 
     // ===== Media Callbacks =====
@@ -873,7 +882,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async listMediaCallbacks(): Promise<AdminMediaCallback[]> {
-        return await this.adminRequest(Method.Get, "/media_callbacks");
+        return await this.adminRequest(Method.Get, apu("/media_callbacks"));
     }
 
     /**
@@ -886,7 +895,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async listMediaCallbacksByType(callbackType: string): Promise<AdminMediaCallback[]> {
-        return await this.adminRequest(Method.Get, `/media_callbacks/${encodeURIComponent(callbackType)}`);
+        return await this.adminRequest(Method.Get, apu(`/media_callbacks/${encodeURIComponent(callbackType)}`));
     }
 
     /**
@@ -903,7 +912,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async createMediaCallback(payload: CreateMediaCallbackRequest): Promise<AdminMediaCallback> {
-        return await this.adminRequest(Method.Post, "/media_callbacks", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/media_callbacks"), {}, payload);
     }
 
     // ===== Account Data Callbacks =====
@@ -918,7 +927,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async listAccountDataCallbacks(): Promise<AdminAccountDataCallback[]> {
-        return await this.adminRequest(Method.Get, "/account_data_callbacks");
+        return await this.adminRequest(Method.Get, apu("/account_data_callbacks"));
     }
 
     /**
@@ -935,7 +944,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async createAccountDataCallback(payload: CreateAccountDataCallbackRequest): Promise<AdminAccountDataCallback> {
-        return await this.adminRequest(Method.Post, "/account_data_callbacks", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/account_data_callbacks"), {}, payload);
     }
 
     // ===== Invite Lists =====
@@ -951,7 +960,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async getInviteAllowlist(): Promise<AdminInviteAllowlist> {
-        return await this.adminRequest(Method.Get, "/invite/allowlist");
+        return await this.adminRequest(Method.Get, apu("/invite/allowlist"));
     }
 
     /**
@@ -965,7 +974,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async getInviteBlocklist(): Promise<AdminInviteBlocklist> {
-        return await this.adminRequest(Method.Get, "/invite/blocklist");
+        return await this.adminRequest(Method.Get, apu("/invite/blocklist"));
     }
 
     /**
@@ -1068,7 +1077,7 @@ export class AdminConfigManager extends AdminBaseManager {
      * ```
      */
     async getJitsiConfig(): Promise<AdminJitsiConfig> {
-        return await this.adminRequest(Method.Get, "/jitsi/config");
+        return await this.adminRequest(Method.Get, apu("/jitsi/config"));
     }
 
     // ===== Telemetry =====
@@ -1085,6 +1094,6 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async acknowledgeTelemetryAlert(alertId: string): Promise<void> {
         if (!alertId) throw new ValidationError("Alert ID is required");
-        await this.adminRequest(Method.Post, `/telemetry/alerts/${encodeURIComponent(alertId)}/ack`);
+        await this.adminRequest(Method.Post, apu(`/telemetry/alerts/${encodeURIComponent(alertId)}/ack`));
     }
 }

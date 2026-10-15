@@ -29,7 +29,10 @@ const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "gener
  * 见审计文档 §7.11）。
  */
 export const WAIVED_MODULES = {
-    admin: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
+    // 注（2026-10-15）：**本表已清空** —— 最后一个条目 `admin`（179 条）已收编：
+    // 其 221 处 `this.adminRequest` 调用全部接入 `apu()` 编译期断言（7 张表 union + 6 种前缀剥离），
+    // 见 `src/admin/admin-base-manager.ts` 的 `StripAdminModule` / `AdminScopedPath`。
+    // 服务端面模块（federation）另见 `SERVER_ONLY_MODULES`（非 WAIVED）。
     // 注（2026-10-15）：此处原有 `app_service` 的 waiver。回源核对后发现它**不是**纯服务端面：
     // 39 条里 17 条是 `/_synapse/admin/v1/appservices*`（admin 面）、12 条 `/_matrix/app/v1/*`（AS 面）、
     // 10 条 `/_matrix/client/*`（客户端面，含 7 条 `proxy/{as_id}/{*path}` 通配代理）——

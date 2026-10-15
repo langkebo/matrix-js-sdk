@@ -16,7 +16,7 @@ limitations under the License.
 
 import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
 import type {
     MediaInfo,
@@ -74,7 +74,7 @@ export class AdminMediaManager extends AdminBaseManager {
         const queryParams = buildPaginationParams(limit, from);
         const response = await this.adminRequest<{ media?: MediaInfo[]; total?: number; next_batch?: string | null }>(
             Method.Get,
-            "/media",
+            apu("/media"),
             queryParams,
         );
         const media = response.media ?? [];
@@ -97,7 +97,7 @@ export class AdminMediaManager extends AdminBaseManager {
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        return await this.adminRequest<MediaInfo>(Method.Get, `/media/${encodeURIComponent(mediaId)}`);
+        return await this.adminRequest<MediaInfo>(Method.Get, apu(`/media/${encodeURIComponent(mediaId)}`));
     }
 
     /**
@@ -114,7 +114,7 @@ export class AdminMediaManager extends AdminBaseManager {
         if (!mediaId) {
             throw new ValidationError("Media ID is required");
         }
-        await this.adminRequest(Method.Delete, `/media/${encodeURIComponent(mediaId)}`);
+        await this.adminRequest(Method.Delete, apu(`/media/${encodeURIComponent(mediaId)}`));
     }
 
     /**
@@ -128,7 +128,7 @@ export class AdminMediaManager extends AdminBaseManager {
      * ```
      */
     async getMediaQuota(): Promise<MediaQuotaResponse> {
-        return await this.adminRequest(Method.Get, "/media/quota");
+        return await this.adminRequest(Method.Get, apu("/media/quota"));
     }
 
     /**
@@ -158,7 +158,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         await this.adminRequest(
             Method.Post,
-            `/media/quarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            apu(`/media/quarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -187,7 +187,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         await this.adminRequest(
             Method.Post,
-            `/media/unquarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            apu(`/media/unquarantine/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -214,7 +214,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<MediaProtectionResponse>(
             Method.Post,
-            `/media/protect/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            apu(`/media/protect/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -237,7 +237,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<MediaProtectionResponse>(
             Method.Post,
-            `/media/protect/${encodeURIComponent(mediaId)}`,
+            apu(`/media/protect/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -261,7 +261,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<MediaUnprotectionResponse>(
             Method.Post,
-            `/media/unprotect/${encodeURIComponent(mediaId)}`,
+            apu(`/media/unprotect/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -291,7 +291,11 @@ export class AdminMediaManager extends AdminBaseManager {
             }
         }
         const queryParams = beforeTs !== undefined ? { before_ts: String(beforeTs) } : undefined;
-        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/purge_media_cache", queryParams);
+        const result = await this.adminRequest<{ deleted?: number }>(
+            Method.Post,
+            apu("/purge_media_cache"),
+            queryParams,
+        );
         return { deleted: result.deleted ?? 0 };
     }
 
@@ -332,7 +336,7 @@ export class AdminMediaManager extends AdminBaseManager {
         const queryParams = buildPaginationParams(options?.limit, options?.from);
         const response = await this.adminRequest<{ changes?: MediaQuarantineChange[]; total?: number }>(
             Method.Get,
-            `/quarantine_media/${encodeURIComponent(mediaId)}/changes`,
+            apu(`/quarantine_media/${encodeURIComponent(mediaId)}/changes`),
             queryParams,
         );
         const changes = response.changes ?? [];
@@ -369,7 +373,7 @@ export class AdminMediaManager extends AdminBaseManager {
         const queryParams = buildPaginationParams(options?.limit, options?.from);
         const response = await this.adminRequest<{ media?: MediaInfo[]; total?: number }>(
             Method.Get,
-            `/users/${encodeURIComponent(userId)}/media`,
+            apu(`/users/${encodeURIComponent(userId)}/media`),
             queryParams,
         );
         const media = response.media ?? [];
@@ -399,7 +403,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         const result = await this.adminRequest<{ deleted?: number }>(
             Method.Delete,
-            `/users/${encodeURIComponent(userId)}/media`,
+            apu(`/users/${encodeURIComponent(userId)}/media`),
         );
         return { deleted: result?.deleted ?? 0 };
     }
@@ -436,7 +440,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<MediaInfo>(
             Method.Get,
-            `/media/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            apu(`/media/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -463,7 +467,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         await this.adminRequest(
             Method.Delete,
-            `/media/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`,
+            apu(`/media/${encodeURIComponent(serverName)}/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -495,7 +499,7 @@ export class AdminMediaManager extends AdminBaseManager {
         if (options?.maxSize !== undefined) {
             body.max_size = options.maxSize;
         }
-        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, "/media/delete", {}, body);
+        const result = await this.adminRequest<{ deleted?: number }>(Method.Post, apu("/media/delete"), {}, body);
         return { deleted: result?.deleted ?? 0 };
     }
 
@@ -527,7 +531,7 @@ export class AdminMediaManager extends AdminBaseManager {
         const response = await this.adminRequest<{
             next_batch?: number;
             changes?: GlobalMediaQuarantineChange[];
-        }>(Method.Get, "/media/quarantine_changes", Object.keys(queryParams).length > 0 ? queryParams : undefined);
+        }>(Method.Get, apu("/media/quarantine_changes"), Object.keys(queryParams).length > 0 ? queryParams : undefined);
         return {
             next_batch: response.next_batch ?? Number(options?.from ?? 0),
             changes: response.changes ?? [],
@@ -559,7 +563,7 @@ export class AdminMediaManager extends AdminBaseManager {
             media?: RoomMediaItem[];
             total?: number;
             next_batch?: string | null;
-        }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/media`, queryParams);
+        }>(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/media`), queryParams);
         const media = response.media ?? [];
         return { media, total: response.total ?? media.length, next_batch: response.next_batch ?? null };
     }
@@ -587,7 +591,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         await this.adminRequest(
             Method.Delete,
-            `/rooms/${encodeURIComponent(roomId)}/media/${encodeURIComponent(mediaId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/media/${encodeURIComponent(mediaId)}`),
         );
     }
 
@@ -615,7 +619,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<RoomMediaQuarantineResponse>(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/media/quarantine`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/media/quarantine`),
             {},
             body,
         );
@@ -644,7 +648,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<RoomMediaUnquarantineResponse>(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/media/unquarantine`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/media/unquarantine`),
             {},
             body,
         );
@@ -673,7 +677,7 @@ export class AdminMediaManager extends AdminBaseManager {
         }
         return await this.adminRequest<UserMediaQuarantineResponse>(
             Method.Post,
-            `/user/${encodeURIComponent(userId)}/media/quarantine`,
+            apu(`/user/${encodeURIComponent(userId)}/media/quarantine`),
         );
     }
 }

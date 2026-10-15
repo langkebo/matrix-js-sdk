@@ -18,7 +18,7 @@ import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { ClientPrefix } from "../../http-api/prefix";
 import { NotFoundError, ValidationError } from "../../errors";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
 import { toPaginatedResult } from "../../common/pagination";
@@ -123,7 +123,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             rooms: RoomInfo[];
             next_token?: string;
             total?: number;
-        }>(Method.Get, "/rooms", buildQueryParams(queryParams));
+        }>(Method.Get, apu("/rooms"), buildQueryParams(queryParams));
 
         return toPaginatedResult<RoomInfo>(response as unknown as Record<string, unknown>, "rooms");
     }
@@ -149,7 +149,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
                 if (v !== undefined && v !== null) query[k] = String(v);
             }
         }
-        return await this.adminRequest(Method.Get, "/rooms/search", query);
+        return await this.adminRequest(Method.Get, apu("/rooms/search"), query);
     }
 
     /**
@@ -166,7 +166,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * ```
      */
     async searchRoomsPost(payload: RoomSearchPayload): Promise<AdminRoomSearchPage> {
-        return await this.adminRequest(Method.Post, "/rooms/search", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/rooms/search"), {}, payload);
     }
 
     /**
@@ -185,7 +185,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     async getRoom(roomId: string, throwOnError = true): Promise<RoomInfo | null> {
         AdminValidators.validateRoomId(roomId);
         try {
-            return await this.adminRequest<RoomInfo>(Method.Get, `/rooms/${encodeURIComponent(roomId)}`);
+            return await this.adminRequest<RoomInfo>(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}`));
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             const err = e as MatrixError;
@@ -238,7 +238,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
                 body.reason = reason;
             }
         }
-        await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}`, {}, body);
+        await this.adminRequest(Method.Delete, apu(`/rooms/${encodeURIComponent(roomId)}`), {}, body);
         this.emit(AdminRoomEvent.RoomDeleted, roomId);
     }
 
@@ -260,7 +260,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async deleteRoomAdmin(roomId: string, payload?: RoomDeletePayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}`, {}, payload ?? {});
+        await this.adminRequest(Method.Delete, apu(`/rooms/${encodeURIComponent(roomId)}`), {}, payload ?? {});
     }
 
     /**
@@ -282,7 +282,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateRoomId(roomId);
         return await this.adminRequest(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/purge_history`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/purge_history`),
             {},
             payload ?? {},
         );
@@ -305,7 +305,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         if (reason) {
             body.reason = reason;
         }
-        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/block`, undefined, body);
+        await this.adminRequest(Method.Post, apu(`/rooms/${encodeURIComponent(roomId)}/block`), undefined, body);
         this.emit(AdminRoomEvent.RoomBlocked, roomId, block);
     }
 
@@ -323,7 +323,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async unblockRoom(roomId: string, payload?: AdminReasonPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/unblock`, {}, payload ?? {});
+        await this.adminRequest(Method.Post, apu(`/rooms/${encodeURIComponent(roomId)}/unblock`), {}, payload ?? {});
     }
 
     /**
@@ -350,7 +350,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             members?: AdminRoomMember[];
             total?: number;
             next_batch?: string | null;
-        }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/members`, queryParams);
+        }>(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/members`), queryParams);
         const members = response.members ?? [];
         return { members, total: response.total ?? members.length, next_batch: response.next_batch ?? null };
     }
@@ -373,7 +373,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Put,
-            `/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`),
             {},
             payload ?? {},
         );
@@ -396,7 +396,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Delete,
-            `/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(userId)}`),
             {},
             undefined,
         );
@@ -420,7 +420,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/ban/${encodeURIComponent(userId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/ban/${encodeURIComponent(userId)}`),
             {},
             payload ?? {},
         );
@@ -444,7 +444,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/kick/${encodeURIComponent(userId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/kick/${encodeURIComponent(userId)}`),
             {},
             payload ?? {},
         );
@@ -468,7 +468,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateUserId(userId);
         await this.adminRequest(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/unban/${encodeURIComponent(userId)}`),
             {},
             payload ?? {},
         );
@@ -489,7 +489,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async banRoom(roomId: string, payload: AdminBanKickPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/ban`, {}, payload);
+        await this.adminRequest(Method.Post, apu(`/rooms/${encodeURIComponent(roomId)}/ban`), {}, payload);
     }
 
     /**
@@ -507,7 +507,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async kickRoom(roomId: string, payload: AdminBanKickPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/kick`, {}, payload);
+        await this.adminRequest(Method.Post, apu(`/rooms/${encodeURIComponent(roomId)}/kick`), {}, payload);
     }
 
     /**
@@ -527,11 +527,16 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     async makeRoomAdmin(roomId: string, payload: AdminMakeRoomAdminPayload): Promise<void> {
         AdminValidators.validateRoomId(roomId);
         try {
-            await this.adminRequest(Method.Put, `/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
+            await this.adminRequest(Method.Put, apu(`/rooms/${encodeURIComponent(roomId)}/make_admin`), {}, payload);
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/make_admin`, {}, payload);
+                await this.adminRequest(
+                    Method.Post,
+                    apu(`/rooms/${encodeURIComponent(roomId)}/make_admin`),
+                    {},
+                    payload,
+                );
                 return;
             }
             throw e;
@@ -553,7 +558,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         AdminValidators.validateRoomId(roomId);
         const response = await this.adminRequest<{ state: RoomStateEvent[] }>(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/state`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/state`),
         );
         return { state: response.state || [] };
     }
@@ -595,7 +600,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
             end?: string;
             next_batch?: string | null;
             messages?: RoomMessage[];
-        }>(Method.Get, `/rooms/${encodeURIComponent(roomId)}/messages`, queryParams);
+        }>(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/messages`), queryParams);
         return {
             chunk: response.chunk ?? response.messages ?? [],
             start: response.start ?? "0",
@@ -664,7 +669,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomAliases(roomId: string): Promise<{ aliases: string[] }> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/aliases`);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/aliases`));
     }
 
     /**
@@ -682,7 +687,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomVersion(roomId: string): Promise<AdminRoomVersionResponse> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/version`);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/version`));
     }
 
     /**
@@ -700,7 +705,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomBlockStatus(roomId: string): Promise<AdminRoomBlockStatus> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/block`);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/block`));
     }
 
     /**
@@ -724,7 +729,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         if (!eventId) throw new ValidationError("Event ID is required");
         return await this.adminRequest(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/event_context/${encodeURIComponent(eventId)}`),
         );
     }
 
@@ -742,7 +747,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomForwardExtremities(roomId: string): Promise<AdminRoomForwardExtremities> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/forward_extremities`);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/forward_extremities`));
     }
 
     /**
@@ -761,7 +766,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomTokenSync(roomId: string): Promise<AdminTokenSync> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/token_sync`);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/token_sync`));
     }
 
     /**
@@ -781,7 +786,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async searchRoomEvents(roomId: string, payload: RoomEventSearchPayload): Promise<AdminRoomEventSearchPage> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/search`, {}, payload);
+        return await this.adminRequest(Method.Post, apu(`/rooms/${encodeURIComponent(roomId)}/search`), {}, payload);
     }
 
     /**
@@ -799,7 +804,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomListings(roomId: string): Promise<AdminRoomListings> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/listings`);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/listings`));
     }
 
     /**
@@ -815,7 +820,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async setRoomPublicListing(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Put, `/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
+        await this.adminRequest(Method.Put, apu(`/rooms/${encodeURIComponent(roomId)}/listings/public`), {}, undefined);
     }
 
     /**
@@ -831,7 +836,12 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async deleteRoomPublicListing(roomId: string): Promise<void> {
         AdminValidators.validateRoomId(roomId);
-        await this.adminRequest(Method.Delete, `/rooms/${encodeURIComponent(roomId)}/listings/public`, {}, undefined);
+        await this.adminRequest(
+            Method.Delete,
+            apu(`/rooms/${encodeURIComponent(roomId)}/listings/public`),
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -854,7 +864,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomStats(from?: string, limit?: number): Promise<RoomStatsOverview> {
         const queryParams = buildPaginationParams(limit, from);
-        return await this.adminRequest<RoomStatsOverview>(Method.Get, "/room_stats", queryParams);
+        return await this.adminRequest<RoomStatsOverview>(Method.Get, apu("/room_stats"), queryParams);
     }
 
     /**
@@ -870,7 +880,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getRoomStatsByRoom(roomId: string): Promise<RoomStats> {
         AdminValidators.validateRoomId(roomId);
-        return await this.adminRequest<RoomStats>(Method.Get, `/room_stats/${encodeURIComponent(roomId)}`);
+        return await this.adminRequest<RoomStats>(Method.Get, apu(`/room_stats/${encodeURIComponent(roomId)}`));
     }
 
     /**
@@ -888,7 +898,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * ```
      */
     async joinRoom(roomId: string, userId: string): Promise<void> {
-        await this.adminRequest(Method.Post, `/rooms/${encodeURIComponent(roomId)}/join`, {}, { user_id: userId });
+        await this.adminRequest(Method.Post, apu(`/rooms/${encodeURIComponent(roomId)}/join`), {}, { user_id: userId });
     }
 
     /**
@@ -904,7 +914,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async listReports(options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         const query = buildPaginationParams(options?.limit, options?.from);
-        return await this.adminRequest(Method.Get, "/reports", query);
+        return await this.adminRequest(Method.Get, apu("/reports"), query);
     }
 
     /**
@@ -923,7 +933,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getReport(reportId: string): Promise<AdminReport> {
         if (!reportId) throw new ValidationError("Report ID is required");
-        return await this.adminRequest(Method.Get, `/reports/${encodeURIComponent(reportId)}`);
+        return await this.adminRequest(Method.Get, apu(`/reports/${encodeURIComponent(reportId)}`));
     }
 
     /**
@@ -940,7 +950,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async deleteReport(reportId: string): Promise<void> {
         if (!reportId) throw new ValidationError("Report ID is required");
-        await this.adminRequest(Method.Delete, `/reports/${encodeURIComponent(reportId)}`);
+        await this.adminRequest(Method.Delete, apu(`/reports/${encodeURIComponent(reportId)}`));
     }
 
     /**
@@ -961,7 +971,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     async listRoomReports(roomId: string, options?: { from?: string; limit?: number }): Promise<AdminReportPage> {
         AdminValidators.validateRoomId(roomId);
         const query = buildPaginationParams(options?.limit, options?.from);
-        return await this.adminRequest(Method.Get, `/rooms/${encodeURIComponent(roomId)}/reports`, query);
+        return await this.adminRequest(Method.Get, apu(`/rooms/${encodeURIComponent(roomId)}/reports`), query);
     }
 
     /**
@@ -984,7 +994,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         if (!reportId) throw new ValidationError("Report ID is required");
         return await this.adminRequest(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/reports/${encodeURIComponent(reportId)}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports/${encodeURIComponent(reportId)}`),
         );
     }
 
@@ -1003,7 +1013,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getSpace(spaceId: string): Promise<SpaceInfo> {
         AdminValidators.validateRoomId(spaceId);
-        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}`);
+        return await this.adminRequest(Method.Get, apu(`/spaces/${encodeURIComponent(spaceId)}`));
     }
 
     /**
@@ -1018,7 +1028,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async listSpaces(from?: string, limit?: number): Promise<SpacePage> {
         const query = buildPaginationParams(limit, from);
-        return await this.adminRequest(Method.Get, "/spaces", query);
+        return await this.adminRequest(Method.Get, apu("/spaces"), query);
     }
 
     /**
@@ -1034,7 +1044,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async deleteSpace(spaceId: string): Promise<void> {
         AdminValidators.validateRoomId(spaceId);
-        await this.adminRequest(Method.Delete, `/spaces/${encodeURIComponent(spaceId)}`);
+        await this.adminRequest(Method.Delete, apu(`/spaces/${encodeURIComponent(spaceId)}`));
     }
 
     /**
@@ -1051,7 +1061,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     async getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<SpaceRoomsResponse> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
-        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/rooms`, query);
+        return await this.adminRequest(Method.Get, apu(`/spaces/${encodeURIComponent(spaceId)}/rooms`), query);
     }
 
     /**
@@ -1069,7 +1079,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      */
     async getSpaceStats(spaceId: string): Promise<SpaceStats> {
         AdminValidators.validateRoomId(spaceId);
-        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/stats`);
+        return await this.adminRequest(Method.Get, apu(`/spaces/${encodeURIComponent(spaceId)}/stats`));
     }
 
     /**
@@ -1086,7 +1096,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
     async getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<SpaceUsersResponse> {
         AdminValidators.validateRoomId(spaceId);
         const query = buildPaginationParams(limit, from);
-        return await this.adminRequest(Method.Get, `/spaces/${encodeURIComponent(spaceId)}/users`, query);
+        return await this.adminRequest(Method.Get, apu(`/spaces/${encodeURIComponent(spaceId)}/users`), query);
     }
 
     /* ────────────────────────────────────────────────────────────────────────
@@ -1122,7 +1132,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         }
         return await this.adminRequest<RoomBackfillResponse>(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/backfill`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/backfill`),
             {},
             body,
         );
@@ -1173,7 +1183,7 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
         }
         return await this.adminRequest<CascadeRedactResponse>(
             Method.Post,
-            `/rooms/${encodeURIComponent(roomId)}/cascade_redact`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/cascade_redact`),
             {},
             body,
         );

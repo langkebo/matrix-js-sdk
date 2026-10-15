@@ -33,7 +33,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -115,7 +115,11 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      */
     async listServices(serviceType?: string): Promise<BackendExternalService[]> {
         const queryParams = serviceType && serviceType !== "all" ? { service_type: serviceType } : undefined;
-        const result = await this.adminRequest<BackendExternalService[]>(Method.Get, "/external_services", queryParams);
+        const result = await this.adminRequest<BackendExternalService[]>(
+            Method.Get,
+            apu("/external_services"),
+            queryParams,
+        );
         return result ?? [];
     }
 
@@ -133,7 +137,12 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * ```
      */
     async registerService(payload: RegisterExternalServicePayload): Promise<BackendExternalService> {
-        return await this.adminRequest<BackendExternalService>(Method.Post, "/external_services", undefined, payload);
+        return await this.adminRequest<BackendExternalService>(
+            Method.Post,
+            apu("/external_services"),
+            undefined,
+            payload,
+        );
     }
 
     /**
@@ -151,7 +160,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
     async updateService(asId: string, payload: UpdateExternalServicePayload): Promise<BackendExternalService> {
         return await this.adminRequest<BackendExternalService>(
             Method.Put,
-            `/external_services/${encodeURIComponent(asId)}`,
+            apu(`/external_services/${encodeURIComponent(asId)}`),
             undefined,
             payload,
         );
@@ -167,7 +176,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * ```
      */
     async deleteService(asId: string): Promise<void> {
-        await this.adminRequest(Method.Delete, `/external_services/${encodeURIComponent(asId)}`);
+        await this.adminRequest(Method.Delete, apu(`/external_services/${encodeURIComponent(asId)}`));
     }
 
     /**
@@ -181,7 +190,10 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * ```
      */
     async getAllHealth(): Promise<BackendExternalServiceHealth[]> {
-        const result = await this.adminRequest<BackendExternalServiceHealth[]>(Method.Get, "/external_services/health");
+        const result = await this.adminRequest<BackendExternalServiceHealth[]>(
+            Method.Get,
+            apu("/external_services/health"),
+        );
         return result ?? [];
     }
 
@@ -201,7 +213,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
         try {
             return await this.adminRequest<BackendExternalServiceHealth>(
                 Method.Get,
-                `/external_services/${encodeURIComponent(asId)}/health`,
+                apu(`/external_services/${encodeURIComponent(asId)}/health`),
             );
             // 404 表示服务不存在，是"查无此服务"的预期结果；其余错误继续向上抛出。
             // @swallow-error { owner: "admin-external-service", expires: "2026-12-31" }
@@ -226,7 +238,7 @@ export class AdminExternalServiceManager extends AdminBaseManager {
     async checkServiceHealth(asId: string): Promise<HealthCheckResult> {
         return await this.adminRequest<HealthCheckResult>(
             Method.Post,
-            `/external_services/${encodeURIComponent(asId)}/health/check`,
+            apu(`/external_services/${encodeURIComponent(asId)}/health/check`),
         );
     }
 }

@@ -18,7 +18,7 @@ import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
 import { logger } from "../../logger";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams, buildQueryParams } from "../utils";
 import { toPaginatedResult } from "../../common/pagination";
@@ -126,7 +126,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
                     users: AdminAccountDetails[];
                     next_token?: string;
                     total?: number;
-                }>(Method.Get, "/users", buildQueryParams(queryParams));
+                }>(Method.Get, apu("/users"), buildQueryParams(queryParams));
             } else {
                 throw e;
             }
@@ -170,7 +170,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
                 if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                     return await this.adminRequest<AdminAccountDetails>(
                         Method.Get,
-                        `/users/${encodeURIComponent(userId)}`,
+                        apu(`/users/${encodeURIComponent(userId)}`),
                         undefined,
                         undefined,
                         "getUser",
@@ -293,7 +293,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async deactivateUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
 
-        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/deactivate`);
+        await this.adminRequest(Method.Post, apu(`/users/${encodeURIComponent(userId)}/deactivate`));
         this.emit(AdminUserEvent.UserDeactivated, userId);
     }
 
@@ -315,7 +315,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async deleteUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
         try {
-            await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}`);
+            await this.adminRequest(Method.Delete, apu(`/users/${encodeURIComponent(userId)}`));
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
@@ -343,7 +343,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * ```
      */
     async batchCreateUsers(payload: BatchCreateUsersRequest): Promise<BatchCreateUsersResponse> {
-        return await this.adminRequest(Method.Post, "/users/batch", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/users/batch"), {}, payload);
     }
 
     /**
@@ -364,7 +364,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * ```
      */
     async batchDeactivateUsers(payload: BatchDeactivateUsersRequest): Promise<BatchDeactivateUsersResponse> {
-        return await this.adminRequest(Method.Post, "/users/batch_deactivate", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/users/batch_deactivate"), {}, payload);
     }
 
     /**
@@ -383,7 +383,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async resetPassword(userId: string, newPassword: string): Promise<void> {
         AdminValidators.validateUserId(userId);
 
-        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/password`, undefined, {
+        await this.adminRequest(Method.Post, apu(`/users/${encodeURIComponent(userId)}/password`), undefined, {
             new_password: newPassword,
         });
     }
@@ -403,7 +403,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async setAdmin(userId: string, admin: boolean): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/admin`, undefined, { admin });
+        await this.adminRequest(Method.Put, apu(`/users/${encodeURIComponent(userId)}/admin`), undefined, { admin });
     }
 
     /**
@@ -426,7 +426,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         // `/_synapse/admin/v1/users/{user_id}/devices`，v2 命名空间下没有 devices。
         const response = await this.adminRequest<{ devices: DeviceInfo[] }>(
             Method.Get,
-            `/users/${encodeURIComponent(userId)}/devices`,
+            apu(`/users/${encodeURIComponent(userId)}/devices`),
         );
         return response.devices || [];
     }
@@ -454,14 +454,14 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         try {
             await this.adminRequest(
                 Method.Delete,
-                `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`,
+                apu(`/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}`),
             );
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(
                     Method.Post,
-                    `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}/delete`,
+                    apu(`/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}/delete`),
                     {},
                     undefined,
                 );
@@ -491,7 +491,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ tokens?: AdminToken[]; total?: number }>(
             Method.Get,
-            `/users/${encodeURIComponent(userId)}/tokens`,
+            apu(`/users/${encodeURIComponent(userId)}/tokens`),
         );
         const tokens = response.tokens || [];
         return { tokens, total: response.total ?? tokens.length };
@@ -515,7 +515,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         if (!tokenId) throw new ValidationError("Token ID is required");
         await this.adminRequest(
             Method.Delete,
-            `/users/${encodeURIComponent(userId)}/tokens/${encodeURIComponent(tokenId)}`,
+            apu(`/users/${encodeURIComponent(userId)}/tokens/${encodeURIComponent(tokenId)}`),
         );
     }
 
@@ -538,7 +538,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ refresh_tokens?: AdminRefreshToken[]; total?: number }>(
             Method.Get,
-            `/users/${encodeURIComponent(userId)}/refresh_tokens`,
+            apu(`/users/${encodeURIComponent(userId)}/refresh_tokens`),
         );
         const refresh_tokens = response.refresh_tokens || [];
         return { refresh_tokens, total: response.total ?? refresh_tokens.length };
@@ -562,7 +562,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         if (!tokenId) throw new ValidationError("Token ID is required");
         await this.adminRequest(
             Method.Delete,
-            `/users/${encodeURIComponent(userId)}/refresh_tokens/${encodeURIComponent(tokenId)}`,
+            apu(`/users/${encodeURIComponent(userId)}/refresh_tokens/${encodeURIComponent(tokenId)}`),
         );
     }
 
@@ -585,7 +585,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getUserSession(userId: string): Promise<UserSessionsResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Get, `/user_sessions/${encodeURIComponent(userId)}`);
+        return await this.adminRequest(Method.Get, apu(`/user_sessions/${encodeURIComponent(userId)}`));
     }
 
     /**
@@ -608,7 +608,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async getUserRooms(userId: string, from?: string, limit?: number): Promise<UserRoomsResponse> {
         AdminValidators.validateUserId(userId);
         const query = buildPaginationParams(limit, from);
-        return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rooms`, query);
+        return await this.adminRequest(Method.Get, apu(`/users/${encodeURIComponent(userId)}/rooms`), query);
     }
 
     /**
@@ -626,7 +626,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getUserStats(userId: string): Promise<UserStatsResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/stats`);
+        return await this.adminRequest(Method.Get, apu(`/users/${encodeURIComponent(userId)}/stats`));
     }
 
     /**
@@ -639,7 +639,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * ```
      */
     async listUserStats(): Promise<UserStatsListResponse> {
-        return await this.adminRequest(Method.Get, "/user_stats");
+        return await this.adminRequest(Method.Get, apu("/user_stats"));
     }
 
     /**
@@ -661,7 +661,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(
             Method.Post,
-            `/user_sessions/${encodeURIComponent(userId)}/invalidate`,
+            apu(`/user_sessions/${encodeURIComponent(userId)}/invalidate`),
             {},
             undefined,
         );
@@ -686,7 +686,12 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async loginAsUser(userId: string, payload?: AdminLoginAsUserRequest): Promise<AdminLoginAsUserResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/login`, {}, payload ?? {});
+        return await this.adminRequest(
+            Method.Post,
+            apu(`/users/${encodeURIComponent(userId)}/login`),
+            {},
+            payload ?? {},
+        );
     }
 
     /**
@@ -709,7 +714,12 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async logoutUser(userId: string, payload?: AdminLogoutRequest): Promise<AdminLogoutResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/logout`, {}, payload ?? {});
+        return await this.adminRequest(
+            Method.Post,
+            apu(`/users/${encodeURIComponent(userId)}/logout`),
+            {},
+            payload ?? {},
+        );
     }
 
     /**
@@ -731,7 +741,12 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async evictUser(userId: string, payload?: AdminEvictRequest): Promise<AdminEvictResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/evict`, {}, payload ?? {});
+        return await this.adminRequest(
+            Method.Post,
+            apu(`/users/${encodeURIComponent(userId)}/evict`),
+            {},
+            payload ?? {},
+        );
     }
 
     /**
@@ -754,7 +769,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async getAccountStatus(userId: string, throwOnError = true): Promise<AccountStatus | null> {
         AdminValidators.validateUserId(userId);
         try {
-            return await this.adminRequest<AccountStatus>(Method.Get, `/account/${encodeURIComponent(userId)}`);
+            return await this.adminRequest<AccountStatus>(Method.Get, apu(`/account/${encodeURIComponent(userId)}`));
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
@@ -788,7 +803,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         try {
             const response = await this.adminRequest<{ admin: boolean }>(
                 Method.Get,
-                `/users/${encodeURIComponent(userId)}/admin`,
+                apu(`/users/${encodeURIComponent(userId)}/admin`),
             );
             return response.admin;
         } catch (e) {
@@ -827,7 +842,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         return await this.adminRequest<RateLimitConfig>(
             Method.Post,
-            `/users/${encodeURIComponent(userId)}/override_ratelimit`,
+            apu(`/users/${encodeURIComponent(userId)}/override_ratelimit`),
             {},
             config ?? {},
         );
@@ -853,7 +868,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         try {
             return await this.adminRequest<RateLimitConfig>(
                 Method.Get,
-                `/users/${encodeURIComponent(userId)}/override_ratelimit`,
+                apu(`/users/${encodeURIComponent(userId)}/override_ratelimit`),
             );
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
@@ -880,7 +895,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      * ```
      */
     async deleteRateLimitOverride(userId: string): Promise<void> {
-        await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/override_ratelimit`);
+        await this.adminRequest(Method.Delete, apu(`/users/${encodeURIComponent(userId)}/override_ratelimit`));
     }
 
     /**
@@ -898,7 +913,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async shadowBanUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Post, `/users/${encodeURIComponent(userId)}/shadow_ban`, {}, undefined);
+        await this.adminRequest(Method.Post, apu(`/users/${encodeURIComponent(userId)}/shadow_ban`), {}, undefined);
         this.emit(AdminUserEvent.UserShadowBanned, userId);
     }
 
@@ -917,7 +932,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async unshadowBanUser(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/shadow_ban`, {}, undefined);
+        await this.adminRequest(Method.Delete, apu(`/users/${encodeURIComponent(userId)}/shadow_ban`), {}, undefined);
         this.emit(AdminUserEvent.UserUnshadowBanned, userId);
     }
 
@@ -942,7 +957,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         try {
             return await this.adminRequest<ShadowBanStatus>(
                 Method.Get,
-                `/users/${encodeURIComponent(userId)}/shadow_ban`,
+                apu(`/users/${encodeURIComponent(userId)}/shadow_ban`),
             );
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
@@ -973,7 +988,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getRateLimit(userId: string, throwOnError = true): Promise<RateLimitConfig | null> {
         try {
-            return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/rate_limit`);
+            return await this.adminRequest(Method.Get, apu(`/users/${encodeURIComponent(userId)}/rate_limit`));
         } catch (e) {
             if (throwOnError) {
                 throw e;
@@ -1015,13 +1030,13 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async setRateLimit(userId: string, config: { messages_per_second?: number; burst_count?: number }): Promise<void> {
         try {
-            await this.adminRequest(Method.Put, `/users/${encodeURIComponent(userId)}/rate_limit`, {}, config);
+            await this.adminRequest(Method.Put, apu(`/users/${encodeURIComponent(userId)}/rate_limit`), {}, config);
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
                 await this.adminRequest(
                     Method.Post,
-                    `/users/${encodeURIComponent(userId)}/override_ratelimit`,
+                    apu(`/users/${encodeURIComponent(userId)}/override_ratelimit`),
                     {},
                     config,
                 );
@@ -1048,7 +1063,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async deleteRateLimit(userId: string): Promise<void> {
         try {
-            await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/rate_limit`);
+            await this.adminRequest(Method.Delete, apu(`/users/${encodeURIComponent(userId)}/rate_limit`));
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
@@ -1075,7 +1090,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getAccountDetails(userId: string): Promise<AdminAccountDetails> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest<AdminAccountDetails>(Method.Get, `/account/${encodeURIComponent(userId)}`);
+        return await this.adminRequest<AdminAccountDetails>(Method.Get, apu(`/account/${encodeURIComponent(userId)}`));
     }
 
     /**
@@ -1100,7 +1115,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         payload: UpdateAccountDetailsRequest,
     ): Promise<UpdateAccountDetailsResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Post, `/account/${encodeURIComponent(userId)}`, {}, payload);
+        return await this.adminRequest(Method.Post, apu(`/account/${encodeURIComponent(userId)}`), {}, payload);
     }
 
     /**
@@ -1119,7 +1134,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getUserWhois(userId: string): Promise<WhoisResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest<WhoisResponse>(Method.Get, `/whois/${encodeURIComponent(userId)}`);
+        return await this.adminRequest<WhoisResponse>(Method.Get, apu(`/whois/${encodeURIComponent(userId)}`));
     }
 
     /**
@@ -1160,7 +1175,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         if (!deviceId) throw new ValidationError("Device ID is required");
         return await this.adminRequest(
             Method.Get,
-            `/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`,
+            apu(`/whois/${encodeURIComponent(userId)}/${encodeURIComponent(deviceId)}`),
         );
     }
 
@@ -1187,7 +1202,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         const queryParams = buildPaginationParams(limit, from);
         const response = await this.adminRequest<{ media?: MediaInfo[]; total?: number }>(
             Method.Get,
-            `/users/${encodeURIComponent(userId)}/media`,
+            apu(`/users/${encodeURIComponent(userId)}/media`),
             queryParams,
         );
         const media = response.media ?? [];
@@ -1208,7 +1223,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async deleteUserMedia(userId: string): Promise<void> {
         AdminValidators.validateUserId(userId);
-        await this.adminRequest(Method.Delete, `/users/${encodeURIComponent(userId)}/media`);
+        await this.adminRequest(Method.Delete, apu(`/users/${encodeURIComponent(userId)}/media`));
     }
 
     /**
@@ -1227,7 +1242,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
      */
     async getUserNotification(userId: string): Promise<UserNotificationResponse> {
         AdminValidators.validateUserId(userId);
-        return await this.adminRequest(Method.Get, `/users/${encodeURIComponent(userId)}/notification`);
+        return await this.adminRequest(Method.Get, apu(`/users/${encodeURIComponent(userId)}/notification`));
     }
 
     /**
@@ -1250,7 +1265,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         return await this.adminRequest(
             Method.Put,
-            `/users/${encodeURIComponent(userId)}/notification`,
+            apu(`/users/${encodeURIComponent(userId)}/notification`),
             {},
             { is_enabled: payload.enabled },
         );
@@ -1271,7 +1286,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         AdminValidators.validateUserId(userId);
         const response = await this.adminRequest<{ pushers?: UserPusher[]; total?: number }>(
             Method.Get,
-            `/users/${encodeURIComponent(userId)}/pushers`,
+            apu(`/users/${encodeURIComponent(userId)}/pushers`),
         );
         const pushers = response.pushers ?? [];
         return { pushers, total: response.total ?? pushers.length };
@@ -1297,7 +1312,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
         if (!pushkey) throw new ValidationError("Pushkey is required");
         await this.adminRequest(
             Method.Delete,
-            `/users/${encodeURIComponent(userId)}/pushers/${encodeURIComponent(pushkey)}`,
+            apu(`/users/${encodeURIComponent(userId)}/pushers/${encodeURIComponent(pushkey)}`),
             {},
             undefined,
         );
@@ -1323,7 +1338,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async blockEventReportUser(userId: string, payload: { blocked_until: number; reason: string }): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/event_reports/rate_limit/${encodeURIComponent(userId)}/block`,
+            apu(`/event_reports/rate_limit/${encodeURIComponent(userId)}/block`),
             {},
             payload,
         );
@@ -1344,7 +1359,7 @@ export class AdminUserManager extends AdminBaseManager<AdminUserEvent, AdminUser
     async unblockEventReportUser(userId: string): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`,
+            apu(`/event_reports/rate_limit/${encodeURIComponent(userId)}/unblock`),
             {},
             undefined,
         );

@@ -26,7 +26,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -124,7 +124,7 @@ export class AdminCleanupManager extends AdminBaseManager {
     async all(payload?: CleanupAllRequest): Promise<CleanupAllResponse> {
         return await this.adminRequest<CleanupAllResponse>(
             Method.Post,
-            "/cleanup/all",
+            apu("/cleanup/all"),
             undefined,
             payload,
             "cleanup.all",
@@ -147,7 +147,7 @@ export class AdminCleanupManager extends AdminBaseManager {
     async rooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse> {
         return await this.adminRequest<CleanupRoomsResponse>(
             Method.Post,
-            "/cleanup/rooms",
+            apu("/cleanup/rooms"),
             undefined,
             payload,
             "cleanup.rooms",
@@ -168,7 +168,7 @@ export class AdminCleanupManager extends AdminBaseManager {
     async tokens(): Promise<CleanupTokensResponse> {
         return await this.adminRequest<CleanupTokensResponse>(
             Method.Post,
-            "/cleanup/tokens",
+            apu("/cleanup/tokens"),
             undefined,
             undefined,
             "cleanup.tokens",

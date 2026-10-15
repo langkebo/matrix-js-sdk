@@ -27,7 +27,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -149,7 +149,7 @@ export class AdminNotificationManager extends AdminBaseManager {
             next_batch?: string | null;
         }>(
             Method.Get,
-            "/notifications",
+            apu("/notifications"),
             Object.keys(params).length > 0 ? params : undefined,
             undefined,
             "notifications.list",
@@ -177,7 +177,7 @@ export class AdminNotificationManager extends AdminBaseManager {
     async get(notificationId: number): Promise<ServerNotification> {
         return await this.adminRequest<ServerNotification>(
             Method.Get,
-            `/notifications/${notificationId}`,
+            apu(`/notifications/${notificationId}`),
             undefined,
             undefined,
             "notifications.get",
@@ -207,7 +207,7 @@ export class AdminNotificationManager extends AdminBaseManager {
     async create(payload: CreateNotificationRequest): Promise<ServerNotification> {
         return await this.adminRequest<ServerNotification>(
             Method.Post,
-            "/notifications",
+            apu("/notifications"),
             undefined,
             payload,
             "notifications.create",
@@ -234,7 +234,7 @@ export class AdminNotificationManager extends AdminBaseManager {
     async update(notificationId: number, payload: UpdateNotificationRequest): Promise<ServerNotification> {
         return await this.adminRequest<ServerNotification>(
             Method.Put,
-            `/notifications/${notificationId}`,
+            apu(`/notifications/${notificationId}`),
             undefined,
             payload,
             "notifications.update",
@@ -256,7 +256,7 @@ export class AdminNotificationManager extends AdminBaseManager {
     async delete(notificationId: number): Promise<void> {
         await this.adminRequest<void>(
             Method.Delete,
-            `/notifications/${notificationId}`,
+            apu(`/notifications/${notificationId}`),
             undefined,
             undefined,
             "notifications.delete",
@@ -280,7 +280,7 @@ export class AdminNotificationManager extends AdminBaseManager {
     async deactivate(): Promise<void> {
         await this.adminRequest<void>(
             Method.Delete,
-            "/notifications/deactivate",
+            apu("/notifications/deactivate"),
             undefined,
             undefined,
             "notifications.deactivate",

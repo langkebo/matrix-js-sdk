@@ -15,10 +15,10 @@
 | 1   | `docs/api-contract/generated/route-manifest.all.json` 的 `entry_count` | **后端 ledger 声明的全部路由**。`state_profile=all`，即 oidc / worker / saml 三个特性开关全开时的最大集合 | 1032 |
 | 2   | `docs/api-contract/generated/modules/*.json` 文件数                    | 后端按 `registered_by` 拆出的**逐模块镜像**。文件名沿用后端模块名（snake_case）                           |   49 |
 | 3   | `src/*/__generated__/` 目录数                                          | 有 SDK 侧生成产物的模块。目录名是 **SDK 目录名**（kebab-case），经 `CONTRACT_MODULE_MAP` 折叠/改名而来    |   48 |
-| 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   46 |
-| 4b  | 上述 46 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  798 |
+| 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   47 |
+| 4b  | 上述 47 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  977 |
 
-> 记忆锚点：**1032 是后端的，798 是前端的**；49 是后端模块视角，48/46 是 SDK 目录视角。
+> 记忆锚点：**1032 是后端的，977 是前端的**；49 是后端模块视角，48/47 是 SDK 目录视角。
 
 ---
 
@@ -51,26 +51,26 @@
 因此**不要**用文件名做集合差：`set(modules/*.json) - set(src/*/__generated__)` 会因为命名规约不同
 而报出一大堆假差异（实测两侧各有约 17-20 个「对不上」的名字，绝大多数是同一模块的两种写法）。
 
-### 48 → 46：2 个模块被显式豁免，只生成 DTO
+### 48 → 47：1 个模块被显式跳过，只生成 DTO
 
-`SKIP_ROUTE_TABLE_MODULES`（`scripts/sdk-contract-codegen.mjs`）列出 2 个**不生成 route-table** 的模块：
+`SKIP_ROUTE_TABLE_MODULES`（`scripts/sdk-contract-codegen.mjs`）列出 1 个**不生成 route-table** 的模块：
 
 ```
-admin · federation
+federation
 ```
 
 豁免不是「免检」：coverage 门禁要求每个条目各有一条 waiver（带 reason + 过期时间），
 且**未列入白名单的模块缺表会直接失败**。这 7 个模块的 `dto.ts` 仍然生成，
-所以 `__generated__` 目录数是 48 而不是 46。
+所以 `__generated__` 目录数是 48 而不是 47。
 
-### 798 vs 1032：两张表的构造规则不同
+### 977 vs 1032：两张表的构造规则不同
 
 - `route-manifest.all.json` = **纯后端 ledger**。
 - `route-table.ts` = **既有条目 ∪ ledger 清单 ∪ `ROUTE_CONTRACT.md`** 三者按 `(method, path)` 去重。
 
 也就是说 route-table 是「SDK 曾经手写过的路径」与「后端声明的路径」的并集，
 因此它的条目**不一定**是 manifest 的子集。跨模块重复由
-`quality:contract-entrypoint` 强制为零（实测当前 46 张表之间 0 重复）。
+`quality:contract-entrypoint` 强制为零（实测当前 47 张表之间 0 重复）。
 
 ---
 
@@ -79,7 +79,7 @@ admin · federation
 | 想问的问题                       | 用哪个                                                                  |
 | -------------------------------- | ----------------------------------------------------------------------- |
 | 后端一共暴露了多少 API？         | **1032**（`route-manifest.all.json`）                                   |
-| SDK 能给出多少条字面量路由常量？ | **798**（46 张 route-table），入口见 `matrix-js-sdk/contract`           |
+| SDK 能给出多少条字面量路由常量？ | **977**（47 张 route-table），入口见 `matrix-js-sdk/contract`           |
 | 有多少模块有 SDK 侧生成物？      | **48**                                                                  |
 | 后端按模块拆成了多少份？         | **49**                                                                  |
 | 某条具体路径 SDK 有没有覆盖？    | 查 `src/contract/index.ts` 的 `SDK_CONTRACT_ROUTES`，不要看上面任何计数 |

@@ -60,7 +60,7 @@ export class AdminFederationManager extends AdminBaseManager {
             blacklist?: FederationBlacklistEntry[];
             total?: number;
             next_batch?: string | null;
-        }>(Method.Get, "/federation/blacklist", queryParams);
+        }>(Method.Get, apu("/federation/blacklist"), queryParams);
         const blacklist = response.blacklist ?? [];
         return { blacklist, total: response.total ?? blacklist.length, next_batch: response.next_batch ?? null };
     }
@@ -90,7 +90,7 @@ export class AdminFederationManager extends AdminBaseManager {
         // 忽略（`reason` 保留在签名中以兼容调用方与将来扩展）。
         await this.adminRequest(
             Method.Post,
-            `/federation/blacklist/${encodeURIComponent(serverName)}`,
+            apu(`/federation/blacklist/${encodeURIComponent(serverName)}`),
             undefined,
             reason ? { reason } : undefined,
         );
@@ -112,7 +112,7 @@ export class AdminFederationManager extends AdminBaseManager {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
-        await this.adminRequest(Method.Delete, `/federation/blacklist/${encodeURIComponent(serverName)}`);
+        await this.adminRequest(Method.Delete, apu(`/federation/blacklist/${encodeURIComponent(serverName)}`));
     }
 
     /**
@@ -129,7 +129,7 @@ export class AdminFederationManager extends AdminBaseManager {
     async getFederationDestinations(): Promise<FederationDestination[]> {
         const response = await this.adminRequest<{ destinations: FederationDestination[] }>(
             Method.Get,
-            "/federation/destinations",
+            apu("/federation/destinations"),
         );
         return response.destinations || [];
     }
@@ -156,7 +156,7 @@ export class AdminFederationManager extends AdminBaseManager {
         try {
             return await this.adminRequest<AdminFederationDestinationDetail>(
                 Method.Get,
-                `/federation/destinations/${encodeURIComponent(serverName)}`,
+                apu(`/federation/destinations/${encodeURIComponent(serverName)}`),
             );
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
@@ -180,7 +180,7 @@ export class AdminFederationManager extends AdminBaseManager {
     async disconnectFederation(serverName: string): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`),
             {},
             undefined,
         );
@@ -221,7 +221,7 @@ export class AdminFederationManager extends AdminBaseManager {
         if (!serverName) throw new ValidationError("Server name is required");
         await this.adminRequest(
             Method.Post,
-            `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`),
             {},
             undefined,
         );
@@ -249,7 +249,7 @@ export class AdminFederationManager extends AdminBaseManager {
         if (options?.limit !== undefined) query.limit = String(options.limit);
         return await this.adminRequest(
             Method.Get,
-            `/federation/destinations/${encodeURIComponent(serverName)}/rooms`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}/rooms`),
             query,
         );
     }
@@ -267,7 +267,7 @@ export class AdminFederationManager extends AdminBaseManager {
     async deleteFederationDestination(serverName: string): Promise<void> {
         await this.adminRequest(
             Method.Delete,
-            `/federation/destinations/${encodeURIComponent(serverName)}`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}`),
             {},
             undefined,
         );
@@ -339,7 +339,7 @@ export class AdminFederationManager extends AdminBaseManager {
     async getFederationAdmissionList(): Promise<PendingFederationServer[]> {
         const response = await this.adminRequest<{ servers?: PendingFederationServer[] }>(
             Method.Get,
-            "/federation/pending",
+            apu("/federation/pending"),
         );
         return response.servers ?? [];
     }
@@ -360,7 +360,7 @@ export class AdminFederationManager extends AdminBaseManager {
     async getPendingFederationServers(from?: string, limit?: number): Promise<PendingFederationList> {
         // `/federation/pending_servers` 回退分支已删除：后端只注册 `/federation/pending`。
         const queryParams = buildPaginationParams(limit, from);
-        return await this.adminRequest<PendingFederationList>(Method.Get, "/federation/pending", queryParams);
+        return await this.adminRequest<PendingFederationList>(Method.Get, apu("/federation/pending"), queryParams);
     }
 
     /**
@@ -376,7 +376,7 @@ export class AdminFederationManager extends AdminBaseManager {
      * ```
      */
     async resolveFederation(serverName: string): Promise<FederationResolveResponse> {
-        return await this.adminRequest(Method.Post, "/federation/resolve", {}, { server_name: serverName });
+        return await this.adminRequest(Method.Post, apu("/federation/resolve"), {}, { server_name: serverName });
     }
 
     /**
@@ -396,7 +396,7 @@ export class AdminFederationManager extends AdminBaseManager {
      */
     async rewriteFederation(from: string, to: string): Promise<FederationRewriteResponse> {
         if (!from || !to) throw new ValidationError("from and to are required");
-        return await this.adminRequest(Method.Post, "/federation/rewrite", {}, { from, to });
+        return await this.adminRequest(Method.Post, apu("/federation/rewrite"), {}, { from, to });
     }
 
     /**
@@ -422,7 +422,12 @@ export class AdminFederationManager extends AdminBaseManager {
      */
     async confirmFederation(serverName: string, accept: boolean): Promise<FederationAdmissionResult> {
         if (!serverName) throw new ValidationError("serverName is required");
-        return await this.adminRequest(Method.Post, "/federation/confirm", {}, { server_name: serverName, accept });
+        return await this.adminRequest(
+            Method.Post,
+            apu("/federation/confirm"),
+            {},
+            { server_name: serverName, accept },
+        );
     }
 
     /**
@@ -442,7 +447,7 @@ export class AdminFederationManager extends AdminBaseManager {
         if (!serverName) throw new ValidationError("Server name is required");
         await this.adminRequest(
             Method.Post,
-            `/federation/blacklist/${encodeURIComponent(serverName)}`,
+            apu(`/federation/blacklist/${encodeURIComponent(serverName)}`),
             {},
             reason ? { reason } : undefined,
         );
