@@ -59,12 +59,14 @@ const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRAC
  * module is silent — prefer migrating the manager onto the generated table instead.
  */
 const SKIP_ROUTE_TABLE_MODULES = new Set([
+    // 注（2026-10-15）：`dm` / `feature-flags` / `key-rotation` 已从此表移除 —— 三者的 manager
+    // 都是「自持前缀 + 字面量相对路径」（dm/key-rotation 走 `VendorPrefix`、feature-flags 走
+    // `AdminPrefix.V1`，与契约表前缀一致），已改为消费生成的 route-table（PathAssert 编译期断言），
+    // 故不再需要"有意不生成表"。剩余 4 个：admin（179 条，待迁）、app-service / federation
+    // （服务端面，SDK 不承担）、reactions（消费点在 client.ts）。
     "admin",
     "app-service",
-    "dm",
-    "feature-flags",
     "federation",
-    "key-rotation",
     "reactions",
 ]);
 

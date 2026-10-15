@@ -52,6 +52,20 @@ import type {
     ICreateRoomResponse,
 } from "./dm-room-creation-types";
 
+import type { DmPath } from "../__generated__/route-table";
+import type { PathAssert, StripVendor } from "../../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `DmPath` 上。
+ *
+ * 契约表的路径带 API 前缀、实现侧写相对路径（前缀由 `prefix:` 字段提供），故先
+ * `StripVendor` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （`http-api/strip-prefix.ts` 的 `PathAssert`），改契约而没跟上 manager 会先炸 tsc。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripVendor<DmPath>>): P {
+    return path;
+}
+
 export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageManagerEventMap> {
     constructor(
         client: MatrixClient,
@@ -276,7 +290,7 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
                 const invite = options?.invite?.length ? Array.from(new Set([userId, ...options.invite])) : undefined;
                 return await this.request<CreateDmRoomResponse>({
                     method: Method.Post,
-                    path: "/create_dm",
+                    path: dp("/create_dm"),
                     body: {
                         user_id: userId,
                         invite,
@@ -367,7 +381,7 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
             const response = await this.withRetry(async () => {
                 return await this.request<UpdateDirectRoomResponse>({
                     method: Method.Put,
-                    path: `/direct/${encodeURIComponent(roomId)}`,
+                    path: dp(`/direct/${encodeURIComponent(roomId)}`),
                     body: body,
                     prefix: VendorPrefix,
                 });

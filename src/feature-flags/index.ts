@@ -13,6 +13,20 @@ import { AdminPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { FeatureFlagsPath } from "./__generated__/route-table";
+import type { PathAssert, StripAdminV1 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `FeatureFlagsPath` 上。
+ *
+ * 契约表的路径带 API 前缀、实现侧写相对路径（前缀由 `prefix:` 字段提供），故先
+ * `StripAdminV1` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （`http-api/strip-prefix.ts` 的 `PathAssert`），改契约而没跟上 manager 会先炸 tsc。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripAdminV1<FeatureFlagsPath>>): P {
+    return path;
+}
+
 export interface FeatureFlag {
     key: string;
     target_scope: string;
@@ -78,7 +92,7 @@ export class FeatureFlagManager extends BaseManager {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlag>({
                     method: Method.Post,
-                    path: "/feature-flags",
+                    path: dp("/feature-flags"),
                     body: body,
                     prefix: AdminPrefix.V1,
                 });
@@ -109,7 +123,7 @@ export class FeatureFlagManager extends BaseManager {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlag>({
                     method: Method.Patch,
-                    path: `/feature-flags/${encodeURIComponent(key)}`,
+                    path: dp(`/feature-flags/${encodeURIComponent(key)}`),
                     body: body,
                     prefix: AdminPrefix.V1,
                 });
@@ -137,7 +151,7 @@ export class FeatureFlagManager extends BaseManager {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlag>({
                     method: Method.Get,
-                    path: `/feature-flags/${encodeURIComponent(key)}`,
+                    path: dp(`/feature-flags/${encodeURIComponent(key)}`),
                     prefix: AdminPrefix.V1,
                 });
             }, "getFlag");
@@ -164,7 +178,7 @@ export class FeatureFlagManager extends BaseManager {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlagListResponse>({
                     method: Method.Get,
-                    path: "/feature-flags",
+                    path: dp("/feature-flags"),
                     queryParams: query,
                     prefix: AdminPrefix.V1,
                 });

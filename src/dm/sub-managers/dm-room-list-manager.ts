@@ -52,6 +52,20 @@ import type {
     DmPartnerResponse,
 } from "./dm-room-list-types";
 
+import type { DmPath } from "../__generated__/route-table";
+import type { PathAssert, StripVendor } from "../../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `DmPath` 上。
+ *
+ * 契约表的路径带 API 前缀、实现侧写相对路径（前缀由 `prefix:` 字段提供），故先
+ * `StripVendor` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （`http-api/strip-prefix.ts` 的 `PathAssert`），改契约而没跟上 manager 会先炸 tsc。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripVendor<DmPath>>): P {
+    return path;
+}
+
 export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManagerEventMap> {
     // 缓存为 public readonly：creation/operation sub-manager 通过 listManager 引用直接读写缓存内容。
     // （字段引用不可重新赋值，但 LRUCache 内部状态可变——这是有意的，避免为每个操作包装一层方法。）
@@ -540,7 +554,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
             const response = await this.withRetry(async () => {
                 return await this.request<DirectRoomsResponse>({
                     method: Method.Get,
-                    path: "/direct",
+                    path: dp("/direct"),
                     prefix: VendorPrefix,
                 });
             });
@@ -580,7 +594,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
         return await this.withRetry(async () => {
             return await this.request<DmRoomCheckResponse>({
                 method: Method.Get,
-                path: `/rooms/${encodeURIComponent(roomId)}/dm`,
+                path: dp(`/rooms/${encodeURIComponent(roomId)}/dm`),
                 prefix: VendorPrefix,
             });
         }, "getRoomDm");
@@ -640,7 +654,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
             const response = await this.withRetry(async () => {
                 return await this.request<DmPartnerResponse>({
                     method: Method.Get,
-                    path: `/rooms/${encodeURIComponent(roomId)}/dm/partner`,
+                    path: dp(`/rooms/${encodeURIComponent(roomId)}/dm/partner`),
                     prefix: VendorPrefix,
                 });
             });
@@ -676,7 +690,7 @@ export class DmRoomListManager extends BaseManager<DMEvent, DirectMessageManager
         await this.withRetry(async () => {
             await this.request<void>({
                 method: Method.Put,
-                path: `/direct/${encodeURIComponent(roomId)}`,
+                path: dp(`/direct/${encodeURIComponent(roomId)}`),
                 prefix: VendorPrefix,
             });
         }, "setDirect");

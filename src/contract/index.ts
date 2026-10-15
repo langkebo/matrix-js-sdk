@@ -32,13 +32,16 @@ import { CAPTCHA_ROUTES } from "../captcha/__generated__/route-table";
 import { CAS_ROUTES } from "../cas/__generated__/route-table";
 import { DELAYED_EVENTS_ROUTES } from "../delayed-events/__generated__/route-table";
 import { DEVICE_ROUTES } from "../device/__generated__/route-table";
+import { DM_ROUTES } from "../dm/__generated__/route-table";
 import { E2EE_ROUTES } from "../e2ee/__generated__/route-table";
 import { EPHEMERAL_ROUTES } from "../ephemeral/__generated__/route-table";
 import { EVENT_REPORT_ROUTES } from "../event-report/__generated__/route-table";
 import { EXTERNAL_SERVICE_ROUTES } from "../external-service/__generated__/route-table";
+import { FEATURE_FLAGS_ROUTES } from "../feature-flags/__generated__/route-table";
 import { FRIEND_ROUTES } from "../friend/__generated__/route-table";
 import { GUEST_ROUTES } from "../guest/__generated__/route-table";
 import { KEY_BACKUP_ROUTES } from "../key-backup/__generated__/route-table";
+import { KEY_ROTATION_ROUTES } from "../key-rotation/__generated__/route-table";
 import { MEDIA_ROUTES } from "../media/__generated__/route-table";
 import { MODERATION_ROUTES } from "../moderation/__generated__/route-table";
 import { MODULE_ROUTES } from "../module/__generated__/route-table";
@@ -86,13 +89,16 @@ export const SDK_CONTRACT_ROUTE_TABLES = {
     cas: CAS_ROUTES,
     "delayed-events": DELAYED_EVENTS_ROUTES,
     device: DEVICE_ROUTES,
+    dm: DM_ROUTES,
     e2ee: E2EE_ROUTES,
     ephemeral: EPHEMERAL_ROUTES,
     "event-report": EVENT_REPORT_ROUTES,
     "external-service": EXTERNAL_SERVICE_ROUTES,
+    "feature-flags": FEATURE_FLAGS_ROUTES,
     friend: FRIEND_ROUTES,
     guest: GUEST_ROUTES,
     "key-backup": KEY_BACKUP_ROUTES,
+    "key-rotation": KEY_ROTATION_ROUTES,
     media: MEDIA_ROUTES,
     moderation: MODERATION_ROUTES,
     module: MODULE_ROUTES,

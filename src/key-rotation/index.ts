@@ -44,6 +44,20 @@ import { Method } from "../http-api/method";
 import { VendorPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { KeyRotationPath } from "./__generated__/route-table";
+import type { PathAssert, StripVendor } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `KeyRotationPath` 上。
+ *
+ * 契约表的路径带 API 前缀、实现侧写相对路径（前缀由 `prefix:` 字段提供），故先
+ * `StripVendor` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （`http-api/strip-prefix.ts` 的 `PathAssert`），改契约而没跟上 manager 会先炸 tsc。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripVendor<KeyRotationPath>>): P {
+    return path;
+}
+
 export interface KeyRotationStatusResponse {
     current_key_id?: string;
     next_rotation_at?: number;
@@ -220,7 +234,7 @@ export class KeyRotationManager extends BaseManager {
         const result = await this.withRetry(async () => {
             return await this.request<KeyRotationStatus>({
                 method: Method.Get,
-                path: "/keys/rotation/status",
+                path: dp("/keys/rotation/status"),
                 prefix: VendorPrefix,
                 headers: this.adminMfaHeaders(),
                 label: "getStatus",
@@ -265,7 +279,7 @@ export class KeyRotationManager extends BaseManager {
         const result = await this.withRetry(async () => {
             return await this.request<RotateKeyResponse>({
                 method: Method.Post,
-                path: "/keys/rotation/rotate",
+                path: dp("/keys/rotation/rotate"),
                 body: request,
                 prefix: VendorPrefix,
                 headers: this.adminMfaHeaders(),
@@ -315,7 +329,7 @@ export class KeyRotationManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<KeyRotationHistory>({
                 method: Method.Get,
-                path: `/keys/rotation/history/${encodeURIComponent(deviceId)}`,
+                path: dp(`/keys/rotation/history/${encodeURIComponent(deviceId)}`),
                 queryParams: {
                     limit: options.limit,
                     from: options.from,
@@ -355,7 +369,7 @@ export class KeyRotationManager extends BaseManager {
         const result = await this.withRetry(async () => {
             return await this.request<RevokeKeyResponse>({
                 method: Method.Post,
-                path: "/keys/rotation/revoke",
+                path: dp("/keys/rotation/revoke"),
                 body: request,
                 prefix: VendorPrefix,
                 headers: this.adminMfaHeaders(),
@@ -409,7 +423,7 @@ export class KeyRotationManager extends BaseManager {
         const result = await this.withRetry(async () => {
             return await this.request<UpdateRotationConfigResponse>({
                 method: Method.Put,
-                path: "/keys/rotation/config",
+                path: dp("/keys/rotation/config"),
                 body: request,
                 prefix: VendorPrefix,
                 headers: this.adminMfaHeaders(),
@@ -457,7 +471,7 @@ export class KeyRotationManager extends BaseManager {
         const result = await this.withRetry(async () => {
             return await this.request<UpdateRotationConfigResponse>({
                 method: Method.Post,
-                path: "/keys/rotation/config",
+                path: dp("/keys/rotation/config"),
                 body: request,
                 prefix: VendorPrefix,
                 headers: this.adminMfaHeaders(),
@@ -483,7 +497,7 @@ export class KeyRotationManager extends BaseManager {
         const result = await this.withRetry(async () => {
             return await this.request<KeyRotationStatus>({
                 method: Method.Post,
-                path: "/keys/rotation/status",
+                path: dp("/keys/rotation/status"),
                 prefix: VendorPrefix,
                 headers: this.adminMfaHeaders(),
                 label: "postStatus",

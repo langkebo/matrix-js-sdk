@@ -31,11 +31,11 @@ const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "gener
 export const WAIVED_MODULES = {
     admin: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     app_service: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    dm: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    feature_flags: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     federation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    key_rotation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     reactions: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
+    // 注（2026-10-15）：`dm` / `feature_flags` / `key_rotation` 的 waiver 已移除 —— 三者的 manager
+    // 自持前缀与字面量相对路径（dm/key_rotation = VendorPrefix；feature_flags = AdminPrefix.V1，
+    // 均与契约表前缀逐字一致），已接入生成的 route-table 并做 PathAssert 编译期断言。
     // 注（2026-10-06）：此处原有 `push_notification` 的 waiver，理由是「本表 10 条是 push 表 38 条的
     // **完全子集**」。实测该理由**不成立**：notifications 表 8 条与 push 表 17 条**交集为空**
     // （`/push/devices`、`/push/send` 只存在于 notifications 表；push 表只含 notifications/pushers/pushrules）。
