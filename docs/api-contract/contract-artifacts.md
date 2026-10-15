@@ -140,14 +140,21 @@ admin · federation
 - `admin-room-manager.deleteRoomMessage` ⇒ **删除该方法**（后端无对应端点，自加入起即恒 404；
   需删消息请用同级 `cascadeRedactEvent`）。删的是方法体 + jsdoc，同文件对它的 `{@link}` 引用已改写。
 
-### ⚠️ B. ledger 覆盖缺口（后端有注册、SDK 的契约镜像里没有 ⇒ 断言无处可依）
+### ⚠️ B. ~~ledger 覆盖缺口~~ → **本结论有误，已撤回（2026-10-15 复核）**
 
-| 后端注册                                                                     | 位置                    |
-| ---------------------------------------------------------------------------- | ----------------------- |
-| `/_synapse/admin/v1/invite/blocklist`、`/_synapse/admin/v1/invite/allowlist` | `admin/server.rs:30,34` |
-
-> 这一族疑似"核心 router 直挂"，未进入按 `registered_by` 分桶的 ledger 导出（与 `assembly` 桶同类情形）。
-> **需后端侧确认导出器覆盖范围**；补上之前，admin 的这两条只能显式豁免（不可静默放行）。
+> **撤回说明**：曾判定 `/_synapse/admin/v1/invite/{blocklist,allowlist}` 属"后端有注册、ledger 没导出"。
+> 复核发现 **ledger 里其实有这 2 条**（admin 表各含 `GET|POST` 两形态）。原判断的匹配用了
+> `path.endsWith(相对路径)`，被 SDK 调用点"**多一段 userId**"（`/invite/blocklist/{user_id}`）
+> 掩盖 ⇒ 误报为"无模块命中"。**教训：用后缀匹配反查归属时，必须先确认段数一致**。
+>
+> **真正的问题在 SDK 侧**（与 §六 A 同类，属真实缺陷而非缺口）：
+> `admin-config-manager.ts` 有 4 处调用使用**带 userId** 的路径 ——
+> `POST|DELETE /_synapse/admin/v1/invite/blocklist/{user_id}`、`/invite/allowlist/{user_id}`，
+> 而后端 `admin/server.rs:29-36` 只注册**无参数**的全局形态
+> （`get_invite_blocklist_admin` / `set_global_invite_blocklist_admin`，及 allowlist 对应两个）
+> ⇒ 这 4 处**恒 404**。后端的形态是"全局名单整体设置"（body 传集合），SDK 的 "单用户增删"
+> 需改为**读—改—写**（与 `InviteBlocklistManager.addToBlocklist` 同款），或收敛掉这组方法。
+> 处置方案与跨仓确认项见 `artifacts/sdk-backend-handoff-2026-10-15.md`。
 
 **处置顺序建议**：先修 A 的两条（行为缺陷）→ 后端补 B 的导出 → 再做 admin 收编
 （断言设计：多前缀（6 种）+ 多模块 union（7 张表））。
