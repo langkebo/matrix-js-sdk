@@ -22,6 +22,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    METRICS,
     evaluateDocsCounts,
     hasDocsCountsFailure,
     renderDocsCountsFailure,
@@ -159,6 +160,98 @@ describe("check-docs-counts / evaluateDocsCounts", () => {
             }),
         });
         expect(hasDocsCountsFailure(result)).toBe(false);
+    });
+});
+
+/**
+ * `CONTRACT_INDEX.md` 的指标（2026-10-15 新增）。
+ *
+ * 该页此前**没有任何门禁覆盖** —— 本脚本原先只守 `contract-artifacts.md` 与 `CLAUDE.md`/`AGENTS.md`。
+ * 后果是真实的：收编线跑了 9 个提交、改了 47 张表的口径，该页仍停在 10-12 的状态，
+ * 且两行端点数本身就是错的（`auth` 写 146 实测 104、`rendezvous` 写 6 实测 10）。
+ */
+describe("check-docs-counts / CONTRACT_INDEX 指标", () => {
+    const INDEX = "docs/api-contract/CONTRACT_INDEX.md";
+
+    /** 形态与真实页面一致：模块表 + 两张**非模块**表（订正说明、批次表）。 */
+    const FIXTURE = [
+        "| 模块     | 文档                             | 端点数 | SDK 覆盖率 | 优先级  |",
+        "| -------- | -------------------------------- | ------ | ---------- | ------- |",
+        "| 认证     | [auth.md](auth.md)               | 104    | 100%       | ✅ 完善 |",
+        "| 联邦     | [federation.md](federation.md)   | 55     | —          | 🖥️ 服务端面 |",
+        "| 延迟事件 | [delayed-events.md](delayed-events.md) | 7 | 100%   | ✅ 完善 |",
+        "",
+        "> | 行        | 原值 |    实测 | 依据          |",
+        "> | --------- | ---: | ------: | ------------- |",
+        "> | `auth.md` |  146 | **104** | `assembly` 桶 |",
+        "",
+        "> | 批次 | 模块（条数）             | 性质         |",
+        "> | ---- | ------------------------ | ------------ |",
+        "> | 001  | `delayed_events`(7)      | 补登记即收编 |",
+    ].join("\n");
+
+    it("只累加模块表行：订正说明表与批次表不计入", () => {
+        const readFile = makeReadFile({ [INDEX]: FIXTURE });
+        expect(METRICS.contractIndexEntrySum(readFile)).toBe(104 + 55 + 7);
+        expect(METRICS.contractIndexModuleRows(readFile)).toBe(3);
+    });
+
+    it("覆盖率列为「—」的行也计入（federation 是唯一无百分比的模块行）", () => {
+        const readFile = makeReadFile({
+            [INDEX]: "| 联邦 | [federation.md](federation.md) | 55 | — | 🖥️ 服务端面 |",
+        });
+        expect(METRICS.contractIndexEntrySum(readFile)).toBe(55);
+        expect(METRICS.contractIndexModuleRows(readFile)).toBe(1);
+    });
+
+    it("无模块表时返回 0（不抛错，交由规则判为不一致）", () => {
+        const readFile = makeReadFile({ [INDEX]: "# 只有正文，没有表格\n" });
+        expect(METRICS.contractIndexEntrySum(readFile)).toBe(0);
+        expect(METRICS.contractIndexModuleRows(readFile)).toBe(0);
+    });
+
+    it("真实事故形态：合计写 1070 而后端是 1032 -> 报不一致", () => {
+        const result = evaluateDocsCounts({
+            rules: [
+                {
+                    file: INDEX,
+                    anchor: "索引表端点数合计 = 后端 ledger 全量（all profile）",
+                    metric: "contractManifestEntries",
+                    pattern: /索引表端点数合计\*\*:\s*\*\*(\d+)\*\*/,
+                },
+            ],
+            metricValues: { contractManifestEntries: 1032 },
+            readFile: makeReadFile({
+                [INDEX]: "- **索引表端点数合计**: **1070**（页级 `entry_count` 之和）\n",
+            }),
+        });
+        expect(result.mismatches).toEqual([
+            {
+                file: INDEX,
+                anchor: "索引表端点数合计 = 后端 ledger 全量（all profile）",
+                metric: "contractManifestEntries",
+                claimed: 1070,
+                actual: 1032,
+            },
+        ]);
+        expect(hasDocsCountsFailure(result)).toBe(true);
+    });
+
+    it("合计行被改写 -> 锚点失配（不能靠删掉这句话绕过）", () => {
+        const result = evaluateDocsCounts({
+            rules: [
+                {
+                    file: INDEX,
+                    anchor: "索引表端点数合计 = 表内各行端点数之和",
+                    metric: "contractIndexEntrySum",
+                    pattern: /索引表端点数合计\*\*:\s*\*\*(\d+)\*\*/,
+                },
+            ],
+            metricValues: { contractIndexEntrySum: 1032 },
+            readFile: makeReadFile({ [INDEX]: "- **索引合计**: 1032\n" }),
+        });
+        expect(result.anchorMisses).toHaveLength(1);
+        expect(result.anchorMisses[0].reason).toContain("anchor sentence not found");
     });
 });
 

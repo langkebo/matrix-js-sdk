@@ -77,6 +77,22 @@ function countRouteTableEntries() {
 }
 
 /**
+ * 抽 `CONTRACT_INDEX.md` 各模块表行的「端点数」（第 3 列）。
+ *
+ * 行形态固定为 ``| 名称 | [x.md](x.md) | 端点数 | 覆盖率 | 状态 |``；
+ * 第 4 列限定为百分数或 `—`，以把它与文档内的**其它**表格区分开 ——
+ * 「订正说明」表是 ``| `auth.md` | 146 | **104** | 依据 |``（第 2 列非 md 链接），
+ * 「本轮变更」批次表是 ``| 001 | `delayed_events`(7) | ... |``（第 2 列无链接）。
+ *
+ * 正则**在函数内构造**（不提升为模块级常量）：带 `g` 的正则是有状态的，共享会让 `lastIndex` 互相污染。
+ */
+function readContractIndexEntries(readFile) {
+    const source = readFile("docs/api-contract/CONTRACT_INDEX.md");
+    const row = /^\|\s*[^|\n]+\|\s*\[[^\]]+\.md\]\([^)]*\)\s*\|\s*(\d+)\s*\|\s*(?:\d+%|—)\s*\|/gm;
+    return [...source.matchAll(row)].map((match) => Number(match[1]));
+}
+
+/**
  * 全部指标：从代码/生成物实时计算。
  *
  * 每个指标是一个 `(readFile) => number`，`readFile` 由调用方注入，
@@ -116,8 +132,19 @@ export const METRICS = {
     contractGeneratedDirs: () => countGeneratedDirs(() => true),
     /** 其中真正有 `route-table.ts` 的模块数。 */
     contractRouteTables: () => countGeneratedDirs((dir) => fs.existsSync(path.join(dir, "route-table.ts"))),
-    /** 39 张 route-table 的条目总数。 */
+    /** 47 张 route-table 的条目总数。 */
     contractRouteTableEntries: countRouteTableEntries,
+    /**
+     * `CONTRACT_INDEX.md` 各模块行「端点数」之和。
+     *
+     * 不变式：逐行求和必须等于「索引表端点数合计」自己声明的那一行（由规则 1a 校验），
+     * 且等于后端 `all` profile 全量（由规则 1b 校验）。两条合起来封住两种漂移方向：
+     * 改错某一行但不改合计 → 1a 红；连合计一起改 → 1b 红。
+     * 2026-10-15 实测该行和曾为 **1070**（`auth` 写 146 应为 104、`rendezvous` 写 6 应为 10）。
+     */
+    contractIndexEntrySum: (readFile) => readContractIndexEntries(readFile).reduce((sum, n) => sum + n, 0),
+    /** `CONTRACT_INDEX.md` 的模块表行数 —— 该页自称的「模块文档页数」应与之一致。 */
+    contractIndexModuleRows: (readFile) => readContractIndexEntries(readFile).length,
 };
 
 /**
@@ -193,6 +220,35 @@ export const RULES = [
         anchor: "route-table 条目总数",
         metric: "contractRouteTableEntries",
         pattern: /字面量路由条目[^\n]*?\|\s*(\d+)\s*\|/,
+    },
+    // ---- CONTRACT_INDEX.md（2026-10-15 新增）----
+    // 该页的「页数 / 合计 / 覆盖率 / 逐模块端点数」此前**完全没有门禁覆盖**
+    // （本脚本原先只守 contract-artifacts.md 与 CLAUDE/AGENTS），于是收编线跑了 9 个提交、
+    // 改了 47 张表的口径，该页却一直停在 10-12 的状态，且 `auth`(146) / `rendezvous`(6)
+    // 两行端点数本身就是错的（实测应为 104 / 10）。现按「同句多文件逐条登记」的既有原则补上。
+    {
+        file: "docs/api-contract/CONTRACT_INDEX.md",
+        anchor: "索引表端点数合计 = 表内各行端点数之和",
+        metric: "contractIndexEntrySum",
+        pattern: /索引表端点数合计\*\*:\s*\*\*(\d+)\*\*/,
+    },
+    {
+        file: "docs/api-contract/CONTRACT_INDEX.md",
+        anchor: "索引表端点数合计 = 后端 ledger 全量（all profile）",
+        metric: "contractManifestEntries",
+        pattern: /索引表端点数合计\*\*:\s*\*\*(\d+)\*\*/,
+    },
+    {
+        file: "docs/api-contract/CONTRACT_INDEX.md",
+        anchor: "模块文档页数（应等于模块表行数）",
+        metric: "contractIndexModuleRows",
+        pattern: /模块文档页数\*\*:\s*(\d+)/,
+    },
+    {
+        file: "docs/api-contract/CONTRACT_INDEX.md",
+        anchor: "生成物模块数",
+        metric: "contractModuleManifests",
+        pattern: /生成物模块数\*\*:\s*(\d+)/,
     },
 ];
 
