@@ -65,11 +65,14 @@ export enum AppServiceEvent {
  * - `id` 是 DB 行 id（i64）
  * - `as_id` 是业务 ID（和请求体 `id` 对应），**应该作为 Manager 的主键**
  * - `sender` 是后端从 `sender_localpart` 重命名后的字段
+ * - `url` **可为 `null`**：后端 `09c028a08` 起支持「无推送端点」的注册
+ *   （上游 `changelog.d/20273.bugfix`，bridge 双傀儡场景），序列化为 JSON `null`
+ *   而非 `""` —— 客户端要靠 `null` 才能区分「没有 url」与「url 是空串」。
  */
 export interface ApplicationServiceResponse {
     id: number;
     as_id: string;
-    url: string;
+    url: string | null;
     sender: string;
     description?: string;
     rate_limited: boolean;
@@ -83,7 +86,11 @@ export interface ApplicationService {
     as_id: string;
     /** DB 行 id；仅调试/关联用，不作为主键 */
     db_id?: number;
-    url: string;
+    /**
+     * 推送端点。**`null` = 该应用服务没有推送端点**（后端 `09c028a08` 起允许）——
+     * 它仍可用自己的 token 认证，但收不到任何事件、也无法被反向代理到。
+     */
+    url: string | null;
     as_token?: string;
     hs_token?: string;
     sender_localpart: string;
@@ -128,7 +135,7 @@ export interface UserAppservicesResponse {
     appservices: Array<{
         id?: string;
         as_id?: string;
-        url?: string;
+        url?: string | null;
         sender_localpart?: string;
         namespaces?: object;
         [key: string]: unknown;
@@ -161,7 +168,14 @@ export interface PingResult {
 export interface RegisterApplicationServiceRequest {
     /** 业务 ID（对应后端 RegisterAppServiceBody.id） */
     id: string;
-    url: string;
+    /**
+     * 推送端点。**可省略或显式给 `null`** —— 两者等价，表示注册一个
+     * 「无推送端点」的应用服务（后端 `09c028a08`，上游 20273）。
+     *
+     * ⚠️ **不接受空串**：后端会拒绝 `""` 并提示改用 `null`（空串会引入
+     * 「没有 url」与「url 是空串」的隐式约定）。SDK 在发起前就抛 `ValidationError`。
+     */
+    url?: string | null;
     as_token: string;
     hs_token: string;
     /** 发送者（本地部分），后端将其映射为 sender_localpart 存储 */
@@ -218,10 +232,16 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     /**
      * 注册一个新的应用服务（Application Service）。
      *
+     * @remarks
+     * `url` **可省略或给 `null`**（两者等价）—— 注册一个「无推送端点」的应用服务，
+     * 它仍可用自己的 token 认证，但收不到事件、也不能被反向代理到
+     * （后端 `09c028a08`，上游 `changelog.d/20273.bugfix`）。
+     * 空串 `""` 会被**拒绝**：后端要求用 `null` 表达「没有 url」。
+     *
      * @param request - 应用服务注册参数
      * @returns 规范化后的应用服务对象
      *
-     * @throws {ValidationError} 缺少必填字段时抛出
+     * @throws {ValidationError} 缺少必填字段、或 `url` 传了空串时抛出
      * @throws {ApiError} 后端请求失败时透传
      *
      * @example
@@ -234,12 +254,43 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
      *     sender_localpart: "appservice",
      * });
      * ```
+     *
+     * @example
+     * ```typescript
+     * // 无推送端点（bridge 双傀儡）：省略 url 或显式传 null 等价
+     * const puppet = await client.getAppServiceManager().registerAppService({
+     *     id: "my-bridge-puppet",
+     *     url: null,
+     *     as_token: "as-token",
+     *     hs_token: "hs-token",
+     *     sender_localpart: "puppet",
+     * });
+     * ```
      */
     async registerAppService(request: RegisterApplicationServiceRequest): Promise<ApplicationService> {
-        if (!request.id || !request.url || !request.as_token || !request.hs_token || !request.sender_localpart) {
+        if (!request.id || !request.as_token || !request.hs_token || !request.sender_localpart) {
             throw new ValidationError("Missing required fields for application service registration");
         }
+        if (request.url === "") {
+            throw new ValidationError(
+                "Invalid application service url: empty string. Use `null` (or omit the field) to register without a push endpoint.",
+            );
+        }
 
+        // `url` 可选：「省略」与「显式 null」在后端都表示「无推送端点」。报文里直接放
+        // `request.url`：`undefined` 会被 `src/http-api/fetch.ts` 的 `JSON.stringify`
+        // **丢弃** ⇒ 等价于「不发该键」；显式 `null` 则原样发出（后端要靠 `null`
+        // 区分「没有 url」与「url 是空串」）。
+        //
+        // ⚠️ 下面两条是**门禁约束**，都实测踩过，改这段代码前务必读：
+        //   1. body 必须是**内联对象字面量** —— 改成 `...(cond ? {url} : {})` 展开、
+        //      或先 `const body = …` 再传，`quality:wire-format` 的抽取器就判不出键集，
+        //      该调用点会落进 `sdk-keys-unknown` 覆盖桶（实测桶 50 → 51）。
+        //   2. **注释不能夹在这个请求规格对象的属性之间**（尤其别紧贴 `body:` 前面）——
+        //      抽取器按顶层逗号切块，块首是 `//` 时整块被当纯注释 ⇒ 被注释"粘住"的那个
+        //      属性直接消失。落在 `body:` 上会被读成「确定不发 body」，凭空报 3 条
+        //      `request-required-missing`；落在 `method:`/`path:` 上则该调用点被
+        //      **静默丢弃**（不进 calls 也不进 unchecked，分母变小）。
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
@@ -310,10 +361,17 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     /**
      * 更新指定应用服务的配置。
      *
+     * @remarks
+     * `url` 的三个态在本接口上**不等价**（对齐后端 `COALESCE($2, url)` 语义）：
+     * 省略 或 `null` 都表示「不改动 url」；只有非空的 URL 字符串才会写入。
+     * 也就是说经本接口**无法把 url 改回「无推送端点」** —— 空串会被拒绝
+     * （后端也会拒绝，且要求用 `null` 表达该语义，但 `null` 在此表示"不改"）。
+     *
      * @param asId - 应用服务业务 ID
      * @param request - 需要更新的字段
      * @returns 更新后的应用服务对象
      *
+     * @throws {ValidationError} `url` 传了空串时抛出
      * @throws {ApiError} 后端请求失败时透传
      *
      * @example
@@ -327,6 +385,12 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         asId: string,
         request: UpdateApplicationServiceRequest,
     ): Promise<ApplicationService> {
+        if (request.url === "") {
+            throw new ValidationError(
+                "Invalid application service url: empty string. Omit the field to keep the current url unchanged.",
+            );
+        }
+
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
