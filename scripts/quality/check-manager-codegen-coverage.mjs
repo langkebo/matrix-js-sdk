@@ -35,14 +35,9 @@ export const WAIVED_MODULES = {
     // 10 条 `/_matrix/client/*`（客户端面，含 7 条 `proxy/{as_id}/{*path}` 通配代理）——
     // 而 `src/app-service/index.ts` 的 21 处路径与该模块的 admin/客户端面**逐条对应**
     // （4 处 thirdparty 路由另属 third-party 模块表）。故接入 route-table 后移除 waiver。
-    federation: {
-        reason:
-            "服务端面：55 条全部是 server-to-server / key-server API（_matrix/federation/v1 36 + v2 7 + " +
-            "unstable 1、_synapse/federation/* 7、_matrix/key/v2 4），客户端 SDK 不承担 ⇒ 不是'缺 consumer'，" +
-            "而是**本口径不适用**。已实测核对无客户端前缀混入（2026-10-15）。处置建议：把 " +
-            "CONTRACT_MODULE_MAP 的 `联邦` 映射改为 null（与 3PID/AI 连接同款），或在本门禁另立 SERVER_ONLY 类别。",
-        expires: "2026-12-31",
-    },
+    // 注（2026-10-15）：`federation` 已从 WAIVED **移入 `SERVER_ONLY_MODULES`**（见文件上方该常量的注释）。
+    // 依据：逐条实测其 55 条路径全为 server-to-server / key-server API，客户端 SDK 不承担
+    // ⇒ 属"本口径不适用"，而非"有期限的欠账"。故不再挂 waiver。
     // 注（2026-10-15）：此处原有 `reactions` 的 waiver。该模块的 manager 是薄包装
     // （`src/reactions/index.ts` 委托 `client.reactToMessage` → `RoomEventsManager.sendReaction`），
     // 真正的路径字面量在 `src/room-events/index.ts` 的
@@ -72,6 +67,23 @@ export const WAIVED_MODULES = {
     // 构造点都是「方法内局部常量 `const path = "…"`」或字面量，并未做运行时前缀拼接。现已在
     // `const path` 声明处与字面量处接入 `apu()`（`StripAdminV1`）与 `cpu()`（`StripCasProtocol`）断言，
     // 故移除 waiver。
+};
+
+/**
+ * **服务端面模块**：其路由由 homeserver（server-to-server / key-server）消费，客户端 SDK 天然
+ * 不承担 ⇒ 不属于本门禁「应有消费点」的口径。**与 WAIVED 的区别**：WAIVED 隐含"本应覆盖、
+ * 目前暂缺"（是有期限的欠账）；SERVER_ONLY 是"本口径不适用"（不是欠账）。
+ *
+ * 与 `UMBRELLA`（assembly）并列：单列一类、不计入 WAIVED，也不进"未受 route-table 约束的路由"计数。
+ * 每条必须带**实测证据**——不得凭印象归类（这是本仓反复踩过的坑：豁免理由常与事实不符）。
+ */
+export const SERVER_ONLY_MODULES = {
+    federation: {
+        reason: "server-to-server / key-server API：由 homeserver 之间与 key server 调用，客户端 SDK 不承担",
+        evidence:
+            "2026-10-15 逐条实测全部 55 条路径前缀：_matrix/federation/v1 36 + v2 7 + unstable 1、" +
+            "_synapse/federation/* 7、_matrix/key/v2 4 —— **无**任何 /_matrix/client/* 或 /_synapse/admin/* 混入",
+    },
 };
 
 /** The pre-existing heuristic for "this file talks to the server". */
@@ -297,9 +309,11 @@ function main() {
         waived: 0,
         missing: 0,
         umbrella: [],
+        serverOnly: [],
         // 「未受 route-table 约束的路由条数」—— 口径见输出段注释（2026-10-13 新增）。
         waivedRoutes: 0,
         umbrellaRoutes: 0,
+        serverOnlyRoutes: 0,
         missingModules: [],
         coveredModules: [],
         waivedModules: [],
@@ -324,6 +338,14 @@ function main() {
             log(
                 `  UMBRELLA: ${moduleName} (${moduleInfo.entry_count} routes) -> governed by umbrella docs/manager mapping`,
             );
+            continue;
+        }
+
+        const serverOnly = SERVER_ONLY_MODULES[moduleName];
+        if (serverOnly) {
+            summary.serverOnly.push({ moduleName, routes: moduleInfo.entry_count, reason: serverOnly.reason });
+            summary.serverOnlyRoutes += moduleInfo.entry_count;
+            log(`  SERVER_ONLY: ${moduleName} (${moduleInfo.entry_count} routes) -> ${serverOnly.reason}`);
             continue;
         }
 
@@ -390,6 +412,8 @@ function main() {
         // 路由维度：WAIVED 模块多少条路由**没有** route-table 约束（模块维度之外的第二个视角）
         waivedRoutes: summary.waivedRoutes,
         umbrellaRoutes: summary.umbrellaRoutes,
+        serverOnly: summary.serverOnly,
+        serverOnlyRoutes: summary.serverOnlyRoutes,
         // 含 WAIVED 的模块维度覆盖率 —— 与 coverageRate（剔除 WAIVED）并列，防止单看 100.0% 被误导
         moduleCoverageRateWithWaivers:
             summary.covered + summary.waived === 0
@@ -429,7 +453,8 @@ function main() {
     console.log(
         `  ↳ 含 WAIVED 的模块维度: ${moduleCoverage}% (${summary.covered}/${coveredPlusWaived}); ` +
             `**无 route-table 约束的路由 ${summary.waivedRoutes} 条**（WAIVED ${summary.waived} 个模块）` +
-            `${summary.umbrellaRoutes > 0 ? `；另有 umbrella ${summary.umbrellaRoutes} 条由文档/管理器映射治理` : ""}`,
+            `${summary.umbrellaRoutes > 0 ? `；另有 umbrella ${summary.umbrellaRoutes} 条由文档/管理器映射治理` : ""}` +
+            `${summary.serverOnlyRoutes > 0 ? `；server-only ${summary.serverOnlyRoutes} 条属服务端面（SDK 不承担，本口径不适用）` : ""}`,
     );
 
     if (unusedWaivers.length > 0) {
