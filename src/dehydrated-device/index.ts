@@ -4,6 +4,26 @@ import { Method } from "../http-api/method";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
+import type { AuthPath } from "../auth/__generated__/route-table";
+import type { PathAssert, StripMsc3814 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到 **auth** 模块的契约表上。
+ *
+ * 为什么借 auth 的表：`dehydrated_device` 的路由在 ledger 里归 **`assembly` 桶**
+ * （核心 router 直挂，`registered_by: assembly::create_router`），而 SDK 侧 `assembly`
+ * 已被映射到 `auth` 目录（见 `scripts/contract-module-map.mjs` 的 `LEDGER_MODULE_TO_SDK_DIR`）。
+ * 因此本目录**没有**自己的 route-table —— 这与 `room-events` 借 `ReactionsPath`、
+ * `app-service` 借 `ThirdpartyPath`、`room-summary` 借 `RoomPath` **同型**。
+ *
+ * `StripMsc3814` 剥离 `/_matrix/client/unstable/org.matrix.msc3814.v1`；auth 表里不带该前缀的
+ * 条目会落到 `StripPrefix` 的 fallback（`never`）而被丢弃，故实际放行的只有该前缀下的若干条。
+ * 拼错尾段 / 凭空增删段（例如曾经存在过的 `initial_device`）会在**编译期**报 TS2345。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripMsc3814<AuthPath>>): P {
+    return path;
+}
+
 const MSC3814_PREFIX = "/_matrix/client/unstable/org.matrix.msc3814.v1";
 
 export interface DehydratedDeviceData {
@@ -104,7 +124,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<CreateDehydratedDeviceResponse>({
                 method: Method.Put,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
@@ -128,7 +148,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<DeviceInfo>({
                 method: Method.Get,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 prefix: MSC3814_PREFIX,
             });
         }, "getDevice");
@@ -147,7 +167,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<GetDevicesResponse>({
                 method: Method.Get,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 prefix: MSC3814_PREFIX,
             });
         }, "getDevices");
@@ -166,7 +186,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<DeviceStatusResponse>({
                 method: Method.Get,
-                path: "/dehydrated_device/status",
+                path: dp("/dehydrated_device/status"),
                 prefix: MSC3814_PREFIX,
             });
         }, "getDeviceStatus");
@@ -198,7 +218,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<ClaimDehydratedDeviceResponse>({
                 method: Method.Post,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/events`,
+                path: dp(`/dehydrated_device/${encodeURIComponent(deviceId)}/events`),
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
@@ -231,7 +251,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<UpdateDehydratedDeviceResponse>({
                 method: Method.Put,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
@@ -255,7 +275,7 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<Record<string, never>>({
                 method: Method.Delete,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 prefix: MSC3814_PREFIX,
             });
         }, "deleteDevice");

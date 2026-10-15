@@ -292,11 +292,66 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 **8 处调用点全部处于管辖外**。而门禁把 `assembly` 的 105 条按 `umbrella` 单列、**不计入覆盖率分母**，
 所以这个洞不会被任何数字暴露。
 
-> **与 `invite_blocklist` / `delayed_events` 同型** —— 不是"不需要表"，而是**登记缺失**。
-> 收编范式见 §五。本模块要补四件事：① 建 `docs/api-contract/dehydrated-device.md`（含 `module:` frontmatter）；
-> ② 加 `CONTRACT_INDEX.md` 索引行（并同步合计与页数）；③ 登记 `LEDGER_MODULE_ALIASES` / `CONTRACT_MODULE_MAP`
-> 并从 `SKIP_ROUTE_TABLE_MODULES` 之外确认；④ manager 消费生成的 route-table 并加 `PathAssert`（断言前需
-> `StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc3814.v1">`）。
+> **⚠️ 与 `invite_blocklist` / `delayed_events` **不同型** —— 这是本节最关键的订正**：那两个模块在
+> ledger 里**有独立模块**，补登记即可收编；而 `dehydrated_device` **不是 ledger 模块**（它的 6 条只是
+> `assembly` 桶的一部分）⇒ ①「建页 + 加索引行」**不够**：codegen 会枚举到新页，但
+> `loadLedgerEntriesForSdkDir("dehydrated-device")` 返回**空**（`assembly` 只映射到 `auth`，
+> 见 `LEDGER_MODULE_TO_SDK_DIR`）⇒ 会生成一张**空表**（比没有更糟：看似受管辖、实则零约束）；
+> ② 也**登记不了** `LEDGER_MODULE_ALIASES`（ledger 侧没有这个模块名）。故本轮改为**借表**（见 7.4）。
+
+### 7.4 本轮实际做法：**借 `auth` 表**（已实施，零机制改动）
+
+**没有**新建该模块的独立契约表，而是按既有映射**借用 `auth` 表**做断言 —— `assembly → auth` 是
+`contract-module-map.mjs` 里**早已存在**的映射，`src/auth/__generated__/route-table.ts`（105 条）
+本就含这 6 条 msc3814 路由。这与 `room-events` 借 `ReactionsPath`、`app-service` 借 `ThirdpartyPath`、
+`room-summary` 借 `RoomPath` **完全同型**。
+
+实施：新增 `StripMsc3814`（剥离 `/_matrix/client/unstable/org.matrix.msc3814.v1`），
+本目录 **7 处** `path` 接入 `dp()`。auth 表里不带该前缀的条目会落到 `StripPrefix` 的 fallback（`never`）
+而被丢弃 ⇒ **实际放行的只有该前缀下的 6 条**。
+
+**变异自证（3 组，全部按预期报红）**：
+
+| 变异                                                            | 结果                                                |
+| --------------------------------------------------------------- | --------------------------------------------------- |
+| `/dehydrated_device` → `/dehydrated_devicez`                    | ❌ TS2345                                           |
+| `/dehydrated_device/status` → `/dehydrated_device/statuz`       | ❌ TS2345                                           |
+| **`…/events` → `…/initial_device`（复现 §六 D #2 的历史缺陷）** | ❌ **TS2345** —— 证明该断言**本可以拦住那个真缺陷** |
+
+**代价（已知、可接受）**：断言面是「auth 表里带 msc3814 前缀的条目」而非"独立成表"；
+且本目录**仍不在 `quality:manager-codegen` 的管辖清单里**（该门禁按 ledger 模块遍历，
+而 `dehydrated_device` 不是 ledger 模块）。
+
+### 7.5 若要让该模块"真正纳入管辖"：需要 codegen 的**子集切分**（待议，本轮未做）
+
+彻底办法是给 codegen 加"从某 ledger 模块按路径前缀切出子集"的机制，例如：
+
+```js
+// scripts/contract-module-map.mjs
+export const LEDGER_MODULE_SLICES = {
+    "dehydrated-device": {
+        fromLedgerModule: "assembly",
+        pathPrefix: "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
+    },
+};
+```
+
+再让 `loadLedgerEntriesForSdkDir` 优先走 slices、`contract-sync` 允许"多页共享同一镜像源"
+（两个页面的针脚同指 `assembly.json`）。
+
+**评估**：改动涉及 codegen 的模块发现、镜像指针与门禁枚举口径，属**机制扩展**；
+而收益是「断言面 6 条 vs 借表的 6 条」—— **实际等价**，额外收益仅是形式更干净与门禁可管辖。
+⇒ 本轮**不做**，仅记录。**更根本的做法在后端侧**（见 7.6）。
+
+### 7.6 后端建议：让 ledger 能给该族独立模块（P2）
+
+`dehydrated_device` 之所以不是独立模块，是因为它的路由由 `assembly::create_router` 直挂
+（`derived_route_table_always.inc.rs` 里的 `registered_by` 即 `assembly::create_router`），
+而 ledger 导出器按 `registered_by` 分桶（`ledger_export.rs` 的 `moduleKeyFor`）。
+
+若后端把 msc3814 那一族注册到**独立 sub-router**（`registered_by` 变成如
+`dehydrated_device::create_router`），ledger 就会给它独立模块 ⇒ SDK 侧可生成独立表并纳入门禁。
+已写入 `artifacts/sdk-backend-handoff-2026-10-15.md`。
 
 ### 7.2 #2 的完整取证：`initial_device` 到底是什么
 

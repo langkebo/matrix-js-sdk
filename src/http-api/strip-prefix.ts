@@ -73,6 +73,9 @@ export type StripCasProtocol<P extends string> = StripPrefix<P, "/_synapse/cas">
 /** 剥离 `/_matrix/client/unstable/org.matrix.msc4140`（delayed events）。 */
 export type StripMsc4140<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc4140">;
 
+/** 剥离 `/_matrix/client/unstable/org.matrix.msc3814.v1`（dehydrated devices / MSC3814）。 */
+export type StripMsc3814<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc3814.v1">;
+
 // ---------------------------------------------------------------------------
 // 多前缀形态：按列出的顺序依次匹配（TS 条件类型按书写顺序求值）。
 // ---------------------------------------------------------------------------
