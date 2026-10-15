@@ -4,7 +4,7 @@
  * 为什么需要这个文件
  * ------------------
  * 契约码表由 `pnpm run contract:codegen` 生成到 `src/<module>/__generated__/route-table.ts`，
- * 共 39 张表、853 条路由。此前消费者若要用这些常量，只能绕过 `package.json#exports`
+ * 共 40 张表、736 条路由。此前消费者若要用这些常量，只能绕过 `package.json#exports`
  * 深度导入源文件（例如 `matrix-js-sdk/src/room/__generated__/route-table`）——
  * 那会把消费者绑死在 SDK 的**源码目录布局**上，且在同一份产物里混入另一个 SDK 检出。
  *
@@ -14,7 +14,7 @@
  * import { SDK_CONTRACT_ROUTE_TABLES, SDK_CONTRACT_ROUTES } from "matrix-js-sdk/contract";
  *
  * SDK_CONTRACT_ROUTE_TABLES.room;   // 单模块路由表（literal-typed）
- * SDK_CONTRACT_ROUTES;              // 全部 853 条，按模块拼接
+ * SDK_CONTRACT_ROUTES;              // 全部 736 条，按模块拼接
  * ```
  *
  * 维护约定
@@ -30,6 +30,7 @@ import { BACKGROUND_UPDATE_ROUTES } from "../background-update/__generated__/rou
 import { BURN_AFTER_READ_ROUTES } from "../burn-after-read/__generated__/route-table";
 import { CAPTCHA_ROUTES } from "../captcha/__generated__/route-table";
 import { CAS_ROUTES } from "../cas/__generated__/route-table";
+import { DELAYED_EVENTS_ROUTES } from "../delayed-events/__generated__/route-table";
 import { DEVICE_ROUTES } from "../device/__generated__/route-table";
 import { E2EE_ROUTES } from "../e2ee/__generated__/route-table";
 import { EPHEMERAL_ROUTES } from "../ephemeral/__generated__/route-table";
@@ -83,6 +84,7 @@ export const SDK_CONTRACT_ROUTE_TABLES = {
     "burn-after-read": BURN_AFTER_READ_ROUTES,
     captcha: CAPTCHA_ROUTES,
     cas: CAS_ROUTES,
+    "delayed-events": DELAYED_EVENTS_ROUTES,
     device: DEVICE_ROUTES,
     e2ee: E2EE_ROUTES,
     ephemeral: EPHEMERAL_ROUTES,

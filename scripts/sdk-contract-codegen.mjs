@@ -244,7 +244,7 @@ const CONTRACT_MODULE_MAP = {
     密钥轮转: "key-rotation",
     小组件: "widget",
     应用服务: "app-service",
-    延迟事件: null,
+    延迟事件: "delayed-events",
     房间: "room",
     推送: "push",
     搜索: "search",

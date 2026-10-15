@@ -67,6 +67,9 @@ export type StripSimplifiedSlidingSync<P extends string> = StripPrefix<
 /** 剥离 `/_matrix/client/unstable/org.matrix.msc4354`（sticky events）。 */
 export type StripMsc4354<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc4354">;
 
+/** 剥离 `/_matrix/client/unstable/org.matrix.msc4140`（delayed events）。 */
+export type StripMsc4140<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc4140">;
+
 // ---------------------------------------------------------------------------
 // 多前缀形态：按列出的顺序依次匹配（TS 条件类型按书写顺序求值）。
 // ---------------------------------------------------------------------------

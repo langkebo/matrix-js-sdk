@@ -19,6 +19,7 @@ export const LEDGER_MODULE_ALIASES = {
     "burn-after-read": "burn_after_read",
     captcha: "captcha",
     cas: "cas",
+    "delayed-events": "delayed_events",
     device: "device",
     dm: "dm",
     e2ee: "e2ee_routes",

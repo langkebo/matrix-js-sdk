@@ -36,15 +36,17 @@ export const WAIVED_MODULES = {
     federation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     key_rotation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     reactions: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    delayed_events: {
-        reason: "1 route; manager gates on an unstable feature and needs no table",
-        expires: "2026-12-31",
-    },
     // 注（2026-10-06）：此处原有 `push_notification` 的 waiver，理由是「本表 10 条是 push 表 38 条的
     // **完全子集**」。实测该理由**不成立**：notifications 表 8 条与 push 表 17 条**交集为空**
     // （`/push/devices`、`/push/send` 只存在于 notifications 表；push 表只含 notifications/pushers/pushrules）。
     // 也就是说，这是把一条「有表没人读」用错误理由豁免掉了 —— 纸面 waiver。
     // 现已让 `src/notifications/index.ts` 真正消费本表（push/devices ×3 + push/send），故移除 waiver。
+    // 注（2026-10-15）：此处原有 `delayed_events` 的 waiver，理由是「1 route; manager gates on
+    // an unstable feature and needs no table」。该理由**已过期**：后端 2026-10-14 把该族补齐到
+    // 7 条（列表 / 单条 / body 动作 / 3 条 action-in-PATH / 专用调度），且 SDK 有真实消费者
+    // `DelayedEventsManager`（6 个公开方法）。造成"无表"的真因是**登记缺失**——模块既不在
+    // `LEDGER_MODULE_ALIASES`，后端文档章节也未映射到 SDK 目录，于是两条 codegen 通道都取不到它。
+    // 现已补 alias + 章节映射 + `StripMsc4140`，manager 路径改为编译期 segment 级断言，故移除 waiver。
     invite_blocklist: {
         reason:
             "把 invite allow/blocklist 从 vendor 分组归到功能域后，ledger 侧是独立模块；但 SDK codegen 以" +

@@ -82,14 +82,15 @@
 
 ## 扩展模块
 
-| 模块     | 文档                                     | 端点数 | SDK 覆盖率 | 优先级                              |
-| -------- | ---------------------------------------- | ------ | ---------- | ----------------------------------- |
-| CAS 认证 | [cas.md](cas.md)                         | 12     | 100%       | ✅ 完善 (含协议端点 URL helper)     |
-| SAML     | [saml.md](saml.md)                       | 16     | 100%       | ✅ 完善                             |
-| OIDC     | [oidc.md](oidc.md)                       | 10     | 100%       | ✅ 完善 (以 v3 为 canonical 封装面) |
-| 验证码   | [captcha.md](captcha.md)                 | 5      | 100%       | ✅ 完善 (默认 v3，显式 r0 兼容)     |
-| 阅后即焚 | [burn-after-read.md](burn-after-read.md) | 7      | 100%       | ✅ 完善                             |
-| 模块管理 | [module.md](module.md)                   | 23     | 100%       | ✅ 完善                             |
+| 模块     | 文档                                     | 端点数 | SDK 覆盖率 | 优先级                                   |
+| -------- | ---------------------------------------- | ------ | ---------- | ---------------------------------------- |
+| CAS 认证 | [cas.md](cas.md)                         | 12     | 100%       | ✅ 完善 (含协议端点 URL helper)          |
+| SAML     | [saml.md](saml.md)                       | 16     | 100%       | ✅ 完善                                  |
+| OIDC     | [oidc.md](oidc.md)                       | 10     | 100%       | ✅ 完善 (以 v3 为 canonical 封装面)      |
+| 验证码   | [captcha.md](captcha.md)                 | 5      | 100%       | ✅ 完善 (默认 v3，显式 r0 兼容)          |
+| 阅后即焚 | [burn-after-read.md](burn-after-read.md) | 7      | 100%       | ✅ 完善                                  |
+| 模块管理 | [module.md](module.md)                   | 23     | 100%       | ✅ 完善                                  |
+| 延迟事件 | [delayed-events.md](delayed-events.md)   | 7      | 100%       | ✅ 完善 (3 条 action-in-PATH 有意不封装) |
 
 ## 其他模块（MatrixClient 基类 / 独立入口处理）
 
@@ -106,12 +107,12 @@
 
 ## 总览统计
 
-- **模块文档页数**: 49（其中 `auth.md` 为 umbrella 页；45 页带 `module:` frontmatter，直接对应一个生成物模块）
+- **模块文档页数**: 50（其中 `auth.md` 为 umbrella 页；46 页带 `module:` frontmatter，直接对应一个生成物模块）
 - **生成物模块数**: 49（`generated/modules/*.json`）
-- **后端路由端点数**（`ledger_export_sdk` 三 profile）: `default` **1008** / `worker` **1019** / `all` **1027**
-- **索引表端点数合计**: 1059（页级 `entry_count` 之和；`auth.md` 为 umbrella 页，`worker-body.md` 与 `worker-admin.md` 共享 `worker` 模块，故与 1027 不等）
-- **平均 SDK 覆盖率**: 97.1%
-- **完善模块 (≥85%)**: 44 / 46
+- **后端路由端点数**（`ledger_export_sdk` 三 profile）: `default` **1013** / `worker` **1024** / `all` **1032**
+- **索引表端点数合计**: 1066（页级 `entry_count` 之和；`auth.md` 为 umbrella 页，`worker-body.md` 与 `worker-admin.md` 共享 `worker` 模块，故与 1032 不等）
+- **平均 SDK 覆盖率**: 97.1%（2026-10-12 核算；2026-10-15 新增 `delayed-events.md` 为 100%，未重算整体均值）
+- **完善模块 (≥85%)**: 45 / 47
 - **待提升模块 (50-84%)**: 0
 - **待封装模块 (<50%)**: 2 —— `admin.md` 31%、`federation.md` 35%
 
@@ -129,6 +130,13 @@
 > ⑤ `media.md` 路由清单由 20 条补全为 **36 条**（原缺分块上传家族、r0 全组、`download_signed`、authenticated media）。
 > 详细差异与影响面见 `../../OPS_ARTIFACTS/` 下的同步报告。
 
+> **本轮变更（2026-10-15，基线后端 `326d3fd4`）**：
+> ① 新增本页并把 `delayed_events` 收编进 codegen（补 `__generated__/route-table`，**7 条**）。该模块此前
+> 既未登记在 `LEDGER_MODULE_ALIASES`、后端「延迟事件」章节也未映射到 SDK 目录，于是 doc 与 ledger
+> 两条通道都取不到它 ⇒ 长期处于 **WAIVED（无 route-table 约束）**，且豁免理由「1 route」已随后端
+> 2026-10-14 补齐端点而过期。现 manager 的路径字面量经 `PathAssert` 做编译期 segment 级断言；
+> ② `generated/` 镜像与 46 个页面的 `generated_hash` 针脚随同步刷新（后端路由集未变，仍 `all` **1032**）。
+
 ## 图例
 
 - ✅ 完善：SDK 覆盖率 ≥ 85%
@@ -139,5 +147,6 @@
 
 | 日期       | 变更说明                                                                                                                                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-10-15 | 新增 `delayed-events.md`（7 条）并把 `delayed_events` 从 WAIVED 收编进 codegen（`route-table` 39 → 40 张、条目 729 → 736、无约束路由 315 → 308）                                                                               |
 | 2026-05-11 | 第二轮审计 52 项问题全部闭环；48 个合约 JSON commit hash 统一为 `6ba41b535c04`；codegen 重新生成 128 个文件；覆盖率从 ~65% 提升至 ~91%；🔴 待封装模块从 11 降至 0；`worker-admin` 与 `background-update` 管理面契约补齐到 100% |
 | 2026-04-27 | 初始版本，基于第一轮部分审计结果                                                                                                                                                                                               |
