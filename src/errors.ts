@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import type { IAuthData } from "./interactive-auth";
-import { extractNumber, extractString, extractNested, extractHeader } from "./utils/type-guards";
+import { extractHeader, extractNested, extractNumber, extractString } from "./utils/type-guards";
 
 export enum InvalidCryptoStoreState {
     TooNew = "TOO_NEW",
@@ -77,6 +77,8 @@ export class UnsupportedDelayedEventsEndpointError extends Error {
             | "restartScheduledDelayedEvent"
             | "sendScheduledDelayedEvent"
             | "getScheduledDelayedEvent"
+            | "listScheduledDelayedEvents"
+            | "scheduleDelayedEvent"
             | "sendDelayedStateEvent"
             | "getDelayedEvents",
     ) {

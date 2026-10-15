@@ -138,7 +138,14 @@ export interface ChunkUploadRequest {
 export interface ChunkUploadResponse {
     upload_id: string;
     chunk_index: number;
-    received_bytes: number;
+    /** 已接收分块数（后端键 `uploaded_chunks`，R-04：此前误声明 `received_bytes`，后端从不返回） */
+    uploaded_chunks: number;
+    /** 总分块数（后端键 `total_chunks`） */
+    total_chunks?: number;
+    /** 已接收字节数（后端键 `uploaded_size`） */
+    uploaded_size: number;
+    /** 上传状态（后端 `status`） */
+    status?: string;
     [key: string]: unknown;
 }
 

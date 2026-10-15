@@ -303,6 +303,31 @@ describe("MediaManager", () => {
                 }),
             );
         });
+
+        // R-04 残留修正：后端单块 PUT 实发 uploaded_chunks/total_chunks/uploaded_size/status
+        // （synapse-rust src/web/routes/media/upload.rs:279-285），此前接口声明的
+        // received_bytes 后端从不返回 ⇒ 类型层面拿到 undefined。
+        it("surfaces backend chunk response keys (R-04: uploaded_size, not received_bytes)", async () => {
+            vi.spyOn(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                manager as any,
+                "request",
+            ).mockResolvedValue({
+                upload_id: "up-1",
+                chunk_index: 0,
+                uploaded_chunks: 1,
+                total_chunks: 2,
+                uploaded_size: 4,
+                status: "uploading",
+            });
+
+            const response = await manager.uploadChunk("up-1", 0, new ArrayBuffer(4));
+
+            expect(response.uploaded_chunks).toBe(1);
+            expect(response.uploaded_size).toBe(4);
+            expect(response.status).toBe("uploading");
+            expect((response as Record<string, unknown>)["received_bytes"]).toBeUndefined();
+        });
     });
 
     // ISSUE-07: 上传前消费 m.upload.size 做客户端预检
