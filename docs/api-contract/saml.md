@@ -1,7 +1,7 @@
 ---
 module: saml
 generated_from: docs/api-contract/generated/modules/saml.json
-generated_hash: sha256-aa11d5ee28013fee10de80340f08068ffec8935c9cbb407af1fd94f641000115
+generated_hash: sha256-4a7415685f5e1442484c4e701d767a5cc8cbd350843e930aa62d1a21d697143a
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

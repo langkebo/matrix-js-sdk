@@ -1,7 +1,7 @@
 ---
 module: worker
 generated_from: docs/api-contract/generated/modules/worker.json
-generated_hash: sha256-8cb3ca38ccf4a1daf5cb530a95f8cd63158a036e9407e8cf9b5b0d8d65e4e000
+generated_hash: sha256-c5990c663af7683ad06afe39b75e4afdfd1110914eb528b8d390259feee09a93
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

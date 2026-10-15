@@ -1,7 +1,7 @@
 ---
 module: reactions
 generated_from: docs/api-contract/generated/modules/reactions.json
-generated_hash: sha256-e3006b3634408ca3bcdfa3d6277cbdc6584818b02920d297e6daf14de4c2b80a
+generated_hash: sha256-8103728f29e00edf9b694cf73c37a48655c6d000b6888446058470e846b059c0
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

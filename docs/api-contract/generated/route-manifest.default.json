@@ -1,14 +1,14 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "122aaf109a883a078861fce740e9ce1af416f1b0",
+  "synapse_rust_commit": "b4c845b2081406b3b1a7c6f57cc65cabaf6d4d20",
   "state_profile": "default",
   "profile_flags": {
     "oidc_enabled": false,
     "worker_enabled": false,
     "saml_enabled": false
   },
-  "entry_count": 1008,
+  "entry_count": 1013,
   "entries": [
     {
       "method": "GET",
@@ -271,6 +271,14 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events",
+      "registered_by": "delayed_events",
+      "path_params": [],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}",
       "registered_by": "delayed_events",
       "path_params": [
@@ -285,6 +293,48 @@
       "registered_by": "delayed_events",
       "path_params": [
         "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/cancel",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/restart",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/send",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/rooms/{room_id}/delayed_event/{event_type}/{txn_id}",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "txn_id"
       ],
       "query_params": [],
       "auth": "user"
