@@ -27,6 +27,7 @@ import {
     evaluateGranularCoverage,
     hasMethod,
     hasTestHit,
+    ownerFilesOf,
 } from "../../scripts/quality/lib/granular-coverage.mjs";
 
 describe("escapeRegex", () => {
@@ -84,6 +85,88 @@ describe("collectMissing", () => {
         expect(collectMissing(["a", "b", "a"], () => true)).toEqual([]);
         expect(collectMissing(["a", "b", "a"], (x) => x === "a")).toEqual(["b"]);
         expect(collectMissing(["a", "a"], () => false)).toEqual(["a", "a"]);
+    });
+});
+
+/**
+ * `ownerFiles`：一组可以跨多个文件。
+ *
+ * 真实事故（2026-10-15）：`SpaceManager` 的 24 个语义端点在 `f728df035` 被拆进 5 个
+ * sub-manager，`src/space/index.ts` 只剩文档注释里的用法示例，而门禁的 `ownerFile`
+ * 仍写 index.ts ⇒ 它报"20 个方法缺失"，方法其实都在、只是换了家。
+ * 那是**陈旧判据**（假红），修法是声明 owner 集合 —— **不是**放宽断言。
+ * 该红一直留在 CI（`systemic_refactor_quality_gate.yml:62` 跑 18 个 granular 门禁）。
+ */
+describe("ownerFilesOf（owner 集合归一化）", () => {
+    it("ownerFiles 优先；只有 ownerFile 时退回单元素数组", () => {
+        expect(ownerFilesOf({ name: "g", ownerFile: "a.ts", methods: [], testFiles: [] })).toEqual(["a.ts"]);
+        expect(ownerFilesOf({ name: "g", ownerFiles: ["a.ts", "b.ts"], methods: [], testFiles: [] })).toEqual([
+            "a.ts",
+            "b.ts",
+        ]);
+    });
+
+    it("`ownerFiles` 为空数组时退回 ownerFile（不把空集合当成'无 owner'）", () => {
+        expect(ownerFilesOf({ name: "g", ownerFile: "a.ts", ownerFiles: [], methods: [], testFiles: [] })).toEqual([
+            "a.ts",
+        ]);
+    });
+});
+
+describe("evaluateGranularCoverage / 多文件 owner 组", () => {
+    const checks = [
+        {
+            module: "multi",
+            groups: [
+                {
+                    name: "split across sub-managers",
+                    ownerFiles: ["src/sub-one.ts", "src/sub-two.ts"],
+                    methods: ["alpha", "beta"],
+                    testFiles: ["spec/unit/multi.spec.ts"],
+                },
+            ],
+        },
+    ];
+    const files: Record<string, string> = {
+        "src/sub-one.ts": "async alpha() {}\n",
+        "src/sub-two.ts": "async beta() {}\n", // 关键：第二个 owner 文件里的方法也必须算数
+        "spec/unit/multi.spec.ts": "it('x', () => { alpha(); beta(); });",
+    };
+
+    it("方法在**任一** owner 文件里都算存在（这正是修复点）", () => {
+        const r = evaluateGranularCoverage(checks, { readFile: (f) => files[f] });
+        expect(r.failures).toHaveLength(0);
+        expect(r.passedGroups).toBe(1);
+    });
+
+    it("两个 owner 文件都没有该方法时才报缺失", () => {
+        const r = evaluateGranularCoverage(checks, {
+            readFile: (f) => (f === "src/sub-two.ts" ? "// 空\n" : files[f]),
+        });
+        expect(r.failures).toHaveLength(1);
+        expect(r.failures[0].missingMethods).toEqual(["beta"]);
+    });
+
+    it("失败记录里 ownerFile 为 null、ownerFiles 给出集合（多 owner 组没有单一路径）", () => {
+        const r = evaluateGranularCoverage(checks, {
+            readFile: (f) => (f === "src/sub-one.ts" ? "// 空\n" : files[f]),
+        });
+        expect(r.failures[0].ownerFile).toBeNull();
+        expect(r.failures[0].ownerFiles).toEqual(["src/sub-one.ts", "src/sub-two.ts"]);
+    });
+
+    it("单 owner 组的失败记录仍是字符串，且 ownerFiles 是长度 1 的数组（stdout 兼容）", () => {
+        const single = [
+            {
+                module: "one",
+                groups: [{ name: "g", ownerFile: "src/only.ts", methods: ["alpha"], testFiles: ["spec/s.ts"] }],
+            },
+        ];
+        const r = evaluateGranularCoverage(single, {
+            readFile: (f) => (f === "src/only.ts" ? "// 空\n" : "alpha();"),
+        });
+        expect(r.failures[0].ownerFile).toBe("src/only.ts");
+        expect(r.failures[0].ownerFiles).toEqual(["src/only.ts"]);
     });
 });
 
