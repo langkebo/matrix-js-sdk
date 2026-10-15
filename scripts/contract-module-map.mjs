@@ -14,7 +14,10 @@
 export const LEDGER_MODULE_ALIASES = {
     "account-data": "account_data",
     admin: "admin",
-    appservice: "app_service",
+    // 注（2026-10-15）：键原为 `appservice`，但 SDK 目录实际是 **`app-service`**（带连字符）⇒
+    // `findSdkDirForModule("app_service")` 得到不存在的目录，ledger 通道因此**永远取不到**该模块的
+    // 39 条路由（实测：codegen 对 `src/app-service/` 输出 `(0 entries)`）。修正为目录实名。
+    "app-service": "app_service",
     "background-update": "background_update",
     "burn-after-read": "burn_after_read",
     captcha: "captcha",

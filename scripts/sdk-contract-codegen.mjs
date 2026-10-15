@@ -65,7 +65,6 @@ const SKIP_ROUTE_TABLE_MODULES = new Set([
     // 故不再需要"有意不生成表"。剩余 4 个：admin（179 条，待迁）、app-service / federation
     // （服务端面，SDK 不承担）、reactions（消费点在 client.ts）。
     "admin",
-    "app-service",
     "federation",
     "reactions",
 ]);

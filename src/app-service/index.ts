@@ -28,6 +28,31 @@ import { logger } from "../logger";
 import { ValidationError } from "../errors";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { AppServicePath } from "./__generated__/route-table";
+import type { ThirdpartyPath } from "../third-party/__generated__/route-table";
+import type { PathAssert, StripAdminV1, StripV1, StripV3 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言（**按前缀分设三个助手**，避免跨命名空间误匹配）。
+ *
+ * 本模块的 21 处路径横跨三个前缀：`AdminPrefix.V1`（`/_synapse/admin/v1`）、
+ * `ClientPrefix.V3`、`ClientPrefix.V1`。若只用一个助手链式剥离，`/_matrix/client/v1/...`
+ * 形态的调用点可能被 admin 表里的同名尾段放行，故按 prefix 分开断言。
+ *
+ * `cpu3` 另 union 了 `ThirdpartyPath`：本模块有 4 处 thirdparty 路由（`/thirdparty/*`），
+ * 它们在契约里属 **third-party** 模块（见 `src/third-party/__generated__/route-table.ts`），
+ * 与 `room-summary` 借 `RoomPath` 的做法同例。
+ */
+function apu<const P extends string>(path: P & PathAssert<P, StripAdminV1<AppServicePath>>): P {
+    return path;
+}
+function cpu3<const P extends string>(path: P & PathAssert<P, StripV3<AppServicePath | ThirdpartyPath>>): P {
+    return path;
+}
+function cpu1<const P extends string>(path: P & PathAssert<P, StripV1<AppServicePath>>): P {
+    return path;
+}
+
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
     ServiceUpdated = "ServiceUpdated",
@@ -219,7 +244,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Post,
-                    path: "/appservices",
+                    path: apu("/appservices"),
                     body: {
                         id: request.id,
                         url: request.url,
@@ -266,7 +291,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Get,
-                    path: `/appservices/${encodeURIComponent(asId)}`,
+                    path: apu(`/appservices/${encodeURIComponent(asId)}`),
                     prefix: AdminPrefix.V1,
                 });
             }, "getApplicationService");
@@ -306,7 +331,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Put,
-                    path: `/appservices/${encodeURIComponent(asId)}`,
+                    path: apu(`/appservices/${encodeURIComponent(asId)}`),
                     body: request,
                     prefix: AdminPrefix.V1,
                 });
@@ -348,7 +373,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Delete,
-                    path: `/appservices/${encodeURIComponent(asId)}`,
+                    path: apu(`/appservices/${encodeURIComponent(asId)}`),
                     prefix: AdminPrefix.V1,
                 });
             }, "unregisterApplicationService");
@@ -376,7 +401,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse[] | { services?: ApplicationServiceResponse[] }>({
                     method: Method.Get,
-                    path: "/appservices",
+                    path: apu("/appservices"),
                     prefix: AdminPrefix.V1,
                 });
             }, "listApplicationServices");
@@ -413,7 +438,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                     application_service?: string | null;
                 }>({
                     method: Method.Get,
-                    path: "/appservice/user",
+                    path: cpu3("/appservice/user"),
                     queryParams: { user_id: userId },
                     prefix: ClientPrefix.V3,
                 });
@@ -447,7 +472,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                     application_service?: string | null;
                 }>({
                     method: Method.Get,
-                    path: "/appservice/alias",
+                    path: cpu3("/appservice/alias"),
                     queryParams: { alias },
                     prefix: ClientPrefix.V3,
                 });
@@ -478,7 +503,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             return await this.withRetry(async () => {
                 return await this.request<UserAppservicesResponse>({
                     method: Method.Get,
-                    path: `/user/${encodeURIComponent(userId)}/appservice`,
+                    path: cpu1(`/user/${encodeURIComponent(userId)}/appservice`),
                     prefix: ClientPrefix.V1,
                 });
             }, "getUserAppservices");
@@ -507,7 +532,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Post,
-                    path: `/appservices/${encodeURIComponent(serviceId)}/ping`,
+                    path: apu(`/appservices/${encodeURIComponent(serviceId)}/ping`),
                     prefix: AdminPrefix.V1,
                 });
             }, "pingApplicationService");
@@ -535,7 +560,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceProtocol>({
                     method: Method.Get,
-                    path: `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
+                    path: cpu3(`/thirdparty/protocol/${encodeURIComponent(protocol)}`),
                     prefix: ClientPrefix.V3,
                 });
             }, "getProtocol");
@@ -563,7 +588,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<Record<string, ApplicationServiceProtocol>>({
                     method: Method.Get,
-                    path: "/thirdparty/protocols",
+                    path: cpu3("/thirdparty/protocols"),
                     prefix: ClientPrefix.V3,
                 });
             }, "getProtocols");
@@ -593,7 +618,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceUser[]>({
                     method: Method.Get,
-                    path: `/thirdparty/user/${encodeURIComponent(protocol)}`,
+                    path: cpu3(`/thirdparty/user/${encodeURIComponent(protocol)}`),
                     queryParams: fields,
                     prefix: ClientPrefix.V3,
                 });
@@ -624,7 +649,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<unknown[]>({
                     method: Method.Get,
-                    path: `/thirdparty/location/${encodeURIComponent(protocol)}`,
+                    path: cpu3(`/thirdparty/location/${encodeURIComponent(protocol)}`),
                     queryParams: fields,
                     prefix: ClientPrefix.V3,
                 });
@@ -674,7 +699,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/state`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/state`),
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceState");
@@ -703,7 +728,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                 // 原先的 `PUT .../state/{state_key}` 两边都不存在（上游 `synapse/rest/admin/`
                 // 根本没有 appservice 模块）—— 2026-10-01 契约核对后按后端形状改正。
                 method: Method.Post,
-                path: `/appservices/${encodeURIComponent(asId)}/state`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/state`),
                 body: { state_key: stateKey, state_value: value },
                 prefix: AdminPrefix.V1,
             });
@@ -725,7 +750,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/users`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/users`),
                 prefix: AdminPrefix.V1,
             });
         }, "listApplicationServiceUsers");
@@ -750,7 +775,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/namespaces`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/namespaces`),
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceNamespaces");
@@ -780,7 +805,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/events`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/events`),
                 queryParams: q,
                 prefix: AdminPrefix.V1,
             });
@@ -805,7 +830,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                 // 后端是**全局**统计（`app_service.rs::get_statistics`，路径里没有 `{as_id}`）——
                 // SDK 原先的 `.../{as}/statistics` 形状后端与上游都没有 ⇒ 参数一并去掉。
                 method: Method.Get,
-                path: "/appservices/statistics",
+                path: apu("/appservices/statistics"),
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceStatistics");
@@ -830,7 +855,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                 // 后端：`GET .../appservices/query/user?user_id=…`（`query_user` 用 `Query<QueryUser>`），
                 // 语义是"哪个 AS 管理该 user" ⇒ 不需要 `asId`。
                 method: Method.Get,
-                path: "/appservices/query/user",
+                path: apu("/appservices/query/user"),
                 queryParams: { user_id: userId },
                 prefix: AdminPrefix.V1,
             });
@@ -855,7 +880,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             return await this.request({
                 // 同 `queryApplicationServiceUser`：`GET .../appservices/query/alias?alias=…`。
                 method: Method.Get,
-                path: "/appservices/query/alias",
+                path: apu("/appservices/query/alias"),
                 queryParams: { alias },
                 prefix: AdminPrefix.V1,
             });

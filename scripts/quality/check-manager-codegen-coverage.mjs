@@ -30,8 +30,19 @@ const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "gener
  */
 export const WAIVED_MODULES = {
     admin: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    app_service: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    federation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
+    // 注（2026-10-15）：此处原有 `app_service` 的 waiver。回源核对后发现它**不是**纯服务端面：
+    // 39 条里 17 条是 `/_synapse/admin/v1/appservices*`（admin 面）、12 条 `/_matrix/app/v1/*`（AS 面）、
+    // 10 条 `/_matrix/client/*`（客户端面，含 7 条 `proxy/{as_id}/{*path}` 通配代理）——
+    // 而 `src/app-service/index.ts` 的 21 处路径与该模块的 admin/客户端面**逐条对应**
+    // （4 处 thirdparty 路由另属 third-party 模块表）。故接入 route-table 后移除 waiver。
+    federation: {
+        reason:
+            "服务端面：55 条全部是 server-to-server / key-server API（_matrix/federation/v1 36 + v2 7 + " +
+            "unstable 1、_synapse/federation/* 7、_matrix/key/v2 4），客户端 SDK 不承担 ⇒ 不是'缺 consumer'，" +
+            "而是**本口径不适用**。已实测核对无客户端前缀混入（2026-10-15）。处置建议：把 " +
+            "CONTRACT_MODULE_MAP 的 `联邦` 映射改为 null（与 3PID/AI 连接同款），或在本门禁另立 SERVER_ONLY 类别。",
+        expires: "2026-12-31",
+    },
     reactions: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
     // 注（2026-10-15）：`dm` / `feature_flags` / `key_rotation` 的 waiver 已移除 —— 三者的 manager
     // 自持前缀与字面量相对路径（dm/key_rotation = VendorPrefix；feature_flags = AdminPrefix.V1，

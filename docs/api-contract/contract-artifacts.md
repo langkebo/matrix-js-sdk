@@ -15,10 +15,10 @@
 | 1   | `docs/api-contract/generated/route-manifest.all.json` 的 `entry_count` | **后端 ledger 声明的全部路由**。`state_profile=all`，即 oidc / worker / saml 三个特性开关全开时的最大集合 | 1032 |
 | 2   | `docs/api-contract/generated/modules/*.json` 文件数                    | 后端按 `registered_by` 拆出的**逐模块镜像**。文件名沿用后端模块名（snake_case）                           |   49 |
 | 3   | `src/*/__generated__/` 目录数                                          | 有 SDK 侧生成产物的模块。目录名是 **SDK 目录名**（kebab-case），经 `CONTRACT_MODULE_MAP` 折叠/改名而来    |   48 |
-| 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   44 |
-| 4b  | 上述 44 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  758 |
+| 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   45 |
+| 4b  | 上述 45 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  797 |
 
-> 记忆锚点：**1032 是后端的，758 是前端的**；49 是后端模块视角，48/44 是 SDK 目录视角。
+> 记忆锚点：**1032 是后端的，797 是前端的**；49 是后端模块视角，48/45 是 SDK 目录视角。
 
 ---
 
@@ -51,26 +51,26 @@
 因此**不要**用文件名做集合差：`set(modules/*.json) - set(src/*/__generated__)` 会因为命名规约不同
 而报出一大堆假差异（实测两侧各有约 17-20 个「对不上」的名字，绝大多数是同一模块的两种写法）。
 
-### 48 → 44：4 个模块被显式豁免，只生成 DTO
+### 48 → 45：3 个模块被显式豁免，只生成 DTO
 
-`SKIP_ROUTE_TABLE_MODULES`（`scripts/sdk-contract-codegen.mjs`）列出 4 个**不生成 route-table** 的模块：
+`SKIP_ROUTE_TABLE_MODULES`（`scripts/sdk-contract-codegen.mjs`）列出 3 个**不生成 route-table** 的模块：
 
 ```
-admin · app-service · federation · reactions
+admin · federation · reactions
 ```
 
 豁免不是「免检」：coverage 门禁要求每个条目各有一条 waiver（带 reason + 过期时间），
 且**未列入白名单的模块缺表会直接失败**。这 7 个模块的 `dto.ts` 仍然生成，
-所以 `__generated__` 目录数是 48 而不是 44。
+所以 `__generated__` 目录数是 48 而不是 45。
 
-### 758 vs 1032：两张表的构造规则不同
+### 797 vs 1032：两张表的构造规则不同
 
 - `route-manifest.all.json` = **纯后端 ledger**。
 - `route-table.ts` = **既有条目 ∪ ledger 清单 ∪ `ROUTE_CONTRACT.md`** 三者按 `(method, path)` 去重。
 
 也就是说 route-table 是「SDK 曾经手写过的路径」与「后端声明的路径」的并集，
 因此它的条目**不一定**是 manifest 的子集。跨模块重复由
-`quality:contract-entrypoint` 强制为零（实测当前 44 张表之间 0 重复）。
+`quality:contract-entrypoint` 强制为零（实测当前 45 张表之间 0 重复）。
 
 ---
 
@@ -79,7 +79,7 @@ admin · app-service · federation · reactions
 | 想问的问题                       | 用哪个                                                                  |
 | -------------------------------- | ----------------------------------------------------------------------- |
 | 后端一共暴露了多少 API？         | **1032**（`route-manifest.all.json`）                                   |
-| SDK 能给出多少条字面量路由常量？ | **758**（44 张 route-table），入口见 `matrix-js-sdk/contract`           |
+| SDK 能给出多少条字面量路由常量？ | **797**（45 张 route-table），入口见 `matrix-js-sdk/contract`           |
 | 有多少模块有 SDK 侧生成物？      | **48**                                                                  |
 | 后端按模块拆成了多少份？         | **49**                                                                  |
 | 某条具体路径 SDK 有没有覆盖？    | 查 `src/contract/index.ts` 的 `SDK_CONTRACT_ROUTES`，不要看上面任何计数 |
@@ -99,19 +99,27 @@ admin · app-service · federation · reactions
 
 ---
 
-## 五、剩余 5 个豁免的收编路径（2026-10-15 实测改造量）
+## 五、剩余 4 个豁免的收编路径（2026-10-15 实测改造量）
 
-`quality:manager-codegen` 当前 WAIVED **5 个模块 / 286 条**无 route-table 约束路由。
+`quality:manager-codegen` 当前 WAIVED **4 个模块 / 247 条**无 route-table 约束路由。
 逐个的体量与**实测**障碍（避免下次重新侦查）：
 
-| 模块          | 条数 | 障碍（2026-10-15 实测）                                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------- | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `admin`       |  179 | **最大块**，须逐点改造：`this.adminRequest(...)` 调用点 **241 处**（分布在 11 个 sub-manager），其中 **93 处**显式传了类型实参（`this.adminRequest<Foo>(…)`）。这 93 处使得「给 `adminRequest` 加 `const P extends string` 类型参数」的单点收编**不可行**——TS 要求显式实参之后的类型参数必须有默认值，而默认 `string` 会让 `PathAssert` 退化成放行（等于纸面覆盖）。现成的 `apu()` 挂载点只覆盖 13 处。 |
-| `federation`  |   55 | 服务端面（federation API 供 homeserver 之间调用），**SDK 不承担** ⇒ 宜把 `CONTRACT_MODULE_MAP` 的映射改为 `null`（与 `3PID` / `AI 连接` 同款），而不是继续挂 WAIVED。                                                                                                                                                                                                                                   |
-| `app_service` |   39 | 同上（AS 面由应用服务侧调用）。                                                                                                                                                                                                                                                                                                                                                                         |
-| `cas`         |   12 | 表**已生成**却"没人读"：manager 有 **5 处经变量传 path**（`path: path`，由上层方法传入）+ **2 套 prefix**（`AdminPrefix.V1` 与 `CAS_PROTOCOL_PREFIX = "/_synapse/cas"`）⇒ 须先重构成"按分支构造完整字面量路径"才能加断言。                                                                                                                                                                              |
-| `reactions`   |    1 | 唯一路由 `PUT /_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` 由 `src/reactions/index.ts` **委托**给 `client.reactToMessage` / `redactReaction`（薄包装）⇒ 真正的消费点在 `src/client.ts`（大型文件，会触碰 `quality:large-file-check`）。                                                                                                                                                 |
+| 模块         | 条数 | 障碍（2026-10-15 实测）                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------ | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin`      |  179 | **最大块**，须逐点改造：`this.adminRequest(...)` 调用点 **241 处**（分布在 11 个 sub-manager），其中 **93 处**显式传了类型实参（`this.adminRequest<Foo>(…)`）。这 93 处使得「给 `adminRequest` 加 `const P extends string` 类型参数」的单点收编**不可行**——TS 要求显式实参之后的类型参数必须有默认值，而默认 `string` 会让 `PathAssert` 退化成放行（等于纸面覆盖）。现成的 `apu()` 挂载点只覆盖 13 处。 |
+| `federation` |   55 | **服务端面，本口径不适用**（不是"缺 consumer"）。已逐条实测：55 条全为 server-to-server / key-server API（`_matrix/federation/v1` 36 + `v2` 7 + `unstable` 1、`_synapse/federation/*` 7、`_matrix/key/v2` 4），**无客户端前缀混入** ⇒ 宜把 `CONTRACT_MODULE_MAP` 的 `联邦` 映射改为 `null`（与 `3PID` / `AI 连接` 同款），或在本门禁另立 `SERVER_ONLY` 类别。                                           |
+| `cas`        |   12 | 表**已生成**却"没人读"：manager 有 **5 处经变量传 path**（`path: path`，由上层方法传入）+ **2 套 prefix**（`AdminPrefix.V1` 与 `CAS_PROTOCOL_PREFIX = "/_synapse/cas"`）⇒ 须先重构成"按分支构造完整字面量路径"才能加断言。                                                                                                                                                                              |
+| `reactions`  |    1 | 唯一路由 `PUT /_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` 由 `src/reactions/index.ts` **委托**给 `client.reactToMessage` / `redactReaction`（薄包装）⇒ 真正的消费点在 `src/client.ts`（大型文件，会触碰 `quality:large-file-check`）。                                                                                                                                                 |
 
-**已收编（5 个模块 / 29 条）**：`delayed_events`(7)、`dm`(5)、`key-rotation`(9)、`feature-flags`(4)、
-`invite_blocklist`(4)。收编通用范式见 `docs/api-contract/delayed-events.md` 与
+**已收编（6 个模块 / 68 条）**：`delayed_events`(7)、`dm`(5)、`key-rotation`(9)、`feature-flags`(4)、
+`invite_blocklist`(4)、`app_service`(39)。收编通用范式见 `docs/api-contract/delayed-events.md` 与
 `docs/api-contract/invite-blocklist.md` 的「当前审计结论」节。
+
+> **`app_service` 的收编还纠正了两处既有错误**：
+> ① **映射键写错**：`LEDGER_MODULE_ALIASES` 的键原为 `appservice`，而 SDK 目录实名是 **`app-service`**
+> ⇒ `findSdkDirForModule("app_service")` 指向不存在的目录，**ledger 通道永远取不到该模块**（实测
+> codegen 对 `src/app-service/` 输出 `(0 entries)`）；改为实名后表恢复 39 条。
+> ② **豁免理由与事实不符**：原 waiver 按"纯服务端面"豁免，实际 39 条 = 17 条 admin 面 + 12 条 AS 面
+>
+> - 10 条客户端面，且 `src/app-service/index.ts` 的 21 处路径与之逐条对应（其中 4 处 thirdparty
+>   路由借 third-party 模块表，同 `room-summary` 借 `RoomPath` 之例）。

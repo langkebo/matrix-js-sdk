@@ -25,6 +25,7 @@
  */
 
 import { ACCOUNT_DATA_ROUTES } from "../account-data/__generated__/route-table";
+import { APP_SERVICE_ROUTES } from "../app-service/__generated__/route-table";
 import { AUTH_ROUTES } from "../auth/__generated__/route-table";
 import { BACKGROUND_UPDATE_ROUTES } from "../background-update/__generated__/route-table";
 import { BURN_AFTER_READ_ROUTES } from "../burn-after-read/__generated__/route-table";
@@ -83,6 +84,7 @@ export interface SdkContractRoute {
  */
 export const SDK_CONTRACT_ROUTE_TABLES = {
     "account-data": ACCOUNT_DATA_ROUTES,
+    "app-service": APP_SERVICE_ROUTES,
     auth: AUTH_ROUTES,
     "background-update": BACKGROUND_UPDATE_ROUTES,
     "burn-after-read": BURN_AFTER_READ_ROUTES,
