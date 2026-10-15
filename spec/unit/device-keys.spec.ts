@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DeviceKeysManager, DeviceKeysEvent } from "../../src/device-keys";
+import type { Transport } from "../../src/managers/base-manager";
+import { Method } from "../../src/http-api/method";
 
 describe("DeviceKeysManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,15 +109,13 @@ describe("DeviceKeysManager", () => {
      * 断言 (method, path, query) 三者比反推 authedRequest 的参数顺序稳得多。
      */
     it("surfaces next_batch and forwards limit/from as query params (R-06 / P-11)", async () => {
-        const calls: Array<{ method: string; path: string; query?: Record<string, unknown> }> = [];
-        const managerWithFakeTransport = new DeviceKeysManager(mockClient, {
-            transport: {
-                request: async (method: string, path: string, query?: Record<string, unknown>) => {
-                    calls.push({ method, path, query });
-                    return { requests: [{ request_id: "r1" }], next_batch: "cursor-1" };
-                },
-            },
-        });
+        // 房内范式（见 spec/unit/base-manager-request.spec.ts:195-197）：Transport 的 request
+        // 是泛型方法，直接写实现会与泛型签名不兼容 ⇒ 统一用 `as unknown as Transport["request"]` 注入。
+        const requestMock = vi.fn().mockResolvedValue({ requests: [{ request_id: "r1" }], next_batch: "cursor-1" });
+        const fakeTransport: Transport = {
+            request: requestMock as unknown as Transport["request"],
+        };
+        const managerWithFakeTransport = new DeviceKeysManager(mockClient, { transport: fakeTransport });
 
         const res = await managerWithFakeTransport.getRoomKeyRequests({
             status: "pending",
@@ -124,8 +124,10 @@ describe("DeviceKeysManager", () => {
         });
 
         expect(res.next_batch).toBe("cursor-1");
-        expect(calls).toHaveLength(1);
-        expect(calls[0]).toMatchObject({ method: "GET", path: "/room_keys/request" });
-        expect(calls[0].query).toEqual({ status: "pending", limit: "1", from: "cursor-0" });
+        expect(requestMock).toHaveBeenCalledTimes(1);
+        const [method, path, query] = requestMock.mock.calls[0];
+        expect(method).toBe(Method.Get);
+        expect(path).toBe("/room_keys/request");
+        expect(query).toEqual({ status: "pending", limit: "1", from: "cursor-0" });
     });
 });
