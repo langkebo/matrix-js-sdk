@@ -13,6 +13,12 @@
 
 ### Q1（P1）`invite/blocklist`、`invite/allowlist` 是否需要 per-user 端点？
 
+> **SDK 侧已处置（2026-10-15）**：**没有**采用"读—改—写"——后端 `GET` 是**分页**返回
+> （`Query<InviteListParams>` 的 `limit`/`offset`），而 `getInviteBlocklist()` 不传分页参数，
+> 直接"读全量再整体写回"会**丢掉未读到的名单项**（数据损坏）。故这 4 个方法改为**发起请求前抛错**
+> （`UnsupportedAdminInviteEndpointError`，错误信息内含正确调用路径），测试断言"抛错且
+> `req.mock.calls` 为空"。若后端提供 per-user 端点，SDK 可恢复这 4 个方法。
+
 - **后端现状**：`synapse-web/src/routes/admin/server.rs:29-36` 只注册**无参数**形态——
   `GET|POST /_synapse/admin/v1/invite/blocklist`（`get_invite_blocklist_admin` /
   `set_global_invite_blocklist_admin`）与 allowlist 的两个对应 handler。语义是「**全局名单整体设置**」
@@ -57,12 +63,12 @@
 
 ## 三、SDK 侧将做的处置（供对齐）
 
-| 项                                 | 处置                                                                        | 状态                  |
-| ---------------------------------- | --------------------------------------------------------------------------- | --------------------- |
-| `deleteRoomMessage`（Q2）          | 删除方法（恒 404 的 API 不留在公开面）                                      | ✅ 已完成 `66be34183` |
-| `resetFederationDestination`（Q3） | 去掉试探，单请求直打 `/reset_connection`                                    | ✅ 已完成 `66be34183` |
-| invite 4 处（Q1）                  | 待答复后改为「读—改—写」，或收敛掉这组方法                                  | ⏳ 等 Q1              |
-| `admin` 收编（179 条）             | 断言设计就绪（6 种前缀 + 7 张表 union；227 处调用的批量脚本已验证一次成功） | ⏳ 等 Q1              |
+| 项                                 | 处置                                                                                | 状态                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | --------------------- |
+| `deleteRoomMessage`（Q2）          | 删除方法（恒 404 的 API 不留在公开面）                                              | ✅ 已完成 `66be34183` |
+| `resetFederationDestination`（Q3） | 去掉试探，单请求直打 `/reset_connection`                                            | ✅ 已完成 `66be34183` |
+| invite 4 处（Q1）                  | 改为**发起请求前抛错**（`UnsupportedAdminInviteEndpointError`，错误信息含正确路径） | ✅ 已完成             |
+| `admin` 收编（179 条）             | 断言设计就绪（6 种前缀 + 7 张表 union；227 处调用的批量脚本已验证一次成功）         | ⏳ 可开工             |
 
 > 说明：`admin` 目录的 manager **跨 7 个 ledger 模块**（admin / feature_flags / module / telemetry /
 > external_service / room / event_report），故其断言需 union 多张表；这是 SDK 侧的设计问题，

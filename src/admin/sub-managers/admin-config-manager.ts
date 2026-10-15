@@ -16,6 +16,7 @@ limitations under the License.
 
 import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
+import { UnsupportedAdminInviteEndpointError } from "../../errors";
 import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams } from "../utils";
@@ -968,23 +969,33 @@ export class AdminConfigManager extends AdminBaseManager {
     }
 
     /**
-     * 添加用户到邀请黑名单
+     * ⚠️ **后端不支持该方法**（2026-10-15 起改为抛错，不再发出必然 404 的请求）。
      *
-     * @param userId - 被添加用户的 Matrix ID
-     * @param reason - 添加原因（可选）
+     * 后端只提供**全局名单整体设置**：`POST /_synapse/admin/v1/invite/blocklist`（或 `…/allowlist`），
+     * body 为 `{ user_ids: [...] }`（`InviteListWriteBody`），**没有 per-user 增删端点** ⇒ 本方法的
+     * 路径（`…/blocklist/{user_id}`）在后端不存在、恒 404，故改为**发起请求前**抛错。
+     *
+     * 正确做法（读—改—写）：先 `getInviteBlocklist()` 读全量（**注意后端分页返回，需自行翻页读全**），
+     * 本地增删后用 `POST /invite/blocklist` + `{ user_ids }` 整体写回。
+     *
+     * @param userId - 被添加用户的 Matrix ID（仍校验，`ValidationError` 先于本错误抛出）
+     * @param reason - **已无效**：后端整体设置端点不接收 per-user reason
      * @throws {ValidationError} `userId` 为空时（不会发出请求）
+     * @throws {UnsupportedAdminInviteEndpointError} 总是抛出（后端无 per-user 端点）
      * @example
      * ```typescript
-     * await client.getAdminManager().config.addToInviteBlocklist("@spam:example.org", "spam");
+     * // ✗ 会抛错：后端无 POST …/invite/blocklist/{user_id}
+     * await client.getAdminManager().config.addToInviteBlocklist("@spam:example.org");
      * ```
      */
     async addToInviteBlocklist(userId: string, reason?: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        const body: Record<string, unknown> /* Dynamic: invite blocklist body varies by endpoint */ = {
-            user_id: userId,
-        };
-        if (reason) body.reason = reason;
-        await this.adminRequest(Method.Post, `/invite/blocklist/${encodeURIComponent(userId)}`, {}, body);
+        throw new UnsupportedAdminInviteEndpointError(
+            `后端无 per-user 邀请黑名单端点（原路径 POST /invite/blocklist/{user_id} 恒 404）。` +
+                `请用「读 → 改 → 写」：getInviteBlocklist() → 本地增删 → POST /invite/blocklist { user_ids }.` +
+                (reason === undefined ? "" : "（reason 参数已无效：后端整体设置端点不接收 per-user reason）"),
+            "addToInviteBlocklist",
+        );
     }
 
     /**
@@ -999,7 +1010,11 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async removeFromInviteBlocklist(userId: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        await this.adminRequest(Method.Delete, `/invite/blocklist/${encodeURIComponent(userId)}`);
+        throw new UnsupportedAdminInviteEndpointError(
+            `后端无 per-user 邀请黑名单端点（原路径 DELETE /invite/blocklist/{user_id} 恒 404）。` +
+                `请用「读 → 改 → 写」：getInviteBlocklist() → 本地移除 → POST /invite/blocklist { user_ids }.`,
+            "removeFromInviteBlocklist",
+        );
     }
 
     /**
@@ -1014,11 +1029,10 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async addToInviteAllowlist(userId: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        await this.adminRequest(
-            Method.Post,
-            `/invite/allowlist/${encodeURIComponent(userId)}`,
-            {},
-            { user_id: userId },
+        throw new UnsupportedAdminInviteEndpointError(
+            `后端无 per-user 邀请白名单端点（原路径 POST /invite/allowlist/{user_id} 恒 404）。` +
+                `请用「读 → 改 → 写」：getInviteAllowlist() → 本地增删 → POST /invite/allowlist { user_ids }.`,
+            "addToInviteAllowlist",
         );
     }
 
@@ -1034,7 +1048,11 @@ export class AdminConfigManager extends AdminBaseManager {
      */
     async removeFromInviteAllowlist(userId: string): Promise<void> {
         if (!userId) throw new ValidationError("User ID is required");
-        await this.adminRequest(Method.Delete, `/invite/allowlist/${encodeURIComponent(userId)}`);
+        throw new UnsupportedAdminInviteEndpointError(
+            `后端无 per-user 邀请白名单端点（原路径 DELETE /invite/allowlist/{user_id} 恒 404）。` +
+                `请用「读 → 改 → 写」：getInviteAllowlist() → 本地移除 → POST /invite/allowlist { user_ids }.`,
+            "removeFromInviteAllowlist",
+        );
     }
 
     // ===== Jitsi =====

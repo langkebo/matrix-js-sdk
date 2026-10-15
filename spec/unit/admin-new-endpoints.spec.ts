@@ -356,6 +356,20 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[2][1]).toBe("/jitsi/config");
         });
 
+        it("addToInviteBlocklist 抛错且不发请求（后端无 per-user 端点）", async () => {
+            await expect(manager.addToInviteBlocklist("@spam:example.org")).rejects.toThrow(
+                /后端无 per-user 邀请黑名单端点/,
+            );
+            expect(req.mock.calls).toHaveLength(0);
+        });
+
+        it("removeFromInviteAllowlist 抛错且不发请求（后端无 per-user 端点）", async () => {
+            await expect(manager.removeFromInviteAllowlist("@spam:example.org")).rejects.toThrow(
+                /后端无 per-user 邀请白名单端点/,
+            );
+            expect(req.mock.calls).toHaveLength(0);
+        });
+
         it("posts cleanupAll and cleanupTokens to v1 cleanup routes", async () => {
             await manager.cleanupAll();
             await manager.cleanupTokens();

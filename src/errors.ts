@@ -94,6 +94,26 @@ export class UnsupportedAccountStatusEndpointError extends Error {
     }
 }
 
+/**
+ * 后端不提供该 admin 端点（或形态与 SDK 假设不同）时抛出。
+ *
+ * 用途：让"调用必然 404 的方法"在**发起请求前**就失败，并给出正确替代路径，
+ * 而不是静默发出一个注定失败的请求（本仓 delayed_events / federation reset 都踩过同类坑）。
+ */
+export class UnsupportedAdminInviteEndpointError extends Error {
+    public constructor(
+        message: string,
+        public clientEndpoint:
+            | "addToInviteBlocklist"
+            | "removeFromInviteBlocklist"
+            | "addToInviteAllowlist"
+            | "removeFromInviteAllowlist",
+    ) {
+        super(message);
+        this.name = "UnsupportedAdminInviteEndpointError";
+    }
+}
+
 export class UnsupportedStickyEventsEndpointError extends Error {
     public constructor(
         message: string,
