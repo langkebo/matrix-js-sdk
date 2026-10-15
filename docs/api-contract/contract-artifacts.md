@@ -230,11 +230,11 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 
 后一类里，用常量前缀解出后与 ledger 比对，**3 处不符**（已逐条回源 `synapse-rust` 核实）：
 
-| #   | 位置                                                                                        | SDK 实际发出                                                                                                       | 后端                                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `src/dehydrated-device/index.ts:189` `claimDevice()`                                        | **POST** `…/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events`                                            | **后端 GET + POST 都注册了**（`assembly.rs:217-221` 为 `get(..).post(..)`）⇒ 这不是后端缺陷，是** ledger 只导出了 GET** —— 判读已订正，见下 |
-| 2   | `src/dehydrated-device/index.ts:275` `getDeviceEvent()`                                     | `GET …/dehydrated_device/{device_id}/**initial_device**`                                                           | **全仓无 `initial_device` 路由**（该族仅 5 条：`dehydrated_device` 的 GET/PUT/DELETE、`/status`、`/{device_id}/events`）                    |
-| 3   | `src/external-service/index.ts`（原 `triggerOpenclawWebhook` / `triggerTrendradarWebhook`） | `…/external/openclaw/{service_id}/webhook`（**后端已删**）`…/external/trendradar/{service_id}/webhook`（后端待删） | ✅ **已处置（2026-10-15）** —— 见下                                                                                                         |
+| #   | 位置                                                                                        | SDK 实际发出                                                                                                       | 后端                                                                                                                                                                                          |
+| --- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `src/dehydrated-device/index.ts:189` `claimDevice()`                                        | **POST** `…/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events`                                            | **后端 GET + POST 都注册了**（`assembly.rs:217-221` 为 `get(..).post(..)`）⇒ 这不是后端缺陷，是** ledger 只导出了 GET** —— 判读已订正，见下                                                   |
+| 2   | ~~`src/dehydrated-device/index.ts` `getDeviceEvent()`~~                                     | `GET …/dehydrated_device/{device_id}/**initial_device**`                                                           | ✅ **已处置（2026-10-15，方案 A）** —— 全仓无 `initial_device` 路由（该族现为 **6 条**：`dehydrated_device` 的 GET/PUT/DELETE、`/status`、`/{device_id}/events` 的 GET+POST）⇒ 方法**已删除** |
+| 3   | `src/external-service/index.ts`（原 `triggerOpenclawWebhook` / `triggerTrendradarWebhook`） | `…/external/openclaw/{service_id}/webhook`（**后端已删**）`…/external/trendradar/{service_id}/webhook`（后端待删） | ✅ **已处置（2026-10-15）** —— 见下                                                                                                                                                           |
 
 **判读与建议**（不擅自改，因为三条都需要产品/后端意图）：
 
@@ -243,8 +243,8 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
   且源码注释明确写「POST = MSC3814/ruma 规范形态；GET = Synapse v1.157 兼容别名（弃用中）」。
   ⇒ 真正的问题是 **ledger 只导出了 GET**（`derived_route_table_always.inc.rs:139-141` 仅列 GET；
   `route-manifest.all.json` 亦仅 GET），属**契约导出漏项**。**SDK 的 `claimDevice()`（POST）本来就是对的，不需要改**。
-- **#2 → 已定调：不是拼写笔误，而是「把请求体字段名误当路径段」的构造错误；建议**删除该方法**。**
-  三方证据（上游 synapse / 上游 matrix-js-sdk / MSC3814）+ 三档处置方案见 **§七 E**。
+- **#2 ✅ 已处置（2026-10-15，方案 A）**：不是拼写笔误，而是「把请求体字段名误当路径段」的构造错误。
+  `getDeviceEvent()` **已删除**（含 spec 2 例与 `CHANGELOG` BREAKING 条目）。完整取证见 **§七 7.2**，方案对照见 **§七 7.3**。
 - **#3 ✅ 已处置（2026-10-15）**：`openclaw` 在后端**全仓已无痕迹**（本轮实测确认），
   `trendradar` 由后端一并下线。SDK 侧两个封装 `triggerOpenclawWebhook()` 与
   `triggerTrendradarWebhook()` **已移除** —— 公共 API 变更记入 `CHANGELOG.md` 的 **BREAKING** 条目；
@@ -330,11 +330,11 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 
 ### 7.3 处置方案（三档，推荐 A）
 
-| 方案          | 动作                                                                                         | 评价                                                                                                                                                               |
-| ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **A（推荐）** | **删除 `getDeviceEvent()`** + 删 spec 2 例 + `CHANGELOG` 加 BREAKING + 本页记录              | 与 `deleteRoomMessage`（后端无该端点）、`triggerOpenclawWebhook`（后端已删）**同型处置**：从未能工作的公开 API 不该留在公开面。无调用者、能力已有正确替代          |
-| B             | 改名 `claimDeviceEvents()` + 路径改为 `…/{device_id}/events`（GET，Synapse v1.157 兼容别名） | 仅当后端承诺长期保留 GET 别名时才有意义；后端自己标注「**弃用中**」，且与 `claimDevice()`（POST）重复 ⇒ 等于新增一个「弃用形态」的公开 API，与收敛公开面的方向相反 |
-| C             | 保留方法名，仅把 `initial_device` 改成 `events`                                              | 等同 B，但方法名仍不准确（`getDeviceEvent` 表达不了"分页拉取事件队列"）；不推荐                                                                                    |
+| 方案                          | 动作                                                                                         | 评价                                                                                                                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **A ✅ 已实施（2026-10-15）** | **删除 `getDeviceEvent()`** + 删 spec 2 例 + `CHANGELOG` 加 BREAKING + 本页记录              | 与 `deleteRoomMessage`（后端无该端点）、`triggerOpenclawWebhook`（后端已删）**同型处置**：从未能工作的公开 API 不该留在公开面。无调用者、能力已有正确替代          |
+| B                             | 改名 `claimDeviceEvents()` + 路径改为 `…/{device_id}/events`（GET，Synapse v1.157 兼容别名） | 仅当后端承诺长期保留 GET 别名时才有意义；后端自己标注「**弃用中**」，且与 `claimDevice()`（POST）重复 ⇒ 等于新增一个「弃用形态」的公开 API，与收敛公开面的方向相反 |
+| C                             | 保留方法名，仅把 `initial_device` 改成 `events`                                              | 等同 B，但方法名仍不准确（`getDeviceEvent` 表达不了"分页拉取事件队列"）；不推荐                                                                                    |
 
 > **独立的第二条线（与选哪档无关，但必须做）**：把 `dehydrated_device` **纳入 codegen 管辖**（见 §7.1）。
 > 否则即使改了路径，它仍**没有 `PathAssert`**，同类问题下次照样漏 —— 这正是 §六 D 的 #2 能长期存在的原因。

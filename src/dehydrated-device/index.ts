@@ -260,31 +260,6 @@ export class DehydratedDeviceManager extends BaseManager {
             });
         }, "deleteDevice");
     }
-
-    /**
-     * 获取 dehydrated device 的 initial_device 事件。
-     *
-     * @param deviceId - 目标 dehydrated device 的 ID。
-     * @returns 事件内容（结构随后端实现变化）。
-     * @throws 当 `deviceId` 为空时抛出校验错误。
-     * @example
-     * ```ts
-     * const event = await client.getDehydratedDeviceManager().getDeviceEvent("DEHYDRATED_DEVICE_ID");
-     * ```
-     */
-    public async getDeviceEvent(
-        deviceId: string,
-    ): Promise<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */> {
-        this.requireNonEmptyString(deviceId, "deviceId");
-
-        return await this.withRetry(async () => {
-            return await this.request<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */>({
-                method: Method.Get,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/initial_device`,
-                prefix: MSC3814_PREFIX,
-            });
-        }, "getDeviceEvent");
-    }
 }
 
 export function extendMatrixClient(): void {

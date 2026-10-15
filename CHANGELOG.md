@@ -12,6 +12,12 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 
 ### Changed
 
+- **BREAKING** `dehydrated-device`: 移除 `getDeviceEvent()`。它打的
+  `GET /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/initial_device`
+  在本后端、上游 Synapse（`rest/client/devices.py` 带 `device_id` 的路由只有 `…/events`）、
+  上游 matrix-js-sdk（`rust-crypto/DehydratedDeviceManager.ts`）与 MSC3814 四处**均不存在**
+  ⇒ 调用必然 404。该路径段系「把请求体字段名 `initial_device_display_name` 误当路径段」所致。
+  其能力已被 `getDevice()`（读 `device_data`）与 `claimDevice()`（`POST …/{device_id}/events`，规范形态）覆盖。
 - **BREAKING** `external-service`: 移除 `triggerOpenclawWebhook()` 与 `triggerTrendradarWebhook()`。
   后端已下线 `openclaw` 相关功能（同类服务 `trendradar` 一并移除），这两个封装所打的路由
   `/_synapse/external/openclaw/{id}/webhook` 与 `/_synapse/external/trendradar/{id}/webhook`
