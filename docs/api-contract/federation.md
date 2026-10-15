@@ -79,9 +79,16 @@ last_reviewed: 2026-05-03
 
 ## SDK 契约对齐
 
-- **后端 Ledger 路由总数**: 52
+- **后端 Ledger 路由总数**: 55
 - **SDK 已封装路由数**: 19
-- **契约覆盖率**: 37%
+- **契约覆盖率**: 35%
+- **口径说明（2026-10-15 订正）**: 原写「总数 52 / 覆盖率 37%」为陈旧值（52 系后端补齐 3 条前的计数；
+  19/55 = 34.5% ≈ 35%）。**更关键的是口径本身**：本模块 55 条**全部**为 server-to-server / key-server
+  路由（`_matrix/federation/v1` 36 + `v2` 7 + `unstable` 1、`_synapse/federation/*` 7、`_matrix/key/v2` 4，
+  逐条实测**无**任何 `/_matrix/client/*` 或 `/_synapse/admin/*` 混入），由 homeserver 之间与 key server
+  调用，**客户端 SDK 天然不承担**。故本模块已由 `quality:manager-codegen` 从 `WAIVED` 移入新增的
+  `SERVER_ONLY_MODULES` 类别 —— 属「本口径不适用」，而非「有期限的欠账」。
+  此处 35% 只作**事实记录**，不是待办 KPI。
 - **说明**: `FederationManager` 已补齐联邦发现、目的地查询、跨服事件与跨服媒体读接口，手写路径漂移面继续收敛；大量 Protected Federation 路由、Key 相关的 V2 路由主要用于服务器间交互，SDK 仅保留最核心的客户端可见面。
 - **v10 对齐 (2026-06-09)**: 新增 `toCanonicalJson()` 静态方法（转义 U+2028/U+2029/U+FFFD 字符，对齐后端 C-2 Canonical JSON 修复）；新增 `sendFederationEvent()` 方法（使用 Canonical JSON 序列化发送联邦事件）。
 

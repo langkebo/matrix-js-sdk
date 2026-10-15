@@ -182,7 +182,23 @@ last_reviewed: 2026-05-11
 - 保留策略: `admin/retention.rs`
 - 注册: `admin/register.rs`
 
-## SDK 契约对齐（2026-04-23 更新）
+## SDK 契约对齐（2026-10-15 更新；下方对齐表为 2026-04-23 版）
+
+### 覆盖率口径
+
+- **后端 Ledger 路由总数**: 179（`generated/modules/admin.json`）
+- **SDK 已封装路由数**: 176
+- **契约覆盖率**: 98%
+- **计数口径（2026-10-15 实测）**: 「已封装」= 表内 179 条目中，其（归一化后的）相对路径被
+  `apu()` 引用到的条数。表内 distinct 相对路径为 141 条，其中 138 条被引用；未被引用的 3 条为
+  信息/内部维护类端点 —— `GET /_synapse/admin/info`、`GET /_synapse/admin/v1/server`、
+  `POST /_matrix/client/v3/admin/room/{room_id}/redact`。
+- **编译期约束（2026-10-15 收编）**: `src/admin/sub-managers/*.ts` 的 **234 处** `this.adminRequest`
+  路径已全部接入 `apu()` 的 `PathAssert` 断言。因本目录**跨 7 个 ledger 模块**
+  （`admin` / `event_report` / `external_service` / `feature_flags` / `module` / `room` / `telemetry`），
+  断言取 **7 表并集**并剥离 **6 种前缀**（顺序敏感：`/_synapse/admin/v1`、`/v2` 必须先于 `/_synapse/admin`）
+  ⇒ 手写路径与后端契约不符会在 `tsc` 阶段直接失败，不再依赖人工核对。
+  范式见 `src/admin/admin-base-manager.ts` 的 `AdminScopedPath` / `StripAdminModule`。
 
 下列 SDK 方法与后端一一校对，均有单测覆盖（`spec/unit/admin.spec.ts` / `admin-extended.spec.ts` / `admin-new-endpoints.spec.ts`）：
 

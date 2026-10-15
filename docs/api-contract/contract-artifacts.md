@@ -56,12 +56,14 @@
 `SKIP_ROUTE_TABLE_MODULES`（`scripts/sdk-contract-codegen.mjs`）列出 1 个**不生成 route-table** 的模块：
 
 ```
-federation
+federation        # 服务端面（S2S / key-server），客户端 SDK 不承担 —— 见 §五
 ```
 
-豁免不是「免检」：coverage 门禁要求每个条目各有一条 waiver（带 reason + 过期时间），
-且**未列入白名单的模块缺表会直接失败**。这 7 个模块的 `dto.ts` 仍然生成，
-所以 `__generated__` 目录数是 48 而不是 47。
+跳过 ≠ 免检：`quality:manager-codegen` 要求后端每个模块都落到一个**明确归类** ——
+COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适用）或 `WAIVED_MODULES`
+（有期限的欠账，每条带 reason + 过期时间）。**未归类而缺表会直接失败**（`missing` / `NO_CONSUMER`）。
+
+`federation` 的 `dto.ts` 仍然生成，所以 `__generated__` 目录数是 48 而不是 47。
 
 ### 977 vs 1032：两张表的构造规则不同
 
@@ -99,10 +101,20 @@ federation
 
 ---
 
-## 五、剩余 1 个豁免的收编路径（2026-10-15 实测改造量）
+## 五、WAIVED 收编线（2026-10-15 收口，当前归零）
 
-`quality:manager-codegen` 当前 WAIVED **1 个模块 / 179 条**无 route-table 约束路由。
-逐个的体量与**实测**障碍（避免下次重新侦查）：
+`quality:manager-codegen` 的 **WAIVED 已归零** —— 无 route-table 约束的路由从 **315 条降到 0**、
+模块维度覆盖率 79.2% → **100%**。下表是这条线收掉的 **9 个模块 / 260 条**，以及每条**原豁免理由**
+经回源核对后的**实际成因**。这张表的价值在于：**多数原始理由与事实不符**。
+
+| 模块                                    |      条数 | 原豁免理由 → 实测成因                                                                                                                             |
+| --------------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `delayed_events`                        |         7 | 「1 route；manager 不需要表」→ 后端已补齐 7 条，且 `LEDGER_MODULE_ALIASES` 与文档章节**两条通道都没登记**                                         |
+| `dm` / `key-rotation` / `feature-flags` | 5 / 9 / 4 | 「no route-table consumer」→ 实为「自持前缀 + 字面量相对路径」，前缀与契约逐字一致                                                                |
+| `invite_blocklist`                      |         4 | 「后端无该章节」→ 枚举源实为**本仓** `CONTRACT_INDEX.md` 的文档链接，建页即可收编                                                                 |
+| `app_service`                           |        39 | 「纯服务端面」→ 实为 17 admin + 12 AS + 10 客户端面；**且 `LEDGER_MODULE_ALIASES` 键名写错**（`appservice` vs `app-service`）⇒ 表生成但是**空的** |
+| `cas`                                   |        12 | 「运行时前缀拼接、需独立改造」→ 全是方法内局部常量 + 字面量，无拼接                                                                               |
+| `reactions`                             |         1 | 消费点在 `src/client.ts`（会碰 large-file 门禁）→ 真正构造点在 `src/room-events/index.ts`                                                         |
 
 | 模块    | 条数 | 障碍（2026-10-15 实测）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ------- | ---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -114,9 +126,13 @@ federation
 归类依据是**逐条实测**的路径前缀（见门禁脚本内 `SERVER_ONLY_MODULES.federation.evidence`），
 不是凭印象。门禁输出现在会显式打印 `server-only 55 条属服务端面`，不会被静默吞掉。
 
-**已收编（8 个模块 / 81 条）**：`delayed_events`(7)、`dm`(5)、`key-rotation`(9)、`feature-flags`(4)、
-`invite_blocklist`(4)、`app_service`(39)、`cas`(12)、`reactions`(1)。收编通用范式见 `docs/api-contract/delayed-events.md` 与
-`docs/api-contract/invite-blocklist.md` 的「当前审计结论」节。
+> **通用判据（本线用 5 次返工换来的）**：拿到 WAIVED / 豁免条目，先**回源读代码**再动手 ——
+> 理由里的「需独立改造 / 运行时拼接 / 无消费者 / 后端无该章节」经常已过期或是误判；
+> 真正的障碍通常是**登记缺失**（alias 键名写错、章节未映射、页不存在）。
+
+收编通用范式见 `docs/api-contract/delayed-events.md` 与 `docs/api-contract/invite-blocklist.md`
+的「当前审计结论」节；`admin` 的多表 union 断言范式见 `src/admin/admin-base-manager.ts` 的
+`AdminScopedPath` / `StripAdminModule`。
 
 ---
 
@@ -156,18 +172,20 @@ federation
 > 需改为**读—改—写**（与 `InviteBlocklistManager.addToBlocklist` 同款），或收敛掉这组方法。
 > 处置方案与跨仓确认项见 `artifacts/sdk-backend-handoff-2026-10-15.md`。
 
-**处置顺序建议**：先修 A 的两条（行为缺陷）→ 后端补 B 的导出 → 再做 admin 收编
-（断言设计：多前缀（6 种）+ 多模块 union（7 张表））。
+**处置状态（2026-10-15 收口）**：**A 已修**（2 条）；**B 经复核撤回**（原结论有误，见上）；
+**admin 已收编** —— 断言设计落地为 7 表 union + 6 种前缀剥离，221 处调用点批量接入 `apu()`。
 
-> **`app_service` 的收编还纠正了两处既有错误**：
+> **`app_service` 的收编还纠正了两处既有错误**（与 §五 上表同源）：
+>
 > ① **映射键写错**：`LEDGER_MODULE_ALIASES` 的键原为 `appservice`，而 SDK 目录实名是 **`app-service`**
 > ⇒ `findSdkDirForModule("app_service")` 指向不存在的目录，**ledger 通道永远取不到该模块**（实测
 > codegen 对 `src/app-service/` 输出 `(0 entries)`）；改为实名后表恢复 39 条。
-> **`cas` 的收编同理纠正了一处与代码不符的 waiver 描述**：原写"CasManager 经 `resolvePath` 运行时
-> 二元前缀拼接、从不 import route-table"——实际 11 处路径构造点全是「方法内局部常量 `const path = "…"`」
-> 或字面量，并无运行时拼接。接入 `apu()`/`cpu()` 断言后即受管辖（现仅剩 3 个豁免）。
 >
 > ② **豁免理由与事实不符**：原 waiver 按"纯服务端面"豁免，实际 39 条 = 17 条 admin 面 + 12 条 AS 面
 >
 > - 10 条客户端面，且 `src/app-service/index.ts` 的 21 处路径与之逐条对应（其中 4 处 thirdparty
 >   路由借 third-party 模块表，同 `room-summary` 借 `RoomPath` 之例）。
+>
+> **`cas` 的收编同理**纠正了一处与代码不符的 waiver 描述：原写"CasManager 经 `resolvePath` 运行时
+> 二元前缀拼接、从不 import route-table"—— 实际 11 处路径构造点全是「方法内局部常量
+> `const path = "…"`」或字面量，并无运行时拼接。接入 `apu()` / `cpu()` 断言后即受管辖。

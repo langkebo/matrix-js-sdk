@@ -353,8 +353,11 @@ const userReportManager = client.getUserReportManager();
 
 ## 覆盖率口径
 
-- **后端 Ledger 路由总数**: 146 (基于 `assembly.json` 生成的 `AuthPathPattern`)
-- **SDK 已封装路由数**: 146
-- **已绑定生成路由模板**: 146
+- **后端 Ledger 路由总数**: 104（= 后端 `assembly` 桶条目数，也是 `src/auth/__generated__/route-table.ts` 的实测条目数）
+- **SDK 已封装路由数**: 104
+- **已绑定生成路由模板**: 104
+- **订正说明（2026-10-15）**: 原写 **146**，但 `generated/modules/assembly.json` 与
+  `src/auth/__generated__/route-table.ts` 实测**均为 104**，146 无可复现来源（`assembly` 条目数在近 120 个
+  提交内恒为 104）⇒ 按实测订正。`CONTRACT_INDEX.md` 的对应行同步订正。
 - **契约覆盖率**: 100%
 - **扩展面说明**: `auth.md` 作为 umbrella 页面会记录 `saml`/`oidc`/`cas` 等认证扩展；当前 `generated/` 默认已切到 `ledger_export_sdk/` full-extension 源，因此这些扩展模块会稳定出现在 `docs/api-contract/generated/modules/*.json` 中。

@@ -1,23 +1,23 @@
 # API 契约文档索引
 
-> 更新日期: 2026-10-12（契约镜像与后端 `122aaf109` 对齐）
+> 更新日期: 2026-10-15（契约镜像与后端 `6302798c3` 对齐；WAIVED 收编线收口）
 >
 > 后端 Ledger ──→ 机器可读契约 (`generated/modules/*.json`) ──→ LLM/SDK 生成 (`scripts/sdk-contract-codegen.mjs`) ──→ 人工 Review
 >
-> 后端仓库: `synapse-rust` | 后端提交: `122aaf109a883a078861fce740e9ce1af416f1b0`（`fix(contract): 类型化 chunk 上传 query 并补齐路由面 query_params 口径`）
+> 后端仓库: `synapse-rust` | 后端提交: `6302798c3582d67b01d27677c8ca9db00376b1c3`（镜像 stamp，即 `generated/index.json` 的 `synapse_rust_commit`；`contract-sync` 用后端工作区 live HEAD 覆写）
 >
 > 说明: `generated/` 默认来自 `../synapse-rust/tests/unit/fixtures/ledger_export_sdk/`，这套 fixture 由 `synapse_ledger_export` 在 `--features all-extensions` 下导出，用于 SDK 完整扩展面同步。后端默认 golden fixture `tests/unit/fixtures/ledger_export/` 仍保留给 compile-aware 单测使用。
 
 ## 核心客户端 API
 
-| 模块     | 文档                               | 端点数 | SDK 覆盖率 | 优先级  |
-| -------- | ---------------------------------- | ------ | ---------- | ------- |
-| 认证     | [auth.md](auth.md)                 | 146    | 100%       | ✅ 完善 |
-| 账户数据 | [account-data.md](account-data.md) | 15     | 100%       | ✅ 完善 |
-| 设备管理 | [device.md](device.md)             | 6      | 100%       | ✅ 完善 |
-| 房间     | [room.md](room.md)                 | 95     | 100%       | ✅ 完善 |
-| 同步     | [sync.md](sync.md)                 | 3      | 100%       | ✅ 完善 |
-| 推送     | [push.md](push.md)                 | 17     | 100%       | ✅ 完善 |
+| 模块     | 文档                               | 端点数 | SDK 覆盖率 | 优先级                                        |
+| -------- | ---------------------------------- | ------ | ---------- | --------------------------------------------- |
+| 认证     | [auth.md](auth.md)                 | 104    | 100%       | ✅ 完善 (umbrella 页，对应后端 `assembly` 桶) |
+| 账户数据 | [account-data.md](account-data.md) | 15     | 100%       | ✅ 完善                                       |
+| 设备管理 | [device.md](device.md)             | 6      | 100%       | ✅ 完善                                       |
+| 房间     | [room.md](room.md)                 | 95     | 100%       | ✅ 完善                                       |
+| 同步     | [sync.md](sync.md)                 | 3      | 100%       | ✅ 完善                                       |
+| 推送     | [push.md](push.md)                 | 17     | 100%       | ✅ 完善                                       |
 
 ## 社交功能 API
 
@@ -63,22 +63,22 @@
 
 ## 管理员 API
 
-| 模块        | 文档                                         | 端点数 | SDK 覆盖率 | 优先级                                           |
-| ----------- | -------------------------------------------- | ------ | ---------- | ------------------------------------------------ |
-| 管理核心    | [admin.md](admin.md)                         | 179    | 31%        | 🛠️ 持续完善中 (已封装 48 个高价值端点)           |
-| 联邦        | [federation.md](federation.md)               | 55     | 35%        | ⚠️ 待提升 (已补联邦发现、目的地、事件与媒体查询) |
-| WorkerAdmin | [worker-admin.md](worker-admin.md)           | 15     | 100%       | ✅ 完善                                          |
-| 遥测        | [telemetry.md](telemetry.md)                 | 6      | 100%       | ✅ 完善                                          |
-| 特性开关    | [feature-flags.md](feature-flags.md)         | 4      | 100%       | ✅ 完善                                          |
-| 后台更新    | [background-update.md](background-update.md) | 19     | 100%       | ✅ 完善                                          |
+| 模块        | 文档                                         | 端点数 | SDK 覆盖率 | 优先级                                                                           |
+| ----------- | -------------------------------------------- | ------ | ---------- | -------------------------------------------------------------------------------- |
+| 管理核心    | [admin.md](admin.md)                         | 179    | 98%        | ✅ 完善 (176/179 端点已封装；全部路径受 `PathAssert` 编译期约束，无约束路由归零) |
+| 联邦        | [federation.md](federation.md)               | 55     | —          | 🖥️ 服务端面 (S2S / key-server)，SDK 不承担；客户端可见面 19 条已封装             |
+| WorkerAdmin | [worker-admin.md](worker-admin.md)           | 15     | 100%       | ✅ 完善                                                                          |
+| 遥测        | [telemetry.md](telemetry.md)                 | 6      | 100%       | ✅ 完善                                                                          |
+| 特性开关    | [feature-flags.md](feature-flags.md)         | 4      | 100%       | ✅ 完善                                                                          |
+| 后台更新    | [background-update.md](background-update.md) | 19     | 100%       | ✅ 完善                                                                          |
 
 ## 集成 API
 
-| 模块       | 文档                             | 端点数 | SDK 覆盖率 | 优先级  |
-| ---------- | -------------------------------- | ------ | ---------- | ------- |
-| 第三方集成 | [thirdparty.md](thirdparty.md)   | 6      | 100%       | ✅ 完善 |
-| 应用服务   | [app-service.md](app-service.md) | 39     | 100%       | ✅ 完善 |
-| Rendezvous | [rendezvous.md](rendezvous.md)   | 6      | 100%       | ✅ 完善 |
+| 模块       | 文档                             | 端点数 | SDK 覆盖率 | 优先级                                 |
+| ---------- | -------------------------------- | ------ | ---------- | -------------------------------------- |
+| 第三方集成 | [thirdparty.md](thirdparty.md)   | 6      | 100%       | ✅ 完善                                |
+| 应用服务   | [app-service.md](app-service.md) | 39     | 100%       | ✅ 完善                                |
+| Rendezvous | [rendezvous.md](rendezvous.md)   | 10     | 100%       | ✅ 完善 (含 `msc4108_rendezvous` 4 条) |
 
 ## 扩展模块
 
@@ -108,21 +108,32 @@
 
 ## 总览统计
 
-- **模块文档页数**: 51（其中 `auth.md` 为 umbrella 页；47 页带 `module:` frontmatter，直接对应一个生成物模块）
+- **模块文档页数**: 48（47 页带 `module:` frontmatter；`auth.md` 为 umbrella 页，无 `module:` 但对应后端 `assembly` 桶）
 - **生成物模块数**: 49（`generated/modules/*.json`）
 - **后端路由端点数**（`ledger_export_sdk` 三 profile）: `default` **1013** / `worker` **1024** / `all` **1032**
-- **索引表端点数合计**: 1070（页级 `entry_count` 之和；`auth.md` 为 umbrella 页，`worker-body.md` 与 `worker-admin.md` 共享 `worker` 模块，故与 1032 不等）
-- **平均 SDK 覆盖率**: 97.1%（2026-10-12 核算；2026-10-15 新增 `delayed-events.md` 为 100%，未重算整体均值）
-- **完善模块 (≥85%)**: 46 / 48
+- **索引表端点数合计**: **1032**（与后端 `all` profile **完全一致** —— 48 页覆盖 49 个后端模块：`auth.md` 对应 `assembly` 桶，`rendezvous.md` 对应 `rendezvous` + `msc4108_rendezvous` 两个模块）
+- **SDK 覆盖率（按路由加权）**: **96.2%**（已封装 **993** / 后端 **1032**；2026-10-15 实测）
+- **完善模块 (≥85%)**: 47 / 48
 - **待提升模块 (50-84%)**: 0
-- **待封装模块 (<50%)**: 2 —— `admin.md` 31%、`federation.md` 35%
+- **本口径不适用**: 1 —— `federation.md`（19/55 = 35%）。其 55 条**全为** server-to-server / key-server 路由，客户端 SDK 天然不承担，已由 `quality:manager-codegen` 单列为 `SERVER_ONLY` 类别（与"有期限的欠账"性质不同）
 
 > 统计说明：端点数来自 `generated/modules/*.json` 的 `entry_count` 字段（`contract-sync` 实时输出）。
-> 本轮（2026-10-12）已把表中 **35 处**与生成物不符的端点数逐条订正为实测值。
-> 「待封装」两项为**已登记在册**的已知差距（admin 只封装高价值端点、federation 只覆盖发现/目的地/事件/媒体查询），
-> 不是文档漂移；其限额由 `quality:waiver-expiry` 管辖。
+>
+> ⚠️ **本页的「页数 / 合计 / 覆盖率」三项长期无人守护** —— `quality:docs-counts` 只守
+> `contract-artifacts.md` 与 `CLAUDE.md`/`AGENTS.md` 的 8 个锚点，不覆盖本页。故 2026-10-15 逐条重新实测，
+> 订正两处端点数，并纠正一条错误解释：
+>
+> | 行              | 原值 |    实测 | 依据                                                                                             |
+> | --------------- | ---: | ------: | ------------------------------------------------------------------------------------------------ |
+> | `auth.md`       |  146 | **104** | 后端 `assembly` 桶 = 104，`src/auth/__generated__/route-table.ts` 实测同为 104；146 无可复现来源 |
+> | `rendezvous.md` |    6 |  **10** | 该 SDK 表同时承载 `rendezvous`(6) 与 `msc4108_rendezvous`(4)                                     |
+>
+> 订正后合计**恰为 1032**。此前"与 1032 不等"的解释（称 `worker-body.md` 与 `worker-admin.md` 共享
+> `worker` 模块）**不成立**：两者分别对应 `worker_body`(11) 与 `worker`(15) 两个不同模块，不构成重复计。
+> 真实的折叠只有两处 —— `assembly → auth`、`msc4108_rendezvous → rendezvous`；净差 38（= 1070 − 1032）
+> 正是 `auth` 多算 42 与 `rendezvous` 少算 4 相抵的结果。
 
-> **本轮同步范围（2026-10-12，基线后端 `122aaf109`）**：
+> **上轮同步范围（2026-10-12，基线后端 `122aaf109`）**：
 > ① `generated/` 镜像刷新（仅 `media` 的分块上传 `query_params` 有语义变化）；
 > ② 47 个页面的 **103 处**后端源码路径引用从已废弃的 `src/web/…` 校正为 `synapse-web/…`（含 7 处目录模块与 1 处 crate 迁移）；
 > ③ 7 个页面的 **70 处** `/_matrix/client/*` 路径校正为 `/_matrix/vendor/v1/*`（vendor 命名空间迁移未回写文档）；
@@ -131,23 +142,40 @@
 > ⑤ `media.md` 路由清单由 20 条补全为 **36 条**（原缺分块上传家族、r0 全组、`download_signed`、authenticated media）。
 > 详细差异与影响面见 `../../OPS_ARTIFACTS/` 下的同步报告。
 
-> **本轮变更（2026-10-15，基线后端 `326d3fd4`）**：
-> ① 新增本页并把 `delayed_events` 收编进 codegen（补 `__generated__/route-table`，**7 条**）。该模块此前
-> 既未登记在 `LEDGER_MODULE_ALIASES`、后端「延迟事件」章节也未映射到 SDK 目录，于是 doc 与 ledger
-> 两条通道都取不到它 ⇒ 长期处于 **WAIVED（无 route-table 约束）**，且豁免理由「1 route」已随后端
-> 2026-10-14 补齐端点而过期。现 manager 的路径字面量经 `PathAssert` 做编译期 segment 级断言；
-> ② `generated/` 镜像与 46 个页面的 `generated_hash` 针脚随同步刷新（后端路由集未变，仍 `all` **1032**）。
+> **本轮变更（2026-10-15，契约镜像 stamp `6302798c3`）—— 「WAIVED 收编线」收口**：
+>
+> 把此前**零 route-table 约束**的模块逐个收编进 codegen，使 `quality:manager-codegen` 的
+> **WAIVED 10 → 0**、**无 route-table 约束的路由 315 → 0**、模块维度覆盖率 **79.2% → 100%**：
+>
+> | 批次 | 模块（条数）                                     | 性质 / 原豁免理由的实测订正                                                                                                                           |
+> | ---- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | 001  | `delayed_events`(7)                              | 两条通道均未登记（alias 缺失 + 章节未映射）⇒ 补登记即收编                                                                                             |
+> | 002  | `dm`(5) / `key-rotation`(9) / `feature-flags`(4) | manager 自持前缀 + 字面量相对路径，与契约前缀逐字一致                                                                                                 |
+> | 003  | `invite_blocklist`(4)                            | 原理由「后端无该章节」不成立 —— 枚举源实为**本仓** `CONTRACT_INDEX.md` 的文档链接                                                                     |
+> | 004  | `app_service`(39)                                | 原判"纯服务端面"有误（实为 17 admin + 12 AS + 10 客户端面）；且 `LEDGER_MODULE_ALIASES` 键名写错（`appservice` vs `app-service`）⇒ 表生成但是**空的** |
+> | 005  | `cas`(12)                                        | 原理由「运行时前缀拼接、需独立改造」与代码不符 —— 全是方法内局部常量 + 字面量                                                                         |
+> | 006  | `reactions`(1)                                   | 真正消费点在 `src/room-events/index.ts`（`reactions/` 只是薄包装委托）                                                                                |
+> | 007  | `admin`(179)                                     | 跨 **7 个 ledger 模块** ⇒ 断言用 7 表 union + 6 种前缀剥离；221 处调用点批量接入 `apu()`                                                              |
+> | —    | `federation`(55)                                 | 逐条实测全为 S2S / key-server ⇒ 移出 WAIVED，归入新增 `SERVER_ONLY` 类别                                                                              |
+>
+> 合计 **9 个模块 / 260 条**由"零约束"转为受管辖。产物口径同步变化：
+> route-table **39 → 47 张**、条目 **729 → 977**、`src/*/__generated__` 目录 **47 → 48**。
+>
+> 收编过程本身炸出并修复 **6 条真实 404 缺陷**（`federation/destinations/{server}/reset` 试探、
+> `rooms/{room_id}/messages/{event_id}` DELETE、`invite/{blocklist,allowlist}` 的 per-user 增删 ×4），
+> 详见 `contract-artifacts.md` §六 与 `../artifacts/sdk-backend-handoff-2026-10-15.md`。
 
 ## 图例
 
 - ✅ 完善：SDK 覆盖率 ≥ 85%
 - ⚠️ 待提升：SDK 覆盖率 50-84%
 - 🔴 紧急/待封装：SDK 覆盖率 < 50%
+- 🖥️ 服务端面：路由由 homeserver 之间 / key server 调用，客户端 SDK 天然不承担（`SERVER_ONLY` 口径，不记为欠账）
 
 ## 变更历史
 
-| 日期       | 变更说明                                                                                                                                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-10-15 | 新增 `delayed-events.md`（7 条）并把 `delayed_events` 从 WAIVED 收编进 codegen（`route-table` 39 → 40 张、条目 729 → 736、无约束路由 315 → 308）                                                                               |
-| 2026-05-11 | 第二轮审计 52 项问题全部闭环；48 个合约 JSON commit hash 统一为 `6ba41b535c04`；codegen 重新生成 128 个文件；覆盖率从 ~65% 提升至 ~91%；🔴 待封装模块从 11 降至 0；`worker-admin` 与 `background-update` 管理面契约补齐到 100% |
-| 2026-04-27 | 初始版本，基于第一轮部分审计结果                                                                                                                                                                                               |
+| 日期       | 变更说明                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-15 | **WAIVED 收编线收口**：9 个模块 / 260 条从「零 route-table 约束」转为受管辖（`delayed_events` 7、`dm` 5、`key-rotation` 9、`feature-flags` 4、`invite_blocklist` 4、`app_service` 39、`cas` 12、`reactions` 1、`admin` 179）；`federation`(55) 归入新增 `SERVER_ONLY` 类别。**WAIVED 10 → 0**、无约束路由 **315 → 0**、route-table **39 → 47 张**、条目 **729 → 977**；顺带修复 6 条真实 404 缺陷。本页 `auth`(146→104) / `rendezvous`(6→10) 端点数订正，合计恰为 1032 |
+| 2026-05-11 | 第二轮审计 52 项问题全部闭环；48 个合约 JSON commit hash 统一为 `6ba41b535c04`；codegen 重新生成 128 个文件；覆盖率从 ~65% 提升至 ~91%；🔴 待封装模块从 11 降至 0；`worker-admin` 与 `background-update` 管理面契约补齐到 100%                                                                                                                                                                                                                                         |
+| 2026-04-27 | 初始版本，基于第一轮部分审计结果                                                                                                                                                                                                                                                                                                                                                                                                                                       |
