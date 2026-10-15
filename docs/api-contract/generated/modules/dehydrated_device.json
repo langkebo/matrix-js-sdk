@@ -1,0 +1,57 @@
+{
+  "schema_version": "1",
+  "ledger_schema": "4",
+  "module": "dehydrated_device",
+  "synapse_rust_commit": "8869abea19e4881203ecf1d1b93c172ad6475ae2",
+  "generated_at": "2026-05-02T00:00:00Z",
+  "source_profile": "all",
+  "entry_count": 6,
+  "entries": [
+    {
+      "method": "DELETE",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
+      "registered_by": "dehydrated_device",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
+      "registered_by": "dehydrated_device",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
+      "registered_by": "dehydrated_device",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status",
+      "registered_by": "dehydrated_device",
+      "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
+      "registered_by": "dehydrated_device",
+      "path_params": [
+        "device_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
+      "registered_by": "dehydrated_device",
+      "path_params": [
+        "device_id"
+      ],
+      "query_params": []
+    }
+  ]
+}
