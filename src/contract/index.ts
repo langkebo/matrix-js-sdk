@@ -51,6 +51,7 @@ import { NOTIFICATIONS_ROUTES } from "../notifications/__generated__/route-table
 import { OIDC_ROUTES } from "../oidc/__generated__/route-table";
 import { PRESENCE_ROUTES } from "../presence/__generated__/route-table";
 import { PUSH_ROUTES } from "../push/__generated__/route-table";
+import { REACTIONS_ROUTES } from "../reactions/__generated__/route-table";
 import { RELATIONS_ROUTES } from "../relations/__generated__/route-table";
 import { RENDEZVOUS_ROUTES } from "../rendezvous/__generated__/route-table";
 import { ROOM_ROUTES } from "../room/__generated__/route-table";
@@ -110,6 +111,7 @@ export const SDK_CONTRACT_ROUTE_TABLES = {
     oidc: OIDC_ROUTES,
     presence: PRESENCE_ROUTES,
     push: PUSH_ROUTES,
+    reactions: REACTIONS_ROUTES,
     relations: RELATIONS_ROUTES,
     rendezvous: RENDEZVOUS_ROUTES,
     room: ROOM_ROUTES,

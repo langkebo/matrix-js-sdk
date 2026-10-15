@@ -43,7 +43,11 @@ export const WAIVED_MODULES = {
             "CONTRACT_MODULE_MAP 的 `联邦` 映射改为 null（与 3PID/AI 连接同款），或在本门禁另立 SERVER_ONLY 类别。",
         expires: "2026-12-31",
     },
-    reactions: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
+    // 注（2026-10-15）：此处原有 `reactions` 的 waiver。该模块的 manager 是薄包装
+    // （`src/reactions/index.ts` 委托 `client.reactToMessage` → `RoomEventsManager.sendReaction`），
+    // 真正的路径字面量在 `src/room-events/index.ts` 的
+    // `utils.encodeUri("/rooms/$roomId/send/m.reaction/$txnId", …)`，已在那里接入 `PathAssert`
+    // 断言（借 reactions 模块的表），故移除 waiver。
     // 注（2026-10-15）：`dm` / `feature_flags` / `key_rotation` 的 waiver 已移除 —— 三者的 manager
     // 自持前缀与字面量相对路径（dm/key_rotation = VendorPrefix；feature_flags = AdminPrefix.V1，
     // 均与契约表前缀逐字一致），已接入生成的 route-table 并做 PathAssert 编译期断言。

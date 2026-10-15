@@ -28,6 +28,24 @@ import { type IEphemeralEventData } from "../ephemeral/index";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { ReactionsPath } from "../reactions/__generated__/route-table";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的路径模板绑到 **reactions** 模块的契约表上。
+ *
+ * 为什么借 reactions 的表：`sendReaction` 构造的路由在 ledger 里归 `reactions` 模块
+ * （`registered_by`），而本目录（`room-events`）不是 codegen 模块；同 `room-summary` 借
+ * `RoomPath`、`app-service` 借 `ThirdpartyPath` 之例。
+ *
+ * 本方法不发 `prefix`（走 `BaseManager` 默认 `ClientPrefix.V3`），故断言前用 `StripV3`
+ * 剥掉 `/_matrix/client/v3`。契约里的 `{room_id}` / `{txn_id}` 是占位段，
+ * `utils.encodeUri` 的 `$roomId` / `$txnId` 单段替换与之逐段对应 ⇒ 编译期可验。
+ */
+function rp<const P extends string>(path: P & PathAssert<P, StripV3<ReactionsPath>>): P {
+    return path;
+}
+
 export interface IRoomEventResponse {
     event_id: string;
 }
@@ -245,7 +263,7 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         // 事务 ID 从闭包里提出来：withRetry 重跑闭包时若重新取 Date.now()，每次重试都会
         // 变成一个新事务，服务端便无法去重 —— 提到外面才能声明幂等键（P3-1）。
         const txnId = "m" + Date.now();
-        const reactionPath = utils.encodeUri("/rooms/$roomId/send/m.reaction/$txnId", {
+        const reactionPath = utils.encodeUri(rp("/rooms/$roomId/send/m.reaction/$txnId"), {
             $roomId: roomId,
             $txnId: txnId,
         });
