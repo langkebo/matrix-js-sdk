@@ -96,4 +96,36 @@ describe("DeviceKeysManager", () => {
         expect(manager.hasDevice("D1")).toBe(true);
         await expect(manager.getDevice("D1")).resolves.toHaveProperty("device_id", "D1");
     });
+
+    /*
+     * R-06（缺口报告 2026-10-15）：后端满页时返回 `next_batch` 游标，而 SDK 此前
+     * **未在响应类型里声明**该字段 ⇒ 游标被丢弃、翻页只能重复首页（静默截断）。
+     * 同一用例顺带钉住 P-11：`limit`/`from` 必须真的下发（否则"声明了但没发"不会被发现）。
+     *
+     * 这里注入 fake Transport 而不是断言 `client.http.authedRequest` 的入参：
+     * Transport 接口是本仓为「测试可注入」设计的（见 `src/managers/base-manager.ts`），
+     * 断言 (method, path, query) 三者比反推 authedRequest 的参数顺序稳得多。
+     */
+    it("surfaces next_batch and forwards limit/from as query params (R-06 / P-11)", async () => {
+        const calls: Array<{ method: string; path: string; query?: Record<string, unknown> }> = [];
+        const managerWithFakeTransport = new DeviceKeysManager(mockClient, {
+            transport: {
+                request: async (method: string, path: string, query?: Record<string, unknown>) => {
+                    calls.push({ method, path, query });
+                    return { requests: [{ request_id: "r1" }], next_batch: "cursor-1" };
+                },
+            },
+        });
+
+        const res = await managerWithFakeTransport.getRoomKeyRequests({
+            status: "pending",
+            limit: 1,
+            from: "cursor-0",
+        });
+
+        expect(res.next_batch).toBe("cursor-1");
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toMatchObject({ method: "GET", path: "/room_keys/request" });
+        expect(calls[0].query).toEqual({ status: "pending", limit: "1", from: "cursor-0" });
+    });
 });

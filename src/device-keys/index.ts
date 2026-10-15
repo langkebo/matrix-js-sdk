@@ -159,6 +159,16 @@ export interface RoomKeyRequest {
 
 export interface RoomKeyRequestsResponse {
     requests: RoomKeyRequest[];
+    /**
+     * 分页游标（R-06）。后端仅在 `requests.length == limit`（满页）时返回该字段
+     * （`synapse-web/src/routes/e2ee/devices.rs:340-351`），未满页时为 `null`。
+     *
+     * **不透明字符串**：原样回传给下一次调用的 `from` 即可翻页，不要解析其内容。
+     *
+     * 此前本接口未声明该字段 ⇒ 游标在 SDK 侧被丢弃，调用方只能重复取首页，
+     * 属**静默数据截断**（2026-10-15 复核确认，见缺口报告 R-06）。
+     */
+    next_batch?: string | null;
 }
 
 export interface SendToDeviceMessage {
