@@ -397,7 +397,10 @@ export function jsonMacroTopLevelKeys(src, jsonBangIndex) {
  */
 export function findRustFunctions(src) {
     const out = [];
-    for (const m of src.matchAll(/\n(?:pub\s+)?async\s+fn\s+([A-Za-z_]\w*)\s*[(<]/g)) {
+    // ⚠️ 必须接受 `pub(crate)` / `pub(super)` 等**带括号的可见性**：只写 `pub\s+` 会让
+    // 该可见性的处理器整批不可见 —— 实测 `routes/handlers/room/members.rs` 全族的
+    // `pub(crate) async fn` 一个都抓不到（连带把同名撞车判据骗成"唯一候选"）。
+    for (const m of src.matchAll(/\n(?:pub(?:\s*\([^)]*\))?\s+)?async\s+fn\s+([A-Za-z_]\w*)\s*[(<]/g)) {
         const brace = src.indexOf("{", m.index);
         if (brace < 0) continue;
         const slice = balancedSlice(src, brace);
@@ -652,13 +655,41 @@ function containerAttributes(head) {
  * @returns {string | null}
  */
 export function extractReturnType(sig) {
-    const paren = sig.indexOf("(");
-    if (paren < 0) return null;
-    const params = balancedSlice(sig, paren);
-    if (!params) return null;
-    const rest = sig.slice(params.end).trim();
+    const slice = paramSliceOf(sig);
+    if (!slice) return null;
+    const rest = sig.slice(slice.end).trim();
     const m = rest.match(/^->\s*([\s\S]+)$/);
     return m ? m[1].replace(/\s+/g, " ").trim() : null;
+}
+
+/**
+ * 取函数签名里**参数表**的那对括号切片。
+ *
+ * ⚠️ 锚点是 `fn <name>` **之后**那个 `(`，不是 `sig.indexOf("(")`：`pub(crate)` 自带的
+ * 那个括号会先被命中，于是整个参数表变成 `crate` —— 实测让**整族 `pub(crate)` 处理器**
+ * 的 `hasJson` 恒为 `false`（造出 25 条 `body-sent-ignored` 假阳性），
+ * 而 `extractReturnType` 对它们恒返回 `null`（连带 `findRustFunctions` 过滤掉整批）。
+ *
+ * @param {string} sig
+ * @returns {{ text: string, end: number } | null}
+ */
+function paramSliceOf(sig) {
+    const text = String(sig);
+    const fnMatch = /\bfn\s+[A-Za-z_]\w*\s*[(<]/.exec(text);
+    if (!fnMatch) return null;
+    // 命中字符可能是 `(`，也可能是泛型参数表的 `<`
+    const paren = text.indexOf("(", fnMatch.index + fnMatch[0].length - 1);
+    return paren < 0 ? null : balancedSlice(text, paren);
+}
+
+/**
+ * 取函数签名里**参数表**的内文（供提取器识别用）。
+ *
+ * @param {string} sig
+ * @returns {string} 参数表内文（取不到时为空串）
+ */
+export function paramListOf(sig) {
+    return paramSliceOf(sig)?.text.slice(1, -1) ?? "";
 }
 
 /**
@@ -1600,15 +1631,24 @@ export function createResponseResolver({
  * @returns {{ hasQuery: boolean, hasPath: boolean, hasJson: boolean, queryType: string|null, pathType: string|null, jsonType: string|null }}
  */
 export function extractHandlerIo(sig) {
-    const paren = sig.indexOf("(");
-    const params = paren < 0 ? "" : (balancedSlice(sig, paren)?.text.slice(1, -1) ?? "");
-    const pick = (wrapper) => {
-        const m = params.match(new RegExp(`${wrapper}\\s*<\\s*([A-Za-z_][\\w:]*)`));
-        return { present: new RegExp(`${wrapper}\\s*<`).test(params), type: m ? m[1].split("::").pop() : null };
+    const params = paramListOf(sig);
+    // ⚠️ `Json` 与后端自研的 `MatrixJson` **都是 JSON 请求体提取器**：
+    // `routes/extractors/json.rs` 里 `MatrixJson<'_'>` 的 `FromRequest` 直接转调
+    // `axum::extract::Json::<T>::from_request`，只把错误码映射成 Matrix errcode。
+    // 只认 `Json` 会把 `MatrixJson(body): MatrixJson<Value>` 的处理器误判成"不读 body"
+    // ⇒ 造出 `body-sent-ignored` 假阳性（实测 `create_secure_backup` 等）。
+    // 负向后顾是必需的：`MatrixJson<…>` 里也含子串 `Json<`。
+    const pick = (names) => {
+        for (const name of names) {
+            const m = params.match(new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<\\s*([A-Za-z_][\\w:]*)`));
+            if (m) return { present: true, type: m[1].split("::").pop() };
+            if (new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<`).test(params)) return { present: true, type: null };
+        }
+        return { present: false, type: null };
     };
-    const q = pick("Query");
-    const p = pick("Path");
-    const j = pick("Json");
+    const q = pick(["Query"]);
+    const p = pick(["Path"]);
+    const j = pick(["Json", "MatrixJson"]);
     return {
         hasQuery: q.present,
         hasPath: p.present,
@@ -1704,6 +1744,131 @@ export function parseRouteTable(src) {
 }
 
 /**
+ * 解析后端**生成的路由表**（`derived_route_table_{always,worker,oidc}.inc.rs`）。
+ *
+ * 那是后端的**权威路由面**：由 `scripts/contract/gen_derived_routes.py` 从真实 `.route(...)`
+ * 面导出，每条形如
+ *
+ * ```text
+ * RouteEntry::new(axum::http::Method::GET, "/_matrix/client/v3/user/{user_id}/account_data/", "account_data")
+ * ```
+ *
+ * ⚠️ 必须容忍**多行 + 尾逗号**形态（本仓绝大多数条目是这种写法）：只按单行正则匹配会
+ * 静默漏掉 1/3 的条目（实测 702/1034），看起来"表里没有"。
+ *
+ * @param {string} src 已剥注释的 Rust 源码
+ * @returns {Array<{ method: string, path: string, registeredBy: string }>}
+ */
+export function parseGeneratedRouteTable(src) {
+    const out = [];
+    const re = /RouteEntry::new\(\s*axum::http::Method::([A-Z]+)\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,?\s*\)/g;
+    for (const m of src.matchAll(re)) out.push({ method: m[1], path: m[2], registeredBy: m[3] });
+    return out;
+}
+
+/**
+ * 由「routes 目录相对路径」推出该文件的模块键（用于与 `registered_by` 比同族）。
+ *
+ * `room.rs` → `room`；`room/mod.rs` → `room`；`admin/room.rs` → `admin::room`；
+ * `handlers/dehydrated_device.rs` → `handlers::dehydrated_device`。
+ *
+ * ⚠️ **要去掉前导 `routes` 段**：生成表里的 `registered_by` 是**相对 `routes/` 模块根**
+ * 的模块路径（`e2ee`、`admin::room`、`handlers::dehydrated_device`），而调用点通常以
+ * `synapse-web/src` 为扫描根 ⇒ 不去掉就会算出 `routes::e2ee::keys`，与 rb `e2ee`
+ * 判不成同族（实测 `e2ee` / `space` / `search` 三个模块整体漏掉）。
+ *
+ * @param {string} relFile 相对扫描根的路径（用 `/` 分隔）
+ * @returns {string}
+ */
+export function routeModuleKeyOf(relFile) {
+    const segs = String(relFile)
+        .replace(/\.rs$/, "")
+        .replace(/\/mod$/, "")
+        .split("/")
+        .filter(Boolean);
+    if (segs[0] === "routes") segs.shift();
+    return segs.join("::");
+}
+
+/**
+ * 「同族」：两侧在 `::` 边界上互为前后缀。
+ *
+ * 覆盖四种真实形态：`room`（同名）、`admin/room.rs` ↔ `admin::room`、
+ * `handlers/dehydrated_device.rs` ↔ `dehydrated_device`（rb 只写末段）、
+ * `assembly.rs` ↔ `assembly::account_compat`（rb 比文件更细）。
+ * **不做**子串匹配：`room` 与 `room_summary` 不同族（后者是不同模块，
+ * 实测把两者混在一起会造出假连接）。
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function sameRouteModuleFamily(a, b) {
+    if (!a || !b) return false;
+    return a === b || a.endsWith(`::${b}`) || b.endsWith(`::${a}`) || a.startsWith(`${b}::`) || b.startsWith(`${a}::`);
+}
+
+/**
+ * 把 `.route("…")` 里写的路径解析成**绝对路径**。
+ *
+ * ## 为什么需要
+ *
+ * 嵌套/合并的 router 里 `.route()` 写的是**相对路径**（`/user/{user_id}/account_data/`），
+ * 前缀由挂载点决定；而挂载链**静态推不出来**（`create_room_v3_router` 被 `merge` 后
+ * 全仓没有任何地方按名字引用它 ⇒ `.nest` 重建只覆盖 164 个 key）。生成表则给出全部绝对路径。
+ *
+ * ## 三条约束（缺一不可）
+ *
+ * 1. **方法相同**；
+ * 2. **`registered_by` 与调用点文件同族**（同族判据见 `sameRouteModuleFamily`）；
+ * 3. **段对齐后缀**（`abs` 以 `rel` 结尾；`rel` 以 `/` 开头 ⇒ 拼接点天然是段边界）。
+ *
+ * ⚠️ **去掉第 2 条会过生成**：纯后缀连接下 818 个唯一路径会连出 1052 个 key（`/login` 命中 4 条），
+ * 等于把某个处理器的必填体挂到它并不服务的路由上 —— 正是本模块反复强调的
+ * 「错的形状比未知更危险」。故候选 >1 时**只在同族且 `registered_by` 一致**时才全部采纳
+ * （那对应「同一个 router 被挂到多个前缀」，实测就是 v1/v3 兼容对），否则**拒绝解析**。
+ *
+ * ## fail-closed
+ *
+ * 判不出来就**原样返回相对路径**（下游照旧落进"路由契约不可用"桶），绝不猜；
+ * 生成表缺席（老后端/部分检出）时同样原样返回。
+ *
+ * @param {{ routePath: string, method: string, moduleKey: string, generated: Array<{method: string, path: string, registeredBy: string}> }} options
+ * @returns {{ paths: string[], via: "absolute"|"unique"|"multi"|"unresolved"|"refused", candidates?: string[] }}
+ */
+export function resolveRoutePath({ routePath, method, moduleKey, generated }) {
+    const unchanged = { paths: [routePath], via: "unresolved" };
+    if (!routePath || !method) return unchanged;
+    if (!generated || generated.length === 0) return unchanged;
+    // 已经是绝对路径：命中生成表就用它；没命中就**不回落**（`/_matrix/...` 定义上就是绝对的，
+    // 再去后缀匹配只会造出跨前缀的假连接）。
+    if (routePath.startsWith("/_")) {
+        const hit = generated.some((g) => g.method === method && g.path === routePath);
+        return hit ? { paths: [routePath], via: "absolute" } : unchanged;
+    }
+    // axum 路径都以 `/` 开头 ⇒ `endsWith` 即段对齐；不以 `/` 开头时才要求前一个字符是 `/`
+    // （防止 `/rooms` 匹配到 `/admin/rooms` 这种粘段）。
+    const segTail = (abs) => {
+        if (!abs.endsWith(routePath)) return false;
+        if (routePath.startsWith("/")) return true;
+        const cut = abs.length - routePath.length;
+        return cut === 0 || abs[cut - 1] === "/";
+    };
+    const cands = generated.filter(
+        (g) => g.method === method && sameRouteModuleFamily(g.registeredBy, moduleKey) && segTail(g.path),
+    );
+    if (cands.length === 1) return { paths: [cands[0].path], via: "unique" };
+    if (cands.length === 0) return unchanged;
+    // 先按「owner 与文件模块**精确相等**」收窄：`routes/room.rs` 的 `.route("/rooms/{room_id}")`
+    // 只可能属于 `room`，而不属于同族但更远的 `admin::room`（实测 10 条本想拒绝的都能这样定下来）。
+    const exactOwners = cands.filter((c) => c.registeredBy === moduleKey);
+    if (exactOwners.length === 1) return { paths: [exactOwners[0].path], via: "unique" };
+    const distinctOwners = [...new Set(cands.map((c) => c.registeredBy))];
+    if (distinctOwners.length === 1) return { paths: cands.map((c) => c.path), via: "multi" };
+    return { ...unchanged, via: "refused", candidates: cands.map((c) => `${c.method} ${c.path} [${c.registeredBy}]`) };
+}
+
+/**
  * 收集后端 admin 契约：路由 → { handler, responseShapes, responseVariants, io, bodyStruct }。
  *
  * `sinkDirs` 是**响应形状的下沉目录**：响应 struct 常常定义在 `synapse-storage/src` /
@@ -1790,17 +1955,40 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
         }
     }
     const handlerRoutes = new Map();
-    for (const src of perFile.values()) {
+    // 后端**生成表**（权威绝对路径面）：用来把相对 `.route()` 路径解析成绝对路径。
+    // 缺席（老后端/部分检出）时 `resolveRoutePath` 原样返回相对路径 ⇒ 退化为旧行为。
+    const generated = [];
+    for (const [f, src] of perFile) {
+        if (/derived_route_table_[^/]*\.inc\.rs$/.test(f)) generated.push(...parseGeneratedRouteTable(src));
+    }
+    const routeResolution = { absolute: 0, unique: 0, multi: 0, unresolved: 0, refused: 0 };
+    const refusedRoutes = [];
+    for (const [f, src] of perFile) {
+        const moduleKey = routeModuleKeyOf(path.relative(routesDir, f));
         for (const r of parseRouteTable(src)) {
             for (let i = 0; i < r.handlers.length; i++) {
                 // 路由里可能写限定路径（`management::block_room`），而函数定义在
                 // 该文件的子模块里 ⇒ 按**最后一段**建索引（函数名）。
                 const fnName = r.handlers[i].split("::").pop();
-                const key = `${r.methods[i]} ${r.path}`;
-                handlerRoutes.set(fnName, [...(handlerRoutes.get(fnName) ?? []), key]);
+                const res = resolveRoutePath({ routePath: r.path, method: r.methods[i], moduleKey, generated });
+                routeResolution[res.via] += 1;
+                if (res.via === "refused") {
+                    refusedRoutes.push({
+                        file: path.relative(routesDir, f),
+                        path: `${r.methods[i]} ${r.path}`,
+                        candidates: res.candidates,
+                    });
+                }
+                for (const p of res.paths) {
+                    const key = `${r.methods[i]} ${p}`;
+                    handlerRoutes.set(fnName, [...(handlerRoutes.get(fnName) ?? []), key]);
+                }
             }
         }
     }
+    // 生成表给出的**路由 owner**（`registered_by`）：同名 handler 撞车时用它做归属判据。
+    const routeOwner = new Map();
+    for (const g of generated) routeOwner.set(`${g.method} ${g.path}`, g.registeredBy);
 
     /**
      * 按名字挑出**唯一**可下沉的函数定义。
@@ -1838,10 +2026,26 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
     let responseKnown = 0;
     let requestKnown = 0;
     let ambiguous = 0;
+    /** 因「同名 handler 撞车且无法按 owner 归属」而未挂契约的 (路由, 函数) 数。 */
+    let collisionRefused = 0;
+    const collisionRefusedSamples = [];
     for (const [f, src] of perFile) {
+        const defModuleKey = routeModuleKeyOf(path.relative(routesDir, f));
         for (const fn of findRustFunctions(src)) {
             const routes = handlerRoutes.get(fn.name);
             if (!routes) continue;
+            // 同名 handler 撞车时**必须做归属**，不能靠"最后写的那份胜出"：
+            // `handlerRoutes` 是按**裸函数名**建的，而本仓同名跨模块很常见
+            // （`kick_user` 在 `handlers/room/members.rs` 用 `Json<Value>` 读 body 里的 `user_id`，
+            //  而 `admin/room/management.rs` 用 `Json<BanRequest>` + 路径参数 —— 契约完全不同）。
+            // 判据（fail-closed）：名字在扫描根内有**多份**响应形状定义时，只在该路由的 owner
+            // （生成表的 `registered_by`）与**本定义的模块同族**时才挂；否则跳过落"未知"桶。
+            // （名字唯一时照旧挂 —— 那条路径上没有归属风险，不动它以免白丢覆盖。）
+            const shaped = (rawFunctions.get(fn.name) ?? []).filter(
+                (d) =>
+                    d.file.startsWith(routesDir + path.sep) && !isTestishPath(d.file) && SHAPE_RETURN.test(d.ret ?? ""),
+            );
+            const needsOwnerCheck = shaped.length > 1;
             handlerCount++;
             const responseShapes = resolver.resolveHandler({
                 name: fn.name,
@@ -1861,6 +2065,17 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             if (responseVariants) responseKnown++;
             if (bodyStruct) requestKnown++;
             for (const rawRoute of routes) {
+                if (needsOwnerCheck) {
+                    const owner = routeOwner.get(rawRoute);
+                    if (!owner || !sameRouteModuleFamily(owner, defModuleKey)) {
+                        collisionRefused++;
+                        if (collisionRefusedSamples.length < 12)
+                            collisionRefusedSamples.push(
+                                `${rawRoute} ← ${fn.name} @ ${path.relative(routesDir, f)}（owner=${owner ?? "?"}）`,
+                            );
+                        continue;
+                    }
+                }
                 const route = normalizeRoute(rawRoute);
                 const prev = byRoute.get(route);
                 if (prev) ambiguous++;
@@ -1904,6 +2119,14 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
     return {
         byRoute,
         files: files.map((f) => path.relative(routesDir, f)),
+        /**
+         * 全局 struct 索引（**带撞车标记**：同名多定义且字段/可选性不同 ⇒ `opaque`）。
+         *
+         * 回传它是因为调用方（`check-wire-format` 等）需要按 struct 名取字段集；
+         * 若各自"重建只留首个"，就会**抹掉撞车标记**，拿其中一份字段集去比对，
+         * 对跨模块同名 struct（如 `SearchQuery`）造出假违规。
+         */
+        structs,
         stats: {
             fileCount: files.length,
             sinkFileCount: sinkFiles.length,
@@ -1912,6 +2135,14 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             requestKnown,
             structCount: structs.size,
             ambiguous,
+            /** .route() 路径解析结果：absolute/unique/multi/unresolved/refused 各多少 */
+            routeResolution,
+            /** 被拒绝的（同族候选 >1 且 registered_by 不同）—— 应当为空，非空说明后端有歧义注册 */
+            refusedRoutes,
+            generatedRouteCount: generated.length,
+            /** 同名 handler 撞车且无法按 owner 归属 ⇒ 未挂契约（落"未知"桶，不猜） */
+            collisionRefused,
+            collisionRefusedSamples,
         },
     };
 }

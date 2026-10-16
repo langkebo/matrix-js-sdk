@@ -41,6 +41,7 @@ import {
     extractReturnType,
     extractStateContext,
     findLetBinding,
+    findRustFunctions,
     findMatchScrutinee,
     jsonMacroTopLevelKeys,
     normalizePath,
@@ -52,7 +53,12 @@ import {
     parseRustImplMethods,
     parseRustStructFieldTypes,
     parseRustTraitImpls,
+    parseGeneratedRouteTable,
     parseSerdeStructs,
+    paramListOf,
+    resolveRoutePath,
+    routeModuleKeyOf,
+    sameRouteModuleFamily,
     splitGenericArgs,
     splitTopLevelArgs,
     stripRustComments,
@@ -1308,5 +1314,212 @@ describe("值类别归一化（C4 嵌套形状的地基）", () => {
         const nonObj = "Ok(Json(json!(notification)))";
         expect(jsonMacroTopLevelEntries(nonObj, nonObj.indexOf("json!"))).toBeNull();
         expect(jsonMacroTopLevelKeys(nonObj, nonObj.indexOf("json!"))).toBeNull();
+    });
+});
+
+/**
+ * 签名解析的**锚点陷阱**（2026-10-16 实测，一次改动里连带挖出四个同源缺陷）。
+ *
+ * `sig.indexOf("(")` 会先命中 `pub(crate)` 里的括号 ⇒ 参数表被读成字符串 `crate`：
+ *   · `extractHandlerIo` 对**整族 `pub(crate)` 处理器**恒判 `hasJson: false`
+ *     ⇒ 造出 **25 条 `body-sent-ignored` 假阳性**（`report_event` / `set_room_alias_direct` …
+ *     它们其实都写着 `Json(body): Json<Value>`）；
+ *   · `extractReturnType` 对它们恒返回 `null` ⇒ `findRustFunctions` 把整批过滤掉
+ *     （`routes/handlers/room/members.rs` 一个 handler 都看不见），连带把"同名撞车"
+ *     判据骗成"唯一候选"。
+ */
+describe("签名解析：锚点必须是 `fn <name>` 之后的括号", () => {
+    const pubCrateJson = [
+        "",
+        "pub(crate) async fn report_event(",
+        "    State(ctx): State<AdminContext>,",
+        "    Path((room_id, event_id)): Path<(String, String)>,",
+        "    Json(body): Json<Value>,",
+        ") -> Result<Json<Value>, ApiError> ",
+    ].join("\n");
+
+    it("`pub(crate)` 的返回类型能解出（曾恒 null）", () => {
+        expect(extractReturnType(pubCrateJson)).toBe("Result<Json<Value>, ApiError>");
+    });
+
+    it("`pub(crate)` 的 `Json` 提取器能认出（曾恒 false ⇒ 假 `body-sent-ignored`）", () => {
+        expect(extractHandlerIo(pubCrateJson)).toMatchObject({ hasJson: true, jsonType: "Value", hasPath: true });
+    });
+
+    it("`Path<(String, String)>` 里的逗号不会吃掉后面的参数", () => {
+        expect(paramListOf(pubCrateJson)).toContain("Json(body): Json<Value>");
+    });
+
+    it("`MatrixJson<T>` 也是 JSON 体提取器（它是 `axum::extract::Json` 的薄封装）", () => {
+        const sig =
+            "\npub(crate) async fn create_secure_backup(\n    MatrixJson(body): MatrixJson<Value>,\n) -> Result<Json<Value>, ApiError> ";
+        expect(extractHandlerIo(sig)).toMatchObject({ hasJson: true, jsonType: "Value" });
+    });
+
+    it("负向后顾：`MatrixJson<…>` 不会被当成裸 `Json`", () => {
+        const onlyMatrixJson =
+            "\npub(crate) async fn f(\n    MatrixJson(b): MatrixJson<Value>,\n) -> Result<Json<Value>, ApiError> ";
+        // 若前缀匹配生效，`pick(\"Json\")` 会先命中并给出类型 —— 仍须是 Value，且只认一次
+        expect(extractHandlerIo(onlyMatrixJson)).toMatchObject({ hasJson: true, jsonType: "Value" });
+    });
+
+    it("确实没有 Json 的处理器仍判 false（不能恒真）", () => {
+        const sig =
+            "\npub(crate) async fn forget_room(\n    State(ctx): State<RoomContext>,\n    Path(room_id): Path<RoomId>,\n) -> Result<Json<Value>, ApiError> ";
+        expect(extractHandlerIo(sig)).toMatchObject({ hasJson: false, jsonType: null, hasPath: true });
+    });
+});
+
+describe("findRustFunctions 必须接受带括号的可见性", () => {
+    it("`pub(crate) async fn` 也要被发现（曾整族不可见）", () => {
+        const src =
+            "\npub(crate) async fn kick_user(\n    Json(b): Json<Value>,\n) -> Result<Json<Value>, ApiError> {\n    todo!()\n}\n";
+        expect(findRustFunctions(src).map((f) => f.name)).toEqual(["kick_user"]);
+    });
+
+    it("`pub async fn` / `async fn` 仍被发现", () => {
+        const src =
+            "\npub async fn a() -> Result<Json<Value>, ApiError> { todo!() }\nasync fn b() -> Result<Json<Value>, ApiError> { todo!() }\n";
+        expect(findRustFunctions(src).map((f) => f.name)).toEqual(["a", "b"]);
+    });
+});
+
+describe("parseGeneratedRouteTable（多行 + 尾逗号必须都能吃下）", () => {
+    it("单行形态", () => {
+        const src = 'let e = RouteEntry::new(axum::http::Method::GET, "/a", "room");';
+        expect(parseGeneratedRouteTable(src)).toEqual([{ method: "GET", path: "/a", registeredBy: "room" }]);
+    });
+
+    it("多行 + 尾逗号形态（曾静默漏掉约 1/3 条目）", () => {
+        const src = [
+            "let e = RouteEntry::new(",
+            "    axum::http::Method::POST,",
+            '    "/_matrix/client/v3/rooms/{room_id}/kick",',
+            '    "room",',
+            ");",
+        ].join("\n");
+        expect(parseGeneratedRouteTable(src)).toEqual([
+            { method: "POST", path: "/_matrix/client/v3/rooms/{room_id}/kick", registeredBy: "room" },
+        ]);
+    });
+});
+
+describe("routeModuleKeyOf / sameRouteModuleFamily", () => {
+    it("模块键去掉前导 `routes` 段（否则 `e2ee/keys.rs` 与 rb `e2ee` 判不同族）", () => {
+        expect(routeModuleKeyOf("routes/e2ee/keys.rs")).toBe("e2ee::keys");
+        expect(routeModuleKeyOf("routes/admin/room.rs")).toBe("admin::room");
+        expect(routeModuleKeyOf("routes/room/mod.rs")).toBe("room");
+    });
+
+    it("同族 = `::` 边界上的前后缀；**不做子串匹配**", () => {
+        expect(sameRouteModuleFamily("room", "room")).toBe(true);
+        expect(sameRouteModuleFamily("admin::room", "admin::room::management")).toBe(true);
+        expect(sameRouteModuleFamily("dehydrated_device", "handlers::dehydrated_device")).toBe(true);
+        expect(sameRouteModuleFamily("e2ee", "e2ee::keys")).toBe(true);
+        // `room` 与 `admin::room` **是同族**（`::` 边界后缀）—— 正因为同族，
+        // `resolveRoutePath` 才需要「owner 与文件模块精确相等优先」那一层来收窄。
+        expect(sameRouteModuleFamily("room", "admin::room")).toBe(true);
+        // 但**子串不是**同族：`room` 与 `room_summary` 是两个不同模块
+        expect(sameRouteModuleFamily("room", "room_summary")).toBe(false);
+        expect(sameRouteModuleFamily("rooms", "room")).toBe(false);
+    });
+});
+
+/**
+ * `resolveRoutePath` —— 把嵌套 router 里写的**相对路径**解析成绝对路径。
+ *
+ * 三约束：方法相同 + `registered_by` 同族 + 段对齐后缀。
+ * ⚠️ 去掉"同族"约束会**过生成**：纯后缀匹配下 818 个唯一路径连出 1052 个 key
+ * （`/login` 命中 4 条）⇒ 把某处理器的必填体挂到它并不服务的路由上。
+ */
+describe("resolveRoutePath（三约束 + fail-closed）", () => {
+    const gen = [
+        { method: "GET", path: "/_matrix/client/v3/login", registeredBy: "account_compat" },
+        { method: "GET", path: "/_matrix/client/v1/login", registeredBy: "account_compat" },
+        { method: "GET", path: "/_synapse/admin/v1/login", registeredBy: "admin::login" },
+        { method: "GET", path: "/_matrix/client/v3/rooms/{room_id}/state", registeredBy: "room" },
+        { method: "GET", path: "/_synapse/admin/v1/rooms/{room_id}/state", registeredBy: "admin::room" },
+    ];
+
+    it("绝对路径命中生成表 ⇒ absolute；**未命中不回落**（不跨前缀后缀匹配）", () => {
+        expect(
+            resolveRoutePath({ routePath: "/_matrix/client/v3/login", method: "GET", moduleKey: "x", generated: gen }),
+        ).toEqual({
+            paths: ["/_matrix/client/v3/login"],
+            via: "absolute",
+        });
+        expect(
+            resolveRoutePath({ routePath: "/_matrix/client/v3/nope", method: "GET", moduleKey: "x", generated: gen })
+                .via,
+        ).toBe("unresolved");
+    });
+
+    it("唯一候选 ⇒ unique", () => {
+        expect(
+            resolveRoutePath({
+                routePath: "/rooms/{room_id}/state",
+                method: "GET",
+                moduleKey: "room",
+                generated: gen,
+            }),
+        ).toEqual({ paths: ["/_matrix/client/v3/rooms/{room_id}/state"], via: "unique" });
+    });
+
+    it("owner 与文件模块**精确相等**时优先收窄（`room` 不该匹到 `admin::room`）", () => {
+        const r = resolveRoutePath({
+            routePath: "/rooms/{room_id}/state",
+            method: "GET",
+            moduleKey: "room",
+            generated: gen,
+        });
+        expect(r.paths).toEqual(["/_matrix/client/v3/rooms/{room_id}/state"]);
+    });
+
+    it("同级多候选且 owner 不同 ⇒ refused 并列出候选（不猜）", () => {
+        const r = resolveRoutePath({
+            routePath: "/rooms/{room_id}/state",
+            method: "GET",
+            moduleKey: "admin",
+            generated: gen,
+        });
+        // moduleKey `admin` 与 `admin::room` 同族、与 `room` 不同族 ⇒ 只剩一个候选
+        expect(r.via).toBe("unique");
+        // 两个候选都与 moduleKey（`login`）同族、但 owner 不同 ⇒ 拒绝并列出候选
+        const twoOwners = [
+            { method: "GET", path: "/_a/login", registeredBy: "a::login" },
+            { method: "GET", path: "/_b/login", registeredBy: "b::login" },
+        ];
+        const r2 = resolveRoutePath({ routePath: "/login", method: "GET", moduleKey: "login", generated: twoOwners });
+        expect(r2.via).toBe("refused");
+        expect(r2.paths).toEqual(["/login"]);
+        expect(r2.candidates?.length).toBe(2);
+        // 候选都与 moduleKey 不同族 ⇒ 只是"解不出"，不是"歧义"
+        expect(resolveRoutePath({ routePath: "/login", method: "GET", moduleKey: "x", generated: gen }).via).toBe(
+            "unresolved",
+        );
+    });
+
+    it("同一 owner 的多前缀（v1/v3 兼容对）⇒ 解到**全部**", () => {
+        const compat = [
+            { method: "GET", path: "/_matrix/client/v1/account/whoami", registeredBy: "assembly::account_compat" },
+            { method: "GET", path: "/_matrix/client/v3/account/whoami", registeredBy: "assembly::account_compat" },
+        ];
+        const r = resolveRoutePath({
+            routePath: "/account/whoami",
+            method: "GET",
+            moduleKey: "assembly",
+            generated: compat,
+        });
+        expect(r.via).toBe("multi");
+        expect(r.paths).toEqual(["/_matrix/client/v1/account/whoami", "/_matrix/client/v3/account/whoami"]);
+    });
+
+    it("生成表缺席 ⇒ 原样返回相对路径（老后端/部分检出时退化，不猜）", () => {
+        expect(
+            resolveRoutePath({ routePath: "/rooms/{room_id}/state", method: "GET", moduleKey: "room", generated: [] }),
+        ).toEqual({
+            paths: ["/rooms/{room_id}/state"],
+            via: "unresolved",
+        });
     });
 });

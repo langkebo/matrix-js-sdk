@@ -58,6 +58,11 @@ export interface RustRouteContract {
 export interface RustAdminContract {
     byRoute: Map<string, RustRouteContract>;
     files: string[];
+    /**
+     * 全局 struct 索引（**带撞车标记**：同名多定义且字段/可选性不同 ⇒ `opaque`）。
+     * 调用方必须用它、而不是自己"重建只留首个" —— 那会抹掉撞车标记并造出假违规。
+     */
+    structs: Map<string, { fields: string[]; optionalFields: string[]; denyUnknownFields?: boolean; opaque?: boolean }>;
     stats: {
         fileCount: number;
         /** 响应形状下沉目录（storage / common / services）里扫到的文件数 */
@@ -67,6 +72,15 @@ export interface RustAdminContract {
         requestKnown: number;
         structCount: number;
         ambiguous: number;
+        /** `.route()` 路径解析结果：absolute / unique / multi / unresolved / refused 各多少 */
+        routeResolution?: Record<string, number>;
+        /** 被拒绝解析的（同族候选 >1 且 `registered_by` 不同）—— 应当为空 */
+        refusedRoutes?: Array<{ file: string; path: string; candidates?: string[] }>;
+        /** 生成表条目数（0 = 生成表缺席，解析退化为原样返回相对路径） */
+        generatedRouteCount?: number;
+        /** 同名 handler 撞车且无法按 owner 归属 ⇒ 未挂契约（落"未知"桶，不猜） */
+        collisionRefused?: number;
+        collisionRefusedSamples?: string[];
     };
 }
 
@@ -330,6 +344,29 @@ export function normalizeRoute(route: string): string;
 
 /** 去 TS 注释（保留字符串/模板/正则字面量）。 */
 export function stripTsComments(src: string): string;
+
+/** 取函数签名里**参数表**的内文（锚点是 `fn <name>` 之后的括号，不是第一个 `(`）。 */
+export function paramListOf(sig: string): string;
+
+/** 解析后端生成表 `derived_route_table_*.inc.rs` 的 `RouteEntry::new(…)`（含多行 + 尾逗号形态）。 */
+export function parseGeneratedRouteTable(src: string): Array<{ method: string; path: string; registeredBy: string }>;
+
+/** 由 routes 目录相对路径推出模块键（去掉前导 `routes` 段，与生成表的 `registered_by` 对齐）。 */
+export function routeModuleKeyOf(relFile: string): string;
+
+/** 「同族」：两侧在 `::` 边界上互为前后缀（不做子串匹配）。 */
+export function sameRouteModuleFamily(a: string, b: string): boolean;
+
+/**
+ * 把 `.route("…")` 里的路径解析成绝对路径（三约束：方法相同 + `registered_by` 同族 + 段对齐后缀）。
+ * fail-closed：判不出来就原样返回相对路径，`via` 说明走了哪条分支。
+ */
+export function resolveRoutePath(options: {
+    routePath: string;
+    method: string;
+    moduleKey: string;
+    generated: Array<{ method: string; path: string; registeredBy: string }>;
+}): { paths: string[]; via: "absolute" | "unique" | "multi" | "unresolved" | "refused"; candidates?: string[] };
 
 /**
  * 把 TS 注释**原地抹成空格**（保长），字符串/模板/正则内容原样保留。

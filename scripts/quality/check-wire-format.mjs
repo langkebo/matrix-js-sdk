@@ -69,12 +69,7 @@ import {
     resolvePrefixExpression,
     stripTsAssertion,
 } from "./verify-path-contract.mjs";
-import {
-    blankTsComments,
-    collectRustAdminContract,
-    parseSerdeStructs,
-    stripRustComments,
-} from "./lib/admin-contract.mjs";
+import { blankTsComments, collectRustAdminContract } from "./lib/admin-contract.mjs";
 import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -666,25 +661,16 @@ export function rebaseLedgerKeys(entries) {
  *   `entries` 的 key 已由 `collapseContractEntries` 归一到门禁 key 空间。
  */
 async function collectBackendContract() {
-    const { byRoute } = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
-    // 建全局 struct 索引（Query<T> 的字段集要从定义处取；collectRustAdminContract 只回传 body 的）
-    const structs = new Map();
-    const walk = (dir) => {
-        if (!fs.existsSync(dir)) return [];
-        const out = [];
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, e.name);
-            if (e.isDirectory()) out.push(...walk(full));
-            else if (e.name.endsWith(".rs")) out.push(full);
-        }
-        return out;
-    };
-    for (const f of [...walk(RUST_ROUTES_ROOT), ...RUST_SINK_DIRS.flatMap(walk)]) {
-        const src = stripRustComments(fs.readFileSync(f, "utf8"));
-        for (const [name, info] of parseSerdeStructs(src)) {
-            if (!structs.has(name)) structs.set(name, info);
-        }
-    }
+    const { byRoute, structs } = await collectRustAdminContract({
+        routesDir: RUST_ROUTES_ROOT,
+        sinkDirs: RUST_SINK_DIRS,
+    });
+    // ⚠️ **不能自己重建 struct 索引**（曾在 682-687 行重建过）：那样会丢掉采集器的
+    // **撞车标记** —— 同名 struct 在两处定义且字段不同时，采集器会标 `opaque` 表示
+    // "键集不是全貌"，而"只留首个定义"的重建会把这个标记抹掉，于是拿**其中一份**字段集
+    // 去比对。实测 `SearchQuery`（thread 的 `{q,limit}` vs space 的 `{query(alias
+    // search_term),limit}`）因此对 `GET /_matrix/vendor/v1/spaces/search` 造出两条假违规
+    // （`query-required-missing:q` + `query-unknown-key:search_term`）。
     const shapeOf = (name) => {
         if (!name) return null;
         const s = structs.get(name);
