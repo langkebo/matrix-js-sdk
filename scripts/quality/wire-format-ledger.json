@@ -1,32 +1,32 @@
 {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-15T18:07:13.210Z",
+    "generatedAt": "2026-10-16T01:54:55.713Z",
     "generatedBy": "node scripts/quality/check-wire-format.mjs --refresh",
-    "backendCommit": "bb8256bf5481b662180a76ec7a02d7bed5a38947",
-    "notice": "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。",
+    "backendCommit": "e48afec8395369faedb62c508ea10b4a70ec9b1d",
+    "notice": "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。 key 的拼写是**门禁**归一化（`METHOD + normalizePath(路径)`：占位符 `{X}`、去尾斜杠），读取侧再过一次 `rebaseLedgerKeys` ⇒ 幂等；手工改成 `{x}` 或加回尾斜杠也仍能对上。",
     "entries": {
-        "DELETE /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{x}": {
+        "DELETE /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{X}": {
             "handler": "delete_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/client/unstable/uk.tcpip.msc4133/profile/{x}/{x}": {
+        "DELETE /_matrix/client/unstable/uk.tcpip.msc4133/profile/{X}/{X}": {
             "handler": "delete_extended_profile_field",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/client/v1/rendezvous/{x}": {
+        "DELETE /_matrix/client/v1/rendezvous/{X}": {
             "handler": "delete_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/client/v3/profile/{x}/{x}": {
+        "DELETE /_matrix/client/v3/profile/{X}/{X}": {
             "handler": "delete_extended_profile_field",
             "hasJson": false,
             "hasQuery": false,
@@ -40,301 +40,301 @@
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/external_services/{x}": {
+        "DELETE /_matrix/vendor/v1/external_services/{X}": {
             "handler": "client_delete_external_service",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/friends/{x}": {
+        "DELETE /_matrix/vendor/v1/friends/{X}": {
             "handler": "remove_friend",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/friends/groups/{x}": {
+        "DELETE /_matrix/vendor/v1/friends/groups/{X}": {
             "handler": "delete_friend_group",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/friends/groups/{x}/remove/{x}": {
+        "DELETE /_matrix/vendor/v1/friends/groups/{X}/remove/{X}": {
             "handler": "remove_friend_from_group",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/push/devices/{x}": {
+        "DELETE /_matrix/vendor/v1/push/devices/{X}": {
             "handler": "unregister_device",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/rooms/{x}/burn/{x}": {
+        "DELETE /_matrix/vendor/v1/rooms/{X}/burn/{X}": {
             "handler": "cancel_burn",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/rooms/{x}/threads/{x}": {
+        "DELETE /_matrix/vendor/v1/rooms/{X}/threads/{X}": {
             "handler": "delete_thread",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/widgets/{x}": {
+        "DELETE /_matrix/vendor/v1/widgets/{X}": {
             "handler": "delete_widget",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/widgets/{x}/permissions/{x}": {
+        "DELETE /_matrix/vendor/v1/widgets/{X}/permissions/{X}": {
             "handler": "delete_widget_permission",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_matrix/vendor/v1/widgets/sessions/{x}": {
+        "DELETE /_matrix/vendor/v1/widgets/sessions/{X}": {
             "handler": "terminate_widget_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/appservices/{x}": {
+        "DELETE /_synapse/admin/v1/appservices/{X}": {
             "handler": "delete_app_service",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/background_updates/{x}": {
+        "DELETE /_synapse/admin/v1/background_updates/{X}": {
             "handler": "delete_update",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/cas/services/{x}": {
+        "DELETE /_synapse/admin/v1/cas/services/{X}": {
             "handler": "delete_service",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/event_reports/{x}": {
+        "DELETE /_synapse/admin/v1/event_reports/{X}": {
             "handler": "delete_report",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/external_services/{x}": {
+        "DELETE /_synapse/admin/v1/external_services/{X}": {
             "handler": "unregister_external_service",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/federation/blacklist/{x}": {
+        "DELETE /_synapse/admin/v1/federation/blacklist/{X}": {
             "handler": "remove_from_blacklist",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/federation/cache/{x}": {
+        "DELETE /_synapse/admin/v1/federation/cache/{X}": {
             "handler": "delete_federation_cache_entry",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/federation/destinations/{x}": {
+        "DELETE /_synapse/admin/v1/federation/destinations/{X}": {
             "handler": "delete_destination",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/media/{x}": {
+        "DELETE /_synapse/admin/v1/media/{X}": {
             "handler": "delete_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/media/{x}/{x}": {
+        "DELETE /_synapse/admin/v1/media/{X}/{X}": {
             "handler": "delete_media_by_server",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/modules/{x}": {
+        "DELETE /_synapse/admin/v1/modules/{X}": {
             "handler": "delete_module",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/notifications/{x}": {
+        "DELETE /_synapse/admin/v1/notifications/{X}": {
             "handler": "delete_notification",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/registration_tokens/{x}": {
+        "DELETE /_synapse/admin/v1/registration_tokens/{X}": {
             "handler": "delete_registration_token",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/reports/{x}": {
+        "DELETE /_synapse/admin/v1/reports/{X}": {
             "handler": "delete_report",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/rooms/{x}": {
+        "DELETE /_synapse/admin/v1/rooms/{X}": {
             "handler": "delete_room",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/rooms/{x}/listings/public": {
+        "DELETE /_synapse/admin/v1/rooms/{X}/listings/public": {
             "handler": "set_room_private",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/rooms/{x}/media/{x}": {
+        "DELETE /_synapse/admin/v1/rooms/{X}/media/{X}": {
             "handler": "delete_room_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/rooms/{x}/members/{x}": {
+        "DELETE /_synapse/admin/v1/rooms/{X}/members/{X}": {
             "handler": "remove_room_member",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/rooms/{x}/reports/{x}": {
+        "DELETE /_synapse/admin/v1/rooms/{X}/reports/{X}": {
             "handler": "delete_room_report",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/saml/mapping/{x}": {
+        "DELETE /_synapse/admin/v1/saml/mapping/{X}": {
             "handler": "delete_saml_mapping_admin",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/server_notices/{x}": {
+        "DELETE /_synapse/admin/v1/server_notices/{X}": {
             "handler": "delete_server_notice",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/spaces/{x}": {
+        "DELETE /_synapse/admin/v1/spaces/{X}": {
             "handler": "delete_space",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}": {
+        "DELETE /_synapse/admin/v1/users/{X}": {
             "handler": "delete_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/devices/{x}": {
+        "DELETE /_synapse/admin/v1/users/{X}/devices/{X}": {
             "handler": "delete_user_device_admin",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/media": {
+        "DELETE /_synapse/admin/v1/users/{X}/media": {
             "handler": "delete_user_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/override_ratelimit": {
+        "DELETE /_synapse/admin/v1/users/{X}/override_ratelimit": {
             "handler": "delete_user_override_rate_limit",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/pushers/{x}": {
+        "DELETE /_synapse/admin/v1/users/{X}/pushers/{X}": {
             "handler": "delete_user_pusher",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/rate_limit": {
+        "DELETE /_synapse/admin/v1/users/{X}/rate_limit": {
             "handler": "delete_user_rate_limit",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/refresh_tokens/{x}": {
+        "DELETE /_synapse/admin/v1/users/{X}/refresh_tokens/{X}": {
             "handler": "delete_refresh_token",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/shadow_ban": {
+        "DELETE /_synapse/admin/v1/users/{X}/shadow_ban": {
             "handler": "unshadow_ban_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v1/users/{x}/tokens/{x}": {
+        "DELETE /_synapse/admin/v1/users/{X}/tokens/{X}": {
             "handler": "delete_user_token",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/admin/v2/users/{x}": {
+        "DELETE /_synapse/admin/v2/users/{X}": {
             "handler": "delete_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /_synapse/worker/v1/workers/{x}": {
+        "DELETE /_synapse/worker/v1/workers/{X}": {
             "handler": "unregister_worker",
             "hasJson": false,
             "hasQuery": false,
@@ -348,35 +348,35 @@
             "body": null,
             "query": null
         },
-        "DELETE /devices/{x}": {
+        "DELETE /devices/{X}": {
             "handler": "delete_device",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /pushrules/{x}/{x}/{x}": {
+        "DELETE /pushrules/{X}/{X}/{X}": {
             "handler": "delete_push_rule",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /room_keys/{x}/keys": {
+        "DELETE /room_keys/{X}/keys": {
             "handler": "delete_room_keys_all_legacy",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /room_keys/{x}/keys/{x}": {
+        "DELETE /room_keys/{X}/keys/{X}": {
             "handler": "delete_room_keys_for_room_legacy",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /room_keys/{x}/keys/{x}/{x}": {
+        "DELETE /room_keys/{X}/keys/{X}/{X}": {
             "handler": "delete_room_key_legacy",
             "hasJson": false,
             "hasQuery": false,
@@ -396,7 +396,7 @@
                 "opaque": false
             }
         },
-        "DELETE /room_keys/keys/{x}": {
+        "DELETE /room_keys/keys/{X}": {
             "handler": "delete_room_keys_for_room",
             "hasJson": false,
             "hasQuery": true,
@@ -409,7 +409,7 @@
                 "opaque": false
             }
         },
-        "DELETE /room_keys/keys/{x}/{x}": {
+        "DELETE /room_keys/keys/{X}/{X}": {
             "handler": "delete_room_key",
             "hasJson": false,
             "hasQuery": true,
@@ -422,70 +422,70 @@
                 "opaque": false
             }
         },
-        "DELETE /room_keys/version/{x}": {
+        "DELETE /room_keys/version/{X}": {
             "handler": "delete_backup_version",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /rooms/{x}/pinned_events/{x}": {
+        "DELETE /rooms/{X}/pinned_events/{X}": {
             "handler": "unpin_event",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /rooms/{x}/sticky_events/{x}": {
+        "DELETE /rooms/{X}/sticky_events/{X}": {
             "handler": "clear_sticky_event",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /rooms/{x}/summary": {
+        "DELETE /rooms/{X}/summary": {
             "handler": "delete_room_summary",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /rooms/{x}/summary/members/{x}": {
+        "DELETE /rooms/{X}/summary/members/{X}": {
             "handler": "remove_member",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /spaces/{x}": {
+        "DELETE /spaces/{X}": {
             "handler": "delete_space",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /user/{x}/account_data/{x}": {
+        "DELETE /user/{X}/account_data/{X}": {
             "handler": "delete_account_data",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /user/{x}/filter/{x}": {
+        "DELETE /user/{X}/filter/{X}": {
             "handler": "delete_filter",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /user/{x}/rooms/{x}/account_data/{x}": {
+        "DELETE /user/{X}/rooms/{X}/account_data/{X}": {
             "handler": "delete_room_account_data",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "DELETE /user/{x}/rooms/{x}/tags/{x}": {
+        "DELETE /user/{X}/rooms/{X}/tags/{X}": {
             "handler": "delete_tag",
             "hasJson": false,
             "hasQuery": false,
@@ -499,21 +499,21 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/app/v1/{x}": {
+        "GET /_matrix/app/v1/{X}": {
             "handler": "app_service_query",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/app/v1/rooms/{x}": {
+        "GET /_matrix/app/v1/rooms/{X}": {
             "handler": "app_service_room_alias_query",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/app/v1/users/{x}": {
+        "GET /_matrix/app/v1/users/{X}": {
             "handler": "app_service_user_query",
             "hasJson": false,
             "hasQuery": false,
@@ -527,7 +527,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{x}": {
+        "GET /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{X}": {
             "handler": "get_session",
             "hasJson": false,
             "hasQuery": false,
@@ -541,14 +541,14 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/unstable/uk.tcpip.msc4133/profile/{x}": {
+        "GET /_matrix/client/unstable/uk.tcpip.msc4133/profile/{X}": {
             "handler": "get_extended_profile",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/unstable/uk.tcpip.msc4133/profile/{x}/{x}": {
+        "GET /_matrix/client/unstable/uk.tcpip.msc4133/profile/{X}/{X}": {
             "handler": "get_extended_profile_field",
             "hasJson": false,
             "hasQuery": false,
@@ -569,21 +569,21 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v1/rendezvous/{x}": {
+        "GET /_matrix/client/v1/rendezvous/{X}": {
             "handler": "get_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v1/rendezvous/{x}/messages": {
+        "GET /_matrix/client/v1/rendezvous/{X}/messages": {
             "handler": "get_messages",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v1/rooms/{x}/threads": {
+        "GET /_matrix/client/v1/rooms/{X}/threads": {
             "handler": "list_threads",
             "hasJson": false,
             "hasQuery": true,
@@ -596,7 +596,7 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/client/v1/rooms/{x}/threads/{x}": {
+        "GET /_matrix/client/v1/rooms/{X}/threads/{X}": {
             "handler": "get_thread",
             "hasJson": false,
             "hasQuery": true,
@@ -609,7 +609,7 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/client/v1/rooms/{x}/threads/{x}/replies": {
+        "GET /_matrix/client/v1/rooms/{X}/threads/{X}/replies": {
             "handler": "get_replies",
             "hasJson": false,
             "hasQuery": true,
@@ -622,7 +622,7 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/client/v1/user/{x}/appservice": {
+        "GET /_matrix/client/v1/user/{X}/appservice": {
             "handler": "get_user_appservice",
             "hasJson": false,
             "hasQuery": false,
@@ -721,28 +721,28 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/client/v3/profile/{x}/{x}": {
+        "GET /_matrix/client/v3/profile/{X}/{X}": {
             "handler": "get_extended_profile_field",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v3/pushrules/": {
+        "GET /_matrix/client/v3/pushrules": {
             "handler": "get_push_rules_default",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v3/pushrules/{x}/{x}/{x}/enabled": {
+        "GET /_matrix/client/v3/pushrules/{X}/{X}/{X}/enabled": {
             "handler": "get_push_rule_enabled",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v3/pushrules/global/": {
+        "GET /_matrix/client/v3/pushrules/global": {
             "handler": "get_push_rules_global_default",
             "hasJson": false,
             "hasQuery": false,
@@ -762,7 +762,7 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/client/v3/rooms/{x}/ephemeral": {
+        "GET /_matrix/client/v3/rooms/{X}/ephemeral": {
             "handler": "get_ephemeral_events",
             "hasJson": false,
             "hasQuery": true,
@@ -775,14 +775,14 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/client/v3/rooms/{x}/typing": {
+        "GET /_matrix/client/v3/rooms/{X}/typing": {
             "handler": "get_typing_users",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/client/v3/rooms/{x}/typing/{x}": {
+        "GET /_matrix/client/v3/rooms/{X}/typing/{X}": {
             "handler": "get_user_typing",
             "hasJson": false,
             "hasQuery": false,
@@ -857,7 +857,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/federation/v1/state/{x}": {
+        "GET /_matrix/federation/v1/state/{X}": {
             "handler": "get_state",
             "hasJson": false,
             "hasQuery": false,
@@ -898,35 +898,35 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/vendor/v1/friends/{x}/groups": {
+        "GET /_matrix/vendor/v1/friends/{X}/groups": {
             "handler": "get_groups_for_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/friends/{x}/info": {
+        "GET /_matrix/vendor/v1/friends/{X}/info": {
             "handler": "get_friend_info",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/friends/{x}/status": {
+        "GET /_matrix/vendor/v1/friends/{X}/status": {
             "handler": "get_friend_status",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/friends/check/{x}": {
+        "GET /_matrix/vendor/v1/friends/check/{X}": {
             "handler": "check_friendship",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/friends/dm/{x}": {
+        "GET /_matrix/vendor/v1/friends/dm/{X}": {
             "handler": "get_friend_dm",
             "hasJson": false,
             "hasQuery": false,
@@ -940,7 +940,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/friends/groups/{x}/friends": {
+        "GET /_matrix/vendor/v1/friends/groups/{X}/friends": {
             "handler": "get_friends_in_group",
             "hasJson": false,
             "hasQuery": false,
@@ -994,7 +994,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/keys/rotation/history/{x}": {
+        "GET /_matrix/vendor/v1/keys/rotation/history/{X}": {
             "handler": "get_rotation_history",
             "hasJson": false,
             "hasQuery": false,
@@ -1015,21 +1015,21 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/burn": {
+        "GET /_matrix/vendor/v1/rooms/{X}/burn": {
             "handler": "get_burn_settings",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/burn/pending": {
+        "GET /_matrix/vendor/v1/rooms/{X}/burn/pending": {
             "handler": "get_pending_burns",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/threads/{x}/stats": {
+        "GET /_matrix/vendor/v1/rooms/{X}/threads/{X}/stats": {
             "handler": "get_stats",
             "hasJson": false,
             "hasQuery": true,
@@ -1042,41 +1042,41 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/threads/search": {
+        "GET /_matrix/vendor/v1/rooms/{X}/threads/search": {
             "handler": "search_threads",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": {
                 "type": "SearchQuery",
-                "declared": ["limit", "q"],
+                "declared": ["from", "limit", "q"],
                 "required": ["q"],
                 "denyUnknown": false,
                 "opaque": false
             }
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/threads/unread": {
+        "GET /_matrix/vendor/v1/rooms/{X}/threads/unread": {
             "handler": "get_unread_threads",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/widgets": {
+        "GET /_matrix/vendor/v1/rooms/{X}/widgets": {
             "handler": "get_room_widgets",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/widgets/{x}/capabilities": {
+        "GET /_matrix/vendor/v1/rooms/{X}/widgets/{X}/capabilities": {
             "handler": "get_room_widget_capabilities",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/rooms/{x}/widgets/jitsi/config": {
+        "GET /_matrix/vendor/v1/rooms/{X}/widgets/jitsi/config": {
             "handler": "get_jitsi_config",
             "hasJson": false,
             "hasQuery": false,
@@ -1116,7 +1116,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/user/{x}/rooms/{x}/threads": {
+        "GET /_matrix/vendor/v1/user/{X}/rooms/{X}/threads": {
             "handler": "list_threads_legacy_search",
             "hasJson": false,
             "hasQuery": true,
@@ -1136,7 +1136,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/voice/{x}": {
+        "GET /_matrix/vendor/v1/voice/{X}": {
             "handler": "get_voice_message_content",
             "hasJson": false,
             "hasQuery": false,
@@ -1150,7 +1150,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/voice/room/{x}": {
+        "GET /_matrix/vendor/v1/voice/room/{X}": {
             "handler": "get_room_voice_messages",
             "hasJson": false,
             "hasQuery": true,
@@ -1163,7 +1163,7 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/vendor/v1/voice/room/{x}/stats": {
+        "GET /_matrix/vendor/v1/voice/room/{X}/stats": {
             "handler": "get_room_voice_stats",
             "hasJson": false,
             "hasQuery": false,
@@ -1177,7 +1177,7 @@
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/voice/user/{x}": {
+        "GET /_matrix/vendor/v1/voice/user/{X}": {
             "handler": "get_user_voice_messages",
             "hasJson": false,
             "hasQuery": true,
@@ -1190,42 +1190,42 @@
                 "opaque": false
             }
         },
-        "GET /_matrix/vendor/v1/voice/user/{x}/stats": {
+        "GET /_matrix/vendor/v1/voice/user/{X}/stats": {
             "handler": "get_user_voice_stats",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/widgets/{x}": {
+        "GET /_matrix/vendor/v1/widgets/{X}": {
             "handler": "get_widget",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/widgets/{x}/config": {
+        "GET /_matrix/vendor/v1/widgets/{X}/config": {
             "handler": "get_widget_config",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/widgets/{x}/permissions": {
+        "GET /_matrix/vendor/v1/widgets/{X}/permissions": {
             "handler": "get_widget_permissions",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/widgets/{x}/sessions": {
+        "GET /_matrix/vendor/v1/widgets/{X}/sessions": {
             "handler": "get_widget_sessions",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_matrix/vendor/v1/widgets/sessions/{x}": {
+        "GET /_matrix/vendor/v1/widgets/sessions/{X}": {
             "handler": "get_widget_session",
             "hasJson": false,
             "hasQuery": false,
@@ -1246,14 +1246,14 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/account_validity/{x}": {
+        "GET /_synapse/admin/v1/account_validity/{X}": {
             "handler": "get_account_validity",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/account/{x}": {
+        "GET /_synapse/admin/v1/account/{X}": {
             "handler": "get_account_details",
             "hasJson": false,
             "hasQuery": false,
@@ -1267,14 +1267,14 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/appservices/{x}": {
+        "GET /_synapse/admin/v1/appservices/{X}": {
             "handler": "get_app_service",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/appservices/{x}/events": {
+        "GET /_synapse/admin/v1/appservices/{X}/events": {
             "handler": "get_pending_events",
             "hasJson": false,
             "hasQuery": true,
@@ -1287,28 +1287,28 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/appservices/{x}/namespaces": {
+        "GET /_synapse/admin/v1/appservices/{X}/namespaces": {
             "handler": "get_namespaces",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/appservices/{x}/state": {
+        "GET /_synapse/admin/v1/appservices/{X}/state": {
             "handler": "get_app_service_states",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/appservices/{x}/state/{x}": {
+        "GET /_synapse/admin/v1/appservices/{X}/state/{X}": {
             "handler": "get_app_service_state",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/appservices/{x}/users": {
+        "GET /_synapse/admin/v1/appservices/{X}/users": {
             "handler": "get_virtual_users",
             "hasJson": false,
             "hasQuery": false,
@@ -1361,7 +1361,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/audit/events/{x}": {
+        "GET /_synapse/admin/v1/audit/events/{X}": {
             "handler": "get_audit_event",
             "hasJson": false,
             "hasQuery": false,
@@ -1381,14 +1381,14 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/background_updates/{x}": {
+        "GET /_synapse/admin/v1/background_updates/{X}": {
             "handler": "get_update",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/background_updates/{x}/history": {
+        "GET /_synapse/admin/v1/background_updates/{X}/history": {
             "handler": "get_history",
             "hasJson": false,
             "hasQuery": true,
@@ -1449,7 +1449,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/background_updates/status/{x}/count": {
+        "GET /_synapse/admin/v1/background_updates/status/{X}/count": {
             "handler": "count_by_status",
             "hasJson": false,
             "hasQuery": false,
@@ -1463,7 +1463,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/cas/users/{x}/attributes": {
+        "GET /_synapse/admin/v1/cas/users/{X}/attributes": {
             "handler": "get_user_attributes",
             "hasJson": false,
             "hasQuery": false,
@@ -1484,7 +1484,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/event_reports/{x}": {
+        "GET /_synapse/admin/v1/event_reports/{X}": {
             "handler": "get_report",
             "hasJson": false,
             "hasQuery": false,
@@ -1498,21 +1498,21 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/event_reports/event/{x}": {
+        "GET /_synapse/admin/v1/event_reports/event/{X}": {
             "handler": "get_reports_by_event",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/event_reports/rate_limit/{x}": {
+        "GET /_synapse/admin/v1/event_reports/rate_limit/{X}": {
             "handler": "check_rate_limit",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/event_reports/reporter/{x}": {
+        "GET /_synapse/admin/v1/event_reports/reporter/{X}": {
             "handler": "get_reports_by_reporter",
             "hasJson": false,
             "hasQuery": true,
@@ -1525,7 +1525,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/event_reports/room/{x}": {
+        "GET /_synapse/admin/v1/event_reports/room/{X}": {
             "handler": "get_reports_by_room",
             "hasJson": false,
             "hasQuery": true,
@@ -1545,7 +1545,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/event_reports/status/{x}": {
+        "GET /_synapse/admin/v1/event_reports/status/{X}": {
             "handler": "get_reports_by_status",
             "hasJson": false,
             "hasQuery": true,
@@ -1558,7 +1558,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/event_reports/status/{x}/count": {
+        "GET /_synapse/admin/v1/event_reports/status/{X}/count": {
             "handler": "count_by_status",
             "hasJson": false,
             "hasQuery": false,
@@ -1585,7 +1585,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/external_services/{x}/health": {
+        "GET /_synapse/admin/v1/external_services/{X}/health": {
             "handler": "get_external_service_health",
             "hasJson": false,
             "hasQuery": false,
@@ -1612,7 +1612,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/feature-flags/{x}": {
+        "GET /_synapse/admin/v1/feature-flags/{X}": {
             "handler": "get_feature_flag",
             "hasJson": false,
             "hasQuery": false,
@@ -1652,14 +1652,14 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/federation/destinations/{x}": {
+        "GET /_synapse/admin/v1/federation/destinations/{X}": {
             "handler": "get_destination",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/federation/destinations/{x}/rooms": {
+        "GET /_synapse/admin/v1/federation/destinations/{X}/rooms": {
             "handler": "get_destination_rooms",
             "hasJson": false,
             "hasQuery": false,
@@ -1733,21 +1733,21 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/media_callbacks/{x}": {
+        "GET /_synapse/admin/v1/media_callbacks/{X}": {
             "handler": "get_media_callbacks",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/media/{x}": {
+        "GET /_synapse/admin/v1/media/{X}": {
             "handler": "get_media_info",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/media/{x}/{x}": {
+        "GET /_synapse/admin/v1/media/{X}/{X}": {
             "handler": "get_media_info_by_server",
             "hasJson": false,
             "hasQuery": false,
@@ -1781,14 +1781,14 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/modules/{x}": {
+        "GET /_synapse/admin/v1/modules/{X}": {
             "handler": "get_module",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/modules/logs/{x}": {
+        "GET /_synapse/admin/v1/modules/logs/{X}": {
             "handler": "get_execution_logs",
             "hasJson": false,
             "hasQuery": true,
@@ -1801,14 +1801,14 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/modules/spam_check/{x}": {
+        "GET /_synapse/admin/v1/modules/spam_check/{X}": {
             "handler": "get_spam_check_result",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/modules/spam_check/sender/{x}": {
+        "GET /_synapse/admin/v1/modules/spam_check/sender/{X}": {
             "handler": "get_spam_check_results_by_sender",
             "hasJson": false,
             "hasQuery": true,
@@ -1821,14 +1821,14 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/modules/third_party_rule/{x}": {
+        "GET /_synapse/admin/v1/modules/third_party_rule/{X}": {
             "handler": "get_third_party_rule_results",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/modules/type/{x}": {
+        "GET /_synapse/admin/v1/modules/type/{X}": {
             "handler": "get_modules_by_type",
             "hasJson": false,
             "hasQuery": false,
@@ -1848,7 +1848,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/notifications/{x}": {
+        "GET /_synapse/admin/v1/notifications/{X}": {
             "handler": "get_notification",
             "hasJson": false,
             "hasQuery": false,
@@ -1883,7 +1883,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/quarantine_media/{x}/changes": {
+        "GET /_synapse/admin/v1/quarantine_media/{X}/changes": {
             "handler": "get_media_quarantine_changes",
             "hasJson": false,
             "hasQuery": true,
@@ -1917,7 +1917,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/registration_tokens/{x}": {
+        "GET /_synapse/admin/v1/registration_tokens/{X}": {
             "handler": "get_registration_token",
             "hasJson": false,
             "hasQuery": false,
@@ -1931,7 +1931,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/reports/{x}": {
+        "GET /_synapse/admin/v1/reports/{X}": {
             "handler": "get_report",
             "hasJson": false,
             "hasQuery": false,
@@ -1945,7 +1945,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/retention/policy/{x}": {
+        "GET /_synapse/admin/v1/retention/policy/{X}": {
             "handler": "get_room_retention_policy",
             "hasJson": false,
             "hasQuery": false,
@@ -1966,7 +1966,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/room_stats/{x}": {
+        "GET /_synapse/admin/v1/room_stats/{X}": {
             "handler": "get_single_room_stats",
             "hasJson": false,
             "hasQuery": false,
@@ -1980,91 +1980,91 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}": {
+        "GET /_synapse/admin/v1/rooms/{X}": {
             "handler": "get_room",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/aliases": {
+        "GET /_synapse/admin/v1/rooms/{X}/aliases": {
             "handler": "get_room_aliases_admin",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/block": {
+        "GET /_synapse/admin/v1/rooms/{X}/block": {
             "handler": "get_room_block_status",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/event_context/{x}": {
+        "GET /_synapse/admin/v1/rooms/{X}/event_context/{X}": {
             "handler": "get_event_context_admin",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/forward_extremities": {
+        "GET /_synapse/admin/v1/rooms/{X}/forward_extremities": {
             "handler": "get_room_forward_extremities",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/listings": {
+        "GET /_synapse/admin/v1/rooms/{X}/listings": {
             "handler": "get_room_listings",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/media": {
+        "GET /_synapse/admin/v1/rooms/{X}/media": {
             "handler": "get_room_media",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/members": {
+        "GET /_synapse/admin/v1/rooms/{X}/members": {
             "handler": "get_room_members_admin",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/messages": {
+        "GET /_synapse/admin/v1/rooms/{X}/messages": {
             "handler": "get_room_messages_admin",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/reports": {
+        "GET /_synapse/admin/v1/rooms/{X}/reports": {
             "handler": "get_room_reports",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/reports/{x}": {
+        "GET /_synapse/admin/v1/rooms/{X}/reports/{X}": {
             "handler": "get_room_report",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/state": {
+        "GET /_synapse/admin/v1/rooms/{X}/state": {
             "handler": "get_room_state_admin",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/rooms/{x}/token_sync": {
+        "GET /_synapse/admin/v1/rooms/{X}/token_sync": {
             "handler": "get_room_token_sync_admin",
             "hasJson": false,
             "hasQuery": true,
@@ -2077,7 +2077,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/rooms/{x}/version": {
+        "GET /_synapse/admin/v1/rooms/{X}/version": {
             "handler": "get_room_version",
             "hasJson": false,
             "hasQuery": false,
@@ -2104,7 +2104,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/saml/mapping/{x}": {
+        "GET /_synapse/admin/v1/saml/mapping/{X}": {
             "handler": "get_saml_mapping_admin",
             "hasJson": false,
             "hasQuery": false,
@@ -2144,7 +2144,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/admin/v1/server_notices/{x}": {
+        "GET /_synapse/admin/v1/server_notices/{X}": {
             "handler": "get_server_notice",
             "hasJson": false,
             "hasQuery": false,
@@ -2165,28 +2165,28 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/spaces/{x}": {
+        "GET /_synapse/admin/v1/spaces/{X}": {
             "handler": "get_space",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/spaces/{x}/rooms": {
+        "GET /_synapse/admin/v1/spaces/{X}/rooms": {
             "handler": "get_space_rooms",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/spaces/{x}/stats": {
+        "GET /_synapse/admin/v1/spaces/{X}/stats": {
             "handler": "get_space_stats",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/spaces/{x}/users": {
+        "GET /_synapse/admin/v1/spaces/{X}/users": {
             "handler": "get_space_users",
             "hasJson": false,
             "hasQuery": false,
@@ -2248,7 +2248,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/user_sessions/{x}": {
+        "GET /_synapse/admin/v1/user_sessions/{X}": {
             "handler": "get_user_sessions",
             "hasJson": false,
             "hasQuery": false,
@@ -2269,77 +2269,77 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}": {
+        "GET /_synapse/admin/v1/users/{X}": {
             "handler": "get_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/devices": {
+        "GET /_synapse/admin/v1/users/{X}/devices": {
             "handler": "get_user_devices_admin",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/media": {
+        "GET /_synapse/admin/v1/users/{X}/media": {
             "handler": "get_user_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/notification": {
+        "GET /_synapse/admin/v1/users/{X}/notification": {
             "handler": "get_user_notification",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/override_ratelimit": {
+        "GET /_synapse/admin/v1/users/{X}/override_ratelimit": {
             "handler": "get_user_override_rate_limit",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/pushers": {
+        "GET /_synapse/admin/v1/users/{X}/pushers": {
             "handler": "get_user_pushers",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/rate_limit": {
+        "GET /_synapse/admin/v1/users/{X}/rate_limit": {
             "handler": "get_user_rate_limit",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/refresh_tokens": {
+        "GET /_synapse/admin/v1/users/{X}/refresh_tokens": {
             "handler": "get_user_refresh_tokens",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/rooms": {
+        "GET /_synapse/admin/v1/users/{X}/rooms": {
             "handler": "get_user_rooms_admin",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/stats": {
+        "GET /_synapse/admin/v1/users/{X}/stats": {
             "handler": "get_single_user_stats",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/users/{x}/tokens": {
+        "GET /_synapse/admin/v1/users/{X}/tokens": {
             "handler": "get_user_tokens",
             "hasJson": false,
             "hasQuery": false,
@@ -2353,14 +2353,14 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/whois/{x}": {
+        "GET /_synapse/admin/v1/whois/{X}": {
             "handler": "whois",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v1/whois/{x}/{x}": {
+        "GET /_synapse/admin/v1/whois/{X}/{X}": {
             "handler": "whois_device",
             "hasJson": false,
             "hasQuery": false,
@@ -2374,7 +2374,7 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/admin/v2/users/{x}": {
+        "GET /_synapse/admin/v2/users/{X}": {
             "handler": "get_user_v2",
             "hasJson": false,
             "hasQuery": false,
@@ -2401,7 +2401,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/worker/v1/replication/{x}/position": {
+        "GET /_synapse/worker/v1/replication/{X}/position": {
             "handler": "get_replication_position",
             "hasJson": false,
             "hasQuery": true,
@@ -2414,7 +2414,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/worker/v1/select/{x}": {
+        "GET /_synapse/worker/v1/select/{X}": {
             "handler": "select_worker",
             "hasJson": false,
             "hasQuery": false,
@@ -2469,14 +2469,14 @@
             "body": null,
             "query": null
         },
-        "GET /_synapse/worker/v1/workers/{x}": {
+        "GET /_synapse/worker/v1/workers/{X}": {
             "handler": "get_worker",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /_synapse/worker/v1/workers/{x}/commands": {
+        "GET /_synapse/worker/v1/workers/{X}/commands": {
             "handler": "get_pending_commands",
             "hasJson": false,
             "hasQuery": true,
@@ -2489,7 +2489,7 @@
                 "opaque": false
             }
         },
-        "GET /_synapse/worker/v1/workers/type/{x}": {
+        "GET /_synapse/worker/v1/workers/type/{X}": {
             "handler": "list_workers_by_type",
             "hasJson": false,
             "hasQuery": false,
@@ -2537,7 +2537,7 @@
             "body": null,
             "query": null
         },
-        "GET /dehydrated_device/{x}/events": {
+        "GET /dehydrated_device/{X}/events": {
             "handler": "get_dehydrated_device_events",
             "hasJson": false,
             "hasQuery": true,
@@ -2558,7 +2558,7 @@
             "body": null,
             "query": null
         },
-        "GET /devices/{x}": {
+        "GET /devices/{X}": {
             "handler": "get_device",
             "hasJson": false,
             "hasQuery": false,
@@ -2678,13 +2678,6 @@
             "body": null,
             "query": null
         },
-        "GET /pushers/": {
-            "handler": "get_pushers",
-            "hasJson": false,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
         "GET /pushrules": {
             "handler": "get_push_rules",
             "hasJson": false,
@@ -2692,42 +2685,42 @@
             "body": null,
             "query": null
         },
-        "GET /pushrules/{x}": {
+        "GET /pushrules/{X}": {
             "handler": "get_push_rules_scope",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /pushrules/{x}/{x}": {
+        "GET /pushrules/{X}/{X}": {
             "handler": "get_push_rules_kind",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /pushrules/{x}/{x}/{x}": {
+        "GET /pushrules/{X}/{X}/{X}": {
             "handler": "get_push_rule",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /room_keys/{x}/keys": {
+        "GET /room_keys/{X}/keys": {
             "handler": "get_room_keys_all_legacy",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /room_keys/{x}/keys/{x}": {
+        "GET /room_keys/{X}/keys/{X}": {
             "handler": "get_room_keys_for_room_legacy",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /room_keys/{x}/keys/{x}/{x}": {
+        "GET /room_keys/{X}/keys/{X}/{X}": {
             "handler": "get_room_key_legacy",
             "hasJson": false,
             "hasQuery": false,
@@ -2741,7 +2734,7 @@
             "body": null,
             "query": null
         },
-        "GET /room_keys/export/{x}": {
+        "GET /room_keys/export/{X}": {
             "handler": "export_keys_by_version",
             "hasJson": false,
             "hasQuery": false,
@@ -2761,7 +2754,7 @@
                 "opaque": false
             }
         },
-        "GET /room_keys/keys/{x}": {
+        "GET /room_keys/keys/{X}": {
             "handler": "get_room_keys_for_room",
             "hasJson": false,
             "hasQuery": true,
@@ -2774,7 +2767,7 @@
                 "opaque": false
             }
         },
-        "GET /room_keys/keys/{x}/{x}": {
+        "GET /room_keys/keys/{X}/{X}": {
             "handler": "get_room_key",
             "hasJson": false,
             "hasQuery": true,
@@ -2787,28 +2780,28 @@
                 "opaque": false
             }
         },
-        "GET /room_keys/recover/{x}/{x}": {
+        "GET /room_keys/recover/{X}/{X}": {
             "handler": "recover_room_keys",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /room_keys/recover/{x}/{x}/{x}": {
+        "GET /room_keys/recover/{X}/{X}/{X}": {
             "handler": "recover_session_key",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /room_keys/recovery/{x}/progress": {
+        "GET /room_keys/recovery/{X}/progress": {
             "handler": "get_recovery_progress",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /room_keys/verify/{x}": {
+        "GET /room_keys/verify/{X}": {
             "handler": "verify_backup",
             "hasJson": false,
             "hasQuery": false,
@@ -2822,84 +2815,84 @@
             "body": null,
             "query": null
         },
-        "GET /room_keys/version/{x}": {
+        "GET /room_keys/version/{X}": {
             "handler": "get_backup_version",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/account_data/{x}": {
+        "GET /rooms/{X}/account_data/{X}": {
             "handler": "get_room_account_data",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/aggregations/{x}/{x}": {
+        "GET /rooms/{X}/aggregations/{X}/{X}": {
             "handler": "get_aggregations",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/anti_screenshot": {
+        "GET /rooms/{X}/anti_screenshot": {
             "handler": "get_anti_screenshot",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/call/{x}": {
+        "GET /rooms/{X}/call/{X}": {
             "handler": "get_call_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/dm": {
+        "GET /rooms/{X}/dm": {
             "handler": "check_room_dm",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/dm/partner": {
+        "GET /rooms/{X}/dm/partner": {
             "handler": "get_dm_partner_route",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/invite_allowlist": {
+        "GET /rooms/{X}/invite_allowlist": {
             "handler": "get_invite_allowlist",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/invite_blocklist": {
+        "GET /rooms/{X}/invite_blocklist": {
             "handler": "get_invite_blocklist",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/messages": {
+        "GET /rooms/{X}/messages": {
             "handler": "get_messages",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/pinned_events": {
+        "GET /rooms/{X}/pinned_events": {
             "handler": "get_pinned_events",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/relations/{x}": {
+        "GET /rooms/{X}/relations/{X}": {
             "handler": "get_relations_by_event",
             "hasJson": false,
             "hasQuery": true,
@@ -2912,7 +2905,7 @@
                 "opaque": false
             }
         },
-        "GET /rooms/{x}/relations/{x}/{x}": {
+        "GET /rooms/{X}/relations/{X}/{X}": {
             "handler": "get_relations",
             "hasJson": false,
             "hasQuery": true,
@@ -2925,7 +2918,7 @@
                 "opaque": false
             }
         },
-        "GET /rooms/{x}/relations/{x}/{x}/{x}": {
+        "GET /rooms/{X}/relations/{X}/{X}/{X}": {
             "handler": "get_relations_by_type",
             "hasJson": false,
             "hasQuery": true,
@@ -2938,14 +2931,14 @@
                 "opaque": false
             }
         },
-        "GET /rooms/{x}/retention": {
+        "GET /rooms/{X}/retention": {
             "handler": "get_retention_policy",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/sticky_events": {
+        "GET /rooms/{X}/sticky_events": {
             "handler": "get_sticky_events",
             "hasJson": false,
             "hasQuery": true,
@@ -2958,35 +2951,35 @@
                 "opaque": false
             }
         },
-        "GET /rooms/{x}/summary": {
+        "GET /rooms/{X}/summary": {
             "handler": "get_room_summary",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/summary/members": {
+        "GET /rooms/{X}/summary/members": {
             "handler": "get_members",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/summary/state": {
+        "GET /rooms/{X}/summary/state": {
             "handler": "get_all_state",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/summary/state/{x}/{x}": {
+        "GET /rooms/{X}/summary/state/{X}/{X}": {
             "handler": "get_state",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /rooms/{x}/summary/stats": {
+        "GET /rooms/{X}/summary/stats": {
             "handler": "get_stats",
             "hasJson": false,
             "hasQuery": true,
@@ -2999,7 +2992,7 @@
                 "opaque": false
             }
         },
-        "GET /rooms/{x}/version": {
+        "GET /rooms/{X}/version": {
             "handler": "get_room_version",
             "hasJson": false,
             "hasQuery": false,
@@ -3019,21 +3012,21 @@
                 "opaque": false
             }
         },
-        "GET /spaces/{x}": {
+        "GET /spaces/{X}": {
             "handler": "get_space",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /spaces/{x}/rooms": {
+        "GET /spaces/{X}/rooms": {
             "handler": "get_space_rooms",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /thirdparty/location/{x}": {
+        "GET /thirdparty/location/{X}": {
             "handler": "get_location",
             "hasJson": false,
             "hasQuery": true,
@@ -3046,7 +3039,7 @@
                 "opaque": false
             }
         },
-        "GET /thirdparty/protocol/{x}": {
+        "GET /thirdparty/protocol/{X}": {
             "handler": "get_protocol",
             "hasJson": false,
             "hasQuery": false,
@@ -3060,56 +3053,56 @@
             "body": null,
             "query": null
         },
-        "GET /thirdparty/user/{x}": {
+        "GET /thirdparty/user/{X}": {
             "handler": "get_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/account_data/": {
+        "GET /user/{X}/account_data": {
             "handler": "list_account_data",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/account_data/{x}": {
+        "GET /user/{X}/account_data/{X}": {
             "handler": "get_account_data",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/filter/{x}": {
+        "GET /user/{X}/filter/{X}": {
             "handler": "get_filter",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/openid/request_token": {
+        "GET /user/{X}/openid/request_token": {
             "handler": "get_openid_token",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/rooms/{x}/account_data/{x}": {
+        "GET /user/{X}/rooms/{X}/account_data/{X}": {
             "handler": "get_room_account_data",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/rooms/{x}/tags": {
+        "GET /user/{X}/rooms/{X}/tags": {
             "handler": "get_tags",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "GET /user/{x}/tags": {
+        "GET /user/{X}/tags": {
             "handler": "get_global_tags",
             "hasJson": false,
             "hasQuery": false,
@@ -3137,7 +3130,7 @@
             "body": null,
             "query": null
         },
-        "PATCH /_synapse/admin/v1/feature-flags/{x}": {
+        "PATCH /_synapse/admin/v1/feature-flags/{X}": {
             "handler": "update_feature_flag",
             "hasJson": true,
             "hasQuery": false,
@@ -3229,7 +3222,7 @@
             "body": null,
             "query": null
         },
-        "POST /_matrix/client/v1/rendezvous/{x}/messages": {
+        "POST /_matrix/client/v1/rendezvous/{X}/messages": {
             "handler": "send_message",
             "hasJson": true,
             "hasQuery": false,
@@ -3242,7 +3235,7 @@
             },
             "query": null
         },
-        "POST /_matrix/client/v1/rooms/{x}/threads/{x}/replies": {
+        "POST /_matrix/client/v1/rooms/{X}/threads/{X}/replies": {
             "handler": "add_reply",
             "hasJson": true,
             "hasQuery": false,
@@ -3262,7 +3255,7 @@
             },
             "query": null
         },
-        "POST /_matrix/client/v1/rooms/{x}/threads/{x}/subscribe": {
+        "POST /_matrix/client/v1/rooms/{X}/threads/{X}/subscribe": {
             "handler": "subscribe_thread",
             "hasJson": true,
             "hasQuery": false,
@@ -3275,7 +3268,7 @@
             },
             "query": null
         },
-        "POST /_matrix/client/v1/rooms/{x}/threads/{x}/unsubscribe": {
+        "POST /_matrix/client/v1/rooms/{X}/threads/{X}/unsubscribe": {
             "handler": "unsubscribe_thread",
             "hasJson": false,
             "hasQuery": false,
@@ -3324,7 +3317,7 @@
             },
             "query": null
         },
-        "POST /_matrix/client/v3/admin/room/{x}/redact": {
+        "POST /_matrix/client/v3/admin/room/{X}/redact": {
             "handler": "redact_room_events",
             "hasJson": true,
             "hasQuery": false,
@@ -3396,7 +3389,7 @@
             "body": null,
             "query": null
         },
-        "POST /_matrix/client/v3/rooms/{x}/typing/{x}": {
+        "POST /_matrix/client/v3/rooms/{X}/typing/{X}": {
             "handler": "set_typing",
             "hasJson": true,
             "hasQuery": false,
@@ -3477,7 +3470,7 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/friends/dm/{x}": {
+        "POST /_matrix/vendor/v1/friends/dm/{X}": {
             "handler": "create_friend_dm",
             "hasJson": false,
             "hasQuery": false,
@@ -3497,7 +3490,7 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/friends/groups/{x}/add/{x}": {
+        "POST /_matrix/vendor/v1/friends/groups/{X}/add/{X}": {
             "handler": "add_friend_to_group",
             "hasJson": false,
             "hasQuery": false,
@@ -3517,21 +3510,21 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/friends/request/{x}/accept": {
+        "POST /_matrix/vendor/v1/friends/request/{X}/accept": {
             "handler": "accept_friend_request",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/friends/request/{x}/cancel": {
+        "POST /_matrix/vendor/v1/friends/request/{X}/cancel": {
             "handler": "cancel_friend_request",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/friends/request/{x}/reject": {
+        "POST /_matrix/vendor/v1/friends/request/{X}/reject": {
             "handler": "reject_friend_request",
             "hasJson": false,
             "hasQuery": false,
@@ -3643,21 +3636,21 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/burn/{x}": {
+        "POST /_matrix/vendor/v1/rooms/{X}/burn/{X}": {
             "handler": "mark_burn_read",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/replies/{x}/redact": {
+        "POST /_matrix/vendor/v1/rooms/{X}/replies/{X}/redact": {
             "handler": "redact_reply",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/threads": {
+        "POST /_matrix/vendor/v1/rooms/{X}/threads": {
             "handler": "create_thread",
             "hasJson": true,
             "hasQuery": false,
@@ -3670,21 +3663,21 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/threads/{x}/freeze": {
+        "POST /_matrix/vendor/v1/rooms/{X}/threads/{X}/freeze": {
             "handler": "freeze_thread",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/threads/{x}/mute": {
+        "POST /_matrix/vendor/v1/rooms/{X}/threads/{X}/mute": {
             "handler": "mute_thread",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/threads/{x}/read": {
+        "POST /_matrix/vendor/v1/rooms/{X}/threads/{X}/read": {
             "handler": "mark_read",
             "hasJson": true,
             "hasQuery": false,
@@ -3697,7 +3690,7 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/rooms/{x}/threads/{x}/unfreeze": {
+        "POST /_matrix/vendor/v1/rooms/{X}/threads/{X}/unfreeze": {
             "handler": "unfreeze_thread",
             "hasJson": false,
             "hasQuery": false,
@@ -3717,21 +3710,21 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/voice/{x}/convert": {
+        "POST /_matrix/vendor/v1/voice/{X}/convert": {
             "handler": "convert_voice_message",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/voice/{x}/optimize": {
+        "POST /_matrix/vendor/v1/voice/{X}/optimize": {
             "handler": "optimize_voice_message",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_matrix/vendor/v1/voice/{x}/transcription": {
+        "POST /_matrix/vendor/v1/voice/{X}/transcription": {
             "handler": "transcribe_voice_message",
             "hasJson": false,
             "hasQuery": false,
@@ -3771,7 +3764,7 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/widgets/{x}/permissions": {
+        "POST /_matrix/vendor/v1/widgets/{X}/permissions": {
             "handler": "set_widget_permission",
             "hasJson": true,
             "hasQuery": false,
@@ -3784,7 +3777,7 @@
             },
             "query": null
         },
-        "POST /_matrix/vendor/v1/widgets/{x}/sessions": {
+        "POST /_matrix/vendor/v1/widgets/{X}/sessions": {
             "handler": "create_widget_session",
             "hasJson": true,
             "hasQuery": false,
@@ -3823,7 +3816,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/account_validity/{x}/renew": {
+        "POST /_synapse/admin/v1/account_validity/{X}/renew": {
             "handler": "renew_account",
             "hasJson": true,
             "hasQuery": false,
@@ -3836,7 +3829,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/account/{x}": {
+        "POST /_synapse/admin/v1/account/{X}": {
             "handler": "update_account",
             "hasJson": true,
             "hasQuery": false,
@@ -3873,7 +3866,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/appservices/{x}/events": {
+        "POST /_synapse/admin/v1/appservices/{X}/events": {
             "handler": "push_event",
             "hasJson": true,
             "hasQuery": false,
@@ -3886,14 +3879,14 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/appservices/{x}/ping": {
+        "POST /_synapse/admin/v1/appservices/{X}/ping": {
             "handler": "ping_app_service",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/appservices/{x}/state": {
+        "POST /_synapse/admin/v1/appservices/{X}/state": {
             "handler": "set_app_service_state",
             "hasJson": true,
             "hasQuery": false,
@@ -3906,7 +3899,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/appservices/{x}/users": {
+        "POST /_synapse/admin/v1/appservices/{X}/users": {
             "handler": "register_virtual_user",
             "hasJson": true,
             "hasQuery": false,
@@ -3956,21 +3949,21 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/background_updates/{x}/cancel": {
+        "POST /_synapse/admin/v1/background_updates/{X}/cancel": {
             "handler": "cancel_update",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/background_updates/{x}/complete": {
+        "POST /_synapse/admin/v1/background_updates/{X}/complete": {
             "handler": "complete_update",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/background_updates/{x}/fail": {
+        "POST /_synapse/admin/v1/background_updates/{X}/fail": {
             "handler": "fail_update",
             "hasJson": true,
             "hasQuery": false,
@@ -3983,7 +3976,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/background_updates/{x}/progress": {
+        "POST /_synapse/admin/v1/background_updates/{X}/progress": {
             "handler": "update_progress",
             "hasJson": true,
             "hasQuery": false,
@@ -3996,7 +3989,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/background_updates/{x}/start": {
+        "POST /_synapse/admin/v1/background_updates/{X}/start": {
             "handler": "start_update",
             "hasJson": false,
             "hasQuery": false,
@@ -4046,7 +4039,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/cas/users/{x}/attributes": {
+        "POST /_synapse/admin/v1/cas/users/{X}/attributes": {
             "handler": "set_user_attribute",
             "hasJson": true,
             "hasQuery": false,
@@ -4105,7 +4098,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/event_reports/{x}/dismiss": {
+        "POST /_synapse/admin/v1/event_reports/{X}/dismiss": {
             "handler": "dismiss_report",
             "hasJson": true,
             "hasQuery": false,
@@ -4118,14 +4111,14 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/event_reports/{x}/escalate": {
+        "POST /_synapse/admin/v1/event_reports/{X}/escalate": {
             "handler": "escalate_report",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/event_reports/{x}/resolve": {
+        "POST /_synapse/admin/v1/event_reports/{X}/resolve": {
             "handler": "resolve_report",
             "hasJson": true,
             "hasQuery": false,
@@ -4138,7 +4131,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/event_reports/rate_limit/{x}/block": {
+        "POST /_synapse/admin/v1/event_reports/rate_limit/{X}/block": {
             "handler": "block_user",
             "hasJson": true,
             "hasQuery": false,
@@ -4151,7 +4144,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/event_reports/rate_limit/{x}/unblock": {
+        "POST /_synapse/admin/v1/event_reports/rate_limit/{X}/unblock": {
             "handler": "unblock_user",
             "hasJson": false,
             "hasQuery": false,
@@ -4171,7 +4164,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/external_services/{x}/health/check": {
+        "POST /_synapse/admin/v1/external_services/{X}/health/check": {
             "handler": "check_service_health",
             "hasJson": false,
             "hasQuery": false,
@@ -4199,11 +4192,17 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/federation/blacklist/{x}": {
+        "POST /_synapse/admin/v1/federation/blacklist/{X}": {
             "handler": "add_to_blacklist",
-            "hasJson": false,
+            "hasJson": true,
             "hasQuery": false,
-            "body": null,
+            "body": {
+                "type": "AddBlacklistBody",
+                "declared": ["expires_in_days", "reason"],
+                "required": [],
+                "denyUnknown": false,
+                "opaque": false
+            },
             "query": null
         },
         "POST /_synapse/admin/v1/federation/cache/clear": {
@@ -4226,7 +4225,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/federation/destinations/{x}/reset_connection": {
+        "POST /_synapse/admin/v1/federation/destinations/{X}/reset_connection": {
             "handler": "reset_connection",
             "hasJson": false,
             "hasQuery": false,
@@ -4320,35 +4319,35 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/media/protect/{x}": {
+        "POST /_synapse/admin/v1/media/protect/{X}": {
             "handler": "protect_media_by_id",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/media/protect/{x}/{x}": {
+        "POST /_synapse/admin/v1/media/protect/{X}/{X}": {
             "handler": "protect_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/media/quarantine/{x}/{x}": {
+        "POST /_synapse/admin/v1/media/quarantine/{X}/{X}": {
             "handler": "quarantine_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/media/unprotect/{x}": {
+        "POST /_synapse/admin/v1/media/unprotect/{X}": {
             "handler": "unprotect_media_by_id",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/media/unquarantine/{x}/{x}": {
+        "POST /_synapse/admin/v1/media/unquarantine/{X}/{X}": {
             "handler": "unquarantine_media",
             "hasJson": false,
             "hasQuery": false,
@@ -4376,7 +4375,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/modules/{x}/enable": {
+        "POST /_synapse/admin/v1/modules/{X}/enable": {
             "handler": "enable_module",
             "hasJson": true,
             "hasQuery": false,
@@ -4563,7 +4562,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/registration_tokens/{x}": {
+        "POST /_synapse/admin/v1/registration_tokens/{X}": {
             "handler": "update_registration_token",
             "hasJson": true,
             "hasQuery": false,
@@ -4602,7 +4601,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/retention/policy/{x}": {
+        "POST /_synapse/admin/v1/retention/policy/{X}": {
             "handler": "set_room_retention_policy",
             "hasJson": true,
             "hasQuery": false,
@@ -4628,7 +4627,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/backfill": {
+        "POST /_synapse/admin/v1/rooms/{X}/backfill": {
             "handler": "backfill_room",
             "hasJson": true,
             "hasQuery": false,
@@ -4641,7 +4640,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/ban": {
+        "POST /_synapse/admin/v1/rooms/{X}/ban": {
             "handler": "ban_user_by_body",
             "hasJson": true,
             "hasQuery": false,
@@ -4654,7 +4653,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/ban/{x}": {
+        "POST /_synapse/admin/v1/rooms/{X}/ban/{X}": {
             "handler": "ban_user",
             "hasJson": true,
             "hasQuery": false,
@@ -4667,7 +4666,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/block": {
+        "POST /_synapse/admin/v1/rooms/{X}/block": {
             "handler": "block_room",
             "hasJson": true,
             "hasQuery": false,
@@ -4680,7 +4679,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/cascade_redact": {
+        "POST /_synapse/admin/v1/rooms/{X}/cascade_redact": {
             "handler": "cascade_redact_event",
             "hasJson": true,
             "hasQuery": false,
@@ -4693,7 +4692,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/kick": {
+        "POST /_synapse/admin/v1/rooms/{X}/kick": {
             "handler": "kick_user_by_body",
             "hasJson": true,
             "hasQuery": false,
@@ -4706,7 +4705,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/kick/{x}": {
+        "POST /_synapse/admin/v1/rooms/{X}/kick/{X}": {
             "handler": "kick_user",
             "hasJson": true,
             "hasQuery": false,
@@ -4719,7 +4718,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/make_admin": {
+        "POST /_synapse/admin/v1/rooms/{X}/make_admin": {
             "handler": "make_room_admin",
             "hasJson": true,
             "hasQuery": false,
@@ -4732,7 +4731,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/media/quarantine": {
+        "POST /_synapse/admin/v1/rooms/{X}/media/quarantine": {
             "handler": "quarantine_room_media",
             "hasJson": true,
             "hasQuery": false,
@@ -4745,7 +4744,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/media/unquarantine": {
+        "POST /_synapse/admin/v1/rooms/{X}/media/unquarantine": {
             "handler": "unquarantine_room_media",
             "hasJson": true,
             "hasQuery": false,
@@ -4758,14 +4757,14 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/purge_history": {
+        "POST /_synapse/admin/v1/rooms/{X}/purge_history": {
             "handler": "purge_history_by_room",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/search": {
+        "POST /_synapse/admin/v1/rooms/{X}/search": {
             "handler": "search_room_messages_admin",
             "hasJson": true,
             "hasQuery": false,
@@ -4778,14 +4777,14 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/unban/{x}": {
+        "POST /_synapse/admin/v1/rooms/{X}/unban/{X}": {
             "handler": "unban_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/rooms/{x}/unblock": {
+        "POST /_synapse/admin/v1/rooms/{X}/unblock": {
             "handler": "unblock_room",
             "hasJson": false,
             "hasQuery": false,
@@ -4864,63 +4863,63 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/telemetry/alerts/{x}/ack": {
+        "POST /_synapse/admin/v1/telemetry/alerts/{X}/ack": {
             "handler": "acknowledge_alert",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/user_sessions/{x}/invalidate": {
+        "POST /_synapse/admin/v1/user_sessions/{X}/invalidate": {
             "handler": "invalidate_user_sessions",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/user/{x}/media/quarantine": {
+        "POST /_synapse/admin/v1/user/{X}/media/quarantine": {
             "handler": "quarantine_user_media",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/deactivate": {
+        "POST /_synapse/admin/v1/users/{X}/deactivate": {
             "handler": "deactivate_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/devices/{x}/delete": {
+        "POST /_synapse/admin/v1/users/{X}/devices/{X}/delete": {
             "handler": "delete_user_device_admin_compat",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/evict": {
+        "POST /_synapse/admin/v1/users/{X}/evict": {
             "handler": "evict_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/login": {
+        "POST /_synapse/admin/v1/users/{X}/login": {
             "handler": "login_as_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/logout": {
+        "POST /_synapse/admin/v1/users/{X}/logout": {
             "handler": "logout_user_devices",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/override_ratelimit": {
+        "POST /_synapse/admin/v1/users/{X}/override_ratelimit": {
             "handler": "set_user_override_rate_limit",
             "hasJson": true,
             "hasQuery": false,
@@ -4933,7 +4932,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/password": {
+        "POST /_synapse/admin/v1/users/{X}/password": {
             "handler": "reset_user_password",
             "hasJson": true,
             "hasQuery": false,
@@ -4946,7 +4945,7 @@
             },
             "query": null
         },
-        "POST /_synapse/admin/v1/users/{x}/shadow_ban": {
+        "POST /_synapse/admin/v1/users/{X}/shadow_ban": {
             "handler": "shadow_ban_user",
             "hasJson": false,
             "hasQuery": false,
@@ -4979,7 +4978,7 @@
             },
             "query": null
         },
-        "POST /_synapse/external/webhook/{x}": {
+        "POST /_synapse/external/webhook/{X}": {
             "handler": "handle_generic_webhook",
             "hasJson": true,
             "hasQuery": false,
@@ -5043,14 +5042,14 @@
                 "opaque": false
             }
         },
-        "POST /_synapse/worker/v1/commands/{x}/complete": {
+        "POST /_synapse/worker/v1/commands/{X}/complete": {
             "handler": "complete_command",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/worker/v1/commands/{x}/fail": {
+        "POST /_synapse/worker/v1/commands/{X}/fail": {
             "handler": "fail_command",
             "hasJson": true,
             "hasQuery": false,
@@ -5098,14 +5097,14 @@
             },
             "query": null
         },
-        "POST /_synapse/worker/v1/tasks/{x}/claim/{x}": {
+        "POST /_synapse/worker/v1/tasks/{X}/claim/{X}": {
             "handler": "claim_task",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/worker/v1/tasks/{x}/complete": {
+        "POST /_synapse/worker/v1/tasks/{X}/complete": {
             "handler": "complete_task",
             "hasJson": true,
             "hasQuery": false,
@@ -5118,7 +5117,7 @@
             },
             "query": null
         },
-        "POST /_synapse/worker/v1/tasks/{x}/fail": {
+        "POST /_synapse/worker/v1/tasks/{X}/fail": {
             "handler": "fail_task",
             "hasJson": true,
             "hasQuery": false,
@@ -5131,14 +5130,14 @@
             },
             "query": null
         },
-        "POST /_synapse/worker/v1/tasks/claim/{x}": {
+        "POST /_synapse/worker/v1/tasks/claim/{X}": {
             "handler": "claim_next_task",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/worker/v1/workers/{x}/commands": {
+        "POST /_synapse/worker/v1/workers/{X}/commands": {
             "handler": "send_command",
             "hasJson": true,
             "hasQuery": false,
@@ -5151,7 +5150,7 @@
             },
             "query": null
         },
-        "POST /_synapse/worker/v1/workers/{x}/connect": {
+        "POST /_synapse/worker/v1/workers/{X}/connect": {
             "handler": "connect_worker",
             "hasJson": true,
             "hasQuery": false,
@@ -5164,14 +5163,14 @@
             },
             "query": null
         },
-        "POST /_synapse/worker/v1/workers/{x}/disconnect": {
+        "POST /_synapse/worker/v1/workers/{X}/disconnect": {
             "handler": "disconnect_worker",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /_synapse/worker/v1/workers/{x}/heartbeat": {
+        "POST /_synapse/worker/v1/workers/{X}/heartbeat": {
             "handler": "heartbeat",
             "hasJson": true,
             "hasQuery": false,
@@ -5184,7 +5183,7 @@
             },
             "query": null
         },
-        "POST /dehydrated_device/{x}/events": {
+        "POST /dehydrated_device/{X}/events": {
             "handler": "post_dehydrated_device_events",
             "hasJson": true,
             "hasQuery": false,
@@ -5198,7 +5197,7 @@
             "body": null,
             "query": null
         },
-        "POST /delete/{x}/{x}": {
+        "POST /delete/{X}/{X}": {
             "handler": "delete_media",
             "hasJson": false,
             "hasQuery": false,
@@ -5239,7 +5238,7 @@
             "body": null,
             "query": null
         },
-        "POST /keys/upload/{x}": {
+        "POST /keys/upload/{X}": {
             "handler": "upload_keys",
             "hasJson": true,
             "hasQuery": false,
@@ -5259,7 +5258,7 @@
                 "opaque": false
             }
         },
-        "POST /notifications/{x}/ack": {
+        "POST /notifications/{X}/ack": {
             "handler": "ack_notification",
             "hasJson": false,
             "hasQuery": false,
@@ -5273,13 +5272,6 @@
             "body": null,
             "query": null
         },
-        "POST /pushers/": {
-            "handler": "set_pusher",
-            "hasJson": true,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
         "POST /pushers/set": {
             "handler": "set_pusher",
             "hasJson": true,
@@ -5287,7 +5279,7 @@
             "body": null,
             "query": null
         },
-        "POST /pushrules/{x}/{x}/{x}": {
+        "POST /pushrules/{X}/{X}/{X}": {
             "handler": "create_push_rule",
             "hasJson": true,
             "hasQuery": false,
@@ -5344,7 +5336,7 @@
             "body": null,
             "query": null
         },
-        "POST /room_keys/import/{x}": {
+        "POST /room_keys/import/{X}": {
             "handler": "import_keys_by_version",
             "hasJson": true,
             "hasQuery": false,
@@ -5383,7 +5375,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/ban": {
+        "POST /rooms/{X}/ban": {
             "handler": "ban_user",
             "hasJson": true,
             "hasQuery": false,
@@ -5396,7 +5388,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/invite_allowlist": {
+        "POST /rooms/{X}/invite_allowlist": {
             "handler": "set_invite_allowlist",
             "hasJson": true,
             "hasQuery": false,
@@ -5409,7 +5401,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/invite_blocklist": {
+        "POST /rooms/{X}/invite_blocklist": {
             "handler": "set_invite_blocklist",
             "hasJson": true,
             "hasQuery": false,
@@ -5422,7 +5414,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/kick": {
+        "POST /rooms/{X}/kick": {
             "handler": "kick_user",
             "hasJson": true,
             "hasQuery": false,
@@ -5435,7 +5427,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/pinned_events": {
+        "POST /rooms/{X}/pinned_events": {
             "handler": "pin_event",
             "hasJson": true,
             "hasQuery": false,
@@ -5448,7 +5440,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/send/{x}/{x}": {
+        "POST /rooms/{X}/send/{X}/{X}": {
             "handler": "send_message",
             "hasJson": true,
             "hasQuery": false,
@@ -5461,7 +5453,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/sticky_events": {
+        "POST /rooms/{X}/sticky_events": {
             "handler": "set_sticky_events",
             "hasJson": true,
             "hasQuery": false,
@@ -5474,7 +5466,7 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/summary": {
+        "POST /rooms/{X}/summary": {
             "handler": "create_room_summary",
             "hasJson": true,
             "hasQuery": false,
@@ -5499,14 +5491,14 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/summary/heroes/recalculate": {
+        "POST /rooms/{X}/summary/heroes/recalculate": {
             "handler": "recalculate_heroes",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /rooms/{x}/summary/members": {
+        "POST /rooms/{X}/summary/members": {
             "handler": "add_member",
             "hasJson": true,
             "hasQuery": false,
@@ -5527,56 +5519,56 @@
             },
             "query": null
         },
-        "POST /rooms/{x}/summary/stats/recalculate": {
+        "POST /rooms/{X}/summary/stats/recalculate": {
             "handler": "recalculate_stats",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /rooms/{x}/summary/sync": {
+        "POST /rooms/{X}/summary/sync": {
             "handler": "sync_room_summary",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /rooms/{x}/summary/unread/clear": {
+        "POST /rooms/{X}/summary/unread/clear": {
             "handler": "clear_unread",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /rooms/{x}/unban": {
+        "POST /rooms/{X}/unban": {
             "handler": "unban_user",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /user/{x}/account_data/{x}": {
+        "POST /user/{X}/account_data/{X}": {
             "handler": "set_account_data",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /user/{x}/filter": {
+        "POST /user/{X}/filter": {
             "handler": "create_filter",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /user/{x}/openid/request_token": {
+        "POST /user/{X}/openid/request_token": {
             "handler": "get_openid_token",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "POST /user/{x}/rooms/{x}/account_data/{x}": {
+        "POST /user/{X}/rooms/{X}/account_data/{X}": {
             "handler": "set_room_account_data",
             "hasJson": true,
             "hasQuery": false,
@@ -5590,7 +5582,7 @@
             "body": null,
             "query": null
         },
-        "PUT /_matrix/app/v1/transactions/{x}/{x}": {
+        "PUT /_matrix/app/v1/transactions/{X}/{X}": {
             "handler": "app_service_transactions",
             "hasJson": true,
             "hasQuery": false,
@@ -5603,42 +5595,42 @@
             },
             "query": null
         },
-        "PUT /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{x}": {
+        "PUT /_matrix/client/unstable/org.matrix.msc4108/rendezvous/{X}": {
             "handler": "update_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /_matrix/client/unstable/uk.tcpip.msc4133/profile/{x}/{x}": {
+        "PUT /_matrix/client/unstable/uk.tcpip.msc4133/profile/{X}/{X}": {
             "handler": "put_extended_profile_field",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /_matrix/client/v1/rendezvous/{x}": {
+        "PUT /_matrix/client/v1/rendezvous/{X}": {
             "handler": "update_session",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /_matrix/client/v3/profile/{x}/{x}": {
+        "PUT /_matrix/client/v3/profile/{X}/{X}": {
             "handler": "put_extended_profile_field",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /_matrix/client/v3/pushrules/{x}/{x}/{x}/actions": {
+        "PUT /_matrix/client/v3/pushrules/{X}/{X}/{X}/actions": {
             "handler": "set_push_rule_actions",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /_matrix/client/v3/pushrules/{x}/{x}/{x}/enabled": {
+        "PUT /_matrix/client/v3/pushrules/{X}/{X}/{X}/enabled": {
             "handler": "set_push_rule_enabled",
             "hasJson": true,
             "hasQuery": false,
@@ -5651,7 +5643,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/client/v3/rooms/{x}/typing/{x}": {
+        "PUT /_matrix/client/v3/rooms/{X}/typing/{X}": {
             "handler": "set_typing",
             "hasJson": true,
             "hasQuery": false,
@@ -5664,7 +5656,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/external_services/{x}": {
+        "PUT /_matrix/vendor/v1/external_services/{X}": {
             "handler": "client_update_external_service",
             "hasJson": true,
             "hasQuery": false,
@@ -5677,7 +5669,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/friends/{x}/displayname": {
+        "PUT /_matrix/vendor/v1/friends/{X}/displayname": {
             "handler": "update_friend_displayname",
             "hasJson": true,
             "hasQuery": false,
@@ -5690,7 +5682,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/friends/{x}/note": {
+        "PUT /_matrix/vendor/v1/friends/{X}/note": {
             "handler": "update_friend_note",
             "hasJson": true,
             "hasQuery": false,
@@ -5703,7 +5695,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/friends/{x}/status": {
+        "PUT /_matrix/vendor/v1/friends/{X}/status": {
             "handler": "update_friend_status",
             "hasJson": true,
             "hasQuery": false,
@@ -5716,7 +5708,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/friends/groups/{x}/name": {
+        "PUT /_matrix/vendor/v1/friends/groups/{X}/name": {
             "handler": "rename_friend_group",
             "hasJson": true,
             "hasQuery": false,
@@ -5751,7 +5743,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/rooms/{x}/burn": {
+        "PUT /_matrix/vendor/v1/rooms/{X}/burn": {
             "handler": "enable_burn",
             "hasJson": true,
             "hasQuery": false,
@@ -5764,7 +5756,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/rooms/{x}/widgets/{x}/capabilities": {
+        "PUT /_matrix/vendor/v1/rooms/{X}/widgets/{X}/capabilities": {
             "handler": "set_room_widget_capabilities",
             "hasJson": true,
             "hasQuery": false,
@@ -5790,7 +5782,7 @@
             },
             "query": null
         },
-        "PUT /_matrix/vendor/v1/widgets/{x}": {
+        "PUT /_matrix/vendor/v1/widgets/{X}": {
             "handler": "update_widget",
             "hasJson": true,
             "hasQuery": false,
@@ -5803,7 +5795,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/appservices/{x}": {
+        "PUT /_synapse/admin/v1/appservices/{X}": {
             "handler": "update_app_service",
             "hasJson": true,
             "hasQuery": false,
@@ -5816,7 +5808,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/event_reports/{x}": {
+        "PUT /_synapse/admin/v1/event_reports/{X}": {
             "handler": "update_report",
             "hasJson": true,
             "hasQuery": false,
@@ -5829,7 +5821,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/external_services/{x}": {
+        "PUT /_synapse/admin/v1/external_services/{X}": {
             "handler": "update_external_service",
             "hasJson": true,
             "hasQuery": false,
@@ -5842,7 +5834,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/modules/{x}/config": {
+        "PUT /_synapse/admin/v1/modules/{X}/config": {
             "handler": "update_module_config",
             "hasJson": true,
             "hasQuery": false,
@@ -5855,7 +5847,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/notifications/{x}": {
+        "PUT /_synapse/admin/v1/notifications/{X}": {
             "handler": "update_notification",
             "hasJson": true,
             "hasQuery": false,
@@ -5880,7 +5872,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/notifications/{x}/deactivate": {
+        "PUT /_synapse/admin/v1/notifications/{X}/deactivate": {
             "handler": "deactivate_notification",
             "hasJson": false,
             "hasQuery": false,
@@ -5900,14 +5892,14 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/rooms/{x}/listings/public": {
+        "PUT /_synapse/admin/v1/rooms/{X}/listings/public": {
             "handler": "set_room_public",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /_synapse/admin/v1/rooms/{x}/make_admin": {
+        "PUT /_synapse/admin/v1/rooms/{X}/make_admin": {
             "handler": "make_room_admin",
             "hasJson": true,
             "hasQuery": false,
@@ -5920,7 +5912,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/rooms/{x}/members/{x}": {
+        "PUT /_synapse/admin/v1/rooms/{X}/members/{X}": {
             "handler": "join_room_member",
             "hasJson": false,
             "hasQuery": false,
@@ -5934,7 +5926,7 @@
             "body": null,
             "query": null
         },
-        "PUT /_synapse/admin/v1/saml/mapping/{x}": {
+        "PUT /_synapse/admin/v1/saml/mapping/{X}": {
             "handler": "update_saml_mapping_admin",
             "hasJson": true,
             "hasQuery": false,
@@ -5947,7 +5939,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/users/{x}/admin": {
+        "PUT /_synapse/admin/v1/users/{X}/admin": {
             "handler": "set_admin",
             "hasJson": true,
             "hasQuery": false,
@@ -5960,7 +5952,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/users/{x}/notification": {
+        "PUT /_synapse/admin/v1/users/{X}/notification": {
             "handler": "update_user_notification",
             "hasJson": true,
             "hasQuery": false,
@@ -5973,7 +5965,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v1/users/{x}/rate_limit": {
+        "PUT /_synapse/admin/v1/users/{X}/rate_limit": {
             "handler": "set_user_rate_limit",
             "hasJson": true,
             "hasQuery": false,
@@ -5986,7 +5978,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/admin/v2/users/{x}": {
+        "PUT /_synapse/admin/v2/users/{X}": {
             "handler": "create_or_update_user_v2",
             "hasJson": true,
             "hasQuery": false,
@@ -5999,7 +5991,7 @@
             },
             "query": null
         },
-        "PUT /_synapse/worker/v1/replication/{x}/{x}": {
+        "PUT /_synapse/worker/v1/replication/{X}/{X}": {
             "handler": "update_replication_position",
             "hasJson": true,
             "hasQuery": false,
@@ -6019,7 +6011,7 @@
             "body": null,
             "query": null
         },
-        "PUT /devices/{x}": {
+        "PUT /devices/{X}": {
             "handler": "update_device",
             "hasJson": true,
             "hasQuery": false,
@@ -6032,7 +6024,7 @@
             },
             "query": null
         },
-        "PUT /direct/{x}": {
+        "PUT /direct/{X}": {
             "handler": "update_dm_room",
             "hasJson": true,
             "hasQuery": false,
@@ -6045,7 +6037,7 @@
             },
             "query": null
         },
-        "PUT /pushrules/{x}/{x}/{x}": {
+        "PUT /pushrules/{X}/{X}/{X}": {
             "handler": "set_push_rule",
             "hasJson": true,
             "hasQuery": false,
@@ -6058,7 +6050,7 @@
             },
             "query": null
         },
-        "PUT /room_keys/{x}/keys": {
+        "PUT /room_keys/{X}/keys": {
             "handler": "put_room_keys_all_legacy",
             "hasJson": true,
             "hasQuery": false,
@@ -6071,7 +6063,7 @@
             },
             "query": null
         },
-        "PUT /room_keys/{x}/keys/{x}": {
+        "PUT /room_keys/{X}/keys/{X}": {
             "handler": "put_room_keys_for_room_legacy",
             "hasJson": true,
             "hasQuery": false,
@@ -6084,7 +6076,7 @@
             },
             "query": null
         },
-        "PUT /room_keys/{x}/keys/{x}/{x}": {
+        "PUT /room_keys/{X}/keys/{X}/{X}": {
             "handler": "put_room_key_legacy",
             "hasJson": true,
             "hasQuery": false,
@@ -6110,7 +6102,7 @@
                 "opaque": false
             }
         },
-        "PUT /room_keys/keys/{x}": {
+        "PUT /room_keys/keys/{X}": {
             "handler": "put_room_keys_for_room",
             "hasJson": true,
             "hasQuery": true,
@@ -6129,7 +6121,7 @@
                 "opaque": false
             }
         },
-        "PUT /room_keys/keys/{x}/{x}": {
+        "PUT /room_keys/keys/{X}/{X}": {
             "handler": "put_room_key",
             "hasJson": true,
             "hasQuery": true,
@@ -6142,7 +6134,7 @@
                 "opaque": false
             }
         },
-        "PUT /room_keys/version/{x}": {
+        "PUT /room_keys/version/{X}": {
             "handler": "update_backup_version",
             "hasJson": true,
             "hasQuery": false,
@@ -6155,14 +6147,14 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/account_data/{x}": {
+        "PUT /rooms/{X}/account_data/{X}": {
             "handler": "set_room_account_data",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /rooms/{x}/anti_screenshot": {
+        "PUT /rooms/{X}/anti_screenshot": {
             "handler": "set_anti_screenshot",
             "hasJson": true,
             "hasQuery": false,
@@ -6175,7 +6167,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/relations/{x}/{x}/{x}": {
+        "PUT /rooms/{X}/relations/{X}/{X}/{X}": {
             "handler": "send_relation",
             "hasJson": true,
             "hasQuery": false,
@@ -6188,7 +6180,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/send/{x}/{x}": {
+        "PUT /rooms/{X}/send/{X}/{X}": {
             "handler": "send_message",
             "hasJson": true,
             "hasQuery": false,
@@ -6201,7 +6193,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/send/m.call.answer/{x}": {
+        "PUT /rooms/{X}/send/m.call.answer/{X}": {
             "handler": "call_answer",
             "hasJson": true,
             "hasQuery": false,
@@ -6214,7 +6206,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/send/m.call.candidates/{x}": {
+        "PUT /rooms/{X}/send/m.call.candidates/{X}": {
             "handler": "call_candidates",
             "hasJson": true,
             "hasQuery": false,
@@ -6227,7 +6219,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/send/m.call.hangup/{x}": {
+        "PUT /rooms/{X}/send/m.call.hangup/{X}": {
             "handler": "call_hangup",
             "hasJson": true,
             "hasQuery": false,
@@ -6240,7 +6232,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/send/m.call.invite/{x}": {
+        "PUT /rooms/{X}/send/m.call.invite/{X}": {
             "handler": "call_invite",
             "hasJson": true,
             "hasQuery": false,
@@ -6253,14 +6245,14 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/send/m.reaction/{x}": {
+        "PUT /rooms/{X}/send/m.reaction/{X}": {
             "handler": "add_reaction",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /rooms/{x}/summary": {
+        "PUT /rooms/{X}/summary": {
             "handler": "update_room_summary",
             "hasJson": true,
             "hasQuery": false,
@@ -6273,7 +6265,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/summary/members/{x}": {
+        "PUT /rooms/{X}/summary/members/{X}": {
             "handler": "update_member",
             "hasJson": true,
             "hasQuery": false,
@@ -6286,7 +6278,7 @@
             },
             "query": null
         },
-        "PUT /rooms/{x}/summary/state/{x}/{x}": {
+        "PUT /rooms/{X}/summary/state/{X}/{X}": {
             "handler": "update_state",
             "hasJson": true,
             "hasQuery": false,
@@ -6299,28 +6291,28 @@
             },
             "query": null
         },
-        "PUT /user/{x}/account_data/{x}": {
+        "PUT /user/{X}/account_data/{X}": {
             "handler": "set_account_data",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /user/{x}/filter": {
+        "PUT /user/{X}/filter": {
             "handler": "create_filter",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /user/{x}/rooms/{x}/account_data/{x}": {
+        "PUT /user/{X}/rooms/{X}/account_data/{X}": {
             "handler": "set_room_account_data",
             "hasJson": true,
             "hasQuery": false,
             "body": null,
             "query": null
         },
-        "PUT /user/{x}/rooms/{x}/tags/{x}": {
+        "PUT /user/{X}/rooms/{X}/tags/{X}": {
             "handler": "put_tag",
             "hasJson": true,
             "hasQuery": false,

@@ -659,7 +659,12 @@ export function rebaseLedgerKeys(entries) {
     return new Map(Object.entries(entries ?? {}).map(([route, entry]) => [gateRouteKey(route), entry]));
 }
 
-/** 抽后端每个路由的请求契约（body + query）。 */
+/**
+ * 抽后端每个路由的请求契约（body + query）。
+ *
+ * @returns {{ entries: Map<string, object>, collapsedIdentical: Array<{key: string, routes: string[]}>, conflicts: Array<{key: string, routes: string[]}> }}
+ *   `entries` 的 key 已由 `collapseContractEntries` 归一到门禁 key 空间。
+ */
 async function collectBackendContract() {
     const { byRoute } = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
     // 建全局 struct 索引（Query<T> 的字段集要从定义处取；collectRustAdminContract 只回传 body 的）
@@ -695,7 +700,7 @@ async function collectBackendContract() {
             opaque: Boolean(s.opaque || s.flatten),
         };
     };
-    const backend = new Map();
+    const raw = [];
     for (const [route, e] of byRoute) {
         const body = e.bodyStruct
             ? {
@@ -706,15 +711,60 @@ async function collectBackendContract() {
                   opaque: Boolean(e.bodyStruct.opaque),
               }
             : null;
-        backend.set(gateRouteKey(route), {
-            handler: e.handler,
-            hasJson: Boolean(e.io?.hasJson),
-            hasQuery: Boolean(e.io?.hasQuery),
-            body,
-            query: shapeOf(e.io?.queryType),
-        });
+        raw.push([
+            route,
+            {
+                handler: e.handler,
+                hasJson: Boolean(e.io?.hasJson),
+                hasQuery: Boolean(e.io?.hasQuery),
+                body,
+                query: shapeOf(e.io?.queryType),
+            },
+        ]);
     }
-    return backend;
+    return collapseContractEntries(raw);
+}
+
+/**
+ * 把「后端路由 → 契约」按**门禁 key** 折叠，并把折叠**显式化**。
+ *
+ * 门禁的判据（候选 key / manifest key / 后端 key）全在门禁 key 空间里比较，而门禁的
+ * `normalizePath` 会**去掉尾斜杠** ⇒ 后端若把同一处理器注册在两个同形路径下，门禁里
+ * **永远无法区分**它们。实测后端就有这种注册（`routes/push.rs` 的 `GET /pushers` 与
+ * `GET /pushers/`、`POST` 同），故 `--refresh` 后台账从 655 条变 653 条（不是路由消失）。
+ *
+ * 折叠本身没错，**错在静默**：若两条契约不同，`Map.set` 会让"后写的那条"胜出，
+ * 等于拿**错的契约**去校验调用点（库注释里那句「错的形状比未知更危险」）。
+ * 故这里把折叠分成两类返回，由调用方决定：
+ *   · `collapsedIdentical` —— 契约逐字段相同（实测两个 `/pushers` 形态就是这种）⇒ 折叠无害；
+ *   · `conflicts` —— 同形但契约不同 ⇒ 调用方**必须报错**，不许折叠。
+ *
+ * @returns {{ entries: Map<string, object>, collapsedIdentical: Array<{key: string, routes: string[]}>, conflicts: Array<{key: string, routes: string[]}> }}
+ */
+export function collapseContractEntries(routeEntries) {
+    const entries = new Map();
+    const seen = new Map(); // key -> { entry, routes }
+    const collapsedIdentical = [];
+    const conflicts = [];
+    for (const [route, entry] of routeEntries) {
+        const key = gateRouteKey(route);
+        const prev = seen.get(key);
+        if (!prev) {
+            seen.set(key, { entry, routes: [route] });
+            entries.set(key, entry);
+            continue;
+        }
+        prev.routes.push(route);
+        if (JSON.stringify(prev.entry) === JSON.stringify(entry)) {
+            // 后见者与先见者契约一致 ⇒ 折叠（保留先见者，结论相同）
+            if (!collapsedIdentical.some((c) => c.key === key)) {
+                collapsedIdentical.push({ key, routes: prev.routes });
+            }
+            continue;
+        }
+        if (!conflicts.some((c) => c.key === key)) conflicts.push({ key, routes: prev.routes });
+    }
+    return { entries, collapsedIdentical, conflicts };
 }
 
 function loadWaivers() {
@@ -736,7 +786,11 @@ async function main() {
     const today = new Date().toISOString().slice(0, 10);
     const sdk = await collectSdkCalls();
     const backendAvailable = fs.existsSync(RUST_ROUTES_ROOT);
-    const backend = backendAvailable ? await collectBackendContract() : null;
+    const collected = backendAvailable ? await collectBackendContract() : null;
+    const backend = collected?.entries ?? null;
+    /** 后端把同一处理器注册在两个「门禁归一化后同形」的路径下（如 `GET /pushers` 与 `GET /pushers/`）。 */
+    const collapsedIdentical = collected?.collapsedIdentical ?? [];
+    const conflicting = collected?.conflicts ?? [];
 
     const ledger = readJsonIfExists(LEDGER_PATH, { entries: {} });
     // 必须重建 key：台账是后端收集器的拼写（`{x}` + 保留尾斜杠），候选 key 是门禁拼写
@@ -859,6 +913,23 @@ async function main() {
             console.error(`❌ --refresh 需要后端仓，未找到 ${RUST_ROUTES_ROOT}`);
             return 2;
         }
+        // 门禁归一化会把「同形但不同的注册路径」折叠（实测 `GET /pushers` 与 `GET /pushers/`）。
+        // 契约一致时折叠无害；**契约不同时绝不能折叠** —— 那会让"后写的那条"静默胜出，
+        // 等于拿错的契约去校验调用点。检测到就拒绝写入（宁可让人来看）。
+        if (collected.conflicts.length > 0) {
+            console.error("❌ 门禁归一化后出现**契约不同**的同形路由，拒绝折叠写入台账：");
+            for (const c of collected.conflicts) {
+                console.error(`   ${c.key}  ←  ${c.routes.join(" , ")}`);
+            }
+            console.error("   （判据全在门禁 key 空间里比较 ⇒ 这两条在门禁里永远无法区分；请先在后端消歧）");
+            return 2;
+        }
+        if (collected.collapsedIdentical.length > 0) {
+            console.log(
+                `ℹ️ 折叠 ${collected.collapsedIdentical.length} 组同形路由（契约逐字段相同 ⇒ 无害）：` +
+                    collected.collapsedIdentical.map((c) => c.routes.join(" | ")).join("；"),
+            );
+        }
         const entries = {};
         for (const [route, be] of [...backend].sort((a, b) => a[0].localeCompare(b[0]))) {
             entries[route] = {
@@ -894,6 +965,10 @@ async function main() {
         buckets,
         bucketRegressions,
         drift,
+        /** 门禁归一化后折叠掉的后端同形路由（契约相同才允许折叠；见 `collapseContractEntries`）。 */
+        mergedSameShapeRoutes: collected?.collapsedIdentical ?? [],
+        /** 同形但契约不同 ⇒ 应当为空；非空说明后端有两条门禁无法区分的注册。 */
+        conflictingSameShapeRoutes: collected?.conflicts ?? [],
         sampleViolations: unwaived.slice(0, 25),
         sampleBuckets: unresolved
             .slice(0, 15)
@@ -930,6 +1005,20 @@ async function main() {
         console.log(`  覆盖桶         : ${JSON.stringify(buckets)}`);
         if (drift.length) {
             console.log(`  ⚠️ 后端契约漂移 : ${drift.length}（需 --refresh 重新冻结台账）`);
+        }
+        if (collapsedIdentical.length) {
+            console.log(
+                `  ℹ️ 同形路由折叠 : ${collapsedIdentical.length} 组（契约逐字段相同 ⇒ 无害）：` +
+                    collapsedIdentical.map((c) => c.routes.join(" | ")).join("；"),
+            );
+        }
+        if (conflicting.length) {
+            console.log("---------------------------------------------------------------");
+            for (const c of conflicting) {
+                console.log(`  ❌ 同形路由契约冲突 ${c.key}  ←  ${c.routes.join(" , ")}`);
+            }
+            console.log("     门禁的判据全在门禁 key 空间（占位符 `{X}`、去尾斜杠）里比较 ⇒ 这两条**永远无法区分**。");
+            console.log("     现在只有「先见者」参与校验，另一条的契约被静默丢弃 ⇒ 需后端消歧（或改归一化口径）。");
         }
         if (unwaived.length) {
             console.log("---------------------------------------------------------------");
@@ -968,7 +1057,9 @@ async function main() {
         bucketRegressions.length > 0 ||
         expired.length > 0 ||
         unusedWaivers.length > 0 ||
-        (!REFRESH && drift.length > 0);
+        (!REFRESH && drift.length > 0) ||
+        // 后端有两条门禁无法区分的同形路由 ⇒ 其中一条的契约被静默丢弃，此时"绿"不可信。
+        (!REFRESH && conflicting.length > 0);
     if (!failed) {
         if (!EMIT_JSON)
             console.log(

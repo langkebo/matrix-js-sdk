@@ -31,6 +31,19 @@ export function gateRouteKey(route: string): string;
 export function rebaseLedgerKeys(entries: Record<string, unknown> | undefined | null): Map<string, unknown>;
 
 /**
+ * 把「后端路由 → 契约」按门禁 key 折叠，并把折叠显式化。
+ *
+ * 门禁的 `normalizePath` 会去尾斜杠 ⇒ 后端把同一处理器注册在 `GET /pushers` 与
+ * `GET /pushers/` 两条上时，门禁里**永远无法区分**。契约逐字段相同 ⇒ 折叠无害；
+ * 契约不同 ⇒ 必须报错（`Map.set` 会让后写者静默胜出 = 用错契约校验调用点）。
+ */
+export function collapseContractEntries(routeEntries: Array<[string, unknown]>): {
+    entries: Map<string, unknown>;
+    collapsedIdentical: Array<{ key: string; routes: string[] }>;
+    conflicts: Array<{ key: string; routes: string[] }>;
+};
+
+/**
  * 从对象字面量取顶层键集。fail-closed：`keys === null` 表示判不出来（`reason` 给出原因），
  * **绝不返回半份键集**。
  */

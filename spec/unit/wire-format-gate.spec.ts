@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     classifyWire,
+    collapseContractEntries,
     countBuckets,
     diffBuckets,
     extractObjectFormCalls,
@@ -333,6 +334,58 @@ describe("rebaseLedgerKeys（台账 key 必须进同一个 key 空间）", () =>
         for (const [ledgerKey, backendKey] of pairs) {
             expect(rebaseLedgerKeys({ [ledgerKey]: 1 }).has(backendKey)).toBe(true);
         }
+    });
+});
+
+/**
+ * `collapseContractEntries`：门禁归一化造成的**同形折叠**必须显式。
+ *
+ * 真实事故（2026-10-16 实测）：后端 `routes/push.rs:15` 把 `get_pushers` 同时注册在
+ * `GET /pushers` 与 `GET /pushers/`（`POST` 同 `set_pusher`）⇒ 门禁的 `normalizePath` 去尾斜杠后
+ * 两条同形，`--refresh` 后台账 655 → **653** 条（那不是"路由消失"）。
+ * 这一对契约恰好逐字段相同 ⇒ 折叠无害；但**契约不同的同形路由绝不能折叠** ——
+ * `Map.set` 会让后写者静默胜出，等于拿错的契约去校验调用点。
+ */
+describe("collapseContractEntries（同形折叠必须显式，冲突必须报错）", () => {
+    const c = { handler: "get_pushers", hasJson: false, hasQuery: false, body: null, query: null };
+
+    it("契约相同的同形路由 ⇒ 折叠成一条，并登记为 collapsedIdentical", () => {
+        const r = collapseContractEntries([
+            ["GET /pushers", c],
+            ["GET /pushers/", c],
+        ]);
+        expect([...r.entries.keys()]).toEqual(["GET /pushers"]);
+        expect(r.collapsedIdentical).toEqual([{ key: "GET /pushers", routes: ["GET /pushers", "GET /pushers/"] }]);
+        expect(r.conflicts).toEqual([]);
+    });
+
+    it("契约不同的同形路由 ⇒ 进 conflicts，且**先见者**留在 entries（不静默换掉）", () => {
+        const other = { ...c, handler: "other_handler" };
+        const r = collapseContractEntries([
+            ["GET /pushers", c],
+            ["GET /pushers/", other],
+        ]);
+        expect(r.conflicts).toEqual([{ key: "GET /pushers", routes: ["GET /pushers", "GET /pushers/"] }]);
+        expect(r.entries.get("GET /pushers")).toEqual(c);
+    });
+
+    it("占位符拼写不同也算同形（`{x}` vs `{X}` vs `{room_id}`）", () => {
+        const r = collapseContractEntries([
+            ["GET /_matrix/client/v3/rooms/{room_id}/state", c],
+            ["GET /_matrix/client/v3/rooms/{X}/state", c],
+        ]);
+        expect(r.entries.size).toBe(1);
+        expect(r.collapsedIdentical).toHaveLength(1);
+    });
+
+    it("不同路由之间互不影响", () => {
+        const r = collapseContractEntries([
+            ["GET /a", c],
+            ["POST /a", c],
+        ]);
+        expect([...r.entries.keys()]).toEqual(["GET /a", "POST /a"]);
+        expect(r.collapsedIdentical).toEqual([]);
+        expect(r.conflicts).toEqual([]);
     });
 });
 
