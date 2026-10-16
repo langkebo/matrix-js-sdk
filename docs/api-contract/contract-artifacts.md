@@ -16,9 +16,9 @@
 | 2   | `docs/api-contract/generated/modules/*.json` 文件数                    | 后端按 `registered_by` 拆出的**逐模块镜像**。文件名沿用后端模块名（snake_case）                           |   50 |
 | 3   | `src/*/__generated__/` 目录数                                          | 有 SDK 侧生成产物的模块。目录名是 **SDK 目录名**（kebab-case），经 `CONTRACT_MODULE_MAP` 折叠/改名而来    |   49 |
 | 4   | `src/*/__generated__/route-table.ts` 文件数                            | 其中**真正生成了路由表**的模块；其余只生成 `dto.ts`                                                       |   48 |
-| 4b  | 上述 48 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  981 |
+| 4b  | 上述 48 张表的条目总数                                                 | SDK 侧可被 `import` 的字面量路由条目                                                                      |  977 |
 
-> 记忆锚点：**1032 是后端的，981 是前端的**；49 是后端模块视角，48/47 是 SDK 目录视角。
+> 记忆锚点：**1032 是后端的，977 是前端的**；49 是后端模块视角，48/47 是 SDK 目录视角。
 
 ---
 
@@ -65,7 +65,7 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 
 `federation` 的 `dto.ts` 仍然生成，所以 `__generated__` 目录数是 49 而不是 48。
 
-### 981 vs 1032：两张表的构造规则不同
+### 977 vs 1032：两张表的构造规则不同
 
 - `route-manifest.all.json` = **纯后端 ledger**。
 - `route-table.ts` = **既有条目 ∪ ledger 清单 ∪ `ROUTE_CONTRACT.md`** 三者按 `(method, path)` 去重。
@@ -81,7 +81,7 @@ COVERED（有 route-table 消费者）、`SERVER_ONLY_MODULES`（本口径不适
 | 想问的问题                       | 用哪个                                                                  |
 | -------------------------------- | ----------------------------------------------------------------------- |
 | 后端一共暴露了多少 API？         | **1032**（`route-manifest.all.json`）                                   |
-| SDK 能给出多少条字面量路由常量？ | **981**（47 张 route-table），入口见 `matrix-js-sdk/contract`           |
+| SDK 能给出多少条字面量路由常量？ | **977**（47 张 route-table），入口见 `matrix-js-sdk/contract`           |
 | 有多少模块有 SDK 侧生成物？      | **48**                                                                  |
 | 后端按模块拆成了多少份？         | **49**                                                                  |
 | 某条具体路径 SDK 有没有覆盖？    | 查 `src/contract/index.ts` 的 `SDK_CONTRACT_ROUTES`，不要看上面任何计数 |
