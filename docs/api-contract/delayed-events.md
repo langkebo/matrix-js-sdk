@@ -1,7 +1,7 @@
 ---
 module: delayed_events
 generated_from: docs/api-contract/generated/modules/delayed_events.json
-generated_hash: sha256-3927e06121919797158641bf11b15f0bef741083f5b53a214e8db307267ef019
+generated_hash: sha256-d7fd1ebca8b5518ba89c02a8bc0ebb8601d0321c54ca834d88c0211b75962b6d
 ledger_schema: 4
 last_reviewed: 2026-10-15
 ---

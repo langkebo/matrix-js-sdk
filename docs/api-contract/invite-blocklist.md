@@ -1,7 +1,7 @@
 ---
 module: invite_blocklist
 generated_from: docs/api-contract/generated/modules/invite_blocklist.json
-generated_hash: sha256-92d5e46f5b5b41cc33905d81d8f7578a3c388ffee93bb363c97d6ed2267f4440
+generated_hash: sha256-a7a9957084f6b33c8ddf13f62067f121e001e2d2281687a310798a4cf333899c
 ledger_schema: 4
 last_reviewed: 2026-10-15
 ---

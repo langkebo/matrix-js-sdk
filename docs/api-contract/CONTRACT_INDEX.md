@@ -66,7 +66,7 @@
 
 | 模块        | 文档                                         | 端点数 | SDK 覆盖率 | 优先级                                                                           |
 | ----------- | -------------------------------------------- | ------ | ---------- | -------------------------------------------------------------------------------- |
-| 管理核心    | [admin.md](admin.md)                         | 179    | 98%        | ✅ 完善 (176/179 端点已封装；全部路径受 `PathAssert` 编译期约束，无约束路由归零) |
+| 管理核心    | [admin.md](admin.md)                         | 183    | 96%        | ✅ 完善 (176/183 端点已封装；全部路径受 `PathAssert` 编译期约束，无约束路由归零) |
 | 联邦        | [federation.md](federation.md)               | 55     | —          | 🖥️ 服务端面 (S2S / key-server)，SDK 不承担；客户端可见面 19 条已封装             |
 | WorkerAdmin | [worker-admin.md](worker-admin.md)           | 15     | 100%       | ✅ 完善                                                                          |
 | 遥测        | [telemetry.md](telemetry.md)                 | 6      | 100%       | ✅ 完善                                                                          |
@@ -111,9 +111,9 @@
 
 - **模块文档页数**: 49（48 页带 `module:` frontmatter；`auth.md` 为 umbrella 页，无 `module:` 但对应后端 `assembly` 桶）
 - **生成物模块数**: 50（`generated/modules/*.json`）
-- **后端路由端点数**（`ledger_export_sdk` 三 profile）: `default` **1013** / `worker` **1024** / `all` **1032**
-- **索引表端点数合计**: **1032**（与后端 `all` profile **完全一致** —— 49 页覆盖 50 个后端模块：`auth.md` 对应 `assembly` 桶，`rendezvous.md` 对应 `rendezvous` + `msc4108_rendezvous` 两个模块）
-- **SDK 覆盖率（按路由加权）**: **96.2%**（已封装 **993** / 后端 **1032**；2026-10-15 实测）
+- **后端路由端点数**（`ledger_export_sdk` 三 profile）: `default` **1017** / `worker` **1028** / `all` **1036**
+- **索引表端点数合计**: **1036**（与后端 `all` profile **完全一致** —— 49 页覆盖 50 个后端模块：`auth.md` 对应 `assembly` 桶，`rendezvous.md` 对应 `rendezvous` + `msc4108_rendezvous` 两个模块）
+- **SDK 覆盖率（按路由加权）**: **95.8%**（已封装 **993** / 后端 **1036**；993 为 2026-10-15 实测，后端分母已随 2026-10-16 ledger 前向更新）
 - **完善模块 (≥85%)**: 48 / 49
 - **待提升模块 (50-84%)**: 0
 - **本口径不适用**: 1 —— `federation.md`（19/55 = 35%）。其 55 条**全为** server-to-server / key-server 路由，客户端 SDK 天然不承担，已由 `quality:manager-codegen` 单列为 `SERVER_ONLY` 类别（与"有期限的欠账"性质不同）
@@ -129,7 +129,7 @@
 > | `auth.md`       |  146 | **104 → 105 → 99** | 后端 `assembly` 桶原为 104（`src/auth/__generated__/route-table.ts` 实测同值）；146 无可复现来源。同日稍后后端补齐 `POST …/dehydrated_device/{device_id}/events` ⇒ **105**；再稍后把 MSC3814 族改为独立 sub-router（`registered_by: dehydrated_device`）⇒ 该族 6 条拆出，桶 **105 → 99** |
 > | `rendezvous.md` |    6 |             **10** | 该 SDK 表同时承载 `rendezvous`(6) 与 `msc4108_rendezvous`(4)                                                                                                                                                                                                                             |
 >
-> 订正后合计**恰为 1032**。此前"与 1032 不等"的解释（称 `worker-body.md` 与 `worker-admin.md` 共享
+> 订正后合计**恰为 1032**（当次口径；后端 ledger 于 2026-10-16 前向至 **1036**，见下方变更日志）。此前"与 1032 不等"的解释（称 `worker-body.md` 与 `worker-admin.md` 共享
 > `worker` 模块）**不成立**：两者分别对应 `worker_body`(11) 与 `worker`(15) 两个不同模块，不构成重复计。
 > 真实的折叠只有两处 —— `assembly → auth`、`msc4108_rendezvous → rendezvous`；净差 38（= 1070 − 1032）
 > 正是 `auth` 多算 42 与 `rendezvous` 少算 4 相抵的结果。
@@ -185,6 +185,7 @@
 
 | 日期       | 变更说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-10-16 | **交接单 Q1 落地同步**：`contract:sync` 跟随后端 `c7c9116db` —— 收进 `eb5a0e867` 的 4 条 per-user 邀请名单端点（`POST` / `DELETE` 于 `/_synapse/admin/v1/invite/blocklist/…` 与 `…/allowlist/{user_id}`），以及 `e48afec83` 的 `threads/search` 增 `from` 游标（此条为**欠账**：后端早已改，镜像未跟）。`admin` 页 **179 → 183**、后端全量 **1032 → 1036**、索引合计 **1036**、route-table **977 → 981**（48 张）、覆盖率分母前向 ⇒ **95.8%**。`quality:docs-counts` 15 规则一致                       |
 | 2026-10-15 | **`dehydrated_device` 收编**（后端把 MSC3814 族改为独立 sub-router ⇒ ledger 独立成桶）：新增 `dehydrated-device.md` 页 + 索引行 + 独立 route-table（6 条）；`assembly` 桶 105 → **99**；产物 route-table **47 → 48 张**、镜像文件 **49 → 50**、`__generated__` 目录 **48 → 49**（条目数相抵仍 977）。`quality:manager-codegen` ⇒ **Covered 48 / Waived 0 / Missing 0**。同步把 `codegen` 的**死条目剪枝判据**由全局 `globalLedgerKeys` 收紧为 `ownedByThisDir`（否则「跨桶迁移」会在两表留下重复路由） |
 | 2026-10-15 | **WAIVED 收编线收口**：9 个模块 / 260 条从「零 route-table 约束」转为受管辖（`delayed_events` 7、`dm` 5、`key-rotation` 9、`feature-flags` 4、`invite_blocklist` 4、`app_service` 39、`cas` 12、`reactions` 1、`admin` 179）；`federation`(55) 归入新增 `SERVER_ONLY` 类别。**WAIVED 10 → 0**、无约束路由 **315 → 0**、route-table **39 → 47 张**、条目 **729 → 977**；顺带修复 6 条真实 404 缺陷。本页 `auth`(146→104) / `rendezvous`(6→10) 端点数订正，合计恰为 1032                                 |
 | 2026-05-11 | 第二轮审计 52 项问题全部闭环；48 个合约 JSON commit hash 统一为 `6ba41b535c04`；codegen 重新生成 128 个文件；覆盖率从 ~65% 提升至 ~91%；🔴 待封装模块从 11 降至 0；`worker-admin` 与 `background-update` 管理面契约补齐到 100%                                                                                                                                                                                                                                                                         |

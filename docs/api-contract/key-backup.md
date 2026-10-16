@@ -1,7 +1,7 @@
 ---
 module: key_backup
 generated_from: docs/api-contract/generated/modules/key_backup.json
-generated_hash: sha256-ff52983962a8ab738520b317739d9518fe30b79dab7905beb93c0e0f013ab990
+generated_hash: sha256-b054b62424868b687d3bcd0df4b632c1624a642e9439952889d798de7ae5ebe9
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---

@@ -1,7 +1,7 @@
 ---
 module: voice
 generated_from: docs/api-contract/generated/modules/voice.json
-generated_hash: sha256-81d9ee6268e57d9e8b8148b05f819fcc634f676d09faedb2a4e40c17a4e5dc64
+generated_hash: sha256-3e7dc0a51ff641a1052595bd0ed981e31c1036c1f1a25cfc0ecbf612c329d2e2
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

@@ -1,7 +1,7 @@
 ---
 module: dehydrated_device
 generated_from: docs/api-contract/generated/modules/dehydrated_device.json
-generated_hash: sha256-f8b1cfe224168dfade59a9755d24340e72756d8353cf8f93093681d647f67fc0
+generated_hash: sha256-d26c63dd0f9471760473d2a3b62379e7266c754f6eb7362ec0bd63fc4e59e840
 ledger_schema: 4
 last_reviewed: 2026-10-15
 ---

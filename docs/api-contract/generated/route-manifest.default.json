@@ -1,14 +1,14 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "8869abea19e4881203ecf1d1b93c172ad6475ae2",
+  "synapse_rust_commit": "c7c9116db5c462b49f5dae5abbf5e606f3244d21",
   "state_profile": "default",
   "profile_flags": {
     "oidc_enabled": false,
     "worker_enabled": false,
     "saml_enabled": false
   },
-  "entry_count": 1013,
+  "entry_count": 1017,
   "entries": [
     {
       "method": "GET",
@@ -5525,6 +5525,7 @@
         "room_id"
       ],
       "query_params": [
+        "from",
         "limit",
         "q"
       ]
@@ -7140,6 +7141,24 @@
       "query_params": []
     },
     {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/invite/allowlist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/invite/allowlist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_synapse/admin/v1/invite/blocklist",
       "registered_by": "admin::server",
@@ -7154,6 +7173,24 @@
       "path": "/_synapse/admin/v1/invite/blocklist",
       "registered_by": "admin::server",
       "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/invite/blocklist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/invite/blocklist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
       "query_params": []
     },
     {

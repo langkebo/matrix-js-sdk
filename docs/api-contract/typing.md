@@ -1,7 +1,7 @@
 ---
 module: typing
 generated_from: docs/api-contract/generated/modules/typing.json
-generated_hash: sha256-6ac03f45090121550483beda978b8f33906b812af155f5ecd815c2e77db5b239
+generated_hash: sha256-1eb83fa7ac1b8a67d4029e5adc3f2bfd745e76b67a42a367dd89a1a5abd10622
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---

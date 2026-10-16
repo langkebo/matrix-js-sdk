@@ -4,7 +4,7 @@
  *
  * Module:        Admin 模块契约
  * Source:        docs/api-contract/generated/modules/admin.json
- * Entries:       179 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       183 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `admin` module (mirrored from the backend contract). */
@@ -188,6 +188,10 @@ export const ADMIN_ROUTES = [
     { method: "DELETE", path: "/_synapse/admin/v2/users/{user_id}" },
     { method: "GET", path: "/_synapse/admin/v2/users/{user_id}" },
     { method: "PUT", path: "/_synapse/admin/v2/users/{user_id}" },
+    { method: "DELETE", path: "/_synapse/admin/v1/invite/allowlist/{user_id}" },
+    { method: "POST", path: "/_synapse/admin/v1/invite/allowlist/{user_id}" },
+    { method: "DELETE", path: "/_synapse/admin/v1/invite/blocklist/{user_id}" },
+    { method: "POST", path: "/_synapse/admin/v1/invite/blocklist/{user_id}" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `ADMIN_ROUTES`. */

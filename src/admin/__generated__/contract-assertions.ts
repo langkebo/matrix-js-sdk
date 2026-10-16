@@ -6,10 +6,10 @@
 
 import { ADMIN_ROUTES } from "./route-table";
 
-export const ADMIN_ROUTES_ENTRY_COUNT = 179 as const;
+export const ADMIN_ROUTES_ENTRY_COUNT = 183 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _AdminEntryCountAssertion: 179 = ADMIN_ROUTES.length;
+const _AdminEntryCountAssertion: 183 = ADMIN_ROUTES.length;
 void _AdminEntryCountAssertion;
 
 export const ADMIN_ROUTES_STATUS_SCENARIOS = [
