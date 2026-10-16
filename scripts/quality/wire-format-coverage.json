@@ -1,15 +1,15 @@
 {
     "schemaVersion": 1,
     "buckets": {
-        "sdk-keys-unknown:body": 88,
-        "sdk-keys-unknown:query": 106,
-        "backend-body-unknown": 29,
-        "backend-query-unknown": 2,
-        "route-contract-unavailable": 337,
+        "backend-body-unknown": 139,
+        "sdk-keys-unknown:query": 154,
+        "sdk-keys-unknown:body": 105,
+        "backend-query-unknown": 9,
         "route-not-resolved": 26,
+        "route-contract-unavailable": 45,
         "route-prefix-unknown": 111,
         "route-ambiguous": 1,
-        "route-out-of-scope": 20
+        "route-out-of-scope": 7
     },
     "totalCalls": 954
 }
