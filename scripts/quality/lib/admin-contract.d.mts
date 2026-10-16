@@ -358,6 +358,24 @@ export function routeModuleKeyOf(relFile: string): string;
 export function sameRouteModuleFamily(a: string, b: string): boolean;
 
 /**
+ * 同名 handler 撞车时是否允许把**本定义**的契约挂到该路由上（fail-closed）。
+ *
+ * ⚠️ `definitionCount` 必须是**所有**被路由引用的同名定义数（不能先按"返回类型像响应"过滤，
+ * 否则 `impl IntoResponse` 的处理器被滤掉 ⇒ 计数恒 1 ⇒ 判据失效）。
+ */
+export function handlerAttributionAllowed(options: {
+    definitionCount: number;
+    owner: string | null;
+    definitionModuleKey: string;
+}): boolean;
+
+/**
+ * 「同一路由 key 拿到**契约不一致**的多份定义」的条目（应为空）。
+ * 签名不含 handler 名（名字不同但契约等价不算冲突）；门禁把非空计为失败。
+ */
+export function routeContractConflicts(byRoute: Map<string, unknown>): { count: number; samples: string[] };
+
+/**
  * 把 `.route("…")` 里的路径解析成绝对路径（三约束：方法相同 + `registered_by` 同族 + 段对齐后缀）。
  * fail-closed：判不出来就原样返回相对路径，`via` 说明走了哪条分支。
  */
@@ -366,6 +384,8 @@ export function resolveRoutePath(options: {
     method: string;
     moduleKey: string;
     generated: Array<{ method: string; path: string; registeredBy: string }>;
+    /** 同一模块族里声明过的**全部**相对路径：用于「更长的兄弟路径优先解释」消歧。 */
+    siblingPaths?: string[];
 }): { paths: string[]; via: "absolute" | "unique" | "multi" | "unresolved" | "refused"; candidates?: string[] };
 
 /**

@@ -794,6 +794,8 @@ async function main() {
     const backendAvailable = fs.existsSync(RUST_ROUTES_ROOT);
     const collected = backendAvailable ? await collectBackendContract() : null;
     const backend = collected?.entries ?? null;
+    /** 后端同一路由拿到**契约不一致**的多份定义 ⇒ 比对不可信（见 lib 的 `routeContractConflicts`）。 */
+    const contractConflicts = collected?.contractConflicts ?? { count: 0, samples: [] };
     /** 后端把同一处理器注册在两个「门禁归一化后同形」的路径下（如 `GET /pushers` 与 `GET /pushers/`）。 */
     const collapsedIdentical = collected?.collapsedIdentical ?? [];
     const conflicting = collected?.conflicts ?? [];
@@ -901,6 +903,7 @@ async function main() {
     const { violations, unresolved, comparable } = classifyWire({ calls: resolved, backend: effective });
     for (const b of routeBuckets) unresolved.push(b);
     const buckets = countBuckets(unresolved);
+    if (process.env.DUMP_UNRESOLVED) fs.writeFileSync(process.env.DUMP_UNRESOLVED, JSON.stringify(unresolved, null, 1));
     const waivers = loadWaivers();
     const unwaived = violations.filter((v) => !waiverCovers(waivers, v, today));
     const expired = waivers.filter((w) => w.expires && w.expires < today);
@@ -975,6 +978,8 @@ async function main() {
         mergedSameShapeRoutes: collected?.collapsedIdentical ?? [],
         /** 同形但契约不同 ⇒ 应当为空；非空说明后端有两条门禁无法区分的注册。 */
         conflictingSameShapeRoutes: collected?.conflicts ?? [],
+        /** 同一路由拿到契约不一致的多份 handler 定义 ⇒ 应当为空。 */
+        contractConflicts,
         sampleViolations: unwaived.slice(0, 25),
         sampleBuckets: unresolved
             .slice(0, 15)
@@ -1017,6 +1022,11 @@ async function main() {
                 `  ℹ️ 同形路由折叠 : ${collapsedIdentical.length} 组（契约逐字段相同 ⇒ 无害）：` +
                     collapsedIdentical.map((c) => c.routes.join(" | ")).join("；"),
             );
+        }
+        if (contractConflicts.count) {
+            console.log("---------------------------------------------------------------");
+            for (const c of contractConflicts.samples) console.log(`  ❌ 同一路由契约冲突 ${c}`);
+            console.log(`     共 ${contractConflicts.count} 条：同名 handler 跨模块撞车未被归属 ⇒ 比对会拿错契约。`);
         }
         if (conflicting.length) {
             console.log("---------------------------------------------------------------");
@@ -1065,7 +1075,9 @@ async function main() {
         unusedWaivers.length > 0 ||
         (!REFRESH && drift.length > 0) ||
         // 后端有两条门禁无法区分的同形路由 ⇒ 其中一条的契约被静默丢弃，此时"绿"不可信。
-        (!REFRESH && conflicting.length > 0);
+        (!REFRESH && conflicting.length > 0) ||
+        // 同一路由拿到契约不一致的多份定义 ⇒ 归属守卫失效，比对不可信。
+        (!REFRESH && contractConflicts.count > 0);
     if (!failed) {
         if (!EMIT_JSON)
             console.log(

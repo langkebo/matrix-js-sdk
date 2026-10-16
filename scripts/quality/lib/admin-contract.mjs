@@ -1799,6 +1799,12 @@ export function routeModuleKeyOf(relFile) {
  * **不做**子串匹配：`room` 与 `room_summary` 不同族（后者是不同模块，
  * 实测把两者混在一起会造出假连接）。
  *
+ * ⚠️ 试过放宽成「一侧的段序列是另一侧的**连续段**」（想给 `handlers/room/members.rs`
+ * ↔ `room` 这种"处理器住在 `handlers/` 下"的形态放行）：覆盖 96.0% → 97.3%，
+ * **但重新打开了 C-S ↔ admin 跨面挂载**（`room` 同样是 `admin::room::management` 的连续段）
+ * ⇒ 实测 3 条路由重新拿到契约不一致的两份定义、**多出 5 条假违规**。
+ * 正确性优先 ⇒ 保持边界判据，让那批路由落"未知"桶（可见），而非拿可能错的契约比对。
+ *
  * @param {string} a
  * @param {string} b
  * @returns {boolean}
@@ -1806,6 +1812,69 @@ export function routeModuleKeyOf(relFile) {
 export function sameRouteModuleFamily(a, b) {
     if (!a || !b) return false;
     return a === b || a.endsWith(`::${b}`) || b.endsWith(`::${a}`) || a.startsWith(`${b}::`) || b.startsWith(`${a}::`);
+}
+
+/**
+ * 同名 handler 撞车时，是否允许把**本定义**的契约挂到该路由上（fail-closed）。
+ *
+ * `handlerRoutes` 是按**裸函数名**索引的，同名跨模块在本仓很常见（`kick_user` 在 C-S 与
+ * admin 各一份、契约不同）。规则：
+ *   · 名字唯一 ⇒ 允许（这条路径上没有归属风险）；
+ *   · 名字有多份定义 ⇒ 只在该路由 owner（生成表的 `registered_by`）与**本定义模块同族**时允许。
+ *
+ * ⚠️ 调用方传的 `definitionCount` 必须是**所有**被路由引用的同名定义数，**不能**先按
+ * "返回类型像响应"过滤：`impl IntoResponse` 的处理器会被滤掉 ⇒ 计数恒 1 ⇒ 判据失效
+ * ⇒ 两份契约被挂到同一个 key 上（实测 `/register`、`/rendezvous`、`/cas/p3/serviceValidate`
+ * 共 8 个 key 成了"合并垃圾"）。
+ *
+ * @param {{ definitionCount: number, owner: string | null, definitionModuleKey: string }} options
+ * @returns {boolean} 允许挂上
+ */
+/**
+ * 「同一个路由 key 拿到**契约不一致**的多份定义」的条目（应为空）。
+ *
+ * 起因：`handlerRoutes` 按裸函数名索引 ⇒ 多条 `.route()` 声明会落到同一个 key 上
+ * （`byRoute.set` 合并 ⇒ `entry.merged`）。若各份的**门禁可见契约**不同，门禁比对时
+ * 只能"先见者胜出"，等于拿错的契约校验调用点。
+ *
+ * 签名**不含 handler 名**：名字不同但契约等价（实测 `download_media` /
+ * `download_media_v1` / `download_media_authenticated` 都是"无 body、无 query"）不算冲突，
+ * 否则会把无害合并报成问题。
+ *
+ * 调用方（门禁）应把非空视为**失败**：撞车归属守卫一旦失效（例如误把"返回类型像响应"
+ * 当成定义数阈值），这里立刻变红 —— 这就是该守卫的回归判据。
+ *
+ * @param {Map<string, object>} byRoute
+ * @returns {{ count: number, samples: string[], routes: string[] }}
+ */
+export function routeContractConflicts(byRoute) {
+    const sigOf = (e) =>
+        JSON.stringify({
+            hasJson: e.io?.hasJson ?? null,
+            jsonType: e.io?.jsonType ?? null,
+            hasQuery: e.io?.hasQuery ?? null,
+            queryType: e.io?.queryType ?? null,
+            bodyType: e.bodyStruct?.name ?? null,
+            bodyFields: e.bodyStruct?.fields ?? null,
+            bodyOptional: e.bodyStruct?.optional ?? null,
+            denyUnknown: e.bodyStruct?.denyUnknownFields ?? null,
+            opaque: e.bodyStruct?.opaque ?? null,
+        });
+    const samples = [];
+    const routes = [];
+    for (const [route, entry] of byRoute) {
+        const parts = [entry, ...(entry.merged ?? [])];
+        if (parts.length < 2) continue;
+        if (new Set(parts.map(sigOf)).size < 2) continue;
+        routes.push(route);
+        if (samples.length < 8) samples.push(`${route} ← ${parts.map((x) => `${x.handler}@${x.file}`).join(" | ")}`);
+    }
+    return { count: routes.length, samples, routes };
+}
+
+export function handlerAttributionAllowed({ definitionCount, owner, definitionModuleKey }) {
+    if (definitionCount <= 1) return true;
+    return Boolean(owner) && sameRouteModuleFamily(owner, definitionModuleKey);
 }
 
 /**
@@ -1836,7 +1905,7 @@ export function sameRouteModuleFamily(a, b) {
  * @param {{ routePath: string, method: string, moduleKey: string, generated: Array<{method: string, path: string, registeredBy: string}> }} options
  * @returns {{ paths: string[], via: "absolute"|"unique"|"multi"|"unresolved"|"refused", candidates?: string[] }}
  */
-export function resolveRoutePath({ routePath, method, moduleKey, generated }) {
+export function resolveRoutePath({ routePath, method, moduleKey, generated, siblingPaths = [] }) {
     const unchanged = { paths: [routePath], via: "unresolved" };
     if (!routePath || !method) return unchanged;
     if (!generated || generated.length === 0) return unchanged;
@@ -1864,7 +1933,35 @@ export function resolveRoutePath({ routePath, method, moduleKey, generated }) {
     const exactOwners = cands.filter((c) => c.registeredBy === moduleKey);
     if (exactOwners.length === 1) return { paths: [exactOwners[0].path], via: "unique" };
     const distinctOwners = [...new Set(cands.map((c) => c.registeredBy))];
-    if (distinctOwners.length === 1) return { paths: cands.map((c) => c.path), via: "multi" };
+    if (distinctOwners.length === 1) {
+        // 「同一个 router 被挂到多个前缀」才对 —— 那些前缀必须**深度相同**（v1/v3 兼容对的形态）。
+        // 深度不同 ⇒ 命中的多半是**相邻但不同的路由**：实测 `routes/cas.rs` 的
+        // `.route("/serviceValidate")` 后缀同时匹配 `/_synapse/cas/serviceValidate`（前缀深度 2）
+        // 与 `/_synapse/cas/p3/serviceValidate`（深度 3），而后者其实是**另一条** `.route()`
+        // （`/p3/serviceValidate` → `p3_service_validate`，query 类型都不同）。
+        // 全解会把两条不同路由的契约都挂上去（"合并垃圾"）⇒ 深度不一致就拒绝，不猜。
+    }
+    // 「更长的**兄弟**相对路径更能解释这个候选」⇒ 该候选不属于本条 `routePath`。
+    // 实测 `routes/cas.rs` 同时声明 `/serviceValidate` 与 `/p3/serviceValidate`：前者的候选里
+    // 混进了 `/_synapse/cas/p3/serviceValidate`，而它显然是**后者**的挂载结果
+    // （两条 query 类型都不同 ⇒ 全解会把两份契约挂到同一个 key 上）。
+    // ⚠️ **不能用"前缀深度相同"当判据**：`media` 路由正当挂在 `/_matrix/media/{r0,v1,v3}`
+    // （深度 3）与 `/_matrix/client/v1/media`（深度 4）下 —— 深度不同但都是真挂载。
+    const betterExplained = (abs) =>
+        siblingPaths.some(
+            (r2) => r2 !== routePath && r2.length > routePath.length && r2.endsWith(routePath) && abs.endsWith(r2),
+        );
+    const kept = cands.filter((c) => !betterExplained(c.path));
+    if (kept.length === 1) return { paths: [kept[0].path], via: "unique" };
+    const keptOwners = [...new Set(kept.map((c) => c.registeredBy))];
+    if (kept.length > 1 && keptOwners.length === 1) return { paths: kept.map((c) => c.path), via: "multi" };
+    if (kept.length !== cands.length) {
+        return {
+            ...unchanged,
+            via: "refused",
+            candidates: kept.map((c) => `${c.method} ${c.path} [${c.registeredBy}]`),
+        };
+    }
     return { ...unchanged, via: "refused", candidates: cands.map((c) => `${c.method} ${c.path} [${c.registeredBy}]`) };
 }
 
@@ -1954,6 +2051,23 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             rawFunctions.set(fn.name, list);
         }
     }
+    // 「同一模块族里声明过的全部相对路径」——`resolveRoutePath` 用它做
+    // "更长的兄弟路径优先解释"的消歧（见该函数注释）。
+    const declaredByModule = new Map();
+    for (const [f, src] of perFile) {
+        const k = routeModuleKeyOf(path.relative(routesDir, f));
+        const list = declaredByModule.get(k) ?? [];
+        for (const r of parseRouteTable(src)) list.push(r.path);
+        declaredByModule.set(k, list);
+    }
+    const siblingPathsOf = (moduleKey) => {
+        const out = new Set();
+        for (const [k, list] of declaredByModule) {
+            if (!sameRouteModuleFamily(k, moduleKey)) continue;
+            for (const x of list) out.add(x);
+        }
+        return [...out];
+    };
     const handlerRoutes = new Map();
     // 后端**生成表**（权威绝对路径面）：用来把相对 `.route()` 路径解析成绝对路径。
     // 缺席（老后端/部分检出）时 `resolveRoutePath` 原样返回相对路径 ⇒ 退化为旧行为。
@@ -1970,7 +2084,13 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
                 // 路由里可能写限定路径（`management::block_room`），而函数定义在
                 // 该文件的子模块里 ⇒ 按**最后一段**建索引（函数名）。
                 const fnName = r.handlers[i].split("::").pop();
-                const res = resolveRoutePath({ routePath: r.path, method: r.methods[i], moduleKey, generated });
+                const res = resolveRoutePath({
+                    routePath: r.path,
+                    method: r.methods[i],
+                    moduleKey,
+                    generated,
+                    siblingPaths: siblingPathsOf(moduleKey),
+                });
                 routeResolution[res.via] += 1;
                 if (res.via === "refused") {
                     refusedRoutes.push({
@@ -2038,14 +2158,18 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             // `handlerRoutes` 是按**裸函数名**建的，而本仓同名跨模块很常见
             // （`kick_user` 在 `handlers/room/members.rs` 用 `Json<Value>` 读 body 里的 `user_id`，
             //  而 `admin/room/management.rs` 用 `Json<BanRequest>` + 路径参数 —— 契约完全不同）。
-            // 判据（fail-closed）：名字在扫描根内有**多份**响应形状定义时，只在该路由的 owner
+            // 判据（fail-closed）：名字在扫描根内有**多份**定义时，只在该路由的 owner
             // （生成表的 `registered_by`）与**本定义的模块同族**时才挂；否则跳过落"未知"桶。
-            // （名字唯一时照旧挂 —— 那条路径上没有归属风险，不动它以免白丢覆盖。）
-            const shaped = (rawFunctions.get(fn.name) ?? []).filter(
-                (d) =>
-                    d.file.startsWith(routesDir + path.sep) && !isTestishPath(d.file) && SHAPE_RETURN.test(d.ret ?? ""),
+            //
+            // ⚠️ 阈值必须用**所有**被路由引用的同名定义，**不能**加"返回类型像响应"的过滤：
+            // 那样会让 `impl IntoResponse` 的处理器不被计入 —— 实测 `create_session`
+            // 在 `routes/msc4108_rendezvous.rs` 与 `routes/rendezvous.rs` 各一份，而只有一份是
+            // `Result<Json<…>>` ⇒ 阈值恒 1 ⇒ 守卫不触发 ⇒ **两份契约都被挂到同一个 key 上**
+            // （`/rendezvous`、`/register`、`/cas/p3/serviceValidate` 共 8 个 key 成了"合并垃圾"）。
+            // 名字唯一时照旧挂（那条路径上没有归属风险，不动它以免白丢覆盖）。
+            const defsOfName = (rawFunctions.get(fn.name) ?? []).filter(
+                (d) => d.file.startsWith(routesDir + path.sep) && !isTestishPath(d.file),
             );
-            const needsOwnerCheck = shaped.length > 1;
             handlerCount++;
             const responseShapes = resolver.resolveHandler({
                 name: fn.name,
@@ -2065,9 +2189,15 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             if (responseVariants) responseKnown++;
             if (bodyStruct) requestKnown++;
             for (const rawRoute of routes) {
-                if (needsOwnerCheck) {
-                    const owner = routeOwner.get(rawRoute);
-                    if (!owner || !sameRouteModuleFamily(owner, defModuleKey)) {
+                if (defsOfName.length > 1) {
+                    const owner = routeOwner.get(rawRoute) ?? null;
+                    if (
+                        !handlerAttributionAllowed({
+                            definitionCount: defsOfName.length,
+                            owner,
+                            definitionModuleKey: defModuleKey,
+                        })
+                    ) {
                         collisionRefused++;
                         if (collisionRefusedSamples.length < 12)
                             collisionRefusedSamples.push(
@@ -2116,6 +2246,11 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             }
         }
     }
+    // fail-closed：合并后**契约不一致**的条目一律**丢弃** —— 其调用点会落
+    // `route-contract-unavailable`（门禁可见），绝不"先见者胜出"拿可能错的契约去比对。
+    const conflicting = routeContractConflicts(byRoute);
+    for (const route of conflicting.routes) byRoute.delete(route);
+
     return {
         byRoute,
         files: files.map((f) => path.relative(routesDir, f)),
@@ -2143,6 +2278,12 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             /** 同名 handler 撞车且无法按 owner 归属 ⇒ 未挂契约（落"未知"桶，不猜） */
             collisionRefused,
             collisionRefusedSamples,
+            /** 合并后**契约不一致**的条目（应为 0；非 0 = 归属守卫失效，门禁计为失败） */
+            contractConflicts: {
+                count: routeContractConflicts(byRoute).count,
+                samples: conflicting.samples,
+                dropped: conflicting.count,
+            },
         },
     };
 }

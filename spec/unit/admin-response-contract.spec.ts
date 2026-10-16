@@ -53,10 +53,12 @@ import {
     parseRustImplMethods,
     parseRustStructFieldTypes,
     parseRustTraitImpls,
+    handlerAttributionAllowed,
     parseGeneratedRouteTable,
     parseSerdeStructs,
     paramListOf,
     resolveRoutePath,
+    routeContractConflicts,
     routeModuleKeyOf,
     sameRouteModuleFamily,
     splitGenericArgs,
@@ -1521,5 +1523,150 @@ describe("resolveRoutePath（三约束 + fail-closed）", () => {
             paths: ["/rooms/{room_id}/state"],
             via: "unresolved",
         });
+    });
+});
+
+/**
+ * `handlerAttributionAllowed` —— 同名 handler 撞车时的归属判据。
+ *
+ * 真实事故（2026-10-16 自审时发现，是我自己上一轮引入的洞）：阈值原写作"**返回类型像响应**
+ * 的同名定义数 > 1"，而 `impl IntoResponse` 的处理器会被滤掉 ⇒ 计数恒 1 ⇒ 守卫不触发
+ * ⇒ 两份契约被挂到同一个 key 上（`/register`、`/rendezvous`、`/cas/p3/serviceValidate`
+ * 共 8 个 key 成了"合并垃圾"）。故该判据必须由调用方传**全部**定义数。
+ */
+describe("handlerAttributionAllowed（撞车归属，fail-closed）", () => {
+    it("名字唯一 ⇒ 允许（无归属风险）", () => {
+        expect(handlerAttributionAllowed({ definitionCount: 1, owner: "room", definitionModuleKey: "room" })).toBe(
+            true,
+        );
+        // 即便 owner 缺失也允许（唯一名字不需要归属）
+        expect(handlerAttributionAllowed({ definitionCount: 1, owner: null, definitionModuleKey: "x" })).toBe(true);
+    });
+
+    it("名字撞车 + owner 与定义模块同族 ⇒ 允许", () => {
+        expect(
+            handlerAttributionAllowed({
+                definitionCount: 2,
+                owner: "admin::room",
+                definitionModuleKey: "admin::room::management",
+            }),
+        ).toBe(true);
+        // ⚠️ `room` 与 `handlers::room::members` **不同族**（边界判据）：试过放宽成"连续段包含"
+        // 给这批 C-S 处理器放行，覆盖 +1.3pp，但重新打开 C-S ↔ admin 跨面挂载
+        // （3 条路由拿到不一致契约、多出 5 条假违规）⇒ 正确性优先，保持不同族、落"未知"桶。
+        expect(
+            handlerAttributionAllowed({
+                definitionCount: 2,
+                owner: "room",
+                definitionModuleKey: "handlers::room::members",
+            }),
+        ).toBe(false);
+    });
+
+    it("名字撞车 + owner 缺失 / 不同族 ⇒ **拒绝**", () => {
+        expect(handlerAttributionAllowed({ definitionCount: 2, owner: null, definitionModuleKey: "room" })).toBe(false);
+        expect(
+            handlerAttributionAllowed({ definitionCount: 2, owner: "room_summary", definitionModuleKey: "room" }),
+        ).toBe(false);
+        // 跨面撞车：C-S 的定义**不得**挂到 admin 路由上（边界判据下 `admin::room` 与
+        // `handlers::room::members` 不同族）—— 这正是 `kick_user` 那类假违规的来源。
+        expect(
+            handlerAttributionAllowed({
+                definitionCount: 2,
+                owner: "admin::room",
+                definitionModuleKey: "handlers::room::members",
+            }),
+        ).toBe(false);
+        // 注：`room` 与 `admin::room` **是同族**（`::` 边界后缀）—— 正因为如此，
+        // `resolveRoutePath` 才需要"owner 与文件模块精确相等优先"那一层来收窄。
+    });
+});
+
+describe("routeContractConflicts（同一路由拿到不一致契约 ⇒ 应由门禁计为失败）", () => {
+    type Part = {
+        handler: string;
+        io: Record<string, unknown>;
+        bodyStruct: Record<string, unknown> | null;
+        file: string;
+    };
+    const mk = (
+        handler: string,
+        io: Record<string, unknown>,
+        bodyStruct: Record<string, unknown> | null = null,
+        file = "a.rs",
+    ): Part => ({ handler, io, bodyStruct, file });
+    const mkRoute = (first: Part, ...rest: Part[]) =>
+        new Map<string, unknown>([["GET /x", rest.length ? { ...first, merged: rest } : first]]);
+
+    it("只有一份定义 ⇒ 0", () => {
+        expect(routeContractConflicts(mkRoute(mk("h", { hasJson: true, jsonType: "T" }))).count).toBe(0);
+    });
+
+    it("多份但**契约等价**（只 handler 名不同）⇒ 0（不把无害合并报成问题）", () => {
+        const r = routeContractConflicts(
+            mkRoute(
+                mk("download_media", { hasJson: false, hasQuery: false }),
+                mk("download_media_v1", { hasJson: false, hasQuery: false }),
+            ),
+        );
+        expect(r.count).toBe(0);
+    });
+
+    it("多份且契约不同 ⇒ 计入冲突并给出样例", () => {
+        const r = routeContractConflicts(
+            mkRoute(
+                mk("service_validate", { hasJson: false, hasQuery: true, queryType: "ValidateQuery" }),
+                mk("p3_service_validate", { hasJson: false, hasQuery: true, queryType: "P3ServiceValidateQuery" }),
+            ),
+        );
+        expect(r.count).toBe(1);
+        expect(r.samples[0]).toContain("service_validate");
+    });
+});
+
+describe("resolveRoutePath：**更长的兄弟相对路径优先解释**（不猜）", () => {
+    const casGen = [
+        { method: "GET", path: "/_synapse/cas/serviceValidate", registeredBy: "cas" },
+        { method: "GET", path: "/_synapse/cas/p3/serviceValidate", registeredBy: "cas" },
+    ];
+    const mediaGen = [
+        { method: "GET", path: "/_matrix/media/r0/preview_url", registeredBy: "media" },
+        { method: "GET", path: "/_matrix/media/v1/preview_url", registeredBy: "media" },
+        { method: "GET", path: "/_matrix/media/v3/preview_url", registeredBy: "media" },
+        { method: "GET", path: "/_matrix/client/v1/media/preview_url", registeredBy: "media" },
+    ];
+
+    it("`/serviceValidate` 不应匹到兄弟 `/p3/serviceValidate` 的挂载结果", () => {
+        const r = resolveRoutePath({
+            routePath: "/serviceValidate",
+            method: "GET",
+            moduleKey: "cas",
+            generated: casGen,
+            siblingPaths: ["/serviceValidate", "/p3/serviceValidate"],
+        });
+        expect(r).toEqual({ paths: ["/_synapse/cas/serviceValidate"], via: "unique" });
+    });
+
+    it("兄弟路径同族但**不是它的后缀**时不受影响（media 4 个真挂载仍全解）", () => {
+        const r = resolveRoutePath({
+            routePath: "/preview_url",
+            method: "GET",
+            moduleKey: "media",
+            generated: mediaGen,
+            siblingPaths: ["/preview_url", "/download/{server_name}/{media_id}"],
+        });
+        expect(r.via).toBe("multi");
+        expect(r.paths).toHaveLength(4);
+    });
+
+    it("⚠️ 前缀**深度不同**是真挂载（`/_matrix/media/v3` 深度 3 vs `/_matrix/client/v1/media` 深度 4）—— 故不能用深度当判据", () => {
+        const r = resolveRoutePath({
+            routePath: "/preview_url",
+            method: "GET",
+            moduleKey: "media",
+            generated: mediaGen,
+            siblingPaths: [],
+        });
+        expect(r.via).toBe("multi");
     });
 });
