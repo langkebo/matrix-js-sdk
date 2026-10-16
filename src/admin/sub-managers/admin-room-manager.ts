@@ -617,7 +617,9 @@ export class AdminRoomManager extends AdminBaseManager<AdminRoomEvent, AdminRoom
      * `(after_ts, before_ts)` 区间内的事件，单次上限 `limit` 条。
      *
      * （注：原 `deleteRoomMessage` 已于 2026-10-15 删除——后端无 `DELETE …/rooms/{room_id}/messages/{event_id}`
-     * 端点，该方法恒 404；需要删消息请用本方法的级联撤回。）
+     * 端点，该方法恒 404。且**后端已确认不计划新增该端点**（上游 Synapse 亦无）：Matrix 语义下撤下消息内容的
+     * 正确做法是 **redact**（保留事件与因果链），故这不是待补的缺口。
+     * 需要按单条根事件连带撤回其后代请用 `cascadeRedactEvent`；按时间范围批量撤回用本方法。）
      * 本方法按时间范围批量撤回。
      *
      * 注意：该端点的前缀是 **C-S v3** 命名空间下的 `admin/` 子路径，
