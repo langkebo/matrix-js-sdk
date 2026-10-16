@@ -275,3 +275,111 @@ grep -n "struct ListQuery"   -A 8 synapse-rust/synapse-web/src/routes/handlers/t
 # 复现门禁新暴露结论（需后端在场）
 cd matrix-js-sdk && node scripts/quality/check-wire-format.mjs
 ```
+
+---
+
+## 七、后端答复与修复（synapse-rust，2026-10-16）
+
+> 后端点对 §六 的处置：**Q4 / Q5 已修**（后端代码 + 测试 + `.sqlx`），其余各项给出核实结论；
+> 需要产品决策的两项已明确标注。后端提交：`e48afec83`（Q4+Q5）、`64cd1155a`（MSC3814 双形态相关）。
+
+### 7.1 Q4（P1）blacklist 的 `reason` / `expires_in_days` —— ✅ 已修
+
+三层原本层层丢弃，现在都通了：
+
+| 层                                                     | 修复前                                                           | 修复后                                                                                                                                 |
+| ------------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| handler `routes/admin/federation.rs::add_to_blacklist` | 只有 `Path(server_name)`，**无 `Json` 提取器** ⇒ body 被静默丢弃 | 增 `Option<Json<AddBlacklistBody { reason, expires_in_days }>>`                                                                        |
+| service `AdminFederationService::add_to_blacklist`     | 硬编码 `reason: None, expires_in_days: None`                     | 两字段透传                                                                                                                             |
+| 校验                                                   | 无                                                               | 下层 `FederationBlacklistService::add_to_blacklist` 拒绝 `expires_in_days <= 0`（400）——否则会写出一条**创建即过期**、等于没拉黑的条目 |
+
+**为什么 body 必须可选（对 SDK 重要）**：`admin-federation-manager.ts` 只在有 `reason` 时才发 body
+（`reason ? { reason } : undefined`），而 `http-api/fetch.ts` 只在 body 是对象时才设
+`Content-Type: application/json` ⇒ 无 body 时后端看到的是"没有 Content-Type"，
+axum 0.8 的 `Option<Json<..>>` 恰好取到 `None`。**所以 SDK 不需要改成"总是发 body"**，两种都收。
+（既有集成测试「空 body POST → 200」正是这条的回归守卫，仍绿。）
+
+body 里若顺带带了 `server_name` / `block_type` 会被**忽略**而不是 400（路径才是权威）——
+这条是刻意与本文件其它 body 结构体不同（它们带 `deny_unknown_fields`），已在注释写明理由。
+
+**验证**：新增 `api_admin_federation_tests::test_admin_federation_blacklist_body_reason_and_expiry_are_persisted`
+—— 带 `{reason, expires_in_days: 30}` 写入 ⇒ `GET …/blacklist` **读回 reason** ✓、
+直查 DB 断言 `expires_at ≈ now+30d`（容差 1 分钟）✓、`expires_in_days: 0` ⇒ **400** ✓。
+
+### 7.2 Q5（P1）`rooms/{room_id}/threads/search` —— ✅ 已修（按本单**首选方案**）
+
+|       | 修复前                                      | 修复后                                                   |
+| ----- | ------------------------------------------- | -------------------------------------------------------- |
+| Query | `q`、`limit`                                | `q`、`limit`、**`from`**（此前被静默忽略）               |
+| 响应  | **裸数组** `Vec<ThreadSummary>`             | 信封 `ThreadListResponse { threads, next_batch, total }` |
+| 分页  | 无 —— 结果被 `limit` **静默截断**且无法续读 | **keyset 游标**（`next_batch`，对客户端不透明）          |
+
+分页语义（**与 SDK 现有代码一致 ⇒ SDK 侧无需改动**）：游标编的是**排序键三元组**
+`(search_relevance, sort_ts, thread_id)`（base64url），与本仓 `/search` 的 `PostgresSearchCursor` 同法。
+服务端取 `limit + 1` 判 `has_more`；`next_batch` **仅在有下一页时出现**；`limit` 夹在 `[1, 1000]`。
+**畸形游标返回 400**（不降级成"第一页"——那会让客户端静默拿到错的一页）。
+
+⚠️ **一处需要 SDK 知悉的口径**：`total` 沿用同族定义 = **本页条数**（不是全量命中数，`list_threads` 也是这么给的）。
+判断"还有没有下一页"请**只看 `next_batch`**。
+
+**验证**：新增两条 ——
+`thread_storage_tests_migrated::test_search_threads_cursor_pagination_is_complete_and_non_overlapping`
+（逐页翻完断言**不重不漏**）与
+`api_search_thread_tests::test_room_thread_search_returns_envelope_and_paginates_by_cursor`
+（信封形状 / `next_batch` 往返 / 相邻页不重复 / 畸形游标 400）；
+另有游标编解码单测（**f64 逐位往返**、畸形载荷全部拒绝）。
+
+### 7.3 Q1（P1）per-user invite 端点 —— ⏸ 需产品决策（后端**复核了 SDK 的判断，结论一致**）
+
+- 后端确实只有**全局无参数**形态（`routes/admin/server.rs:29-36`），
+- 且 `GET` **确实是分页**的（`InviteListParams { limit, offset }`，`limit` 默认 100）
+  ⇒ SDK 那条"读全量再整体写回会**丢掉未读到的名单项**"的判断**成立**，
+  所以"发起请求前抛错"而不是读—改—写，是**正确**的临时处置。
+
+后端**暂不新增** 4 条 `/{user_id}` 端点：它引入的是**新语义**（per-user 与全局名单如何叠加/优先），
+并牵动整条契约链（路由注解 + 3 张派生表 + 6 个 fixture + 2 份 ledger 快照 + `ROUTE_CONTRACT.md` +
+`route-table.json` + 文档计数）。**请产品先定 per-user 语义**，定了后端再实现（届时同步 SDK）。
+
+### 7.4 Q2（P2）`DELETE …/rooms/{room_id}/messages/{event_id}` —— 后端**不计划**，SDK 的临时处置可转正
+
+后端现状：`GET …/rooms/{room_id}/messages`（只读）；"撤下内容"的可用手段是
+`POST /_matrix/client/v3/admin/room/{room_id}/redact`（管理员 redact）与
+`POST /_synapse/admin/v1/rooms/{room_id}/cascade_redact`（本仓扩展，连带相关事件）。
+**没有**按 `event_id` 删除单条消息的管理端点，也**不计划**新增 —— 上游 Synapse 亦无此端点，
+而 redact 才是 Matrix 语义下"撤下消息内容"的正确做法（保留事件与因果链）。
+⇒ SDK 现在"删方法 + 注释指向 `cascadeRedactEvent`"**就是终态**，注释里的"临时"可以去掉。
+
+### 7.5 Q3（P3）`/reset` —— 它**确实存在过**，是 `reset_connection` 的**别名**，2026-10-08 被有意删除
+
+考古结论（`git log -S`，可复现）：
+
+```text
+7779685e8  2026-10-08  refactor(routes)!: 删除 4 条 admin 面同 handler 重复挂载（C6 反冗余批次）
+    -  .route("/_synapse/admin/v1/federation/destinations/{destination}/reset", post(reset_connection))
+```
+
+即 `/reset` 与 `/reset_connection` **挂的是同一个 handler**，属"同 handler 重复挂载"，
+在该批次里按"不留别名"策略整批删除。⇒ SDK 去掉试探回退、直打 `/reset_connection` 是**正确**的。
+
+`reset_connection` 语义（供文档口径核对）：`UPDATE federation_servers SET last_failed_connect_at = NULL,
+failure_count = 0 WHERE server_name = $1` —— 清掉失败计数与上次失败时间，让该目的地**立刻可重试**；
+目标不存在则 404。与上游 Synapse 的 `POST …/destinations/{server}/reset_connection` 语义面一致。
+
+### 7.6 §5.5（P3）`ledger_export_sdk/` 的 commit 占位 —— **零占位是有意设计；你想要的内容锚点后端已落地**
+
+两点澄清：
+
+1. **零占位是故意的，不该改**：SDK lane 的 fixture 是**逐字节稳定的 golden**
+   （`ledger_export.rs` 的注释与 `tests/unit/ledger_fingerprint_tests.rs` 都把它列为
+   "只允许零占位 / 固定哨兵"的字段）⇒ 把真实 commit 写进 fixture 会**破坏 golden**。
+   真实 commit 由 CLI 的 `--commit=SHA` 在 `contract-sync` 时注入
+   （`src/bin/synapse_ledger_export.rs -- commit=SHA`）。
+2. **内容侧锚点已存在**：`tests/unit/fixtures/ledger_export_sdk/manifest.json` 里有
+   `fingerprint_algorithm`（算法明文）+ 每个 profile 的 **`route_surface_sha256`**
+   （= `ledger_export.rs::route_surface_sha256`：sha256 over 每行
+   `method \t path \t registered_by \t path_params \t query_params \t auth`，按 `entries` 顺序拼接）。
+
+    ⚠️ **但 SDK 侧还没有用它**：`matrix-js-sdk/scripts` 下搜不到该键名，
+    `scripts/quality/check-cross-repo-pin.mjs` 目前只把 sidecar `manifest.json` 当作"可选、可后补"。
+    ⇒ **建议 SDK 把跨仓 pin 的主判据从「对端工作区 HEAD」换成「`route_surface_sha256` 比对」**：
+    这样"声明 ↔ 生成物"的绑定与工作区脏不脏、提交历史都无关（正是本单 §5.5 想要的锚点）。
