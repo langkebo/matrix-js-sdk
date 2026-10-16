@@ -669,8 +669,15 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
      * 对应 `POST /_matrix/client/v3/rooms/{roomId}/forget`。当 `deleteRoom` 为 `true` 时，
      * 会同时从本地 store 移除该房间并触发 {@link ClientEvent.DeleteRoom}。
      *
+     * ⚠️ **该端点不收请求体**：上游 Synapse 的 `RoomForgetRestServlet` 不解析 body，
+     * 本仓 `handlers/room/management/upgrade.rs::forget_room` 也只有 `Path(room_id)`
+     * （无 `Json` 提取器）—— 曾发过 `{ delete_room }` 的 body，被后端**静默忽略**
+     * （由 `quality:wire-format` 的 `body-sent-ignored` 判据发现）。`delete_room` 也不是
+     * 该 API 的字段，故不再发送；`deleteRoom` 参数只保留其**本地**语义。
+     * 需要在服务端真正删除房间请用管理端点 `DELETE /_synapse/admin/v1/rooms/{room_id}`。
+     *
      * @param roomId - 房间 ID
-     * @param deleteRoom - 是否同时从本地 store 删除该房间，默认 `true`
+     * @param deleteRoom - 是否同时从**本地 store** 删除该房间，默认 `true`（不影响请求报文）
      * @returns 空对象
      * @throws ValidationError `roomId` 格式非法时
      * @example
@@ -685,7 +692,6 @@ export class RoomManager extends BaseManager<RoomEvent, RoomManagerEventMap> {
             return await this.request<EmptyObject>({
                 method: Method.Post,
                 path: rp(`/rooms/${encodeURIComponent(roomId)}/forget`),
-                body: { delete_room: deleteRoom },
                 prefix: ClientPrefix.V3,
             });
         });
