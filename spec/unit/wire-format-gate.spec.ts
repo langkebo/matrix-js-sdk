@@ -25,6 +25,7 @@ import {
     extractObjectFormCalls,
     gateRouteKey,
     objectLiteralKeys,
+    wirePathKey,
     rebaseLedgerKeys,
     resolveKeySet,
     splitTopLevelObjectProps,
@@ -286,6 +287,43 @@ describe("gateRouteKey（后端 key 必须用本门禁的归一化）", () => {
 });
 
 /**
+ * `wirePathKey`：门禁的路径 key 必须**保留尾斜杠**。
+ *
+ * 真实事故（2026-10-16 实测）：共享的 `normalizePath` 会 `.replace(/\\/+$/, "")`，把
+ * `/rooms/{room_id}/state/{event_type}`（`get_state_event`）与
+ * `/rooms/{room_id}/state/{event_type}/`（`get_state_event_empty_key`，state key 为空）
+ * 折叠成**同一个 key** —— 两条契约不同的真路由被合并成一组"同形冲突"
+ * （实测 3 组：`state/{event_type}`、`state/{event_type}/`、`pushrules`）。
+ * 后端 key / manifest key / SDK 候选 key 三侧都必须走它，否则又回到"两侧拼写不同"。
+ */
+describe("wirePathKey（尾斜杠是语义，不是装饰）", () => {
+    it("`/a/` 与 `/a` 是**两个** key", () => {
+        expect(wirePathKey("/x/a/")).toBe("/x/a/");
+        expect(wirePathKey("/x/a")).toBe("/x/a");
+        expect(wirePathKey("/x/a/")).not.toBe(wirePathKey("/x/a"));
+    });
+
+    it("Matrix 的真实两形态都要保留", () => {
+        expect(wirePathKey("/_matrix/client/v3/rooms/{room_id}/state/{event_type}/")).toBe(
+            "/_matrix/client/v3/rooms/{X}/state/{X}/",
+        );
+        expect(wirePathKey("/_matrix/client/v3/rooms/{room_id}/state/{event_type}")).toBe(
+            "/_matrix/client/v3/rooms/{X}/state/{X}",
+        );
+    });
+
+    it("query 仍被吞掉；根路径不重复加斜杠", () => {
+        expect(wirePathKey("/x/a/?q=1")).toBe("/x/a/");
+        expect(wirePathKey("/")).toBe("/");
+    });
+
+    it("`gateRouteKey` 也走它（三侧同一 key 空间）", () => {
+        expect(gateRouteKey("GET /x/a/")).toBe("GET /x/a/");
+        expect(gateRouteKey("GET /x/a")).toBe("GET /x/a");
+    });
+});
+
+/**
  * `rebaseLedgerKeys`：与 `gateRouteKey` 是**同一个不变式的两半**，缺一不可。
  *
  * 真实事故（2026-10-16 实测，只修了一半时）：把 `backend` 的 key 重建了、却把**台账**那一侧
@@ -302,12 +340,12 @@ describe("rebaseLedgerKeys（台账 key 必须进同一个 key 空间）", () =>
         expect(m.get("GET /a/{X}/b")).toEqual({ handler: "h" });
     });
 
-    it("尾斜杠也要被同化 —— 只对齐大小写仍会漏", () => {
-        // 台账里真实存在 `GET /user/{x}/account_data/`（带尾斜杠），
-        // 而门禁的 normalizePath 会 `.replace(/\/+$/, "")` ⇒ 不对齐这一条就永远失配。
-        const ledgerKey = "GET /user/{x}/account_data/";
-        const backendKey = "GET /user/{X}/account_data";
-        expect(gateRouteKey(ledgerKey)).toBe(gateRouteKey(backendKey));
+    it("**尾斜杠不是拼写差异**：要保留，不能对齐掉", () => {
+        // 台账里真实存在 `GET /user/{x}/account_data/`（带尾斜杠）。早期版本以为这是
+        // "又一处拼写差异"并用 normalizePath 同化，结果把 `/state/{event_type}` 与
+        // `/state/{event_type}/` 两条**契约不同**的真路由折叠成一组冲突 ⇒ 改成保留（见 `wirePathKey`）。
+        expect(gateRouteKey("GET /user/{x}/account_data/")).toBe("GET /user/{X}/account_data/");
+        expect(gateRouteKey("GET /user/{x}/account_data")).toBe("GET /user/{X}/account_data");
     });
 
     it("幂等：`--refresh` 写出的门禁拼写再过一次不变", () => {
@@ -329,7 +367,8 @@ describe("rebaseLedgerKeys（台账 key 必须进同一个 key 空间）", () =>
         const pairs: Array<[string, string]> = [
             ["POST /_synapse/admin/v1/federation/blacklist/{x}", "POST /_synapse/admin/v1/federation/blacklist/{X}"],
             ["PUT /_matrix/vendor/v1/friends/{x}/status", "PUT /_matrix/vendor/v1/friends/{X}/status"],
-            ["GET /user/{x}/account_data/", "GET /user/{X}/account_data"],
+            ["GET /user/{x}/account_data/", "GET /user/{X}/account_data/"],
+            ["GET /state/{event_type}/", "GET /state/{X}/"],
         ];
         for (const [ledgerKey, backendKey] of pairs) {
             expect(rebaseLedgerKeys({ [ledgerKey]: 1 }).has(backendKey)).toBe(true);
@@ -350,23 +389,25 @@ describe("collapseContractEntries（同形折叠必须显式，冲突必须报�
     const c = { handler: "get_pushers", hasJson: false, hasQuery: false, body: null, query: null };
 
     it("契约相同的同形路由 ⇒ 折叠成一条，并登记为 collapsedIdentical", () => {
+        // 同形的来源是**占位符拼写**（早期版本里 `GET /pushers` 与 `GET /pushers/` 也算同形，
+        // 但那两条是契约可能不同的真路由 ⇒ 已改为保留尾斜杠，见 `wirePathKey`）。
         const r = collapseContractEntries([
-            ["GET /pushers", c],
-            ["GET /pushers/", c],
+            ["GET /a/{x}/b", c],
+            ["GET /a/{X}/b", c],
         ]);
-        expect([...r.entries.keys()]).toEqual(["GET /pushers"]);
-        expect(r.collapsedIdentical).toEqual([{ key: "GET /pushers", routes: ["GET /pushers", "GET /pushers/"] }]);
+        expect([...r.entries.keys()]).toEqual(["GET /a/{X}/b"]);
+        expect(r.collapsedIdentical).toEqual([{ key: "GET /a/{X}/b", routes: ["GET /a/{x}/b", "GET /a/{X}/b"] }]);
         expect(r.conflicts).toEqual([]);
     });
 
     it("契约不同的同形路由 ⇒ 进 conflicts，且**先见者**留在 entries（不静默换掉）", () => {
         const other = { ...c, handler: "other_handler" };
         const r = collapseContractEntries([
-            ["GET /pushers", c],
-            ["GET /pushers/", other],
+            ["GET /a/{x}/b", c],
+            ["GET /a/{room_id}/b", other],
         ]);
-        expect(r.conflicts).toEqual([{ key: "GET /pushers", routes: ["GET /pushers", "GET /pushers/"] }]);
-        expect(r.entries.get("GET /pushers")).toEqual(c);
+        expect(r.conflicts).toEqual([{ key: "GET /a/{X}/b", routes: ["GET /a/{x}/b", "GET /a/{room_id}/b"] }]);
+        expect(r.entries.get("GET /a/{X}/b")).toEqual(c);
     });
 
     it("占位符拼写不同也算同形（`{x}` vs `{X}` vs `{room_id}`）", () => {

@@ -28,6 +28,15 @@ export function gateRouteKey(route: string): string;
  * 否则漂移比较把每条动态段路由误报成 `backend-route-new`，且 CI 半场（`effective = 台账`）
  * 的动态段调用点静默失去可比性。幂等（`--refresh` 写出的已是门禁拼写）。
  */
+/**
+ * 门禁的路径归一化 = 共享 `normalizePath` + **保留尾斜杠**。
+ *
+ * `/a/` 与 `/a` 在 Matrix 里是两条不同路由（`state/{event_type}/` 表示 state key 为空，
+ * 由另一个处理器服务、契约不同），共享 `normalizePath` 去尾斜杠会把它们折叠。
+ * 后端 key / manifest key / SDK 候选 key **三侧都要走它**。
+ */
+export function wirePathKey(rawPath: string): string;
+
 export function rebaseLedgerKeys(entries: Record<string, unknown> | undefined | null): Map<string, unknown>;
 
 /**

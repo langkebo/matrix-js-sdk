@@ -593,7 +593,7 @@ async function collectSdkCalls() {
                 c.form === "object"
                     ? (resolvePrefixExpression(c.prefixExpr)?.candidates ?? [DEFAULT_PREFIX])
                     : (c.prefixCandidates ?? [DEFAULT_PREFIX]);
-            const fullPaths = [...new Set(candidates.map((p) => normalizePath(p + inner)))];
+            const fullPaths = [...new Set(candidates.map((p) => wirePathKey(p + inner)))];
             const callIndex = c.callIndex ?? source.indexOf(String(c.pathRaw));
             calls.push({
                 file: rel,
@@ -611,6 +611,26 @@ async function collectSdkCalls() {
 }
 
 /**
+ * 门禁的路径归一化 = 共享 `normalizePath` + **保留尾斜杠**。
+ *
+ * ⚠️ 必须保留尾斜杠：Matrix 里 `/rooms/{room_id}/state/{event_type}` 与
+ * `/rooms/{room_id}/state/{event_type}/` 是**两条不同的路由** —— 后者表示 state key 为空，
+ * 由另一个处理器服务（`get_state_event` vs `get_state_event_empty_key`），**契约不同**。
+ * 共享的 `normalizePath`（`check-url-constructors.mjs`）会 `.replace(/\/+$/, "")`，
+ * 把两者折叠成一个 key ⇒ 合并成一个"契约冲突"（实测 3 组：`state/{event_type}`、
+ * `state/{event_type}/`、`pushrules`）。这里只在**本门禁**补回尾斜杠，
+ * **不动共享函数**（`path-contract` / `url-check` 依赖它去尾斜杠的宽松语义）。
+ *
+ * 后端 key、manifest key、SDK 候选 key **三侧都要过它**，否则又会出现"两侧拼写不同"的老问题。
+ */
+export function wirePathKey(rawPath) {
+    const raw = String(rawPath ?? "");
+    const norm = normalizePath(raw);
+    // `normalizePath` 会吞 query（`.split("?")[0]`）并去尾斜杠；尾斜杠要从**去 query 后**的原串判
+    return /\/+$/.test(raw.split("?")[0]) && norm !== "/" ? `${norm}/` : norm;
+}
+
+/**
  * 用**本门禁的** `normalizePath` 重建路由 key。
  *
  * ⚠️ 必须做这一步，因为仓里有**两个 `normalizePath` 实现**，差的不只是占位符大小写：
@@ -618,7 +638,7 @@ async function collectSdkCalls() {
  * | | `lib/admin-contract.mjs`（`normalizeRoute` 用它建 `byRoute`） | `check-url-constructors.mjs`（本门禁的候选 key / manifest key） |
  * |---|---|---|
  * | 占位符 | `{x}`（小写） | `{X}`（大写） |
- * | 尾斜杠 | **保留** | **去掉**（`.replace(/\/+$/,"")`） |
+ * | 尾斜杠 | 保留 | 去掉（`.replace(/\/+$/,"")`）—— 本门禁用 `wirePathKey` **补回**（见下） |
  * | query | 保留 | 吞掉（`.split("?")[0]`） |
  * | 其它形态 | 只认 `${…}` / `{…}` | 还认 `$var` / `:param` |
  *
@@ -631,7 +651,7 @@ async function collectSdkCalls() {
  */
 export function gateRouteKey(route) {
     const m = /^([A-Z]+)\s+(.*)$/.exec(String(route));
-    return m ? `${m[1]} ${normalizePath(m[2])}` : normalizePath(String(route));
+    return m ? `${m[1]} ${wirePathKey(m[2])}` : wirePathKey(String(route));
 }
 
 /**
@@ -647,8 +667,8 @@ export function gateRouteKey(route) {
  *
  * 幂等：`--refresh` 写出的 key 已是门禁拼写，再过一次不变。
  *
- * 唯一会"丢条目"的情形是后端同时注册了 `/a` 与 `/a/`（门禁的 normalizePath 会把两者同化）
- * —— 那样丢掉的也是**不可区分**的一对，且现状下不存在这种注册。
+ * 注：尾斜杠**不再**被同化（`wirePathKey` 三侧统一保留），故台账里 `/a` 与 `/a/` 会各留一条；
+ * 只有**占位符拼写**（`{x}` vs `{X}`）需要重建。
  */
 export function rebaseLedgerKeys(entries) {
     return new Map(Object.entries(entries ?? {}).map(([route, entry]) => [gateRouteKey(route), entry]));
@@ -792,7 +812,7 @@ async function main() {
     const manifestPath = path.join(SDK_ROOT, "docs", "api-contract", "generated", "route-manifest.all.json");
     if (fs.existsSync(manifestPath)) {
         for (const e of readJsonIfExists(manifestPath, { entries: [] }).entries ?? []) {
-            manifestRoutes.add(`${e.method} ${normalizePath(e.path)}`);
+            manifestRoutes.add(`${e.method} ${wirePathKey(e.path)}`);
         }
     }
 
