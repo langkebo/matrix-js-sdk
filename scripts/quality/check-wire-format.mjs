@@ -903,7 +903,6 @@ async function main() {
     const { violations, unresolved, comparable } = classifyWire({ calls: resolved, backend: effective });
     for (const b of routeBuckets) unresolved.push(b);
     const buckets = countBuckets(unresolved);
-    if (process.env.DUMP_UNRESOLVED) fs.writeFileSync(process.env.DUMP_UNRESOLVED, JSON.stringify(unresolved, null, 1));
     const waivers = loadWaivers();
     const unwaived = violations.filter((v) => !waiverCovers(waivers, v, today));
     const expired = waivers.filter((w) => w.expires && w.expires < today);

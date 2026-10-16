@@ -1,8 +1,8 @@
 {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-16T03:17:55.849Z",
+    "generatedAt": "2026-10-16T04:51:36.007Z",
     "generatedBy": "node scripts/quality/check-wire-format.mjs --refresh",
-    "backendCommit": "e48afec8395369faedb62c508ea10b4a70ec9b1d",
+    "backendCommit": "eb5a0e867f495e146142bf19a3131bf10fdb114d",
     "notice": "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。 key 的拼写是**门禁**归一化（`METHOD + normalizePath(路径)`：占位符 `{X}`、去尾斜杠），读取侧再过一次 `rebaseLedgerKeys` ⇒ 幂等；手工改成 `{x}` 或加回尾斜杠也仍能对上。",
     "entries": {
         "DELETE /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device": {
@@ -810,6 +810,13 @@
             "body": null,
             "query": null
         },
+        "GET /_matrix/client/v1/profile/{X}": {
+            "handler": "get_profile",
+            "hasJson": false,
+            "hasQuery": false,
+            "body": null,
+            "query": null
+        },
         "GET /_matrix/client/v1/profile/{X}/avatar_url": {
             "handler": "get_avatar_url",
             "hasJson": false,
@@ -1419,6 +1426,13 @@
         },
         "GET /_matrix/client/v3/presence/list/{X}": {
             "handler": "get_presence_list",
+            "hasJson": false,
+            "hasQuery": false,
+            "body": null,
+            "query": null
+        },
+        "GET /_matrix/client/v3/profile/{X}": {
+            "handler": "get_profile",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
@@ -4418,12 +4432,12 @@
             }
         },
         "GET /_synapse/cas/p3/serviceValidate": {
-            "handler": "service_validate",
+            "handler": "p3_service_validate",
             "hasJson": false,
             "hasQuery": true,
             "body": null,
             "query": {
-                "type": "ValidateQuery",
+                "type": "P3ServiceValidateQuery",
                 "declared": ["pgt_url", "renew", "service", "ticket"],
                 "required": ["service", "ticket"],
                 "denyUnknown": false,
@@ -4635,13 +4649,6 @@
         },
         "GET /my_rooms": {
             "handler": "get_my_rooms",
-            "hasJson": false,
-            "hasQuery": false,
-            "body": null,
-            "query": null
-        },
-        "GET /profile/{X}": {
-            "handler": "get_profile",
             "hasJson": false,
             "hasQuery": false,
             "body": null,
@@ -4962,9 +4969,15 @@
         },
         "POST /_matrix/client/v1/rendezvous": {
             "handler": "create_session",
-            "hasJson": false,
+            "hasJson": true,
             "hasQuery": false,
-            "body": null,
+            "body": {
+                "type": "Value（手工 body.get）",
+                "declared": ["expires_in_ms", "intent", "transport", "transport_data"],
+                "required": ["intent", "transport"],
+                "denyUnknown": false,
+                "opaque": false
+            },
             "query": null
         },
         "POST /_matrix/client/v1/rendezvous/{X}/messages": {
@@ -5515,25 +5528,8 @@
         "POST /_matrix/client/v3/register": {
             "handler": "register",
             "hasJson": true,
-            "hasQuery": false,
-            "body": {
-                "type": "RegisterRequest",
-                "declared": [
-                    "admin",
-                    "approval_token",
-                    "captcha_code",
-                    "captcha_id",
-                    "displayname",
-                    "mac",
-                    "nonce",
-                    "password",
-                    "user_type",
-                    "username"
-                ],
-                "required": ["admin", "mac", "nonce", "password", "username"],
-                "denyUnknown": false,
-                "opaque": false
-            },
+            "hasQuery": true,
+            "body": null,
             "query": null
         },
         "POST /_matrix/client/v3/register/captcha/send": {
@@ -8123,9 +8119,15 @@
         },
         "PUT /_matrix/client/v1/rendezvous/{X}": {
             "handler": "update_session",
-            "hasJson": false,
+            "hasJson": true,
             "hasQuery": false,
-            "body": null,
+            "body": {
+                "type": "Value（手工 body.get）",
+                "declared": ["status"],
+                "required": ["status"],
+                "denyUnknown": false,
+                "opaque": false
+            },
             "query": null
         },
         "PUT /_matrix/client/v1/room_keys/{X}/keys": {
