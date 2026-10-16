@@ -1053,7 +1053,7 @@ describe("RoomManager", () => {
                 "/rooms/create_private",
                 undefined,
                 { name: "私聊" },
-                { prefix: "/_matrix/client/v3" },
+                { prefix: "/_matrix/vendor/v1" },
             );
         });
     });
