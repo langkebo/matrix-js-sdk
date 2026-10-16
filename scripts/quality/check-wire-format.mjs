@@ -618,12 +618,18 @@ async function collectSdkCalls() {
 /**
  * 用**本门禁的** `normalizePath` 重建路由 key。
  *
- * ⚠️ 必须做这一步，因为仓里有**两个 `normalizePath` 实现，占位符拼写不同**：
- *   · `lib/admin-contract.mjs` 自己的那个（`normalizeRoute` 用它建 `byRoute`）产出 `{x}`（小写）；
- *   · 本文件从 `verify-path-contract.mjs` 转出的那个（候选 key 与 manifest key 都用它）产出 `{X}`（大写）。
- * 不重建就直接比对 ⇒ **任何含动态段的路由，两侧 key 永远不相等**，于是它们被静默归进
- * `route-contract-unavailable`（实测 263 个调用点；`comparable` 因此长期只有 24）。
- * 那不是"覆盖率上限"，是**两个归一化函数拼写不一致造成的假上限**。
+ * ⚠️ 必须做这一步，因为仓里有**两个 `normalizePath` 实现**，差的不只是占位符大小写：
+ *
+ * | | `lib/admin-contract.mjs`（`normalizeRoute` 用它建 `byRoute`） | `check-url-constructors.mjs`（本门禁的候选 key / manifest key） |
+ * |---|---|---|
+ * | 占位符 | `{x}`（小写） | `{X}`（大写） |
+ * | 尾斜杠 | **保留** | **去掉**（`.replace(/\/+$/,"")`） |
+ * | query | 保留 | 吞掉（`.split("?")[0]`） |
+ * | 其它形态 | 只认 `${…}` / `{…}` | 还认 `$var` / `:param` |
+ *
+ * 不重建就直接比对 ⇒ 含动态段的路由两侧 key 永远不相等，实测 263 个调用点被静默归进
+ * `route-contract-unavailable`（`comparable` 因此长期只有 24）—— 那不是"覆盖率上限"，
+ * 是拼写不一致造成的**假上限**。
  *
  * 只重建 key、不改共享库：`check-admin-response-contract` 也用 `collectRustAdminContract`，
  * 它的两侧 key 都出自同一个库（拼写自洽），改库会波及它。
@@ -631,6 +637,26 @@ async function collectSdkCalls() {
 export function gateRouteKey(route) {
     const m = /^([A-Z]+)\s+(.*)$/.exec(String(route));
     return m ? `${m[1]} ${normalizePath(m[2])}` : normalizePath(String(route));
+}
+
+/**
+ * 台账 `entries`（**后端收集器的拼写**）→ **门禁 key 空间**。
+ *
+ * ⚠️ 与 `gateRouteKey` 是**同一个不变式的两半**，缺一不可：台账是 `--refresh` 用 lib 拼写写的
+ * （真实存在 `GET /user/{x}/account_data/` 这种"小写占位符 + 尾斜杠"的 key），而候选 key 全是
+ * 门禁拼写。只重建后端一侧而不重建台账一侧，会同时踩两个坑：
+ *   1. **漂移假报告**：`frozen.get(gateKey)` 恒不命中 ⇒ 每条动态段路由都被报成
+ *      `backend-route-new`（实测 406 条，而实际内容与台账**逐条一致**）；
+ *   2. **CI 半场静默变弱**：无后端时 `effective = frozen`，动态段调用点两侧永远对不上 ⇒
+ *      那些调用点悄悄失去可比性（"分母变小"的翻版：门禁照旧绿，只是查得更少）。
+ *
+ * 幂等：`--refresh` 写出的 key 已是门禁拼写，再过一次不变。
+ *
+ * 唯一会"丢条目"的情形是后端同时注册了 `/a` 与 `/a/`（门禁的 normalizePath 会把两者同化）
+ * —— 那样丢掉的也是**不可区分**的一对，且现状下不存在这种注册。
+ */
+export function rebaseLedgerKeys(entries) {
+    return new Map(Object.entries(entries ?? {}).map(([route, entry]) => [gateRouteKey(route), entry]));
 }
 
 /** 抽后端每个路由的请求契约（body + query）。 */
@@ -713,7 +739,10 @@ async function main() {
     const backend = backendAvailable ? await collectBackendContract() : null;
 
     const ledger = readJsonIfExists(LEDGER_PATH, { entries: {} });
-    const frozen = new Map(Object.entries(ledger.entries ?? {}));
+    // 必须重建 key：台账是后端收集器的拼写（`{x}` + 保留尾斜杠），候选 key 是门禁拼写
+    // （`{X}` + 去尾斜杠）。不重建 ⇒ 漂移假报告 406 条 + CI 半场动态段调用点静默失去可比性。
+    // 详见 `rebaseLedgerKeys` 的注释。
+    const frozen = rebaseLedgerKeys(ledger.entries);
     const effective = backend ?? frozen;
     const hasRoute = (key) => effective.has(key);
     // 镜像 manifest 只作**路由存在性**的第二判据：把"路由压根不存在"（真问题）与
@@ -845,7 +874,10 @@ async function main() {
             generatedAt: new Date().toISOString(),
             generatedBy: "node scripts/quality/check-wire-format.mjs --refresh",
             backendCommit: backendCommit(),
-            notice: "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。",
+            notice:
+                "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。" +
+                " key 的拼写是**门禁**归一化（`METHOD + normalizePath(路径)`：占位符 `{X}`、去尾斜杠），" +
+                "读取侧再过一次 `rebaseLedgerKeys` ⇒ 幂等；手工改成 `{x}` 或加回尾斜杠也仍能对上。",
             entries,
         });
         writeJsonFormatted(COVERAGE_PATH, { schemaVersion: 1, buckets, totalCalls: sdk.calls.length });

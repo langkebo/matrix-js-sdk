@@ -17,11 +17,18 @@ export function stripCommentsInChunk(text: string): string;
 /**
  * 用**本门禁的** `normalizePath` 重建后端路由 key。
  *
- * 存在的唯一理由：仓里有两个 `normalizePath` 实现且占位符拼写不同
- * （`lib/admin-contract.mjs` 的产出 `{x}`，本文件转出的那个产出 `{X}`）。
- * 不做这一步，含动态段的路由两侧 key 永远不相等，会静默落进 `route-contract-unavailable`。
+ * 存在的唯一理由：仓里有两个 `normalizePath` 实现，占位符大小写（`{x}` vs `{X}`）
+ * 与尾斜杠处理（保留 vs 去掉）都不同。不做这一步，含动态段的路由两侧 key 永远不相等，
+ * 会静默落进 `route-contract-unavailable`。
  */
 export function gateRouteKey(route: string): string;
+
+/**
+ * 台账 `entries`（后端收集器拼写）→ 门禁 key 空间。读取侧必经此步：
+ * 否则漂移比较把每条动态段路由误报成 `backend-route-new`，且 CI 半场（`effective = 台账`）
+ * 的动态段调用点静默失去可比性。幂等（`--refresh` 写出的已是门禁拼写）。
+ */
+export function rebaseLedgerKeys(entries: Record<string, unknown> | undefined | null): Map<string, unknown>;
 
 /**
  * 从对象字面量取顶层键集。fail-closed：`keys === null` 表示判不出来（`reason` 给出原因），

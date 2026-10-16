@@ -24,6 +24,7 @@ import {
     extractObjectFormCalls,
     gateRouteKey,
     objectLiteralKeys,
+    rebaseLedgerKeys,
     resolveKeySet,
     splitTopLevelObjectProps,
     stripCommentsInChunk,
@@ -244,13 +245,18 @@ describe("stripCommentsInChunk / 注释不得改变判定", () => {
 /**
  * `gateRouteKey`：后端路由 key 必须用**本门禁的** `normalizePath` 重建。
  *
- * 真实事故（2026-10-16 实测）：仓里有两个 `normalizePath` —— `lib/admin-contract.mjs` 自己的
- * 那个（`normalizeRoute` 用它建 `byRoute`）产出 `{x}`（小写），而本文件从
- * `verify-path-contract.mjs` 转出的那个（候选 key 与 manifest key 都用它）产出 `{X}`（大写）。
+ * 真实事故（2026-10-16 实测）：仓里有两个 `normalizePath`，差的**不只是大小写** ——
+ * `lib/admin-contract.mjs` 自己的那个（`normalizeRoute` 用它建 `byRoute`）产出 `{x}` 且**保留尾斜杠**；
+ * 本文件从 `verify-path-contract.mjs` 转出的那个（候选 key 与 manifest key 都用它）产出 `{X}`、
+ * **去掉尾斜杠**、还会吞 query 与认 `$var`/`:param`。
+ *
  * 不重建就直接 `effective.has(key)` ⇒ **任何含动态段的路由两侧 key 永远不相等**，
  * 于是被静默归进 `route-contract-unavailable`：实测 599 个未解析调用点里有 **263** 个
  * 只要把 `{X}` 换成 `{x}` 就能命中 ⇒ 那不是"覆盖率上限"，是拼写不一致造成的**假上限**。
  * （`comparable` 长期只有 24，正是这个原因。）
+ *
+ * ⚠️ 只修后端一侧是不够的：台账（`frozen`）那一侧必须一起重建，否则漂移比较与 CI 半场都会失真
+ * —— 见下面 `rebaseLedgerKeys` 的用例。
  */
 describe("gateRouteKey（后端 key 必须用本门禁的归一化）", () => {
     it("占位符统一成 `{X}`（大写）—— 与候选 key / manifest key 的拼写一致", () => {
@@ -274,6 +280,58 @@ describe("gateRouteKey（后端 key 必须用本门禁的归一化）", () => {
     it("key 里不得残留小写 `{x}`（残留 = 比较必然失配）", () => {
         for (const k of ["GET /a/{x}/b", "GET /a/{user_id}/b", "GET /a/{x}/b/{y}"]) {
             expect(gateRouteKey(k)).not.toContain("{x}");
+        }
+    });
+});
+
+/**
+ * `rebaseLedgerKeys`：与 `gateRouteKey` 是**同一个不变式的两半**，缺一不可。
+ *
+ * 真实事故（2026-10-16 实测，只修了一半时）：把 `backend` 的 key 重建了、却把**台账**那一侧
+ * 留在原拼写 ⇒ 两个后果同时发生，且都不报错：
+ *   1. **漂移假报告**：`frozen.get(gateKey)` 恒不命中 ⇒ 每条动态段路由都被报成
+ *      `backend-route-new`（实测 406 条，而实时收集与台账其实**逐条一致**、差集为 0）；
+ *   2. **CI 半场静默变弱**：无后端时 `effective = frozen`，动态段调用点两侧永远对不上 ⇒
+ *      可比对条目从 50 掉回 24、违规 2 → 0（**门禁照旧绿，只是查得更少**）。
+ */
+describe("rebaseLedgerKeys（台账 key 必须进同一个 key 空间）", () => {
+    it("`{x}`（台账拼写）→ `{X}`（门禁拼写）", () => {
+        const m = rebaseLedgerKeys({ "GET /a/{x}/b": { handler: "h" } });
+        expect([...m.keys()]).toEqual(["GET /a/{X}/b"]);
+        expect(m.get("GET /a/{X}/b")).toEqual({ handler: "h" });
+    });
+
+    it("尾斜杠也要被同化 —— 只对齐大小写仍会漏", () => {
+        // 台账里真实存在 `GET /user/{x}/account_data/`（带尾斜杠），
+        // 而门禁的 normalizePath 会 `.replace(/\/+$/, "")` ⇒ 不对齐这一条就永远失配。
+        const ledgerKey = "GET /user/{x}/account_data/";
+        const backendKey = "GET /user/{X}/account_data";
+        expect(gateRouteKey(ledgerKey)).toBe(gateRouteKey(backendKey));
+    });
+
+    it("幂等：`--refresh` 写出的门禁拼写再过一次不变", () => {
+        const once = rebaseLedgerKeys({ "GET /user/{x}/account_data/": 1 });
+        const twice = rebaseLedgerKeys(Object.fromEntries(once));
+        expect([...twice.keys()]).toEqual([...once.keys()]);
+    });
+
+    it("静态 key 与空输入都安全", () => {
+        expect([...rebaseLedgerKeys({ "POST /_matrix/client/v3/login": 1 }).keys()]).toEqual([
+            "POST /_matrix/client/v3/login",
+        ]);
+        expect([...rebaseLedgerKeys(undefined).keys()]).toEqual([]);
+        expect([...rebaseLedgerKeys({}).keys()]).toEqual([]);
+    });
+
+    it("**不变式**：台账 key 重建后必须落在 backend key 的同一空间（真实的一对）", () => {
+        // 这两条是同一路由的两种写法：左=台账（lib 拼写），右=后端收集器重建后的 key。
+        const pairs: Array<[string, string]> = [
+            ["POST /_synapse/admin/v1/federation/blacklist/{x}", "POST /_synapse/admin/v1/federation/blacklist/{X}"],
+            ["PUT /_matrix/vendor/v1/friends/{x}/status", "PUT /_matrix/vendor/v1/friends/{X}/status"],
+            ["GET /user/{x}/account_data/", "GET /user/{X}/account_data"],
+        ];
+        for (const [ledgerKey, backendKey] of pairs) {
+            expect(rebaseLedgerKeys({ [ledgerKey]: 1 }).has(backendKey)).toBe(true);
         }
     });
 });
