@@ -356,17 +356,41 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[2][1]).toBe("/jitsi/config");
         });
 
-        it("addToInviteBlocklist 抛错且不发请求（后端无 per-user 端点）", async () => {
-            await expect(manager.addToInviteBlocklist("@spam:example.org")).rejects.toThrow(
-                /后端无 per-user 邀请黑名单端点/,
-            );
-            expect(req.mock.calls).toHaveLength(0);
+        it("addToInviteBlocklist POSTs the per-user route and sends reason", async () => {
+            await manager.addToInviteBlocklist("@spam:example.org", "批量注册");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/invite/blocklist/${encodeURIComponent("@spam:example.org")}`);
+            expect(req.mock.calls[0][3]).toEqual({ reason: "批量注册" });
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
         });
 
-        it("removeFromInviteAllowlist 抛错且不发请求（后端无 per-user 端点）", async () => {
-            await expect(manager.removeFromInviteAllowlist("@spam:example.org")).rejects.toThrow(
-                /后端无 per-user 邀请白名单端点/,
-            );
+        it("addToInviteBlocklist 不带 reason 时**不发请求体**（后端 body 可整体缺）", async () => {
+            await manager.addToInviteBlocklist("@spam:example.org");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][3]).toBeUndefined();
+        });
+
+        it("removeFromInviteBlocklist DELETEs the per-user route", async () => {
+            await manager.removeFromInviteBlocklist("@spam:example.org");
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe(`/invite/blocklist/${encodeURIComponent("@spam:example.org")}`);
+        });
+
+        it("addToInviteAllowlist POSTs the allowlist per-user route", async () => {
+            await manager.addToInviteAllowlist("@alice:example.org");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/invite/allowlist/${encodeURIComponent("@alice:example.org")}`);
+        });
+
+        it("removeFromInviteAllowlist DELETEs the allowlist per-user route", async () => {
+            await manager.removeFromInviteAllowlist("@alice:example.org");
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe(`/invite/allowlist/${encodeURIComponent("@alice:example.org")}`);
+        });
+
+        it("per-user 邀请名单方法仍校验 userId（不发请求）", async () => {
+            await expect(manager.addToInviteBlocklist("")).rejects.toThrow(ValidationError);
+            await expect(manager.removeFromInviteAllowlist("")).rejects.toThrow(ValidationError);
             expect(req.mock.calls).toHaveLength(0);
         });
 

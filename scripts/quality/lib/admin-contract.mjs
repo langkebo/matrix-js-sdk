@@ -1640,11 +1640,17 @@ export function extractHandlerIo(sig) {
     // 负向后顾是必需的：`MatrixJson<…>` 里也含子串 `Json<`。
     const pick = (names) => {
         for (const name of names) {
+            // ⚠️ `Option<Json<T>>` ⇒ **请求体可整体缺**（axum 只在带了 body 时才解析）。
+            // 不区分这一点，会让"按契约**不该**发 body"的调用点被误判成
+            // `body-required-missing`（假 415）—— 实测 per-user 邀请名单端点就是
+            // `body: Option<Json<InviteListEntryBody>>`（`admin/invite_lists.rs`）。
+            const optional = new RegExp(`Option\\s*<\\s*${name}\\s*<`).test(params);
             const m = params.match(new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<\\s*([A-Za-z_][\\w:]*)`));
-            if (m) return { present: true, type: m[1].split("::").pop() };
-            if (new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<`).test(params)) return { present: true, type: null };
+            if (m) return { present: true, type: m[1].split("::").pop(), optional };
+            if (new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<`).test(params))
+                return { present: true, type: null, optional };
         }
-        return { present: false, type: null };
+        return { present: false, type: null, optional: false };
     };
     const q = pick(["Query"]);
     const p = pick(["Path"]);
@@ -1653,6 +1659,8 @@ export function extractHandlerIo(sig) {
         hasQuery: q.present,
         hasPath: p.present,
         hasJson: j.present,
+        /** 提取器被 `Option<…>` 包裹 ⇒ 该参数**可整体缺**（body 可完全不发）。 */
+        jsonOptional: j.optional,
         queryType: q.type,
         pathType: p.type,
         jsonType: j.type,

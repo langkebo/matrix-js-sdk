@@ -28,6 +28,8 @@ export interface RustRouteContract {
         hasQuery: boolean;
         hasPath: boolean;
         hasJson: boolean;
+        /** 提取器被 `Option<…>` 包裹 ⇒ 该参数可整体缺（body 可完全不发）。 */
+        jsonOptional: boolean;
         queryType: string | null;
         pathType: string | null;
         jsonType: string | null;

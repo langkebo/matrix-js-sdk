@@ -16,7 +16,6 @@ limitations under the License.
 
 import { Method } from "../../http-api/method";
 import { ValidationError } from "../../errors";
-import { UnsupportedAdminInviteEndpointError } from "../../errors";
 import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { AdminValidators } from "../validators";
 import { buildPaginationParams } from "../utils";
@@ -42,6 +41,8 @@ import type {
     AdminAccountDataCallback,
     AdminInviteAllowlist,
     AdminInviteBlocklist,
+    AdminInviteListAddResult,
+    AdminInviteListRemoveResult,
     AdminJitsiConfig,
     AdminReport,
     AdminReportPage,
@@ -978,89 +979,102 @@ export class AdminConfigManager extends AdminBaseManager {
     }
 
     /**
-     * ⚠️ **后端不支持该方法**（2026-10-15 起改为抛错，不再发出必然 404 的请求）。
+     * 把用户加入全局邀请黑名单（per-user **增量**）。
      *
-     * 后端只提供**全局名单整体设置**：`POST /_synapse/admin/v1/invite/blocklist`（或 `…/allowlist`），
-     * body 为 `{ user_ids: [...] }`（`InviteListWriteBody`），**没有 per-user 增删端点** ⇒ 本方法的
-     * 路径（`…/blocklist/{user_id}`）在后端不存在、恒 404，故改为**发起请求前**抛错。
+     * 对应 `POST /_synapse/admin/v1/invite/blocklist/{userId}`（后端 `eb5a0e867` 起提供，
+     * 见跨仓交接单 Q1）。与「整体替换」端点（`POST /invite/blocklist` + `{ user_ids }`）**并存**：
+     * 那个是「声明式全量」，本方法是「单条增量」。
      *
-     * 正确做法（读—改—写）：先 `getInviteBlocklist()` 读全量（**注意后端分页返回，需自行翻页读全**），
-     * 本地增删后用 `POST /invite/blocklist` + `{ user_ids }` 整体写回。
+     * **幂等**：该用户已在名单里 ⇒ `alreadyPresent: true`，且**不覆盖**既有的 reason / created_by。
+     * **互斥**：若该用户原本在全局**白名单**里，后端会同时把它移出并置
+     * `removedFromOtherList: true`（blocklist 与 allowlist 互斥）。
      *
-     * @param userId - 被添加用户的 Matrix ID（仍校验，`ValidationError` 先于本错误抛出）
-     * @param reason - **已无效**：后端整体设置端点不接收 per-user reason
+     * @param userId - 被加入的用户 Matrix ID
+     * @param reason - 可选，拉黑原因；落库供审计。**省略时整块不发请求体**（后端该端点的
+     *   body 是 `Option<Json<…>>`，可整个缺 —— 发 `{}` 亦可但无必要）
+     * @returns `{ alreadyPresent, removedFromOtherList }`（另含后端回显的 `status` / `action` / `user_id`）
      * @throws {ValidationError} `userId` 为空时（不会发出请求）
-     * @throws {UnsupportedAdminInviteEndpointError} 总是抛出（后端无 per-user 端点）
      * @example
      * ```typescript
-     * // ✗ 会抛错：后端无 POST …/invite/blocklist/{user_id}
-     * await client.getAdminManager().config.addToInviteBlocklist("@spam:example.org");
+     * const { alreadyPresent, removedFromOtherList } = await client
+     *     .getAdminManager()
+     *     .config.addToInviteBlocklist("@spam:example.org", "批量注册");
      * ```
      */
-    async addToInviteBlocklist(userId: string, reason?: string): Promise<void> {
+    async addToInviteBlocklist(userId: string, reason?: string): Promise<AdminInviteListAddResult> {
         if (!userId) throw new ValidationError("User ID is required");
-        throw new UnsupportedAdminInviteEndpointError(
-            `后端无 per-user 邀请黑名单端点（原路径 POST /invite/blocklist/{user_id} 恒 404）。` +
-                `请用「读 → 改 → 写」：getInviteBlocklist() → 本地增删 → POST /invite/blocklist { user_ids }.` +
-                (reason === undefined ? "" : "（reason 参数已无效：后端整体设置端点不接收 per-user reason）"),
-            "addToInviteBlocklist",
+        return await this.adminRequest<AdminInviteListAddResult>(
+            Method.Post,
+            apu(`/invite/blocklist/${encodeURIComponent(userId)}`),
+            undefined,
+            reason === undefined ? undefined : { reason },
         );
     }
 
     /**
-     * 从邀请黑名单移除用户
+     * 从全局邀请黑名单移除用户（per-user **增量**）。
      *
-     * @param userId - 被移除用户的 Matrix ID
+     * 对应 `DELETE /_synapse/admin/v1/invite/blocklist/{userId}`（交接单 Q1）。
+     * **幂等**：目标不在名单里 ⇒ 仍返回 200 且 `alreadyAbsent: true`（不是 404）。
+     *
+     * @param userId - 被移除的用户 Matrix ID
+     * @returns `{ alreadyAbsent }`（另含 `status` / `action` / `user_id`）
      * @throws {ValidationError} `userId` 为空时（不会发出请求）
      * @example
      * ```typescript
      * await client.getAdminManager().config.removeFromInviteBlocklist("@spam:example.org");
      * ```
      */
-    async removeFromInviteBlocklist(userId: string): Promise<void> {
+    async removeFromInviteBlocklist(userId: string): Promise<AdminInviteListRemoveResult> {
         if (!userId) throw new ValidationError("User ID is required");
-        throw new UnsupportedAdminInviteEndpointError(
-            `后端无 per-user 邀请黑名单端点（原路径 DELETE /invite/blocklist/{user_id} 恒 404）。` +
-                `请用「读 → 改 → 写」：getInviteBlocklist() → 本地移除 → POST /invite/blocklist { user_ids }.`,
-            "removeFromInviteBlocklist",
+        return await this.adminRequest<AdminInviteListRemoveResult>(
+            Method.Delete,
+            apu(`/invite/blocklist/${encodeURIComponent(userId)}`),
         );
     }
 
     /**
-     * 添加用户到邀请白名单
+     * 把用户加入全局邀请白名单（per-user **增量**）。
      *
-     * @param userId - 被添加用户的 Matrix ID
+     * 对应 `POST /_synapse/admin/v1/invite/allowlist/{userId}`（交接单 Q1）。幂等 / 互斥语义
+     * 同 {@link addToInviteBlocklist}（对侧为黑名单）。后端该端点亦接受可选 `reason`，
+     * 本方法暂不暴露以保持既有签名不变。
+     *
+     * @param userId - 被加入的用户 Matrix ID
+     * @returns `{ alreadyPresent, removedFromOtherList }`
      * @throws {ValidationError} `userId` 为空时（不会发出请求）
      * @example
      * ```typescript
      * await client.getAdminManager().config.addToInviteAllowlist("@alice:example.org");
      * ```
      */
-    async addToInviteAllowlist(userId: string): Promise<void> {
+    async addToInviteAllowlist(userId: string): Promise<AdminInviteListAddResult> {
         if (!userId) throw new ValidationError("User ID is required");
-        throw new UnsupportedAdminInviteEndpointError(
-            `后端无 per-user 邀请白名单端点（原路径 POST /invite/allowlist/{user_id} 恒 404）。` +
-                `请用「读 → 改 → 写」：getInviteAllowlist() → 本地增删 → POST /invite/allowlist { user_ids }.`,
-            "addToInviteAllowlist",
+        return await this.adminRequest<AdminInviteListAddResult>(
+            Method.Post,
+            apu(`/invite/allowlist/${encodeURIComponent(userId)}`),
         );
     }
 
     /**
-     * 从邀请白名单移除用户
+     * 从全局邀请白名单移除用户（per-user **增量**）。
      *
-     * @param userId - 被移除用户的 Matrix ID
+     * 对应 `DELETE /_synapse/admin/v1/invite/allowlist/{userId}`（交接单 Q1）。
+     * **幂等**：目标不在名单里 ⇒ 仍返回 200 且 `alreadyAbsent: true`。
+     *
+     * @param userId - 被移除的用户 Matrix ID
+     * @returns `{ alreadyAbsent }`
      * @throws {ValidationError} `userId` 为空时（不会发出请求）
      * @example
      * ```typescript
      * await client.getAdminManager().config.removeFromInviteAllowlist("@alice:example.org");
      * ```
      */
-    async removeFromInviteAllowlist(userId: string): Promise<void> {
+    async removeFromInviteAllowlist(userId: string): Promise<AdminInviteListRemoveResult> {
         if (!userId) throw new ValidationError("User ID is required");
-        throw new UnsupportedAdminInviteEndpointError(
-            `后端无 per-user 邀请白名单端点（原路径 DELETE /invite/allowlist/{user_id} 恒 404）。` +
-                `请用「读 → 改 → 写」：getInviteAllowlist() → 本地移除 → POST /invite/allowlist { user_ids }.`,
-            "removeFromInviteAllowlist",
+        return await this.adminRequest<AdminInviteListRemoveResult>(
+            Method.Delete,
+            apu(`/invite/allowlist/${encodeURIComponent(userId)}`),
         );
     }
 

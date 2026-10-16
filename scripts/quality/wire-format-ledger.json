@@ -1,8 +1,8 @@
 {
     "schemaVersion": 1,
-    "generatedAt": "2026-10-16T04:51:36.007Z",
+    "generatedAt": "2026-10-16T06:13:38.985Z",
     "generatedBy": "node scripts/quality/check-wire-format.mjs --refresh",
-    "backendCommit": "eb5a0e867f495e146142bf19a3131bf10fdb114d",
+    "backendCommit": "c7c9116db5c462b49f5dae5abbf5e606f3244d21",
     "notice": "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。 key 的拼写是**门禁**归一化（`METHOD + normalizePath(路径)`：占位符 `{X}`、去尾斜杠），读取侧再过一次 `rebaseLedgerKeys` ⇒ 幂等；手工改成 `{x}` 或加回尾斜杠也仍能对上。",
     "entries": {
         "DELETE /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device": {

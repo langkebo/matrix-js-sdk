@@ -472,6 +472,43 @@ export interface AdminInviteBlocklist {
 }
 
 /**
+ * `POST /_synapse/admin/v1/invite/{blocklist,allowlist}/{user_id}` 的响应（per-user 增量，Q1）。
+ *
+ * 2026-10-16 对照后端 `admin/invite_lists.rs::add_global_invite_blocklist_user` /
+ * `add_global_invite_allowlist_user`：`{status, action, user_id, already_present,
+ * removed_from_other_list}`。两个端点的**键集相同**，仅 `action` 取值不同 ⇒ 共用一个类型
+ * （与 `AdminInvite{Allowlist,Blocklist}` 那种「列表键不同」的情形不同）。
+ *
+ * 语义：**幂等** —— 该用户已在名单里 ⇒ `already_present: true`，且**不覆盖**既有的
+ * reason / created_by；**互斥** —— 若该用户原本在**对侧**名单里，后端会同时把它移出，
+ * 并置 `removed_from_other_list: true`。
+ */
+export interface AdminInviteListAddResult {
+    status: string;
+    action: "add_global_invite_blocklist_user" | "add_global_invite_allowlist_user";
+    user_id: string;
+    /** 该用户此前已在该名单里（重复调用）⇒ 本次未改动既有的 reason / created_by。 */
+    already_present: boolean;
+    /** 该用户原本在**对侧**名单里，已被后端移除（blocklist 与 allowlist 互斥）。 */
+    removed_from_other_list: boolean;
+}
+
+/**
+ * `DELETE /_synapse/admin/v1/invite/{blocklist,allowlist}/{user_id}` 的响应（per-user 移除，Q1）。
+ *
+ * 2026-10-16 对照后端 `...::remove_global_invite_{blocklist,allowlist}_user`：
+ * `{status, action, user_id, already_absent}`。**幂等删除** —— 目标不在名单里
+ * ⇒ `already_absent: true`（仍返回 200，不是 404）。
+ */
+export interface AdminInviteListRemoveResult {
+    status: string;
+    action: "remove_global_invite_blocklist_user" | "remove_global_invite_allowlist_user";
+    user_id: string;
+    /** 该用户本就不在该名单里（重复删除 / 从未加入）⇒ 幂等返回 200。 */
+    already_absent: boolean;
+}
+
+/**
  * `GET /_synapse/admin/v1/jitsi/config` 的响应。
  *
  * 2026-10-07 对照后端 `server.rs::get_jitsi_config`：该处理器返回固定字面量

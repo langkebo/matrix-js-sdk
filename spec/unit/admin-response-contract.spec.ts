@@ -1670,3 +1670,49 @@ describe("resolveRoutePath：**更长的兄弟相对路径优先解释**（不�
         expect(r.via).toBe("multi");
     });
 });
+
+/**
+ * `extractHandlerIo`：提取器被 `Option<…>` 包裹时，该参数**可整体缺** ⇒ `jsonOptional: true`。
+ *
+ * 真实事故（2026-10-16）：per-user 邀请名单端点写的是
+ * `body: Option<Json<InviteListEntryBody>>`（`admin/invite_lists.rs`），
+ * 而抽取器只看 `hasJson` ⇒ 把"**按契约本就不该发 body**"的调用点判成
+ * `body-required-missing`（假 415）；同时后端用 `deny_unknown_fields` + 可选 body，
+ * 硬发 `{}` 又会被判"该端点不接受该键"。⇒ 必须把「可选性」抽出来，
+ * 让判据能区分 `Json<T>` 与 `Option<Json<T>>`。
+ */
+describe("extractHandlerIo：Option<Json<T>> 与 Option<Query<T>> 的可选性", () => {
+    it("`Option<Json<T>>` ⇒ jsonOptional: true（可选 body）", () => {
+        const sig = [
+            "",
+            "pub(crate) async fn add_global_invite_blocklist_user(",
+            "    admin: AdminUser,",
+            "    State(ctx): State<AdminContext>,",
+            "    Path(user_id): Path<UserId>,",
+            "    body: Option<Json<InviteListEntryBody>>,",
+            ") -> Result<Json<Value>, ApiError> ",
+        ].join("\n");
+        expect(extractHandlerIo(sig)).toMatchObject({
+            hasJson: true,
+            jsonType: "InviteListEntryBody",
+            jsonOptional: true,
+            hasPath: true,
+        });
+    });
+
+    it("裸 `Json<T>` ⇒ jsonOptional: false（必填，缺了就是真 415）", () => {
+        const sig = "\npub async fn f(\n    Json(body): Json<Foo>,\n) -> Result<Json<Value>, ApiError> ";
+        expect(extractHandlerIo(sig)).toMatchObject({ hasJson: true, jsonOptional: false });
+    });
+
+    it("`MatrixJson<T>` 的裸形态同样记 false（不因名字含 Json 而误判可选）", () => {
+        const sig =
+            "\npub(crate) async fn f(\n    MatrixJson(b): MatrixJson<Value>,\n) -> Result<Json<Value>, ApiError> ";
+        expect(extractHandlerIo(sig)).toMatchObject({ hasJson: true, jsonOptional: false });
+    });
+
+    it("没有任何 body 提取器时 jsonOptional: false（不能恒真）", () => {
+        const sig = "\npub(crate) async fn g(\n    Path(room_id): Path<RoomId>,\n) -> Result<Json<Value>, ApiError> ";
+        expect(extractHandlerIo(sig)).toMatchObject({ hasJson: false, jsonOptional: false });
+    });
+});

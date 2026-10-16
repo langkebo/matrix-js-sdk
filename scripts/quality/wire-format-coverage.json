@@ -2,8 +2,8 @@
     "schemaVersion": 1,
     "buckets": {
         "backend-body-unknown": 143,
-        "sdk-keys-unknown:query": 159,
-        "sdk-keys-unknown:body": 101,
+        "sdk-keys-unknown:query": 162,
+        "sdk-keys-unknown:body": 102,
         "backend-query-unknown": 9,
         "route-not-resolved": 26,
         "route-contract-unavailable": 39,
@@ -11,5 +11,5 @@
         "route-ambiguous": 1,
         "route-out-of-scope": 7
     },
-    "totalCalls": 954
+    "totalCalls": 958
 }
