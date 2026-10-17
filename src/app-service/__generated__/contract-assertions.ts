@@ -6,10 +6,10 @@
 
 import { APP_SERVICE_ROUTES } from "./route-table";
 
-export const APP_SERVICE_ROUTES_ENTRY_COUNT = 39 as const;
+export const APP_SERVICE_ROUTES_ENTRY_COUNT = 41 as const;
 
 // Compile-time assertion: route-table length must stay aligned with the backend contract.
-const _AppServiceEntryCountAssertion: 39 = APP_SERVICE_ROUTES.length;
+const _AppServiceEntryCountAssertion: 41 = APP_SERVICE_ROUTES.length;
 void _AppServiceEntryCountAssertion;
 
 export const APP_SERVICE_ROUTES_STATUS_SCENARIOS = [

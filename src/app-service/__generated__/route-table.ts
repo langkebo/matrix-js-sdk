@@ -4,7 +4,7 @@
  *
  * Module:        Application Service
  * Source:        docs/api-contract/generated/modules/app_service.json
- * Entries:       39 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
+ * Entries:       41 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 
 /** Routes served by the synapse-rust `app-service` module (mirrored from the backend contract). */
@@ -48,6 +48,8 @@ export const APP_SERVICE_ROUTES = [
     { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/state/{state_key}" },
     { method: "GET", path: "/_synapse/admin/v1/appservices/{as_id}/users" },
     { method: "POST", path: "/_synapse/admin/v1/appservices/{as_id}/users" },
+    { method: "POST", path: "/_matrix/client/unstable/io.element.msc4512/appservice/fed_proxy" },
+    { method: "POST", path: "/_matrix/client/v1/appservice/fed_proxy" },
 ] as const satisfies readonly { readonly method: string; readonly path: string }[];
 
 /** Union of every (method, path) tuple in `APP_SERVICE_ROUTES`. */

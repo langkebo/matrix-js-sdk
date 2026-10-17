@@ -109,6 +109,149 @@ last_reviewed: 2026-05-03
 - 仅允许消息所有者或关联房间成员读取转写；无权访问返回 `403 M_FORBIDDEN`
 - 若已有转写缺失，会回落为 `"Transcription not available for voice message {event_id}"`
 
+## 结构化类型（codegen 源）
+
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源，也是 `src/voice/__generated__/dto.ts`
+> 的权威来源。形状逐条对照 `synapse-rust/synapse-web/src/routes/voice.rs` 的路由注册与
+> `synapse-rust/synapse-services/src/voice_service.rs` 的 `json!` 组装，**不凭印象**。
+>
+> ⚠️ **本节暴露出一批「SDK 手写类型与后端不符」**（`src/voice/index.ts` 的 `IVoice*`），
+> 这些是独立缺陷，不在本机制的清偿范围内，但**必须记录**（否则生成物与手写类型会各说各话）：
+>
+> | 手写类型               | 手写形状                                                                            | 后端真实形状                                                                                                                                                             |
+> | ---------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+> | `IVoiceConfig`         | `{ max_upload_size_bytes, allowed_content_types, auto_transcribe, retention_days }` | `{ enabled, max_duration, allowed_formats, supported_formats, max_size_bytes, max_duration_ms, content_type, voice_extension, auto_transcribe, server_side_processing }` |
+> | `IVoiceStats`          | `{ total_messages, total_duration_ms, average_duration_ms, storage_used_bytes }`    | `{ user_id, total_uploads, total_duration_ms, total_size_bytes, uploads_today }`                                                                                         |
+> | `IVoiceRoomStats`      | `{ room_id, message_count, total_duration_ms }`                                     | `{ room_id, total_uploads, total_duration_ms, total_size_bytes }`                                                                                                        |
+> | `IVoiceUserStats`      | `{ user_id, message_count, total_duration_ms }`                                     | `{ user_id, total_uploads, total_duration_ms, total_size_bytes, uploads_today }`                                                                                         |
+> | `IVoiceDeleteResponse` | `{ message_id, deleted }`                                                           | 后端**未注册** `DELETE /voice/{media_id}` ⇒ 该类型无对应端点                                                                                                             |
+>
+> **`Voice*Response` 的命名刻意不同于手写类型的 `IVoice*`**，以便两者并存期间不产生歧义；
+> 收敛顺序：先让本节成为契约真相，再由消费方逐个切换，最后删手写类型。
+
+```typescript
+/** `GET /_matrix/vendor/v1/voice/config` 响应（后端 `get_voice_config` 的 `json!`）。 */
+export interface VoiceConfigResponse {
+    enabled: boolean;
+    /** 单个语音消息最大时长（秒）；后端硬编码 `600`。 */
+    max_duration: number;
+    allowed_formats: string[];
+    supported_formats: string[];
+    /** 单文件最大字节数，取自服务端 `config.server.max_upload_size`（非硬编码）。 */
+    max_size_bytes: number;
+    /** 与 `max_duration` 同源的毫秒表示；后端硬编码 `60_0000`。 */
+    max_duration_ms: number;
+    content_type: string;
+    voice_extension: string;
+    auto_transcribe: boolean;
+    server_side_processing: {
+        convert: boolean;
+        optimize: boolean;
+        transcription: boolean;
+    };
+}
+
+/**
+ * 语音消息对应的 `m.audio` 事件内容（后端 `upload_voice_message` 组装的 `voice_content`）。
+ *
+ * `waveform` 是 **comma-separated 的 uint16 采样串**（与 multipart 上传表单里的同名可选字段一致），
+ * 仅在调用方提供了波形时才出现。
+ */
+export interface VoiceEventContent {
+    body: string;
+    msgtype: string;
+    url: string;
+    info: {
+        mimetype: string;
+        size: number;
+        duration: number;
+    };
+    "org.matrix.msc3245.voice": {
+        waveform?: string;
+    };
+}
+
+/**
+ * `POST /_matrix/vendor/v1/voice/upload` 响应
+ * （后端 `voice_service.rs::upload_voice_message`）。
+ *
+ * 字节数字段名是 **`size`**（不是 `size_bytes`）。
+ */
+export interface VoiceUploadResponse {
+    content_uri: string;
+    content: VoiceEventContent;
+    content_type: string;
+    duration_ms: number;
+    size: number;
+}
+
+/** 单条语音消息记录（后端 `record_to_message_json`，列表端点与 `GET /voice/{media_id}` 共用）。 */
+export interface VoiceMessageRecord {
+    media_id: string;
+    user_id: string;
+    room_id: string | null;
+    content_uri: string;
+    content_type: string;
+    duration_ms: number;
+    size_bytes: number;
+    created_ts: number;
+}
+
+/** `GET /_matrix/vendor/v1/voice/room/{room_id}` 响应。 */
+export interface VoiceRoomListResponse {
+    room_id: string;
+    messages: VoiceMessageRecord[];
+    /** keyset 游标：上一页最后一条的 `created_ts`（毫秒）；空页为 `null`。后端无 `has_more`。 */
+    next_batch: number | null;
+}
+
+/** `GET /_matrix/vendor/v1/voice/user/{user_id}` 响应。 */
+export interface VoiceUserListResponse {
+    user_id: string;
+    messages: VoiceMessageRecord[];
+    next_batch: number | null;
+}
+
+/** `GET /_matrix/vendor/v1/voice/user/{user_id}/stats` 响应。 */
+export interface VoiceUserStatsResponse {
+    user_id: string;
+    total_uploads: number;
+    total_duration_ms: number;
+    total_size_bytes: number;
+    uploads_today: number;
+}
+
+/** `GET /_matrix/vendor/v1/voice/room/{room_id}/stats` 响应。 */
+export interface VoiceRoomStatsResponse {
+    room_id: string;
+    total_uploads: number;
+    total_duration_ms: number;
+    total_size_bytes: number;
+}
+
+/** `POST /_matrix/vendor/v1/voice/register` 响应（`exists` 表示该 media 是否已在表中）。 */
+export interface VoiceRegisterResponse {
+    content_uri: string;
+    exists: boolean;
+}
+
+/** `POST /_matrix/vendor/v1/voice/register` 请求体（后端 `RegisterEncryptedVoiceRequest`）。 */
+export interface RegisterEncryptedVoiceRequest {
+    media_id: string;
+    room_id?: string;
+    content_type: string;
+    duration_ms: number;
+    size_bytes: number;
+}
+
+/** 语音列表端点的查询参数（后端 `VoiceListQuery`，带 `#[serde(deny_unknown_fields)]`）。 */
+export interface VoiceListQuery {
+    limit?: number;
+    /** 毫秒 `created_ts` 游标，等于上一页返回的 `next_batch`。 */
+    from?: number;
+}
+```
+
 ## 常见状态码
 
 | 状态码 | 说明                                                                                                        |

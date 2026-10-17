@@ -9,4 +9,36 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type CasContractDtoPlaceholder = never;
+export interface CasRegisterServiceRequest {
+    service_id: string;
+    name: string;
+    description?: string;
+    service_url_pattern: string;
+    allowed_attributes?: string[];
+    allowed_proxy_callbacks?: string[];
+    require_secure?: boolean;
+    single_logout?: boolean;
+}
+
+export interface CasServiceResponse {
+    service_id: string;
+    name: string;
+    description?: string;
+    service_url_pattern: string;
+    is_enabled: boolean;
+}
+
+export interface CasLoginRedirectResponse {
+    redirect_url: string;
+}
+
+export interface CasSetAttributeRequest {
+    attribute_name: string;
+    attribute_value: string;
+}
+
+export interface CasSetAttributeResponse {
+    user_id: string;
+    attribute_name: string;
+    attribute_value: string;
+}

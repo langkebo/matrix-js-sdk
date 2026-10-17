@@ -9,4 +9,102 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type VoiceContractDtoPlaceholder = never;
+export interface VoiceConfigResponse {
+    enabled: boolean;
+    /** 单个语音消息最大时长（秒）；后端硬编码 `600`。 */
+    max_duration: number;
+    allowed_formats: string[];
+    supported_formats: string[];
+    /** 单文件最大字节数，取自服务端 `config.server.max_upload_size`（非硬编码）。 */
+    max_size_bytes: number;
+    /** 与 `max_duration` 同源的毫秒表示；后端硬编码 `60_0000`。 */
+    max_duration_ms: number;
+    content_type: string;
+    voice_extension: string;
+    auto_transcribe: boolean;
+    server_side_processing: {
+        convert: boolean;
+        optimize: boolean;
+        transcription: boolean;
+    };
+}
+
+export interface VoiceEventContent {
+    body: string;
+    msgtype: string;
+    url: string;
+    info: {
+        mimetype: string;
+        size: number;
+        duration: number;
+    };
+    "org.matrix.msc3245.voice": {
+        waveform?: string;
+    };
+}
+
+export interface VoiceUploadResponse {
+    content_uri: string;
+    content: VoiceEventContent;
+    content_type: string;
+    duration_ms: number;
+    size: number;
+}
+
+export interface VoiceMessageRecord {
+    media_id: string;
+    user_id: string;
+    room_id: string | null;
+    content_uri: string;
+    content_type: string;
+    duration_ms: number;
+    size_bytes: number;
+    created_ts: number;
+}
+
+export interface VoiceRoomListResponse {
+    room_id: string;
+    messages: VoiceMessageRecord[];
+    /** keyset 游标：上一页最后一条的 `created_ts`（毫秒）；空页为 `null`。后端无 `has_more`。 */
+    next_batch: number | null;
+}
+
+export interface VoiceUserListResponse {
+    user_id: string;
+    messages: VoiceMessageRecord[];
+    next_batch: number | null;
+}
+
+export interface VoiceUserStatsResponse {
+    user_id: string;
+    total_uploads: number;
+    total_duration_ms: number;
+    total_size_bytes: number;
+    uploads_today: number;
+}
+
+export interface VoiceRoomStatsResponse {
+    room_id: string;
+    total_uploads: number;
+    total_duration_ms: number;
+    total_size_bytes: number;
+}
+
+export interface VoiceRegisterResponse {
+    content_uri: string;
+    exists: boolean;
+}
+
+export interface RegisterEncryptedVoiceRequest {
+    media_id: string;
+    room_id?: string;
+    content_type: string;
+    duration_ms: number;
+    size_bytes: number;
+}
+
+export interface VoiceListQuery {
+    limit?: number;
+    /** 毫秒 `created_ts` 游标，等于上一页返回的 `next_batch`。 */
+    from?: number;
+}

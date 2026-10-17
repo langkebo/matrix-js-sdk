@@ -43,6 +43,76 @@ last_reviewed: 2026-05-11
 | `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm`         | 判断房间是否为 DM            | `isDmRoomFromServer()`       |
 | `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm/partner` | 获取 DM 对端资料             | `getDmPartnerFromServer()`   |
 
+## 结构化类型（codegen 源）
+
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源，也是 `src/dm/__generated__/dto.ts`
+> 的权威来源。形状逐条对照 `synapse-rust/synapse-web/src/routes/dm.rs` 的实现，**不凭印象**：
+> `create_dm_room` 返回 `json!({ "room_id": … })`；`get_dm_rooms` 返回 `json!({ "rooms": … })`；
+> `update_dm_room` 返回 `json!({ "room_id", "users", "direct_map", "updated_ts" })`；
+> `check_room_dm` **仅在是 DM 时**返回 `json!({ "room_id", "m.direct": true })`、否则 404；
+> `get_dm_partner_route` 返回 `json!({ "room_id", "user_id", "display_name", "avatar_url" })`。
+> 两个请求体都是「字段全可选」形态（`CreateDmRequest` 6 个 `Option<…>`；`UpdateDmRequest` 的
+> `content` / `users` 都是 `Option<Value>`，**不是** `Vec<String>`）。
+> 这些声明与 `src/dm/sub-managers/*-types.ts` 的手写类型一一对应，后者的权威由本节接管。
+
+```typescript
+/** `POST /_matrix/vendor/v1/create_dm` 请求体（后端 `CreateDmRequest`，字段全可选）。 */
+export interface CreateDmRequest {
+    user_id?: string;
+    invite?: string[];
+    is_direct?: boolean;
+    name?: string;
+    topic?: string;
+    visibility?: string;
+}
+
+/** `POST /_matrix/vendor/v1/create_dm` 响应。 */
+export interface CreateDmResponse {
+    room_id: string;
+}
+
+/** `GET /_matrix/vendor/v1/direct` 响应：`user_id → room_id[]` 的 direct map。 */
+export interface DirectRoomsResponse {
+    rooms: Record<string, string[]>;
+}
+
+/**
+ * `PUT /_matrix/vendor/v1/direct/{room_id}` 请求体（后端 `UpdateDmRequest` + `parse_direct_map_update`）。
+ *
+ * 两个字段二选一：
+ * - `users`：目标用户 ID 列表 ⇒ 后端 `parse_dm_users` 解析为「本房间的这些用户」；
+ * - `content`：一个 `m.direct` 对象。后端先尝试取其中的 `user_id` / `users` 简写，
+ *   取不到就把整个对象当作完整 direct map 覆盖（`OverwriteMap`）。
+ *   注意后端 `content` 必须是 JSON **object**，否则返回 400 `content must be an m.direct object`。
+ */
+export interface UpdateDmRequest {
+    content?: Record<string, string[] | string>;
+    users?: string[];
+}
+
+/** `PUT /_matrix/vendor/v1/direct/{room_id}` 响应。 */
+export interface UpdateDirectRoomResponse {
+    room_id: string;
+    users: string[];
+    direct_map: Record<string, string[]>;
+    updated_ts: number;
+}
+
+/** `GET /_matrix/vendor/v1/rooms/{room_id}/dm` 响应；**不是** DM 时后端返回 404。 */
+export interface DmRoomCheckResponse {
+    room_id: string;
+    "m.direct": boolean;
+}
+
+/** `GET /_matrix/vendor/v1/rooms/{room_id}/dm/partner` 响应。 */
+export interface DmPartnerResponse {
+    room_id: string;
+    user_id: string;
+    display_name: string;
+    avatar_url: string;
+}
+```
+
 ## 参数与返回值对齐
 
 ### `POST /create_dm`

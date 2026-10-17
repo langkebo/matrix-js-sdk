@@ -39,6 +39,62 @@ last_reviewed: 2026-05-03
 | GET    | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | 获取用户 CAS 属性 | 管理员 |
 | POST   | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | 设置用户 CAS 属性 | 管理员 |
 
+## 结构化类型（codegen 源）
+
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源，也是 `src/cas/__generated__/dto.ts`
+> 的权威来源。形状逐条对照 `synapse-rust/synapse-web/src/routes/cas.rs` 的实现，**不凭印象**。
+>
+> ⚠️ **本模块的 DTO 覆盖面刻意有限**，原因有二：
+>
+> 1. `/_synapse/cas/{login,logout,serviceValidate,proxyValidate,proxy,p3/serviceValidate}` 这 6 条
+>    是 **CAS 协议端点**，后端返回 **XML**（`response.to_xml()` 或 `text/plain` 的
+>    `"yes" / "no"`），**不是 JSON** ⇒ 天然不属于 JSON DTO 的建模范围。
+> 2. `DELETE /_synapse/admin/v1/cas/services/{service_id}` 返回 `204 No Content`（无 body）
+>    ⇒ 也没有响应类型可建模。
+>
+> 因此本节只覆盖 **JSON 形态**的管理端点与登录重定向。
+
+```typescript
+/** `POST /_synapse/admin/v1/cas/services` 请求体（后端 `RegisterServiceBody`）。 */
+export interface CasRegisterServiceRequest {
+    service_id: string;
+    name: string;
+    description?: string;
+    service_url_pattern: string;
+    allowed_attributes?: string[];
+    allowed_proxy_callbacks?: string[];
+    require_secure?: boolean;
+    single_logout?: boolean;
+}
+
+/** CAS 服务记录（后端 `ServiceResponse`，`register_service` 与 `list_services` 共用）。 */
+export interface CasServiceResponse {
+    service_id: string;
+    name: string;
+    description?: string;
+    service_url_pattern: string;
+    is_enabled: boolean;
+}
+
+/** `GET /_matrix/client/v3/login/sso/redirect/cas` 的 JSON 形态响应（后端 `login_redirect`）。 */
+export interface CasLoginRedirectResponse {
+    redirect_url: string;
+}
+
+/** `POST /_synapse/admin/v1/cas/users/{user_id}/attributes` 请求体（后端 `SetAttributeBody`）。 */
+export interface CasSetAttributeRequest {
+    attribute_name: string;
+    attribute_value: string;
+}
+
+/** `POST /_synapse/admin/v1/cas/users/{user_id}/attributes` 响应。 */
+export interface CasSetAttributeResponse {
+    user_id: string;
+    attribute_name: string;
+    attribute_value: string;
+}
+```
+
 ## SDK 对齐状态
 
 | 端点                                                     | SDK Manager  | 方法                  | 状态              |
