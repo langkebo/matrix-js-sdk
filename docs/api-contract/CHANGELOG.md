@@ -1,5 +1,87 @@
 # API 契约变更日志
 
+## 2026-10-17 — 后端 docs/sdk 契约回灌（实现口径同步）
+
+> 本轮为**文档正文同步**，不含 SDK 运行时行为变更；仅改正文，未改 frontmatter、路由表与任何统计数字。
+
+### 同步范围
+
+- 依据后端 `synapse-rust/docs/sdk` 18 份契约文档，对 34 份存在差异的模块页做正文级实现口径同步（共 37 份文档变更，含 README / CONTRACT_INDEX / 本文件）。
+- 覆盖认证、同步、房间、消息、好友、媒体、E2EE、RTC、应用服务、管理面等模块。
+- 跨切面事实统一收敛到 `README.md` 的 `## 跨切面契约` 章节，模块页只保留模块特有差异。
+
+## 2026-10-12 — 契约文档全量同步（对齐后端 `122aaf109`）
+
+> 本轮为**文档与生成物同步**，不含 SDK 运行时行为变更；`contract-version.yml` 由 `1.0.0` → `1.1.0`
+> （补记此前未登记的破坏性变更）。逐项证据见仓库外同步报告。
+
+### 机器可读契约（`generated/`）刷新
+
+- 镜像此前停在 `14f892e3`，落后后端 2 笔提交。刷新后 `synapse_rust_commit = 122aaf109`。
+- **语义变化仅 1 处**：`media` 模块的分块上传路由补上 `query_params`
+  （`POST /_matrix/media/v1/upload/chunk` → `upload_id`/`chunk_index`/`total_chunks`/`total_size`/`filename`；
+  `GET …/upload/chunk/progress` → `upload_id`），对应后端 `7e6411185`（`serde_urlencoded` 使
+  `Value::as_i64()` 恒 `None`，数值型 query 从未生效）与 `122aaf109`（类型化 `Query<T>` 修复 + 路由面补齐）。
+- 45 个模块页的 `generated_hash` 随镜像刷新；新增 `source_timestamp` 用于新鲜度门禁。
+
+### 后端源码路径引用校正（47 个页面 / 103 处）
+
+- `synapse-rust/src/web/routes/…` → `synapse-rust/synapse-web/src/routes/…`（后端 crate 更名，此前仅 7 个页面已改）。
+- 目录模块补齐 `/mod.rs`：`federation`、`e2ee`（原 `e2ee_routes.rs`）、`media`、`oidc`、`handlers/room`、`handlers/search`。
+- `src/worker/types.rs` → `synapse-services/src/worker/types.rs`；
+  `src/services/database_initializer.rs` → `synapse-services/src/database_initializer/mod.rs`；
+  `migrations/00000000_unified_schema_v6.sql` → `…_v12.sql`。
+- `README.md`「当前明确排除」中原列的 `websocket.rs` 已随后端改造整体移除，该节改为空。
+
+### vendor 命名空间迁移回写（7 个页面 / 70 处）
+
+- 私有扩展模块（`burn-after-read`、`dm`、`room-summary`、`thread`、`voice`、`widget`、`room`）页面里的
+  `/_matrix/client/{r0,v1,v3}/…` 路径校正为 `/_matrix/vendor/v1/…` —— ISSUE-13 迁移此前只落到后端与
+  SDK `src/`，**契约页面从未回写**，按旧页面实现会 404。
+- 另修正 3 处**路径本身有误**的行：`room.md` 的 `POST /_matrix/client/v3/invite/{room_id}`
+  → `POST /_matrix/client/v3/rooms/{room_id}/invite`（缺 `rooms/` 段）；
+  粘性事件 `/_matrix/client/v3/rooms/{room_id}/sticky_events` → `/_matrix/client/unstable/org.matrix.msc4354/…`（MSC4354 命名空间）。
+- `voice.md` 路径参数名与后端注册模板对齐：`{message_id}` → `{media_id}`（响应体字段名 `message_id` 不变）。
+
+### 「挂载版本」表按 ledger 重建（9 个页面）
+
+- `thread`、`widget`、`presence`、`push`、`sync`、`room`、`room-summary`、`voice`、`media`：
+  原表声明与 ledger 不符 **28 条**（如 `sync` 的 `/_matrix/client/r0/*` 已整族退役、
+  `push` 的 r0 行、`presence` 的 r0 行、`thread`/`widget` 的全部 client 前缀）。
+  现由 `generated/modules/*.json` 派生，逐前缀列出相对路由。
+
+### 路由清单补全
+
+- `media.md` 由 20 条补到 **36 条**：新增分块上传家族（`chunk`/`chunk/start`/`chunk/complete`/`chunk/cancel`/`chunk/progress`）、
+  r0 全组、`download_signed` 与 authenticated media（`/_matrix/client/v1/media/*`）+ authenticated 缩略图；
+  并修正被合并的 `/_matrix/media/{v1,r0,v3}/config` 写法。
+
+### 索引与版本台账
+
+- `CONTRACT_INDEX.md`：后端提交戳更新；表中 **35 处**端点数订正为实测值；总览统计改为实测口径
+  （49 页 / `default` 1008、`worker` 1019、`all` 1027 / 平均覆盖 97.1%）。
+- `contract-version.yml`：重新生成（49 模块），补记 2 条此前未登记的破坏性变更
+  （r0 族退役、私有端点迁 vendor）。
+
+### 修复：`sdk-contract-codegen` 状态码抽取污染（12 个生成文件 / 23 行幻影）
+
+- 原实现把文档里**任意表格**首列的「三位数字」当 HTTP 状态码，导致持续注入幻影场景：
+  `msc3575` → `357`、`msc2666` → `266`、`msc4354` → `435`，以及变更记录表的日期 `2026-04-27` → `202`（13 处）。
+- 后果不止噪声：`__generated__/acceptance.spec.ts` 的「2xx happy-path」取场景表里第一个 2xx，
+  `moderation` 该类模块的 happy-path 因此**锚在日期行**上。
+- 现改为只认表头首列标注 `状态码`/`HTTP`/`Status` 的表（与 `extractErrorScenarios` 同口径），
+  生成物净删 23 行、无新增；既有状态码表产出逐字不变。
+
+### 图例修正
+
+- `api-contract-doc-paths` 门禁的「纯前缀提及」白名单补齐 `/_matrix/client/v<N>`（含 `/media`）形式，
+  避免把 `/_matrix/client/v4`、`/_matrix/client/v1/media` 这类命名空间列头误判为陈旧端点。
+
+### 历史条目路径说明
+
+- 本文档 2026-04-27 及更早条目里的 `synapse-rust/src/services/sync_service.rs` 等路径**保留原文**（历史留痕）；
+  该模块现位于后端 `synapse-services/src/sync_service/`。
+
 ## 2026-04-27
 
 ### 契约索引与模块归属修正
@@ -330,3 +412,4 @@
 - 版本前缀必须与代码一致
 - 未挂载文件不写入可达 API 契约
 - 复杂响应仅承诺代码中稳定可见字段
+- 跨切面契约事实（响应形态、认证头、错误码、限流头、分页模型、能力探测）以 README 的 `## 跨切面契约` 为唯一入口，模块页只描述模块特有差异；后端 docs/sdk 与本地 ledger 冲突时，路由与计数以 ledger 为准，语义以 docs/sdk 为准并标注待确认。

@@ -28,6 +28,31 @@ import { logger } from "../logger";
 import { ValidationError } from "../errors";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { AppServicePath } from "./__generated__/route-table";
+import type { ThirdpartyPath } from "../third-party/__generated__/route-table";
+import type { PathAssert, StripAdminV1, StripV1, StripV3 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言（**按前缀分设三个助手**，避免跨命名空间误匹配）。
+ *
+ * 本模块的 21 处路径横跨三个前缀：`AdminPrefix.V1`（`/_synapse/admin/v1`）、
+ * `ClientPrefix.V3`、`ClientPrefix.V1`。若只用一个助手链式剥离，`/_matrix/client/v1/...`
+ * 形态的调用点可能被 admin 表里的同名尾段放行，故按 prefix 分开断言。
+ *
+ * `cpu3` 另 union 了 `ThirdpartyPath`：本模块有 4 处 thirdparty 路由（`/thirdparty/*`），
+ * 它们在契约里属 **third-party** 模块（见 `src/third-party/__generated__/route-table.ts`），
+ * 与 `room-summary` 借 `RoomPath` 的做法同例。
+ */
+function apu<const P extends string>(path: P & PathAssert<P, StripAdminV1<AppServicePath>>): P {
+    return path;
+}
+function cpu3<const P extends string>(path: P & PathAssert<P, StripV3<AppServicePath | ThirdpartyPath>>): P {
+    return path;
+}
+function cpu1<const P extends string>(path: P & PathAssert<P, StripV1<AppServicePath>>): P {
+    return path;
+}
+
 export enum AppServiceEvent {
     ServiceRegistered = "ServiceRegistered",
     ServiceUpdated = "ServiceUpdated",
@@ -40,11 +65,14 @@ export enum AppServiceEvent {
  * - `id` 是 DB 行 id（i64）
  * - `as_id` 是业务 ID（和请求体 `id` 对应），**应该作为 Manager 的主键**
  * - `sender` 是后端从 `sender_localpart` 重命名后的字段
+ * - `url` **可为 `null`**：后端 `09c028a08` 起支持「无推送端点」的注册
+ *   （上游 `changelog.d/20273.bugfix`，bridge 双傀儡场景），序列化为 JSON `null`
+ *   而非 `""` —— 客户端要靠 `null` 才能区分「没有 url」与「url 是空串」。
  */
 export interface ApplicationServiceResponse {
     id: number;
     as_id: string;
-    url: string;
+    url: string | null;
     sender: string;
     description?: string;
     rate_limited: boolean;
@@ -58,7 +86,11 @@ export interface ApplicationService {
     as_id: string;
     /** DB 行 id；仅调试/关联用，不作为主键 */
     db_id?: number;
-    url: string;
+    /**
+     * 推送端点。**`null` = 该应用服务没有推送端点**（后端 `09c028a08` 起允许）——
+     * 它仍可用自己的 token 认证，但收不到任何事件、也无法被反向代理到。
+     */
+    url: string | null;
     as_token?: string;
     hs_token?: string;
     sender_localpart: string;
@@ -103,7 +135,7 @@ export interface UserAppservicesResponse {
     appservices: Array<{
         id?: string;
         as_id?: string;
-        url?: string;
+        url?: string | null;
         sender_localpart?: string;
         namespaces?: object;
         [key: string]: unknown;
@@ -136,7 +168,14 @@ export interface PingResult {
 export interface RegisterApplicationServiceRequest {
     /** 业务 ID（对应后端 RegisterAppServiceBody.id） */
     id: string;
-    url: string;
+    /**
+     * 推送端点。**可省略或显式给 `null`** —— 两者等价，表示注册一个
+     * 「无推送端点」的应用服务（后端 `09c028a08`，上游 20273）。
+     *
+     * ⚠️ **不接受空串**：后端会拒绝 `""` 并提示改用 `null`（空串会引入
+     * 「没有 url」与「url 是空串」的隐式约定）。SDK 在发起前就抛 `ValidationError`。
+     */
+    url?: string | null;
     as_token: string;
     hs_token: string;
     /** 发送者（本地部分），后端将其映射为 sender_localpart 存储 */
@@ -190,16 +229,73 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         };
     }
 
+    /**
+     * 注册一个新的应用服务（Application Service）。
+     *
+     * @remarks
+     * `url` **可省略或给 `null`**（两者等价）—— 注册一个「无推送端点」的应用服务，
+     * 它仍可用自己的 token 认证，但收不到事件、也不能被反向代理到
+     * （后端 `09c028a08`，上游 `changelog.d/20273.bugfix`）。
+     * 空串 `""` 会被**拒绝**：后端要求用 `null` 表达「没有 url」。
+     *
+     * @param request - 应用服务注册参数
+     * @returns 规范化后的应用服务对象
+     *
+     * @throws {ValidationError} 缺少必填字段、或 `url` 传了空串时抛出
+     * @throws {ApiError} 后端请求失败时透传
+     *
+     * @example
+     * ```typescript
+     * const service = await client.getAppServiceManager().registerAppService({
+     *     id: "my-appservice",
+     *     url: "https://as.example.org",
+     *     as_token: "as-token",
+     *     hs_token: "hs-token",
+     *     sender_localpart: "appservice",
+     * });
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // 无推送端点（bridge 双傀儡）：省略 url 或显式传 null 等价
+     * const puppet = await client.getAppServiceManager().registerAppService({
+     *     id: "my-bridge-puppet",
+     *     url: null,
+     *     as_token: "as-token",
+     *     hs_token: "hs-token",
+     *     sender_localpart: "puppet",
+     * });
+     * ```
+     */
     async registerAppService(request: RegisterApplicationServiceRequest): Promise<ApplicationService> {
-        if (!request.id || !request.url || !request.as_token || !request.hs_token || !request.sender_localpart) {
+        if (!request.id || !request.as_token || !request.hs_token || !request.sender_localpart) {
             throw new ValidationError("Missing required fields for application service registration");
         }
+        if (request.url === "") {
+            throw new ValidationError(
+                "Invalid application service url: empty string. Use `null` (or omit the field) to register without a push endpoint.",
+            );
+        }
 
+        // `url` 可选：「省略」与「显式 null」在后端都表示「无推送端点」。报文里直接放
+        // `request.url`：`undefined` 会被 `src/http-api/fetch.ts` 的 `JSON.stringify`
+        // **丢弃** ⇒ 等价于「不发该键」；显式 `null` 则原样发出（后端要靠 `null`
+        // 区分「没有 url」与「url 是空串」）。
+        //
+        // ⚠️ 下面两条是**门禁约束**，都实测踩过，改这段代码前务必读：
+        //   1. body 必须是**内联对象字面量** —— 改成 `...(cond ? {url} : {})` 展开、
+        //      或先 `const body = …` 再传，`quality:wire-format` 的抽取器就判不出键集，
+        //      该调用点会落进 `sdk-keys-unknown` 覆盖桶（实测桶 50 → 51）。
+        //   2. **注释不能夹在这个请求规格对象的属性之间**（尤其别紧贴 `body:` 前面）——
+        //      抽取器按顶层逗号切块，块首是 `//` 时整块被当纯注释 ⇒ 被注释"粘住"的那个
+        //      属性直接消失。落在 `body:` 上会被读成「确定不发 body」，凭空报 3 条
+        //      `request-required-missing`；落在 `method:`/`path:` 上则该调用点被
+        //      **静默丢弃**（不进 calls 也不进 unchecked，分母变小）。
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Post,
-                    path: "/appservices",
+                    path: apu("/appservices"),
                     body: {
                         id: request.id,
                         url: request.url,
@@ -226,6 +322,17 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 按业务 ID 获取应用服务；命中本地缓存则直接返回。
+     *
+     * @param asId - 应用服务业务 ID
+     * @returns 应用服务对象；不存在时返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const service = await client.getAppServiceManager().getApplicationService("my-appservice");
+     * ```
+     */
     async getApplicationService(asId: string): Promise<ApplicationService | null> {
         if (this.services.has(asId)) {
             return this.services.get(asId) || null;
@@ -235,7 +342,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Get,
-                    path: `/appservices/${encodeURIComponent(asId)}`,
+                    path: apu(`/appservices/${encodeURIComponent(asId)}`),
                     prefix: AdminPrefix.V1,
                 });
             }, "getApplicationService");
@@ -251,15 +358,44 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 更新指定应用服务的配置。
+     *
+     * @remarks
+     * `url` 的三个态在本接口上**不等价**（对齐后端 `COALESCE($2, url)` 语义）：
+     * 省略 或 `null` 都表示「不改动 url」；只有非空的 URL 字符串才会写入。
+     * 也就是说经本接口**无法把 url 改回「无推送端点」** —— 空串会被拒绝
+     * （后端也会拒绝，且要求用 `null` 表达该语义，但 `null` 在此表示"不改"）。
+     *
+     * @param asId - 应用服务业务 ID
+     * @param request - 需要更新的字段
+     * @returns 更新后的应用服务对象
+     *
+     * @throws {ValidationError} `url` 传了空串时抛出
+     * @throws {ApiError} 后端请求失败时透传
+     *
+     * @example
+     * ```typescript
+     * const updated = await client
+     *     .getAppServiceManager()
+     *     .updateApplicationService("my-appservice", { url: "https://new.example.org" });
+     * ```
+     */
     async updateApplicationService(
         asId: string,
         request: UpdateApplicationServiceRequest,
     ): Promise<ApplicationService> {
+        if (request.url === "") {
+            throw new ValidationError(
+                "Invalid application service url: empty string. Omit the field to keep the current url unchanged.",
+            );
+        }
+
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse>({
                     method: Method.Put,
-                    path: `/appservices/${encodeURIComponent(asId)}`,
+                    path: apu(`/appservices/${encodeURIComponent(asId)}`),
                     body: request,
                     prefix: AdminPrefix.V1,
                 });
@@ -283,12 +419,25 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 注销指定应用服务。
+     *
+     * @param asId - 应用服务业务 ID
+     * @returns 注销完成时 resolves
+     *
+     * @throws {ApiError} 后端请求失败时透传
+     *
+     * @example
+     * ```typescript
+     * await client.getAppServiceManager().unregisterApplicationService("my-appservice");
+     * ```
+     */
     async unregisterApplicationService(asId: string): Promise<void> {
         try {
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Delete,
-                    path: `/appservices/${encodeURIComponent(asId)}`,
+                    path: apu(`/appservices/${encodeURIComponent(asId)}`),
                     prefix: AdminPrefix.V1,
                 });
             }, "unregisterApplicationService");
@@ -301,12 +450,22 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 列出当前注册的全部应用服务。
+     *
+     * @returns 应用服务数组；请求失败时回退到本地缓存
+     *
+     * @example
+     * ```typescript
+     * const services = await client.getAppServiceManager().listApplicationServices();
+     * ```
+     */
     async listApplicationServices(): Promise<ApplicationService[]> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceResponse[] | { services?: ApplicationServiceResponse[] }>({
                     method: Method.Get,
-                    path: "/appservices",
+                    path: apu("/appservices"),
                     prefix: AdminPrefix.V1,
                 });
             }, "listApplicationServices");
@@ -329,6 +488,11 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
      * 对应后端 `GET /_matrix/client/v3/appservice/user`，handler 使用 `AdminUser` 提取器，
      * 因此必须以**服务器管理员**身份调用；使用普通用户 access token 会直接 401/403。
      * 同一逻辑也挂在 `GET /_synapse/admin/v1/appservices/query/user`，推荐管理面板走该路径。
+     *
+     * @example
+     * ```typescript
+     * const inNamespace = await client.getAppServiceManager().checkUserId("@alice:example.org");
+     * ```
      */
     async checkUserId(userId: string): Promise<boolean> {
         try {
@@ -338,7 +502,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                     application_service?: string | null;
                 }>({
                     method: Method.Get,
-                    path: "/appservice/user",
+                    path: cpu3("/appservice/user"),
                     queryParams: { user_id: userId },
                     prefix: ClientPrefix.V3,
                 });
@@ -358,6 +522,11 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
      *
      * @remarks
      * 对应后端 `GET /_matrix/client/v3/appservice/alias`，同样需要管理员权限。见 {@link checkUserId}。
+     *
+     * @example
+     * ```typescript
+     * const inNamespace = await client.getAppServiceManager().checkAlias("#room:example.org");
+     * ```
      */
     async checkAlias(alias: string): Promise<boolean> {
         try {
@@ -367,7 +536,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                     application_service?: string | null;
                 }>({
                     method: Method.Get,
-                    path: "/appservice/alias",
+                    path: cpu3("/appservice/alias"),
                     queryParams: { alias },
                     prefix: ClientPrefix.V3,
                 });
@@ -382,12 +551,23 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 获取指定用户关联的应用服务信息。
+     *
+     * @param userId - 用户 ID
+     * @returns 用户关联的应用服务响应；请求失败时返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getAppServiceManager().getUserAppservices("@alice:example.org");
+     * ```
+     */
     async getUserAppservices(userId: string): Promise<UserAppservicesResponse | null> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<UserAppservicesResponse>({
                     method: Method.Get,
-                    path: `/user/${encodeURIComponent(userId)}/appservice`,
+                    path: cpu1(`/user/${encodeURIComponent(userId)}/appservice`),
                     prefix: ClientPrefix.V1,
                 });
             }, "getUserAppservices");
@@ -398,6 +578,17 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 探测指定应用服务的连通性并返回耗时。
+     *
+     * @param serviceId - 应用服务业务 ID
+     * @returns 包含往返耗时的结果；失败时 `duration` 为 `-1`
+     *
+     * @example
+     * ```typescript
+     * const { duration } = await client.getAppServiceManager().pingApplicationService("my-appservice");
+     * ```
+     */
     async pingApplicationService(serviceId: string): Promise<PingResult> {
         try {
             const startTime = Date.now();
@@ -405,7 +596,7 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
             await this.withRetry(async () => {
                 return await this.request({
                     method: Method.Post,
-                    path: `/appservices/${encodeURIComponent(serviceId)}/ping`,
+                    path: apu(`/appservices/${encodeURIComponent(serviceId)}/ping`),
                     prefix: AdminPrefix.V1,
                 });
             }, "pingApplicationService");
@@ -417,12 +608,23 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 获取指定第三方协议的定义。
+     *
+     * @param protocol - 协议标识
+     * @returns 协议定义；请求失败时返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const protocol = await client.getAppServiceManager().getProtocol("irc");
+     * ```
+     */
     async getProtocol(protocol: string): Promise<ApplicationServiceProtocol | null> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceProtocol>({
                     method: Method.Get,
-                    path: `/thirdparty/protocol/${encodeURIComponent(protocol)}`,
+                    path: cpu3(`/thirdparty/protocol/${encodeURIComponent(protocol)}`),
                     prefix: ClientPrefix.V3,
                 });
             }, "getProtocol");
@@ -435,12 +637,22 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 获取服务器支持的全部第三方协议标识。
+     *
+     * @returns 协议标识数组；请求失败时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const protocols = await client.getAppServiceManager().getProtocols();
+     * ```
+     */
     async getProtocols(): Promise<string[]> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<Record<string, ApplicationServiceProtocol>>({
                     method: Method.Get,
-                    path: "/thirdparty/protocols",
+                    path: cpu3("/thirdparty/protocols"),
                     prefix: ClientPrefix.V3,
                 });
             }, "getProtocols");
@@ -453,12 +665,24 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 按第三方协议字段查询用户。
+     *
+     * @param protocol - 协议标识
+     * @param fields - 协议查询字段
+     * @returns 匹配的用户数组；请求失败时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const users = await client.getAppServiceManager().queryUsers("irc", { nick: "alice" });
+     * ```
+     */
     async queryUsers(protocol: string, fields: Record<string, string>): Promise<ApplicationServiceUser[]> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<ApplicationServiceUser[]>({
                     method: Method.Get,
-                    path: `/thirdparty/user/${encodeURIComponent(protocol)}`,
+                    path: cpu3(`/thirdparty/user/${encodeURIComponent(protocol)}`),
                     queryParams: fields,
                     prefix: ClientPrefix.V3,
                 });
@@ -472,12 +696,24 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 按第三方协议字段查询位置。
+     *
+     * @param protocol - 协议标识
+     * @param fields - 协议查询字段
+     * @returns 匹配的位置数组；请求失败时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const locations = await client.getAppServiceManager().queryLocations("irc", { channel: "#matrix" });
+     * ```
+     */
     async queryLocations(protocol: string, fields: Record<string, string>): Promise<unknown[]> {
         try {
             const response = await this.withRetry(async () => {
                 return await this.request<unknown[]>({
                     method: Method.Get,
-                    path: `/thirdparty/location/${encodeURIComponent(protocol)}`,
+                    path: cpu3(`/thirdparty/location/${encodeURIComponent(protocol)}`),
                     queryParams: fields,
                     prefix: ClientPrefix.V3,
                 });
@@ -491,6 +727,17 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 从本地缓存读取应用服务。
+     *
+     * @param serviceId - 应用服务业务 ID
+     * @returns 缓存的应用服务对象；不存在时返回 `null`
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getAppServiceManager().getCachedService("my-appservice");
+     * ```
+     */
     getCachedService(serviceId: string): ApplicationService | null {
         return this.services.get(serviceId) || null;
     }
@@ -501,16 +748,42 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
     // events, statistics, query/user, query/alias) that were previously unreachable
     // from the SDK.
 
+    /**
+     * 获取指定应用服务的状态条目列表。
+     *
+     * @param asId - 应用服务业务 ID
+     * @returns 状态条目数组
+     *
+     * @example
+     * ```typescript
+     * const state = await client.getAppServiceManager().getApplicationServiceState("my-appservice");
+     * ```
+     */
     async getApplicationServiceState(asId: string): Promise<ApplicationServiceStateEntry[]> {
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/state`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/state`),
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceState");
     }
 
+    /**
+     * 设置指定应用服务的状态条目。
+     *
+     * @param asId - 应用服务业务 ID
+     * @param stateKey - 状态键
+     * @param value - 状态值
+     * @returns 设置完成时 resolves
+     *
+     * @example
+     * ```typescript
+     * await client
+     *     .getAppServiceManager()
+     *     .setApplicationServiceState("my-appservice", "enabled", true);
+     * ```
+     */
     async setApplicationServiceState(asId: string, stateKey: string, value: unknown): Promise<void> {
         await this.withRetry(async () => {
             return await this.request({
@@ -519,35 +792,73 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                 // 原先的 `PUT .../state/{state_key}` 两边都不存在（上游 `synapse/rest/admin/`
                 // 根本没有 appservice 模块）—— 2026-10-01 契约核对后按后端形状改正。
                 method: Method.Post,
-                path: `/appservices/${encodeURIComponent(asId)}/state`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/state`),
                 body: { state_key: stateKey, state_value: value },
                 prefix: AdminPrefix.V1,
             });
         }, "setApplicationServiceState");
     }
 
+    /**
+     * 列出指定应用服务管理的用户。
+     *
+     * @param asId - 应用服务业务 ID
+     * @returns 包含用户数组的对象
+     *
+     * @example
+     * ```typescript
+     * const { users } = await client.getAppServiceManager().listApplicationServiceUsers("my-appservice");
+     * ```
+     */
     async listApplicationServiceUsers(asId: string): Promise<{ users: ApplicationServiceUser[] }> {
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/users`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/users`),
                 prefix: AdminPrefix.V1,
             });
         }, "listApplicationServiceUsers");
     }
 
+    /**
+     * 获取指定应用服务的命名空间配置。
+     *
+     * @param asId - 应用服务业务 ID
+     * @returns 命名空间原始 JSON 对象
+     *
+     * @example
+     * ```typescript
+     * const namespaces = await client
+     *     .getAppServiceManager()
+     *     .getApplicationServiceNamespaces("my-appservice");
+     * ```
+     */
     async getApplicationServiceNamespaces(
         asId: string,
     ): Promise<Record<string, unknown> /* Dynamic: namespaces stored as raw JSON */> {
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/namespaces`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/namespaces`),
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceNamespaces");
     }
 
+    /**
+     * 分页列出指定应用服务的事件。
+     *
+     * @param asId - 应用服务业务 ID
+     * @param params - 分页参数，`limit` 限制条数、`from` 为续页令牌
+     * @returns 包含事件数组与可选 `next_token` 的分页结果
+     *
+     * @example
+     * ```typescript
+     * const { events, next_token } = await client
+     *     .getAppServiceManager()
+     *     .listApplicationServiceEvents("my-appservice", { limit: 50 });
+     * ```
+     */
     async listApplicationServiceEvents(
         asId: string,
         params: { limit?: number; from?: string } = {},
@@ -558,13 +869,23 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         return this.withRetry(async () => {
             return await this.request({
                 method: Method.Get,
-                path: `/appservices/${encodeURIComponent(asId)}/events`,
+                path: apu(`/appservices/${encodeURIComponent(asId)}/events`),
                 queryParams: q,
                 prefix: AdminPrefix.V1,
             });
         }, "listApplicationServiceEvents");
     }
 
+    /**
+     * 获取应用服务的全局统计信息。
+     *
+     * @returns 随后端版本变化的统计信息原始 JSON 对象
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getAppServiceManager().getApplicationServiceStatistics();
+     * ```
+     */
     async getApplicationServiceStatistics(): Promise<
         Record<string, unknown> /* Dynamic: statistics shape varies by backend version */
     > {
@@ -573,45 +894,99 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
                 // 后端是**全局**统计（`app_service.rs::get_statistics`，路径里没有 `{as_id}`）——
                 // SDK 原先的 `.../{as}/statistics` 形状后端与上游都没有 ⇒ 参数一并去掉。
                 method: Method.Get,
-                path: "/appservices/statistics",
+                path: apu("/appservices/statistics"),
                 prefix: AdminPrefix.V1,
             });
         }, "getApplicationServiceStatistics");
     }
 
+    /**
+     * 查询哪个应用服务管理指定用户。
+     *
+     * @param userId - 待查询的用户 ID
+     * @returns 用户与所属应用服务的查询结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client
+     *     .getAppServiceManager()
+     *     .queryApplicationServiceUser("@alice:example.org");
+     * ```
+     */
     async queryApplicationServiceUser(userId: string): Promise<ApplicationServiceQueryUserResult> {
         return this.withRetry(async () => {
             return await this.request({
                 // 后端：`GET .../appservices/query/user?user_id=…`（`query_user` 用 `Query<QueryUser>`），
                 // 语义是"哪个 AS 管理该 user" ⇒ 不需要 `asId`。
                 method: Method.Get,
-                path: "/appservices/query/user",
+                path: apu("/appservices/query/user"),
                 queryParams: { user_id: userId },
                 prefix: AdminPrefix.V1,
             });
         }, "queryApplicationServiceUser");
     }
 
+    /**
+     * 查询哪个应用服务管理指定别名。
+     *
+     * @param alias - 待查询的房间别名（形如 `#room:example.org`）
+     * @returns 别名与所属应用服务的查询结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client
+     *     .getAppServiceManager()
+     *     .queryApplicationServiceAlias("#room:example.org");
+     * ```
+     */
     async queryApplicationServiceAlias(alias: string): Promise<ApplicationServiceQueryAliasResult> {
         return this.withRetry(async () => {
             return await this.request({
                 // 同 `queryApplicationServiceUser`：`GET .../appservices/query/alias?alias=…`。
                 method: Method.Get,
-                path: "/appservices/query/alias",
+                path: apu("/appservices/query/alias"),
                 queryParams: { alias },
                 prefix: AdminPrefix.V1,
             });
         }, "queryApplicationServiceAlias");
     }
 
+    /**
+     * 获取本地缓存中已加载的全部应用服务。
+     *
+     * @returns 缓存中的应用服务数组
+     *
+     * @example
+     * ```typescript
+     * const services = client.getAppServiceManager().getCachedServices();
+     * ```
+     */
     getCachedServices(): ApplicationService[] {
         return Array.from(this.services.values());
     }
 
+    /**
+     * 清空本地应用服务缓存。
+     *
+     * @example
+     * ```typescript
+     * client.getAppServiceManager().clearCache();
+     * ```
+     */
     clearCache(): void {
         this.services.clear();
     }
 
+    /**
+     * 启动管理器并预加载应用服务列表。
+     *
+     * 若已初始化则直接返回；加载失败时记录警告且不抛出。
+     *
+     * @example
+     * ```typescript
+     * await client.getAppServiceManager().start();
+     * ```
+     */
     async start(): Promise<void> {
         if (this.initialized) return;
 
@@ -623,6 +998,14 @@ export class ApplicationServiceManager extends BaseManager<AppServiceEvent, Appl
         }
     }
 
+    /**
+     * 停止管理器并清空缓存与初始化标记。
+     *
+     * @example
+     * ```typescript
+     * client.getAppServiceManager().stop();
+     * ```
+     */
     stop(): void {
         this.services.clear();
         this.initialized = false;

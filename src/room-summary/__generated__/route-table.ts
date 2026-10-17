@@ -3,7 +3,7 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Room Summary 模块契约
- * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Source:        docs/api-contract/generated/modules/room_summary.json
  * Entries:       21 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 

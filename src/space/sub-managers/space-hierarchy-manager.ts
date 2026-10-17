@@ -49,12 +49,29 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         this.parent = parent;
     }
 
-    /** 清空层级缓存（供顶层 SpaceManager.clearCache 委托） */
+    /**
+     * 清空层级缓存（供顶层 SpaceManager.clearCache 委托）。
+     *
+     * @example
+     * ```typescript
+     * client.getSpaceManager().hierarchy.clearHierarchyCache();
+     * ```
+     */
     clearHierarchyCache(): void {
         this.hierarchyCache.invalidate(["*"]);
     }
 
-    /** 获取缓存统计信息（供性能监控使用） */
+    /**
+     * 获取缓存统计信息（供性能监控使用）。
+     *
+     * @returns 缓存条目数、命中次数、未命中次数与命中率。
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getSpaceManager().hierarchy.getCacheStats();
+     * console.log(`命中率 ${(stats.hitRate * 100).toFixed(1)}%（${stats.size} 条）`);
+     * ```
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         const stats = this.hierarchyCache.getStats();
         return {
@@ -137,6 +154,24 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         return hierarchy;
     }
 
+    /**
+     * 分页获取 Space 层级（`/_matrix/client/v3` 的 `hierarchy` 端点）。
+     *
+     * 与 `getSpaceHierarchy` 不同，本方法不做本地缓存，把 `options` 直接透传给后端，
+     * 适合按 `from` / `limit` 翻页遍历大型层级。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param options - 分页与查询参数（如 `limit` / `from` / `max_depth`）。
+     * @returns 层级分页结果：`rooms` 为当前页房间列表，`next_batch` 为下一页游标。
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getSpaceManager().hierarchy.getSpaceHierarchyPage(spaceId, { limit: 20 });
+     * console.log(`本页 ${page.rooms?.length ?? 0} 个房间，下一页 ${page.next_batch ?? "无"}`);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getSpaceHierarchyPage(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
         try {
             return await this.withRetry(async () => {
@@ -152,6 +187,24 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * 分页获取 Space 层级（`hierarchy/v1` 变体）。
+     *
+     * 与 `getSpaceHierarchyPage` 取同一份数据，仅路径带 `/v1`；后端对 v1/v3 双份注册，
+     * 需要显式命中 v1 语义时使用。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param options - 分页与查询参数（如 `limit` / `from` / `max_depth`）。
+     * @returns 层级分页结果：`rooms` 为当前页房间列表，`next_batch` 为下一页游标。
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getSpaceManager().hierarchy.getSpaceHierarchyV1(spaceId, { limit: 20 });
+     * console.log(page.rooms ?? []);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getSpaceHierarchyV1(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
         try {
             return await this.withRetry(async () => {
@@ -167,6 +220,24 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * 获取 Space 摘要（`/_matrix/vendor/v1/spaces/{spaceId}/summary`）。
+     *
+     * 摘要只含概览字段，不展开子房间明细，适合列表/卡片场景。返回结构较宽松，
+     * 未做归一化，请按需读取字段。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param options - 查询参数（透传给后端）。
+     * @returns 后端原始摘要对象。
+     *
+     * @example
+     * ```typescript
+     * const summary = await client.getSpaceManager().hierarchy.getSpaceSummary(spaceId);
+     * console.log(summary);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getSpaceSummary(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
@@ -182,6 +253,24 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * 获取 Space 摘要，并附带子房间（`.../summary/with_children`）。
+     *
+     * 相比 `getSpaceSummary` 会多展开一层子房间，适合需要展示「Space + 其直属房间」
+     * 的层级视图。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param options - 查询参数（透传给后端）。
+     * @returns 含子房间的后端原始摘要对象。
+     *
+     * @example
+     * ```typescript
+     * const summary = await client.getSpaceManager().hierarchy.getSpaceSummaryWithChildren(spaceId);
+     * console.log(summary);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getSpaceSummaryWithChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {
@@ -197,6 +286,23 @@ export class SpaceHierarchyManager extends BaseManager<SpaceEvent, SpaceManagerE
         }
     }
 
+    /**
+     * 获取从根 Space 到目标 Space 的树路径（`.../tree_path`）。
+     *
+     * 用于面包屑导航或判断 Space 的祖先链。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param options - 查询参数（透传给后端）。
+     * @returns 后端原始树路径对象。
+     *
+     * @example
+     * ```typescript
+     * const path = await client.getSpaceManager().hierarchy.getSpaceTreePath(spaceId);
+     * console.log(path);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getSpaceTreePath(spaceId: string, options: SpaceQueryOptions = {}): Promise<JsonObject> {
         try {
             return await this.withRetry(async () => {

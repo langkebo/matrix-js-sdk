@@ -1,7 +1,7 @@
 ---
 module: thread
 generated_from: docs/api-contract/generated/modules/thread.json
-generated_hash: sha256-45648d05acf7804646a303a3728729cef3af479b3e4f7b9aa8c78ddfc3ab517b
+generated_hash: sha256-42923ba0ff9f9b17ae7944c65cc32211adbc4bcba650461abbd4cc52ab21e3cb
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -11,15 +11,15 @@ last_reviewed: 2026-05-03
 > 版本: v1.0.0
 > 更新日期: 2026-04-13
 > 对应 SDK 模块: `src/threading/index.ts`、`src/client-timeline-requests.ts`
-> 审查来源: `synapse-rust/src/web/routes/handlers/thread.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/handlers/thread.rs`
 > 审计状态: ✅ `thread.rs` 的 21 个外部端点已全部具备对应 SDK REST 封装，并已绑定生成 `ThreadPathPattern`
 
 ## 挂载版本
 
-| 前缀                 | 路由                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/_matrix/client/v1` | `/threads`、`/threads/subscribed`、`/threads/unread`、`/rooms/{room_id}/threads`、`/rooms/{room_id}/threads/search`、`/rooms/{room_id}/threads/unread`、`/rooms/{room_id}/threads/{thread_id}`、`/rooms/{room_id}/threads/{thread_id}/freeze`、`/rooms/{room_id}/threads/{thread_id}/unfreeze`、`/rooms/{room_id}/threads/{thread_id}/replies`、`/rooms/{room_id}/threads/{thread_id}/subscribe`、`/rooms/{room_id}/threads/{thread_id}/unsubscribe`、`/rooms/{room_id}/threads/{thread_id}/mute`、`/rooms/{room_id}/threads/{thread_id}/read`、`/rooms/{room_id}/threads/{thread_id}/stats`、`/rooms/{room_id}/replies/{event_id}/redact` |
-| `/_matrix/client/v3` | `/user/{user_id}/rooms/{room_id}/threads`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 前缀                 | 路由                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/_matrix/client/v1` | `/rooms/{room_id}/threads`、`/rooms/{room_id}/threads/{thread_id}`、`/rooms/{room_id}/threads/{thread_id}/replies`、`/rooms/{room_id}/threads/{thread_id}/subscribe`、`/rooms/{room_id}/threads/{thread_id}/unsubscribe`                                                                                                                                                                                                                                                                                                        |
+| `/_matrix/vendor/v1` | `/rooms/{room_id}/replies/{event_id}/redact`、`/rooms/{room_id}/threads`、`/rooms/{room_id}/threads/search`、`/rooms/{room_id}/threads/unread`、`/rooms/{room_id}/threads/{thread_id}`、`/rooms/{room_id}/threads/{thread_id}/freeze`、`/rooms/{room_id}/threads/{thread_id}/mute`、`/rooms/{room_id}/threads/{thread_id}/read`、`/rooms/{room_id}/threads/{thread_id}/stats`、`/rooms/{room_id}/threads/{thread_id}/unfreeze`、`/threads`、`/threads/subscribed`、`/threads/unread`、`/user/{user_id}/rooms/{room_id}/threads` |
 
 ## 路由清单
 
@@ -29,23 +29,23 @@ last_reviewed: 2026-05-03
 | POST   | `/_matrix/vendor/v1/threads`                                         | 全局创建线程         | 用户     |
 | GET    | `/_matrix/vendor/v1/threads/subscribed`                              | 获取已订阅线程       | 用户     |
 | GET    | `/_matrix/vendor/v1/threads/unread`                                  | 获取全局未读线程     | 用户     |
-| GET    | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads`          | 兼容旧版线程搜索列表 | 用户     |
+| GET    | `/_matrix/vendor/v1/user/{user_id}/rooms/{room_id}/threads`          | 兼容旧版线程搜索列表 | 用户     |
 | POST   | `/_matrix/client/v1/rooms/{room_id}/threads`                         | 在房间内创建线程     | 用户     |
 | GET    | `/_matrix/client/v1/rooms/{room_id}/threads`                         | 获取房间线程列表     | 用户     |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/threads/search`                  | 搜索房间线程         | 用户     |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/threads/unread`                  | 获取房间未读线程     | 用户     |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/threads/search`                  | 搜索房间线程         | 用户     |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/threads/unread`                  | 获取房间未读线程     | 用户     |
 | GET    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}`             | 获取线程详情         | 可选认证 |
 | DELETE | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}`             | 删除线程             | 用户     |
-| POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/freeze`      | 冻结线程             | 用户     |
-| POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unfreeze`    | 解冻线程             | 用户     |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze`      | 冻结线程             | 用户     |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze`    | 解冻线程             | 用户     |
 | POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | 添加回复             | 用户     |
 | GET    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | 获取回复列表         | 用户     |
 | POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe`   | 订阅线程             | 用户     |
 | POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe` | 取消订阅线程         | 用户     |
-| POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/mute`        | 静音线程             | 用户     |
-| POST   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/read`        | 标记线程已读         | 用户     |
-| GET    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/stats`       | 获取线程统计         | 用户     |
-| POST   | `/_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact`       | 撤回回复             | 用户     |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute`        | 静音线程             | 用户     |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read`        | 标记线程已读         | 用户     |
+| GET    | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/stats`       | 获取线程统计         | 用户     |
+| POST   | `/_matrix/vendor/v1/rooms/{room_id}/replies/{event_id}/redact`       | 撤回回复             | 用户     |
 
 ## 请求体与稳定响应
 
@@ -85,7 +85,7 @@ last_reviewed: 2026-05-03
 
 ### 兼容旧版搜索接口
 
-- `GET /_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads` 支持查询参数 `limit`、`from`、`include_all`，调用同一 service，但响应被重写为 `{ "chunk": [...], "next_batch": ... }`
+- `GET /_matrix/vendor/v1/user/{user_id}/rooms/{room_id}/threads` 支持查询参数 `limit`、`from`、`include_all`，调用同一 service，但响应被重写为 `{ "chunk": [...], "next_batch": ... }`
 - `chunk` 中稳定字段仅包含 `event_id`、`sender`、`content`、`origin_server_ts`
 
 ## 常见状态码
@@ -103,27 +103,27 @@ last_reviewed: 2026-05-03
 
 | 后端端点                                                                  | SDK 模块           | 方法                        | 现状                                                                                   |
 | ------------------------------------------------------------------------- | ------------------ | --------------------------- | -------------------------------------------------------------------------------------- |
-| `GET /_matrix/client/v1/threads`                                          | `ThreadingManager` | `getGlobalThreadList()`     | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/threads/subscribed`                               | `ThreadingManager` | `getSubscribedThreads()`    | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/threads/unread`                                   | `ThreadingManager` | `getGlobalUnreadThreads()`  | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v3/user/{user_id}/rooms/{room_id}/threads`           | `ThreadingManager` | `getLegacyRoomThreadList()` | ✅ 已直接封装；现已补齐 `include_all` 查询支持                                         |
-| `POST /_matrix/client/v1/threads`                                         | `ThreadingManager` | `createGlobalThread()`      | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/threads`                                          | `ThreadingManager` | `getGlobalThreadList()`     | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/threads/subscribed`                               | `ThreadingManager` | `getSubscribedThreads()`    | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/threads/unread`                                   | `ThreadingManager` | `getGlobalUnreadThreads()`  | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/user/{user_id}/rooms/{room_id}/threads`           | `ThreadingManager` | `getLegacyRoomThreadList()` | ✅ 已直接封装；现已补齐 `include_all` 查询支持                                         |
+| `POST /_matrix/vendor/v1/threads`                                         | `ThreadingManager` | `createGlobalThread()`      | ✅ 已直接封装                                                                          |
 | `POST /_matrix/client/v1/rooms/{room_id}/threads`                         | `ThreadingManager` | `createRoomThread()`        | ✅ 已直接封装                                                                          |
 | `GET /_matrix/client/v1/rooms/{room_id}/threads`                          | `ThreadingManager` | `getRoomThreadList()`       | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/rooms/{room_id}/threads/search`                   | `ThreadingManager` | `searchRoomThreads()`       | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/rooms/{room_id}/threads/unread`                   | `ThreadingManager` | `getRoomUnreadThreads()`    | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/rooms/{room_id}/threads/search`                   | `ThreadingManager` | `searchRoomThreads()`       | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/rooms/{room_id}/threads/unread`                   | `ThreadingManager` | `getRoomUnreadThreads()`    | ✅ 已直接封装                                                                          |
 | `GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}`              | `ThreadingManager` | `getRoomThread()`           | ✅ 已直接封装；`RoomSummaryManager.getRoomThreadById()` 仍调用另一条 `v3` summary 路径 |
 | `DELETE /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}`           | `ThreadingManager` | `deleteRoomThread()`        | ✅ 已直接封装                                                                          |
-| `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/freeze`      | `ThreadingManager` | `freezeThread()`            | ✅ 已直接封装                                                                          |
-| `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unfreeze`    | `ThreadingManager` | `unfreezeThread()`          | ✅ 已直接封装                                                                          |
+| `POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze`      | `ThreadingManager` | `freezeThread()`            | ✅ 已直接封装                                                                          |
+| `POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze`    | `ThreadingManager` | `unfreezeThread()`          | ✅ 已直接封装                                                                          |
 | `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | `ThreadingManager` | `addThreadReply()`          | ✅ 已直接封装                                                                          |
 | `GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`      | `ThreadingManager` | `getThreadReplies()`        | ✅ 已直接封装                                                                          |
 | `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe`   | `ThreadingManager` | `subscribeToThread()`       | ✅ 已直接封装                                                                          |
 | `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe` | `ThreadingManager` | `unsubscribeFromThread()`   | ✅ 已直接封装                                                                          |
-| `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/mute`        | `ThreadingManager` | `muteThread()`              | ✅ 已直接封装                                                                          |
-| `POST /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/read`        | `ThreadingManager` | `markThreadRead()`          | ✅ 已直接封装                                                                          |
-| `GET /_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/stats`        | `ThreadingManager` | `getThreadStats()`          | ✅ 已直接封装                                                                          |
-| `POST /_matrix/client/v1/rooms/{room_id}/replies/{event_id}/redact`       | `ThreadingManager` | `redactThreadReply()`       | ✅ 已直接封装                                                                          |
+| `POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute`        | `ThreadingManager` | `muteThread()`              | ✅ 已直接封装                                                                          |
+| `POST /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read`        | `ThreadingManager` | `markThreadRead()`          | ✅ 已直接封装                                                                          |
+| `GET /_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/stats`        | `ThreadingManager` | `getThreadStats()`          | ✅ 已直接封装                                                                          |
+| `POST /_matrix/vendor/v1/rooms/{room_id}/replies/{event_id}/redact`       | `ThreadingManager` | `redactThreadReply()`       | ✅ 已直接封装                                                                          |
 
 ## 当前对齐结论
 
@@ -146,6 +146,41 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/handlers/thread.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/handlers/thread.rs`
 - SDK 线程能力: `matrix-js-sdk/src/threading/index.ts`
 - SDK 路径构造: `matrix-js-sdk/src/client-timeline-requests.ts`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 线程内发消息仍走普通 send
+
+- 在线程里发消息不经过上表任一接口，而是复用普通发送路由：`PUT /_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`（也接受 `POST`）。
+- 上表的 `POST /rooms/{room_id}/threads/{thread_id}/replies` 是 SDK 侧仓库化的线程回复入口，不是 Matrix 客户端协议里线程消息的传输路径；两者不要混用理解。
+
+### `m.relates_to` 形状
+
+- 线程消息的 content 必须携带：
+
+```json
+{
+    "m.relates_to": {
+        "rel_type": "m.thread",
+        "event_id": "$thread_root_event_id",
+        "is_falling_back": true,
+        "m.in_reply_to": { "event_id": "$last_related_event_id" }
+    }
+}
+```
+
+- `rel_type` 固定为 `m.thread`；`event_id` 指向线程根事件，不是线程 ID。
+- `m.in_reply_to.event_id` 指向线程内最近一条相关事件；缺省时按根事件处理。
+
+### `is_falling_back` 与能力门控
+
+- `is_falling_back: true` 表示该消息同时可作为普通回复展示，供不支持线程的客户端降级渲染；支持线程的客户端应忽略该回退语义。
+- 线程能力由 `GET /_matrix/client/v3/capabilities` 的 `capabilities.m.thread.enabled` 门控，当前后端返回 `true`。为 `false` 时不要发送线程关系，应退化为普通消息 + `m.in_reply_to`。
+
+### 线程内撤回
+
+- 撤回线程消息使用普通撤回路由：`PUT|POST /_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}`，`txn_id` 必填。
+- 撤回后的消息保留 `m.relates_to`，服务端在 `unsigned.redacted_because` 中给出撤回事件，线程回复计数据此递减。

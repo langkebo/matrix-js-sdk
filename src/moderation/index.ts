@@ -41,6 +41,7 @@ export class ModerationManager extends BaseManager {
      * 举报事件
      * 对应 POST /_matrix/client/v3/rooms/{room_id}/report/{event_id}
      *
+     * @throws 上报失败时抛出归一化后的错误
      * @example
      * ```typescript
      * await client.getModerationManager().reportEvent("!room:example.org", "$eventId", {
@@ -74,6 +75,7 @@ export class ModerationManager extends BaseManager {
      * 举报房间
      * 对应 POST /_matrix/client/v3/rooms/{room_id}/report
      *
+     * @throws 上报失败时抛出归一化后的错误
      * @example
      * ```typescript
      * await client.getModerationManager().reportRoom("!room:example.org", {
@@ -104,6 +106,15 @@ export class ModerationManager extends BaseManager {
     /**
      * 更新举报分值
      * 对应 PUT /_matrix/client/v3/rooms/{room_id}/report/{event_id}/score
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @param score - 新的举报分值
+     * @throws 更新失败时抛出归一化后的错误
+     * @example
+     * ```typescript
+     * await client.getModerationManager().updateReportScore("!room:example.org", "$eventId", -50);
+     * ```
      */
     async updateReportScore(roomId: string, eventId: string, score: number): Promise<void> {
         this.requireNonEmptyString(roomId, "roomId");
@@ -127,6 +138,7 @@ export class ModerationManager extends BaseManager {
      * 举报用户
      * 对应 POST /_matrix/client/v3/users/{user_id}/report
      *
+     * @throws 上报失败时抛出归一化后的错误
      * @example
      * ```typescript
      * await client.getModerationManager().reportUser("@spammer:example.org", {
@@ -159,6 +171,7 @@ export class ModerationManager extends BaseManager {
      * 获取扫描器信息
      * 对应 GET /_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info
      *
+     * @throws 查询失败时抛出归一化后的错误
      * @example
      * ```typescript
      * const info = await client.getModerationManager().getScannerInfo("!room:example.org", "$eventId");

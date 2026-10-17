@@ -17,19 +17,17 @@ export interface AdminServerInfoDto {
 
 export interface AdminServerStatsDto {
     total_users?: number;
-    non_deactivated_user_count?: number;
-    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_rooms?: number;
     daily_active_users?: number;
     monthly_active_users?: number;
     r30_users?: number;
-    r30v2_users?: number;
+    non_deactivated_user_count?: number;
+    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_messages?: number;
-    daily_messages?: number;
-    active_rooms_7d?: number;
+    active_rooms?: number;
     total_members?: number;
     encrypted_rooms?: number;
-    average_messages_per_room?: number;
+    daily_messages?: number;
 }
 
 export interface AdminServerHealthDto {

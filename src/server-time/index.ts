@@ -34,18 +34,61 @@ export class ServerTimeManager extends BaseManager<keyof ServerTimeManagerEvents
         super(client, opts);
     }
 
+    /**
+     * 获取本地时钟与服务器时钟的差值（毫秒）。
+     *
+     * @returns 时钟差值；未知时返回 0
+     *
+     * @example
+     * ```typescript
+     * const diff = client.getServerTimeManager().getServerClockDiff();
+     * console.log(diff);
+     * ```
+     */
     public getServerClockDiff(): number {
         return this.internalClient.serverClockDiff ?? 0;
     }
 
+    /**
+     * 将服务器时间换算为本地时间戳。
+     *
+     * @param serverTime - 服务器时间戳（毫秒）
+     * @returns 对应的本地时间戳
+     *
+     * @example
+     * ```typescript
+     * const localTs = client.getServerTimeManager().getLocalTimestampForServerTime(serverTime);
+     * ```
+     */
     public getLocalTimestampForServerTime(serverTime: number): number {
         return serverTime - (this.internalClient.serverClockDiff ?? 0);
     }
 
+    /**
+     * 获取当前估计的服务器时间戳。
+     *
+     * @returns 服务器时间戳（毫秒）
+     *
+     * @example
+     * ```typescript
+     * const serverTs = client.getServerTimeManager().getServerTimestamp();
+     * ```
+     */
     public getServerTimestamp(): number {
         return Date.now() + (this.internalClient.serverClockDiff ?? 0);
     }
 
+    /**
+     * 根据服务器返回的时间信息更新时钟差值并触发同步事件。
+     *
+     * @param serverTime - 服务器时间戳（毫秒）；为 0 时改用 serverDate 解析
+     * @param serverDate - 服务器 HTTP Date 头字符串
+     *
+     * @example
+     * ```typescript
+     * client.getServerTimeManager().updateServerTimeInfo(1700000000000, new Date().toUTCString());
+     * ```
+     */
     public updateServerTimeInfo(serverTime: number, serverDate: string): void {
         let diff: number;
         if (serverTime) {

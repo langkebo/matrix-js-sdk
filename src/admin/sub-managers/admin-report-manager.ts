@@ -27,7 +27,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -112,7 +112,7 @@ export class AdminReportManager extends AdminBaseManager {
 
         return await this.adminRequest<ReportsListResponse>(
             Method.Get,
-            "/reports",
+            apu("/reports"),
             Object.keys(params).length > 0 ? params : undefined,
             undefined,
             "reports.listAll",
@@ -125,12 +125,18 @@ export class AdminReportManager extends AdminBaseManager {
      * @param reportId - 举报 ID
      * @returns 举报详情
      *
+     * @example
+     * ```typescript
+     * const report = await client.getAdminManager().reports.get(42);
+     * console.log(report.room_id, report.reason);
+     * ```
+     *
      * @throws NotFoundError 如果举报不存在
      */
     async get(reportId: number): Promise<EventReport> {
         return await this.adminRequest<EventReport>(
             Method.Get,
-            `/reports/${reportId}`,
+            apu(`/reports/${reportId}`),
             undefined,
             undefined,
             "reports.get",
@@ -142,10 +148,21 @@ export class AdminReportManager extends AdminBaseManager {
      *
      * @param reportId - 举报 ID
      *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().reports.delete(42);
+     * ```
+     *
      * @throws NotFoundError 如果举报不存在
      */
     async delete(reportId: number): Promise<void> {
-        await this.adminRequest<void>(Method.Delete, `/reports/${reportId}`, undefined, undefined, "reports.delete");
+        await this.adminRequest<void>(
+            Method.Delete,
+            apu(`/reports/${reportId}`),
+            undefined,
+            undefined,
+            "reports.delete",
+        );
     }
 
     /**
@@ -154,6 +171,12 @@ export class AdminReportManager extends AdminBaseManager {
      * @param roomId - 房间 ID
      * @param options - 分页选项
      * @returns 举报列表
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getAdminManager().reports.getByRoom("!room:example.org", { limit: 20 });
+     * console.log(result.total, result.reports.length);
+     * ```
      *
      * @throws NotFoundError 如果房间不存在
      */
@@ -167,7 +190,7 @@ export class AdminReportManager extends AdminBaseManager {
 
         return await this.adminRequest<ReportsListResponse>(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/reports`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports`),
             Object.keys(params).length > 0 ? params : undefined,
             undefined,
             "reports.getByRoom",
@@ -181,12 +204,18 @@ export class AdminReportManager extends AdminBaseManager {
      * @param reportId - 举报 ID
      * @returns 举报详情
      *
+     * @example
+     * ```typescript
+     * const report = await client.getAdminManager().reports.getRoomReport("!room:example.org", 42);
+     * console.log(report.event_id, report.status);
+     * ```
+     *
      * @throws NotFoundError 如果举报或房间不存在
      */
     async getRoomReport(roomId: string, reportId: number): Promise<EventReport> {
         return await this.adminRequest<EventReport>(
             Method.Get,
-            `/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`),
             undefined,
             undefined,
             "reports.getRoomReport",
@@ -199,12 +228,17 @@ export class AdminReportManager extends AdminBaseManager {
      * @param roomId - 房间 ID
      * @param reportId - 举报 ID
      *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().reports.deleteRoomReport("!room:example.org", 42);
+     * ```
+     *
      * @throws NotFoundError 如果举报或房间不存在
      */
     async deleteRoomReport(roomId: string, reportId: number): Promise<void> {
         await this.adminRequest<void>(
             Method.Delete,
-            `/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`,
+            apu(`/rooms/${encodeURIComponent(roomId)}/reports/${reportId}`),
             undefined,
             undefined,
             "reports.deleteRoomReport",

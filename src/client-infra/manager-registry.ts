@@ -84,7 +84,7 @@ export type ManagerName =
     | "auth"
     | "backgroundUpdate"
     | "beacon"
-    | "BurnAfterReadManager"
+    | "burnAfterRead"
     | "capabilities"
     | "captcha"
     | "cas"
@@ -103,7 +103,7 @@ export type ManagerName =
     | "ephemeral"
     | "event"
     | "eventReport"
-    | "external-service"
+    | "externalService"
     | "featureFlags"
     | "federation"
     | "filter"
@@ -145,7 +145,7 @@ export type ManagerName =
     | "roomState"
     | "roomSummary"
     | "roomAlias"
-    | "saml-auth"
+    | "samlAuth"
     | "search"
     | "secretStorage"
     | "secureBackup"
@@ -173,7 +173,6 @@ export type ManagerName =
     | "userDirectory"
     | "voice"
     | "widget"
-    | "widgets"
     | "workerAdmin"
     | "workerBody"
     | "worker";
@@ -190,7 +189,7 @@ export interface ManagerTypeMap {
     auth: import("../auth/index").AuthManager;
     backgroundUpdate: import("../background-update/index").BackgroundUpdateManager;
     beacon: import("../beacon/index").BeaconManager;
-    BurnAfterReadManager: import("../burn-after-read/index").BurnAfterReadManager;
+    burnAfterRead: import("../burn-after-read/index").BurnAfterReadManager;
     capabilities: import("../capabilities/index").CapabilitiesManager;
     captcha: import("../captcha/index").CaptchaManager;
     cas: import("../cas/index").CasManager;
@@ -209,7 +208,7 @@ export interface ManagerTypeMap {
     ephemeral: import("../ephemeral/index").EphemeralManager;
     event: import("../event/index").EventManager;
     eventReport: import("../event-report/index").EventReportManager;
-    "external-service": import("../external-service/index").ExternalServiceManager;
+    externalService: import("../external-service/index").ExternalServiceManager;
     featureFlags: import("../feature-flags/index").FeatureFlagManager;
     federation: import("../federation/index").FederationManager;
     filter: import("../filter/index").FilterManager;
@@ -251,7 +250,7 @@ export interface ManagerTypeMap {
     roomState: import("../room-state/index").RoomStateManager;
     roomSummary: import("../room-summary/index").RoomSummaryManager;
     roomAlias: import("../room-alias/index").RoomAliasManager;
-    "saml-auth": import("../saml/index").SamlAuthManager;
+    samlAuth: import("../saml/index").SamlAuthManager;
     search: import("../search/index").SearchManager;
     secretStorage: import("../secret-storage/index").SecretStorageManager;
     secureBackup: import("../secure-backup/index").SecureBackupManager;
@@ -279,7 +278,6 @@ export interface ManagerTypeMap {
     userDirectory: import("../user-directory/index").UserDirectoryManager;
     voice: import("../voice/index").VoiceManager;
     widget: import("../widget/index").WidgetManager;
-    widgets: import("../widgets/index").WidgetsManager;
     workerAdmin: import("../worker-admin/index").WorkerAdminManager;
     workerBody: import("../worker-body/index").WorkerBodyManager;
     worker: import("../client/worker/worker").WorkerManager;

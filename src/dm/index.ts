@@ -22,7 +22,7 @@ limitations under the License.
  * - creation: 创建 + m.direct 写入
  * - operation: 离开 + 已读 + 发送
  *
- * 构造顺序：list → creation → operation。所有原有方法向后兼容（@deprecated 标注迁移）。
+ * 构造顺序：list → creation → operation。通过 sub-manager 访问具体能力。
  * ⚠️ m.direct 是用户级别的 account data，不是房间级别
  */
 
@@ -30,27 +30,11 @@ import { logger } from "../logger";
 import { MatrixClient } from "../client";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
-import type { LRUCache } from "../utils/lru-cache";
-import type { Room } from "../models/room";
-import type { IContent } from "../models/event";
 
 import { DMEvent, type DirectMessageManagerEventMap } from "./events";
 import { DmRoomListManager } from "./sub-managers/dm-room-list-manager";
 import { DmRoomCreationManager } from "./sub-managers/dm-room-creation-manager";
 import { DmRoomOperationManager } from "./sub-managers/dm-room-operation-manager";
-import type {
-    DmRoomInfo,
-    IDirectRoomsMap,
-    DmPartnerResponse,
-    DmRoomCheckResponse,
-} from "./sub-managers/dm-room-list-types";
-import type {
-    CreateDmOptions,
-    CreateDmRoomResponse,
-    CreateDmRoomOptions,
-    UpdateDirectRoomResponse,
-    UpdateDirectRoomOptions,
-} from "./sub-managers/dm-room-creation-types";
 
 // 事件 + 类型 re-export（向后兼容）
 export { DMEvent } from "./events";
@@ -76,8 +60,8 @@ export { DmRoomOperationManager } from "./sub-managers/dm-room-operation-manager
 /**
  * Direct Message Manager - 私信管理统一入口
  *
- * 通过组合模式将功能委托到 sub-managers，同时保持完全向后兼容。
- * 推荐新代码直接使用 sub-manager：`dmManager.creation.createDm(...)`。
+ * 通过组合模式将功能委托到 sub-managers。
+ * 通过 sub-manager 访问具体能力：`dmManager.creation.createDm(...)`。
  */
 export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageManagerEventMap> {
     // ===== sub-managers（组合模式） =====
@@ -112,24 +96,17 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         }
     }
 
-    // ===== 缓存访问（向后兼容测试与外部调用方，代理到 list manager） =====
-
-    /** @deprecated 使用 `dmManager.list.dmRoomsCache` 替代 */
-    public get dmRoomsCache(): LRUCache<DmRoomInfo> {
-        return this.list.dmRoomsCache;
-    }
-
-    /** @deprecated 使用 `dmManager.list.userDmMapCache` 替代 */
-    public get userDmMapCache(): LRUCache<string> {
-        return this.list.userDmMapCache;
-    }
-
     // ===== 顶层协调方法 =====
 
     // 进行中的 start() Promise：并发调用复用同一份初始化（FT-115）
     private startPromise: Promise<void> | null = null;
 
-    /** 初始化 DM 管理器 */
+    /**
+     * 初始化 DM 管理器。
+     *
+     * @example
+     * await client.getDirectMessageManager().start();
+     */
     async start(): Promise<void> {
         if (this.isInitialized) return;
         if (this.startPromise) {
@@ -153,7 +130,12 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         return this.startPromise;
     }
 
-    /** 停止 DM 管理器 */
+    /**
+     * 停止 DM 管理器。
+     *
+     * @example
+     * client.getDirectMessageManager().stop();
+     */
     stop(): void {
         this.list.clearCache();
         this.isInitialized = false;
@@ -167,134 +149,18 @@ export class DirectMessageManager extends BaseManager<DMEvent, DirectMessageMana
         this.operation.removeAllListeners();
     }
 
-    /** 获取缓存统计 */
+    /**
+     * 获取缓存统计。
+     *
+     * @example
+     * const stats = client.getDirectMessageManager().getCacheStats();
+     * console.log("DM 房间缓存命中率:", stats.dmRooms.hitRate);
+     */
     public getCacheStats(): {
         dmRooms: { size: number; hits: number; misses: number; hitRate: number };
         userDmMap: { size: number; hits: number; misses: number; hitRate: number };
     } {
         return this.list.getCacheStats();
-    }
-
-    // ===== 向后兼容委托方法（@deprecated，推荐直接使用 sub-manager） =====
-
-    /** @deprecated 使用 `dmManager.creation.createDm()` 替代 */
-    async createDm(options: CreateDmOptions | string[]): Promise<string> {
-        return this.creation.createDm(options);
-    }
-    /** @deprecated 使用 `dmManager.creation.setDmRoom()` 替代 */
-    async setDmRoom(roomId: string, userId: string): Promise<void> {
-        return this.creation.setDmRoom(roomId, userId);
-    }
-    /** @deprecated 使用 `dmManager.creation.removeDmRoom()` 替代 */
-    async removeDmRoom(roomId: string, userId: string): Promise<void> {
-        return this.creation.removeDmRoom(roomId, userId);
-    }
-    /** @deprecated 使用 `dmManager.creation.createDmRoomDetailed()` 替代 */
-    async createDmRoomDetailed(userId: string, options?: CreateDmRoomOptions): Promise<CreateDmRoomResponse> {
-        return this.creation.createDmRoomDetailed(userId, options);
-    }
-    /** @deprecated 使用 `dmManager.creation.createDmRoom()` 替代 */
-    async createDmRoom(userId: string, options?: CreateDmRoomOptions): Promise<string> {
-        return this.creation.createDmRoom(userId, options);
-    }
-    /** @deprecated 使用 `dmManager.creation.updateDirectRoom()` 替代 */
-    async updateDirectRoom(roomId: string, userIds: string[]): Promise<UpdateDirectRoomResponse>;
-    /** @deprecated 使用 `dmManager.creation.updateDirectRoom()` 替代 */
-    async updateDirectRoom(roomId: string, options: UpdateDirectRoomOptions): Promise<UpdateDirectRoomResponse>;
-    async updateDirectRoom(
-        roomId: string,
-        userIdsOrOptions: string[] | UpdateDirectRoomOptions,
-    ): Promise<UpdateDirectRoomResponse> {
-        // 类型守卫分发到对应 overload（避免 union 类型无法匹配任一 overload 签名）
-        return Array.isArray(userIdsOrOptions)
-            ? this.creation.updateDirectRoom(roomId, userIdsOrOptions)
-            : this.creation.updateDirectRoom(roomId, userIdsOrOptions);
-    }
-
-    /** @deprecated 使用 `dmManager.list.getDMRooms()` 替代 */
-    async getDMRooms(): Promise<DmRoomInfo[]> {
-        return this.list.getDMRooms();
-    }
-    /** @deprecated 使用 `dmManager.list.getDirectRoomsByUserSync()` 替代 */
-    public getDirectRoomsByUserSync(): IDirectRoomsMap {
-        return this.list.getDirectRoomsByUserSync();
-    }
-    /** @deprecated 使用 `dmManager.list.getDmForUser()` 替代 */
-    async getDmForUser(userId: string): Promise<string | null> {
-        return this.list.getDmForUser(userId);
-    }
-    /** @deprecated 使用 `dmManager.list.getDirectRoomsByUser()` 替代 */
-    async getDirectRoomsByUser(): Promise<IDirectRoomsMap> {
-        return this.list.getDirectRoomsByUser();
-    }
-    /** @deprecated 使用 `dmManager.list.getDmRoomInfo()` 替代 */
-    async getDmRoomInfo(roomId: string): Promise<DmRoomInfo | null> {
-        return this.list.getDmRoomInfo(roomId);
-    }
-    /** @deprecated 使用 `dmManager.list.getCachedDmRooms()` 替代 */
-    getCachedDmRooms(): DmRoomInfo[] {
-        return this.list.getCachedDmRooms();
-    }
-    /** @deprecated 使用 `dmManager.list.getCachedDmForUser()` 替代 */
-    getCachedDmForUser(userId: string): string | null {
-        return this.list.getCachedDmForUser(userId);
-    }
-    /** @deprecated 使用 `dmManager.list.getDmRoomInfos()` 替代 */
-    async getDmRoomInfos(): Promise<DmRoomInfo[]> {
-        return this.list.getDmRoomInfos();
-    }
-    /** @deprecated 使用 `dmManager.list.checkRoomIsDm()` 替代 */
-    async checkRoomIsDm(roomId: string): Promise<boolean> {
-        return this.list.checkRoomIsDm(roomId);
-    }
-    /** @deprecated 使用 `dmManager.list.getDmPartner()` 替代 */
-    async getDmPartner(roomId: string): Promise<string | null> {
-        return this.list.getDmPartner(roomId);
-    }
-    /** @deprecated 使用 `dmManager.list.getDmRoomsByUserIds()` 替代 */
-    async getDmRoomsByUserIds(userIds: string[]): Promise<Room[]> {
-        return this.list.getDmRoomsByUserIds(userIds);
-    }
-    /** @deprecated 使用 `dmManager.list.getDmRoom()` 替代 */
-    async getDmRoom(roomId: string, throwOnError = true): Promise<Room | null> {
-        return this.list.getDmRoom(roomId, throwOnError);
-    }
-    /** @deprecated 使用 `dmManager.list.getDirectRoomsFromServer()` 替代 */
-    async getDirectRoomsFromServer(): Promise<IDirectRoomsMap> {
-        return this.list.getDirectRoomsFromServer();
-    }
-    /** @deprecated 使用 `dmManager.list.isDmRoomFromServer()` 替代 */
-    async isDmRoomFromServer(roomId: string, throwOnError = true): Promise<boolean> {
-        return this.list.isDmRoomFromServer(roomId, throwOnError);
-    }
-    /** @deprecated 使用 `dmManager.list.getDmPartnerFromServer()` 替代 */
-    async getDmPartnerFromServer(roomId: string, throwOnError = true): Promise<DmPartnerResponse | null> {
-        return this.list.getDmPartnerFromServer(roomId, throwOnError);
-    }
-
-    // ===== 服务端 DM REST API（synapse-rust 自定义端点，供前端迁移裸调） =====
-
-    /** 获取房间 DM 原始信息（GET /_matrix/client/v3/rooms/{room_id}/dm）。 */
-    async getRoomDm(roomId: string): Promise<DmRoomCheckResponse> {
-        return this.list.getRoomDm(roomId);
-    }
-
-    /** 设置房间为 DM 关系（PUT /_matrix/client/v3/direct/{room_id}）。 */
-    async setDirect(roomId: string): Promise<void> {
-        return this.list.setDirect(roomId);
-    }
-
-    /** @deprecated 使用 `dmManager.operation.leaveDm()` 替代 */
-    async leaveDm(roomId: string): Promise<void> {
-        return this.operation.leaveDm(roomId);
-    }
-    /** @deprecated 使用 `dmManager.operation.markDmAsRead()` 替代 */
-    async markDmAsRead(roomId: string): Promise<void> {
-        return this.operation.markDmAsRead(roomId);
-    }
-    /** @deprecated 使用 `dmManager.operation.sendDmMessage()` 替代 */
-    async sendDmMessage(roomId: string, content: string | IContent): Promise<string> {
-        return this.operation.sendDmMessage(roomId, content);
     }
 }
 

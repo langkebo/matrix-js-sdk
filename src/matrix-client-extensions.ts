@@ -104,7 +104,6 @@ export interface ServerCapabilities {
 export type SharedWithUsersMap = IContent;
 
 /** Widget data — structure varies by widget type // Dynamic: shape depends on widget */
-export type WidgetData = IContent;
 
 /** Map of device_id → device info for a user // Dynamic: device info structure varies */
 export type UserDeviceMap = Record<string, IContent>;
@@ -308,7 +307,6 @@ export interface MatrixClientExtensionMethods {
     getThreadManager(): import("./thread/index").ThreadManager;
 
     // ============ Widgets & Integrations ============
-    getWidgetsManager(): import("./widgets/index").WidgetsManager;
     getWidgetManager(): import("./widget/index").WidgetManager;
 
     // ============ Other Features ============
@@ -544,13 +542,6 @@ export interface MatrixClientInternalMethods {
     getSecret(name: string): Promise<string | null>;
     hasSecret(name: string): Promise<boolean>;
     getSecretStorageKeys(): Promise<Record<string, string>>;
-
-    // ============ Widgets ============
-    getUserWidgets(): Promise<WidgetData>;
-    getRoomWidgets(roomId: string): Promise<WidgetData>;
-    setUserWidgets(widgets: WidgetData): Promise<void>;
-    setRoomWidgets(roomId: string, widgets: WidgetData): Promise<void>;
-    getAllWidgetEvents(roomId: string): Promise<MatrixEvent[]>;
 
     // ============ Beacons ============
 

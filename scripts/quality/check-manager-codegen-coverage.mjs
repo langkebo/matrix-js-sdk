@@ -29,44 +29,63 @@ const generatedIndexPath = path.join(projectRoot, "docs", "api-contract", "gener
  * 见审计文档 §7.11）。
  */
 export const WAIVED_MODULES = {
-    admin: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    app_service: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    dm: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    feature_flags: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    federation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    key_rotation: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    reactions: { reason: "no route-table consumer; codegen intentionally skips it", expires: "2026-12-31" },
-    delayed_events: {
-        reason: "1 route; manager gates on an unstable feature and needs no table",
-        expires: "2026-12-31",
-    },
+    // 注（2026-10-15）：**本表已清空** —— 最后一个条目 `admin`（179 条）已收编：
+    // 其 221 处 `this.adminRequest` 调用全部接入 `apu()` 编译期断言（7 张表 union + 6 种前缀剥离），
+    // 见 `src/admin/admin-base-manager.ts` 的 `StripAdminModule` / `AdminScopedPath`。
+    // 服务端面模块（federation）另见 `SERVER_ONLY_MODULES`（非 WAIVED）。
+    // 注（2026-10-15）：此处原有 `app_service` 的 waiver。回源核对后发现它**不是**纯服务端面：
+    // 39 条里 17 条是 `/_synapse/admin/v1/appservices*`（admin 面）、12 条 `/_matrix/app/v1/*`（AS 面）、
+    // 10 条 `/_matrix/client/*`（客户端面，含 7 条 `proxy/{as_id}/{*path}` 通配代理）——
+    // 而 `src/app-service/index.ts` 的 21 处路径与该模块的 admin/客户端面**逐条对应**
+    // （4 处 thirdparty 路由另属 third-party 模块表）。故接入 route-table 后移除 waiver。
+    // 注（2026-10-15）：`federation` 已从 WAIVED **移入 `SERVER_ONLY_MODULES`**（见文件上方该常量的注释）。
+    // 依据：逐条实测其 55 条路径全为 server-to-server / key-server API，客户端 SDK 不承担
+    // ⇒ 属"本口径不适用"，而非"有期限的欠账"。故不再挂 waiver。
+    // 注（2026-10-15）：此处原有 `reactions` 的 waiver。该模块的 manager 是薄包装
+    // （`src/reactions/index.ts` 委托 `client.reactToMessage` → `RoomEventsManager.sendReaction`），
+    // 真正的路径字面量在 `src/room-events/index.ts` 的
+    // `utils.encodeUri("/rooms/$roomId/send/m.reaction/$txnId", …)`，已在那里接入 `PathAssert`
+    // 断言（借 reactions 模块的表），故移除 waiver。
+    // 注（2026-10-15）：`dm` / `feature_flags` / `key_rotation` 的 waiver 已移除 —— 三者的 manager
+    // 自持前缀与字面量相对路径（dm/key_rotation = VendorPrefix；feature_flags = AdminPrefix.V1，
+    // 均与契约表前缀逐字一致），已接入生成的 route-table 并做 PathAssert 编译期断言。
     // 注（2026-10-06）：此处原有 `push_notification` 的 waiver，理由是「本表 10 条是 push 表 38 条的
     // **完全子集**」。实测该理由**不成立**：notifications 表 8 条与 push 表 17 条**交集为空**
     // （`/push/devices`、`/push/send` 只存在于 notifications 表；push 表只含 notifications/pushers/pushrules）。
     // 也就是说，这是把一条「有表没人读」用错误理由豁免掉了 —— 纸面 waiver。
     // 现已让 `src/notifications/index.ts` 真正消费本表（push/devices ×3 + push/send），故移除 waiver。
-    invite_blocklist: {
-        reason:
-            "把 invite allow/blocklist 从 vendor 分组归到功能域后，ledger 侧是独立模块；但 SDK codegen 以" +
-            "后端 ROUTE_CONTRACT.md 的章节枚举模块，而该文档按源文件分组（这几条注册在 assembly.rs 里），" +
-            "没有 invite 章节 ⇒ 暂无可生成的表。src/invite-blocklist 继续用 VendorPrefix + 手写路径" +
-            "（受路径契约门禁约束，迁移计划见 docs/sdk-optimization）。",
-        expires: "2026-12-31",
-    },
-    // cas：**真·表没人读**但原因可核验（2026-10-06 收口，见审计文档 §13.14.5）。
-    // cas 表 17 条其实覆盖 CasManager 实际调用的路由（/_synapse/admin/v1/cas/* 服务管理 5 条 +
-    // /_synapse/cas/* 协议面 6 条 + 规范 SSO 端点 /_matrix/client/v3/login/sso/redirect/cas 1 条 +
-    // ROUTE_CONTRACT.md 遗留 /admin/* 5 条）；但 CasManager 经 resolvePath 做运行时二元前缀拼接
-    // （synapse_admin → "/cas"+basePath 挂 /_synapse/admin/v1；cas → basePath 挂 /_synapse/cas），
-    // 从不 import route-table 类型 ⇒ 弱证据 NO_CONSUMER（核验：grep -rn "route-table" src/cas/index.ts 无命中）。
-    // 迁移到 PathAssert 需把双前缀分支改为按分支构造完整字面量路径（11 处路径构造点），属独立改造；
-    // 完成前以 waiver 显式记录，勿用"凑一个别名导入"的方式洗白成 covered。
-    cas: {
-        reason:
-            "cas 表 17 条覆盖 CasManager 实调路由（/_synapse/admin/v1/cas/* + /_synapse/cas/*），但 CasManager" +
-            "经 resolvePath 运行时二元前缀拼接构造路径、从不 import route-table ⇒ 弱证据 NO_CONSUMER；" +
-            "迁移 PathAssert 需改 11 处路径构造点为按分支完整字面量路径，属独立改造（见 docs/sdk-encapsulation-audit.md §13.14.5）",
-        expires: "2026-12-31",
+    // 注（2026-10-15）：此处原有 `delayed_events` 的 waiver，理由是「1 route; manager gates on
+    // an unstable feature and needs no table」。该理由**已过期**：后端 2026-10-14 把该族补齐到
+    // 7 条（列表 / 单条 / body 动作 / 3 条 action-in-PATH / 专用调度），且 SDK 有真实消费者
+    // `DelayedEventsManager`（6 个公开方法）。造成"无表"的真因是**登记缺失**——模块既不在
+    // `LEDGER_MODULE_ALIASES`，后端文档章节也未映射到 SDK 目录，于是两条 codegen 通道都取不到它。
+    // 现已补 alias + 章节映射 + `StripMsc4140`，manager 路径改为编译期 segment 级断言，故移除 waiver。
+    // 注（2026-10-15）：此处原有 `invite_blocklist` 的 waiver，理由是「codegen 按**后端**
+    // ROUTE_CONTRACT.md 的章节枚举模块，而该文档按源文件分组、没有 invite 章节 ⇒ 无可生成的表」。
+    // 该理由**不成立**：模块枚举源实际是**本仓** `CONTRACT_INDEX.md` 的文档链接，路由条目另走
+    // ledger 通道（`LEDGER_MODULE_ALIASES` 早有 `invite-blocklist → invite_blocklist`）。
+    // 建页 + manager 接 PathAssert 断言后即受管辖，故移除 waiver（与 `delayed_events` 同型订正）。
+    // 注（2026-10-15）：此处原有 `cas` 的 waiver（"表 17 条有表没人读，因 CasManager 经 resolvePath
+    // 运行时二元前缀拼接、从不 import route-table"）。该描述**与实际代码不符**：CasManager 的 11 处路径
+    // 构造点都是「方法内局部常量 `const path = "…"`」或字面量，并未做运行时前缀拼接。现已在
+    // `const path` 声明处与字面量处接入 `apu()`（`StripAdminV1`）与 `cpu()`（`StripCasProtocol`）断言，
+    // 故移除 waiver。
+};
+
+/**
+ * **服务端面模块**：其路由由 homeserver（server-to-server / key-server）消费，客户端 SDK 天然
+ * 不承担 ⇒ 不属于本门禁「应有消费点」的口径。**与 WAIVED 的区别**：WAIVED 隐含"本应覆盖、
+ * 目前暂缺"（是有期限的欠账）；SERVER_ONLY 是"本口径不适用"（不是欠账）。
+ *
+ * 与 `UMBRELLA`（assembly）并列：单列一类、不计入 WAIVED，也不进"未受 route-table 约束的路由"计数。
+ * 每条必须带**实测证据**——不得凭印象归类（这是本仓反复踩过的坑：豁免理由常与事实不符）。
+ */
+export const SERVER_ONLY_MODULES = {
+    federation: {
+        reason: "server-to-server / key-server API：由 homeserver 之间与 key server 调用，客户端 SDK 不承担",
+        evidence:
+            "2026-10-15 逐条实测全部 55 条路径前缀：_matrix/federation/v1 36 + v2 7 + unstable 1、" +
+            "_synapse/federation/* 7、_matrix/key/v2 4 —— **无**任何 /_matrix/client/* 或 /_synapse/admin/* 混入",
     },
 };
 
@@ -293,6 +312,11 @@ function main() {
         waived: 0,
         missing: 0,
         umbrella: [],
+        serverOnly: [],
+        // 「未受 route-table 约束的路由条数」—— 口径见输出段注释（2026-10-13 新增）。
+        waivedRoutes: 0,
+        umbrellaRoutes: 0,
+        serverOnlyRoutes: 0,
         missingModules: [],
         coveredModules: [],
         waivedModules: [],
@@ -313,9 +337,18 @@ function main() {
 
         if (moduleName === "assembly") {
             summary.umbrella.push({ moduleName, routes: moduleInfo.entry_count });
+            summary.umbrellaRoutes += moduleInfo.entry_count;
             log(
                 `  UMBRELLA: ${moduleName} (${moduleInfo.entry_count} routes) -> governed by umbrella docs/manager mapping`,
             );
+            continue;
+        }
+
+        const serverOnly = SERVER_ONLY_MODULES[moduleName];
+        if (serverOnly) {
+            summary.serverOnly.push({ moduleName, routes: moduleInfo.entry_count, reason: serverOnly.reason });
+            summary.serverOnlyRoutes += moduleInfo.entry_count;
+            log(`  SERVER_ONLY: ${moduleName} (${moduleInfo.entry_count} routes) -> ${serverOnly.reason}`);
             continue;
         }
 
@@ -332,6 +365,7 @@ function main() {
         if (verdict.status === "waived") {
             summary.waived += 1;
             summary.waivedModules.push(moduleName);
+            summary.waivedRoutes += moduleInfo.entry_count;
             usedWaivers.add(moduleName);
             // 弱证据（本模块自己在发 HTTP、但没人 import 它的表）单独记一栏：
             // "覆盖率 100%" 不该掩盖"这张表没人读"。
@@ -378,6 +412,16 @@ function main() {
         weak: summary.weak,
         waived: summary.waived,
         waivedModules: summary.waivedModules,
+        // 路由维度：WAIVED 模块多少条路由**没有** route-table 约束（模块维度之外的第二个视角）
+        waivedRoutes: summary.waivedRoutes,
+        umbrellaRoutes: summary.umbrellaRoutes,
+        serverOnly: summary.serverOnly,
+        serverOnlyRoutes: summary.serverOnlyRoutes,
+        // 含 WAIVED 的模块维度覆盖率 —— 与 coverageRate（剔除 WAIVED）并列，防止单看 100.0% 被误导
+        moduleCoverageRateWithWaivers:
+            summary.covered + summary.waived === 0
+                ? 100
+                : Number(((summary.covered / (summary.covered + summary.waived)) * 100).toFixed(1)),
         missing: summary.missing,
         missingModules: summary.missingModules,
         unusedWaivers,
@@ -398,9 +442,22 @@ function main() {
         `WAIVED 且**有表没人读**（弱证据，${summary.weak.length}）: ` + `${summary.weak.join(", ") || "（无）"}`,
     );
     console.log(`Covered: ${summary.covered}, Waived: ${summary.waived}, Missing: ${summary.missing}`);
+    // 2026-10-13：把「模块维度覆盖率」与「路由维度受约束率」分开打印。
+    //
+    // 原输出只有 `Coverage rate: 100.0% (38/38 ...)` —— 分母**排除了 WAIVED**，于是
+    // 10 个 WAIVED 模块（共 92 条路由）的"零类型约束"被一个孤零零的 100.0% 完全掩盖，
+    // 极易被读成"路径契约已全覆盖"。现在三档并列 + 明确给出未受约束路由条数。
+    const coveredPlusWaived = summary.covered + summary.waived;
+    const moduleCoverage = coveredPlusWaived === 0 ? "100.0" : ((summary.covered / coveredPlusWaived) * 100).toFixed(1);
     console.log(
         `Coverage rate: ${coverageRate}% (${summary.covered}/${effectiveTotal} modules consume codegen; ` +
             `${summary.waived} documented non-consumer(s))`,
+    );
+    console.log(
+        `  ↳ 含 WAIVED 的模块维度: ${moduleCoverage}% (${summary.covered}/${coveredPlusWaived}); ` +
+            `**无 route-table 约束的路由 ${summary.waivedRoutes} 条**（WAIVED ${summary.waived} 个模块）` +
+            `${summary.umbrellaRoutes > 0 ? `；另有 umbrella ${summary.umbrellaRoutes} 条由文档/管理器映射治理` : ""}` +
+            `${summary.serverOnlyRoutes > 0 ? `；server-only ${summary.serverOnlyRoutes} 条属服务端面（SDK 不承担，本口径不适用）` : ""}`,
     );
 
     if (unusedWaivers.length > 0) {

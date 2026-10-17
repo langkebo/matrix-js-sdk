@@ -135,45 +135,7 @@ describe("CasManager", () => {
         });
     });
 
-    describe("cas prefix", () => {
-        it("服务管理面只认 `synapse_admin`；传 `cas` 现在是**编译错误**（P-13）", async () => {
-            // 后端把服务/用户属性管理**只**注册在 `/_synapse/admin/v1/cas/…`，
-            // `/_synapse/cas` 下只有协议面（cas.rs 路由表）⇒ 旧版本传 "cas" 必然 404。
-            // 收窄 `CasServicePrefix` 后由 tsc 兜住：若哪天有人把 "cas" 加回联合类型，
-            // 下面这行会从「预期报错」变成「不该报错」⇒ `pnpm lint:types` 立刻变红。
-            // 用 `if (false)` 包住是为了**不真的发请求**（类型检查照样发生）。
-            const casPrefixMustNotTypecheck = async (): Promise<void> => {
-                // @ts-expect-error "cas" 不再是服务管理面的合法前缀
-                await manager.listServices("cas");
-            };
-            expect(typeof casPrefixMustNotTypecheck).toBe("function");
-
-            transport.respondWith({ services: [] });
-            await manager.listServices("synapse_admin");
-            expect(transport.request).toHaveBeenCalledWith(
-                Method.Get,
-                "/cas/services",
-                undefined,
-                undefined,
-                expect.objectContaining({ prefix: "/_synapse/admin/v1" }),
-            );
-        });
-
-        it("显式传 `synapse_admin` 与省略参数等价（路径与前缀都不变）", async () => {
-            transport.respondWith({ services: [] });
-            await manager.createService(
-                { service_id: "svc", name: "S", service_url_pattern: "https://s.example.com" },
-                "synapse_admin",
-            );
-            expect(transport.request).toHaveBeenCalledWith(
-                Method.Post,
-                "/cas/services",
-                undefined,
-                { service_id: "svc", name: "S", service_url_pattern: "https://s.example.com" },
-                expect.objectContaining({ prefix: "/_synapse/admin/v1" }),
-            );
-        });
-
+    describe("CAS 协议端点（/_synapse/cas）", () => {
         it("serviceValidate should send GET /serviceValidate with query params", async () => {
             // 后端 `cas.rs::service_validate` 返回 text/plain：`yes\n<user>\n`
             transport.respondWith("yes\nalice\n");

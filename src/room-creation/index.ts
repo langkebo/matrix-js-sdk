@@ -91,6 +91,20 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
 
     // 创建私聊房间：本 fork 没有 `client.createDirectRoom` —— 它只是 `createRoom` 外加
     // `invite: [userId]` 与 `is_direct: true`（Matrix 规范里"私聊"就是这个形状）。
+    /**
+     * 创建与指定用户的私聊房间。
+     *
+     * 在创建选项基础上追加 `invite: [userId]` 与 `is_direct: true`；未指定 preset 时
+     * 默认使用 `trusted_private_chat`。
+     *
+     * @param userId - 要邀请加入私聊的用户 ID
+     * @param options - 可选的房间创建选项
+     * @returns 包含新房间 ID 的创建结果
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomCreationManager().createDirectRoom("@alice:example.org");
+     * ```
+     */
     public async createDirectRoom(userId: string, options?: ICreateRoomOptions): Promise<ICreateRoomResponse> {
         const opts = { ...this.createRoomOptionsTemplate, ...options } as ICreateRoomOpts;
         opts.invite = [...(opts.invite ?? []), userId];
@@ -103,6 +117,19 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
     // 找到与某人的既有私聊；没有就新建。
     // 依据 `m.direct` account data —— Matrix 规范里它是"私聊房间"的权威索引。
     // 本 fork 没有 `client.findOrCreateDirectRoom`。
+    /**
+     * 查找与指定用户的既有私聊房间，若不存在则新建。
+     *
+     * 依据 `m.direct` account data 判断是否已有私聊；命中已加载房间时直接返回其 ID，
+     * 否则调用 {@link createDirectRoom} 新建。
+     *
+     * @param userId - 目标用户 ID
+     * @returns 既有或新建私聊房间的 ID
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomCreationManager().findOrCreateDirectRoom("@alice:example.org");
+     * ```
+     */
     public async findOrCreateDirectRoom(userId: string): Promise<ICreateRoomResponse> {
         const direct = this.client.getAccountData(EventType.Direct)?.getContent() as
             | Record<string, string[]>
@@ -118,10 +145,30 @@ export class RoomCreationManager extends BaseManager<keyof RoomCreationManagerEv
     // 读 / 写"房间创建选项模板"——**模块内自持状态**。
     // 此前这两个方法转发给 `client.getCreateRoomOptions()` / `setCreateRoomOptions()`，
     // 而 MatrixClient 上没有这两个方法 —— "模板"是本模块的概念，不是 client 的概念。
+    /**
+     * 获取当前房间创建选项模板。
+     *
+     * @returns 当前模板的浅拷贝
+     * @example
+     * ```typescript
+     * const template = client.getRoomCreationManager().getCreateRoomOptions();
+     * ```
+     */
     public getCreateRoomOptions(): ICreateRoomOptionsConfig {
         return { ...this.createRoomOptionsTemplate };
     }
 
+    /**
+     * 设置房间创建选项模板。
+     *
+     * 后续 {@link createRoom} 会把传入的 `options` 与该模板合并，调用方传入的 `options` 优先。
+     *
+     * @param options - 要作为模板的创建选项
+     * @example
+     * ```typescript
+     * client.getRoomCreationManager().setCreateRoomOptions({ visibility: "private" });
+     * ```
+     */
     public setCreateRoomOptions(options: ICreateRoomOptionsConfig): void {
         this.createRoomOptionsTemplate = { ...options };
     }

@@ -189,6 +189,16 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== 模块管理 ====================
 
+    /**
+     * 分页列出已注册的模块。
+     *
+     * @param options - 分页选项（`limit` / `from`）
+     * @returns 模块列表与总数
+     * @example
+     * ```typescript
+     * const modules = await client.getModuleManager().listModules({ limit: 20 });
+     * ```
+     */
     async listModules(options?: { limit?: number; from?: string }): Promise<ModuleListResponse> {
         const query = buildPaginationParams(options?.limit, options?.from);
         const result = await this.adminRequest<ModuleListResponse>(Method.Get, mp("/modules"), query);
@@ -196,6 +206,16 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result;
     }
 
+    /**
+     * 按模块类型列出模块。
+     *
+     * @param moduleType - 模块类型（如 `spam_checker`）
+     * @returns 该类型下的模块数组
+     * @example
+     * ```typescript
+     * const modules = await client.getModuleManager().listModulesByType("spam_checker");
+     * ```
+     */
     async listModulesByType(moduleType: string): Promise<ModuleInfo[]> {
         const result = await this.adminRequest<{ modules: ModuleInfo[] }>(
             Method.Get,
@@ -204,6 +224,17 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result.modules;
     }
 
+    /**
+     * 按名称获取单个模块的详情。
+     *
+     * @param moduleName - 模块名称
+     * @returns 模块详情
+     * @throws {NotFoundError} 当模块不存在（后端返回 `M_NOT_FOUND`）时抛出
+     * @example
+     * ```typescript
+     * const module = await client.getModuleManager().getModule("my_module");
+     * ```
+     */
     async getModule(moduleName: string): Promise<ModuleInfo> {
         try {
             return await this.adminRequest<ModuleInfo>(Method.Get, mp(`/modules/${encodeURIComponent(moduleName)}`));
@@ -215,17 +246,47 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         }
     }
 
+    /**
+     * 创建（注册）一个新模块。
+     *
+     * @param moduleConfig - 模块配置，至少包含 `name` 与 `type`
+     * @returns 创建后的模块详情
+     * @example
+     * ```typescript
+     * const module = await client.getModuleManager().createModule({ name: "my_module", type: "spam_checker" });
+     * ```
+     */
     async createModule(moduleConfig: CreateModuleRequest): Promise<ModuleInfo> {
         const result = await this.adminRequest<ModuleInfo>(Method.Post, mp("/modules"), undefined, moduleConfig);
         this.emit(ModuleEvent.ModuleCreated, result);
         return result;
     }
 
+    /**
+     * 删除指定模块。
+     *
+     * @param moduleName - 模块名称
+     * @example
+     * ```typescript
+     * await client.getModuleManager().deleteModule("my_module");
+     * ```
+     */
     async deleteModule(moduleName: string): Promise<void> {
         await this.adminRequest<void>(Method.Delete, mp(`/modules/${encodeURIComponent(moduleName)}`));
         this.emit(ModuleEvent.ModuleDeleted, moduleName);
     }
 
+    /**
+     * 更新指定模块的配置。
+     *
+     * @param moduleName - 模块名称
+     * @param config - 新的配置内容
+     * @returns 更新后的模块详情
+     * @example
+     * ```typescript
+     * await client.getModuleManager().updateModuleConfig("my_module", { threshold: 0.8 });
+     * ```
+     */
     async updateModuleConfig(moduleName: string, config: IContent): Promise<ModuleInfo> {
         const result = await this.adminRequest<ModuleInfo>(
             Method.Put,
@@ -237,6 +298,16 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result;
     }
 
+    /**
+     * 启用或禁用指定模块。
+     *
+     * @param moduleName - 模块名称
+     * @param enabled - `true` 表示启用，`false` 表示禁用
+     * @example
+     * ```typescript
+     * await client.getModuleManager().setModuleEnabled("my_module", true);
+     * ```
+     */
     async setModuleEnabled(moduleName: string, enabled: boolean): Promise<void> {
         await this.adminRequest<void>(Method.Post, mp(`/modules/${encodeURIComponent(moduleName)}/enable`), undefined, {
             is_enabled: enabled,
@@ -248,6 +319,17 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         }
     }
 
+    /**
+     * 分页获取指定模块的运行日志。
+     *
+     * @param moduleName - 模块名称
+     * @param options - 分页选项（`limit` / `from`）
+     * @returns 日志条目与总数
+     * @example
+     * ```typescript
+     * const logs = await client.getModuleManager().getModuleLogs("my_module", { limit: 50 });
+     * ```
+     */
     async getModuleLogs(moduleName: string, options?: { limit?: number; from?: string }): Promise<ModuleLogResponse> {
         const query = buildPaginationParams(options?.limit, options?.from);
         // SDK-BL-001: backend route is /modules/logs/{module_name} (logs segment comes first)
@@ -262,6 +344,20 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== Spam 检查 ====================
 
+    /**
+     * 对指定事件执行 Spam 检查。
+     *
+     * @param payload Spam 检查请求体
+     * @returns Spam 检查结果
+     * @example
+     * ```typescript
+     * const result = await client.getModuleManager().checkSpam({
+     *   event_id: "$event",
+     *   user_id: "@alice:example.com",
+     *   content: { body: "buy now" },
+     * });
+     * ```
+     */
     async checkSpam(payload: SpamCheckRequest): Promise<SpamCheckResponse> {
         const result = await this.adminRequest<SpamCheckResponse>(
             Method.Post,
@@ -273,6 +369,16 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result;
     }
 
+    /**
+     * 查询指定事件的 Spam 检查结果。
+     *
+     * @param eventId 目标事件 ID
+     * @returns Spam 检查结果
+     * @example
+     * ```typescript
+     * const result = await client.getModuleManager().getSpamCheckResult("$event");
+     * ```
+     */
     async getSpamCheckResult(eventId: string): Promise<SpamCheckResponse> {
         return await this.adminRequest<SpamCheckResponse>(
             Method.Get,
@@ -280,6 +386,17 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         );
     }
 
+    /**
+     * 按发送者查询 Spam 检查记录。
+     *
+     * @param sender  发送者用户 ID
+     * @param options 分页选项
+     * @returns Spam 检查结果列表
+     * @example
+     * ```typescript
+     * const checks = await client.getModuleManager().getSpamCheckBySender("@alice:example.com", { limit: 20 });
+     * ```
+     */
     async getSpamCheckBySender(
         sender: string,
         options?: { limit?: number; from?: string },
@@ -295,6 +412,20 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== 第三方规则 ====================
 
+    /**
+     * 对指定事件执行第三方规则检查。
+     *
+     * @param payload 第三方规则检查请求体
+     * @returns 第三方规则检查结果
+     * @example
+     * ```typescript
+     * const result = await client.getModuleManager().checkThirdPartyRule({
+     *   rule_type: "event",
+     *   event_id: "$event",
+     *   user_id: "@alice:example.com",
+     * });
+     * ```
+     */
     async checkThirdPartyRule(payload: ThirdPartyRuleRequest): Promise<ThirdPartyRuleResponse> {
         const result = await this.adminRequest<ThirdPartyRuleResponse>(
             Method.Post,
@@ -306,6 +437,16 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result;
     }
 
+    /**
+     * 查询指定事件的第三方规则检查结果。
+     *
+     * @param eventId 目标事件 ID
+     * @returns 第三方规则检查结果
+     * @example
+     * ```typescript
+     * const result = await client.getModuleManager().getThirdPartyRuleResult("$event");
+     * ```
+     */
     async getThirdPartyRuleResult(eventId: string): Promise<ThirdPartyRuleResponse> {
         return await this.adminRequest<ThirdPartyRuleResponse>(
             Method.Get,
@@ -315,6 +456,15 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== 回调管理 ====================
 
+    /**
+     * 获取已注册的账户数据回调列表。
+     *
+     * @returns 账户数据回调列表
+     * @example
+     * ```typescript
+     * const callbacks = await client.getModuleManager().getAccountDataCallbacks();
+     * ```
+     */
     async getAccountDataCallbacks(): Promise<CallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(
             Method.Get,
@@ -323,6 +473,19 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result.callbacks;
     }
 
+    /**
+     * 注册账户数据回调。
+     *
+     * @param callback 回调描述，包含模块名与回调类型
+     * @returns 注册后的回调信息
+     * @example
+     * ```typescript
+     * const callback = await client.getModuleManager().registerAccountDataCallback({
+     *   module_name: "my_module",
+     *   callback_type: "on_account_data",
+     * });
+     * ```
+     */
     async registerAccountDataCallback(callback: { module_name: string; callback_type: string }): Promise<CallbackInfo> {
         const result = await this.adminRequest<CallbackInfo>(
             Method.Post,
@@ -334,17 +497,49 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result;
     }
 
+    /**
+     * 获取已注册的媒体回调列表。
+     *
+     * @returns 媒体回调列表
+     * @example
+     * ```typescript
+     * const callbacks = await client.getModuleManager().getMediaCallbacks();
+     * ```
+     */
     async getMediaCallbacks(): Promise<CallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(Method.Get, mp("/media_callbacks"));
         return result.callbacks;
     }
 
+    /**
+     * 注册媒体回调。
+     *
+     * @param callback 回调描述，包含模块名与回调类型
+     * @returns 注册后的回调信息
+     * @example
+     * ```typescript
+     * const callback = await client.getModuleManager().registerMediaCallback({
+     *   module_name: "my_module",
+     *   callback_type: "on_media",
+     * });
+     * ```
+     */
     async registerMediaCallback(callback: { module_name: string; callback_type: string }): Promise<CallbackInfo> {
         const result = await this.adminRequest<CallbackInfo>(Method.Post, mp("/media_callbacks"), undefined, callback);
         this.emit(ModuleEvent.MediaCallbackRegistered, result);
         return result;
     }
 
+    /**
+     * 按回调类型查询媒体回调列表。
+     *
+     * @param callbackType 回调类型
+     * @returns 匹配的媒体回调列表
+     * @example
+     * ```typescript
+     * const callbacks = await client.getModuleManager().getMediaCallbacksByType("on_media");
+     * ```
+     */
     async getMediaCallbacksByType(callbackType: string): Promise<CallbackInfo[]> {
         const result = await this.adminRequest<{ callbacks: CallbackInfo[] }>(
             Method.Get,
@@ -355,6 +550,15 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
 
     // ==================== 密码认证提供商 ====================
 
+    /**
+     * 获取已注册的密码认证提供商列表。
+     *
+     * @returns 密码认证提供商列表
+     * @example
+     * ```typescript
+     * const providers = await client.getModuleManager().getPasswordAuthProviders();
+     * ```
+     */
     async getPasswordAuthProviders(): Promise<PasswordAuthProviderInfo[]> {
         const result = await this.adminRequest<{ providers: PasswordAuthProviderInfo[] }>(
             Method.Get,
@@ -363,6 +567,19 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         return result.providers;
     }
 
+    /**
+     * 注册密码认证提供商。
+     *
+     * @param provider 提供商描述，包含名称、类型与可选配置
+     * @returns 注册后的提供商信息
+     * @example
+     * ```typescript
+     * const provider = await client.getModuleManager().registerPasswordAuthProvider({
+     *   name: "ldap",
+     *   type: "ldap",
+     * });
+     * ```
+     */
     async registerPasswordAuthProvider(provider: {
         name: string;
         type: string;
@@ -388,6 +605,10 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
      *
      * @param userId       目标用户 ID
      * @param expirationTs 过期时间戳（毫秒）
+     * @example
+     * ```typescript
+     * await client.getModuleManager().checkAccountValidity("@alice:example.com", Date.now() + 86400000);
+     * ```
      */
     async checkAccountValidity(userId: string, expirationTs: number): Promise<void> {
         this.requireNonEmptyString(userId, "userId");
@@ -398,6 +619,16 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
         });
     }
 
+    /**
+     * 查询指定用户的账户有效性信息。
+     *
+     * @param userId 目标用户 ID
+     * @returns 账户有效性信息
+     * @example
+     * ```typescript
+     * const info = await client.getModuleManager().getAccountValidity("@alice:example.com");
+     * ```
+     */
     async getAccountValidity(userId: string): Promise<AccountValidityInfo> {
         const result = await this.adminRequest<AccountValidityInfo>(
             Method.Get,
@@ -416,6 +647,12 @@ export class ModuleManager extends BaseManager<ModuleEvent, ModuleManagerEventMa
      * @param userId           目标用户 ID
      * @param renewalToken     续期令牌
      * @param newExpirationTs 新过期时间戳（毫秒）
+     * @example
+     * ```typescript
+     * await client
+     *   .getModuleManager()
+     *   .renewAccountValidity("@alice:example.com", "token", Date.now() + 86400000);
+     * ```
      */
     async renewAccountValidity(userId: string, renewalToken: string, newExpirationTs: number): Promise<void> {
         this.requireNonEmptyString(userId, "userId");

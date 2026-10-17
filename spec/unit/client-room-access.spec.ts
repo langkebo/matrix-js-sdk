@@ -107,7 +107,9 @@ describe("client-room-access", () => {
             await createFileTreeSpaceRequest(name, getUserId, createRoom, createTreeSpace);
 
             const createOpts = createRoom.mock.calls[0][0];
-            const encryptionEvent = createOpts.initial_state.find((e: any) => e.type === EventType.RoomEncryption);
+            const encryptionEvent = createOpts.initial_state.find(
+                (e: { type: string }) => e.type === EventType.RoomEncryption,
+            );
 
             expect(encryptionEvent).toBeDefined();
             expect(encryptionEvent.content.algorithm).toBe("m.megolm.v1.aes-sha2");
@@ -128,7 +130,9 @@ describe("client-room-access", () => {
             await createFileTreeSpaceRequest(name, getUserId, createRoom, createTreeSpace);
 
             const createOpts = createRoom.mock.calls[0][0];
-            const purposeEvent = createOpts.initial_state.find((e: any) => e.type === UNSTABLE_MSC3088_PURPOSE.name);
+            const purposeEvent = createOpts.initial_state.find(
+                (e: { type: string }) => e.type === UNSTABLE_MSC3088_PURPOSE.name,
+            );
 
             expect(purposeEvent).toBeDefined();
             expect(purposeEvent.state_key).toBe(UNSTABLE_MSC3089_TREE_SUBTYPE.name);

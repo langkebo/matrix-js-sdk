@@ -45,6 +45,90 @@ describe("ApplicationServiceManager", () => {
             transport.expectCalledWith(Method.Post, "/appservices");
         });
 
+        // 后端 `09c028a08`（上游 `changelog.d/20273.bugfix`）：`url` 改为可空，
+        // 以支持「无推送端点」的注册（bridge 双傀儡）。后端同时明确：
+        // **接受 `url: null` 或省略 `url`；拒绝空串**（空串会让「没有 url」与
+        // 「url 是空串」产生隐式分叉）。以下三条逐一对齐该语义。
+        const sentBody = (): Record<string, unknown> =>
+            transport.request.mock.calls[0][3] as unknown as Record<string, unknown>;
+
+        /**
+         * **报文层**（wire）的键集 —— 真实发送形态由 `src/http-api/fetch.ts` 的
+         * `JSON.stringify(body)` 决定，而它会**丢弃值为 `undefined` 的键**。
+         * 断言必须落在这一层：只看 JS 对象会把「值为 undefined」误读成「键存在」。
+         */
+        const sentWireBody = (): Record<string, unknown> => JSON.parse(JSON.stringify(sentBody()));
+
+        it("should register without a push endpoint when url is null, and report url: null back", async () => {
+            transport.respondWith({
+                id: 2,
+                as_id: "nullurl-bridge",
+                url: null,
+                sender: "puppet",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 2000,
+            });
+
+            const result = await manager.registerAppService({
+                id: "nullurl-bridge",
+                url: null,
+                as_token: "astoken",
+                hs_token: "hstoken",
+                sender_localpart: "puppet",
+            });
+
+            // 响应里的 null 必须**原样**透出，不能被折成 undefined/空串
+            expect(result.url).toBeNull();
+            // 显式传 null ⇒ 报文里该键**存在且为 null**（后端靠 null 区分「没有 url」）
+            expect(Object.keys(sentWireBody())).toContain("url");
+            expect(sentWireBody()).toHaveProperty("url", null);
+        });
+
+        it("should omit the url key entirely when the field is not provided", async () => {
+            transport.respondWith({
+                id: 3,
+                as_id: "omitted-bridge",
+                url: null,
+                sender: "puppet2",
+                rate_limited: false,
+                protocols: [],
+                is_enabled: true,
+                created_ts: 3000,
+            });
+
+            const result = await manager.registerAppService({
+                id: "omitted-bridge",
+                as_token: "astoken",
+                hs_token: "hstoken",
+                sender_localpart: "puppet2",
+            });
+
+            expect(result.url).toBeNull();
+            // 省略 ⇒ **报文里没有该键**（实现上 `url: undefined` 被 JSON.stringify 丢弃）
+            expect(Object.keys(sentWireBody())).not.toContain("url");
+            // 同时钉住实现形态：源码里保留字面量 `url: request.url`，
+            // 因为 `quality:wire-format` 的抽取器只认对象字面量/单一 const 绑定，
+            // 展开或条件赋值会让该调用点落进 `sdk-keys-unknown` 覆盖桶。
+            expect(Object.keys(sentBody())).toContain("url");
+        });
+
+        it("should reject an empty-string url instead of sending it (backend rejects it too)", async () => {
+            await expect(
+                manager.registerAppService({
+                    id: "empty-url",
+                    url: "",
+                    as_token: "astoken",
+                    hs_token: "hstoken",
+                    sender_localpart: "bot",
+                }),
+            ).rejects.toThrow(ValidationError);
+
+            // 关键：**不能**发出去（后端会 400，且空串语义是错的）
+            expect(transport.request).not.toHaveBeenCalled();
+        });
+
         it("should reject registration with missing required fields", async () => {
             const req = { id: "", url: "", as_token: "", hs_token: "", sender_localpart: "" };
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -173,6 +257,13 @@ describe("ApplicationServiceManager", () => {
 
             expect(result.url).toBe("https://updated.example.com");
             transport.expectCalledWith(Method.Put, "/appservices/update-me");
+        });
+
+        it("should reject an empty-string url on update (backend rejects it too)", async () => {
+            // 后端对 update 的语义是 `COALESCE($2, url)`：省略/null ⇒ 不改动 url。
+            // 空串既不是「不改动」也不是合法 URL ⇒ 必须在发起前拦下。
+            await expect(manager.updateApplicationService("update-me", { url: "" })).rejects.toThrow(ValidationError);
+            expect(transport.request).not.toHaveBeenCalled();
         });
 
         it("should emit ServiceUpdated event", async () => {

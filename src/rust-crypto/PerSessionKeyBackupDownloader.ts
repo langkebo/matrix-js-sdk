@@ -242,11 +242,10 @@ export class PerSessionKeyBackupDownloader {
     private async getBackupDecryptionKey(): Promise<RustSdkCryptoJs.BackupKeys | null> {
         try {
             return await this.olmMachine.getBackupKeys();
-            // @swallow-error { owner: "rust-crypto", expires: "2026-12-31" }
         } catch (e) {
             this.logger.warn("PerSessionKeyBackupDownloader.getBackupDecryptionKey failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**

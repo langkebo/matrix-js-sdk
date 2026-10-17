@@ -3,119 +3,277 @@
 # MAJOR: 破坏性变更（端点删除、必填字段变更）
 # MINOR: 向后兼容的新增（新端点、可选字段）
 # PATCH: 文档修复、说明完善
+#
+# ⚠️ 本文件由 docs/api-contract/generated/ 派生（2026-10-12 重新生成）。
+#    此前内容停留在 2026-04-27，与生成物全面脱节且**无任何门禁校验**（详见同步报告的 F-9）。
+#    端点数 = generated/modules/<module>.json 的 entry_count（all profile）。
 
-version: 1.0.0
-released: 2026-04-27
+version: 1.1.0
+released: 2026-10-12
+backendCommit: 122aaf109a883a078861fce740e9ce1af416f1b0
+ledgerProfiles:
+    default: 1008
+    worker: 1019
+    all: 1027
 modules:
-    auth:
-        version: 1.2.0
-        lastChange: 2026-04-15
+    account_data:
+        version: 1.1.0
+        lastChange: 2026-10-12
         endpoints: 15
-        coverage: 95%
-
-    admin:
-        version: 1.5.0
-        lastChange: 2026-04-20
-        endpoints: 140
-        coverage: 59%
-
-    friend:
-        version: 1.0.0
-        lastChange: 2026-04-04
-        endpoints: 25
         coverage: 100%
-
+    admin:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 179
+        coverage: 31%
+    app_service:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 39
+        coverage: 100%
+    assembly:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 104
+        coverage: 0%
+    background_update:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 19
+        coverage: 100%
+    burn_after_read:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 7
+        coverage: 100%
+    captcha:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 5
+        coverage: 100%
+    cas:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 12
+        coverage: 100%
+    delayed_events:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 2
+        coverage: 0%
+    device:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 6
+        coverage: 100%
     dm:
         version: 1.1.0
-        lastChange: 2026-04-11
-        endpoints: 8
-        coverage: 90%
-
-    space:
-        version: 1.3.0
-        lastChange: 2026-04-27
-        endpoints: 15
-        coverage: 85%
-
-    typing:
-        version: 1.0.0
-        lastChange: 2026-04-27
-        endpoints: 3
-        coverage: 33%
-        status: new
-
-    reactions:
-        version: 1.0.0
-        lastChange: 2026-04-27
+        lastChange: 2026-10-12
+        endpoints: 5
+        coverage: 100%
+    e2ee:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 36
+        coverage: 100%
+    ephemeral:
+        version: 1.1.0
+        lastChange: 2026-10-12
         endpoints: 1
         coverage: 100%
-        status: new
-
-    relations:
-        version: 1.0.0
-        lastChange: 2026-04-27
-        endpoints: 5
-        coverage: 60%
-        status: new
-
-    key-rotation:
-        version: 1.0.0
-        lastChange: 2026-04-27
-        endpoints: 6
-        coverage: 0%
-        status: new
-
-    moderation:
-        version: 1.0.0
-        lastChange: 2026-04-27
+    event_report:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 18
+        coverage: 100%
+    external_service:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 12
+        coverage: 100%
+    feature_flags:
+        version: 1.1.0
+        lastChange: 2026-10-12
         endpoints: 4
-        coverage: 25%
-        status: new
-
-    thirdparty:
-        version: 1.0.0
-        lastChange: 2026-04-27
-        endpoints: 6
-        coverage: 67%
-        status: new
-
-    event-report:
-        version: 1.0.0
-        lastChange: 2026-04-27
+        coverage: 100%
+    federation:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 55
+        coverage: 35%
+    friend_room:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 28
+        coverage: 0%
+    guest:
+        version: 1.1.0
+        lastChange: 2026-10-12
         endpoints: 3
-        coverage: 0%
-        status: new
-
-    telemetry:
-        version: 1.0.0
-        lastChange: 2026-04-27
-        endpoints: 6
-        coverage: 0%
-        status: new
-
-    feature-flags:
-        version: 1.0.0
-        lastChange: 2026-04-27
+        coverage: 100%
+    invite_blocklist:
+        version: 1.1.0
+        lastChange: 2026-10-12
         endpoints: 4
         coverage: 0%
-        status: new
-
-    app-service:
-        version: 1.0.0
-        lastChange: 2026-04-27
-        endpoints: 5
+    key_backup:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 66
+        coverage: 100%
+    key_rotation:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 9
+        coverage: 100%
+    media:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 36
+        coverage: 100%
+    moderation:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 6
+        coverage: 100%
+    module:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 23
+        coverage: 100%
+    msc4108_rendezvous:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 4
         coverage: 0%
-        status: new
-
-    background-update:
-        version: 1.0.0
-        lastChange: 2026-04-27
+    oidc:
+        version: 1.1.0
+        lastChange: 2026-10-12
         endpoints: 10
+        coverage: 100%
+    presence:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 9
+        coverage: 100%
+    push:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 17
+        coverage: 100%
+    push_notification:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 8
         coverage: 0%
-        status: new
+    reactions:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 1
+        coverage: 100%
+    relations:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 9
+        coverage: 100%
+    rendezvous:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 6
+        coverage: 100%
+    room:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 95
+        coverage: 100%
+    room_summary:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 21
+        coverage: 100%
+    saml:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 16
+        coverage: 100%
+    search:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 8
+        coverage: 100%
+    sliding_sync:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 4
+        coverage: 100%
+    space:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 26
+        coverage: 100%
+    sync:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 3
+        coverage: 100%
+    tags:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 4
+        coverage: 100%
+    telemetry:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 6
+        coverage: 100%
+    thirdparty:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 6
+        coverage: 100%
+    thread:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 21
+        coverage: 100%
+    typing:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 5
+        coverage: 100%
+    voice:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 12
+        coverage: 100%
+    widget:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 16
+        coverage: 100%
+    worker:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 15
+        coverage: 0%
+    worker_body:
+        version: 1.1.0
+        lastChange: 2026-10-12
+        endpoints: 11
+        coverage: 100%
 
-# 破坏性变更追踪
-breakingChanges: []
+# 破坏性变更追踪（2026-10-12 审计补充：以下变更此前未登记，属发现即记录）
+breakingChanges:
+    - version: 1.1.0
+      date: 2026-10-12
+      scope: /_matrix/client/{r0} 全组
+      change: r0 命名空间房间/media/presence/sync 路由整体退役（ledger 中 0 条）
+      impact: 仍使用 r0 路径的调用方将收到 404；应迁移到 v3 或 vendor/v1
+    - version: 1.1.0
+      date: 2026-10-12
+      scope: 私有扩展模块（friend/voice/key-rotation/burn-after-read/external-service/dm/room-summary/thread/widget/room-ext）
+      change: 私有端点的唯一规范前缀迁至 /_matrix/vendor/v1（ISSUE-13），client 前缀别名已删除
+      impact: 契约文档此前仍写 client 前缀（本轮已校正 70 处）；按旧文档实现会 404
 
 # 废弃端点追踪
 deprecations: []

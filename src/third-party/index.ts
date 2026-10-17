@@ -56,6 +56,14 @@ export class ThirdPartyManager extends BaseManager {
     /**
      * Get the third party protocols that can be reached using this HS.
      * GET /_matrix/client/v3/thirdparty/protocols
+     *
+     * @returns 协议名称到协议描述的映射
+     * @throws {Error} 当响应不是对象时
+     * @example
+     * ```typescript
+     * const protocols = await client.getThirdPartyManager().getThirdpartyProtocols();
+     * console.log(Object.keys(protocols));
+     * ```
      */
     async getThirdpartyProtocols(): Promise<{ [protocol: string]: IProtocol }> {
         return this.withRetry(async () => {
@@ -74,6 +82,13 @@ export class ThirdPartyManager extends BaseManager {
     /**
      * Get third party locations for a protocol.
      * GET /_matrix/client/v3/thirdparty/location/{protocol}
+     *
+     * @returns 该协议下的第三方位置列表
+     * @example
+     * ```typescript
+     * const locations = await client.getThirdPartyManager().getThirdpartyLocation("irc");
+     * console.log(locations);
+     * ```
      */
     getThirdpartyLocation(protocol: string, params?: { searchFields?: string[] }): Promise<ThirdPartyLocation[]> {
         const path = utils.encodeUri("/thirdparty/location/$protocol", { $protocol: protocol });
@@ -90,6 +105,13 @@ export class ThirdPartyManager extends BaseManager {
     /**
      * Get third party users for a protocol.
      * GET /_matrix/client/v3/thirdparty/user/{protocol}
+     *
+     * @returns 该协议下的第三方用户列表
+     * @example
+     * ```typescript
+     * const users = await client.getThirdPartyManager().getThirdpartyUser("irc");
+     * console.log(users);
+     * ```
      */
     getThirdpartyUser(protocol: string, params?: QueryDict): Promise<ThirdPartyUser[]> {
         const path = utils.encodeUri("/thirdparty/user/$protocol", { $protocol: protocol });
@@ -208,14 +230,13 @@ export class ThirdPartyManager extends BaseManager {
     ): Promise<ThirdPartyLocation[]> {
         try {
             return await this.getThirdpartyLocation(protocol, params);
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "searchLocations");
             }
             logger.warn("ThirdPartyManager.searchLocations failed:", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -247,14 +268,13 @@ export class ThirdPartyManager extends BaseManager {
     ): Promise<ThirdPartyUser[]> {
         try {
             return await this.getThirdpartyUser(protocol, params);
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "searchUsers");
             }
             logger.warn("ThirdPartyManager.searchUsers failed:", e);
-            return [];
         }
+        return [];
     }
 
     /**
@@ -335,6 +355,14 @@ export class ThirdPartyManager extends BaseManager {
 
     /**
      * 获取位置别名信息
+     *
+     * @param alias - 房间别名
+     * @returns 位置信息，别名无法解析时返回 null
+     * @example
+     * ```typescript
+     * const location = await client.getThirdPartyManager().getLocation("#room:example.org");
+     * console.log(location?.alias);
+     * ```
      */
     async getLocation(alias: string): Promise<ThirdPartyLocation | null> {
         try {
@@ -359,15 +387,22 @@ export class ThirdPartyManager extends BaseManager {
                 };
             }
             return null;
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("ThirdPartyManager.getLocation failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**
      * 获取用户信息
+     *
+     * @param userId - 用户 ID
+     * @returns 用户信息，ID 格式无效时返回 null
+     * @example
+     * ```typescript
+     * const user = await client.getThirdPartyManager().getUser("@alice:example.org");
+     * console.log(user?.userid);
+     * ```
      */
     async getUser(userId: string): Promise<ThirdPartyUser | null> {
         try {
@@ -382,15 +417,22 @@ export class ThirdPartyManager extends BaseManager {
                 };
             }
             return null;
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("ThirdPartyManager.getUser failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**
      * 解析第三方统一标识符
+     *
+     * @param uri - 要解析的 `matrix:` URI
+     * @returns 解析结果（含类型、ID 及可选字段），URI 无法解析时返回 null
+     * @example
+     * ```typescript
+     * const parsed = await client.getThirdPartyManager().parseMatrixUri("matrix:u/alice:example.org");
+     * console.log(parsed?.type, parsed?.id);
+     * ```
      */
     async parseMatrixUri(uri: string): Promise<{
         type: "user" | "room" | "event";
@@ -413,15 +455,24 @@ export class ThirdPartyManager extends BaseManager {
                 }
             }
             return null;
-            // @swallow-error { owner: "thirdparty", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("ThirdPartyManager.parseMatrixUri failed:", e);
-            return null;
         }
+        return null;
     }
 
     /**
      * 生成第三方统一标识符
+     *
+     * @param type - 标识符类型
+     * @param id - 目标 ID
+     * @param params - 可选的查询参数
+     * @returns 生成的 `matrix:` URI
+     * @example
+     * ```typescript
+     * const uri = client.getThirdPartyManager().encodeMatrixUri("user", "@alice:example.org");
+     * console.log(uri); // matrix:u/@alice:example.org
+     * ```
      */
     encodeMatrixUri(type: "user" | "room" | "event", id: string, params?: Record<string, string>): string {
         let path = "";

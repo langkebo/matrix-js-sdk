@@ -1,14 +1,14 @@
 ---
 module: sliding_sync
 generated_from: docs/api-contract/generated/modules/sliding_sync.json
-generated_hash: sha256-1e35eeda13da59d00a1800ddec855985e44bb8024ac047ec6a15fce8575e4950
+generated_hash: sha256-9b6874ea81660e6085eb6bf829c9a671fde53d030e635784ad6bd19f644a164b
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Sliding Sync 契约
 
-> 审查来源: `synapse-rust/src/web/routes/sliding_sync.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/sliding_sync.rs`
 > 审计状态: ✅ `MatrixClient.slidingSync()` 已绑定生成 `SlidingSyncPathPattern`
 
 ## 真实后端路由
@@ -345,3 +345,55 @@ export interface SlidingSyncTypingExtensionResponse {
     }>;
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 实际登记的 4 条路由
+
+上表只列了 SDK 默认前缀。`generated/modules/sliding_sync.json` 的 `entry_count` 为 **4**，四条路由共用同一 handler：
+
+- `POST /_matrix/client/v1/sync`（Simplified Sliding Sync，MSC4186）
+- `POST /_matrix/client/v4/sync`（stable v4）
+- `POST /_matrix/client/unstable/org.matrix.msc3575/sync`
+- `POST /_matrix/client/unstable/org.matrix.simplified_msc3575/sync`（SDK 默认）
+
+- 这四条都不与经典 `GET /_matrix/client/v3/sync` 共路径：v3 只有 GET，POST 返回 405 `M_UNRECOGNIZED`。
+- 两者的 `rooms` 结构不同，不要复用经典 sync 的解析器。
+
+### `txn_id` 幂等
+
+- `txn_id` 是幂等键：同 `(user, device, txn_id)` 重放返回缓存响应，响应丢失后重试是安全的。
+- 重试时必须保持 `txn_id` 与设备不变；换设备或换 `txn_id` 会被当作新请求。
+
+### `pos` 与错误处理
+
+- `pos` 缺失或为空字符串表示初始同步；带 `pos` 表示增量同步。
+- `pos` 过期或非法返回 400 `M_UNKNOWN_POS`（能力 `org.matrix.msc4186`）。此时应丢弃本地 `pos` 重新做初始同步，不要用同一个 `pos` 重试。
+- 429 `M_LIMIT_EXCEEDED` 与经典 sync 语义一致：保留上一次 `pos`，退避后重试。
+
+### `lists` 的两种形态
+
+- 对象形态：`{"main": {"ranges": [[0, 49]], ...}}`。
+- 数组形态：`[{"list_key": "main", "ranges": [[0, 49]], ...}]`。
+- 服务端两种都解析；SDK 的 `SlidingSyncRequest.lists` 类型只描述对象形态，发送数组形态需要绕过该类型。
+
+### `pos` / `timeout` / `txn_id` 的传输位置
+
+- 后端同时接受 query 与请求体：`SlidingSyncQuery` 解析 `pos`、`timeout`、`txn_id`，当请求体对应字段缺失时用 query 值补齐；请求体优先。
+- SDK `RoomManager.slidingSync()` 当前把 `pos` / `timeout` 放进 query，并从请求体中剔除；`clientTimeout` 只映射到本地 `localTimeoutMs`，不进入 HTTP。
+- 因此“query 传输”与“请求体传输”都可用，不构成契约冲突；新增字段时需同时考虑两侧。
+
+### 扩展响应的实际形状
+
+- `extensions.account_data`：`{global:[{type,content}], rooms:{room_id:[{type,content}]}}`，是事件数组，不是 `type → content` 映射；上面的 DTO 只描述了 `{events}` 简化形态。
+- `extensions.typing`：`{rooms:{room_id:{user_ids:[...]}}}`，不是 `m.typing` 事件形状。
+- `extensions.receipts`：`{rooms:{room_id:{...}}}`。
+- `extensions.to_device`：`{events:[...], next_batch?}`，`since` 由请求体 `extensions.to_device.since` 指定。
+- `extensions.e2ee`：`{device_lists:{changed,left}, device_one_time_keys_count:{algo:count}, device_unused_fallback_key_types:[algo]}`。
+- `extensions.presence` / `profile_updates` 仅在内容变化时下发；`profile_updates.users[user_id]` 为 `null` 表示该用户已不再与本地用户共享任何已加入房间，应删除其资料缓存。
+- 响应中的 `extensions` 以请求对象为底（请求过的键会回声），再按需覆盖实际载荷。
+
+### 限流
+
+- Sliding Sync 使用独立计数器（`sliding_sync_rate_limited_total`），与经典 sync 分开计费。
+- 初始同步与增量同步分桶限流；初始请求更容易触发 429，重试时应保留 `pos`。

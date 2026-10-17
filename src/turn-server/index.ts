@@ -67,10 +67,32 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
         super(client, opts);
     }
 
+    /**
+     * 同步读取当前缓存的 TURN 服务器列表（不发起请求）。
+     *
+     * @returns 缓存的 TURN 服务器数组，无缓存时为空数组
+     * @example
+     * ```typescript
+     * const servers = client.getTurnServerManager().getTurnServers();
+     * console.log(servers.flatMap((s) => s.urls));
+     * ```
+     */
     public getTurnServers(): ITurnServer[] {
         return this.internalClient.turnServers || [];
     }
 
+    /**
+     * 获取当前用户的 TURN 凭据。
+     *
+     * 对应 `GET /_matrix/client/v3/voip/turnServer`。
+     *
+     * @returns 当前用户的 TURN 凭据（`username`/`password`/`uris`/`ttl`）
+     * @example
+     * ```typescript
+     * const creds = await client.getTurnServerManager().getTurnServerConfig();
+     * console.log(creds.username, creds.ttl);
+     * ```
+     */
     public async getTurnServerConfig(): Promise<ITurnServerResponse> {
         return this.withRetry(async () => {
             return await this.request<ITurnServerResponse>({
@@ -132,6 +154,19 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
         }, "getGuestTurnServerConfig");
     }
 
+    /**
+     * 获取 TURN 服务器 URI 列表。
+     *
+     * 优先返回已缓存的服务器 URI；无缓存时向服务端拉取，拉取失败（VoIP 未启用或
+     * 端点 404）时记录原因并降级为空数组，不抛错。
+     *
+     * @returns TURN 服务器 URI 数组，不可用时为空数组
+     * @example
+     * ```typescript
+     * const uris = await client.getTurnServerManager().getTurnServerURIs();
+     * console.log(uris);
+     * ```
+     */
     public async getTurnServerURIs(): Promise<string[]> {
         const servers = this.getTurnServers();
         if (servers.length > 0) {
@@ -152,6 +187,16 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
         return [];
     }
 
+    /**
+     * 同步读取 TURN 凭据的过期时间戳（epoch 毫秒）。
+     *
+     * @returns 凭据过期时间戳，未设置时返回 0
+     * @example
+     * ```typescript
+     * const expiry = client.getTurnServerManager().getTurnServerExpiry();
+     * console.log("TURN creds expire at", new Date(expiry));
+     * ```
+     */
     public getTurnServerExpiry(): number {
         return this.internalClient.turnServersExpiry ?? 0;
     }
@@ -160,6 +205,11 @@ export class TurnServerManager extends BaseManager<keyof TurnServerManagerEvents
      * Check TURN servers and refresh credentials if needed.
      * Emits TurnServers and TurnServersError events on the client.
      * @returns true if credentials are good, undefined if VoIP not supported.
+     * @example
+     * ```typescript
+     * const good = await client.getTurnServerManager().checkTurnServers();
+     * console.log("TURN credentials valid:", good);
+     * ```
      */
     public async checkTurnServers(): Promise<boolean | undefined> {
         const client = this.internalClient;

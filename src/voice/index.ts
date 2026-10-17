@@ -285,11 +285,33 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         super(client, opts);
     }
 
+    /**
+     * 检测当前后端是否支持语音消息服务（FT-S13：探测失败时一律按不支持处理）。
+     *
+     * @returns 后端是否开放 Voice 路由
+     * @example
+     * ```typescript
+     * const supported = await client.getVoiceManager().isSupported();
+     * console.log("Voice supported:", supported);
+     * ```
+     */
     public async isSupported(): Promise<boolean> {
         // 后端未实 Voice 路由：探测失败时绝不能误判支持（FT-S13）
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.Voice, false);
     }
 
+    /**
+     * 获取当前用户的语音消息汇总统计。
+     *
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 语音统计数据（消息数、总时长、平均时长、占用存储）
+     * @throws 当请求失败时抛出经过归一化的错误
+     * @example
+     * ```typescript
+     * const stats = await client.getVoiceManager().getVoiceStats();
+     * console.log(stats.total_messages, stats.storage_used_bytes);
+     * ```
+     */
     public async getVoiceStats(prefix: string = VendorPrefix): Promise<IVoiceStats> {
         try {
             return await this.withRetry(async () => {
@@ -304,6 +326,19 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 获取指定房间的语音消息统计。
+     *
+     * @param roomId - 目标房间 ID
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 该房间的语音统计
+     * @throws 当 roomId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const stats = await client.getVoiceManager().getRoomVoiceStats("!room:example.org");
+     * console.log(stats.message_count);
+     * ```
+     */
     public async getRoomVoiceStats(roomId: string, prefix: string = VendorPrefix): Promise<IVoiceRoomStats> {
         this.requireNonEmptyString(roomId, "Room ID");
         try {
@@ -319,6 +354,19 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 获取指定用户的语音消息统计。
+     *
+     * @param userId - 目标用户 ID
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 该用户的语音统计
+     * @throws 当 userId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const stats = await client.getVoiceManager().getUserVoiceStats("@alice:example.org");
+     * console.log(stats.message_count);
+     * ```
+     */
     public async getUserVoiceStats(userId: string, prefix: string = VendorPrefix): Promise<IVoiceUserStats> {
         this.requireNonEmptyString(userId, "User ID");
         try {
@@ -334,6 +382,17 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 获取语音服务配置（带进程内缓存与并发去重）。
+     *
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 语音服务配置
+     * @example
+     * ```typescript
+     * const config = await client.getVoiceManager().getVoiceConfig();
+     * console.log(config.max_upload_size_bytes, config.allowed_content_types);
+     * ```
+     */
     public async getVoiceConfig(prefix: string = VendorPrefix): Promise<IVoiceConfig> {
         if (this.cachedConfig) return this.cachedConfig;
         if (this.configPromise) return this.configPromise;
@@ -362,6 +421,22 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 通过 JSON（base64）方式上传语音消息。
+     *
+     * @param request - 上传请求体（内容、内容类型、可选房间与文件名）
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 上传响应（含 content_uri、时长、大小）
+     * @throws 当内容或内容类型为空、或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const res = await client.getVoiceManager().uploadVoiceMessage({
+     *     content: base64Audio,
+     *     content_type: "audio/ogg",
+     * });
+     * console.log(res.content_uri);
+     * ```
+     */
     public async uploadVoiceMessage(
         request: IVoiceUploadRequest,
         prefix: string = VendorPrefix,
@@ -393,6 +468,16 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
      * Avoids the ~33% base64 expansion of the JSON upload path by sending
      * raw audio bytes in a multipart form. Backend must accept multipart
      * (synapse-web `voice.rs` extractor switched to `Multipart`).
+     *
+     * @throws 当 FormData 缺少 file 字段或文件为空时抛出 ValidationError；请求失败时抛出归一化错误
+     * @example
+     * ```typescript
+     * const formData = new FormData();
+     * formData.append("file", audioFile);
+     * formData.append("duration_ms", "1200");
+     * const res = await client.getVoiceManager().uploadVoiceMessageMultipart({ formData });
+     * console.log(res.content_uri);
+     * ```
      */
     public async uploadVoiceMessageMultipart(request: IVoiceUploadRequestMultipart): Promise<IVoiceUploadResponse> {
         try {
@@ -428,6 +513,19 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 按 media_id 获取单条语音消息记录。
+     *
+     * @param messageId - 语音消息的 media_id
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 语音消息记录
+     * @throws 当 messageId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const message = await client.getVoiceManager().getVoiceMessage(mediaId);
+     * console.log(message.content_uri, message.duration_ms);
+     * ```
+     */
     public async getVoiceMessage(messageId: string, prefix: string = VendorPrefix): Promise<IVoiceMessage> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
@@ -443,6 +541,19 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 按 media_id 删除一条语音消息。
+     *
+     * @param messageId - 语音消息的 media_id
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 删除结果
+     * @throws 当 messageId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const res = await client.getVoiceManager().deleteVoiceMessage(mediaId);
+     * console.log(res.deleted);
+     * ```
+     */
     public async deleteVoiceMessage(messageId: string, prefix: string = VendorPrefix): Promise<IVoiceDeleteResponse> {
         this.requireNonEmptyString(messageId, "Message ID");
         try {
@@ -487,6 +598,12 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
      * @param roomId - The room ID to list messages for
      * @param params - Optional pagination parameters (`limit`, `from`)
      * @param prefix - API prefix (default: VendorPrefix)
+     * @throws 当请求失败时抛出经过归一化的错误
+     * @example
+     * ```typescript
+     * const page = await client.getVoiceManager().listRoomVoiceMessages("!room:example.org", { limit: 20 });
+     * console.log(page.messages.length, page.next_batch);
+     * ```
      */
     public async listRoomVoiceMessages(
         roomId: string,
@@ -527,6 +644,12 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
      * @param userId - The user ID to list messages for (must be the caller)
      * @param params - Optional pagination parameters (`limit`, `from`)
      * @param prefix - API prefix (default: VendorPrefix)
+     * @throws 当请求失败时抛出经过归一化的错误
+     * @example
+     * ```typescript
+     * const page = await client.getVoiceManager().listUserVoiceMessages("@alice:example.org", { limit: 20 });
+     * console.log(page.messages.length, page.next_batch);
+     * ```
      */
     public async listUserVoiceMessages(
         userId: string,
@@ -564,6 +687,20 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         return { ...page, user_id: page.user_id ?? userId };
     }
 
+    /**
+     * 将语音消息转换为指定格式（MSC3245 约定由客户端完成转码）。
+     *
+     * @param mediaId - 语音消息的 media_id
+     * @param options - 转换选项（如目标 format）
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 转换结果
+     * @throws 当 mediaId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const res = await client.getVoiceManager().convertVoiceMessage(mediaId, { format: "ogg" });
+     * console.log(res.media_id);
+     * ```
+     */
     public async convertVoiceMessage(
         mediaId: string,
         options?: IVoiceConvertOptions,
@@ -584,6 +721,20 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 优化语音消息（降低码率/体积，MSC3245 约定由客户端完成）。
+     *
+     * @param mediaId - 语音消息的 media_id
+     * @param options - 优化选项（如目标 bitrate）
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 优化结果
+     * @throws 当 mediaId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const res = await client.getVoiceManager().optimizeVoiceMessage(mediaId, { bitrate: 24000 });
+     * console.log(res.media_id);
+     * ```
+     */
     public async optimizeVoiceMessage(
         mediaId: string,
         options?: IVoiceOptimizeOptions,
@@ -604,6 +755,20 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 转写语音消息为文本（MSC3245 约定由客户端完成）。
+     *
+     * @param mediaId - 语音消息的 media_id
+     * @param options - 转写选项（如 language）
+     * @param prefix - API 前缀（默认 VendorPrefix）
+     * @returns 转写结果（文本、语言、置信度）
+     * @throws 当 mediaId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const res = await client.getVoiceManager().transcribeVoiceMessage(mediaId, { language: "zh" });
+     * console.log(res.text);
+     * ```
+     */
     public async transcribeVoiceMessage(
         mediaId: string,
         options?: IVoiceTranscribeOptions,
@@ -637,6 +802,17 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
      * @param sizeBytes - File size in bytes
      * @param contentType - Content type (e.g., "audio/webm")
      * @param prefix - API prefix (default: VendorPrefix)
+     * @throws 当 roomId/mediaId 为空或请求失败时抛出错误
+     * @example
+     * ```typescript
+     * const res = await client.getVoiceManager().registerEncryptedVoice(
+     *     "!room:example.org",
+     *     mediaId,
+     *     1200,
+     *     4096,
+     * );
+     * console.log(res.exists);
+     * ```
      */
     public async registerEncryptedVoice(
         roomId: string,
@@ -668,6 +844,16 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
         }
     }
 
+    /**
+     * 同步读取已缓存的语音配置（不发起请求）。
+     *
+     * @returns 已缓存的配置，尚未获取时为 null
+     * @example
+     * ```typescript
+     * const cached = client.getVoiceManager().getCachedConfig();
+     * if (cached) console.log("cached max size:", cached.max_upload_size_bytes);
+     * ```
+     */
     public getCachedConfig(): IVoiceConfig | null {
         return this.cachedConfig;
     }
@@ -677,6 +863,13 @@ export class VoiceManager extends BaseManager<VoiceEvent, VoiceManagerEventMap> 
      *
      * 对应后端 GET /_matrix/client/unstable/org.matrix.msc4143/rtc/transports。
      * 失败时抛出错误，调用方按无 RTC 能力处理。
+     *
+     * @throws 当请求失败时抛出经过归一化的错误
+     * @example
+     * ```typescript
+     * const transports = await client.getVoiceManager().getRtcTransports();
+     * console.log(Object.keys(transports));
+     * ```
      */
     public async getRtcTransports(): Promise<Record<string, unknown>> {
         try {

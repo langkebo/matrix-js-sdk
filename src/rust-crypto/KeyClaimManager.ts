@@ -41,6 +41,10 @@ export class KeyClaimManager {
      * Tell the KeyClaimManager to immediately stop processing requests.
      *
      * Any further calls, and any still in the queue, will fail with an error.
+     *
+     * @example
+     * // 内部类：由 RustCrypto 持有，经 client.getCrypto() 的会话建立流程间接调用
+     * this.keyClaimManager.stop();
      */
     public stop(): void {
         this.stopped = true;
@@ -52,6 +56,10 @@ export class KeyClaimManager {
      * If we don't have an active olm session, we will claim a one-time key and start one.
      * @param logger - logger to use
      * @param userList - list of userIDs to claim
+     *
+     * @example
+     * // 内部类：由 RustCrypto 持有，经 client.getCrypto() 的会话建立流程间接调用
+     * await this.keyClaimManager.ensureSessionsForUsers(logger, userIds);
      */
     public ensureSessionsForUsers(logger: LogSpan, userList: Array<UserId>): Promise<void> {
         // The Rust-SDK requires that we only have one getMissingSessions process in flight at once. This little dance

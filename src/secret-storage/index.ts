@@ -41,6 +41,12 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 
     /**
      * Is secret storage enabled
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSecretStorageManager();
+     * const ready = await mgr.isSecretStorageReady();
+     * console.log(ready);
      */
     public async isSecretStorageReady(): Promise<boolean> {
         const crypto = this.client.getCrypto();
@@ -50,6 +56,12 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 
     /**
      * Get secret storage key
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSecretStorageManager();
+     * const key = await mgr.getSecretStorageKey("m.ams");
+     * console.log(key);
      */
     public async getSecretStorageKey(keyId: string): Promise<SecretStorageKeyResult> {
         return this.withRetry(async () => {
@@ -63,6 +75,11 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 
     /**
      * Store secret
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSecretStorageManager();
+     * await mgr.storeSecret("m.cross_signing.master", "secret-value", ["m.ams"]);
      */
     public async storeSecret(name: string, secret: string, keys?: string[]): Promise<void> {
         return this.withRetry(async () => {
@@ -73,6 +90,12 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 
     /**
      * Get secret
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSecretStorageManager();
+     * const value = await mgr.getSecret("m.cross_signing.master");
+     * console.log(value);
      */
     public async getSecret(name: string): Promise<string | null> {
         return this.withRetry(async () => {
@@ -84,6 +107,12 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 
     /**
      * Check if secret exists
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSecretStorageManager();
+     * const exists = await mgr.hasSecret("m.cross_signing.master");
+     * console.log(exists);
      */
     public async hasSecret(name: string): Promise<boolean> {
         const stored = await this.client.secretStorage.isStored(name as "m.cross_signing.master");
@@ -92,6 +121,12 @@ export class SecretStorageManager extends BaseManager<keyof SecretStorageManager
 
     /**
      * Get secret storage keys
+     *
+     * @example
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getSecretStorageManager();
+     * const keys = await mgr.getSecretStorageKeys();
+     * console.log(keys);
      */
     public async getSecretStorageKeys(): Promise<SecretStorageKeys> {
         return this.withRetry(async () => {

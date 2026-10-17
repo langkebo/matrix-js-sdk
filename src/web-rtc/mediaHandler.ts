@@ -208,14 +208,13 @@ export class MediaHandler extends TypedEventEmitter<
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter((device) => device.kind === "audioinput").length > 0;
-            // @swallow-error { owner: "webrtc", expires: "2026-12-31" }
         } catch (error) {
             if (throwOnError) {
                 throw error;
             }
             logger.log(`MediaHandler.hasAudioDevice failed:`, error);
-            return false;
         }
+        return false;
     }
 
     /**
@@ -228,14 +227,13 @@ export class MediaHandler extends TypedEventEmitter<
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             return devices.filter((device) => device.kind === "videoinput").length > 0;
-            // @swallow-error { owner: "webrtc", expires: "2026-12-31" }
         } catch (error) {
             if (throwOnError) {
                 throw error;
             }
             logger.log(`MediaHandler.hasVideoDevice failed:`, error);
-            return false;
         }
+        return false;
     }
 
     /**

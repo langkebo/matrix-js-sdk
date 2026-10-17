@@ -177,7 +177,6 @@ const MODULE_DEFS = [
     { option: "includeSession", module: "session" },
     { option: "includeSyncAccumulator", module: "sync-accumulator" },
     { option: "includeUploads", module: "uploads" },
-    { option: "includeWidgets", module: "widgets" },
 
     // ── Group 5: 2026-10-07 第二批补登记（最后两个未接线模块）──────────
     //

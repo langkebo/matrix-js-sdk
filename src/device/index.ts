@@ -334,6 +334,17 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
     /**
      * 更新设备
      *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * await mgr.updateDevice("ABCDEFGH", { display_name: "My Laptop" });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果设备 ID 为空或未提供任何更新
+     * @throws {ValidationError} 如果设备名称超过 100 字符
+     * @throws {UIAError} 如果需要用户交互认证
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:107-131
      */
     async updateDevice(deviceId: string, updates: IDeviceUpdateRequest): Promise<void> {
@@ -382,6 +393,20 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         }
     }
 
+    /**
+     * 设置设备详情（updateDevice 的别名）
+     *
+     * @param deviceId - 设备 ID
+     * @param updates - 要更新的字段（例如 display_name）
+     * @returns 完成时解析的 Promise
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * await mgr.setDeviceDetails("ABCDEFGH", { display_name: "My Laptop" });
+     * ```
+     */
     async setDeviceDetails(deviceId: string, updates: IDeviceUpdateRequest): Promise<void> {
         return this.updateDevice(deviceId, updates);
     }
@@ -461,6 +486,16 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
     /**
      * 批量删除设备
      *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * await mgr.deleteDevices(["ABCDEFGH", "IJKLMNOP"]);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果待删除列表为空或包含当前设备
+     * @throws {UIAError} 如果需要用户交互认证
+     *
      * 后端实现: synapse-rust/src/web/routes/device.rs:157-170
      */
     async deleteDevices(request: string[] | IDeviceDeleteRequest): Promise<void> {
@@ -508,12 +543,36 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         }
     }
 
+    /**
+     * 重命名设备（通过更新 display_name 实现）
+     *
+     * @param deviceId - 设备 ID
+     * @param displayName - 新的设备显示名称
+     * @returns 完成时解析的 Promise
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * await mgr.renameDevice("ABCDEFGH", "Work Phone");
+     * ```
+     */
     async renameDevice(deviceId: string, displayName: string): Promise<void> {
         await this.updateDevice(deviceId, { display_name: displayName });
     }
 
     /**
      * 获取设备列表更新
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const updates = await mgr.getDeviceListUpdates(["@alice:example.com"]);
+     * console.log(updates.changed, updates.left);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户列表为空
      *
      * 后端实现: synapse-rust/src/web/routes/device.rs:46-47 (POST /keys/device_list_updates)
      */
@@ -541,10 +600,34 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         }
     }
 
+    /**
+     * 获取当前设备 ID
+     *
+     * @returns 当前设备 ID；若未设置则为 null
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const deviceId = mgr.getCurrentDeviceId();
+     * ```
+     */
     getCurrentDeviceId(): string | null {
         return this.currentDeviceId;
     }
 
+    /**
+     * 获取当前设备信息（来自缓存）
+     *
+     * @returns 当前设备信息；若未设置或未缓存则为 null
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const device = mgr.getCurrentDevice();
+     * ```
+     */
     getCurrentDevice(): IDevice | null {
         if (!this.currentDeviceId) {
             return null;
@@ -552,14 +635,51 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         return this.deviceCache.get(this.currentDeviceId) ?? null;
     }
 
+    /**
+     * 获取已缓存的设备列表
+     *
+     * @returns 缓存的设备列表；无缓存时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const devices = mgr.getCachedDevices();
+     * ```
+     */
     getCachedDevices(): IDevice[] {
         return this.deviceListCache.get("devices") || [];
     }
 
+    /**
+     * 获取已缓存的单个设备
+     *
+     * @param deviceId - 设备 ID
+     * @returns 缓存的设备信息；未命中则为 null
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const device = mgr.getCachedDevice("ABCDEFGH");
+     * ```
+     */
     getCachedDevice(deviceId: string): IDevice | null {
         return this.deviceCache.get(deviceId) ?? null;
     }
 
+    /**
+     * 获取除当前设备外的其他设备（来自缓存）
+     *
+     * @returns 其他设备列表
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const others = mgr.getOtherDevices();
+     * ```
+     */
     getOtherDevices(): IDevice[] {
         const devices = this.getCachedDevices();
         return devices.filter((d) => d.device_id !== this.currentDeviceId);
@@ -567,6 +687,13 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
     /**
      * 清除缓存
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * mgr.clearCache();
+     * ```
      */
     public clearCache(): void {
         this.deviceListCache.clear();
@@ -575,6 +702,14 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
 
     /**
      * 获取缓存统计
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * const stats = mgr.getCacheStats();
+     * console.log(stats.devices.hitRate);
+     * ```
      */
     public getCacheStats(): {
         deviceList: { size: number; hits: number; misses: number; hitRate: number };
@@ -586,6 +721,18 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         };
     }
 
+    /**
+     * 启动设备管理器：加载设备列表并标记为已初始化
+     *
+     * @returns 完成时解析的 Promise
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * await mgr.start();
+     * ```
+     */
     async start(): Promise<void> {
         if (this.initialized) return;
 
@@ -597,6 +744,16 @@ export class DeviceManager extends BaseManager<DeviceEvent, DeviceManagerEventMa
         }
     }
 
+    /**
+     * 停止设备管理器：清除缓存并重置初始化状态
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getDeviceManager();
+     * mgr.stop();
+     * ```
+     */
     stop(): void {
         this.clearCache();
         this.initialized = false;

@@ -38,6 +38,7 @@ import {
     analyzeIdentityFunction,
     analyzeTemplateBuilders,
     diffCoverage,
+    extractObjectCalls,
     extractWrapperCalls,
     findLocalConstBinding,
     findTopLevel,
@@ -68,6 +69,15 @@ const ALIASES_FOR_TYPE = new Map([
 ]);
 
 const GATE_PATH = join(dirname(fileURLToPath(import.meta.url)), "../../scripts/quality/verify-path-contract.mjs");
+/**
+ * 共享核心（ledger 解析/读取 + `normalizePath` + `matchAgainstLedger`）在 2026-10-10 搬到了
+ * `check-url-constructors.mjs` —— 让本门禁与它之间的依赖方向反过来，使后者可独立移植到
+ * release 线（理由见那个文件顶部的「共享核心」段）。本模块仍原样转出这些名字。
+ */
+const URL_CONSTRUCTORS_GATE_PATH = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../scripts/quality/check-url-constructors.mjs",
+);
 
 /** 解析 `src/http-api/prefix.ts`，作为前缀常量的唯一真相源。 */
 function parsePrefixSource(): Record<string, Record<string, string>> {
@@ -272,9 +282,20 @@ describe("verify-path-contract: 模块入口", () => {
     it("import 时不跑 main —— 顶层裸跑会去读兄弟仓 ledger，读不到就 process.exit(2)", () => {
         const source = fs.readFileSync(GATE_PATH, "utf8");
         expect(source).toMatch(/if \(import\.meta\.url === `file:\/\/\$\{process\.argv\[1\]\}`\)/);
-        // ledger 加载必须已移出顶层：import 就 exit 的话 spec 连加载都做不到
-        expect(source).toMatch(/export function loadBackendRoutes\(/);
-        expect(source).not.toMatch(/^if \(!existsSync\(ledgerFile\)\)/m);
+        // ledger 加载必须已移出顶层：import 就 exit 的话 spec 连加载都做不到。
+        // 2026-10-10 解耦后，这段加载的**定义**在 check-url-constructors.mjs（本模块 import
+        // 后转出）⇒ 两个文件都要看：谁都不许在顶层裸读 ledger，且定义侧必须仍是「函数」形态。
+        for (const file of [GATE_PATH, URL_CONSTRUCTORS_GATE_PATH]) {
+            const src = fs.readFileSync(file, "utf8");
+            expect(src, file).not.toMatch(/^if \(!existsSync\(ledgerFile\)\)/m);
+            expect(src, file).toMatch(/if \(import\.meta\.url === `file:\/\/\$\{process\.argv\[1\]\}`\)/);
+        }
+        expect(
+            fs.readFileSync(URL_CONSTRUCTORS_GATE_PATH, "utf8"),
+            "定义侧必须把 ledger 加载包成函数，而不是顶层裸跑",
+        ).toMatch(/export function loadBackendRoutes\(/);
+        // 本模块仍对外提供它（spec / check-wire-format.mjs 直接 import）—— 转出而非复制。
+        expect(source).toMatch(/loadBackendRoutes,/);
     });
 });
 
@@ -932,5 +953,89 @@ describe("concat 形态：spliceLiteralConcat（2026-10-09）", () => {
         expect(r.unchecked.length).toBe(0);
         expect(r.calls.length).toBe(1);
         expect(r.calls[0].pathRaw).toContain("/send/");
+    });
+});
+
+/**
+ * 对象形态 × 恒等助手 —— 2026-10-15 补的静默盲区。
+ *
+ * `this.request({ method, path: dp("…"), prefix })` 这类调用点此前**两个抽取器都看不见**：
+ * `extractWrapperCalls` 只扫**位置**形态，而 `extractObjectCalls` 只认 `path:` 后紧跟的**裸字面量**。
+ * 后果是他们既没被校验、也没进「未校验」桶 —— 门禁恒绿（实测全仓约 287 处）。
+ * 补这个盲区当场抓到 1 处真实 404（`RoomManager.createPrivateRoom` 给 vendor 路由传了
+ * `ClientPrefix.V3`）。
+ */
+describe("verify-path-contract / extractObjectCalls：对象形态 × 恒等助手", () => {
+    /** 用真源码派生的助手表（而不是手搓 Map）——保证测的是真解析路径。 */
+    const makeHelpers = (): Map<string, IdentityHelperInfo> =>
+        indexIdentityPathHelpers(
+            new Map([
+                [
+                    "dm/x.ts",
+                    `function dp<const P extends string>(path: P & PathAssert<P, StripVendor<DmPath>>): P {\n  return path;\n}\n`,
+                ],
+            ]),
+        ).helpers;
+
+    const WRAPPED = `await this.request<Resp>({
+        method: Method.Get,
+        path: dp("/direct"),
+        prefix: VendorPrefix,
+    });`;
+
+    it("不传 identityHelpers → 保持旧行为（该调用点被丢弃）", () => {
+        expect(extractObjectCalls(WRAPPED)).toEqual([]);
+    });
+
+    it("传了 identityHelpers → 助手展开到第一实参，并记录助手名", () => {
+        const calls = extractObjectCalls(WRAPPED, { identityHelpers: makeHelpers() });
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toMatchObject({
+            method: "GET",
+            pathRaw: '"/direct"',
+            pathHelper: "dp",
+            prefixExpr: "VendorPrefix",
+        });
+    });
+
+    it("裸字面量路径仍走原分支（pathHelper 为 null）", () => {
+        const calls = extractObjectCalls(`this.request({ method: Method.Get, path: "/direct" });`, {
+            identityHelpers: makeHelpers(),
+        });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].pathHelper).toBeNull();
+        expect(calls[0].pathRaw).toBe('"/direct"');
+    });
+
+    it("非恒等函数（path: someFn(...)）**不解包** —— fail closed", () => {
+        const calls = extractObjectCalls(`this.request({ method: Method.Get, path: someFn("/x") });`, {
+            identityHelpers: makeHelpers(),
+        });
+        expect(calls).toEqual([]);
+    });
+
+    it("模板字面量路径（`path: dp(`/x/${id}`)`）也能展开", () => {
+        const calls = extractObjectCalls("this.request({ method: Method.Post, path: dp(`/rooms/${roomId}/dm`) });", {
+            identityHelpers: makeHelpers(),
+        });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].pathRaw).toBe("`/rooms/${roomId}/dm`");
+    });
+
+    /**
+     * ES 简写 `prefix,` 的坑：`prefix` 字段**存在**但没冒号，原正则找不到 ⇒ `prefixExpr` 为 null ⇒
+     * `resolvePrefix(null)` **静默**按默认 `/_matrix/client/v3` 处理。
+     * 对 `getVoiceStats(prefix: string = VendorPrefix)` 这种签名，就会算出
+     * `/_matrix/client/v3/voice/stats` 而与 ledger 的 `/_matrix/vendor/v1/voice/stats` 不符 ——
+     * 实测 22 处**假违规**。识别简写后 `resolvePrefix` 会正确地判成"求不出"而跳过。
+     */
+    it("ES 简写 `prefix,` → 记为不可解前缀，而不是回落默认 v3", () => {
+        const calls = extractObjectCalls(`this.request({ method: Method.Get, path: dp("/x"), prefix });`, {
+            identityHelpers: makeHelpers(),
+        });
+        expect(calls).toHaveLength(1);
+        expect(calls[0].prefixExpr).toBe("prefix");
+        expect(resolvePrefix(calls[0].prefixExpr).known).toBe(false);
+        expect(DEFAULT_PREFIX).toBe("/_matrix/client/v3");
     });
 });

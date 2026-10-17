@@ -17,7 +17,9 @@ export interface BurnSettings {
 export interface PendingBurnEvent {
     event_id: string;
     created_at: number;
-    delete_at: number;
+    delete_ts: number;
+    is_processed: boolean;
+    is_dead_letter: boolean;
 }
 
 export interface MarkBurnReadResponse {

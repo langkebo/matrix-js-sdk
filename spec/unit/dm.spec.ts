@@ -37,7 +37,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            await dmManager.getDMRooms();
+            await dmManager.list.getDMRooms();
 
             // 验证是从 client.getAccountData 读取，不是 room.getAccountData
             expect(mockClient.getAccountData).toHaveBeenCalledWith("m.direct");
@@ -47,7 +47,7 @@ describe("DirectMessageManager", () => {
             // 模拟没有 m.direct 的情况
             mockClient.getAccountData.mockReturnValue(null);
 
-            const dmMap = await dmManager.getDirectRoomsByUser();
+            const dmMap = await dmManager.list.getDirectRoomsByUser();
 
             expect(dmMap).toEqual({});
             expect(mockClient.getAccountData).toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe("DirectMessageManager", () => {
                 getContent: () => expectedMap,
             });
 
-            const dmMap = await dmManager.getDirectRoomsByUser();
+            const dmMap = await dmManager.list.getDirectRoomsByUser();
 
             expect(dmMap).toEqual(expectedMap);
         });
@@ -85,7 +85,7 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue(null);
             mockClient.setAccountData.mockResolvedValueOnce({});
 
-            const roomId = await dmManager.createDm(["@user1:example.com"]);
+            const roomId = await dmManager.creation.createDm(["@user1:example.com"]);
 
             expect(roomId).toBe("!room:example.com");
             expect(mockClient.createRoom).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue(null);
             mockClient.setAccountData.mockResolvedValueOnce({});
 
-            const roomId = await dmManager.createDm({
+            const roomId = await dmManager.creation.createDm({
                 userIds: ["@user1:example.com"],
                 name: "Test DM",
             });
@@ -123,7 +123,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            const roomId = await dmManager.createDm(["@user1:example.com"]);
+            const roomId = await dmManager.creation.createDm(["@user1:example.com"]);
 
             expect(roomId).toBe("!existing:example.com");
             expect(mockClient.createRoom).not.toHaveBeenCalled();
@@ -135,13 +135,13 @@ describe("DirectMessageManager", () => {
             mockClient.setAccountData.mockResolvedValueOnce({});
 
             const emitSpy = vi.spyOn(dmManager, "emit");
-            await dmManager.createDm(["@user1:example.com"]);
+            await dmManager.creation.createDm(["@user1:example.com"]);
 
             expect(emitSpy).toHaveBeenCalledWith(DMEvent.DMCreated, "!room:example.com", ["@user1:example.com"]);
         });
 
         it("should throw error for empty userIds", async () => {
-            await expect(dmManager.createDm({ userIds: [] })).rejects.toThrow();
+            await expect(dmManager.creation.createDm({ userIds: [] })).rejects.toThrow();
         });
     });
 
@@ -152,7 +152,7 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue({ getContent: () => ({}) });
             mockClient.getRooms.mockReturnValue([]);
 
-            const dmRooms = await dmManager.getDMRooms();
+            const dmRooms = await dmManager.list.getDMRooms();
 
             expect(dmRooms).toHaveLength(0);
         });
@@ -192,7 +192,7 @@ describe("DirectMessageManager", () => {
 
             mockClient.getRooms.mockReturnValue([mockRoom1, mockRoom2]);
 
-            const dmRooms = await dmManager.getDMRooms();
+            const dmRooms = await dmManager.list.getDMRooms();
 
             expect(dmRooms).toHaveLength(2);
         });
@@ -216,7 +216,7 @@ describe("DirectMessageManager", () => {
 
             mockClient.getRooms.mockReturnValue([mockRoom]);
 
-            const dmRooms = await dmManager.getDMRooms();
+            const dmRooms = await dmManager.list.getDMRooms();
 
             // 应该跳过已离开的房间
             expect(dmRooms).toHaveLength(0);
@@ -241,7 +241,7 @@ describe("DirectMessageManager", () => {
 
             mockClient.getRooms.mockReturnValue([mockRoom]);
 
-            const dmRooms = await dmManager.getDMRooms();
+            const dmRooms = await dmManager.list.getDMRooms();
 
             // 邀请状态也应该被包含
             expect(dmRooms).toHaveLength(1);
@@ -254,7 +254,7 @@ describe("DirectMessageManager", () => {
         it("should return null for unknown user", async () => {
             mockClient.getAccountData.mockReturnValue({ getContent: () => ({}) });
 
-            const roomId = await dmManager.getDmForUser("@unknown:example.com");
+            const roomId = await dmManager.list.getDmForUser("@unknown:example.com");
 
             expect(roomId).toBeNull();
         });
@@ -266,7 +266,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            const roomId = await dmManager.getDmForUser("@user1:example.com");
+            const roomId = await dmManager.list.getDmForUser("@user1:example.com");
 
             expect(roomId).toBe("!room:example.com");
         });
@@ -278,20 +278,20 @@ describe("DirectMessageManager", () => {
         it("should leave DM successfully", async () => {
             mockClient.leave.mockResolvedValueOnce({});
 
-            await dmManager.leaveDm("!room:example.com");
+            await dmManager.operation.leaveDm("!room:example.com");
 
             expect(mockClient.leave).toHaveBeenCalledWith("!room:example.com");
         });
 
         it("should throw error for empty roomId", async () => {
-            await expect(dmManager.leaveDm("")).rejects.toThrow();
+            await expect(dmManager.operation.leaveDm("")).rejects.toThrow();
         });
 
         it("should emit DMLeft event", async () => {
             mockClient.leave.mockResolvedValueOnce({});
 
             const emitSpy = vi.spyOn(dmManager, "emit");
-            await dmManager.leaveDm("!room:example.com");
+            await dmManager.operation.leaveDm("!room:example.com");
 
             expect(emitSpy).toHaveBeenCalledWith(DMEvent.DMLeft, "!room:example.com");
         });
@@ -303,7 +303,7 @@ describe("DirectMessageManager", () => {
         it("should return empty object when no account data", async () => {
             mockClient.getAccountData.mockReturnValue(null);
 
-            const result = await dmManager.getDirectRoomsByUser();
+            const result = await dmManager.list.getDirectRoomsByUser();
 
             expect(result).toEqual({});
         });
@@ -316,7 +316,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            const result = await dmManager.getDirectRoomsByUser();
+            const result = await dmManager.list.getDirectRoomsByUser();
 
             expect(result).toEqual({
                 "@user1:example.com": ["!room1:example.com"],
@@ -332,7 +332,7 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue(null);
             mockClient.setAccountData.mockResolvedValueOnce({});
 
-            await dmManager.setDmRoom("!room:example.com", "@user1:example.com");
+            await dmManager.creation.setDmRoom("!room:example.com", "@user1:example.com");
 
             expect(mockClient.setAccountData).toHaveBeenCalledWith("m.direct", expect.any(Object));
         });
@@ -345,7 +345,7 @@ describe("DirectMessageManager", () => {
             });
             mockClient.setAccountData.mockResolvedValueOnce({});
 
-            await dmManager.setDmRoom("!room:example.com", "@user1:example.com");
+            await dmManager.creation.setDmRoom("!room:example.com", "@user1:example.com");
 
             expect(mockClient.setAccountData).toHaveBeenCalledWith(
                 "m.direct",
@@ -366,7 +366,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            const result = await dmManager.checkRoomIsDm("!room:example.com");
+            const result = await dmManager.list.checkRoomIsDm("!room:example.com");
 
             expect(result).toBe(true);
         });
@@ -378,7 +378,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            const result = await dmManager.checkRoomIsDm("!room:example.com");
+            const result = await dmManager.list.checkRoomIsDm("!room:example.com");
 
             expect(result).toBe(false);
         });
@@ -393,7 +393,7 @@ describe("DirectMessageManager", () => {
             };
             mockClient.getRoom.mockReturnValue(mockRoom);
 
-            const result = await dmManager.checkRoomIsDm("!room:example.com");
+            const result = await dmManager.list.checkRoomIsDm("!room:example.com");
 
             // 2 人房间应该被识别为 DM
             expect(result).toBe(true);
@@ -410,7 +410,7 @@ describe("DirectMessageManager", () => {
                 }),
             });
 
-            const partner = await dmManager.getDmPartner("!room:example.com");
+            const partner = await dmManager.list.getDmPartner("!room:example.com");
 
             expect(partner).toBe("@alice:example.com");
         });
@@ -425,7 +425,7 @@ describe("DirectMessageManager", () => {
             };
             mockClient.getRoom.mockReturnValue(mockRoom);
 
-            const partner = await dmManager.getDmPartner("!room:example.com");
+            const partner = await dmManager.list.getDmPartner("!room:example.com");
 
             expect(partner).toBe("@alice:example.com");
         });
@@ -449,7 +449,7 @@ describe("DirectMessageManager", () => {
 
             mockClient.getRooms.mockReturnValue([mockRoom1]);
 
-            const rooms = await dmManager.getDmRoomsByUserIds(["@alice:example.com"]);
+            const rooms = await dmManager.list.getDmRoomsByUserIds(["@alice:example.com"]);
 
             expect(rooms).toHaveLength(1);
             expect(rooms[0].roomId).toBe("!dm1:example.com");
@@ -459,7 +459,7 @@ describe("DirectMessageManager", () => {
             mockClient.getAccountData.mockReturnValue({ getContent: () => ({}) });
             mockClient.getRooms.mockReturnValue([]);
 
-            const rooms = await dmManager.getDmRoomsByUserIds(["@unknown:example.com"]);
+            const rooms = await dmManager.list.getDmRoomsByUserIds(["@unknown:example.com"]);
 
             expect(rooms).toHaveLength(0);
         });
@@ -489,7 +489,9 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue(rawResponse),
                 };
 
-                await expect(dmManager.createDmRoomDetailed("@alice:example.com")).resolves.toEqual(rawResponse);
+                await expect(dmManager.creation.createDmRoomDetailed("@alice:example.com")).resolves.toEqual(
+                    rawResponse,
+                );
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                     expect.anything(),
                     "/create_dm",
@@ -507,7 +509,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
                 };
 
-                const roomId = await dmManager.createDmRoom("@alice:example.com");
+                const roomId = await dmManager.creation.createDmRoom("@alice:example.com");
 
                 expect(roomId).toBe("!newdm:example.com");
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -527,7 +529,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue({ room_id: "!newdm:example.com" }),
                 };
 
-                await dmManager.createDmRoom("@alice:example.com", {
+                await dmManager.creation.createDmRoom("@alice:example.com", {
                     name: "Test DM",
                     topic: "Test Topic",
                     visibility: "private",
@@ -551,12 +553,12 @@ describe("DirectMessageManager", () => {
             });
 
             it("should throw error for empty userId", async () => {
-                await expect(dmManager.createDmRoom("")).rejects.toThrow();
+                await expect(dmManager.creation.createDmRoom("")).rejects.toThrow();
             });
 
             it("should validate invite user ids", async () => {
                 await expect(
-                    dmManager.createDmRoomDetailed("@alice:example.com", {
+                    dmManager.creation.createDmRoomDetailed("@alice:example.com", {
                         invite: ["not-a-matrix-id"],
                     }),
                 ).rejects.toThrow();
@@ -568,7 +570,7 @@ describe("DirectMessageManager", () => {
                 };
 
                 const emitSpy = vi.spyOn(dmManager, "emit");
-                await dmManager.createDmRoom("@alice:example.com");
+                await dmManager.creation.createDmRoom("@alice:example.com");
 
                 expect(emitSpy).toHaveBeenCalledWith(DMEvent.DMCreated, "!newdm:example.com", ["@alice:example.com"]);
             });
@@ -583,7 +585,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue({ rooms: expectedMap }),
                 };
 
-                const result = await dmManager.getDirectRoomsFromServer();
+                const result = await dmManager.list.getDirectRoomsFromServer();
 
                 expect(result).toEqual(expectedMap);
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -600,7 +602,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue({ rooms: null }),
                 };
 
-                const result = await dmManager.getDirectRoomsFromServer();
+                const result = await dmManager.list.getDirectRoomsFromServer();
 
                 expect(result).toEqual({});
             });
@@ -618,9 +620,9 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue(updateResponse),
                 };
 
-                await expect(dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"])).resolves.toEqual(
-                    updateResponse,
-                );
+                await expect(
+                    dmManager.creation.updateDirectRoom("!dm:example.com", ["@alice:example.com"]),
+                ).resolves.toEqual(updateResponse);
 
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
                     "PUT",
@@ -645,7 +647,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue(updateResponse),
                 };
 
-                const result = await dmManager.updateDirectRoom("!dm:example.com", {
+                const result = await dmManager.creation.updateDirectRoom("!dm:example.com", {
                     content: { users: ["@alice:example.com", "@bob:example.com"] },
                 });
 
@@ -660,11 +662,13 @@ describe("DirectMessageManager", () => {
             });
 
             it("should throw error for empty roomId", async () => {
-                await expect(dmManager.updateDirectRoom("", ["@alice:example.com"])).rejects.toThrow();
+                await expect(dmManager.creation.updateDirectRoom("", ["@alice:example.com"])).rejects.toThrow();
             });
 
             it("should validate user ids when updating direct room users", async () => {
-                await expect(dmManager.updateDirectRoom("!dm:example.com", ["not-a-matrix-id"])).rejects.toThrow();
+                await expect(
+                    dmManager.creation.updateDirectRoom("!dm:example.com", ["not-a-matrix-id"]),
+                ).rejects.toThrow();
             });
 
             it("should emit ListUpdated event", async () => {
@@ -678,7 +682,7 @@ describe("DirectMessageManager", () => {
                 };
 
                 const emitSpy = vi.spyOn(dmManager, "emit");
-                await dmManager.updateDirectRoom("!dm:example.com", ["@alice:example.com"]);
+                await dmManager.creation.updateDirectRoom("!dm:example.com", ["@alice:example.com"]);
 
                 expect(emitSpy).toHaveBeenCalledWith(DMEvent.ListUpdated);
             });
@@ -693,7 +697,7 @@ describe("DirectMessageManager", () => {
                     }),
                 };
 
-                const result = await dmManager.isDmRoomFromServer("!dm:example.com");
+                const result = await dmManager.list.isDmRoomFromServer("!dm:example.com");
 
                 expect(result).toBe(true);
             });
@@ -706,7 +710,7 @@ describe("DirectMessageManager", () => {
                     }),
                 };
 
-                const result = await dmManager.isDmRoomFromServer("!room:example.com");
+                const result = await dmManager.list.isDmRoomFromServer("!room:example.com");
 
                 expect(result).toBe(false);
             });
@@ -717,7 +721,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                const result = await dmManager.isDmRoomFromServer("!unknown:example.com", false);
+                const result = await dmManager.list.isDmRoomFromServer("!unknown:example.com", false);
 
                 expect(result).toBe(false);
             });
@@ -728,11 +732,11 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                await expect(dmManager.isDmRoomFromServer("!unknown:example.com")).rejects.toThrow();
+                await expect(dmManager.list.isDmRoomFromServer("!unknown:example.com")).rejects.toThrow();
             });
 
             it("should throw error for empty roomId", async () => {
-                await expect(dmManager.isDmRoomFromServer("")).rejects.toThrow();
+                await expect(dmManager.list.isDmRoomFromServer("")).rejects.toThrow();
             });
         });
 
@@ -748,7 +752,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockResolvedValue(expectedPartner),
                 };
 
-                const result = await dmManager.getDmPartnerFromServer("!dm:example.com");
+                const result = await dmManager.list.getDmPartnerFromServer("!dm:example.com");
 
                 expect(result).toEqual(expectedPartner);
                 expect(mockClient.http.authedRequest).toHaveBeenCalledWith(
@@ -766,7 +770,7 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                const result = await dmManager.getDmPartnerFromServer("!unknown:example.com", false);
+                const result = await dmManager.list.getDmPartnerFromServer("!unknown:example.com", false);
 
                 expect(result).toBeNull();
             });
@@ -777,11 +781,11 @@ describe("DirectMessageManager", () => {
                     authedRequest: vi.fn().mockRejectedValue(error),
                 };
 
-                await expect(dmManager.getDmPartnerFromServer("!unknown:example.com")).rejects.toThrow();
+                await expect(dmManager.list.getDmPartnerFromServer("!unknown:example.com")).rejects.toThrow();
             });
 
             it("should throw error for empty roomId", async () => {
-                await expect(dmManager.getDmPartnerFromServer("")).rejects.toThrow();
+                await expect(dmManager.list.getDmPartnerFromServer("")).rejects.toThrow();
             });
         });
     });
@@ -815,7 +819,7 @@ describe("DirectMessageManager", () => {
                 });
                 mockClient.mxcToHttp = vi.fn().mockReturnValue("https://example.com/avatar");
 
-                const info = await dmManager.getDmRoomInfo("!dm:example.com");
+                const info = await dmManager.list.getDmRoomInfo("!dm:example.com");
 
                 expect(info).toBeDefined();
                 expect(info?.roomId).toBe("!dm:example.com");
@@ -824,7 +828,7 @@ describe("DirectMessageManager", () => {
             it("should return null for non-existent room", async () => {
                 mockClient.getRoom.mockReturnValue(null);
 
-                const info = await dmManager.getDmRoomInfo("!missing:example.com");
+                const info = await dmManager.list.getDmRoomInfo("!missing:example.com");
 
                 expect(info).toBeNull();
             });
@@ -845,7 +849,7 @@ describe("DirectMessageManager", () => {
                 const setRoomReadMarkers = vi.fn().mockResolvedValue({});
                 mockClient.getReadReceiptsManager.mockReturnValue({ setRoomReadMarkers });
 
-                await dmManager.markDmAsRead("!dm:example.com");
+                await dmManager.operation.markDmAsRead("!dm:example.com");
 
                 expect(setRoomReadMarkers).toHaveBeenCalledWith("!dm:example.com", "$event:example.com", mockEvent);
             });
@@ -861,7 +865,7 @@ describe("DirectMessageManager", () => {
                 const setRoomReadMarkers = vi.fn().mockResolvedValue({});
                 mockClient.getReadReceiptsManager.mockReturnValue({ setRoomReadMarkers });
 
-                await dmManager.markDmAsRead("!dm:example.com");
+                await dmManager.operation.markDmAsRead("!dm:example.com");
 
                 expect(setRoomReadMarkers).not.toHaveBeenCalled();
             });
@@ -871,7 +875,7 @@ describe("DirectMessageManager", () => {
             it("should send text message", async () => {
                 mockClient.sendEvent.mockResolvedValue({ event_id: "$event:example.com" });
 
-                const eventId = await dmManager.sendDmMessage("!dm:example.com", "Hello");
+                const eventId = await dmManager.operation.sendDmMessage("!dm:example.com", "Hello");
 
                 expect(eventId).toBe("$event:example.com");
                 expect(mockClient.sendEvent).toHaveBeenCalledWith(
@@ -888,31 +892,31 @@ describe("DirectMessageManager", () => {
                 mockClient.sendEvent.mockResolvedValue({ event_id: "$event:example.com" });
 
                 const content = { msgtype: "m.image", body: "image.png", url: "mxc://..." };
-                const eventId = await dmManager.sendDmMessage("!dm:example.com", content);
+                const eventId = await dmManager.operation.sendDmMessage("!dm:example.com", content);
 
                 expect(eventId).toBe("$event:example.com");
                 expect(mockClient.sendEvent).toHaveBeenCalledWith("!dm:example.com", "m.room.message", content);
             });
 
             it("should throw error for empty roomId", async () => {
-                await expect(dmManager.sendDmMessage("", "Hello")).rejects.toThrow();
+                await expect(dmManager.operation.sendDmMessage("", "Hello")).rejects.toThrow();
             });
         });
 
         describe("getDmRoomInfos", () => {
             it("should return all cached DM room infos", async () => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (dmManager as any).dmRoomsCache.set("!dm1:example.com", {
+                (dmManager as any).list.dmRoomsCache.set("!dm1:example.com", {
                     roomId: "!dm1:example.com",
                     invitees: ["@user1:example.com"],
                 });
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (dmManager as any).dmRoomsCache.set("!dm2:example.com", {
+                (dmManager as any).list.dmRoomsCache.set("!dm2:example.com", {
                     roomId: "!dm2:example.com",
                     invitees: ["@user2:example.com"],
                 });
 
-                const infos = await dmManager.getDmRoomInfos();
+                const infos = await dmManager.list.getDmRoomInfos();
 
                 expect(infos).toHaveLength(2);
                 expect(infos.map((info) => info.roomId).sort()).toEqual(["!dm1:example.com", "!dm2:example.com"]);
@@ -922,7 +926,7 @@ describe("DirectMessageManager", () => {
                 mockClient.getRooms.mockReturnValue([]);
                 mockClient.getAccountData.mockReturnValue(null);
 
-                const infos = await dmManager.getDmRoomInfos();
+                const infos = await dmManager.list.getDmRoomInfos();
 
                 expect(infos).toEqual([]);
             });
@@ -933,7 +937,7 @@ describe("DirectMessageManager", () => {
                 const mockRoom = { roomId: "!dm:example.com" };
                 mockClient.getRoom.mockReturnValue(mockRoom);
 
-                const room = await dmManager.getDmRoom("!dm:example.com");
+                const room = await dmManager.list.getDmRoom("!dm:example.com");
 
                 expect(room).toEqual(mockRoom);
             });
@@ -941,7 +945,7 @@ describe("DirectMessageManager", () => {
             it("should return null for non-existent room when throwOnError is false", async () => {
                 mockClient.getRoom.mockReturnValue(null);
 
-                const room = await dmManager.getDmRoom("!missing:example.com", false);
+                const room = await dmManager.list.getDmRoom("!missing:example.com", false);
 
                 expect(room).toBeNull();
             });
@@ -949,7 +953,7 @@ describe("DirectMessageManager", () => {
             it("should throw NotFoundError for non-existent room by default", async () => {
                 mockClient.getRoom.mockReturnValue(null);
 
-                await expect(dmManager.getDmRoom("!missing:example.com")).rejects.toThrow("DM room not found");
+                await expect(dmManager.list.getDmRoom("!missing:example.com")).rejects.toThrow("DM room not found");
             });
         });
 
@@ -962,7 +966,7 @@ describe("DirectMessageManager", () => {
                 });
                 mockClient.setAccountData.mockResolvedValue({});
 
-                await dmManager.removeDmRoom("!dm1:example.com", "@user:example.com");
+                await dmManager.creation.removeDmRoom("!dm1:example.com", "@user:example.com");
 
                 expect(mockClient.setAccountData).toHaveBeenCalledWith(
                     "m.direct",
@@ -980,7 +984,7 @@ describe("DirectMessageManager", () => {
                 });
                 mockClient.setAccountData.mockResolvedValue({});
 
-                await dmManager.removeDmRoom("!dm:example.com", "@user:example.com");
+                await dmManager.creation.removeDmRoom("!dm:example.com", "@user:example.com");
 
                 expect(mockClient.setAccountData).toHaveBeenCalledWith(
                     "m.direct",
@@ -1012,7 +1016,7 @@ describe("DirectMessageManager", () => {
 
             it("should report cache size after inserting DM room", () => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (dmManager as any).dmRoomsCache.set("!dm1:example.com", {
+                (dmManager as any).list.dmRoomsCache.set("!dm1:example.com", {
                     roomId: "!dm1:example.com",
                     invitees: ["@user1:example.com"],
                 });

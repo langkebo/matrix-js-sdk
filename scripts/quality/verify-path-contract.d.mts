@@ -83,9 +83,20 @@ export function matchBrace(src: string, openIndex: number): number;
 export function stripTsAssertion(expr: string): string;
 
 /** 抽取形态 A（对象字面量）的调用点：method / path / prefix / line。 */
-export function extractObjectCalls(source: string): Array<{
+/**
+ * 对象形态包装器的调用点。
+ *
+ * ⚠️ 不传 `identityHelpers` 时，`path` 值走恒等助手的调用点（`path: dp("…")`）会被丢弃 ——
+ * 那是 2026-10-15 之前两个抽取器共同的盲区（实测全仓 287 处），传了才会被展开。
+ */
+export function extractObjectCalls(
+    source: string,
+    options?: { identityHelpers?: Map<string, IdentityHelperInfo> | null },
+): Array<{
     method: string;
     pathRaw: string;
+    /** 非 null = 路径来自恒等助手（`dp("/x")`），值为助手名。 */
+    pathHelper: string | null;
     prefixExpr: string | null;
     line: number;
 }>;

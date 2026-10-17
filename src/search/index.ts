@@ -123,6 +123,18 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         }, "searchMessageText");
     }
 
+    /**
+     * 搜索房间事件（直接返回原始响应，不做结果后处理）。
+     *
+     * @param opts - 搜索选项
+     * @returns 原始搜索响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getSearchManager().searchRoomEvents({ term: "hello", limit: 20 });
+     * console.log(res.search_categories.room_events?.count);
+     * ```
+     */
     public async searchRoomEvents(opts: ISearchOptions): Promise<ISearchResponse> {
         return this.withRetry(async () => {
             const roomEvents: ISearchRequestBody["search_categories"]["room_events"] = {
@@ -207,6 +219,21 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         }, "searchUserDirectory");
     }
 
+    /**
+     * 搜索用户（用于收件人选择），返回原始的 results / count / next_batch。
+     *
+     * @param opts - 搜索选项
+     * @param opts.term - 搜索关键词
+     * @param opts.limit - 结果数量限制（可选）
+     * @returns 包含 results、count、next_batch 的对象
+     * @throws {ValidationError} 搜索关键词为空或 limit 超出范围时
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getSearchManager().searchRecipients({ term: "alice", limit: 10 });
+     * console.log(res.count);
+     * ```
+     */
     public async searchRecipients(opts: {
         term: string;
         limit?: number;
@@ -228,6 +255,21 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
         );
     }
 
+    /**
+     * 执行底层搜索请求，支持分页与中止信号。
+     *
+     * @param opts - 请求参数
+     * @param opts.body - 搜索请求体
+     * @param opts.next_batch - 可选分页游标
+     * @param opts.abortSignal - 可选中止信号
+     * @returns 搜索响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getSearchManager().search({ body: { search_categories: {} } });
+     * console.log(res.search_categories.room_events?.count);
+     * ```
+     */
     public async search({
         body,
         next_batch,
@@ -257,6 +299,12 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
      *
      * @param opts - search options including term and optional filter
      * @returns Promise which resolves: ISearchResults object
+     *
+     * @example
+     * ```typescript
+     * const results = await client.getSearchManager().searchRoomEventsProcessed({ term: "hello" });
+     * console.log(results.count);
+     * ```
      */
     public async searchRoomEventsProcessed(opts: IEventSearchOpts): Promise<ISearchResults> {
         const body = {
@@ -292,6 +340,12 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
      *
      * @param searchResults - the results object to be updated
      * @returns Promise which resolves: updated result object
+     *
+     * @example
+     * ```typescript
+     * const more = await client.getSearchManager().backPaginateRoomEventsSearch(results);
+     * console.log(more.results.length);
+     * ```
      */
     public backPaginateRoomEventsSearch<T extends ISearchResults>(searchResults: T): Promise<T> {
         if (!searchResults.next_batch) {
@@ -327,6 +381,11 @@ export class SearchManager extends BaseManager<keyof SearchManagerEvents, Search
      *
      * @returns searchResults
      * @internal
+     *
+     * @example
+     * ```typescript
+     * const updated = client.getSearchManager().processRoomEventsSearch(results, response);
+     * ```
      */
     public processRoomEventsSearch<T extends ISearchResults>(searchResults: T, response: ISearchResponse): T {
         const roomEvents = response.search_categories.room_events;

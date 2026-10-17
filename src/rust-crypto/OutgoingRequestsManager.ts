@@ -47,6 +47,11 @@ export class OutgoingRequestsManager {
 
     /**
      * Shut down as soon as possible the current loop of outgoing requests processing.
+     *
+     * @example
+     * ```typescript
+     * outgoingRequestsManager.stop();
+     * ```
      */
     public stop(): void {
         this.stopped = true;
@@ -61,6 +66,11 @@ export class OutgoingRequestsManager {
      * Calls to doProcessOutgoingRequests() are processed synchronously, one after the other, in order.
      * If doProcessOutgoingRequests() is called while another call is still being processed, it will be queued.
      * Multiple calls to doProcessOutgoingRequests() when a call is already processing will be batched together.
+     *
+     * @example
+     * ```typescript
+     * await outgoingRequestsManager.doProcessOutgoingRequests();
+     * ```
      */
     public doProcessOutgoingRequests(): Promise<void> {
         // Flag that we need at least one more iteration of the loop.

@@ -23,7 +23,6 @@ import type {
     MatrixClientExtensionMethods,
     MatrixClientInternalMethods,
     SharedWithUsersMap,
-    WidgetData,
 } from "./matrix-client-extensions";
 import {
     EventStatus,
@@ -270,7 +269,7 @@ import {
     buildSyncApiOptions as buildSyncApiOptionsHelper,
     startClientLifecycleServices,
 } from "./client-lifecycle-start";
-import { stopClientLifecycleServices } from "./client-lifecycle-stop";
+import { releaseCryptoBackend, stopClientLifecycleServices } from "./client-lifecycle-stop";
 import { clearClientStores } from "./client-store-cleanup";
 import { createGroupCallForRoom } from "./client-voip-group-call";
 import { EventManager } from "./event/EventManager";
@@ -915,6 +914,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * 注入 manager 扩展初始化的 Promise（由 createClient 调用）。
      * @internal
+     *
+     * @example
+     * ```typescript
+     * client.setManagerExtensionsReady(Promise.resolve());
+     * ```
      */
     public setManagerExtensionsReady(promise: Promise<void>): void {
         this.managerExtensionsReady = promise;
@@ -927,11 +931,27 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * manager 经异步动态 import 挂载。使用这些 manager 前应 `await` 本方法。
      *
      * @returns 当 manager 初始化完成（或已跳过/失败）时 resolve 的 Promise。
+     *
+     * @example
+     * ```typescript
+     * await client.whenManagerExtensionsReady();
+     * const friendManager = client.getFriendManager();
+     * ```
      */
     public whenManagerExtensionsReady(): Promise<void> {
         return this.managerExtensionsReady ?? Promise.resolve();
     }
 
+    /**
+     * 获取事件管理器。
+     *
+     * @returns 与当前客户端关联的 EventManager
+     *
+     * @example
+     * ```typescript
+     * const eventManager = client.getEventManager();
+     * ```
+     */
     public getEventManager(): EventManager {
         if (!this.eventManager) {
             this.eventManager = new EventManager(this);
@@ -981,6 +1001,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     /**
      * Construct a SyncApiOptions for this client, suitable for passing into the SyncApi constructor
+     *
+     * @example
+     * ```typescript
+     * const syncApiOptions = client.buildSyncApiOptions();
+     * ```
      */
     public buildSyncApiOptions(): SyncApiOptions {
         return buildSyncApiOptionsHelper(this);
@@ -1005,7 +1030,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * ```
      */
     public stopClient(): void {
-        this.cryptoBackend?.stop(); // crypto might have been initialised even if the client wasn't fully started
+        releaseCryptoBackend(this); // crypto may be live even if the client was never started
 
         this.off(ClientEvent.Sync, this.startMatrixRTC);
 
@@ -1022,6 +1047,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @param args.cryptoDatabasePrefix - The database name to use for indexeddb, defaults to 'matrix-js-sdk'.
      * @returns Promise which resolves when the stores have been cleared.
+     *
+     * @example
+     * ```typescript
+     * await client.clearStores();
+     * ```
      */
     public async clearStores(
         args: {
@@ -1035,6 +1065,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get the user-id of the logged-in user
      *
      * @returns MXID for the logged-in user, or null if not logged in
+     *
+     * @example
+     * ```typescript
+     * const userId = client.getUserId();
+     * console.log(userId);
+     * ```
      */
     public getUserId(): string | null {
         return this.credentials?.userId ?? null;
@@ -1045,6 +1081,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @returns MXID for the logged-in user
      * @throws Error if not logged in
+     *
+     * @example
+     * ```typescript
+     * try {
+     *     const userId = client.getSafeUserId();
+     *     console.log(userId);
+     * } catch (e) {
+     *     console.error("用户未登录", e);
+     * }
+     * ```
      */
     public getSafeUserId(): string {
         const userId = this.credentials?.userId ?? null;
@@ -1057,6 +1103,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the domain for this client's MXID
      * @returns Domain of this MXID
+     *
+     * @example
+     * ```typescript
+     * const domain = client.getDomain();
+     * console.log(domain);
+     * ```
      */
     public getDomain(): string | null {
         const userId = this.credentials?.userId ?? null;
@@ -1069,6 +1121,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the local part of the current user ID e.g. "foo" in "\@foo:bar".
      * @returns The user ID localpart or null.
+     *
+     * @example
+     * ```typescript
+     * const localpart = client.getUserIdLocalpart();
+     * console.log(localpart);
+     * ```
      */
     public getUserIdLocalpart(): string | null {
         return this.credentials?.userId?.split(":")[0].substring(1) ?? null;
@@ -1077,6 +1135,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the device ID of this client
      * @returns device ID
+     *
+     * @example
+     * ```typescript
+     * const deviceId = client.getDeviceId();
+     * console.log(deviceId);
+     * ```
      */
     public getDeviceId(): string | null {
         return this.deviceId ?? null;
@@ -1085,6 +1149,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the session ID of this client
      * @returns session ID
+     *
+     * @example
+     * ```typescript
+     * const sessionId = client.getSessionId();
+     * console.log(sessionId);
+     * ```
      */
     public getSessionId(): string {
         return this.sessionId;
@@ -1093,6 +1163,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Check if the runtime environment supports VoIP calling.
      * @returns True if VoIP is supported.
+     *
+     * @example
+     * ```typescript
+     * if (client.supportsVoip()) {
+     *     console.log("当前环境支持 VoIP 通话");
+     * }
+     * ```
      */
     public supportsVoip(): boolean {
         return !this.disableVoip && this.canSupportVoip;
@@ -1100,6 +1177,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     /**
      * @returns
+     *
+     * @example
+     * ```typescript
+     * const mediaHandler = client.getMediaHandler();
+     * ```
      */
     public getMediaHandler(): MediaHandler {
         return this.mediaHandler;
@@ -1110,6 +1192,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * candidates. This is the same as the forceTURN option
      * when creating the client.
      * @param force - True to force use of TURN servers
+     *
+     * @example
+     * ```typescript
+     * client.setForceTURN(true);
+     * ```
      */
     public setForceTURN(force: boolean): void {
         this.forceTURN = force;
@@ -1118,6 +1205,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Set whether to advertise transfer support to other parties on Matrix calls.
      * @param support - True to advertise the 'm.call.transferee' capability
+     *
+     * @example
+     * ```typescript
+     * client.setSupportsCallTransfer(true);
+     * ```
      */
     public setSupportsCallTransfer(support: boolean): void {
         this.supportsCallTransfer = support;
@@ -1127,6 +1219,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Returns true if to-device signalling for group calls will be encrypted with Olm.
      * If false, it will be sent unencrypted.
      * @returns boolean Whether group call signalling will be encrypted
+     *
+     * @example
+     * ```typescript
+     * const encrypted = client.getUseE2eForGroupCall();
+     * console.log(encrypted);
+     * ```
      */
     public getUseE2eForGroupCall(): boolean {
         return this.useE2eForGroupCall;
@@ -1138,6 +1236,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @param roomId - The room the call is to be placed in.
      * @returns the call or null if the browser doesn't support calling.
+     *
+     * @example
+     * ```typescript
+     * const call = client.createCall("!room:example.org");
+     * await call?.placeVoiceCall();
+     * ```
      */
     public createCall(roomId: string): MatrixCall | null {
         return createNewMatrixCall(this, roomId);
@@ -1148,6 +1252,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * to alert other members that the room now has a group call.
      *
      * @param roomId - The room the call is to be placed in.
+     *
+     * @example
+     * ```typescript
+     * const groupCall = await client.createGroupCall("!room:example.org", GroupCallType.Voice, false, GroupCallIntent.Prompt);
+     * ```
      */
     public async createGroupCall(
         roomId: string,
@@ -1160,12 +1269,33 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return createGroupCallForRoom(this, roomId, type, isPtt, intent, dataChannelsEnabled, dataChannelOptions);
     }
 
+    /**
+     * 获取 LiveKit 服务 URL。
+     *
+     * @returns 已配置的 LiveKit 服务 URL；未配置时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const url = client.getLivekitServiceURL();
+     * console.log(url);
+     * ```
+     */
     public getLivekitServiceURL(): string | undefined {
         return this.livekitServiceURL;
     }
 
     // This shouldn't need to exist, but the widget API has startup ordering problems that
     // mean it doesn't know the livekit URL fast enough: remove this once this is fixed.
+    /**
+     * 设置 LiveKit 服务 URL。
+     *
+     * @param newURL - 新的 LiveKit 服务 URL
+     *
+     * @example
+     * ```typescript
+     * client.setLivekitServiceURL("wss://livekit.example.org");
+     * ```
+     */
     public setLivekitServiceURL(newURL: string): void {
         this.livekitServiceURL = newURL;
     }
@@ -1180,6 +1310,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param roomId - The room ID to wait for
      * @returns A promise that resolves once existing group calls in the room
      *          have been processed.
+     *
+     * @example
+     * ```typescript
+     * await client.waitUntilRoomReadyForGroupCalls("!room:example.org");
+     * const groupCall = client.getGroupCallForRoom("!room:example.org");
+     * ```
      */
     public waitUntilRoomReadyForGroupCalls(roomId: string): Promise<void> {
         return this.groupCallEventHandler!.waitUntilRoomReadyForGroupCalls(roomId);
@@ -1188,6 +1324,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get an existing group call for the provided room.
      * @returns The group call or null if it doesn't already exist.
+     *
+     * @example
+     * ```typescript
+     * const groupCall = client.getGroupCallForRoom("!room:example.org");
+     * ```
      */
     public getGroupCallForRoom(roomId: string): GroupCall | null {
         return this.groupCallEventHandler!.groupCalls.get(roomId) || null;
@@ -1197,6 +1338,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get the current sync state.
      * @returns the sync state, which may be null.
      * @see MatrixClient#event:"sync"
+     *
+     * @example
+     * ```typescript
+     * const state = client.getSyncState();
+     * console.log(state);
+     * ```
      */
     public getSyncState(): SyncState | null {
         return this.getSyncManager().getSyncState();
@@ -1208,6 +1355,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * such data.
      * Sync errors, if available, are put in the 'error' key of
      * this object.
+     *
+     * @example
+     * ```typescript
+     * const data = client.getSyncStateData();
+     * console.log(data?.error);
+     * ```
      */
     public getSyncStateData(): ISyncStateData | null {
         return this.getSyncManager().getSyncStateData();
@@ -1216,6 +1369,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Whether the initial sync has completed.
      * @returns True if at least one sync has happened.
+     *
+     * @example
+     * ```typescript
+     * if (client.isInitialSyncComplete()) {
+     *     console.log("初始同步已完成");
+     * }
+     * ```
      */
     public isInitialSyncComplete(): boolean {
         const state = this.getSyncState();
@@ -1228,6 +1388,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Return whether the client is configured for a guest account.
      * @returns True if this is a guest access_token (or no token is supplied).
+     *
+     * @example
+     * ```typescript
+     * const guest = client.isGuest();
+     * console.log(guest);
+     * ```
      */
     public isGuest(): boolean {
         return this.isGuestAccount;
@@ -1240,6 +1406,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @experimental if the token is a macaroon, it should be encoded in it that it is a 'guest'
      * access token, which means that the SDK can determine this entirely without
      * the dev manually flipping this flag.
+     *
+     * @example
+     * ```typescript
+     * client.setGuest(true);
+     * ```
      */
     public setGuest(guest: boolean): void {
         this.isGuestAccount = guest;
@@ -1248,6 +1419,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Return the provided scheduler, if any.
      * @returns The scheduler or undefined
+     *
+     * @example
+     * ```typescript
+     * const scheduler = client.getScheduler();
+     * console.log(scheduler);
+     * ```
      */
     public getScheduler(): MatrixScheduler | undefined {
         return this.scheduler;
@@ -1259,6 +1436,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Will also retry any outbound to-device messages currently in the queue to be sent
      * (retries of regular outgoing events are handled separately, per-event).
      * @returns True if this resulted in a request being retried.
+     *
+     * @example
+     * ```typescript
+     * const retried = client.retryImmediately();
+     * console.log(retried);
+     * ```
      */
     public retryImmediately(): boolean {
         // don't await for this promise: we just want to kick it off
@@ -1270,6 +1453,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Return the global notification EventTimelineSet, if any
      *
      * @returns the globl notification EventTimelineSet
+     *
+     * @example
+     * ```typescript
+     * const notifTimelineSet = client.getNotifTimelineSet();
+     * ```
      */
     public getNotifTimelineSet(): EventTimelineSet | null {
         return this.getNotificationsManager().getNotifTimelineSet();
@@ -1278,6 +1466,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Set the global notification EventTimelineSet
      *
+     * @example
+     * ```typescript
+     * client.setNotifTimelineSet(timelineSet);
+     * ```
      */
     public setNotifTimelineSet(set: EventTimelineSet): void {
         this.getNotificationsManager().setNotifTimelineSet(set);
@@ -1288,6 +1480,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * If there are no cached capabilities and none can be fetched, throw an exception.
      *
      * @returns Promise resolving with The capabilities of the homeserver
+     *
+     * @example
+     * ```typescript
+     * const capabilities = await client.getCapabilities();
+     * console.log(capabilities);
+     * ```
      */
     public async getCapabilities(): Promise<Capabilities> {
         const caps = this.serverCapabilitiesService.getCachedCapabilities();
@@ -1300,6 +1498,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * return undefined.
      *
      * @returns The capabilities of the homeserver
+     *
+     * @example
+     * ```typescript
+     * const caps = client.getCachedCapabilities();
+     * console.log(caps);
+     * ```
      */
     public getCachedCapabilities(): Capabilities | undefined {
         return this.serverCapabilitiesService.getCachedCapabilities();
@@ -1310,6 +1514,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * versions. The newly returned version is cached.
      *
      * @returns A promise which resolves to the capabilities of the homeserver
+     *
+     * @example
+     * ```typescript
+     * const caps = await client.fetchCapabilities();
+     * console.log(caps);
+     * ```
      */
     public fetchCapabilities(): Promise<Capabilities> {
         return this.serverCapabilitiesService.fetchCapabilities();
@@ -1322,6 +1532,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * synapse-rust returns this alongside `capabilities`
      * (`synapse-services/src/capability_governance.rs:451-465`); stock servers
      * omit it.
+     *
+     * @example
+     * ```typescript
+     * const features = client.getUnstableFeatures();
+     * console.log(features);
+     * ```
      */
     public getUnstableFeatures(): Record<string, boolean> | undefined {
         return this.serverCapabilitiesService.getUnstableFeatures();
@@ -1335,6 +1551,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * why prefix guessing was removed.
      *
      * @param name - exact feature key, or a bare `"4204"` / `"msc4204"` form
+     *
+     * @example
+     * ```typescript
+     * const supported = client.hasUnstableFeature("msc4204");
+     * ```
      */
     public hasUnstableFeature(name: string): boolean {
         return this.serverCapabilitiesService.hasUnstableFeature(name);
@@ -1359,6 +1580,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param userId - The user ID to query devices for
      * @returns A promise resolving to the `deviceId → device content` map; an
      *          empty object when the server reports no keys for the user.
+     *
+     * @example
+     * ```typescript
+     * const devices = await client.getUserDevices("@alice:example.org");
+     * for (const [deviceId, device] of Object.entries(devices)) {
+     *     console.log(deviceId, device);
+     * }
+     * ```
+     *
+     * @throws {Error} 当 userId 为空时抛出
      */
     public async getUserDevices(userId: string): Promise<UserDeviceMap> {
         if (!userId) {
@@ -1554,6 +1785,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * This is intended for internal use by managers that need direct access to crypto functionality.
      * @returns The crypto backend instance, or undefined if crypto is not enabled.
      * @internal
+     *
+     * @example
+     * ```typescript
+     * const backend = client.getCryptoBackend();
+     * ```
      */
     public getCryptoBackend(): CryptoBackend | undefined {
         return this.cryptoBackend;
@@ -1564,6 +1800,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * This is intended for internal use by managers that need access to client configuration.
      * @returns The stored client options, or undefined if not set.
      * @internal
+     *
+     * @example
+     * ```typescript
+     * const opts = client.getClientOpts();
+     * ```
      */
     public getClientOpts(): IStoredClientOpts | undefined {
         return this.clientOpts;
@@ -1574,6 +1815,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * This is intended for internal use by managers that need to create SyncApi instances.
      * @returns The sync API options.
      * @internal
+     *
+     * @example
+     * ```typescript
+     * const opts = client.getSyncApiOptions();
+     * ```
      */
     public getSyncApiOptions(): SyncApiOptions {
         return this.buildSyncApiOptions();
@@ -1584,6 +1830,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns map of key name to key info the secret is
      *     encrypted with, or null if it is not present or not encrypted with a
      *     trusted key
+     *
+     * @example
+     * ```typescript
+     * const storedKeys = await client.isKeyBackupKeyStored();
+     * ```
      */
     public isKeyBackupKeyStored(): Promise<Record<string, SecretStorageKeyDescription> | null> {
         return Promise.resolve(this.secretStorage.isStored("m.megolm_backup.v1"));
@@ -1594,6 +1845,19 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return makeKeyBackupPath(roomId, sessionId, version);
     }
 
+    /**
+     * 从服务端密钥备份中删除指定房间/会话的密钥。
+     *
+     * @param roomId - 房间 ID
+     * @param sessionId - 会话 ID
+     * @param version - 要删除的备份版本；省略时使用当前版本
+     * @returns 删除完成时 resolve 的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.deleteKeysFromBackup("!room:example.org", "sessionId", "1");
+     * ```
+     */
     public deleteKeysFromBackup(roomId: undefined, sessionId: undefined, version?: string): Promise<void>;
     public deleteKeysFromBackup(roomId: string, sessionId: undefined, version?: string): Promise<void>;
     public deleteKeysFromBackup(roomId: string, sessionId: string, version?: string): Promise<void>;
@@ -1611,6 +1875,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * to do so before calling this function.
      *
      * @returns Promise which resolves with an object containing the config.
+     *
+     * @example
+     * ```typescript
+     * const mediaConfig = await client.getMediaConfig();
+     * ```
      */
     public getMediaConfig(useAuthenticatedMedia: boolean = false): Promise<IMediaConfig> {
         return this.getMediaManager().getMediaConfig(useAuthenticatedMedia);
@@ -1623,6 +1892,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * will be emitted for a room before this function will return the given room.
      * @param roomId - The room ID
      * @returns The Room or null if it doesn't exist or there is no data store.
+     *
+     * @example
+     * ```typescript
+     * const room = client.getRoom("!room:example.org");
+     * ```
      */
     public getRoom(roomId: string | undefined): Room | null {
         if (!roomId) {
@@ -1634,6 +1908,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Retrieve all known rooms.
      * @returns A list of rooms, or an empty list if there is no data store.
+     *
+     * @example
+     * ```typescript
+     * const rooms = client.getRooms();
+     * ```
      */
     public getRooms(): Room[] {
         return this.getSyncManager().getRooms();
@@ -1649,6 +1928,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *                                           m.room.predecessor state event and
      *                                           use it if found (MSC3946).
      * @returns A list of rooms, or an empty list if there is no data store.
+     *
+     * @example
+     * ```typescript
+     * const rooms = client.getVisibleRooms();
+     * ```
      */
     public getVisibleRooms(msc3946ProcessDynamicPredecessor = false): Room[] {
         return selectVisibleRoomsForClient(
@@ -1663,6 +1947,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param userId - The user ID to retrieve.
      * @returns A user or null if there is no data store or the user does
      * not exist.
+     *
+     * @example
+     * ```typescript
+     * const user = client.getUser("@alice:example.org");
+     * ```
      */
     public getUser(userId: string): User | null {
         return this.store.getUser(userId);
@@ -1671,6 +1960,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Retrieve all known users.
      * @returns A list of users, or an empty list if there is no data store.
+     *
+     * @example
+     * ```typescript
+     * const users = client.getUsers();
+     * ```
      */
     public getUsers(): User[] {
         return this.store.getUsers();
@@ -1689,6 +1983,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @param eventType - The event type
      * @param content - the contents object for the event
+     *
+     * @example
+     * ```typescript
+     * await client.setAccountData("m.direct", { "@alice:example.org": ["!room:example.org"] });
+     * ```
      */
     public async setAccountData<K extends keyof WritableAccountDataEvents>(
         eventType: K,
@@ -1702,6 +2001,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @param eventType - The event type
      * @param content - the contents object for the event
+     *
+     * @example
+     * ```typescript
+     * await client.setAccountDataRaw("m.direct", { "@alice:example.org": ["!room:example.org"] });
+     * ```
      */
     public setAccountDataRaw<K extends keyof WritableAccountDataEvents>(
         eventType: K,
@@ -1714,6 +2018,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Get account data event of given type for the current user.
      * @param eventType - The event type
      * @returns The contents of the given account data event
+     *
+     * @example
+     * ```typescript
+     * const event = client.getAccountData("m.direct");
+     * console.log(event?.getContent());
+     * ```
      */
     public getAccountData<K extends keyof AccountDataEvents>(eventType: K): MatrixEvent | undefined {
         return this.getAccountDataManager().getAccountData(eventType);
@@ -1726,6 +2036,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param eventType - The event type
      * @returns Promise which resolves: The contents of the given account data event.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const content = await client.getAccountDataFromServer("m.direct");
+     * console.log(content);
+     * ```
      */
     public async getAccountDataFromServer<K extends keyof AccountDataEvents>(
         eventType: K,
@@ -1733,6 +2049,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountDataManager().getAccountDataFromServer(eventType);
     }
 
+    /**
+     * 删除当前用户的指定类型的账户数据。
+     *
+     * @param eventType - 要删除的账户数据事件类型
+     * @returns 删除完成时 resolve 的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.deleteAccountData("m.direct");
+     * ```
+     */
     public async deleteAccountData(eventType: keyof WritableAccountDataEvents): Promise<void> {
         return this.getAccountDataManager().deleteAccountData(eventType);
     }
@@ -1740,6 +2067,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Gets the users that are ignored by this client
      * @returns The array of users that are ignored (empty if none)
+     *
+     * @example
+     * ```typescript
+     * const ignored = client.getIgnoredUsers();
+     * console.log(ignored);
+     * ```
      */
     public getIgnoredUsers(): string[] {
         return this.getAccountDataManager().getIgnoredUsers();
@@ -1750,6 +2083,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param userIds - the user IDs to ignore
      * @returns Promise which resolves: an empty object
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * await client.setIgnoredUsers(["@spammer:example.org"]);
+     * ```
      */
     public setIgnoredUsers(userIds: string[]): Promise<EmptyObject> {
         return this.getAccountDataManager().setIgnoredUsers(userIds);
@@ -1759,6 +2097,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Gets whether or not a specific user is being ignored by this client.
      * @param userId - the user ID to check
      * @returns true if the user is ignored, false otherwise
+     *
+     * @example
+     * ```typescript
+     * const ignored = client.isUserIgnored("@spammer:example.org");
+     * ```
      */
     public isUserIgnored(userId: string): boolean {
         return this.getAccountDataManager().isUserIgnored(userId);
@@ -1777,6 +2120,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param opts - Options when joining the room.
      * @returns Promise which resolves: the room joined.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const room = await client.joinRoom("#example:example.org");
+     * ```
      */
     public async joinRoom(roomIdOrAlias: string, opts: IJoinRoomOpts = {}): Promise<Room> {
         return this.getRoomManager().joinRoom(roomIdOrAlias, opts);
@@ -1788,6 +2136,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param opts - Options when knocking the room.
      * @returns Promise which resolves: `{room_id: {string}}`
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * const { room_id } = await client.knockRoom("#example:example.org");
+     * ```
      */
     public knockRoom(roomIdOrAlias: string, opts: KnockRoomOpts = {}): Promise<{ room_id: string }> {
         return this.getRoomManager().knockRoom(roomIdOrAlias, opts);
@@ -1800,6 +2153,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * timeline entry if provided.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * const res = await client.resendEvent(event, room);
+     * console.log(res.event_id);
+     * ```
      */
     public resendEvent(event: MatrixEvent, room: Room): Promise<ISendEventResponse> {
         return this.getEventManager().resendEvent(event, room, {
@@ -1814,6 +2173,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *
      * @param event -   Event to cancel
      * @throws Error if the event is not in QUEUED, NOT_SENT or ENCRYPTING state
+     *
+     * @example
+     * ```typescript
+     * client.cancelPendingEvent(event);
+     * ```
      */
     public cancelPendingEvent(event: MatrixEvent): void {
         this.getEventManager().cancelPendingEvent(event, {
@@ -1829,23 +2193,78 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomName("!room:example.org", "新房间名");
+     * ```
      */
     public setRoomName(roomId: string, name: string): Promise<ISendEventResponse> {
         return this.getRoomManager().setRoomName(roomId, name);
     }
 
+    /**
+     * 设置房间主题（可选同时设置 HTML 版本主题）。
+     *
+     * @param roomId - 房间 ID
+     * @param topic - 纯文本主题；不传则清除主题
+     * @param htmlTopic - 主题的 HTML 版本
+     * @returns Promise，解析为发送结果（含新事件的 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomTopic("!room:example.org", "项目讨论", "<b>项目</b>讨论");
+     * ```
+     */
     public setRoomTopic(roomId: string, topic?: string, htmlTopic?: string): Promise<ISendEventResponse> {
         return this.getRoomManager().setRoomTopic(roomId, topic, htmlTopic);
     }
 
+    /**
+     * 获取房间的标签（tag）及其元数据。
+     *
+     * @param roomId - 房间 ID
+     * @returns Promise，解析为房间标签集合
+     *
+     * @example
+     * ```typescript
+     * const { tags } = await client.getRoomTags("!room:example.org");
+     * console.log(tags);
+     * ```
+     */
     public getRoomTags(roomId: string): Promise<ITagsResponse> {
         return this.getRoomManager().getRoomTags(roomId);
     }
 
+    /**
+     * 为房间添加或更新一个标签。
+     *
+     * @param roomId - 房间 ID
+     * @param tagName - 标签名称（如 `m.favourite`、`u.work`）
+     * @param metadata - 标签的元数据（如 `order`）
+     * @returns Promise，解析为空对象 `{}`
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomTag("!room:example.org", "m.favourite", { order: 0.5 });
+     * ```
+     */
     public setRoomTag(roomId: string, tagName: string, metadata: ITagMetadata = {}): Promise<EmptyObject> {
         return this.getRoomManager().setRoomTag(roomId, tagName, metadata);
     }
 
+    /**
+     * 删除房间上的一个标签。
+     *
+     * @param roomId - 房间 ID
+     * @param tagName - 要删除的标签名称
+     * @returns Promise，解析为空对象 `{}`
+     *
+     * @example
+     * ```typescript
+     * await client.deleteRoomTag("!room:example.org", "m.favourite");
+     * ```
+     */
     public deleteRoomTag(roomId: string, tagName: string): Promise<EmptyObject> {
         return this.getRoomManager().deleteRoomTag(roomId, tagName);
     }
@@ -1856,6 +2275,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param content - event content
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomAccountData("!room:example.org", "m.fully_read", { event_id: "$event:example.org" });
+     * ```
      */
     public setRoomAccountData<K extends keyof RoomAccountDataEvents>(
         roomId: string,
@@ -1876,6 +2300,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.setPowerLevel("!room:example.org", "@alice:example.org", 50);
+     * ```
      */
     public async setPowerLevel(
         roomId: string,
@@ -1890,6 +2319,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * const res = await client.unstable_createLiveBeacon("!room:example.org", beaconInfoContent);
+     * console.log(res.event_id);
+     * ```
      */
     public async unstable_createLiveBeacon(
         roomId: Room["roomId"],
@@ -1905,6 +2340,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * const res = await client.unstable_setLiveBeacon("!room:example.org", beaconInfoContent);
+     * console.log(res.event_id);
+     * ```
      */
     public async unstable_setLiveBeacon(
         roomId: string,
@@ -2177,6 +2618,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *         Callers should check whether the server supports MSC3912 via `MatrixClient.canSupport`.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.redactEvent("!room:example.org", "$event:example.org", undefined, { reason: "误发" });
+     * ```
      */
     public redactEvent(
         roomId: string,
@@ -2285,6 +2731,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param content - The content of the reply event.
      * @param txnId - Optional transaction ID.
      * @returns Promise which resolves to the sent event's response.
+     *
+     * @example
+     * ```typescript
+     * await client.replyToEvent("!room:example.org", event, { msgtype: MsgType.Text, body: "收到" });
+     * ```
      */
     public replyToEvent(
         roomId: string,
@@ -2308,6 +2759,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param content - The new content for the event.
      * @param txnId - Optional transaction ID.
      * @returns Promise which resolves to the sent event's response.
+     *
+     * @example
+     * ```typescript
+     * await client.editEvent("!room:example.org", event, { msgtype: MsgType.Text, body: "修正后的内容" });
+     * ```
      */
     public editEvent(
         roomId: string,
@@ -2405,6 +2861,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Notice, body }, actualTxnId);
     }
 
+    /**
+     * 向房间或线程发送动作消息（`msgtype: m.emote`，即 `/me` 动作）。
+     *
+     * 支持两种调用形式：
+     * - `sendEmoteMessage(roomId, body, txnId?)` —— 发送到房间主时间线。
+     * - `sendEmoteMessage(roomId, threadId, body, txnId?)` —— 发送到指定线程。
+     *
+     * @param roomId - 目标房间 ID
+     * @param body - 动作消息正文；四参数形式下该位置为 `threadId`
+     * @param txnId - 可选的本地事务 ID
+     * @returns Promise，解析为发送结果（含 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.sendEmoteMessage("!room:example.org", "笑了起来");
+     * ```
+     */
     public sendEmoteMessage(roomId: string, body: string, txnId?: string): Promise<ISendEventResponse>;
     public sendEmoteMessage(
         roomId: string,
@@ -2423,6 +2896,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.sendMessage(roomId, threadId, { msgtype: MsgType.Emote, body }, actualTxnId);
     }
 
+    /**
+     * 向房间或线程发送图片消息（`msgtype: m.image`）。
+     *
+     * @param roomId - 目标房间 ID
+     * @param threadId - 线程根事件 ID；传 `null` 表示发送到房间主时间线
+     * @param url - 图片的 MXC URL 或 `ImageInfo` 对象
+     * @param info - 图片元数据（或作为正文的字符串）
+     * @param text - 图片的替代文本，默认 `"Image"`
+     * @returns Promise，解析为发送结果（含 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.sendImageMessage("!room:example.org", null, "mxc://example.org/abc", { w: 800, h: 600 }, "示例图片");
+     * ```
+     */
     public sendImageMessage(
         roomId: string,
         threadId: string | null,
@@ -2438,6 +2926,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         });
     }
 
+    /**
+     * 向房间或线程发送贴纸消息。
+     *
+     * @param roomId - 目标房间 ID
+     * @param threadId - 线程根事件 ID；传 `null` 表示发送到房间主时间线
+     * @param url - 贴纸的 MXC URL 或 `ImageInfo` 对象
+     * @param info - 贴纸元数据（或作为正文的字符串）
+     * @param text - 贴纸的替代文本，默认 `"Sticker"`
+     * @returns Promise，解析为发送结果（含 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.sendStickerMessage("!room:example.org", null, "mxc://example.org/sticker", { w: 128, h: 128 });
+     * ```
+     */
     public sendStickerMessage(
         roomId: string,
         threadId: string | null,
@@ -2453,6 +2956,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         } as RoomMessageEventContent);
     }
 
+    /**
+     * 发送带 HTML 格式的文本消息（`format: org.matrix.custom.html`）。
+     *
+     * @param roomId - 目标房间 ID
+     * @param threadIdOrBody - 线程根事件 ID；三参数形式下该位置为纯文本正文
+     * @param bodyOrHtml - 纯文本正文；四参数形式下为 HTML 正文
+     * @param htmlBody - HTML 正文
+     * @returns Promise，解析为发送结果（含 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.sendHtmlMessage("!room:example.org", null, "加粗文本", "<strong>加粗文本</strong>");
+     * ```
+     */
     public sendHtmlMessage(
         roomId: string,
         threadIdOrBody: string | null,
@@ -2472,6 +2989,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         });
     }
 
+    /**
+     * 发送带 HTML 格式的提示消息（`msgtype: m.notice`）。
+     *
+     * @param roomId - 目标房间 ID
+     * @param threadIdOrBody - 线程根事件 ID；三参数形式下该位置为纯文本正文
+     * @param bodyOrHtml - 纯文本正文；四参数形式下为 HTML 正文
+     * @param htmlBody - HTML 正文
+     * @returns Promise，解析为发送结果（含 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.sendHtmlNotice("!room:example.org", null, "构建通过", "<b>构建通过</b>");
+     * ```
+     */
     public sendHtmlNotice(
         roomId: string,
         threadIdOrBody: string | null,
@@ -2491,6 +3022,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         });
     }
 
+    /**
+     * 发送带 HTML 格式的动作消息（`msgtype: m.emote`）。
+     *
+     * @param roomId - 目标房间 ID
+     * @param threadIdOrBody - 线程根事件 ID；三参数形式下该位置为纯文本正文
+     * @param bodyOrHtml - 纯文本正文；四参数形式下为 HTML 正文
+     * @param htmlBody - HTML 正文
+     * @returns Promise，解析为发送结果（含 `event_id`）
+     *
+     * @example
+     * ```typescript
+     * await client.sendHtmlEmote("!room:example.org", null, "笑了", "<i>笑了</i>");
+     * ```
+     */
     public sendHtmlEmote(
         roomId: string,
         threadIdOrBody: string | null,
@@ -2773,6 +3318,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.sendRtcDecline("!room:example.org", "$notification:example.org");
+     * ```
      */
     public sendRtcDecline(roomId: string, notificationEventId: string): Promise<ISendEventResponse> {
         return this.sendEvent(roomId, EventType.RTCDecline, {
@@ -2793,6 +3343,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Promise which resolves: Object of OG metadata.
      * @returns Rejects: with an error response.
      * May return synthesized attributes if the URL lacked OG meta.
+     *
+     * @example
+     * ```typescript
+     * const preview = await client.getUrlPreview("https://example.org", Date.now());
+     * console.log(preview["og:title"]);
+     * ```
      */
     public getUrlPreview(url: string, ts: number): Promise<IPreviewUrlResponse> {
         return this.getRoomManager().getUrlPreview(url, ts);
@@ -2860,6 +3416,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * predecessor events where they exist (MSC3946).
      * @returns An array of rooms representing the upgrade
      * history.
+     *
+     * @example
+     * ```typescript
+     * const rooms = client.getRoomUpgradeHistory("!room:example.org", true);
+     * console.log(rooms.map((room) => room.roomId));
+     * ```
      */
     public getRoomUpgradeHistory(
         roomId: string,
@@ -2879,6 +3441,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns An empty object.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.invite("!room:example.org", "@alice:example.org", { reason: "欢迎加入" });
+     * ```
      */
     public async invite(roomId: string, userId: string, opts: InviteOpts | string = {}): Promise<EmptyObject> {
         return this.getRoomManager().invite(roomId, userId, opts);
@@ -2892,6 +3459,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.inviteByEmail("!room:example.org", "alice@example.org");
+     * ```
      */
     public inviteByEmail(roomId: string, email: string): Promise<EmptyObject> {
         return this.getRoomManager().inviteByEmail(roomId, email);
@@ -2906,6 +3478,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Rejects: with an error response.
      * @throws May throw a `MatrixSafetyError` if content is deemed unsafe.
      * @see MatrixSafetyError
+     *
+     * @example
+     * ```typescript
+     * await client.inviteByThreePid("!room:example.org", "email", "alice@example.org");
+     * ```
      */
     public async inviteByThreePid(roomId: string, medium: string, address: string): Promise<EmptyObject> {
         return this.getRoomManager().inviteByThreePid(roomId, medium, address);
@@ -2914,6 +3491,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * @returns Promise which resolves: `{}` an empty object.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * await client.leave("!room:example.org");
+     * ```
      */
     public leave(roomId: string): Promise<EmptyObject> {
         return this.getRoomManager().leave(roomId);
@@ -2929,6 +3511,14 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * upgraded rooms will be left.
      * @returns Promise which resolves when completed with an object keyed
      * by room ID and value of the error encountered when leaving or null.
+     *
+     * @example
+     * ```typescript
+     * const errors = await client.leaveRoomChain("!room:example.org", true);
+     * for (const [roomId, error] of Object.entries(errors)) {
+     *     if (error) console.error(`离开 ${roomId} 失败`, error);
+     * }
+     * ```
      */
     public leaveRoomChain(
         roomId: string,
@@ -2946,6 +3536,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param reason - Optional.
      * @returns Promise which resolves with an empty object.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * await client.ban("!room:example.org", "@spammer:example.org", "违反社区准则");
+     * ```
      */
     public ban(roomId: string, userId: string, reason?: string): Promise<EmptyObject> {
         return this.getRoomManager().ban(roomId, userId, reason);
@@ -2956,19 +3551,66 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Default: true.
      * @returns Promise which resolves: `{}` an empty object.
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * await client.forget("!room:example.org", true);
+     * ```
      */
     public async forget(roomId: string, deleteRoom = true): Promise<EmptyObject> {
         return this.getRoomManager().forget(roomId, deleteRoom);
     }
 
+    /**
+     * 将用户从房间封禁名单中移除。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 要解封的用户 ID
+     * @returns Promise，解析为空对象 `{}`
+     *
+     * @example
+     * ```typescript
+     * await client.unban("!room:example.org", "@alice:example.org");
+     * ```
+     */
     public unban(roomId: string, userId: string): Promise<EmptyObject> {
         return this.getRoomManager().unban(roomId, userId);
     }
 
+    /**
+     * 将用户踢出房间。
+     *
+     * @param roomId - 房间 ID
+     * @param userId - 要被踢出的用户 ID
+     * @param reason - 可选的原因
+     * @returns Promise，解析为空对象 `{}`
+     *
+     * @example
+     * ```typescript
+     * await client.kick("!room:example.org", "@alice:example.org", "请遵守房间规则");
+     * ```
+     */
     public kick(roomId: string, userId: string, reason?: string): Promise<EmptyObject> {
         return this.getRoomManager().kick(roomId, userId, reason);
     }
 
+    /**
+     * 获取某个事件应触发的推送动作。
+     *
+     * 若事件尚未计算过推送详情，或 `forceRecalculate` 为 true，则重新计算并缓存结果。
+     *
+     * @param event - 目标事件
+     * @param forceRecalculate - 是否强制重新计算，默认 false
+     * @returns 推送动作对象；无可用动作时返回 null
+     *
+     * @example
+     * ```typescript
+     * const actions = client.getPushActionsForEvent(event);
+     * if (actions?.notify) {
+     *     console.log("该事件会触发通知");
+     * }
+     * ```
+     */
     public getPushActionsForEvent(event: MatrixEvent, forceRecalculate = false): IActionsObject | null {
         if (!event.getPushActions() || forceRecalculate) {
             const { actions, rule } = this.pushProcessor.actionsAndRuleForEvent(event);
@@ -2977,6 +3619,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return event.getPushActions();
     }
 
+    /**
+     * 获取某个事件的推送详情（动作与命中的推送规则）。
+     *
+     * 若事件尚未计算过推送详情，或 `forceRecalculate` 为 true，则重新计算并缓存结果。
+     *
+     * @param event - 目标事件
+     * @param forceRecalculate - 是否强制重新计算，默认 false
+     * @returns 推送详情；无可用详情时返回 null
+     *
+     * @example
+     * ```typescript
+     * const details = client.getPushDetailsForEvent(event);
+     * console.log(details?.rule);
+     * ```
+     */
     public getPushDetailsForEvent(event: MatrixEvent, forceRecalculate = false): PushDetails | null {
         if (!event.getPushDetails() || forceRecalculate) {
             const { actions, rule } = this.pushProcessor.actionsAndRuleForEvent(event);
@@ -2985,10 +3642,33 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return event.getPushDetails();
     }
 
+    /**
+     * 设置同步时使用的在线状态。
+     *
+     * @param presence - 在线状态；不传则由底层同步 API 决定
+     * @returns Promise，在状态设置完成后解析
+     *
+     * @example
+     * ```typescript
+     * await client.setSyncPresence("online");
+     * ```
+     */
     public async setSyncPresence(presence?: SetPresence): Promise<void> {
         this.syncApi?.setPresence(presence);
     }
 
+    /**
+     * 从服务器加载房间的历史消息（向后翻页）。
+     *
+     * @param room - 目标房间
+     * @param limit - 拉取的事件数量上限，默认 30
+     * @returns Promise，解析为该房间
+     *
+     * @example
+     * ```typescript
+     * await client.scrollback(room, 50);
+     * ```
+     */
     public scrollback(room: Room, limit = 30): Promise<Room> {
         return this.getTimelineManager().scrollback(room, limit);
     }
@@ -2999,6 +3679,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param eventId - The event ID.
      * @param params - Optional parameters.
      * @returns The event context.
+     *
+     * @example
+     * ```typescript
+     * const context = await client.getEventContext("!room:example.org", "$event:example.org", { limit: 10 });
+     * console.log(context.event);
+     * ```
      */
     public async getEventContext(
         roomId: string,
@@ -3013,6 +3699,12 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param room - The room.
      * @param limit - The limit.
      * @returns The events.
+     *
+     * @example
+     * ```typescript
+     * const events = client.storeScrollback(room, 30);
+     * console.log(events.length);
+     * ```
      */
     public storeScrollback(room: Room, limit: number): MatrixEvent[] {
         return this.store.scrollback(room, limit);
@@ -3024,27 +3716,95 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param events - The events.
      * @param token - The token.
      * @param backwards - Whether these are paginated results.
+     *
+     * @example
+     * ```typescript
+     * client.storeEvents(room, events, token, true);
+     * ```
      */
     public storeEvents(room: Room, events: MatrixEvent[], token: string | null, backwards: boolean): void {
         this.store.storeEvents(room, events, token, backwards);
     }
 
+    /**
+     * 创建一个为该客户端配置的事件映射器（event mapper）。
+     *
+     * @param options - 映射器选项
+     * @returns 事件映射器实例
+     *
+     * @example
+     * ```typescript
+     * const mapper = client.getEventMapper();
+     * const event = mapper(roomId, rawEvent);
+     * ```
+     */
     public getEventMapper(options?: MapperOpts): EventMapper {
         return eventMapperFor(this, options || {});
     }
 
+    /**
+     * 获取包含指定事件的 timeline。
+     *
+     * @param timelineSet - 目标 timeline set
+     * @param eventId - 事件 ID
+     * @returns Promise，解析为对应的事件 timeline；未找到时返回 null
+     *
+     * @example
+     * ```typescript
+     * const timeline = await client.getEventTimeline(timelineSet, "$event:example.org");
+     * ```
+     */
     public async getEventTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | null> {
         return this.getTimelineManager().getEventTimeline(timelineSet, eventId);
     }
 
+    /**
+     * 获取包含指定事件（线程根事件）的线程 timeline。
+     *
+     * @param timelineSet - 目标 timeline set
+     * @param eventId - 线程根事件 ID
+     * @returns Promise，解析为对应的线程 timeline；未找到时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const thread = await client.getThreadTimeline(timelineSet, "$root:example.org");
+     * ```
+     */
     public async getThreadTimeline(timelineSet: EventTimelineSet, eventId: string): Promise<EventTimeline | undefined> {
         return this.getThreadingManager().getThreadTimeline(timelineSet, eventId);
     }
 
+    /**
+     * 获取 timeline set 中最新的事件 timeline。
+     *
+     * @param timelineSet - 目标 timeline set
+     * @returns Promise，解析为最新的 timeline；不存在时返回 null
+     *
+     * @example
+     * ```typescript
+     * const timeline = await client.getLatestTimeline(timelineSet);
+     * ```
+     */
     public async getLatestTimeline(timelineSet: EventTimelineSet): Promise<EventTimeline | null> {
         return this.getTimelineManager().getLatestTimeline(timelineSet);
     }
 
+    /**
+     * 构造 `/messages` 分页请求。
+     *
+     * @param roomId - 房间 ID
+     * @param fromToken - 分页起始 token；`null` 表示从头开始
+     * @param limit - 单次拉取数量上限，默认 30
+     * @param dir - 分页方向（向前或向后）
+     * @param timelineFilter - 可选的时间线过滤器
+     * @returns Promise，解析为 `/messages` 响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.createMessagesRequest("!room:example.org", null, 30, Direction.Backward);
+     * console.log(res.chunk);
+     * ```
+     */
     public createMessagesRequest(
         roomId: string,
         fromToken: string | null,
@@ -3062,6 +3822,23 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * 构造线程列表的 `/messages` 分页请求。
+     *
+     * @param roomId - 房间 ID
+     * @param fromToken - 分页起始 token；`null` 表示从头开始
+     * @param limit - 单次拉取数量上限，默认 30
+     * @param dir - 分页方向，默认向前
+     * @param threadListType - 线程列表类型，默认 `ThreadFilterType.All`
+     * @param timelineFilter - 可选的时间线过滤器
+     * @returns Promise，解析为 `/messages` 响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.createThreadListMessagesRequest("!room:example.org", null);
+     * console.log(res.chunk);
+     * ```
+     */
     public async createThreadListMessagesRequest(
         roomId: string,
         fromToken: string | null,
@@ -3081,6 +3858,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * 对指定的事件 timeline 进行分页，按方向拉取更多事件。
+     *
+     * @param eventTimeline - 要分页的事件 timeline
+     * @param opts - 分页选项（方向、数量、是否仅本地等）
+     * @returns Promise，解析为 true 表示本次分页成功获取到数据
+     *
+     * @example
+     * ```typescript
+     * const hasMore = await client.paginateEventTimeline(timeline, { backwards: true, limit: 20 });
+     * ```
+     */
     public paginateEventTimeline(eventTimeline: EventTimeline, opts: IPaginateOpts): Promise<boolean> {
         return paginateEventTimelineRequest(eventTimeline, opts || {}, {
             notifTimelineSet: this.getNotifTimelineSet(),
@@ -3098,22 +3887,76 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         });
     }
 
+    /**
+     * 重置通知 timeline set，清空当前的通知事件集合。
+     *
+     * @example
+     * ```typescript
+     * client.resetNotifTimelineSet();
+     * ```
+     */
     public resetNotifTimelineSet(): void {
         this.getNotificationsManager().resetNotifTimelineSet();
     }
 
+    /**
+     * 以只读方式查看（peek）某个房间，无需加入即可读取其内容。
+     *
+     * @param roomId - 要查看的房间 ID
+     * @param limit - 首次拉取的事件数量上限
+     * @returns Promise，解析为查看得到的房间对象
+     *
+     * @example
+     * ```typescript
+     * const room = await client.peekInRoom("!room:example.org", 20);
+     * ```
+     */
     public peekInRoom(roomId: string, limit: number = 20): Promise<Room> {
         return this.getRoomManager().peekInRoom(roomId, limit);
     }
 
+    /**
+     * 停止对房间的查看（peek），释放相关资源。
+     *
+     * @example
+     * ```typescript
+     * client.stopPeeking();
+     * ```
+     */
     public stopPeeking(): void {
         this.getRoomManager().stopPeeking();
     }
 
+    /**
+     * 设置房间的访客访问权限。
+     *
+     * @param roomId - 要设置的目标房间 ID
+     * @param opts - 访客访问选项（是否允许加入、是否允许读取）
+     * @returns Promise，解析为设置完成
+     *
+     * @example
+     * ```typescript
+     * await client.setGuestAccess("!room:example.org", { allowJoin: true, allowRead: true });
+     * ```
+     */
     public setGuestAccess(roomId: string, opts: IGuestAccessOpts): Promise<void> {
         return this.getRoomManager().setGuestAccess(roomId, opts);
     }
 
+    /**
+     * 请求向邮箱发送注册验证 token。
+     *
+     * @param email - 目标邮箱地址
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于幂等
+     * @param nextLink - 验证完成后跳转的链接（可选）
+     * @returns Promise，解析为 token 请求响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.requestRegisterEmailToken("alice@example.org", secret, 1);
+     * ```
+     */
     public requestRegisterEmailToken(
         email: string,
         clientSecret: string,
@@ -3123,6 +3966,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAuthManager().requestRegisterEmailToken(email, clientSecret, sendAttempt, nextLink);
     }
 
+    /**
+     * 请求向手机号发送注册验证 token。
+     *
+     * @param phoneCountry - 电话号码国家代码
+     * @param phoneNumber - 电话号码
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于幂等
+     * @param nextLink - 验证完成后跳转的链接（可选）
+     * @returns Promise，解析为 msisdn token 请求响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.requestRegisterMsisdnToken("CN", "13800000000", secret, 1);
+     * ```
+     */
     public requestRegisterMsisdnToken(
         phoneCountry: string,
         phoneNumber: string,
@@ -3139,6 +3997,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * 请求向邮箱发送添加第三方标识（3pid）的验证 token。
+     *
+     * @param email - 目标邮箱地址
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于幂等
+     * @param nextLink - 验证完成后跳转的链接（可选）
+     * @returns Promise，解析为 token 请求响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.requestAdd3pidEmailToken("alice@example.org", secret, 1);
+     * ```
+     */
     public requestAdd3pidEmailToken(
         email: string,
         clientSecret: string,
@@ -3148,6 +4020,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAuthManager().requestAdd3pidEmailToken(email, clientSecret, sendAttempt, nextLink);
     }
 
+    /**
+     * 请求向手机号发送添加第三方标识（3pid）的验证 token。
+     *
+     * @param phoneCountry - 电话号码国家代码
+     * @param phoneNumber - 电话号码
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于幂等
+     * @param nextLink - 验证完成后跳转的链接（可选）
+     * @returns Promise，解析为 msisdn token 请求响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.requestAdd3pidMsisdnToken("CN", "13800000000", secret, 1);
+     * ```
+     */
     public requestAdd3pidMsisdnToken(
         phoneCountry: string,
         phoneNumber: string,
@@ -3164,6 +4051,20 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * 请求向邮箱发送密码重置验证 token。
+     *
+     * @param email - 目标邮箱地址
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于幂等
+     * @param nextLink - 验证完成后跳转的链接（可选）
+     * @returns Promise，解析为 token 请求响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.requestPasswordEmailToken("alice@example.org", secret, 1);
+     * ```
+     */
     public requestPasswordEmailToken(
         email: string,
         clientSecret: string,
@@ -3173,6 +4074,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getPasswordResetManager().requestPasswordEmailToken(email, clientSecret, sendAttempt, nextLink);
     }
 
+    /**
+     * 请求向手机号发送密码重置验证 token。
+     *
+     * @param phoneCountry - 电话号码国家代码
+     * @param phoneNumber - 电话号码
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于幂等
+     * @param nextLink - 验证完成后跳转的链接
+     * @returns Promise，解析为 msisdn token 请求响应
+     *
+     * @example
+     * ```typescript
+     * const res = await client.requestPasswordMsisdnToken("CN", "13800000000", secret, 1, link);
+     * ```
+     */
     public requestPasswordMsisdnToken(
         phoneCountry: string,
         phoneNumber: string,
@@ -3189,48 +4105,174 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * 获取针对指定房间的推送规则。
+     *
+     * @param scope - 推送规则作用域（global 或 device）
+     * @param roomId - 目标房间 ID
+     * @returns 匹配到的推送规则，未找到时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const rule = client.getRoomPushRule("global", "!room:example.org");
+     * ```
+     */
     public getRoomPushRule(scope: "global" | "device", roomId: string): IPushRule | undefined {
         return this.getPushManager().getRoomPushRule(scope, roomId);
     }
 
+    /**
+     * 设置或取消指定房间的静音推送规则。
+     *
+     * @param scope - 推送规则作用域（global 或 device）
+     * @param roomId - 目标房间 ID
+     * @param mute - 是否静音该房间的推送
+     * @returns Promise，解析为设置完成；当无需变更时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomMutePushRule("global", "!room:example.org", true);
+     * ```
+     */
     public setRoomMutePushRule(scope: "global" | "device", roomId: string, mute: boolean): Promise<void> | undefined {
         return this.getPushManager().setRoomMutePushRule(scope, roomId, mute);
     }
 
+    /**
+     * 在消息正文中搜索文本。
+     *
+     * @param opts - 搜索选项（查询关键词与搜索字段）
+     * @returns Promise，解析为搜索结果
+     *
+     * @example
+     * ```typescript
+     * const results = await client.searchMessageText({ query: "会议纪要", keys: ["content.body"] });
+     * ```
+     */
     public searchMessageText(opts: ISearchOpts): Promise<ISearchResponse> {
         return this.getSearchManager().searchMessageText({ term: opts.query, keys: opts.keys });
     }
 
+    /**
+     * Search the room timeline for events matching the given criteria.
+     *
+     * @param opts - Search options including the search term, order and result count.
+     * @returns A promise resolving to the search results.
+     *
+     * @example
+     * ```typescript
+     * const results = await client.searchRoomEvents({ term: "会议纪要", orderBy: "recent" });
+     * ```
+     */
     public async searchRoomEvents(opts: IEventSearchOpts): Promise<ISearchResults> {
         return this.getSearchManager().searchRoomEventsProcessed(opts);
     }
 
+    /**
+     * Paginate backwards through the results of a previous room event search.
+     *
+     * @param searchResults - The search results to paginate backwards from.
+     * @returns A promise resolving to the extended search results.
+     *
+     * @example
+     * ```typescript
+     * const more = await client.backPaginateRoomEventsSearch(searchResults);
+     * ```
+     */
     public backPaginateRoomEventsSearch<T extends ISearchResults>(searchResults: T): Promise<T> {
         return this.getSearchManager().backPaginateRoomEventsSearch(searchResults);
     }
 
     /** @internal */
+    /**
+     * Process a raw `/search` response, appending the parsed events onto the given results object.
+     *
+     * @param searchResults - The results object to extend in place.
+     * @param response - The raw search response to process.
+     * @returns The same `searchResults` object, for chaining.
+     *
+     * @example
+     * ```typescript
+     * const results = client.processRoomEventsSearch(searchResults, response);
+     * ```
+     */
     public processRoomEventsSearch<T extends ISearchResults>(searchResults: T, response: ISearchResponse): T {
         return this.getSearchManager().processRoomEventsSearch(searchResults, response);
     }
 
+    /**
+     * Force a re-sync of the rooms the user has left.
+     *
+     * @returns A promise resolving to the rooms flushed from the store during the resync.
+     *
+     * @example
+     * ```typescript
+     * const leftRooms = await client.syncLeftRooms();
+     * ```
+     */
     public syncLeftRooms(): Promise<Room[]> {
         return this.getSyncManager().syncLeftRooms();
     }
 
+    /**
+     * Create a new filter on the server from a filter definition.
+     *
+     * @param content - The filter definition to upload.
+     * @returns A promise resolving to the created {@link Filter}.
+     *
+     * @example
+     * ```typescript
+     * const filter = await client.createFilter({ room: { timelines: { limit: 10 } } });
+     * ```
+     */
     public async createFilter(content: IFilterDefinition): Promise<Filter> {
         const result = await this.getFilterManager().createFilter(content);
         return Filter.fromJson(this.credentials.userId, result.filterId, content);
     }
 
+    /**
+     * Retrieve a filter previously stored on the server by id.
+     *
+     * @param userId - The user the filter belongs to.
+     * @param filterId - The id of the filter to fetch.
+     * @param allowCached - When `true`, a locally cached filter may be returned.
+     * @returns A promise resolving to the {@link Filter}.
+     *
+     * @example
+     * ```typescript
+     * const filter = await client.getFilter(userId, filterId, true);
+     * ```
+     */
     public async getFilter(userId: string, filterId: string, allowCached: boolean): Promise<Filter> {
         return this.getFilterManager().getFilter(userId, filterId, allowCached);
     }
 
+    /**
+     * Retrieve the server-side filter with the given name, creating it from `filter` if absent.
+     *
+     * @param filterName - The name to look up / store the filter under.
+     * @param filter - The filter definition to create when none exists.
+     * @returns A promise resolving to the filter id.
+     *
+     * @example
+     * ```typescript
+     * const filterId = await client.getOrCreateFilter("lazy_loading", filter);
+     * ```
+     */
     public async getOrCreateFilter(filterName: string, filter: Filter): Promise<string> {
         return this.getFilterManager().getOrCreateFilter(filterName, filter);
     }
 
+    /**
+     * Get an OpenID token for this account, usable to authenticate against other services.
+     *
+     * @returns A promise resolving to the OpenID token.
+     *
+     * @example
+     * ```typescript
+     * const { access_token } = await client.getOpenIdToken();
+     * ```
+     */
     public getOpenIdToken(): Promise<IOpenIDToken> {
         return getOpenIdTokenRequest(this.credentials.userId!, this.authedRequestProxy);
     }
@@ -3279,14 +4321,44 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         }
     };
 
+    /**
+     * Ask the homeserver for a TURN server to use for VoIP.
+     *
+     * @returns A promise resolving to the TURN server response.
+     *
+     * @example
+     * ```typescript
+     * const turn = await client.turnServer();
+     * ```
+     */
     public turnServer(): Promise<ITurnServerResponse> {
         return this.http.authedRequest(Method.Get, "/voip/turnServer");
     }
 
+    /**
+     * Get the cached TURN servers obtained from the homeserver.
+     *
+     * @returns The currently known TURN servers.
+     *
+     * @example
+     * ```typescript
+     * const servers = client.getTurnServers();
+     * ```
+     */
     public getTurnServers(): ITurnServer[] {
         return this.getTurnServerManager().getTurnServers();
     }
 
+    /**
+     * Get the time (epoch ms) at which the cached TURN servers expire.
+     *
+     * @returns The expiry timestamp in milliseconds.
+     *
+     * @example
+     * ```typescript
+     * const expiry = client.getTurnServersExpiry();
+     * ```
+     */
     public getTurnServersExpiry(): number {
         return this.getTurnServerManager().getTurnServerExpiry();
     }
@@ -3295,30 +4367,106 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.checkTurnServersIntervalID !== undefined;
     }
 
+    /**
+     * Check whether the cached TURN servers need refreshing and fetch new ones if so.
+     *
+     * @returns A promise resolving to `true` when new servers were fetched, otherwise `undefined`.
+     *
+     * @example
+     * ```typescript
+     * const refreshed = await client.checkTurnServers();
+     * ```
+     */
     public async checkTurnServers(): Promise<boolean | undefined> {
         return this.getTurnServerManager().checkTurnServers();
     }
 
+    /**
+     * Set whether a fallback ICE server may be used when no TURN server is available.
+     *
+     * @param allow - Whether the fallback ICE server is allowed.
+     *
+     * @example
+     * ```typescript
+     * client.setFallbackICEServerAllowed(true);
+     * ```
+     */
     public setFallbackICEServerAllowed(allow: boolean): void {
         this.fallbackICEServerAllowed = allow;
     }
 
+    /**
+     * Whether a fallback ICE server is allowed when no TURN server is available.
+     *
+     * @returns `true` if the fallback ICE server is allowed.
+     *
+     * @example
+     * ```typescript
+     * if (client.isFallbackICEServerAllowed()) {
+     *     // fall back to the default ICE server
+     * }
+     * ```
+     */
     public isFallbackICEServerAllowed(): boolean {
         return this.fallbackICEServerAllowed;
     }
 
+    /**
+     * Check whether the logged-in user is a Synapse server administrator.
+     *
+     * @returns A promise resolving to `true` if the user is an administrator.
+     *
+     * @example
+     * ```typescript
+     * const isAdmin = await client.isSynapseAdministrator();
+     * ```
+     */
     public async isSynapseAdministrator(): Promise<boolean> {
         return this.getAdminManager().isSynapseAdministrator(this.getUserId()!);
     }
 
+    /**
+     * Get the Synapse admin "whois" information for a user.
+     *
+     * @param userId - The user to query.
+     * @returns A promise resolving to the whois response.
+     *
+     * @example
+     * ```typescript
+     * const whois = await client.whoisSynapseUser("@alice:example.org");
+     * ```
+     */
     public whoisSynapseUser(userId: string): Promise<ISynapseAdminWhoisResponse> {
         return this.getAdminManager().whoisSynapseUser(userId);
     }
 
+    /**
+     * Deactivate a user via the Synapse admin API.
+     *
+     * @param userId - The user to deactivate.
+     * @returns A promise resolving to the deactivation response.
+     *
+     * @example
+     * ```typescript
+     * await client.deactivateSynapseUser("@alice:example.org");
+     * ```
+     */
     public deactivateSynapseUser(userId: string): Promise<ISynapseAdminDeactivateResponse> {
         return this.getAdminManager().deactivateSynapseUser(userId);
     }
 
+    /**
+     * Fetch the client configuration from the homeserver's `.well-known` endpoint and cache it.
+     *
+     * The underlying lookup absorbs network errors and resolves with `{}` rather than rejecting.
+     *
+     * @returns A promise that resolves once the configuration has been stored and emitted.
+     *
+     * @example
+     * ```typescript
+     * await client.fetchClientWellKnown();
+     * ```
+     */
     public async fetchClientWellKnown(): Promise<void> {
         // `getRawClientConfig` does not throw or reject on network errors, instead
         // it absorbs errors and returns `{}`.
@@ -3327,10 +4475,32 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         this.emit(ClientEvent.ClientWellKnown, this.clientWellKnown);
     }
 
+    /**
+     * Get the cached client well-known configuration.
+     *
+     * @returns The cached configuration, or `undefined` if it has not been fetched yet.
+     *
+     * @example
+     * ```typescript
+     * const wellKnown = client.getClientWellKnown();
+     * ```
+     */
     public getClientWellKnown(): IClientWellKnown | undefined {
         return this.clientWellKnown;
     }
 
+    /**
+     * Wait for the client well-known configuration to be fetched.
+     *
+     * @returns A promise resolving to the client well-known configuration.
+     *
+     * @example
+     * ```typescript
+     * const wellKnown = await client.waitForClientWellKnown();
+     * ```
+     *
+     * @throws {Error} If the client has not been started.
+     */
     public waitForClientWellKnown(): Promise<IClientWellKnown> {
         if (!this.clientRunning) {
             throw new Error("Client is not running");
@@ -3343,6 +4513,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * to know in the next session what flags the sync data was
      * created with (e.g. lazy loading)
      * @returns for store operation
+     *
+     * @example
+     * ```typescript
+     * await client.storeClientOptions();
+     * ```
      */
     public storeClientOptions(): Promise<void> {
         // Intended private, used in code
@@ -3383,30 +4558,104 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getServerCapabilitiesManager()._unstable_getRTCTransports() as Promise<Transport[]>;
     }
 
+    /**
+     * Get the protocol versions supported by the homeserver.
+     *
+     * @returns A promise resolving to the server versions response.
+     *
+     * @example
+     * ```typescript
+     * const { versions } = await client.getVersions();
+     * ```
+     */
     public async getVersions(): Promise<IServerVersions> {
         return this.getServerCapabilitiesManager().getVersions();
     }
 
+    /**
+     * Check whether the homeserver supports the given specification version.
+     *
+     * @param version - The version string to check for.
+     * @returns A promise resolving to `true` if the version is supported.
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.isVersionSupported("v1.11");
+     * ```
+     */
     public async isVersionSupported(version: string): Promise<boolean> {
         return this.getServerCapabilitiesManager().isVersionSupported(version);
     }
 
+    /**
+     * Check whether the homeserver advertises support for an unstable feature.
+     *
+     * @param feature - The unstable feature identifier to check for.
+     * @returns A promise resolving to `true` if the feature is advertised.
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.doesServerSupportUnstableFeature("org.matrix.msc3916");
+     * ```
+     */
     public async doesServerSupportUnstableFeature(feature: string): Promise<boolean> {
         return this.getServerCapabilitiesManager().doesServerSupportUnstableFeature(feature);
     }
 
+    /**
+     * Check whether the homeserver advertises support for a synapse-rust specific feature.
+     *
+     * @param feature - The synapse-rust feature name to check for.
+     * @returns A promise resolving to `true` if the feature is advertised.
+     *
+     * @example
+     * ```typescript
+     * const supported = await client.doesServerAdvertiseSynapseRustFeature(SynapseRustFeatureName.SlidingSync);
+     * ```
+     */
     public async doesServerAdvertiseSynapseRustFeature(feature: SynapseRustFeatureName): Promise<boolean> {
         return this.getServerCapabilitiesManager().doesServerAdvertiseSynapseRustFeature(feature);
     }
 
+    /**
+     * Get the full map of synapse-rust feature support advertised by the homeserver.
+     *
+     * @returns A promise resolving to the feature support map.
+     *
+     * @example
+     * ```typescript
+     * const features = await client.getSynapseRustFeatureSupport();
+     * ```
+     */
     public async getSynapseRustFeatureSupport(): Promise<SynapseRustFeatureSupport> {
         return this.getServerCapabilitiesManager().getSynapseRustFeatureSupport();
     }
 
+    /**
+     * Check whether the homeserver forces encryption for a given room preset.
+     *
+     * @param presetName - The room preset to check.
+     * @returns A promise resolving to `true` if encryption is forced for the preset.
+     *
+     * @example
+     * ```typescript
+     * const forced = await client.doesServerForceEncryptionForPreset(Preset.PrivateChat);
+     * ```
+     */
     public async doesServerForceEncryptionForPreset(presetName: Preset): Promise<boolean> {
         return this.getServerCapabilitiesManager().doesServerForceEncryptionForPreset(presetName);
     }
 
+    /**
+     * Check whether the homeserver supports threaded messages, and to what degree.
+     *
+     * @returns A promise resolving to the per-aspect thread feature support.
+     *
+     * @example
+     * ```typescript
+     * const { threads, list, fwdPagination } = await client.doesServerSupportThread();
+     * ```
+     */
     public async doesServerSupportThread(): Promise<{
         threads: FeatureSupport;
         list: FeatureSupport;
@@ -3415,14 +4664,44 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getServerCapabilitiesManager().doesServerSupportThread();
     }
 
+    /**
+     * Whether lazy-loading of room members is enabled for this client.
+     *
+     * @returns `true` if lazy loading of members is enabled.
+     *
+     * @example
+     * ```typescript
+     * const lazy = client.hasLazyLoadMembersEnabled();
+     * ```
+     */
     public hasLazyLoadMembersEnabled(): boolean {
         return this.getServerCapabilitiesManager().hasLazyLoadMembersEnabled();
     }
 
+    /**
+     * Set the callback used to decide whether a room's timeline may be reset.
+     *
+     * @param cb - The callback invoked to determine resettability.
+     *
+     * @example
+     * ```typescript
+     * client.setCanResetTimelineCallback((room) => room.getMyMembership() !== "leave");
+     * ```
+     */
     public setCanResetTimelineCallback(cb: ResetTimelineCallback): void {
         this.canResetTimelineCallback = cb;
     }
 
+    /**
+     * Get the callback currently used to decide whether a room's timeline may be reset.
+     *
+     * @returns The registered callback, or `undefined` if none is set.
+     *
+     * @example
+     * ```typescript
+     * const cb = client.getCanResetTimelineCallback();
+     * ```
+     */
     public getCanResetTimelineCallback(): ResetTimelineCallback | undefined {
         return this.canResetTimelineCallback;
     }
@@ -3437,6 +4716,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param eventType - the event type of the relations requested
      * @param opts - options with optional values for the request.
      * @returns an object with `events` as `MatrixEvent[]` and optionally `nextBatch` if more relations are available.
+     *
+     * @example
+     * ```typescript
+     * const { events, nextBatch } = await client.relations(roomId, eventId, RelationType.Annotation);
+     * ```
      */
     public async relations(
         roomId: string,
@@ -3472,6 +4756,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @param eventId - The event ID
      * @param relType - The relation type
      * @returns Aggregation data
+     *
+     * @example
+     * ```typescript
+     * const { chunk } = await client.getAggregations(roomId, eventId, RelationType.Annotation);
+     * ```
      */
     public async getAggregations(
         roomId: string,
@@ -3487,6 +4776,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Generates a random string suitable for use as a client secret. <strong>This
      * method is experimental and may change.</strong>
      * @returns A new client secret
+     *
+     * @example
+     * ```typescript
+     * const secret = client.generateClientSecret();
+     * ```
      */
     public generateClientSecret(): string {
         return secureRandomString(32);
@@ -3496,6 +4790,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Attempts to decrypt an event
      * @param event - The event to decrypt
      * @returns A decryption promise
+     *
+     * @example
+     * ```typescript
+     * await client.decryptEventIfNeeded(event);
+     * ```
      */
     public decryptEventIfNeeded(event: MatrixEvent, options?: IDecryptOptions): Promise<void> {
         return this.getEventManager().decryptEventIfNeeded(
@@ -3512,6 +4811,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the Homeserver URL of this client
      * @returns Homeserver URL of this client
+     *
+     * @example
+     * ```typescript
+     * const url = client.getHomeserverUrl();
+     * ```
      */
     public getHomeserverUrl(): string {
         return this.baseUrl;
@@ -3520,6 +4824,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the access token associated with this account.
      * @returns The access_token or null
+     *
+     * @example
+     * ```typescript
+     * const token = client.getAccessToken();
+     * ```
      */
     public getAccessToken(): string | null {
         return this.http.opts.accessToken || null;
@@ -3528,6 +4837,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Get the refresh token associated with this account.
      * @returns The refresh_token or null
+     *
+     * @example
+     * ```typescript
+     * const refreshToken = client.getRefreshToken();
+     * ```
      */
     public getRefreshToken(): string | null {
         return this.http.opts.refreshToken ?? null;
@@ -3536,6 +4850,11 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
     /**
      * Set the access token associated with this account.
      * @param token - The new access token.
+     *
+     * @example
+     * ```typescript
+     * client.setAccessToken("syt_new_token");
+     * ```
      */
     public setAccessToken(token: string): void {
         this.http.opts.accessToken = token;
@@ -3545,6 +4864,13 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
 
     /**
      * @returns true if there is a valid access_token for this client.
+     *
+     * @example
+     * ```typescript
+     * if (!client.isLoggedIn()) {
+     *     await client.loginRequest({ type: "m.login.password", identifier, password });
+     * }
+     * ```
      */
     public isLoggedIn(): boolean {
         return !!this.credentials?.userId;
@@ -3554,15 +4880,48 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * Make up a new transaction id
      *
      * @returns a new, unique, transaction id
+     *
+     * @example
+     * ```typescript
+     * const txnId = client.makeTxnId();
+     * ```
      */
     public makeTxnId(): string {
         return "m" + new Date().getTime() + "." + this.txnCtr++;
     }
 
+    /**
+     * Check whether a username is available for registration on the homeserver.
+     *
+     * @param username - The username to check (without the leading `@` or domain).
+     * @returns A promise resolving to `true` if the username is available.
+     *
+     * @example
+     * ```typescript
+     * const available = await client.isUsernameAvailable("alice");
+     * ```
+     */
     public async isUsernameAvailable(username: string): Promise<boolean> {
         return this.getAuthManager().isUsernameAvailable(username);
     }
 
+    /**
+     * Register a new account on the homeserver.
+     *
+     * @param username - The desired username.
+     * @param password - The account password.
+     * @param sessionId - The UI auth session id, if continuing an interactive registration.
+     * @param auth - The auth dict describing the completed auth stage.
+     * @param bindThreepids - Whether to bind email / msisdn third-party identifiers.
+     * @param guestAccessToken - An access token to upgrade a guest account with.
+     * @param inhibitLogin - When `true`, do not log the new account in on the server.
+     * @returns A promise resolving to the registration response.
+     *
+     * @example
+     * ```typescript
+     * const { user_id } = await client.register("alice", "secret", null, { type: "m.login.dummy" });
+     * ```
+     */
     public register(
         username: string,
         password: string,
@@ -3583,26 +4942,94 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Register a new guest account on the homeserver.
+     *
+     * @param options - Optional `body` containing the guest registration request.
+     * @returns A promise resolving to the registration response.
+     *
+     * @example
+     * ```typescript
+     * const { user_id } = await client.registerGuest();
+     * ```
+     */
     public registerGuest({ body }: { body?: RegisterRequest } = {}): Promise<RegisterResponse> {
         return this.getAuthManager().registerGuest(body);
     }
 
+    /**
+     * Send a raw registration request to the homeserver.
+     *
+     * @param data - The registration request body.
+     * @param kind - The kind of account to register (`guest` or `user`); defaults server-side.
+     * @returns A promise resolving to the registration response.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.registerRequest({ username: "alice", password: "secret" });
+     * ```
+     */
     public registerRequest(data: RegisterRequest, kind?: string): Promise<RegisterResponse> {
         return this.getAuthManager().registerRequest(data, kind);
     }
 
+    /**
+     * Exchange a refresh token for a new access / refresh token pair.
+     *
+     * @param refreshToken - The refresh token to redeem.
+     * @returns A promise resolving to the new token response.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.refreshToken(oldRefreshToken);
+     * ```
+     */
     public async refreshToken(refreshToken: string): Promise<IRefreshTokenResponse> {
         return this.getAuthManager().refreshToken(refreshToken);
     }
 
+    /**
+     * Get the login flows supported by the homeserver.
+     *
+     * @returns A promise resolving to the available login flows.
+     *
+     * @example
+     * ```typescript
+     * const { flows } = await client.loginFlows();
+     * ```
+     */
     public loginFlows(): Promise<ILoginFlowsResponse> {
         return this.getAccountManager().loginFlows();
     }
 
+    /**
+     * Build the CAS single-sign-on login URL for the given redirect target.
+     *
+     * @param redirectUrl - Where the homeserver should redirect after login.
+     * @returns The CAS login URL.
+     *
+     * @example
+     * ```typescript
+     * const url = client.getCasLoginUrl("https://app.example.org/callback");
+     * ```
+     */
     public getCasLoginUrl(redirectUrl: string): string {
         return this.getAccountManager().getCasLoginUrl(redirectUrl);
     }
 
+    /**
+     * Build the SSO login URL for the given redirect target.
+     *
+     * @param redirectUrl - Where the homeserver should redirect after login.
+     * @param loginType - The SSO login type, defaulting to `"sso"`.
+     * @param action - Whether the flow should log in or register.
+     * @returns The SSO login URL.
+     *
+     * @example
+     * ```typescript
+     * const url = client.getSsoLoginUrl("https://app.example.org/callback");
+     * ```
+     */
     public getSsoLoginUrl(redirectUrl: string, loginType = "sso", action?: SSOAction): string {
         return this.getAccountManager().getSsoLoginUrl(redirectUrl, loginType, action);
     }
@@ -3667,6 +5094,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountManager().logout(stopClient);
     }
 
+    /**
+     * Deactivate the logged-in account.
+     *
+     * @param auth - The auth dict required to authorise deactivation.
+     * @param erase - When `true`, request that the server erase user data.
+     * @returns A promise resolving to the identity-server unbind result.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.deactivateAccount({ type: "m.login.password", password: "secret" });
+     * ```
+     */
     public deactivateAccount(
         auth?: AuthDict,
         erase?: boolean,
@@ -3674,10 +5113,33 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getAccountManager().deactivateAccount(auth, erase);
     }
 
+    /**
+     * Request a login token (a.k.a. "email login") from the homeserver.
+     *
+     * @param auth - The auth dict required to authorise the request.
+     * @returns A promise resolving to the login token response.
+     *
+     * @example
+     * ```typescript
+     * const { login_token } = await client.requestLoginToken({ type: "m.login.dummy" });
+     * ```
+     */
     public requestLoginToken(auth?: AuthDict): Promise<LoginTokenPostResponse> {
         return this.getAccountManager().requestLoginToken(auth);
     }
 
+    /**
+     * Build the fallback authentication URL for a UI auth session that cannot use the in-app flow.
+     *
+     * @param loginType - The login type requesting the fallback.
+     * @param authSessionId - The UI auth session id to complete.
+     * @returns The fallback authentication URL.
+     *
+     * @example
+     * ```typescript
+     * const url = client.getFallbackAuthUrl("m.login.recaptcha", sessionId);
+     * ```
+     */
     public getFallbackAuthUrl(loginType: string, authSessionId: string): string {
         return this.getAccountManager().getFallbackAuthUrl(loginType, authSessionId);
     }
@@ -3720,6 +5182,21 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().createRoom(options);
     }
 
+    /**
+     * Fetch the raw relations for an event from the server.
+     *
+     * @param roomId - The room containing the event.
+     * @param eventId - The event to fetch relations for.
+     * @param relationType - The relation type to filter by.
+     * @param eventType - Optional event type to filter by.
+     * @param opts - Request options, defaulting to backwards pagination.
+     * @returns A promise resolving to the relations response.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.fetchRelations(roomId, eventId, RelationType.Annotation);
+     * ```
+     */
     public fetchRelations(
         roomId: string,
         eventId: string,
@@ -3730,14 +5207,51 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRelationsManager().fetchRelations(roomId, eventId, relationType, eventType, opts);
     }
 
+    /**
+     * Get all current state events for a room.
+     *
+     * @param roomId - The room to query.
+     * @returns A promise resolving to the room's state events.
+     *
+     * @example
+     * ```typescript
+     * const state = await client.roomState(roomId);
+     * ```
+     */
     public roomState(roomId: string): Promise<IStateEventWithRoomId[]> {
         return this.getEventManager().getState(roomId) as Promise<IStateEventWithRoomId[]>;
     }
 
+    /**
+     * Fetch a single event from a room by id.
+     *
+     * @param roomId - The room containing the event.
+     * @param eventId - The event to fetch.
+     * @returns A promise resolving to the raw event.
+     *
+     * @example
+     * ```typescript
+     * const event = await client.fetchRoomEvent(roomId, eventId);
+     * ```
+     */
     public fetchRoomEvent(roomId: string, eventId: string): Promise<Partial<IEvent>> {
         return this.getEventManager().getEvent(roomId, eventId) as Promise<Partial<IEvent>>;
     }
 
+    /**
+     * Get the members of a room, optionally filtered by membership.
+     *
+     * @param roomId - The room to query.
+     * @param includeMembership - Only include members with this membership (e.g. `"join"`).
+     * @param excludeMembership - Exclude members with this membership.
+     * @param atEventId - Return membership as of this point in the timeline.
+     * @returns A promise resolving to member state events keyed by user id.
+     *
+     * @example
+     * ```typescript
+     * const members = await client.members(roomId, "join");
+     * ```
+     */
     public members(
         roomId: string,
         includeMembership?: string,
@@ -3747,6 +5261,19 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return membersRequest(roomId, includeMembership, excludeMembership, atEventId, this.authedRequestProxy);
     }
 
+    /**
+     * Upgrade a room to a new room version, creating a replacement room.
+     *
+     * @param roomId - The room to upgrade.
+     * @param newVersion - The target room version.
+     * @param additionalCreators - Extra users to grant power to create the new room.
+     * @returns A promise resolving to `{ replacement_room }`.
+     *
+     * @example
+     * ```typescript
+     * const { replacement_room } = await client.upgradeRoom(roomId, "10");
+     * ```
+     */
     public upgradeRoom(
         roomId: string,
         newVersion: string,
@@ -3755,6 +5282,19 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().upgradeRoom(roomId, newVersion, additionalCreators);
     }
 
+    /**
+     * Get a single state event's content from a room.
+     *
+     * @param roomId - The room to query.
+     * @param eventType - The type of state event.
+     * @param stateKey - The state key, defaulting to `""`.
+     * @returns A promise resolving to the event content.
+     *
+     * @example
+     * ```typescript
+     * const content = await client.getStateEvent(roomId, EventType.RoomName);
+     * ```
+     */
     public getStateEvent(roomId: string, eventType: string, stateKey = ""): Promise<IContent> {
         return this.getEventManager().getStateEvent(roomId, eventType, stateKey);
     }
@@ -3814,6 +5354,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.encryptionUtils.encryptStateEventIfNeeded(event, room);
     }
 
+    /**
+     * Perform an initial sync of a single room.
+     *
+     * @param roomId - The room to sync.
+     * @param _limit - Deprecated; the backend no longer honours a limit.
+     * @returns A promise resolving to the room initial sync response.
+     *
+     * @example
+     * ```typescript
+     * const data = await client.roomInitialSync(roomId, 20);
+     * ```
+     */
     public roomInitialSync(roomId: string, _limit: number): Promise<IRoomInitialSyncResponse> {
         return this.getRoomManager().roomInitialSync(roomId);
     }
@@ -3839,10 +5391,38 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return getJoinedRoomsRequest(this.authedRequestProxy);
     }
 
+    /**
+     * Get the members that are currently joined to a room.
+     *
+     * @param roomId - The ID of the room whose joined members to fetch.
+     * @returns The `{ joined: { [userId]: { display_name?, avatar_url? } } }` response.
+     *
+     * @example
+     * ```typescript
+     * const { joined } = await client.getJoinedRoomMembers(roomId);
+     * console.log(`${Object.keys(joined).length} members joined`);
+     * ```
+     */
     public getJoinedRoomMembers(roomId: string): Promise<IJoinedMembersResponse> {
         return getJoinedRoomMembersRequest(roomId, this.authedRequestProxy);
     }
 
+    /**
+     * Query the public room directory, optionally against a remote server.
+     *
+     * Results are cached by the request parameters via `publicRoomsRequestCache`.
+     *
+     * @param options - Directory query options: `server` (defaults to the local
+     *   homeserver), `limit`, `since` for pagination, plus `filter` /
+     *   `include_all_networks` / `third_party_instance_id`.
+     * @returns The public rooms response (`chunk`, `next_batch`, `total_room_count_estimate`).
+     *
+     * @example
+     * ```typescript
+     * const { chunk, next_batch } = await client.publicRooms({ limit: 20 });
+     * for (const room of chunk) console.log(room.room_id, room.name);
+     * ```
+     */
     public publicRooms({
         server,
         limit,
@@ -3856,30 +5436,109 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Create a new room alias (e.g. `#foo:example.org`) pointing at a room.
+     *
+     * @param alias - The fully-qualified alias to create.
+     * @param roomId - The room the alias should point to.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.createAlias("#foo:example.org", roomId);
+     * ```
+     */
     public createAlias(alias: string, roomId: string): Promise<EmptyObject> {
         return this.getRoomManager().createAlias(alias, roomId);
     }
 
+    /**
+     * Delete a room alias so it no longer resolves to a room.
+     *
+     * @param alias - The fully-qualified alias to remove.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.deleteAlias("#foo:example.org");
+     * ```
+     */
     public deleteAlias(alias: string): Promise<EmptyObject> {
         return this.getRoomManager().deleteAlias(alias);
     }
 
+    /**
+     * Get the local aliases currently mapped to a room.
+     *
+     * @param roomId - The room whose local aliases to list.
+     * @returns `{ aliases: string[] }` with the room's local aliases.
+     *
+     * @example
+     * ```typescript
+     * const { aliases } = await client.getLocalAliases(roomId);
+     * ```
+     */
     public getLocalAliases(roomId: string): Promise<{ aliases: string[] }> {
         return this.getRoomManager().getLocalAliases(roomId);
     }
 
+    /**
+     * Resolve a room alias to its room ID and the servers that know about it.
+     *
+     * @param alias - The alias to resolve.
+     * @returns `{ room_id, servers }` for the alias.
+     *
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getRoomIdForAlias("#foo:example.org");
+     * ```
+     */
     public getRoomIdForAlias(alias: string): Promise<{ room_id: string; servers: string[] }> {
         return this.getRoomManager().getRoomIdForAlias(alias);
     }
 
+    /**
+     * Get a room's visibility in the room directory.
+     *
+     * @param roomId - The room to query.
+     * @returns `{ visibility }`, either `"public"` or `"private"`.
+     *
+     * @example
+     * ```typescript
+     * const { visibility } = await client.getRoomDirectoryVisibility(roomId);
+     * ```
+     */
     public getRoomDirectoryVisibility(roomId: string): Promise<{ visibility: Visibility }> {
         return this.getRoomManager().getRoomDirectoryVisibility(roomId);
     }
 
+    /**
+     * Set a room's visibility in the room directory.
+     *
+     * @param roomId - The room to update.
+     * @param visibility - `"public"` to list the room, `"private"` to hide it.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomDirectoryVisibility(roomId, Visibility.Public);
+     * ```
+     */
     public setRoomDirectoryVisibility(roomId: string, visibility: Visibility): Promise<EmptyObject> {
         return this.getRoomManager().setRoomDirectoryVisibility(roomId, visibility);
     }
 
+    /**
+     * Search the homeserver's user directory for users matching a term.
+     *
+     * @param options - `term` to search for and an optional `limit` on the number of results.
+     * @returns The user directory response containing the matched users.
+     *
+     * @example
+     * ```typescript
+     * const { results } = await client.searchUserDirectory({ term: "alice", limit: 10 });
+     * ```
+     */
     public searchUserDirectory({ term, limit }: { term: string; limit?: number }): Promise<IUserDirectoryResponse> {
         return this.getSearchManager().searchUserDirectory({ term, limit });
     }
@@ -3914,46 +5573,176 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.http.uploadContent(file, opts);
     }
 
+    /**
+     * Attempt to cancel an in-flight upload started by `uploadContent`.
+     *
+     * @param upload - The promise returned by `uploadContent`.
+     * @returns `true` if the upload was found and cancelled, `false` otherwise.
+     *
+     * @example
+     * ```typescript
+     * const upload = client.uploadContent(file);
+     * const cancelled = client.cancelUpload(upload);
+     * ```
+     */
     public cancelUpload(upload: Promise<UploadResponse>): boolean {
         return this.getMediaManager().cancelUpload(upload);
     }
 
+    /**
+     * List the uploads that are currently in progress.
+     *
+     * @returns An array of the in-flight `Upload` objects.
+     *
+     * @example
+     * ```typescript
+     * for (const upload of client.getCurrentUploads()) {
+     *     console.log(upload.sourceUrl, upload.promise);
+     * }
+     * ```
+     */
     public getCurrentUploads(): Upload[] {
         return this.http.getCurrentUploads();
     }
 
+    /**
+     * Check whether the homeserver advertises support for extended profiles
+     * (custom profile fields beyond `displayname` / `avatar_url`).
+     *
+     * @returns `true` when extended profiles are supported.
+     *
+     * @example
+     * ```typescript
+     * if (await client.doesServerSupportExtendedProfiles()) {
+     *     await client.setExtendedProfileProperty("m.nickname", "Alice");
+     * }
+     * ```
+     */
     public async doesServerSupportExtendedProfiles(): Promise<boolean> {
         return this.getProfileManager().doesServerSupportExtendedProfiles();
     }
 
+    /**
+     * Get a user's full extended profile, including custom fields.
+     *
+     * @param userId - The user whose extended profile to fetch.
+     * @returns The user's extended profile (base fields plus any custom fields).
+     *
+     * @example
+     * ```typescript
+     * const profile = await client.getExtendedProfile("@alice:example.org");
+     * ```
+     */
     public async getExtendedProfile(userId: string): Promise<IExtendedProfile> {
         return this.getProfileManager().getExtendedProfile(userId);
     }
 
+    /**
+     * Read a single custom field from a user's extended profile.
+     *
+     * @param userId - The user whose profile to read.
+     * @param key - The custom profile field name.
+     * @returns The value of the field, or `undefined` if unset.
+     *
+     * @example
+     * ```typescript
+     * const nickname = await client.getExtendedProfileProperty("@alice:example.org", "m.nickname");
+     * ```
+     */
     public async getExtendedProfileProperty(userId: string, key: string): Promise<unknown> {
         return this.getProfileManager().getExtendedProfileProperty(userId, key);
     }
 
+    /**
+     * Set a single custom field on the logged-in user's extended profile.
+     *
+     * @param key - The custom profile field name.
+     * @param value - The value to store for the field.
+     * @returns Resolves once the field has been written.
+     *
+     * @example
+     * ```typescript
+     * await client.setExtendedProfileProperty("m.nickname", "Alice");
+     * ```
+     */
     public async setExtendedProfileProperty(key: string, value: unknown): Promise<void> {
         return this.getProfileManager().setExtendedProfileProperty(key, value);
     }
 
+    /**
+     * Delete a single custom field from the logged-in user's extended profile.
+     *
+     * @param key - The custom profile field name to remove.
+     * @returns Resolves once the field has been deleted.
+     *
+     * @example
+     * ```typescript
+     * await client.deleteExtendedProfileProperty("m.nickname");
+     * ```
+     */
     public async deleteExtendedProfileProperty(key: string): Promise<void> {
         return this.getProfileManager().deleteExtendedProfileProperty(key);
     }
 
+    /**
+     * Patch the logged-in user's extended profile, changing only the supplied fields.
+     *
+     * @param profile - The subset of profile fields to update.
+     * @returns The resulting extended profile after the patch.
+     *
+     * @example
+     * ```typescript
+     * const updated = await client.patchExtendedProfile({ displayname: "Alice" });
+     * ```
+     */
     public async patchExtendedProfile(profile: IExtendedProfile): Promise<IExtendedProfile> {
         return this.getProfileManager().patchExtendedProfile(profile);
     }
 
+    /**
+     * Replace the logged-in user's extended profile with the given fields.
+     *
+     * @param profile - The full extended profile to store.
+     * @returns Resolves once the profile has been written.
+     *
+     * @example
+     * ```typescript
+     * await client.setExtendedProfile({ displayname: "Alice", avatar_url: "mxc://example.org/abc" });
+     * ```
+     */
     public async setExtendedProfile(profile: IExtendedProfile): Promise<void> {
         return this.getProfileManager().setExtendedProfile(profile);
     }
 
+    /**
+     * Set a new password for an account, typically as part of account recovery.
+     *
+     * @param authDict - The auth dict (UIA) proving the caller may change the password.
+     * @param newPassword - The new password to set.
+     * @param logoutDevices - When `true`, log out all other sessions/devices.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.setPassword({ type: "m.login.password", password: "old" }, "new-password", true);
+     * ```
+     */
     public setPassword(authDict: AuthDict, newPassword: string, logoutDevices?: boolean): Promise<EmptyObject> {
         return this.getPasswordResetManager().setPassword(authDict, newPassword, logoutDevices);
     }
 
+    /**
+     * Store per-device local notification settings on the homeserver.
+     *
+     * @param deviceId - The device whose notification settings to update.
+     * @param notificationSettings - The local notification settings to store.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.setLocalNotificationSettings(deviceId, { is_silenced: true });
+     * ```
+     */
     public setLocalNotificationSettings(
         deviceId: string,
         notificationSettings: LocalNotificationSettings,
@@ -3961,6 +5750,19 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getNotificationsManager().setLocalNotificationSettings(deviceId, notificationSettings);
     }
 
+    /**
+     * Run a full-text search over the user's rooms.
+     *
+     * @param query - The search request: `body` holds the search criteria and `next_batch`
+     *   resumes a previous paginated search.
+     * @param abortSignal - Optional signal to abort the in-flight request.
+     * @returns The search response with results grouped by room.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.search({ body: { search_categories: { room_events: { search_term: "hello" } } } });
+     * ```
+     */
     public search(
         { body, next_batch: nextBatch }: { body: ISearchRequestBody; next_batch?: string },
         abortSignal?: AbortSignal,
@@ -3968,18 +5770,65 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getSearchManager().search({ body, next_batch: nextBatch, abortSignal });
     }
 
+    /**
+     * Upload the caller's device keys (and any one-time keys) to the homeserver.
+     *
+     * @param content - The device keys and one-time keys to upload.
+     * @returns The upload response, including the counts of one-time keys still on the server.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.uploadKeysRequest({ device_keys: keys });
+     * ```
+     */
     public uploadKeysRequest(content: IUploadKeysRequest, _opts?: void): Promise<IKeysUploadResponse> {
         return this.getCryptoKeysManager().uploadKeys(content);
     }
 
+    /**
+     * Upload cross-signing signatures over other users' device keys.
+     *
+     * @param content - A map of user ID → key ID → key/signature to upload.
+     * @returns The upload response with the number of failures.
+     *
+     * @example
+     * ```typescript
+     * const { failures } = await client.uploadKeySignatures(signatures);
+     * ```
+     */
     public uploadKeySignatures(content: KeySignatures): Promise<IUploadKeySignaturesResponse> {
         return this.getCryptoKeysManager().uploadKeySignatures(content);
     }
 
+    /**
+     * Download the device keys for a set of users.
+     *
+     * @param userIds - The users whose device keys to query.
+     * @param options - Optional `token` to get an incremental (changed-only) result.
+     * @returns The download result with each user's device keys.
+     *
+     * @example
+     * ```typescript
+     * const result = await client.downloadKeysForUsers(["@alice:example.org"]);
+     * ```
+     */
     public downloadKeysForUsers(userIds: string[], { token }: { token?: string } = {}): Promise<IDownloadKeyResult> {
         return this.getCryptoKeysManager().queryKeys(userIds, { token });
     }
 
+    /**
+     * Claim one-time keys for a set of devices, typically to start an Olm session.
+     *
+     * @param devices - List of `[userId, deviceId]` pairs whose one-time keys to claim.
+     * @param keyAlgorithm - The key algorithm to claim (defaults to `"signed_curve25519"`).
+     * @param timeout - Optional timeout in milliseconds for the claim request.
+     * @returns The claimed one-time keys, keyed by user and device.
+     *
+     * @example
+     * ```typescript
+     * const keys = await client.claimOneTimeKeys([["@alice:example.org", "DEVICEID"]]);
+     * ```
+     */
     public claimOneTimeKeys(
         devices: [string, string][],
         keyAlgorithm = "signed_curve25519",
@@ -3988,6 +5837,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getCryptoKeysManager().claimKeys(devices, keyAlgorithm, timeout);
     }
 
+    /**
+     * Get the users whose device keys have changed between two sync tokens.
+     *
+     * @param oldToken - The sync token the client last saw key changes at.
+     * @param newToken - The current sync token.
+     * @returns `{ changed, left }` — users with key changes and users who are no longer tracked.
+     *
+     * @example
+     * ```typescript
+     * const { changed, left } = await client.getKeyChanges(oldToken, newToken);
+     * ```
+     */
     public getKeyChanges(oldToken: string, newToken: string): Promise<{ changed: string[]; left: string[] }> {
         return this.getCryptoKeysManager().getKeysChanges(oldToken, newToken) as Promise<{
             changed: string[];
@@ -3995,26 +5856,93 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         }>;
     }
 
+    /**
+     * Upload the caller's cross-signing signing keys to the homeserver.
+     *
+     * @param auth - Optional auth dict for the user-interactive auth flow.
+     * @param keys - The cross-signing keys (master, self-signing, user-signing) to upload.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.uploadDeviceSigningKeys(auth, crossSigningKeys);
+     * ```
+     */
     public uploadDeviceSigningKeys(auth?: AuthDict, keys?: CrossSigningKeys): Promise<EmptyObject> {
         return uploadDeviceSigningKeysHttpRequest<EmptyObject>(auth, keys, this.authedRequestProxy);
     }
 
+    /**
+     * Request a room key from other devices for an undecryptable event.
+     *
+     * @param request - The room key request details (algorithm, room, session, optional request id).
+     * @returns The created request's `{ request_id }`.
+     *
+     * @example
+     * ```typescript
+     * const { request_id } = await client.requestRoomKey({ algorithm: "m.megolm.v1.aes-sha2", room_id, session_id });
+     * ```
+     */
     public requestRoomKey(request: ICreateRoomKeyRequest): Promise<IRoomKeyRequestCreateResponse> {
         return requestRoomKeyHttpRequest<IRoomKeyRequestCreateResponse>(request, this.authedRequestProxy);
     }
 
+    /**
+     * List pending room key requests for the current user.
+     *
+     * @param query - Optional filters: `status`, `room_id`, `session_id` and `limit`.
+     * @returns The matching room key requests.
+     *
+     * @example
+     * ```typescript
+     * const { requests } = await client.getRoomKeyRequests({ status: "pending" });
+     * ```
+     */
     public getRoomKeyRequests(query: IGetRoomKeyRequestsQuery = {}): Promise<IRoomKeyRequestsResponse> {
         return getRoomKeyRequestsHttpRequest<IRoomKeyRequestsResponse>(query, this.authedRequestProxy);
     }
 
+    /**
+     * Cancel a previously created room key request.
+     *
+     * @param requestId - The ID of the room key request to cancel.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.deleteRoomKeyRequest(requestId);
+     * ```
+     */
     public deleteRoomKeyRequest(requestId: string): Promise<EmptyObject> {
         return deleteRoomKeyRequestHttpRequest<EmptyObject>(requestId, this.authedRequestProxy);
     }
 
+    /**
+     * Get the third-party protocols supported by the homeserver.
+     *
+     * @returns A map of protocol name to its protocol definition.
+     *
+     * @example
+     * ```typescript
+     * const protocols = await client.getThirdpartyProtocols();
+     * ```
+     */
     public async getThirdpartyProtocols(): Promise<{ [protocol: string]: IProtocol }> {
         return this.getThirdPartyManager().getThirdpartyProtocols();
     }
 
+    /**
+     * Look up third-party locations (e.g. IRC channels) by search fields.
+     *
+     * @param protocol - The third-party protocol name (e.g. `"irc"`).
+     * @param params - Optional `searchFields` to filter the locations.
+     * @returns The matching third-party locations.
+     *
+     * @example
+     * ```typescript
+     * const locations = await client.getThirdpartyLocation("irc", { searchFields: ["matrix"] });
+     * ```
+     */
     public getThirdpartyLocation(
         protocol: string,
         params: { searchFields?: string[] },
@@ -4022,10 +5950,37 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getThirdPartyManager().getThirdpartyLocation(protocol, params);
     }
 
+    /**
+     * Look up third-party users (e.g. IRC nicks) by search fields.
+     *
+     * @param protocol - The third-party protocol name (e.g. `"irc"`).
+     * @param params - Optional query parameters to filter the users.
+     * @returns The matching third-party users.
+     *
+     * @example
+     * ```typescript
+     * const users = await client.getThirdpartyUser("irc", { userid: "alice" });
+     * ```
+     */
     public getThirdpartyUser(protocol: string, params?: QueryDict): Promise<IThirdPartyUser[]> {
         return this.getThirdPartyManager().getThirdpartyUser(protocol, params);
     }
 
+    /**
+     * Fetch the room hierarchy (a space and, transitively, its child rooms/spaces).
+     *
+     * @param roomId - The space/room to start from.
+     * @param limit - Optional maximum number of rooms per level.
+     * @param maxDepth - Optional maximum depth of the hierarchy to traverse.
+     * @param suggestedOnly - When `true`, return only rooms marked as suggested.
+     * @param fromToken - Optional pagination token from a previous call.
+     * @returns The room hierarchy response.
+     *
+     * @example
+     * ```typescript
+     * const hierarchy = await client.getRoomHierarchy(spaceId, 50, 3);
+     * ```
+     */
     public getRoomHierarchy(
         roomId: string,
         limit?: number,
@@ -4036,6 +5991,17 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().getRoomHierarchy(roomId, limit, maxDepth, suggestedOnly, fromToken);
     }
 
+    /**
+     * Create a new MSC3089 file tree (a room-backed file store) with the given name.
+     *
+     * @param name - The name of the file tree to create.
+     * @returns The created {@link MSC3089TreeSpace}.
+     *
+     * @example
+     * ```typescript
+     * const tree = await client.unstableCreateFileTree("My Files");
+     * ```
+     */
     public async unstableCreateFileTree(name: string): Promise<MSC3089TreeSpace> {
         return createFileTreeSpaceRequest(
             name,
@@ -4045,6 +6011,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Resolve a room ID to its MSC3089 file tree wrapper, if it is one.
+     *
+     * @param roomId - The room ID to interpret as a file tree.
+     * @returns The {@link MSC3089TreeSpace} for the room, or `null` if it is not one.
+     *
+     * @example
+     * ```typescript
+     * const tree = client.unstableGetFileTreeSpace(roomId);
+     * if (tree) await tree.getFile("notes.md");
+     * ```
+     */
     public unstableGetFileTreeSpace(roomId: string): MSC3089TreeSpace | null {
         return getFileTreeSpaceReference(
             roomId,
@@ -4053,6 +6031,19 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Issue a Sliding Sync (MSC3575) request against the homeserver or a proxy.
+     *
+     * @param req - The Sliding Sync request describing lists, ranges and extensions.
+     * @param proxyBaseUrl - Optional base URL of a Sliding Sync proxy to use.
+     * @param abortSignal - Optional signal to abort the request.
+     * @returns The Sliding Sync response.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.slidingSync({ lists: {}, extensions: {} });
+     * ```
+     */
     public slidingSync(
         req: MSC3575SlidingSyncRequest,
         proxyBaseUrl?: string,
@@ -4061,26 +6052,93 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().slidingSync(req, proxyBaseUrl, abortSignal) as Promise<MSC3575SlidingSyncResponse>;
     }
 
+    /**
+     * Check whether the homeserver (or configured proxy) supports Sliding Sync.
+     *
+     * @returns `true` when Sliding Sync is available.
+     *
+     * @example
+     * ```typescript
+     * if (await client.isSlidingSyncSupported()) {
+     *     await client.slidingSync({ lists: {}, extensions: {} });
+     * }
+     * ```
+     */
     public async isSlidingSyncSupported(): Promise<boolean> {
         return this.getRoomManager().isSlidingSyncSupported();
     }
 
+    /**
+     * Check whether the homeserver supports threaded events.
+     *
+     * @returns `true` when thread support is advertised.
+     *
+     * @example
+     * ```typescript
+     * if (client.supportsThreads()) {
+     *     await client.sendEvent(roomId, "m.room.message", { "m.relates_to": { rel_type: "m.thread" } });
+     * }
+     * ```
+     */
     public supportsThreads(): boolean {
         return this.getServerCapabilitiesManager().supportsThreads();
     }
 
+    /**
+     * Check whether the homeserver supports intentional mentions (MSC3952).
+     *
+     * @returns `true` when intentional mentions are advertised.
+     *
+     * @example
+     * ```typescript
+     * const mentionsOk = client.supportsIntentionalMentions();
+     * ```
+     */
     public supportsIntentionalMentions(): boolean {
         return this.getServerCapabilitiesManager().supportsIntentionalMentions();
     }
 
+    /**
+     * List the rooms the current user is a member of, using the server-side room list.
+     *
+     * @returns `{ rooms, total }` with the user's rooms and the total count.
+     *
+     * @example
+     * ```typescript
+     * const { rooms, total } = await client.getMyRooms();
+     * ```
+     */
     public async getMyRooms(): Promise<{ rooms: IMyRoomInfo[]; total: number }> {
         return this.getRoomManager().getMyRooms() as Promise<{ rooms: IMyRoomInfo[]; total: number }>;
     }
 
+    /**
+     * Create a server-side secure backup (key backup) version.
+     *
+     * @param body - The backup creation body: `algorithm` plus the client-derived `auth_data`.
+     * @returns Information about the newly created backup.
+     *
+     * @example
+     * ```typescript
+     * const backup = await client.createSecureBackup({ algorithm: "m.megolm_backup.v1.curve25519-aes-sha2", auth_data });
+     * ```
+     */
     public async createSecureBackup(body: ISecureBackupCreateBody): Promise<ISecureBackupInfo> {
         return createSecureBackupRequest<ISecureBackupInfo>(body.algorithm, body.auth_data, this.authedRequestProxy);
     }
 
+    /**
+     * Search across the user's joined rooms for a term.
+     *
+     * @param searchTerm - The term to search for.
+     * @param limit - Optional maximum number of results.
+     * @returns `{ results, count, next_batch }` for the search.
+     *
+     * @example
+     * ```typescript
+     * const { results, count } = await client.searchRooms("roadmap", 20);
+     * ```
+     */
     public async searchRooms(
         searchTerm: string,
         limit?: number,
@@ -4088,6 +6146,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getRoomManager().searchRooms(searchTerm, limit);
     }
 
+    /**
+     * Search for message recipients (users) by name or ID.
+     *
+     * @param searchTerm - The term to search recipients for.
+     * @param limit - Optional maximum number of results.
+     * @returns `{ results, count, next_batch }` for the search.
+     *
+     * @example
+     * ```typescript
+     * const { results } = await client.searchRecipients("alice", 10);
+     * ```
+     */
     public async searchRecipients(
         searchTerm: string,
         limit?: number,
@@ -4095,6 +6165,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return this.getSearchManager().searchRecipients({ term: searchTerm, limit });
     }
 
+    /**
+     * Fetch the homeserver's client configuration (URLs, enabled features and defaults).
+     *
+     * @returns The parsed client config: homeserver / identity server URLs, push and
+     *   email feature flags, a `features` map and server-defined `defaults`.
+     *
+     * @example
+     * ```typescript
+     * const config = await client.getClientConfig();
+     * console.log(config.homeserver.base_url);
+     * ```
+     */
     public async getClientConfig(): Promise<{
         homeserver: { base_url: string; server_name: string };
         identity_server: { base_url: string };
@@ -4106,6 +6188,16 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return getClientConfigRequest(this.authedRequestProxy);
     }
 
+    /**
+     * Fetch the user info associated with the current SSO/OIDC login.
+     *
+     * @returns The SSO user info, including the subject (`sub`) and optional name/picture/email.
+     *
+     * @example
+     * ```typescript
+     * const { sub, email } = await client.getSSOUserInfo();
+     * ```
+     */
     public async getSSOUserInfo(): Promise<{
         sub: string;
         name?: string;
@@ -4115,10 +6207,33 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return getSSOUserInfoRequest(this.authedRequestProxy);
     }
 
+    /**
+     * Get the metadata for an existing secure backup version.
+     *
+     * @param backupId - The backup version to fetch.
+     * @returns Information about the backup, including `key_count` and `auth_data`.
+     *
+     * @example
+     * ```typescript
+     * const backup = await client.getSecureBackup(backupId);
+     * ```
+     */
     public async getSecureBackup(backupId: string): Promise<ISecureBackupInfo> {
         return getSecureBackupRequest<ISecureBackupInfo>(backupId, this.authedRequestProxy);
     }
 
+    /**
+     * Verify a passphrase against a secure backup version.
+     *
+     * @param backupId - The backup version to verify against.
+     * @param passphrase - The passphrase to check.
+     * @returns `{ valid }` indicating whether the passphrase matched.
+     *
+     * @example
+     * ```typescript
+     * const { valid } = await client.verifySecureBackupPassphrase(backupId, "my passphrase");
+     * ```
+     */
     public async verifySecureBackupPassphrase(
         backupId: string,
         passphrase: string,
@@ -4130,6 +6245,18 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Store Megolm session keys into a secure backup version.
+     *
+     * @param backupId - The backup version to write keys into.
+     * @param sessionKeys - The session keys to store.
+     * @returns `{ key_count }` with the number of keys stored.
+     *
+     * @example
+     * ```typescript
+     * const { key_count } = await client.storeSecureBackupKeys(backupId, sessionKeys);
+     * ```
+     */
     public async storeSecureBackupKeys(
         backupId: string,
         sessionKeys: ISecureBackupSessionKey[],
@@ -4141,26 +6268,95 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Restore session keys from a secure backup version.
+     *
+     * @param backupId - The backup version to restore from.
+     * @param rooms - Optional list of room IDs to restrict the restore to.
+     * @returns `{ total_keys, sessions }` with the restored session keys.
+     *
+     * @example
+     * ```typescript
+     * const { total_keys, sessions } = await client.restoreSecureBackup(backupId);
+     * ```
+     */
     public async restoreSecureBackup(backupId: string, rooms?: string[]): Promise<ISecureBackupRestoreResponse> {
         return restoreSecureBackupRequest<ISecureBackupRestoreResponse>(backupId, rooms, this.authedRequestProxy);
     }
 
+    /**
+     * Delete a secure backup version from the server.
+     *
+     * @param backupId - The backup version to delete.
+     * @returns An empty object on success.
+     *
+     * @example
+     * ```typescript
+     * await client.deleteSecureBackup(backupId);
+     * ```
+     */
     public async deleteSecureBackup(backupId: string): Promise<EmptyObject> {
         return deleteSecureBackupRequest(backupId, this.authedRequestProxy);
     }
 
+    /**
+     * Process a batch of threaded events, adding them to the appropriate thread.
+     *
+     * @param room - The room the events belong to.
+     * @param threadedEvents - The thread-reply events to process.
+     * @param toStartOfTimeline - `true` when the events are older than what is loaded.
+     *
+     * @example
+     * ```typescript
+     * client.processThreadEvents(room, threadedEvents, false);
+     * ```
+     */
     public processThreadEvents(room: Room, threadedEvents: MatrixEvent[], toStartOfTimeline: boolean): void {
         this.getTimelineManager().processThreadEvents(room, threadedEvents, toStartOfTimeline);
     }
 
+    /**
+     * Process a batch of thread root events, creating their threads as needed.
+     *
+     * @param room - The room the events belong to.
+     * @param threadedEvents - The thread root events to process.
+     * @param toStartOfTimeline - `true` when the events are older than what is loaded.
+     *
+     * @example
+     * ```typescript
+     * client.processThreadRoots(room, threadRoots, false);
+     * ```
+     */
     public processThreadRoots(room: Room, threadedEvents: MatrixEvent[], toStartOfTimeline: boolean): void {
         this.getTimelineManager().processThreadRoots(room, threadedEvents, toStartOfTimeline, this.supportsThreads());
     }
 
+    /**
+     * Process a batch of beacon (location) events for a room.
+     *
+     * @param room - The room the beacon events belong to.
+     * @param events - The beacon events to process.
+     *
+     * @example
+     * ```typescript
+     * client.processBeaconEvents(room, beaconEvents);
+     * ```
+     */
     public processBeaconEvents(room?: Room, events?: MatrixEvent[]): void {
         this.getTimelineManager().processBeaconEvents(room, events);
     }
 
+    /**
+     * Process a batch of aggregated timeline events (edits, reactions, etc.) for a room.
+     *
+     * @param room - The room the events belong to.
+     * @param events - The aggregated events to process.
+     *
+     * @example
+     * ```typescript
+     * client.processAggregatedTimelineEvents(room, events);
+     * ```
+     */
     public processAggregatedTimelineEvents(room?: Room, events?: MatrixEvent[]): void {
         this.getTimelineManager().processAggregatedTimelineEvents(room, events);
     }
@@ -4187,10 +6383,33 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         );
     }
 
+    /**
+     * Get the user ID and (optionally) device ID for the current access token.
+     *
+     * @returns The `{ user_id, device_id?, is_guest? }` response for the logged-in session.
+     *
+     * @example
+     * ```typescript
+     * const { user_id } = await client.whoami();
+     * ```
+     */
     public async whoami(): Promise<IWhoamiResponse> {
         return this.http.authedRequest(Method.Get, "/account/whoami");
     }
 
+    /**
+     * Convert an absolute timestamp to the closest event, for jump-to-date.
+     *
+     * @param roomId - The room to search for events in.
+     * @param timestamp - The timestamp (ms since epoch) to locate.
+     * @param dir - Direction to search in (`"b"` for backwards or `"f"` for forwards).
+     * @returns The closest event, or a "no event" fallback when none is found.
+     *
+     * @example
+     * ```typescript
+     * const res = await client.timestampToEvent(roomId, Date.now() - 86_400_000, Direction.Backward);
+     * ```
+     */
     public async timestampToEvent(
         roomId: string,
         timestamp: number,
@@ -4199,197 +6418,886 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         return timestampToEventRequest<TimestampToEventResponse>(roomId, timestamp, dir, this.authedRequestProxy);
     }
 
+    /**
+     * Fetch the OIDC/OAuth2 authorization server metadata for authentication.
+     *
+     * Falls back to the legacy endpoint when the server predates OIDC metadata support.
+     *
+     * @returns The authorization server configuration, or `null` when none is available.
+     *
+     * @example
+     * ```typescript
+     * const metadata = await client.getAuthMetadata();
+     * ```
+     */
     public async getAuthMetadata(): Promise<OidcClientConfig> {
         return fetchAuthMetadataWithFallback(this.http.request.bind(this.http), this.isVersionSupported.bind(this));
     }
 
+    /**
+     * Get the crypto algorithm currently configured for this client.
+     *
+     * @returns The configured crypto algorithm, or `undefined` when crypto is disabled.
+     *
+     * @example
+     * ```typescript
+     * const algorithm = client.getCryptoAlgorithm();
+     * ```
+     */
     public getCryptoAlgorithm(): unknown {
         return undefined;
     }
+    /**
+     * Set the crypto algorithm for this client.
+     *
+     * No-op stub retained for backward compatibility: the crypto-algorithm
+     * selection API has been removed and this method does not change any state.
+     *
+     * @param _algorithm - Ignored.
+     *
+     * @example
+     * ```typescript
+     * client.setCryptoAlgorithm("m.megolm.v1.aes-sha2");
+     * ```
+     */
     public setCryptoAlgorithm(_algorithm: unknown): void {}
+    /**
+     * Whether this client currently has a crypto stack initialised.
+     *
+     * Always returns `false` in this build; encryption is provided by the Rust
+     * WASM crypto backend initialised through the dedicated crypto entry point.
+     *
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const enabled = client.hasCrypto();
+     * ```
+     */
     public hasCrypto(): boolean {
         return false;
     }
+    /**
+     * Initialise crypto for this client.
+     *
+     * No-op stub retained for backward compatibility; use `initRustCrypto`
+     * to set up the Rust WASM crypto backend.
+     *
+     * @example
+     * ```typescript
+     * await client.initCrypto();
+     * ```
+     */
     public async initCrypto(): Promise<void> {}
+    /**
+     * Stop crypto for this client.
+     *
+     * No-op stub retained for backward compatibility.
+     *
+     * @example
+     * ```typescript
+     * client.stopCrypto();
+     * ```
+     */
     public stopCrypto(): void {}
     public cryptoStore: unknown = undefined;
+    /**
+     * Delete the persisted crypto store.
+     *
+     * No-op stub retained for backward compatibility.
+     *
+     * @example
+     * ```typescript
+     * await client.deleteCryptoStore();
+     * ```
+     */
     public async deleteCryptoStore(): Promise<void> {}
+    /**
+     * Whether the persisted crypto store has finished loading.
+     *
+     * Always returns `false` in this build.
+     *
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const ready = client.isCryptoStoreReady();
+     * ```
+     */
     public isCryptoStoreReady(): boolean {
         return false;
     }
+    /**
+     * Rotate the client's encryption keys via the key-rotation manager.
+     *
+     * @returns A promise that resolves once the rotation has been requested.
+     *
+     * @example
+     * ```typescript
+     * await client.rotateEncryptionKeys();
+     * ```
+     */
     public rotateEncryptionKeys(): Promise<void> {
         return this.getKeyRotationManager()
             .rotateKey()
             .then(() => {});
     }
+    /**
+     * Whether the encryption keys need to be rotated.
+     *
+     * Always returns `false` in this build.
+     *
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const needed = client.isRotationNeeded();
+     * ```
+     */
     public isRotationNeeded(): boolean {
         return false;
     }
+    /**
+     * Get the configured encryption key-rotation period.
+     *
+     * Always returns `0` in this build.
+     *
+     * @returns Always `0`.
+     *
+     * @example
+     * ```typescript
+     * const period = client.getRotationPeriod();
+     * ```
+     */
     public getRotationPeriod(): number {
         return 0;
     }
+    /**
+     * Set the encryption key-rotation period.
+     *
+     * No-op stub retained for backward compatibility: the encryption-rotation
+     * module has been removed, use `client.getKeyRotationManager()` instead.
+     *
+     * @param _period - Ignored.
+     *
+     * @example
+     * ```typescript
+     * client.setRotationPeriod(7 * 24 * 60 * 60 * 1000);
+     * ```
+     */
     public setRotationPeriod(_period: number): void {
         // No-op: encryption-rotation module removed, use getKeyRotationManager() instead
     }
+    /**
+     * Get the timestamp of the last encryption key rotation.
+     *
+     * Always returns `0` in this build.
+     *
+     * @returns Always `0`.
+     *
+     * @example
+     * ```typescript
+     * const lastRotation = client.getLastRotationTime();
+     * ```
+     */
     public getLastRotationTime(): number {
         return 0;
     }
+    /**
+     * Get the room with the highest unread-notification count.
+     *
+     * Always returns `null` in this build.
+     *
+     * @returns Always `null`.
+     *
+     * @example
+     * ```typescript
+     * const room = client.getRoomWithHighestUnread();
+     * ```
+     */
     public getRoomWithHighestUnread(): Room | null {
         return null;
     }
+    /**
+     * Get all rooms that currently have unread notifications.
+     *
+     * Always returns an empty array in this build.
+     *
+     * @returns Always an empty array.
+     *
+     * @example
+     * ```typescript
+     * const rooms = client.getRoomsWithUnreadNotifications();
+     * ```
+     */
     public getRoomsWithUnreadNotifications(): Room[] {
         return [];
     }
     public rooms: Room[] = [];
+    /**
+     * Look up a room by its alias.
+     *
+     * Always returns `null` in this build.
+     *
+     * @param _alias - The room alias to look up (ignored).
+     * @returns Always `null`.
+     *
+     * @example
+     * ```typescript
+     * const room = client.getRoomByAlias("#example:matrix.org");
+     * ```
+     */
     public getRoomByAlias(_alias: string): Room | null {
         return null;
     }
+    /**
+     * Sort the client's rooms by their last message.
+     *
+     * No-op stub retained for backward compatibility.
+     *
+     * @example
+     * ```typescript
+     * client.sortRoomsByLastMessage();
+     * ```
+     */
     public sortRoomsByLastMessage(): void {}
+    /**
+     * Claim one-time encryption keys for the given users.
+     *
+     * Stub implementation: resolves with `undefined` without contacting the server.
+     *
+     * @param _users - Map of user ID to the algorithms/devices to claim keys for (ignored).
+     * @returns A promise that resolves with `undefined`.
+     *
+     * @example
+     * ```typescript
+     * await client.claimKeys({ "@alice:example.org": ["signed_curve25519"] });
+     * ```
+     */
     public claimKeys(_users: Record<string, string[]>): Promise<unknown> {
         return Promise.resolve(undefined);
     }
     public claimedKeys: Record<string, Record<string, string>> = {};
+    /**
+     * Get the storage usage for a user.
+     *
+     * Stub implementation: always resolves with `null`.
+     *
+     * @param _userId - The user whose storage usage to query (ignored).
+     * @returns A promise that resolves with `null`.
+     *
+     * @example
+     * ```typescript
+     * const usage = await client.getUserStorageUsage("@alice:example.org");
+     * ```
+     */
     public getUserStorageUsage(_userId: string): Promise<{ size: number; ntFiles: number } | null> {
         return Promise.resolve(null);
     }
+    /**
+     * Get the notification (highlight and non-highlight) count for a room.
+     *
+     * Always returns `0` in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always `0`.
+     *
+     * @example
+     * ```typescript
+     * const count = client.getNotificationCount("!room:example.org");
+     * ```
+     */
     public getNotificationCount(_roomId: string): number {
         return 0;
     }
+    /**
+     * Get the highlight notification count for a room.
+     *
+     * Always returns `0` in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always `0`.
+     *
+     * @example
+     * ```typescript
+     * const count = client.getHighlightCount("!room:example.org");
+     * ```
+     */
     public getHighlightCount(_roomId: string): number {
         return 0;
     }
+    /**
+     * Whether a room has any unread notifications.
+     *
+     * Always returns `false` in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const hasUnread = client.hasUnreadNotifications("!room:example.org");
+     * ```
+     */
     public hasUnreadNotifications(_roomId: string): boolean {
         return false;
     }
+    /**
+     * Whether a room has any unread highlight notifications.
+     *
+     * Always returns `false` in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const hasHighlights = client.hasUnreadHighlights("!room:example.org");
+     * ```
+     */
     public hasUnreadHighlights(_roomId: string): boolean {
         return false;
     }
     public notificationCallback: unknown = undefined;
+    /**
+     * Get the total notification count across all rooms.
+     *
+     * Always returns `0` in this build.
+     *
+     * @returns Always `0`.
+     *
+     * @example
+     * ```typescript
+     * const total = client.getTotalNotificationCount();
+     * ```
+     */
     public getTotalNotificationCount(): number {
         return 0;
     }
+    /**
+     * Get the total highlight notification count across all rooms.
+     *
+     * Always returns `0` in this build.
+     *
+     * @returns Always `0`.
+     *
+     * @example
+     * ```typescript
+     * const total = client.getTotalHighlightCount();
+     * ```
+     */
     public getTotalHighlightCount(): number {
         return 0;
     }
+    /**
+     * Get the events queued for sending in a room.
+     *
+     * Always returns an empty array in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always an empty array.
+     *
+     * @example
+     * ```typescript
+     * const pending = client.getPendingEvents("!room:example.org");
+     * ```
+     */
     public getPendingEvents(_roomId: string): MatrixEvent[] {
         return [];
     }
+    /**
+     * Whether a room has any events queued for sending.
+     *
+     * Always returns `false` in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const pending = client.hasPendingEvents("!room:example.org");
+     * ```
+     */
     public hasPendingEvents(_roomId: string): boolean {
         return false;
     }
+    /**
+     * Get the events in a room that failed to send.
+     *
+     * Always returns an empty array in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns Always an empty array.
+     *
+     * @example
+     * ```typescript
+     * const unsent = client.getUnsentEvents("!room:example.org");
+     * ```
+     */
     public getUnsentEvents(_roomId: string): MatrixEvent[] {
         return [];
     }
+    /**
+     * Send a reaction to a message.
+     *
+     * @param roomId - The room containing the event.
+     * @param eventId - The event to react to.
+     * @param key - The reaction key (typically an emoji).
+     * @returns A promise that resolves with the reaction event ID, or `undefined`
+     *   when the server response did not include one.
+     *
+     * @example
+     * ```typescript
+     * const reactionId = await client.reactToMessage(roomId, eventId, "👍");
+     * ```
+     */
     public reactToMessage(roomId: string, eventId: string, key: string): Promise<string | undefined> {
         return this.getRoomEventsManager()
             .sendReaction(roomId, eventId, key)
             .then((response: { event_id?: string }) => response?.event_id);
     }
+    /**
+     * Redact a previously sent reaction.
+     *
+     * @param roomId - The room containing the reaction event.
+     * @param eventId - The reaction event to redact.
+     * @param reason - Optional reason for the redaction.
+     * @returns A promise that resolves with the redaction event.
+     *
+     * @example
+     * ```typescript
+     * await client.redactReaction(roomId, reactionEventId, "spam");
+     * ```
+     */
     public redactReaction(roomId: string, eventId: string, reason?: string): Promise<{ event_id: string }> {
         return this.redactEvent(roomId, eventId, reason);
     }
+    /**
+     * Get the users who reacted to a message.
+     *
+     * @param roomId - The room containing the event.
+     * @param eventId - The event to inspect.
+     * @returns A promise that resolves with the list of reacting users.
+     *
+     * @example
+     * ```typescript
+     * const users = await client.getReactionUsers(roomId, eventId);
+     * ```
+     */
     public getReactionUsers(roomId: string, eventId: string): Promise<Array<{ userId: string }>> {
         return this.getReactionsManager()
             .getReactionUsers(roomId, eventId)
             .then((users) => users.map((userId) => ({ userId })));
     }
+    /**
+     * Whether a specific user has reacted to a message with a given key.
+     *
+     * @param roomId - The room containing the event.
+     * @param eventId - The event to inspect.
+     * @param userId - The user whose reaction to check for.
+     * @param key - The reaction key (typically an emoji).
+     * @returns A promise that resolves with `true` when such a reaction exists.
+     *
+     * @example
+     * ```typescript
+     * const reacted = await client.hasReaction(roomId, eventId, userId, "👍");
+     * ```
+     */
     public hasReaction(roomId: string, eventId: string, userId: string, key: string): Promise<boolean> {
         return this.getReactionsManager().hasReaction(roomId, eventId, userId, key);
     }
+    /**
+     * Get the retention policy configured for a room.
+     *
+     * Stub implementation: always resolves with `undefined`.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns A promise that resolves with `undefined`.
+     *
+     * @example
+     * ```typescript
+     * const retention = await client.getRoomRetention("!room:example.org");
+     * ```
+     */
     public getRoomRetention(_roomId: string): Promise<unknown> {
         return Promise.resolve(undefined);
     }
+    /**
+     * Set the retention policy for a room.
+     *
+     * Stub implementation: resolves without contacting the server.
+     *
+     * @param _roomId - The room to configure (ignored).
+     * @param _retention - The retention policy to apply (ignored).
+     * @returns A promise that resolves once the (no-op) operation completes.
+     *
+     * @example
+     * ```typescript
+     * await client.setRoomRetention("!room:example.org", { max_lifetime: 86_400_000 });
+     * ```
+     */
     public setRoomRetention(_roomId: string, _retention: unknown): Promise<void> {
         return Promise.resolve();
     }
+    /**
+     * Get the server-wide retention policy.
+     *
+     * Stub implementation: always resolves with `undefined`.
+     *
+     * @returns A promise that resolves with `undefined`.
+     *
+     * @example
+     * ```typescript
+     * const retention = await client.getServerRetention();
+     * ```
+     */
     public getServerRetention(): Promise<unknown> {
         return Promise.resolve(undefined);
     }
+    /**
+     * Share a room's encryption key with the given users.
+     *
+     * Stub implementation: always resolves with `undefined`.
+     *
+     * @param _roomId - The room whose key to share (ignored).
+     * @param _users - The users to share the key with (ignored).
+     * @returns A promise that resolves with `undefined`.
+     *
+     * @example
+     * ```typescript
+     * await client.shareRoomKey("!room:example.org", ["@alice:example.org"]);
+     * ```
+     */
     public shareRoomKey(_roomId: string, _users: string[]): Promise<unknown> {
         return Promise.resolve(undefined);
     }
+    /**
+     * Get the users with whom a room's encryption key has been shared.
+     *
+     * Always resolves with an empty map in this build.
+     *
+     * @param _roomId - The room to query (ignored).
+     * @returns A promise that resolves with an empty map.
+     *
+     * @example
+     * ```typescript
+     * const shared = await client.getSharedWithUsers("!room:example.org");
+     * ```
+     */
     public getSharedWithUsers(_roomId: string): Promise<SharedWithUsersMap> {
         return Promise.resolve({});
     }
+    /**
+     * Whether a room's encryption key has been shared with a given user.
+     *
+     * Always resolves with `false` in this build.
+     *
+     * @param _userId - The user to check for (ignored).
+     * @returns A promise that resolves with `false`.
+     *
+     * @example
+     * ```typescript
+     * const shared = await client.hasSharedKeyWithUser("@alice:example.org");
+     * ```
+     */
     public hasSharedKeyWithUser(_userId: string): Promise<boolean> {
         return Promise.resolve(false);
     }
+    /**
+     * Export the client's room encryption keys.
+     *
+     * Stub implementation: always resolves with `undefined`.
+     *
+     * @returns A promise that resolves with `undefined`.
+     *
+     * @example
+     * ```typescript
+     * const exported = await client.exportRoomKeys();
+     * ```
+     */
     public exportRoomKeys(): Promise<unknown> {
         return Promise.resolve(undefined);
     }
+    /**
+     * Import room encryption keys into the client.
+     *
+     * Stub implementation: always resolves with `undefined`.
+     *
+     * @param _keys - The keys to import (ignored).
+     * @param _options - Optional import options (ignored).
+     * @returns A promise that resolves with `undefined`.
+     *
+     * @example
+     * ```typescript
+     * await client.importRoomKeys(keys);
+     * ```
+     */
     public importRoomKeys(_keys: unknown[], _options?: unknown): Promise<unknown> {
         return Promise.resolve(undefined);
     }
+    /**
+     * Whether secret storage is ready for use.
+     *
+     * @returns A promise that resolves with the secret-storage readiness state.
+     *
+     * @example
+     * ```typescript
+     * const ready = await client.isSecretStorageReady();
+     * ```
+     */
     public isSecretStorageReady(): Promise<boolean> {
         return this.getSecretStorageManager().isSecretStorageReady();
     }
+    /**
+     * Get the secret-storage key identified by the given key ID.
+     *
+     * @param keyId - The ID of the secret-storage key to retrieve.
+     * @returns A promise that resolves with the `[keyId, key]` pair, or `null`
+     *   when the key is not available.
+     *
+     * @example
+     * ```typescript
+     * const keyInfo = await client.getSecretStorageKey(keyId);
+     * ```
+     */
     public getSecretStorageKey(keyId: string): Promise<[string, string] | null> {
         return this.getSecretStorageManager().getSecretStorageKey(keyId);
     }
+    /**
+     * Store a secret in secret storage.
+     *
+     * @param name - The name of the secret.
+     * @param secret - The secret value to store.
+     * @param keys - Optional secret-storage key IDs allowed to decrypt the secret.
+     * @returns A promise that resolves once the secret has been stored.
+     *
+     * @example
+     * ```typescript
+     * await client.storeSecret("m.cross_signing.master", secret);
+     * ```
+     */
     public storeSecret(name: string, secret: string, keys?: string[]): Promise<void> {
         return this.getSecretStorageManager().storeSecret(name, secret, keys);
     }
+    /**
+     * Retrieve a secret from secret storage.
+     *
+     * @param name - The name of the secret to retrieve.
+     * @returns A promise that resolves with the secret value, or `null` when it
+     *   is not present.
+     *
+     * @example
+     * ```typescript
+     * const secret = await client.getSecret("m.cross_signing.master");
+     * ```
+     */
     public getSecret(name: string): Promise<string | null> {
         return this.getSecretStorageManager().getSecret(name);
     }
+    /**
+     * Whether a secret exists in secret storage.
+     *
+     * @param name - The name of the secret to look for.
+     * @returns A promise that resolves with `true` when the secret exists.
+     *
+     * @example
+     * ```typescript
+     * const exists = await client.hasSecret("m.cross_signing.master");
+     * ```
+     */
     public hasSecret(name: string): Promise<boolean> {
         return this.getSecretStorageManager().hasSecret(name);
     }
+    /**
+     * Get all secret-storage keys known to the client.
+     *
+     * @returns A promise that resolves with a map of key ID to key.
+     *
+     * @example
+     * ```typescript
+     * const keys = await client.getSecretStorageKeys();
+     * ```
+     */
     public getSecretStorageKeys(): Promise<Record<string, string>> {
         return this.getSecretStorageManager().getSecretStorageKeys();
     }
+    /**
+     * Get the capabilities advertised by the homeserver.
+     *
+     * @returns A promise that resolves with the server capabilities.
+     *
+     * @example
+     * ```typescript
+     * const capabilities = await client.getServerCapabilities();
+     * ```
+     */
     public getServerCapabilities(): Promise<Capabilities> {
         return this.getServerCapabilitiesManager().getServerCapabilities();
     }
+    /**
+     * Whether the homeserver advertises support for a feature.
+     *
+     * @param feature - The feature identifier to check for.
+     * @returns `true` when the server supports the feature.
+     *
+     * @example
+     * ```typescript
+     * const supported = client.hasServerSupport("m.change_password");
+     * ```
+     */
     public hasServerSupport(feature: string): boolean {
         return this.getServerCapabilitiesManager().hasServerSupport(feature);
     }
+    /**
+     * Get the homeserver's version string.
+     *
+     * @returns A promise that resolves with the server version.
+     *
+     * @example
+     * ```typescript
+     * const version = await client.getServerVersion();
+     * ```
+     */
     public getServerVersion(): Promise<string> {
         return this.getServerCapabilitiesManager().getServerVersion();
     }
+    /**
+     * Whether the homeserver supports location (beacon) events.
+     *
+     * @returns `true` when location sharing is supported.
+     *
+     * @example
+     * ```typescript
+     * const supportsLocation = client.supportsLocation();
+     * ```
+     */
     public supportsLocation(): boolean {
         return this.getServerCapabilitiesManager().supportsLocation();
     }
     public serverClockDiff: number = 0;
+    /**
+     * Convert a server timestamp to the equivalent local timestamp.
+     *
+     * @param serverTs - The server-side timestamp (ms since epoch).
+     * @returns The equivalent local timestamp (ms since epoch).
+     *
+     * @example
+     * ```typescript
+     * const localTs = client.getLocalTimestampForServerTime(serverTs);
+     * ```
+     */
     public getLocalTimestampForServerTime(serverTs: number): number {
         return this.getServerTimeManager().getLocalTimestampForServerTime(serverTs);
     }
+    /**
+     * Get the current server timestamp, compensated for clock drift.
+     *
+     * @returns The current server timestamp (ms since epoch).
+     *
+     * @example
+     * ```typescript
+     * const serverTs = client.getServerTimestamp();
+     * ```
+     */
     public getServerTimestamp(): number {
         return this.getServerTimeManager().getServerTimestamp();
     }
+    /**
+     * Update the cached server-time information from a server response.
+     *
+     * @param serverTime - The server timestamp (ms since epoch).
+     * @param serverDate - The server `Date` header value.
+     *
+     * @example
+     * ```typescript
+     * client.updateServerTimeInfo(Date.now(), new Date().toUTCString());
+     * ```
+     */
     public updateServerTimeInfo(serverTime: number, serverDate: string): void {
         this.getServerTimeManager().updateServerTimeInfo(serverTime, serverDate);
     }
+    /**
+     * Wait for any in-flight requests to settle.
+     *
+     * Stub implementation: resolves immediately regardless of `_timeoutMs`.
+     *
+     * @param _timeoutMs - Maximum time to wait in milliseconds (ignored).
+     * @returns A promise that resolves immediately.
+     *
+     * @example
+     * ```typescript
+     * await client.waitForPendingRequests(5000);
+     * ```
+     */
     public waitForPendingRequests(_timeoutMs: number): Promise<void> {
         return Promise.resolve();
     }
+    /**
+     * Whether the client has started syncing.
+     *
+     * Always returns `false` in this build.
+     *
+     * @returns Always `false`.
+     *
+     * @example
+     * ```typescript
+     * const started = client.hasStartedSync();
+     * ```
+     */
     public hasStartedSync(): boolean {
         return false;
     }
+    /**
+     * Whether the client is currently syncing.
+     *
+     * @returns `true` when a sync is in progress.
+     *
+     * @example
+     * ```typescript
+     * const syncing = client.isSyncing();
+     * ```
+     */
     public isSyncing(): boolean {
         return this.getSyncManager().isSyncing();
     }
+    /**
+     * Wait until the client has finished its initial sync.
+     *
+     * Stub implementation: resolves immediately.
+     *
+     * @example
+     * ```typescript
+     * await client.waitForSync();
+     * ```
+     */
     public async waitForSync(): Promise<void> {}
     public syncToken: string | null = null;
     public syncing: boolean = false;
+    /**
+     * Get the TURN server URIs available to this client.
+     *
+     * @returns A promise that resolves with the list of TURN server URIs.
+     *
+     * @example
+     * ```typescript
+     * const uris = await client.getTurnServerURIs();
+     * ```
+     */
     public getTurnServerURIs(): Promise<string[]> {
         return this.getTurnServerManager().getTurnServerURIs();
     }
-    public getUserWidgets(): Promise<WidgetData> {
-        return Promise.resolve({});
-    }
-    public getRoomWidgets(_roomId: string): Promise<WidgetData> {
-        return Promise.resolve({});
-    }
-    public setUserWidgets(_widgets: WidgetData): Promise<void> {
-        return Promise.resolve();
-    }
-    public setRoomWidgets(_roomId: string, _widgets: WidgetData): Promise<void> {
-        return Promise.resolve();
-    }
-    public getAllWidgetEvents(_roomId: string): Promise<MatrixEvent[]> {
-        return Promise.resolve([]);
-    }
+    /**
+     * Get the profile manager for this client.
+     *
+     * Stub implementation: always returns `null` in this build.
+     *
+     * @returns Always `null`.
+     *
+     * @example
+     * ```typescript
+     * const profileManager = client.getProfileManager();
+     * ```
+     */
     public getProfileManager(): ProfileManager {
         return null!;
     }

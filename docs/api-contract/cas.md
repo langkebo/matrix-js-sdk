@@ -1,22 +1,22 @@
 ---
 module: cas
 generated_from: docs/api-contract/generated/modules/cas.json
-generated_hash: sha256-4e7891b42037c405b1fdf60e08c01514dc2375f69d22f6502e0f3bff1ff2168b
+generated_hash: sha256-285517185a320ea16b59acf60719baf27797c5ffdf44ef61310cc4e5609220f2
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # CAS Authentication API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/cas.rs`
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`
+> 后端代码: `synapse-rust/synapse-web/src/routes/cas.rs`
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`
 
 ## 真实后端路由
 
 ### 公共 CAS 协议端点
 
 > 后端 2026-09 已把这些端点从根级路径迁到 `/_synapse/cas` 前缀下（SDK 的
-> `CAS_API_PREFIX.cas` 一直按 `/_synapse/cas` 构建 URL，故 SDK 侧无需改动）。
+> `CAS_PROTOCOL_PREFIX` 一直按 `/_synapse/cas` 构建 URL，故 SDK 侧无需改动）。
 > 根级 `/login`、`/serviceValidate` 等旧路径已下线，**不得**再写回契约表。
 
 | 方法 | 路径                                        | 说明                     | 认证 |
@@ -39,15 +39,61 @@ last_reviewed: 2026-05-03
 | GET    | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | 获取用户 CAS 属性 | 管理员 |
 | POST   | `/_synapse/admin/v1/cas/users/{user_id}/attributes` | 设置用户 CAS 属性 | 管理员 |
 
-### 兼容管理别名
+## 结构化类型（codegen 源）
 
-后端还保留一组无前缀兼容别名，指向相同的管理逻辑：
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源，也是 `src/cas/__generated__/dto.ts`
+> 的权威来源。形状逐条对照 `synapse-rust/synapse-web/src/routes/cas.rs` 的实现，**不凭印象**。
+>
+> ⚠️ **本模块的 DTO 覆盖面刻意有限**，原因有二：
+>
+> 1. `/_synapse/cas/{login,logout,serviceValidate,proxyValidate,proxy,p3/serviceValidate}` 这 6 条
+>    是 **CAS 协议端点**，后端返回 **XML**（`response.to_xml()` 或 `text/plain` 的
+>    `"yes" / "no"`），**不是 JSON** ⇒ 天然不属于 JSON DTO 的建模范围。
+> 2. `DELETE /_synapse/admin/v1/cas/services/{service_id}` 返回 `204 No Content`（无 body）
+>    ⇒ 也没有响应类型可建模。
+>
+> 因此本节只覆盖 **JSON 形态**的管理端点与登录重定向。
 
-- `GET /admin/services`
-- `POST /admin/services`
-- `DELETE /admin/services/{service_id}`
-- `GET /admin/users/{user_id}/attributes`
-- `POST /admin/users/{user_id}/attributes`
+```typescript
+/** `POST /_synapse/admin/v1/cas/services` 请求体（后端 `RegisterServiceBody`）。 */
+export interface CasRegisterServiceRequest {
+    service_id: string;
+    name: string;
+    description?: string;
+    service_url_pattern: string;
+    allowed_attributes?: string[];
+    allowed_proxy_callbacks?: string[];
+    require_secure?: boolean;
+    single_logout?: boolean;
+}
+
+/** CAS 服务记录（后端 `ServiceResponse`，`register_service` 与 `list_services` 共用）。 */
+export interface CasServiceResponse {
+    service_id: string;
+    name: string;
+    description?: string;
+    service_url_pattern: string;
+    is_enabled: boolean;
+}
+
+/** `GET /_matrix/client/v3/login/sso/redirect/cas` 的 JSON 形态响应（后端 `login_redirect`）。 */
+export interface CasLoginRedirectResponse {
+    redirect_url: string;
+}
+
+/** `POST /_synapse/admin/v1/cas/users/{user_id}/attributes` 请求体（后端 `SetAttributeBody`）。 */
+export interface CasSetAttributeRequest {
+    attribute_name: string;
+    attribute_value: string;
+}
+
+/** `POST /_synapse/admin/v1/cas/users/{user_id}/attributes` 响应。 */
+export interface CasSetAttributeResponse {
+    user_id: string;
+    attribute_name: string;
+    attribute_value: string;
+}
+```
 
 ## SDK 对齐状态
 
@@ -74,4 +120,22 @@ last_reviewed: 2026-05-03
 - **契约覆盖率**: 100%
 - **说明**:
     - `/_synapse/cas/serviceValidate`、`/_synapse/cas/proxyValidate`、`/_synapse/cas/p3/serviceValidate`、`/_synapse/cas/proxy` 属于 CAS 协议 XML 端点，通过 `buildValidateUrl()` helper 绑定。
-    - 后端保留的 5 条无前缀兼容别名（如 `GET /admin/services`）与 `/_synapse/admin/v1/cas/*` 逻辑完全一致，SDK 统一采用 V1 路径进行封装，视为逻辑覆盖 100%。
+    - 后端曾保留的 5 条**无前缀**兼容别名（`/admin/services*`、`/admin/users/{user_id}/attributes`）
+      已按铁律 1 连同 `cas.rs` 的 `legacy_admin_routes` 与专用 deprecation 中间件整段删除
+      （2026-10-08，C6 第四批）；SDK 侧同步收敛为唯一的 `/_synapse/admin/v1/cas/*` 形态。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### SSO 重定向
+
+- `GET /_matrix/client/v3/login/sso/redirect/cas?redirect_after=` 返回 **302**，`Location: /login?service=<urlencoded redirect_after>`。
+- 该重定向不指向外部 IdP，而是回到本服务自己的 `/login?service=...`。
+- `CasLoginRedirectResponse` 不是响应体：后端不返回 JSON，应读取 `Location` 响应头并解析其中的 `service` 参数，不要对响应做 `res.json()`。
+- 未配置 CAS 时返回 **500** `M_UNKNOWN`（由配置中间件拦截），不是 400 / 403。
+
+### CAS 协议端点响应格式
+
+- `GET /_synapse/cas/serviceValidate?service=&ticket=` 返回 `text/plain`：成功为 `yes\n{user_id}\n`，失败为 `no\n\n`。不要按 JSON 或 XML 解析。
+- `GET /_synapse/cas/proxyValidate`、`/proxy`、`/p3/serviceValidate` 返回 `application/xml; charset=utf-8`：成功含 `<cas:user>`，失败为 `INVALID_TICKET`。
+- `GET /_synapse/cas/login?service=` 返回 302 到 `/cas/login?service=...`；`GET /_synapse/cas/logout?service=` 带 `service` 时 302 到该地址，否则返回 200 HTML 页面。
+- CAS 协议面未配置时由中间件统一返回 **500**（`CAS service is not available...`），与 SAML 的 403 行为不同。

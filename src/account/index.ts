@@ -113,6 +113,11 @@ export interface AccountStatusResponse {
 export class AccountManager extends BaseManager {
     /**
      * Get the session ID
+     *
+     * @example
+     * ```typescript
+     * const sessionId = client.getAccountManager().getSessionId();
+     * ```
      */
     public getSessionId(): string {
         return this.client.getSessionId();
@@ -120,6 +125,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Check if the current user is a guest
+     *
+     * @example
+     * ```typescript
+     * const guest = client.getAccountManager().isGuest();
+     * ```
      */
     public isGuest(): boolean {
         return this.client.isGuest();
@@ -127,6 +137,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Set whether the current user is a guest
+     *
+     * @example
+     * ```typescript
+     * client.getAccountManager().setGuest(true);
+     * ```
      */
     public setGuest(guest: boolean): void {
         this.client.setGuest(guest);
@@ -134,6 +149,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get the access token
+     *
+     * @example
+     * ```typescript
+     * const token = client.getAccountManager().getAccessToken();
+     * ```
      */
     public getAccessToken(): string | null {
         return this.client.http.opts.accessToken ?? null;
@@ -141,6 +161,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Set the access token
+     *
+     * @example
+     * ```typescript
+     * client.getAccountManager().setAccessToken("syt_xxx");
+     * ```
      */
     public setAccessToken(token: string): void {
         this.client.http.opts.accessToken = token;
@@ -148,6 +173,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get login flows supported by the server
+     *
+     * @example
+     * ```typescript
+     * const flows = await client.getAccountManager().loginFlows();
+     * ```
      */
     public loginFlows(): Promise<ILoginFlowsResponse> {
         return this.withRetry(async () => {
@@ -164,6 +194,11 @@ export class AccountManager extends BaseManager {
      *
      * 后端把 CAS 注册在 **`/_matrix/client/v3/login/sso/redirect/cas`**（`cas` 是**末尾**
      * 字面量段），**不是** `/login/cas/redirect`。见方案文档 §9.14.3（W-06）。
+     *
+     * @example
+     * ```typescript
+     * const url = client.getAccountManager().getCasLoginUrl("https://app.example.com/callback");
+     * ```
      */
     public getCasLoginUrl(redirectUrl: string): string {
         return this.getSsoLoginUrl(redirectUrl, "cas");
@@ -185,6 +220,11 @@ export class AccountManager extends BaseManager {
      *
      * `idpId` 形参已删除：本后端的 IdP 选择靠**路径段**而非查询参数，该形参没有落点
      * （留着即撒谎）。见方案文档 §9.14.3（W-06）。
+     *
+     * @example
+     * ```typescript
+     * const url = client.getAccountManager().getSsoLoginUrl("https://app.example.com/callback");
+     * ```
      */
     public getSsoLoginUrl(redirectUrl: string, loginType = "sso", action?: SSOAction): string {
         const url = loginType === "sso" ? "/login/sso/redirect" : `/login/sso/redirect/${loginType}`;
@@ -200,6 +240,15 @@ export class AccountManager extends BaseManager {
 
     /**
      * Send a login request
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getAccountManager().loginRequest({
+     *     type: "m.login.password",
+     *     user: "@alice:example.com",
+     *     password: "secret",
+     * });
+     * ```
      */
     public async loginRequest(data: LoginRequest): Promise<LoginResponse> {
         return await this.withRetry(async () => {
@@ -238,6 +287,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Logout
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountManager().logout();
+     * ```
      */
     public async logout(stopClient = false): Promise<EmptyObject> {
         if (stopClient) {
@@ -255,6 +309,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Logout from all devices
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountManager().logoutAll();
+     * ```
      */
     public async logoutAll(stopClient = false): Promise<EmptyObject> {
         if (stopClient) {
@@ -285,6 +344,10 @@ export class AccountManager extends BaseManager {
      * @param clientSecret - 客户端密钥（与 requestToken 时一致）
      * @param token - 用户收到的邮箱令牌
      * @param scope - 令牌归属流程，默认 `register`
+     * @example
+     * ```typescript
+     * await client.getAccountManager().submitEmailToken("sid", "client-secret", "123456");
+     * ```
      */
     public async submitEmailToken(
         sid: string,
@@ -308,6 +371,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Deactivate account
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountManager().deactivateAccount();
+     * ```
      */
     public deactivateAccount(
         auth?: AuthDict,
@@ -332,6 +400,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Request login token
+     *
+     * @example
+     * ```typescript
+     * const token = await client.getAccountManager().requestLoginToken();
+     * ```
      */
     public async requestLoginToken(auth?: AuthDict): Promise<LoginTokenPostResponse> {
         const body: UIARequest<unknown> = { auth };
@@ -362,6 +435,10 @@ export class AccountManager extends BaseManager {
      *
      * @param userIds - Matrix user IDs to look up.
      * @returns The statuses that could be retrieved, plus the failures.
+     * @example
+     * ```typescript
+     * const statuses = await client.getAccountManager().getAccountStatuses(["@alice:example.com"]);
+     * ```
      */
     public async getAccountStatuses(userIds: string[]): Promise<AccountStatusResponse> {
         return await this.withRetry(async () => {
@@ -376,6 +453,11 @@ export class AccountManager extends BaseManager {
 
     /**
      * Get fallback auth URL
+     *
+     * @example
+     * ```typescript
+     * const url = client.getAccountManager().getFallbackAuthUrl("m.login.password", "session-id");
+     * ```
      */
     public getFallbackAuthUrl(loginType: string, authSessionId: string): string {
         const path = utils.encodeUri("/auth/$loginType/fallback/web", {
@@ -388,6 +470,11 @@ export class AccountManager extends BaseManager {
     /**
      * Get my rooms
      * GET /_matrix/vendor/v1/my_rooms
+     *
+     * @example
+     * ```typescript
+     * const rooms = await client.getAccountManager().getMyRooms();
+     * ```
      */
     public async getMyRooms(): Promise<MyRoomsResponse> {
         return this.withRetry(async () => {
@@ -402,6 +489,11 @@ export class AccountManager extends BaseManager {
     /**
      * Get global events
      * GET /_matrix/client/v3/events
+     *
+     * @example
+     * ```typescript
+     * const events = await client.getAccountManager().getEvents({ limit: 10 });
+     * ```
      */
     public async getEvents(options?: EventsRequestOptions): Promise<EventsResponse> {
         return this.withRetry(async () => {
@@ -421,6 +513,10 @@ export class AccountManager extends BaseManager {
      * @param from - Pagination token from a previous response
      * @param timeout - Long-poll timeout in milliseconds (default: 30000)
      * @returns Event stream chunk with start/end tokens
+     * @example
+     * ```typescript
+     * const stream = await client.getAccountManager().getEventStream();
+     * ```
      */
     public async getEventStream(from?: string, timeout: number = 30000): Promise<EventsResponse> {
         return this.withRetry(async () => {

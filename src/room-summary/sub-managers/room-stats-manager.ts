@@ -65,6 +65,20 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         return rsvVendor(`/rooms/${encodeURIComponent(roomId)}/summary/stats`);
     }
 
+    /**
+     * 获取房间统计信息
+     *
+     * @param roomId - 房间 ID
+     * @param forceRefresh - 是否强制刷新缓存
+     * @param throwOnError - 是否抛出错误（默认 true）
+     * @returns 统计信息，失败且未抛出时返回 null
+     * @throws {SdkError} 当请求失败且 throwOnError 为 true 时
+     * @example
+     * ```typescript
+     * const stats = await client.getRoomSummaryManager().stats.getRoomSummaryStats("!room:example.com");
+     * console.log(stats?.total_messages);
+     * ```
+     */
     public async getRoomSummaryStats(
         roomId: string,
         forceRefresh = false,
@@ -87,16 +101,28 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
                 this.emit(RoomSummaryStatsEvent.StatsUpdated, roomId, stats);
             }
             return stats;
-            // @swallow-error { owner: "room-summary", expires: "2026-12-31" }
         } catch (e) {
             if (throwOnError) {
                 throw this.normalizeError(e, "getRoomSummaryStats");
             }
             this.handleError("getRoomSummaryStats", e);
-            return null;
         }
+        return null;
     }
 
+    /**
+     * 重新计算房间统计信息
+     *
+     * @param roomId - 房间 ID
+     * @param body - 重算请求体
+     * @returns 重算后的统计信息
+     * @throws {SdkError} 当请求失败时
+     * @example
+     * ```typescript
+     * const stats = await client.getRoomSummaryManager().stats.recalculateSummaryStats("!room:example.com");
+     * console.log(stats?.total_events);
+     * ```
+     */
     public async recalculateSummaryStats(roomId: string, body: IContent = {}): Promise<RoomStats | null> {
         this.validateRoomId(roomId);
 
@@ -120,6 +146,18 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         }
     }
 
+    /**
+     * 重新计算房间摘要的 heroes 与成员计数
+     *
+     * @param roomId - 房间 ID
+     * @param body - 重算请求体
+     * @returns heroes 重算结果
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().stats.recalculateSummaryHeroes("!room:example.com");
+     * console.log(result.heroes);
+     * ```
+     */
     public async recalculateSummaryHeroes(roomId: string, body: IContent = {}): Promise<HeroesRecalcResult> {
         this.validateRoomId(roomId);
 
@@ -135,6 +173,18 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         }, "recalculateSummaryHeroes");
     }
 
+    /**
+     * 清除房间未读计数
+     *
+     * @param roomId - 房间 ID
+     * @param body - 清除请求体
+     * @returns 未读清除结果
+     * @example
+     * ```typescript
+     * const result = await client.getRoomSummaryManager().stats.clearSummaryUnread("!room:example.com");
+     * console.log(result.cleared);
+     * ```
+     */
     public async clearSummaryUnread(roomId: string, body: IContent = {}): Promise<UnreadClearResult> {
         this.validateRoomId(roomId);
 
@@ -150,6 +200,17 @@ export class RoomSummaryStatsManager extends RoomSummaryBaseManager<RoomSummaryS
         }, "clearSummaryUnread");
     }
 
+    /**
+     * 获取缓存的房间统计信息
+     *
+     * @param roomId - 房间 ID
+     * @returns 缓存的统计信息，如无缓存则返回 null
+     * @example
+     * ```typescript
+     * const stats = client.getRoomSummaryManager().stats.getCachedStats("!room:example.com");
+     * console.log(stats?.total_messages);
+     * ```
+     */
     public getCachedStats(roomId: string): RoomStats | null {
         return this.statsCache.get(roomId) ?? null;
     }

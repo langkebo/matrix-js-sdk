@@ -115,34 +115,93 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         this.parent = parent;
     }
 
-    // 读取单个 Space 缓存（供 SpaceLifecycleManager.getSpace 使用）
+    /**
+     * 读取单个 Space 缓存（供 SpaceLifecycleManager.getSpace 使用）。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @returns 命中时返回缓存的 `Space`，否则返回 `undefined`。
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getSpaceManager().query.getCachedSpace("!abc:example.com");
+     * if (cached) console.log(cached.name);
+     * ```
+     */
     getCachedSpace(spaceId: string): Space | undefined {
         return this.spaceCache.get(spaceId);
     }
 
-    // 写入单个 Space 缓存（供 SpaceLifecycleManager.getSpace 使用）
+    /**
+     * 写入单个 Space 缓存（供 SpaceLifecycleManager.getSpace 使用）。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @param space - 待缓存的 Space 对象。
+     *
+     * @example
+     * ```typescript
+     * const space = await client.getSpaceManager().lifecycle.getSpace("!abc:example.com");
+     * client.getSpaceManager().query.setCachedSpace(space.space_id, space);
+     * ```
+     */
     setCachedSpace(spaceId: string, space: Space): void {
         this.spaceCache.set(spaceId, space);
     }
 
-    /** 清空所有缓存（供顶层 SpaceManager.clearCache 委托 + 其他 sub-manager 失效缓存调用） */
+    /**
+     * 清空所有缓存（供顶层 SpaceManager.clearCache 委托 + 其他 sub-manager 失效缓存调用）。
+     *
+     * @example
+     * ```typescript
+     * client.getSpaceManager().query.clearCache();
+     * ```
+     */
     clearCache(): void {
         this.highFreqCache.clear();
         this.lowFreqCache.clear();
         this.spaceCache.clear();
     }
 
-    /** 获取高频缓存统计信息 */
+    /**
+     * 获取高频缓存统计信息（用户空间列表、公共空间列表）。
+     *
+     * @returns 缓存条目数、命中次数、未命中次数与命中率。
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getSpaceManager().query.getHighFreqCacheStats();
+     * console.log(`高频缓存命中率 ${(stats.hitRate * 100).toFixed(1)}%`);
+     * ```
+     */
     getHighFreqCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.highFreqCache.getStats();
     }
 
-    /** 获取低频缓存统计信息 */
+    /**
+     * 获取低频缓存统计信息（搜索结果、统计信息）。
+     *
+     * @returns 缓存条目数、命中次数、未命中次数与命中率。
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getSpaceManager().query.getLowFreqCacheStats();
+     * console.log(`低频缓存命中率 ${(stats.hitRate * 100).toFixed(1)}%`);
+     * ```
+     */
     getLowFreqCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.lowFreqCache.getStats();
     }
 
-    /** 获取聚合缓存统计信息（包含高频 + 低频 + 单个 Space） */
+    /**
+     * 获取聚合缓存统计信息（高频 + 低频 + 单个 Space）。
+     *
+     * @returns 各分层的统计对象，以及三层合并后的 `total`。
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getSpaceManager().query.getAggregatedCacheStats();
+     * console.log(`总条目 ${stats.total.size}，总命中率 ${(stats.total.hitRate * 100).toFixed(1)}%`);
+     * ```
+     */
     getAggregatedCacheStats(): {
         highFreq: { size: number; hits: number; misses: number; hitRate: number };
         lowFreq: { size: number; hits: number; misses: number; hitRate: number };
@@ -256,6 +315,19 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 获取 Space 统计信息（总数、公共/私有/已加入数量）。
+     *
+     * @returns 统计结果，字段可能缺失（后端按需返回）。
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getSpaceManager().query.getSpaceStatistics();
+     * console.log(`共 ${stats.total_spaces ?? 0} 个 Space`);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getSpaceStatistics(): Promise<SpaceStatistics> {
         try {
             return await this.withRetry(async () => {
@@ -267,6 +339,25 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 获取当前用户已加入的 Space 列表。
+     *
+     * 结果进高频缓存（`user_spaces`）；传 `forceRefresh = true` 可跳过缓存强制拉取。
+     *
+     * @param forceRefresh - 为 `true` 时跳过缓存重新拉取。
+     * @returns 已归一化的 Space 数组。
+     *
+     * @example
+     * ```typescript
+     * const spaces = await client.getSpaceManager().query.getUserSpaces();
+     * console.log(`已加入 ${spaces.length} 个 Space`);
+     *
+     * // 强制刷新
+     * await client.getSpaceManager().query.getUserSpaces(true);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getUserSpaces(forceRefresh = false): Promise<Space[]> {
         const cacheKey = "user_spaces";
         if (!forceRefresh) {
@@ -288,6 +379,20 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 根据房间 ID 反查其所属的 Space。
+     *
+     * @param roomId - 房间 ID。
+     * @returns 归一化后的 Space。
+     *
+     * @example
+     * ```typescript
+     * const space = await client.getSpaceManager().query.getSpaceByRoom("!room:example.com");
+     * console.log(space.name);
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出（房间不属于任何 Space 时通常为 404）。
+     */
     async getSpaceByRoom(roomId: string): Promise<Space> {
         try {
             const response = await this.withRetry(async () => {
@@ -300,6 +405,21 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 获取某个房间所属的全部父 Space。
+     *
+     * @param roomId - 房间 ID。
+     * @param options - 查询参数（透传给后端）。
+     * @returns 已归一化的父 Space 数组。
+     *
+     * @example
+     * ```typescript
+     * const parents = await client.getSpaceManager().query.getRoomParentSpaces("!room:example.com");
+     * console.log(parents.map((s) => s.name ?? s.space_id).join(", "));
+     * ```
+     *
+     * @throws {ApiError} 当后端请求失败时抛出。
+     */
     async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
         try {
             const response = await this.withRetry(async () => {
@@ -316,6 +436,21 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 判断指定房间是否是一个 Space。
+     *
+     * 先尝试按房间反查所属 Space（命中即 `true`），失败时回退到本地房间的
+     * `isSpaceRoom()` 判定；两侧都不成立则返回 `false`（本方法不抛错）。
+     *
+     * @param roomId - 房间 ID。
+     * @returns 是 Space 时为 `true`，否则为 `false`。
+     *
+     * @example
+     * ```typescript
+     * const isSpace = await client.getSpaceManager().query.isSpace("!room:example.com");
+     * console.log(isSpace ? "是 Space" : "不是 Space");
+     * ```
+     */
     async isSpace(roomId: string): Promise<boolean> {
         try {
             await this.getSpaceByRoom(roomId);
@@ -393,6 +528,18 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
         }
     }
 
+    /**
+     * 获取单个 Space 的成员数与子房间数（本地组合 `member` / `child` 两份数据）。
+     *
+     * @param spaceId - Space ID（不是底层房间 ID）。
+     * @returns `{ memberCount, childCount }`。
+     *
+     * @example
+     * ```typescript
+     * const { memberCount, childCount } = await client.getSpaceManager().query.getSpaceStats("!abc:example.com");
+     * console.log(`${memberCount} 位成员 / ${childCount} 个子房间`);
+     * ```
+     */
     async getSpaceStats(spaceId: string): Promise<{ memberCount: number; childCount: number }> {
         const [members, children] = await Promise.all([
             this.parent!.member.getSpaceMembers(spaceId),
@@ -404,6 +551,14 @@ export class SpaceQueryManager extends BaseManager<SpaceEvent, SpaceManagerEvent
     /**
      * 获取遥测指标 — 包括缓存命中率、请求延迟分布
      * 供监控埋点使用
+     *
+     * @returns 缓存遥测指标（命中率、P95/P99 延迟等）与最近更新时间戳。
+     *
+     * @example
+     * ```typescript
+     * const telemetry = client.getSpaceManager().query.getTelemetry();
+     * console.log(`P95 延迟 ${telemetry.cache.p95LatencyMs.toFixed(1)}ms`);
+     * ```
      */
     public getTelemetry(): SpaceQueryTelemetry {
         const stats = this.getAggregatedCacheStats();

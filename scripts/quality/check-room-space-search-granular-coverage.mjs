@@ -65,7 +65,18 @@ const CHECKS = [
         groups: [
             {
                 name: "SpaceManager semantic endpoints",
-                ownerFile: "src/space/index.ts",
+                // `SpaceManager` 的这 24 个语义端点在 `f728df035`（2026-10-06）被拆进
+                // 5 个 sub-manager；`src/space/index.ts` 只剩文档注释里的用法示例
+                // （`spaceManager.lifecycle.createSpace(...)`），**不再持有实现**。
+                // 原来只写 index.ts 是**陈旧判据**：它报的 20 个"缺失方法"其实都在，
+                // 只是换了家 ⇒ 正确做法是声明 owner 集合，而不是放宽断言。
+                ownerFiles: [
+                    "src/space/sub-managers/space-lifecycle-manager.ts",
+                    "src/space/sub-managers/space-query-manager.ts",
+                    "src/space/sub-managers/space-child-manager.ts",
+                    "src/space/sub-managers/space-hierarchy-manager.ts",
+                    "src/space/sub-managers/space-member-manager.ts",
+                ],
                 methods: [
                     "createSpace",
                     "getPublicSpaces",

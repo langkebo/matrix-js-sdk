@@ -1,14 +1,14 @@
 {
   "schema_version": "4",
   "generated_at": "2026-05-02T00:00:00Z",
-  "synapse_rust_commit": "14f892e356c3ea259781bc5b6b202bab2b6c8dc4",
+  "synapse_rust_commit": "c7c9116db5c462b49f5dae5abbf5e606f3244d21",
   "state_profile": "worker",
   "profile_flags": {
     "oidc_enabled": false,
     "worker_enabled": true,
     "saml_enabled": false
   },
-  "entry_count": 1019,
+  "entry_count": 1028,
   "entries": [
     {
       "method": "GET",
@@ -201,35 +201,44 @@
     {
       "method": "DELETE",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-      "registered_by": "assembly::create_router",
+      "registered_by": "dehydrated_device",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-      "registered_by": "assembly::create_router",
+      "registered_by": "dehydrated_device",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "PUT",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-      "registered_by": "assembly::create_router",
+      "registered_by": "dehydrated_device",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status",
-      "registered_by": "assembly::create_router",
+      "registered_by": "dehydrated_device",
       "path_params": [],
       "query_params": []
     },
     {
       "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
-      "registered_by": "assembly::create_router",
+      "registered_by": "dehydrated_device",
+      "path_params": [
+        "device_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
+      "registered_by": "dehydrated_device",
       "path_params": [
         "device_id"
       ],
@@ -271,6 +280,14 @@
     },
     {
       "method": "GET",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events",
+      "registered_by": "delayed_events",
+      "path_params": [],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "GET",
       "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}",
       "registered_by": "delayed_events",
       "path_params": [
@@ -285,6 +302,48 @@
       "registered_by": "delayed_events",
       "path_params": [
         "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/cancel",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/restart",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "POST",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/send",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "delay_id"
+      ],
+      "query_params": [],
+      "auth": "user"
+    },
+    {
+      "method": "PUT",
+      "path": "/_matrix/client/unstable/org.matrix.msc4140/rooms/{room_id}/delayed_event/{event_type}/{txn_id}",
+      "registered_by": "delayed_events",
+      "path_params": [
+        "room_id",
+        "event_type",
+        "txn_id"
       ],
       "query_params": [],
       "auth": "user"
@@ -4246,7 +4305,13 @@
       "path": "/_matrix/media/v1/upload/chunk",
       "registered_by": "media",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "chunk_index",
+        "filename",
+        "total_chunks",
+        "total_size",
+        "upload_id"
+      ]
     },
     {
       "method": "POST",
@@ -4267,7 +4332,9 @@
       "path": "/_matrix/media/v1/upload/chunk/progress",
       "registered_by": "media",
       "path_params": [],
-      "query_params": []
+      "query_params": [
+        "upload_id"
+      ]
     },
     {
       "method": "POST",
@@ -5458,6 +5525,7 @@
         "room_id"
       ],
       "query_params": [
+        "from",
         "limit",
         "q"
       ]
@@ -7073,6 +7141,24 @@
       "query_params": []
     },
     {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/invite/allowlist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/invite/allowlist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
       "method": "GET",
       "path": "/_synapse/admin/v1/invite/blocklist",
       "registered_by": "admin::server",
@@ -7087,6 +7173,24 @@
       "path": "/_synapse/admin/v1/invite/blocklist",
       "registered_by": "admin::server",
       "path_params": [],
+      "query_params": []
+    },
+    {
+      "method": "DELETE",
+      "path": "/_synapse/admin/v1/invite/blocklist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
+      "query_params": []
+    },
+    {
+      "method": "POST",
+      "path": "/_synapse/admin/v1/invite/blocklist/{user_id}",
+      "registered_by": "admin::server",
+      "path_params": [
+        "user_id"
+      ],
       "query_params": []
     },
     {
@@ -8730,15 +8834,6 @@
         "service",
         "ticket"
       ]
-    },
-    {
-      "method": "POST",
-      "path": "/_synapse/external/trendradar/{service_id}/webhook",
-      "registered_by": "external_service",
-      "path_params": [
-        "service_id"
-      ],
-      "query_params": []
     },
     {
       "method": "POST",

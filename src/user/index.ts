@@ -38,10 +38,30 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
         super(client, opts);
     }
 
+    /**
+     * 获取当前登录用户的用户 ID
+     *
+     * @returns 用户 ID，未登录时返回 null
+     * @example
+     * ```typescript
+     * const userId = client.getUserManager().getUserId();
+     * console.log(userId);
+     * ```
+     */
     public getUserId(): string | null {
         return this.client.credentials.userId;
     }
 
+    /**
+     * 获取当前登录用户的用户 ID，未登录时抛出错误
+     *
+     * @returns 用户 ID
+     * @throws {ValidationError} 未设置用户 ID 时
+     * @example
+     * ```typescript
+     * const userId = client.getUserManager().getSafeUserId();
+     * ```
+     */
     public getSafeUserId(): string {
         const userId = this.client.credentials.userId;
         if (!userId) {
@@ -50,6 +70,16 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
         return userId;
     }
 
+    /**
+     * 获取当前用户的本地部分（用户 ID 中 `:` 之前的部分）
+     *
+     * @returns 本地部分，未登录时返回 null
+     * @example
+     * ```typescript
+     * const localpart = client.getUserManager().getUserIdLocalpart();
+     * console.log(localpart);
+     * ```
+     */
     public getUserIdLocalpart(): string | null {
         const userId = this.client.credentials.userId;
         if (!userId) return null;
@@ -58,6 +88,16 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
         return userId.substring(0, colonIndex);
     }
 
+    /**
+     * 获取当前用户的 homeserver 域名（用户 ID 中 `:` 之后的部分）
+     *
+     * @returns 域名，未登录或格式无效时返回 null
+     * @example
+     * ```typescript
+     * const domain = client.getUserManager().getDomain();
+     * console.log(domain);
+     * ```
+     */
     public getDomain(): string | null {
         const userId = this.client.credentials.userId;
         if (!userId) return null;
@@ -66,14 +106,45 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
         return userId.substring(colonIndex + 1);
     }
 
+    /**
+     * 从本地存储中获取指定用户
+     *
+     * @param userId - 用户 ID
+     * @returns 用户对象，未找到时返回 null
+     * @example
+     * ```typescript
+     * const user = client.getUserManager().getUser("@alice:example.org");
+     * console.log(user?.userId);
+     * ```
+     */
     public getUser(userId: string): User | null {
         return this.client.store.getUser(userId);
     }
 
+    /**
+     * 获取本地存储中的全部用户
+     *
+     * @returns 用户数组
+     * @example
+     * ```typescript
+     * const users = client.getUserManager().getUsers();
+     * console.log(users.length);
+     * ```
+     */
     public getUsers(): User[] {
         return this.client.store.getUsers();
     }
 
+    /**
+     * 获取当前用户忽略的用户 ID 列表
+     *
+     * @returns 忽略的用户 ID 数组
+     * @example
+     * ```typescript
+     * const ignored = client.getUserManager().getIgnoredUsers();
+     * console.log(ignored);
+     * ```
+     */
     public getIgnoredUsers(): string[] {
         const event = this.client.store.getAccountData("m.ignored_user_list");
         if (!event) return [];
@@ -81,6 +152,16 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
         return Object.keys(content.ignored_users || {});
     }
 
+    /**
+     * 设置当前用户忽略的用户列表
+     *
+     * @param userIds - 要忽略的用户 ID 列表（会整体覆盖现有列表）
+     * @returns 请求成功后返回空对象
+     * @example
+     * ```typescript
+     * await client.getUserManager().setIgnoredUsers(["@spammer:example.org"]);
+     * ```
+     */
     public async setIgnoredUsers(userIds: string[]): Promise<EmptyObject> {
         const ignoredUsers: Record<string, Record<string, never>> = {};
         for (const userId of userIds) {
@@ -92,6 +173,16 @@ export class UserManager extends BaseManager<keyof UserManagerEvents, UserManage
         );
     }
 
+    /**
+     * 判断指定用户是否被当前用户忽略
+     *
+     * @param userId - 用户 ID
+     * @returns 是否被忽略
+     * @example
+     * ```typescript
+     * const ignored = client.getUserManager().isUserIgnored("@spammer:example.org");
+     * ```
+     */
     public isUserIgnored(userId: string): boolean {
         return this.getIgnoredUsers().includes(userId);
     }

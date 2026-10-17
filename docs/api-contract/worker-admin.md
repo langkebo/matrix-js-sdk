@@ -1,14 +1,14 @@
 ---
 module: worker
 generated_from: docs/api-contract/generated/modules/worker.json
-generated_hash: sha256-d141115ba657c88556f790a0bdf6e942025fd289b3f0f415b2ba9487936d03e9
+generated_hash: sha256-b70d9db207012fc6e937d6901e0aebe38a0f8e6cfaa53a6abb24c036ee25f6c6
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Worker Admin 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/worker.rs`、`synapse-rust/src/worker/types.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/worker.rs`、`synapse-rust/synapse-services/src/worker/types.rs`
 > 挂载前缀: `/_synapse/worker/v1`
 > 更新日期: 2026-04-27
 > 审计状态: ✅ 管理员控制面 13 条 Ledger 契约已与 SDK 绑定；复制协议面 helper 作为额外运维能力保留
@@ -254,5 +254,5 @@ last_reviewed: 2026-05-03
 
 ## 代码定位
 
-- 路由与处理器: `synapse-rust/src/web/routes/worker.rs`
-- 类型定义: `synapse-rust/src/worker/types.rs`
+- 路由与处理器: `synapse-rust/synapse-web/src/routes/worker.rs`
+- 类型定义: `synapse-rust/synapse-services/src/worker/types.rs`

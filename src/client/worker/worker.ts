@@ -282,6 +282,20 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 注册一个 Worker
      * POST /_synapse/worker/v1/register
+     *
+     * @param workerInfo - Worker 注册信息，`worker_id` 与 `worker_type` 必填
+     * @returns 注册后的 Worker 信息
+     * @throws {ValidationError} 当 `worker_id` 或 `worker_type` 为空时抛出
+     * @example
+     * ```typescript
+     * const info = await client.getWorkerManager().registerWorker({
+     *     worker_id: "worker-1",
+     *     worker_name: "worker-1",
+     *     worker_type: "federation_sender",
+     *     host: "127.0.0.1",
+     *     port: 8008,
+     * });
+     * ```
      */
     async registerWorker(workerInfo: WorkerRegistration): Promise<WorkerInfo> {
         if (!workerInfo.worker_id) {
@@ -296,6 +310,12 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 列出所有 Workers
      * GET /_synapse/worker/v1/workers
+     *
+     * @returns Worker 列表
+     * @example
+     * ```typescript
+     * const workers = await client.getWorkerManager().listWorkers();
+     * ```
      */
     async listWorkers(): Promise<WorkerInfo[]> {
         const result = await this.doRequest<{ workers: WorkerInfo[] }>(Method.Get, "/v1/workers");
@@ -305,6 +325,14 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 获取指定 Worker 详情
      * GET /_synapse/worker/v1/workers/{worker_id}
+     *
+     * @param workerId - Worker ID，必填
+     * @returns Worker 详情
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const worker = await client.getWorkerManager().getWorker("worker-1");
+     * ```
      */
     async getWorker(workerId: string): Promise<WorkerInfo> {
         if (!workerId) {
@@ -319,6 +347,14 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 注销指定 Worker
      * DELETE /_synapse/worker/v1/workers/{worker_id}
+     *
+     * @param workerId - Worker ID，必填
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerManager().unregisterWorker("worker-1");
+     * ```
      */
     async unregisterWorker(workerId: string): Promise<void> {
         if (!workerId) {
@@ -334,6 +370,18 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 发送命令给指定 Worker
      * POST /_synapse/worker/v1/workers/{worker_id}/commands
+     *
+     * @param workerId - 目标 Worker ID，必填
+     * @param command - 命令请求
+     * @returns 无返回值
+     * @throws {ValidationError} 当 `workerId` 或 `command.command_type` 为空时抛出
+     * @example
+     * ```typescript
+     * await client.getWorkerManager().sendCommand("worker-1", {
+     *     command_type: "reload",
+     *     command_data: {},
+     * });
+     * ```
      */
     async sendCommand(workerId: string, command: CommandRequest): Promise<void> {
         if (!workerId) {
@@ -357,6 +405,12 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 列出所有待处理任务
      * GET /_synapse/worker/v1/tasks
+     *
+     * @returns 待处理任务列表
+     * @example
+     * ```typescript
+     * const tasks = await client.getWorkerManager().listTasks();
+     * ```
      */
     async listTasks(): Promise<Task[]> {
         const result = await this.doRequest<{ tasks: Task[] }>(Method.Get, "/v1/tasks");
@@ -366,6 +420,17 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 分配一个任务
      * POST /_synapse/worker/v1/tasks
+     *
+     * @param task - 任务分配请求，`task_type` 必填
+     * @returns 创建后的任务
+     * @throws {ValidationError} 当 `task.task_type` 为空时抛出
+     * @example
+     * ```typescript
+     * const task = await client.getWorkerManager().assignTask({
+     *     task_type: "send_email",
+     *     task_data: {},
+     * });
+     * ```
      */
     async assignTask(task: TaskAssignment): Promise<Task> {
         if (!task.task_type) {
@@ -377,6 +442,14 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 为指定 Worker 领取下一个任务
      * POST /_synapse/worker/v1/tasks/claim/{worker_id}
+     *
+     * @param workerId - Worker ID，必填
+     * @returns 领取到的任务
+     * @throws {ValidationError} 当 `workerId` 为空时抛出
+     * @example
+     * ```typescript
+     * const task = await client.getWorkerManager().claimNextTask("worker-1");
+     * ```
      */
     async claimNextTask(workerId: string): Promise<Task> {
         if (!workerId) {
@@ -395,6 +468,12 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 获取 Worker 拓扑信息
      * GET /_synapse/worker/v1/topology
+     *
+     * @returns 拓扑信息
+     * @example
+     * ```typescript
+     * const topology = await client.getWorkerManager().getTopology();
+     * ```
      */
     async getTopology(): Promise<Topology> {
         return this.doRequest<Topology>(Method.Get, "/v1/topology");
@@ -403,6 +482,12 @@ export class WorkerManager extends BaseManager<string, Record<string, never>> {
     /**
      * 获取 Worker 统计信息
      * GET /_synapse/worker/v1/statistics
+     *
+     * @returns 统计信息列表
+     * @example
+     * ```typescript
+     * const stats = await client.getWorkerManager().getStatistics();
+     * ```
      */
     async getStatistics(): Promise<Statistics[]> {
         return this.doRequest<Statistics[]>(Method.Get, "/v1/statistics");

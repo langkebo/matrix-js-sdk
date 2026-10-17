@@ -135,6 +135,11 @@ const isNamespaced = (p) => NAMESPACES.some((n) => p.startsWith(n));
 const SERVER_ONLY_RE = [
     /^\/_matrix\/federation\//,
     /^\/_matrix\/app\//,
+    // AS 代用户调用 C-S API 的入口（`registered_by=app_service`）：`{*path}` 通配符使 codegen
+    // 无法生成 route-table，且与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（已 SERVER_ONLY）为
+    // **孪生路由**。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 裁定「移出客户端面，不封装」——
+    // 故归入服务端排除组，7 条从 §2 移入 §6，避免被误报为"待补封装"的客户端面缺口。
+    /^\/_matrix\/client\/v\d+\/proxy\//,
     /^\/_matrix\/key\//,
     /^\/_synapse\/federation\//,
     /^\/_synapse\/worker/,
@@ -1058,6 +1063,9 @@ L.push(`## 2. 客户端面缺口（三级证据全无）— ${clientGap.length} 
 L.push("");
 if (clientGap.length === 0) {
     L.push("✅ 客户端面路由均有至少一级证据。");
+    // 必须补一个空行：否则紧跟其后的 `---`（§3 的分隔线）会被 Markdown 解析成
+    // setext H2 下划线，prettier 随即把它规范成 `## ✅ ...` 标题，污染报告标题树。
+    L.push("");
 } else {
     L.push(`判定口径：该 \`(method, path)\` 既无 L2 调用点、也无 L1 声明、也无 L3 路径构造证据。`);
     L.push("");
@@ -1225,16 +1233,16 @@ for (const [mod, g] of groupCount(serverGap)) {
 // key = 归一化路径（version 不敏感，用 looseKey 形式），便于跨版本复用。
 const VERIFIED = {
     "client/unstable/org.matrix.msc2965/auth_issuer": {
-        verdict: "🔴 真缺口（已核实）",
+        verdict: "⚪ 非缺口（后端**无**此路由；2026-10-17 订正）",
         evidence:
-            "`grep -rn \"auth_issuer\\|msc2965\" src --include='*.ts' | grep -v __generated__` → **0 命中**；SDK 的 OIDC 走 `src/oidc/discovery.ts` 直接请求 `.well-known/openid-configuration`，从不调用后端的 MSC2965 委派认证入口。",
-        action: "确认前端是否启用 MSC2965 委派认证；若启用，需补 `OidcManager.getAuthIssuer()`（`GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer`）；若不启用，登记为「后端有、前端不走」并保持缺口。",
+            '`grep -rn "auth_issuer" ../synapse-rust/synapse-web/src` → **0 命中**；后端 fixture `ledger_export_sdk/default.json` 与 SDK `route-manifest.default.json` 同样 **0 命中** ⇒ 该路由**不在任何路由契约里**，故「后端有、SDK 无」的前提不成立。SDK 在 `src/client-auth.ts:55-61` 已按「回退即 404 的死路径」删除该分支并注明原因（与 `ROUTE_CONTRACT.md` 附录 B M-07 一致）。',
+        action: "**无需补**。若将来后端真的注册该路由（MSC2965 委派认证），再评估是否改用 `.well-known` 而非该端点。",
     },
     "client/v3/admin/room/{}/redact": {
-        verdict: "🔴 真缺口（已核实）",
+        verdict: "🟢 已实现（原判「真缺口」为**误报**，2026-10-17 订正）",
         evidence:
-            '`grep -rn "redact" src/admin` → **0 命中**；SDK 仅有用户态 `PUT /_matrix/client/{v1,v3}/rooms/{roomId}/redact/{eventId}/{txnId}`，无 admin 房间级 redact。',
-        action: "若运营后台需要房间级 redact：`AdminRoomManager` 补 `redactRoomEvent(roomId, eventId, reason)`；若由前端 `AdminFacadeService` 直连（C 类运维面），则登记不补。",
+            '`src/admin/sub-managers/admin-room-manager.ts:640` 有 `redactRoomEvents(roomId, payload)`：`POST {prefix}/admin/room/{roomId}/redact`（`:652`），返回 `AdminRoomRedactResult`。原文「`grep -rn "redact" src/admin` → 0 命中」不成立 —— 该文件位于 `sub-managers/` 子目录，`grep` 未递归或当时方法尚未落地。',
+        action: "**无需补**。按 `event_id` 单条撤回用 `POST /_synapse/admin/v1/rooms/{room_id}/cascade_redact`（`cascadeRedactEvent`，`:1146`）。",
     },
     "media/{}/download/{}/{}": {
         verdict: "🟡 版本别名（已核实，非缺口）",
@@ -1249,23 +1257,25 @@ const VERIFIED = {
         action: "无需改动。这是本解析器的已知盲区（`getUrl(relativePath, ..., prefix)` 形态 + 尾部参数后拼），已在 §7.1 登记。",
     },
     "client/unstable/org.matrix.msc4155/rooms/{}/threads": {
-        verdict: "🔴 真缺口（已核实）",
+        verdict: "🔴 仅缺 **unstable 变体**（v1 稳定版已封；2026-10-17 订正表述）",
         evidence:
-            "`grep -rn \"msc4155\\|msc4156\" src --include='*.ts' | grep -v __generated__` → **0 命中**；全仓除 `__generated__/route-table.ts` 外**没有任何 `/threads` 路径字面量**。",
-        action: "**须与 Sprint 4 交付范围对照**：MSC4155（房间线程列表）在 SDK 侧无任何调用点。若该 ticket 只交付了后端，则前端线程能力仍走 `relations`（`m.thread`）自建；若要启用不稳定端点，需在 `ThreadManager` 补 `getRoomThreads()`。",
+            'SDK 已封 **v1 稳定版**：`src/thread/index.ts:192` `getRoomThreads()` → `tp("/rooms/{roomId}/threads")` + `THREAD_PREFIX_V1` = `/_matrix/client/v1/rooms/{id}/threads`。原文「全仓除 route-table 外**没有任何 `/threads` 路径字面量**」**与事实不符**；真正的缺口只是 MSC4155 的 **unstable 变体**（`/_matrix/client/unstable/org.matrix.msc4155/rooms/{}/threads`）。',
+        action: "v1 稳定版已够用，**无需补**。仅当需要 MSC4155 unstable 的独有能力（或后端只在 unstable 下提供）时，再给 `ThreadManager` 加 unstable 变体入口。",
     },
     "client/unstable/org.matrix.msc4156/threads/subscribed": {
-        verdict: "🔴 真缺口（已核实）",
-        evidence: "同上，`msc4156` 在 `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）。",
-        action: "同上：补 `getSubscribedThreads()`，或明确该能力不在本期前端范围内。",
+        verdict: "🔴 仅缺 **unstable 变体**（vendor 版已封；2026-10-17 订正表述）",
+        evidence:
+            "SDK 已封 **vendor 版**：`src/thread/index.ts:704` `getSubscribedThreads()` → `/threads/subscribed`（`VendorPrefix`）= `/_matrix/vendor/v1/threads/subscribed`。缺口仅指 MSC4156 的 unstable 变体。",
+        action: "vendor 版已够用，**无需补**。",
+    },
+    "client/v1/proxy/{as_id}/{*path}": {
+        verdict: "⚪ 非前端面（已核实，登记豁免）",
+        evidence:
+            "后端 ledger `registered_by=app_service`；与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（7 方法，已在 `SERVER_ONLY_RE` 命中 `/_matrix/app/` → 归 §6）为**孪生路由**，仅前缀不同。`{*path}` 通配符使 codegen 无法生成 route-table；`grep -rn \"/proxy/\" src --include='*.ts'` 无任何消费点。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 明确裁定该 7 条「移出客户端面，归入 AS/服务端排除组（不封装）」。",
+        action: "**不封装**。已在 `scopeOf` 的 `SERVER_ONLY_RE` 增补 `/^\\/_matrix\\/client\\/v\\d+\\/proxy\\//`，这 7 条从 §2（客户端面缺口）移入 §6（服务端/非产品面缺口）。",
     },
 };
 
-const lk = (p) => {
-    const segs = normalizeParams(p).split("/").filter(Boolean);
-    const cut = segs.findIndex((s) => /^(v\d+|r\d+|unstable)$/.test(s));
-    return segs.slice(cut + 1).join("/");
-};
 L.push(`---`);
 L.push("");
 L.push(`## 7. 人工复核记录（本轮，${localDate()}）`);

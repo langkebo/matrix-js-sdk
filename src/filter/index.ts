@@ -45,6 +45,24 @@ export class FilterManager extends BaseManager {
         super(client, opts);
     }
 
+    /**
+     * 创建过滤器并写入本地 store。
+     *
+     * 对应 POST /_matrix/client/v3/user/{userId}/filter。
+     *
+     * @param definition - 过滤器定义
+     * @returns 包含新过滤器 ID 的对象
+     * @throws {ValidationError} 当前用户 ID 缺失时
+     * @throws {ApiError} 请求失败时（经 normalizeError 归一化）
+     *
+     * @example
+     * ```typescript
+     * const { filterId } = await client.getFilterManager().createFilter({
+     *     room: { timeline: { limit: 50 } },
+     * });
+     * console.log(filterId);
+     * ```
+     */
     public async createFilter(definition: IFilterDefinition): Promise<{ filterId: string }> {
         const userId = this.client.getUserId();
         if (!userId) {
@@ -68,6 +86,23 @@ export class FilterManager extends BaseManager {
         }
     }
 
+    /**
+     * 获取指定过滤器，命中本地缓存时直接返回。
+     *
+     * 对应 GET /_matrix/client/v3/user/{userId}/filter/{filterId}。
+     *
+     * @param userId - 用户 ID
+     * @param filterId - 过滤器 ID
+     * @param allowCached - 是否允许使用本地缓存，默认 true
+     * @returns 过滤器对象
+     * @throws {ApiError} 请求失败时（经 normalizeError 归一化）
+     *
+     * @example
+     * ```typescript
+     * const filter = await client.getFilterManager().getFilter("@alice:example.org", "0");
+     * console.log(filter.getDefinition());
+     * ```
+     */
     public async getFilter(userId: string, filterId: string, allowCached = true): Promise<Filter> {
         if (allowCached) {
             const filter = this.client.store.getFilter(userId, filterId);
@@ -93,6 +128,23 @@ export class FilterManager extends BaseManager {
         }
     }
 
+    /**
+     * 按名称获取过滤器；不存在或定义不一致时创建一个新过滤器并缓存其 ID。
+     *
+     * @param filterName - 过滤器名称（本地缓存键）
+     * @param filter - 期望的过滤器对象
+     * @returns 过滤器 ID
+     * @throws {ApiError} 校验已缓存过滤器时命中非「未找到/未知」类错误，或创建过滤器失败时
+     *
+     * @example
+     * ```typescript
+     * const filterId = await client.getFilterManager().getOrCreateFilter(
+     *     "my-filter",
+     *     new Filter("@alice:example.org", { room: { timeline: { limit: 50 } } }),
+     * );
+     * console.log(filterId);
+     * ```
+     */
     public async getOrCreateFilter(filterName: string, filter: Filter): Promise<string> {
         const filterId = this.client.store.getFilterIdByName(filterName);
         let existingId: string | undefined;

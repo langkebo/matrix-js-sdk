@@ -96,6 +96,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param eventType - The event type
      * @param content - The contents object for the event
      * @returns Promise which resolves: an empty object
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountDataManager().setAccountData("m.direct", { "@alice:example.org": ["!room:example.org"] });
+     * ```
      */
     public async setAccountData<K extends keyof WritableAccountDataEvents>(
         eventType: K,
@@ -138,6 +143,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      *
      * @param eventType - The event type
      * @param content - the contents object for the event
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountDataManager().setAccountDataRaw("m.direct", { "@alice:example.org": ["!room:example.org"] });
+     * ```
      */
     public setAccountDataRaw<K extends keyof WritableAccountDataEvents>(
         eventType: K,
@@ -155,6 +165,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * Get account data event of given type for the current user.
      * @param eventType - The event type
      * @returns The contents of the given account data event
+     *
+     * @example
+     * ```typescript
+     * const event = client.getAccountDataManager().getAccountData("m.direct");
+     * ```
      */
     public getAccountData<K extends keyof AccountDataEvents>(eventType: K): MatrixEvent | undefined {
         return this.client.store.getAccountData(eventType as string);
@@ -167,6 +182,12 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param eventType - The event type
      * @returns Promise which resolves: The contents of the given account data event.
      * @returns Rejects: with an error response.
+     * @throws {Error} 请求失败且不是「数据不存在」错误时
+     *
+     * @example
+     * ```typescript
+     * const content = await client.getAccountDataManager().getAccountDataFromServer("m.direct");
+     * ```
      */
     public async getAccountDataFromServer<K extends keyof AccountDataEvents>(
         eventType: K,
@@ -205,6 +226,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      *     "m.push_rules": { "global": { ... } }
      *   }
      * }
+     *
+     * @example
+     * ```typescript
+     * const { account_data } = await client.getAccountDataManager().listAccountData();
+     * ```
      */
     public async listAccountData(): Promise<{ account_data: Record<string, IContent> }> {
         const path = buildUserAccountDataListPath(this.client.credentials.userId!);
@@ -221,6 +247,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param eventType - 数据类型
      * @returns MatrixEvent 或 undefined（当数据不存在时）
      * @throws Error 当请求失败时（404 表示数据不存在）
+     *
+     * @example
+     * ```typescript
+     * const event = await client.getAccountDataManager().getRoomAccountDataFromServer("!room:example.org", "m.fully_read");
+     * ```
      */
     public async getRoomAccountDataFromServer<K extends string>(
         roomId: string,
@@ -244,6 +275,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param roomId - 房间 ID
      * @param eventType - 数据类型
      * @param content - 数据内容
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountDataManager().setRoomAccountData("!room:example.org", "m.fully_read", { event_id: "$event" });
+     * ```
      */
     public async setRoomAccountData<K extends string>(roomId: string, eventType: K, content: IContent): Promise<void> {
         this.validateDataType(eventType);
@@ -263,6 +299,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param roomId - 房间 ID
      * @param eventType - 数据类型
      * @throws Error 当数据不存在时（404）
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountDataManager().deleteRoomAccountData("!room:example.org", "m.fully_read");
+     * ```
      */
     public async deleteRoomAccountData(roomId: string, eventType: string): Promise<void> {
         const path = buildRoomAccountDataPath(this.client.credentials.userId!, roomId, eventType);
@@ -276,6 +317,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     /**
      * Delete account data.
      * @param eventType - The event type to delete
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountDataManager().deleteAccountData("m.direct");
+     * ```
      */
     public async deleteAccountData(eventType: keyof WritableAccountDataEvents): Promise<void> {
         const msc3391DeleteAccountDataServerSupport = this.client.canSupport.get(Feature.AccountDataDeletion);
@@ -295,6 +341,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
     /**
      * Gets the users that are ignored by this client
      * @returns The array of users that are ignored (empty if none)
+     *
+     * @example
+     * ```typescript
+     * const ignored = client.getAccountDataManager().getIgnoredUsers();
+     * ```
      */
     public getIgnoredUsers(): string[] {
         const event = this.getAccountData(EventType.IgnoredUserList);
@@ -308,6 +359,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * @param userIds - the user IDs to ignore
      * @returns Promise which resolves: an empty object
      * @returns Rejects: with an error response.
+     *
+     * @example
+     * ```typescript
+     * await client.getAccountDataManager().setIgnoredUsers(["@spam:example.org"]);
+     * ```
      */
     public setIgnoredUsers(userIds: string[]): Promise<EmptyObject> {
         const content = { ignored_users: {} as Record<string, EmptyObject> };
@@ -321,6 +377,11 @@ export class AccountDataManager extends BaseManager<AccountDataEvent, AccountDat
      * Gets whether or not a specific user is being ignored by this client.
      * @param userId - the user ID to check
      * @returns true if the user is ignored, false otherwise
+     *
+     * @example
+     * ```typescript
+     * const ignored = client.getAccountDataManager().isUserIgnored("@spam:example.org");
+     * ```
      */
     public isUserIgnored(userId: string): boolean {
         return this.getIgnoredUsers().includes(userId);

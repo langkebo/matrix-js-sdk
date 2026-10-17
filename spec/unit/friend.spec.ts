@@ -789,7 +789,7 @@ describe("FriendManager", () => {
                 count: 2,
                 mode: "fuzzy",
                 limited: false,
-                retry_after_seconds: 0,
+                retry_after_ms: 0,
             });
 
             const response = await friendManager.searchUsers("bob");
@@ -814,7 +814,7 @@ describe("FriendManager", () => {
                 count: 1,
                 mode: "exact",
                 limited: false,
-                retry_after_seconds: 0,
+                retry_after_ms: 0,
             });
 
             const response = await friendManager.searchUsers("@bob:example.com", "exact");
@@ -836,7 +836,7 @@ describe("FriendManager", () => {
                 count: 0,
                 mode: "fuzzy",
                 limited: false,
-                retry_after_seconds: 0,
+                retry_after_ms: 0,
             });
 
             await friendManager.searchUsers("test", undefined, 5);
@@ -861,7 +861,7 @@ describe("FriendManager", () => {
                 count: 0,
                 mode: "fuzzy",
                 limited: false,
-                retry_after_seconds: 0,
+                retry_after_ms: 0,
             });
 
             const response = await friendManager.searchUsers("nonexistent");
@@ -883,7 +883,7 @@ describe("FriendManager", () => {
                 count: 0,
                 mode: "fuzzy",
                 limited: false,
-                retry_after_seconds: 0,
+                retry_after_ms: 0,
             });
 
             await friendManager.searchUsers("  alice  ");
@@ -893,18 +893,18 @@ describe("FriendManager", () => {
             });
         });
 
-        it("should expose retry_after_seconds for rate limiting", async () => {
+        it("should expose retry_after_ms for rate limiting", async () => {
             mockAuthedRequest.mockResolvedValue({
                 results: [],
                 count: 0,
                 mode: "fuzzy",
                 limited: true,
-                retry_after_seconds: 5,
+                retry_after_ms: 5000,
             });
 
             const response = await friendManager.searchUsers("spam");
 
-            expect(response.retry_after_seconds).toBe(5);
+            expect(response.retry_after_ms).toBe(5000);
             expect(response.limited).toBe(true);
         });
 

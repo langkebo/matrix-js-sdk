@@ -85,15 +85,6 @@
             "reason": "房间状态读写"
         },
         {
-            "file": "room-summary/sub-managers/room-invite-policy-manager.ts",
-            "module": "room-summary",
-            "lines": 119,
-            "httpCalls": 4,
-            "owner": "langkebo",
-            "deadline": "2026-12-31",
-            "reason": "邀请策略（权限判定），无 spec 引用"
-        },
-        {
             "file": "room-summary/sub-managers/room-thread-manager.ts",
             "module": "room-summary",
             "lines": 119,

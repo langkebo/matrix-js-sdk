@@ -88,6 +88,21 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         super(client, opts);
     }
 
+    /**
+     * 发送验证码。
+     *
+     * @param captchaType - 验证码类型
+     * @param target - 目标（如邮箱或手机号）
+     * @param templateName - 可选模板名
+     * @param version - API 版本，默认 v3
+     * @returns 验证码发送结果（captcha_id / expires_in / captcha_type）
+     * @throws {SdkError} 请求失败时
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCaptchaManager().sendCaptcha("email", "alice@example.org");
+     * ```
+     */
     public async sendCaptcha(
         captchaType: string,
         target: string,
@@ -125,6 +140,20 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         }
     }
 
+    /**
+     * 校验验证码。
+     *
+     * @param captchaId - 验证码 ID
+     * @param code - 用户提交的验证码
+     * @param version - API 版本，默认 v3
+     * @returns 校验结果（verified）
+     * @throws {SdkError} 请求失败时
+     *
+     * @example
+     * ```typescript
+     * const { verified } = await client.getCaptchaManager().verifyCaptcha("captcha-id", "123456");
+     * ```
+     */
     public async verifyCaptcha(
         captchaId: string,
         code: string,
@@ -151,6 +180,19 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         }
     }
 
+    /**
+     * 查询验证码状态。
+     *
+     * @param captchaId - 验证码 ID
+     * @param version - API 版本，默认 v3
+     * @returns 验证码状态详情
+     * @throws {SdkError} 请求失败时
+     *
+     * @example
+     * ```typescript
+     * const status = await client.getCaptchaManager().getCaptchaStatus("captcha-id");
+     * ```
+     */
     public async getCaptchaStatus(captchaId: string, version?: CaptchaApiVersion): Promise<CaptchaStatusResponse> {
         try {
             return await this.withRetry(async () => {
@@ -167,6 +209,19 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
         }
     }
 
+    /**
+     * 通过管理员 POST 路由清理过期验证码。
+     *
+     * POST /_synapse/admin/v1/captcha/cleanup
+     *
+     * @returns 清理结果（cleaned_count / message）
+     * @throws {SdkError} 请求失败时
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCaptchaManager().cleanupExpiredCaptchas();
+     * ```
+     */
     public async cleanupExpiredCaptchas(): Promise<CaptchaCleanupResponse> {
         try {
             return await this.withRetry(async () => {
@@ -187,6 +242,14 @@ export class CaptchaManager extends BaseManager<keyof CaptchaManagerEvents, Capt
      *
      * Unlike `cleanupExpiredCaptchas()` which uses the admin POST route,
      * this method uses the client-facing DELETE endpoint.
+     *
+     * @returns 清理结果（cleaned_count / message）
+     * @throws {SdkError} 请求失败时
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCaptchaManager().deleteExpiredCaptchas();
+     * ```
      */
     public async deleteExpiredCaptchas(): Promise<CaptchaCleanupResponse> {
         try {

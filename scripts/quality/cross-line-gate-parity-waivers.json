@@ -11,34 +11,26 @@
         "  · **登记不等于修好**：它只把『Tjg 消费的线缺多少条判据』钉成一个只能变小的数字。",
         "",
         "真正的修法见方案文档 §10 批次 F2/F3/F4：把门禁连同 lib/台账/.d.mts/spec 一起移植到",
-        "release 线并接进它的 lint / quality:contracts。"
+        "release 线并接进它的 lint / quality:contracts。",
+        "",
+        "【2026-10-11 复核 / I-08 闭环】Tjg 真正消费的 pin 提交 9d0229a21（位于 release/contract-entrypoint-next）",
+        "已包含下列全部 5 条受管辖门禁（逐条 git cat-file 校验 PRESENT）。本文件 5 条豁免当前仅对应**已淘汰的",
+        "本地旧分支** release/contract-entrypoint（802781b4f，2026-10-10，无远端）—— 即『Tjg 消费的线缺判据』",
+        "这一原始风险在消费线上已不存在；保留豁免只因 DEFAULT_REF 仍指向旧分支。各条 reason 已附复核结论。"
     ],
     "schemaVersion": 1,
-    "capturedAt": "2026-10-10",
+    "capturedAt": "2026-10-11",
     "crossLineRef": "release/contract-entrypoint",
     "gates": {
-        "scripts/quality/check-admin-response-contract.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。",
-        "scripts/quality/check-api-contract-doc-paths.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-audit-doc-integrity.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-coverage-critical-files.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-cross-line-gate-parity.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。（本条是**本门禁自己**：它在 develop 落地后立刻出现于此 —— 说明台账是对称的，不给自己开后门。）",
-        "scripts/quality/check-docs-counts.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-docs-examples.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-gate-reachability.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-git-hooks.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-msc-changes.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-public-api-docs.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-repo-coverage.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-route-set-parity.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。",
-        "scripts/quality/check-waiver-expiry.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/check-wire-format.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。",
-        "scripts/quality/find-lowest-coverage-files.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/find-lowest-coverage-modules.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/run-granular-coverage-gates.mjs": "F2 待移植（**低依赖组**）：只依赖本仓文件（quality lib / 文档树 / 生成镜像 / 覆盖率产物），可随该门禁的 lib + 台账 + .d.mts + spec 一起整体移植到 release 线并接进它的 lint / quality:contracts。",
-        "scripts/quality/verify-path-contract.mjs": "F3 待移植（**高依赖组**）：依赖后端兄弟仓（`SYNAPSE_RUST_REPO`）与 serde 抽取器 / `ledger_export_sdk` fixture ⇒ 必须先移植依赖再移植门禁（顺序不可颠倒）。"
+        "scripts/quality/check-generated-dto-placeholders.mjs": "【2026-10-14 新增门禁】落地于 **Tjg 实际消费的线**（release/contract-entrypoint-next —— 与上方 I-08 复核结论一致）；豁免仅因 DEFAULT_REF 仍指向**已淘汰的本地旧分支** release/contract-entrypoint（802781b4f，无远端）。判据：生成 DTO 的 `= never` 空占位只降不升（对应 2026-10-13 跨仓审计 §3 S4：46 个生成 DTO 里 15 个是空壳，此前无任何台账）。已接入 `quality:contracts`，因此在 tests.yml / systemic_refactor_quality_gate.yml 的 `release/**` 直推触发上生效（L2，70dfb4594）。",
+        "scripts/quality/check-admin-response-contract.mjs": "【I-08 复核闭环 2026-10-11：Tjg 消费的 pin 9d0229a21（release/contract-entrypoint-next）已含本门禁；豁免仅因 DEFAULT_REF 指向已淘汰旧分支 release/contract-entrypoint（802781b4f）。以下为原判据文本】F3 待移植（**无依赖阻塞 —— 原「必须先移植依赖，顺序不可颠倒」不成立**）：`SYNAPSE_RUST_REPO` 出现过 2 次，但**只有 `--refresh` 模式需要后端仓**（`backendPresent = fs.existsSync(RUST_ROUTES_ROOT)`，缺席即报错退出）；**默认（非 `--refresh`）走 `readLedger()` 读冻结台账** ⇒ 可 repo-less 跑。移植时带上冻结台账 `admin-response-contract-ledger.json` + `.d.mts` + spec，并在 release 的 `quality:contracts` 里**不接 `--refresh`**（该模式是「重新冻结」，属 develop 侧人工动作）。",
+        "scripts/quality/check-route-set-parity.mjs": "【I-08 复核闭环 2026-10-11：Tjg 消费的 pin 9d0229a21（release/contract-entrypoint-next）已含本门禁；豁免仅因 DEFAULT_REF 指向已淘汰旧分支 release/contract-entrypoint（802781b4f）。以下为原判据文本】**分类订正：原「F3 高依赖组」不成立**。`SYNAPSE_RUST_REPO` 出现 **0 次** —— 只读仓内产物（`docs/api-contract/generated/**` 的 index/manifest + `src/**/__generated__/route-table.ts`）⇒ 属**纯本仓**，移植无依赖障碍。但**单独搬它收益低**：判据是**子集包含** —— 2026-10-10 在 release 树实测 `route-table 38 文件 / 701 条` ⊂ `ledger 1027 条` ⇒ `exit 0`「弱绿」，**测不出 release 的 `src` 落后**。release 真正该守的是**反向判据（后端有、SDK 未覆盖）+ 新鲜度**（见方案文档的 `contract-freshness` / `cross-repo-pin`）。",
+        "scripts/quality/check-url-constructors.mjs": "【I-08 复核闭环 2026-10-11：Tjg 消费的 pin 9d0229a21（release/contract-entrypoint-next）已含本门禁；豁免仅因 DEFAULT_REF 指向已淘汰旧分支 release/contract-entrypoint（802781b4f）。以下为原判据文本】**已解耦，可独立先行移植**（2026-10-10 提交 `25be6a889`）：本文件**不再** `import` `verify-path-contract.mjs`，共享核心改由**本文件定义**（依赖方向反转为 `verify-path-contract.mjs` → 本文件）。除 `node:*` 外只依赖 `lib/write-json.mjs`（release 线已有）⇒ 带上 `url-constructor-ledger.json` + `.d.mts` + spec 整体搬即可（批次 K2）。仍登记在此，是因为 release 线尚无本文件；但**移植已无顺序阻塞**。注意：搬过去后它会**立刻红在 release 的 `src` 落后**上（2026-10-10 实测 `[stale-guard] src/cas/index.ts 缺守卫子串 CAS_API_PREFIX.cas` + `[missing-symbol] src/saml/index.ts 找不到 getLogoutRedirectUrl`）—— 那是**真实差距**，不是门禁故障。",
+        "scripts/quality/check-wire-format.mjs": "【I-08 复核闭环 2026-10-11：Tjg 消费的 pin 9d0229a21（release/contract-entrypoint-next）已含本门禁；豁免仅因 DEFAULT_REF 指向已淘汰旧分支 release/contract-entrypoint（802781b4f）。以下为原判据文本】F3 待移植（**无依赖阻塞 —— 原「必须先移植依赖，顺序不可颠倒」不成立**）：`SYNAPSE_RUST_REPO` 出现过 2 次，但**有回退** —— `backendAvailable = fs.existsSync(RUST_ROUTES_ROOT)`、`effective = backend ?? frozen`（冻结台账 `wire-format-ledger.json`）⇒ 后端缺席时走冻结台账，**可 repo-less 跑**。移植时带上冻结台账 + `.d.mts` + spec。",
+        "scripts/quality/verify-path-contract.mjs": "【I-08 复核闭环 2026-10-11：Tjg 消费的 pin 9d0229a21（release/contract-entrypoint-next）已含本门禁；豁免仅因 DEFAULT_REF 指向已淘汰旧分支 release/contract-entrypoint（802781b4f）。以下为原判据文本】F3 待移植（**真阻塞是 release 的 `src` 落后，不是依赖顺序**）：`SYNAPSE_RUST_REPO` 出现 **0 次** —— ledger 走三级回退（`LEDGER_PATH` > 兄弟仓 `../synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json` > 仓内镜像 `docs/api-contract/generated/route-manifest.all.json`），CI 恒走镜像。2026-10-10 实测真阻塞：release **缺 `src/http-api/strip-prefix.ts`**（develop 有）⇒ 在该树上跑得 `exit 2`。移植顺序（K4 解耦后）：**先搬 `check-url-constructors.mjs`**（本文件现在 import 它的共享核心），再搬本文件。"
     },
     "support": {
-        "count": 54,
-        "note": "非门禁差集（lib/ 支撑 + .d.mts 声明 + 台账/基线）的条数。只做棘轮（只降不升），不逐条登记 —— 它们的意义是『上面那些门禁跑不跑得起来』。"
+        "count": 32,
+        "note": "非门禁差集（lib/ 支撑 + .d.mts 声明 + 台账/基线）的条数。只做棘轮（只降不升），不逐条登记 —— 它们的意义是『上面那些门禁跑不跑得起来』。【2026-10-14 有据上调 30 → 32】新增受管辖门禁 check-generated-dto-placeholders.mjs 自带的 .d.mts 声明与 = never 占位台账两个支撑文件（本仓新门禁标配：导出纯函数 + .d.mts + 台账），属**随门禁新增的必然增量**，非未登记的漂移；本线为 Tjg 实际消费线，故不移植到已淘汰的 DEFAULT_REF 分支。"
     }
 }

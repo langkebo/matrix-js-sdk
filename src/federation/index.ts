@@ -279,6 +279,14 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
      * U+FFFD（替换字符）转义为对应的 JSON 转义序列，确保与后端 C-2 修复对齐。
      *
      * 注意：在 JSON.stringify 之后替换，避免 replacer 导致的双重转义问题。
+     *
+     * @param value - 待序列化的任意值。
+     * @returns Canonical JSON 字符串。
+     *
+     * @example
+     * ```typescript
+     * const json = FederationManager.toCanonicalJson({ message: "hello\u2028world" });
+     * ```
      */
     static toCanonicalJson(value: unknown): string {
         return JSON.stringify(value)
@@ -290,6 +298,22 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
     /**
      * 发送联邦事件（使用 Canonical JSON 序列化，对齐后端 C-2 修复）
      * 对应 PUT /_matrix/federation/v1/send/{txnId}
+     *
+     * @param txnId - 事务 ID，用于后端幂等去重。
+     * @param event - 待发送的联邦事件。
+     * @returns 请求完成后 resolve（无响应体）。
+     *
+     * @example
+     * ```typescript
+     * await client.getFederationManager().sendFederationEvent("txn-2026-001", {
+     *   type: "m.room.message",
+     *   sender: "@alice:example.com",
+     *   content: { msgtype: "m.text", body: "hello" },
+     * });
+     * ```
+     *
+     * @throws {ValidationError} 当 txnId 或 event 为空时抛出。
+     * @throws {Error} 当联邦请求失败时抛出。
      */
     async sendFederationEvent(txnId: string, event: IEvent): Promise<void> {
         if (!txnId) throw new ValidationError("Transaction ID is required");
@@ -317,11 +341,32 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
 
     // ─── 生命周期 ───────────────────────────────────────────────
 
+    /**
+     * 清空联邦管理器的本地缓存（黑名单与服务器状态子管理器）。
+     *
+     * 仅清理 SDK 本地缓存，不影响后端数据；下次访问时会重新拉取。
+     *
+     * @example
+     * ```typescript
+     * client.getFederationManager().clearCache();
+     * ```
+     */
     clearCache(): void {
         this.blacklist.clearCache();
         this.server.clearCache();
     }
 
+    /**
+     * 启动联邦管理器：预加载黑名单数据并将管理器标记为已初始化。
+     *
+     * 重复调用是幂等的。预加载失败时仅记录警告而不抛出异常，
+     * 因此即使暂时不可用，管理器仍可继续使用。
+     *
+     * @example
+     * ```typescript
+     * await client.getFederationManager().start();
+     * ```
+     */
     async start(): Promise<void> {
         if (this.initialized) return;
 
@@ -334,6 +379,15 @@ export class FederationManager extends BaseManager<FederationEvent, FederationMa
         }
     }
 
+    /**
+     * 停止联邦管理器：清理本地缓存、重置初始化标志，并移除所有
+     * 子管理器的事件转发监听器，防止 stop() 之后事件泄漏。
+     *
+     * @example
+     * ```typescript
+     * client.getFederationManager().stop();
+     * ```
+     */
     stop(): void {
         this.blacklist.clearCache();
         this.server.clearCache();

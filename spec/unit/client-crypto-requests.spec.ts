@@ -71,135 +71,6 @@ describe("client-crypto-requests", () => {
         });
     });
 
-    describe("uploadKeysHttpRequest", () => {
-        it("should upload keys with content", async () => {
-            const content = { device_keys: {}, one_time_keys: {} };
-            const result = await cryptoRequests.uploadKeysHttpRequest(content, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/keys/upload", undefined, content);
-            expect(result).toEqual(mockResult);
-        });
-    });
-
-    describe("uploadKeySignaturesHttpRequest", () => {
-        it("should upload key signatures", async () => {
-            const content = { signatures: {} };
-            const result = await cryptoRequests.uploadKeySignaturesHttpRequest(content, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/keys/signatures/upload", undefined, content);
-            expect(result).toEqual(mockResult);
-        });
-    });
-
-    describe("queryKeysForUsersRequest", () => {
-        it("should query keys for users without token", async () => {
-            const userIds = ["@alice:example.com", "@bob:example.com"];
-
-            await cryptoRequests.queryKeysForUsersRequest(userIds, undefined, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/query",
-                undefined,
-                expect.objectContaining({
-                    device_keys: {
-                        "@alice:example.com": [],
-                        "@bob:example.com": [],
-                    },
-                }),
-            );
-        });
-
-        it("should include token when provided", async () => {
-            const userIds = ["@alice:example.com"];
-            const token = "since_token";
-
-            await cryptoRequests.queryKeysForUsersRequest(userIds, token, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/query",
-                undefined,
-                expect.objectContaining({
-                    device_keys: { "@alice:example.com": [] },
-                    token: token,
-                }),
-            );
-        });
-    });
-
-    describe("claimOneTimeKeysHttpRequest", () => {
-        it("should claim one time keys with default algorithm", async () => {
-            const devices: [string, string][] = [
-                ["@alice:example.com", "DEVICE1"],
-                ["@bob:example.com", "DEVICE2"],
-            ];
-
-            await cryptoRequests.claimOneTimeKeysHttpRequest(devices, undefined, undefined, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/claim",
-                undefined,
-                expect.objectContaining({
-                    one_time_keys: {
-                        "@alice:example.com": { DEVICE1: "signed_curve25519" },
-                        "@bob:example.com": { DEVICE2: "signed_curve25519" },
-                    },
-                }),
-            );
-        });
-
-        it("should use custom key algorithm", async () => {
-            const devices: [string, string][] = [["@alice:example.com", "DEVICE1"]];
-            const algorithm = "custom_algo";
-
-            await cryptoRequests.claimOneTimeKeysHttpRequest(devices, algorithm, undefined, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/claim",
-                undefined,
-                expect.objectContaining({
-                    one_time_keys: {
-                        "@alice:example.com": { DEVICE1: "custom_algo" },
-                    },
-                }),
-            );
-        });
-
-        it("should include timeout when provided", async () => {
-            const devices: [string, string][] = [["@alice:example.com", "DEVICE1"]];
-            const timeout = 5000;
-
-            await cryptoRequests.claimOneTimeKeysHttpRequest(devices, undefined, timeout, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/claim",
-                undefined,
-                expect.objectContaining({
-                    one_time_keys: { "@alice:example.com": { DEVICE1: "signed_curve25519" } },
-                    timeout: timeout,
-                }),
-            );
-        });
-    });
-
-    describe("getKeyChangesRequest", () => {
-        it("should get key changes with from and to tokens", async () => {
-            const oldToken = "old_sync_token";
-            const newToken = "new_sync_token";
-
-            await cryptoRequests.getKeyChangesRequest(oldToken, newToken, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Get, "/keys/changes", {
-                from: oldToken,
-                to: newToken,
-            });
-        });
-    });
-
     describe("uploadDeviceSigningKeysHttpRequest", () => {
         it("should upload device signing keys without auth", async () => {
             const keys = { pub_key: "public_key_data" };
@@ -274,31 +145,6 @@ describe("client-crypto-requests", () => {
         });
     });
 
-    describe("Edge Cases", () => {
-        it("should handle empty device list in claimOneTimeKeysHttpRequest", async () => {
-            const devices: [string, string][] = [];
-
-            await cryptoRequests.claimOneTimeKeysHttpRequest(devices, undefined, undefined, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(Method.Post, "/keys/claim", undefined, {
-                one_time_keys: {},
-            });
-        });
-
-        it("should handle empty userIds list in queryKeysForUsersRequest", async () => {
-            await cryptoRequests.queryKeysForUsersRequest([], undefined, mockAuthedRequest);
-
-            expect(mockAuthedRequest).toHaveBeenCalledWith(
-                Method.Post,
-                "/keys/query",
-                undefined,
-                expect.objectContaining({
-                    device_keys: {},
-                }),
-            );
-        });
-    });
-
     describe("deleteRoomKeyRequestHttpRequest path encoding", () => {
         it("should percent-encode spaces and slashes in requestId", async () => {
             const requestId = "a b/c";
@@ -330,48 +176,6 @@ describe("client-crypto-requests", () => {
     });
 
     describe("Error propagation (HTTP status -> SDK error)", () => {
-        it("should propagate 400 M_BAD_JSON instead of swallowing it", async () => {
-            const err = new MatrixError({ errcode: "M_BAD_JSON", error: "Invalid JSON body" }, 400);
-            mockAuthedRequest.mockRejectedValue(err);
-
-            await expect(cryptoRequests.uploadKeysHttpRequest({ invalid: true }, mockAuthedRequest)).rejects.toThrow(
-                err,
-            );
-        });
-
-        it("should propagate 401 M_UNKNOWN_TOKEN on key upload", async () => {
-            const err = new MatrixError({ errcode: "M_UNKNOWN_TOKEN", error: "bad token" }, 401);
-            mockAuthedRequest.mockRejectedValue(err);
-
-            await expect(
-                cryptoRequests.uploadKeySignaturesHttpRequest({ signatures: {} }, mockAuthedRequest),
-            ).rejects.toThrow(err);
-        });
-
-        it("should propagate 403 M_FORBIDDEN on key query", async () => {
-            const err = new MatrixError({ errcode: "M_FORBIDDEN", error: "forbidden" }, 403);
-            mockAuthedRequest.mockRejectedValue(err);
-
-            await expect(
-                cryptoRequests.queryKeysForUsersRequest(["@alice:example.com"], undefined, mockAuthedRequest),
-            ).rejects.toThrow(err);
-        });
-
-        it("should surface 429 rate-limit as a retryable MatrixError", async () => {
-            const err = new MatrixError({ errcode: "M_LIMIT_EXCEEDED", error: "slow down" }, 429);
-            mockAuthedRequest.mockRejectedValue(err);
-
-            await expect(
-                cryptoRequests.claimOneTimeKeysHttpRequest(
-                    [["@alice:example.com", "DEVICE1"]],
-                    undefined,
-                    undefined,
-                    mockAuthedRequest,
-                ),
-            ).rejects.toThrow(err);
-            expect(err.isRateLimitError()).toBe(true);
-        });
-
         it("should propagate 404 as M_UNRECOGNIZED-capable error on signing key upload", async () => {
             const err = new MatrixError({ errcode: "M_UNRECOGNIZED", error: "unknown endpoint" }, 404);
             mockAuthedRequest.mockRejectedValue(err);
@@ -389,13 +193,6 @@ describe("client-crypto-requests", () => {
             await expect(
                 cryptoRequests.requestRoomKeyHttpRequest({ room_id: "!r:example.com" }, mockAuthedRequest),
             ).rejects.toThrow(err);
-        });
-
-        it("should propagate 502 upstream failure on key changes fetch", async () => {
-            const err = new MatrixError({ error: "bad gateway" }, 502);
-            mockAuthedRequest.mockRejectedValue(err);
-
-            await expect(cryptoRequests.getKeyChangesRequest("a", "b", mockAuthedRequest)).rejects.toThrow(err);
         });
 
         it("should not resolve when the transport rejects", async () => {

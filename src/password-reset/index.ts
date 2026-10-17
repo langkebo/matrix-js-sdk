@@ -39,6 +39,24 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
         super(client, opts);
     }
 
+    /**
+     * 通过邮箱请求密码重置验证令牌。
+     *
+     * @param email - 接收重置邮件的邮箱地址
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于节流
+     * @param nextLink - 邮件中回跳链接，可选
+     * @returns 包含 sid 等信息的请求令牌响应
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getPasswordResetManager().requestPasswordEmailToken(
+     *     "alice@example.org",
+     *     "secret",
+     *     1,
+     * );
+     * ```
+     */
     public async requestPasswordEmailToken(
         email: string,
         clientSecret: string,
@@ -58,6 +76,27 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
         return result;
     }
 
+    /**
+     * 通过手机号请求密码重置验证令牌。
+     *
+     * @param phoneCountry - 国家代码（例如 `44`）
+     * @param phoneNumber - 手机号
+     * @param clientSecret - 客户端密钥，用于后续校验
+     * @param sendAttempt - 发送尝试次数，用于节流
+     * @param nextLink - 短信中回跳链接
+     * @returns 包含 sid 等信息的请求令牌响应
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getPasswordResetManager().requestPasswordMsisdnToken(
+     *     "44",
+     *     "7700900000",
+     *     "secret",
+     *     1,
+     *     "https://example.org/reset",
+     * );
+     * ```
+     */
     public async requestPasswordMsisdnToken(
         phoneCountry: string,
         phoneNumber: string,
@@ -78,6 +117,22 @@ export class PasswordResetManager extends BaseManager<keyof PasswordResetManager
         return result;
     }
 
+    /**
+     * 使用交互式认证设置新密码。
+     *
+     * @param authDict - 交互式认证数据
+     * @param newPassword - 新密码
+     * @param logoutDevices - 是否同时登出其它设备，可选
+     * @returns 空对象
+     *
+     * @example
+     * ```typescript
+     * await client.getPasswordResetManager().setPassword(
+     *     { type: "m.login.password", identifier: { type: "m.id.user", user: "alice" }, password: "old" },
+     *     "new-password",
+     * );
+     * ```
+     */
     public async setPassword(authDict: AuthDict, newPassword: string, logoutDevices?: boolean): Promise<EmptyObject> {
         const result = await this.withRetry(
             async () =>

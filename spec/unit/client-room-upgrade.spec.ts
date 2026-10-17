@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventType } from "../../src/@types/event";
+import type { Room } from "../../src/models/room";
 import {
     findPredecessorRoomsForUpgrade,
     findSuccessorRoomsForUpgrade,
@@ -13,17 +14,17 @@ describe("client-room-upgrade", () => {
             const room3 = {
                 roomId: "!room3:example.com",
                 findPredecessor: vi.fn().mockReturnValue({ roomId: "!room2:example.com" }),
-            } as any;
+            } as unknown as Room;
 
             const room2 = {
                 roomId: "!room2:example.com",
                 findPredecessor: vi.fn().mockReturnValue({ roomId: "!room1:example.com" }),
-            } as any;
+            } as unknown as Room;
 
             const room1 = {
                 roomId: "!room1:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room1:example.com") return room1;
@@ -42,7 +43,7 @@ describe("client-room-upgrade", () => {
             const room = {
                 roomId: "!room1:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn();
 
@@ -63,12 +64,12 @@ describe("client-room-upgrade", () => {
                         return null;
                     },
                 },
-            } as any;
+            } as unknown as Room;
 
             const room1 = {
                 roomId: "!room1:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room2:example.com") return room2;
@@ -95,7 +96,7 @@ describe("client-room-upgrade", () => {
                         return null;
                     },
                 },
-            } as any;
+            } as unknown as Room;
 
             const room2 = {
                 roomId: "!room2:example.com",
@@ -108,7 +109,7 @@ describe("client-room-upgrade", () => {
                         return null;
                     },
                 },
-            } as any;
+            } as unknown as Room;
 
             const room3 = {
                 roomId: "!room3:example.com",
@@ -116,7 +117,7 @@ describe("client-room-upgrade", () => {
                 currentState: {
                     getStateEvents: () => null,
                 },
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room2:example.com") return room2;
@@ -136,7 +137,7 @@ describe("client-room-upgrade", () => {
                 currentState: {
                     getStateEvents: () => null,
                 },
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn();
 
@@ -152,7 +153,7 @@ describe("client-room-upgrade", () => {
                 roomId: "!room1:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
                 currentState: { getStateEvents: () => null },
-            } as any;
+            } as unknown as Room;
 
             const room2 = {
                 roomId: "!room2:example.com",
@@ -165,13 +166,13 @@ describe("client-room-upgrade", () => {
                         return null;
                     },
                 },
-            } as any;
+            } as unknown as Room;
 
             const room3 = {
                 roomId: "!room3:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
                 currentState: { getStateEvents: () => null },
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room1:example.com") return room1;
@@ -207,13 +208,13 @@ describe("client-room-upgrade", () => {
                         getContent: () => ({ replacement_room: "!room2:example.com" }),
                     }),
                 },
-            } as any;
+            } as unknown as Room;
 
             const room2 = {
                 roomId: "!room2:example.com",
                 findPredecessor: vi.fn().mockReturnValue({ roomId: "!room1:example.com" }),
                 currentState: { getStateEvents: () => null },
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn((roomId: string | undefined) => {
                 if (roomId === "!room1:example.com") return room1;
@@ -232,12 +233,12 @@ describe("client-room-upgrade", () => {
             const room1 = {
                 roomId: "!room1:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
-            } as any;
+            } as unknown as Room;
 
             const room2 = {
                 roomId: "!room2:example.com",
                 findPredecessor: vi.fn().mockReturnValue(undefined),
-            } as any;
+            } as unknown as Room;
 
             const getRoom = vi.fn();
 

@@ -1,8 +1,8 @@
 ---
 umbrella: true
 umbrella_sources:
-    - synapse-rust/src/web/routes/assembly.rs
-    - synapse-rust/src/web/routes/admin/mod.rs
+    - synapse-rust/synapse-web/src/routes/assembly.rs
+    - synapse-rust/synapse-web/src/routes/admin/mod.rs
     - docs/api-contract/README.md
 ledger_schema: 4
 last_reviewed: 2026-05-03
@@ -52,36 +52,36 @@ last_reviewed: 2026-05-03
 
 ## 认证端点
 
-| 方法 | 路径                                             | 版本    | 主要请求参数                                     | 主要响应字段                                          | 常见状态码                    |
-| ---- | ------------------------------------------------ | ------- | ------------------------------------------------ | ----------------------------------------------------- | ----------------------------- |
-| GET  | `/_matrix/client/v3/register`                    | r0      | 无                                               | 注册 flow 列表                                        | `200`                         |
-| POST | `/_matrix/client/v3/register`                    | r0      | `username` `password` `auth` `device_id`         | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401` `409` `429` |
-| GET  | `/_matrix/client/v3/register`                    | v3      | 无                                               | 注册 flow 列表                                        | `200`                         |
-| POST | `/_matrix/client/v3/register`                    | v3      | 同上                                             | 同上                                                  | `200` `400` `401` `409` `429` |
-| GET  | `/_matrix/client/v3/register/available`          | r0      | `username`                                       | `available`                                           | `200` `400`                   |
-| GET  | `/_matrix/client/v3/register/available`          | v3      | `username`                                       | `available`                                           | `200` `400`                   |
-| POST | `/_matrix/client/v3/register/email/requestToken` | r0      | 邮箱验证参数                                     | token/会话信息                                        | `200` `400`                   |
-| POST | `/_matrix/client/v3/register/email/requestToken` | v3      | 邮箱验证参数                                     | token/会话信息                                        | `200` `400`                   |
-| POST | `/_matrix/client/v3/register/email/submitToken`  | r0      | token 提交参数                                   | 验证结果                                              | `200` `400`                   |
-| POST | `/_matrix/client/v3/register/email/submitToken`  | v3      | token 提交参数                                   | 验证结果                                              | `200` `400`                   |
-| GET  | `/_matrix/client/v3/login`                       | r0      | 无                                               | 登录 flow 列表                                        | `200`                         |
-| POST | `/_matrix/client/v3/login`                       | r0      | `type` `identifier` `password/token` `device_id` | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401` `403` `429` |
-| GET  | `/_matrix/client/v3/login`                       | v3      | 无                                               | 登录 flow 列表                                        | `200`                         |
-| POST | `/_matrix/client/v3/login`                       | v3      | 同上                                             | 同上                                                  | `200` `400` `401` `403` `429` |
-| POST | `/_matrix/client/v3/logout`                      | r0      | 无                                               | 空对象                                                | `200` `401`                   |
-| POST | `/_matrix/client/v3/logout`                      | v3      | 无                                               | 空对象                                                | `200` `401`                   |
-| POST | `/_matrix/client/v3/logout/all`                  | r0      | 无                                               | 空对象                                                | `200` `401`                   |
-| POST | `/_matrix/client/v3/logout/all`                  | v3      | 无                                               | 空对象                                                | `200` `401`                   |
-| POST | `/_matrix/client/v3/refresh`                     | r0      | `refresh_token`                                  | `access_token` `refresh_token?` `expires_in_ms?`      | `200` `400` `401`             |
-| POST | `/_matrix/client/v3/refresh`                     | v3      | `refresh_token`                                  | 同上                                                  | `200` `400` `401`             |
-| GET  | `/_matrix/client/v3/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 跳转到 IdP 或返回重定向信息                           | `200` `302` `400`             |
-| POST | `/_matrix/client/v3/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 登录重定向或认证结果                                  | `200` `400`                   |
-| GET  | `/_matrix/client/v3/login/saml/callback`         | r0 条件 | `SAMLResponse?` `RelayState?`                    | 登录结果                                              | `200` `400` `401`             |
-| POST | `/_matrix/client/v3/login/saml/callback`         | r0 条件 | `SAMLResponse` `RelayState?`                     | `access_token` `user_id` `device_id` `refresh_token?` | `200` `400` `401`             |
-| GET  | `/_matrix/client/v3/logout/saml`                 | r0 条件 | 无                                               | 登出跳转或结果                                        | `200` `302`                   |
-| GET  | `/_matrix/client/v3/logout/saml/callback`        | r0 条件 | `SAMLResponse` `RelayState?`                     | 登出回调结果                                          | `200` `400`                   |
-| GET  | `/_matrix/client/v3/saml/metadata`               | r0 条件 | 无                                               | `metadata`                                            | `200`                         |
-| GET  | `/_matrix/client/v3/saml/sp_metadata`            | r0 条件 | 无                                               | `metadata`                                            | `200`                         |
+| 方法 | 路径                                             | 版本    | 主要请求参数                                     | 主要响应字段                                                  | 常见状态码                    |
+| ---- | ------------------------------------------------ | ------- | ------------------------------------------------ | ------------------------------------------------------------- | ----------------------------- |
+| GET  | `/_matrix/client/v3/register`                    | r0      | 无                                               | 注册 flow 列表                                                | `200`                         |
+| POST | `/_matrix/client/v3/register`                    | r0      | `username` `password` `auth` `displayname`       | `access_token` `user_id` `device_id` `refresh_token?`         | `200` `400` `401` `409` `429` |
+| GET  | `/_matrix/client/v3/register`                    | v3      | 无                                               | 注册 flow 列表                                                | `200`                         |
+| POST | `/_matrix/client/v3/register`                    | v3      | 同上                                             | 同上                                                          | `200` `400` `401` `409` `429` |
+| GET  | `/_matrix/client/v3/register/available`          | r0      | `username`                                       | `available`                                                   | `200` `400`                   |
+| GET  | `/_matrix/client/v3/register/available`          | v3      | `username`                                       | `available`                                                   | `200` `400`                   |
+| POST | `/_matrix/client/v3/register/email/requestToken` | r0      | 邮箱验证参数                                     | token/会话信息                                                | `200` `400`                   |
+| POST | `/_matrix/client/v3/register/email/requestToken` | v3      | 邮箱验证参数                                     | token/会话信息                                                | `200` `400`                   |
+| POST | `/_matrix/client/v3/register/email/submitToken`  | r0      | token 提交参数                                   | 验证结果                                                      | `200` `400`                   |
+| POST | `/_matrix/client/v3/register/email/submitToken`  | v3      | token 提交参数                                   | 验证结果                                                      | `200` `400`                   |
+| GET  | `/_matrix/client/v3/login`                       | r0      | 无                                               | 登录 flow 列表                                                | `200`                         |
+| POST | `/_matrix/client/v3/login`                       | r0      | `type` `identifier` `password/token` `device_id` | `access_token` `user_id` `device_id` `refresh_token?`         | `200` `400` `401` `403` `429` |
+| GET  | `/_matrix/client/v3/login`                       | v3      | 无                                               | 登录 flow 列表                                                | `200`                         |
+| POST | `/_matrix/client/v3/login`                       | v3      | 同上                                             | 同上                                                          | `200` `400` `401` `403` `429` |
+| POST | `/_matrix/client/v3/logout`                      | r0      | 无                                               | 空对象                                                        | `200` `401`                   |
+| POST | `/_matrix/client/v3/logout`                      | v3      | 无                                               | 空对象                                                        | `200` `401`                   |
+| POST | `/_matrix/client/v3/logout/all`                  | r0      | 无                                               | 空对象                                                        | `200` `401`                   |
+| POST | `/_matrix/client/v3/logout/all`                  | v3      | 无                                               | 空对象                                                        | `200` `401`                   |
+| POST | `/_matrix/client/v3/refresh`                     | r0      | `refresh_token`                                  | `access_token` `refresh_token` `expires_in`（秒） `device_id` | `200` `400` `401`             |
+| POST | `/_matrix/client/v3/refresh`                     | v3      | `refresh_token`                                  | 同上                                                          | `200` `400` `401`             |
+| GET  | `/_matrix/client/v3/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 跳转到 IdP 或返回重定向信息                                   | `200` `302` `400`             |
+| POST | `/_matrix/client/v3/login/sso/redirect/saml`     | r0 条件 | `redirectUrl?`                                   | 登录重定向或认证结果                                          | `200` `400`                   |
+| GET  | `/_matrix/client/v3/login/saml/callback`         | r0 条件 | `SAMLResponse?` `RelayState?`                    | 登录结果                                                      | `200` `400` `401`             |
+| POST | `/_matrix/client/v3/login/saml/callback`         | r0 条件 | `SAMLResponse` `RelayState?`                     | `access_token` `user_id` `device_id` `refresh_token?`         | `200` `400` `401`             |
+| GET  | `/_matrix/client/v3/logout/saml`                 | r0 条件 | 无                                               | 登出跳转或结果                                                | `200` `302`                   |
+| GET  | `/_matrix/client/v3/logout/saml/callback`        | r0 条件 | `SAMLResponse` `RelayState?`                     | 登出回调结果                                                  | `200` `400`                   |
+| GET  | `/_matrix/client/v3/saml/metadata`               | r0 条件 | 无                                               | `metadata`                                                    | `200`                         |
+| GET  | `/_matrix/client/v3/saml/sp_metadata`            | r0 条件 | 无                                               | `metadata`                                                    | `200`                         |
 
 ## 二维码登录端点
 
@@ -216,14 +216,17 @@ last_reviewed: 2026-05-03
 - `logout`、profile 写操作、3PID 写操作: 返回空对象
 - 目录查询: 返回列表或对象，字段由处理器构造的 `Json<Value>` 决定
 - 公开发现端点: 返回 JSON 对象，无用户态鉴权
+- 成功响应没有 `{ status, data }` 信封：响应体就是业务对象本身，只有错误响应才是 `{ errcode, error }`；按 `body.data` 取数据只会得到 `undefined`。
+- `204 No Content` 与 `200 + {}` 并存：统一按 `res.status === 204 ? null : await res.json()` 读取，不能假定所有成功响应都有 body。
+- `DELETE` 不必然没有响应体：是否存在 body 由具体端点决定（例如部分管理面删除返回 204，而 `DELETE /_synapse/admin/v1/spaces/{space_id}` 返回 `{"deleted": true}`），不能按 HTTP 方法推断。
 - **v10 对齐 (2026-06-09)**: C-6 JWT 旧 token 默认拒绝（`is_legacy_token_window_open=false`），token 刷新失败需区分「过期」与「已撤销」；`TokenRefresh` 遇到 `M_UNKNOWN_TOKEN` 时触发 `Session.logged_out` 事件而不再自动重试。
 
 ## 代码定位
 
-- 认证兼容路由: `synapse-rust/src/web/routes/assembly.rs`
-- 账户兼容路由: `synapse-rust/src/web/routes/assembly.rs`
-- 目录兼容路由: `synapse-rust/src/web/routes/assembly.rs`
-- 处理器入口: `synapse-rust/src/web/routes/auth_compat.rs`、`account_compat.rs`、`directory_reporting.rs`
+- 认证兼容路由: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 账户兼容路由: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 目录兼容路由: `synapse-rust/synapse-web/src/routes/assembly.rs`
+- 处理器入口: `synapse-rust/synapse-web/src/routes/auth_compat.rs`、`account_compat.rs`、`directory_reporting.rs`
 
 ## SDK Manager 对应关系
 
@@ -353,8 +356,124 @@ const userReportManager = client.getUserReportManager();
 
 ## 覆盖率口径
 
-- **后端 Ledger 路由总数**: 146 (基于 `assembly.json` 生成的 `AuthPathPattern`)
-- **SDK 已封装路由数**: 146
-- **已绑定生成路由模板**: 146
+- **后端 Ledger 路由总数**: 99（= 后端 `assembly` 桶条目数，也是 `src/auth/__generated__/route-table.ts` 的实测条目数）
+- **SDK 已封装路由数**: 99
+- **已绑定生成路由模板**: 99
+- **订正说明（2026-10-15）**: 原写 **146**，但 `generated/modules/assembly.json` 与
+  `src/auth/__generated__/route-table.ts` 实测**均为 104**，146 无可复现来源 ⇒ 按实测订正为 **104**。
+  同日稍后后端补齐 `POST …/dehydrated_device/{device_id}/events`（`assembly.rs:220`；MSC3814 规范形态，
+  原先只导出了 GET 的 Synapse 兼容别名）⇒ `assembly` 桶 **104 → 105**。
+  **再稍后**后端把 MSC3814 族改为**独立 sub-router**（`registered_by: dehydrated_device`）⇒
+  该族 6 条从本桶拆出（SDK 侧随之生成 `src/dehydrated-device/__generated__/`）⇒ `assembly` 桶
+  **105 → 99**。本页与 `CONTRACT_INDEX.md` 同步为 99。
 - **契约覆盖率**: 100%
 - **扩展面说明**: `auth.md` 作为 umbrella 页面会记录 `saml`/`oidc`/`cas` 等认证扩展；当前 `generated/` 默认已切到 `ledger_export_sdk/` full-extension 源，因此这些扩展模块会稳定出现在 `docs/api-contract/generated/modules/*.json` 中。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 注册与登录字段
+
+- `POST /register` 的资料字段名是 **`displayname`**（不是 `display_name`）；传 `display_name` 会被静默忽略，资料不会写入。
+- 另支持 `initial_device_display_name`、`kind: "guest"`（走访客注册分支）、`refresh_token?: boolean`（是否发放 refresh_token）。
+- `POST /register` **不读取客户端的 `device_id`**：注册路径不提供指定设备 ID 的入口，响应中的 `device_id` 由服务端生成；需要复用已有设备 ID 时走 `POST /login` 的 `device_id` 字段。
+- 注册成功响应与登录同形（平铺、无信封）：`access_token`、`refresh_token`、`expires_in`（秒）、`device_id`、`user_id`、`well_known`。仅当请求 `refresh_token: true` 时才发放 refresh token；访客分支不返回 `refresh_token`。
+- 首次 `POST /register` 不带 `auth` 必得 **401**，响应体只有 `flows`、`params`、`session`，**没有 `errcode`**。客户端应按「401 + `flows`」处理，把 `session` 原样回填下一次请求的 `auth.session`，不要把 401 当成用户名/密码错误。
+- 登录错误口径：凭据错误 → 403 `M_FORBIDDEN`；账户已停用 → 403 `M_USER_DEACTIVATED`；缺 `password` → 400 `M_BAD_JSON`；失败次数超限 → 429 `M_LIMIT_EXCEEDED`（带 `retry_after_ms`），应按该值退避后再重试。
+
+### 应用服务（AS）注册虚拟用户
+
+- 使用 AS 自己的 `as_token` 调 `POST /register` 时，`inhibit_login` 必须为 `true`：此时只建用户，响应**不含** `access_token` / `device_id`。
+- 缺 `inhibit_login` 或其为 `false` → 400 `M_APPSERVICE_LOGIN_UNSUPPORTED`；服务端不会替 AS 登录。
+- `username` 缺失 → 400 `M_BAD_JSON`（AS 注册不自动生成 localpart）；目标用户不在该 AS 的 `users` 命名空间 → 403 `M_FORBIDDEN`。
+- 身份判定看 token 是否属于某个 AS，不看 body 里的 `type`；校验使用该 AS 的任一 `users` 命名空间条目，不要求 `exclusive`。
+
+### Guest 访客
+
+- `POST /register/guest`：等价于 `POST /register` 带 `kind: "guest"`，响应额外含 `is_guest: true`，且不返回 `refresh_token`。
+- `GET /account/guest`：查询当前账户是否为访客。
+- `POST /account/guest/upgrade`：访客升级为正式账户，需要 UIA。
+- 访客注册同样受 `server.enable_registration` 控制，关闭时返回 403 `M_FORBIDDEN`。
+
+### refresh token
+
+- `POST /refresh` **不需要 `Authorization` 头**，refresh token 只从请求体读取：`{"refresh_token": "..."}`。
+- 把 refresh token 放在 `Authorization: Bearer` 且 body 为空 → 400 `M_BAD_JSON`（`Refresh token required`）；body 中 token 无效 → 401 `M_UNAUTHORIZED`（`Invalid refresh token`）。
+- 响应字段为 `access_token`、`refresh_token`、`expires_in`（单位秒，默认 3600，不是毫秒）、`device_id`。
+- 刷新会**轮换** refresh token：必须用响应中的新 `refresh_token` 覆盖旧值，否则并发刷新会互相失效。
+
+### SAML 端点
+
+- `GET /login/sso/redirect/saml?redirectUrl=` → **307**，`Location` 指向 IdP SSO URL。
+- `POST /login/sso/redirect/saml` → 200，响应 `{"redirect_url": "..."}`。
+- 运行时未启用 SAML 时，整组端点返回 403 `M_FORBIDDEN`（`SAML authentication is not enabled`），不是 404。
+- `GET /logout/saml` **需要认证**（`Authorization` 头），返回 JSON 中的 `redirect_url` 由前端自行跳转，不是浏览器重定向端点；真正的 SLO 回调是 `/logout/saml/callback`。
+
+### 3PID
+
+- 邮件验证端点：`POST /account/3pid/email/requestToken`、`POST /account/3pid/email/submitToken`。
+- `GET /account/3pid` 返回 `{ "threepids": [{ "medium", "address", "validated_ts", "added_at" }] }`；`medium` 取 `email`。
+- 未验证的 3PID，其 `validated_ts` 为 **`0`**（不是 `null`），客户端不要用 `validated_ts == null` 判断未验证。
+- 能力门控：`capabilities.m.3pid_changes.enabled`。
+
+### 修改密码
+
+- 请求体为 `{"new_password": "...", "auth": {...}}`；`logout_devices` 必须放在 **`auth` 对象内部**，放在顶层会被忽略；默认 `true`（吊销其它会话）。
+- 不带 `auth.type` → 401，响应含 `errcode: "M_UIA_REQUIRED"` 及 `flows`/`params`/`session`（与注册 401 不同，这里**有** errcode）。
+- 缺 `new_password` → 400 `M_BAD_JSON`；当前密码错误 → 403 `M_FORBIDDEN`；新密码不满足策略 → 400 `M_INVALID_PARAM`。
+- 邮箱辅助流程：`POST /account/password/email/requestToken` → `.../submitToken`。
+
+### 停用账户
+
+- `POST /account/deactivate` 需要认证且 UIA 必需；不带 `auth` → 401 + `flows`/`session`。
+- 停用不是只改标记，会连带执行四件事：取消该用户全部 MSC4140 延迟事件、从所有房间 part、删除 pushers、吊销 token 与设备。
+- 账户已处于停用状态时再次调用 → 403 `M_USER_DEACTIVATED`。
+
+### 目录类端点的版本前缀
+
+- `user_directory/*`、`publicRooms`、`thirdparty/*`、`directory/*` **只注册在 `/_matrix/client/v3`**，没有 `r0` / `v1` 变体；写死 v1 会 404。
+- 本节与上方路由表中出现的 `{r0,v3}` 写法，以本节的 v3-only 结论为准。
+
+### user_directory 分页限制
+
+- `POST /user_directory/search`：`limit` 默认 `10`，clamp 到 `1..=100`（超界不报错，直接夹取）；响应 `limited = results.len() >= limit`，**没有下一页游标**，需要更多结果只能增大 `limit`（上限 100）。
+- `POST /user_directory/search` 的显示名字段是 `display_name`；`GET /user_directory/profiles/{user_id}` 是 `displayname`，需在 SDK 内归一。
+- `POST /user_directory/list`：`limit` 默认 `50`，clamp 到 `1..=200`；`since` 是 keyset 游标，格式 `"{created_ts}|{user_id}"`，把 `next_batch` 原样回填 `since` 即可；`next_batch` 为 `null` 表示已到末尾。
+
+### publicRooms
+
+- `GET /publicRooms`：`limit` 默认 `20`，clamp 到 `1..=1000`；**GET 不读取 `filter`**，传了会被静默忽略，按关键词/房间类型过滤必须用 POST。
+- `POST /publicRooms` 的 `filter` 只认 `generic_search_term`（string）与 `room_types`（array，元素可为字符串或 `null`）。
+- 以下任一情况 → 400 `M_INVALID_PARAM`：顶层 `include_all_networks: true`、顶层 `third_party_instance_id` 非 `null`、`filter` 不是对象、`filter` 内出现 `include_all_networks` 或 `third_party_instance_id`、`generic_search_term` 不是字符串、`room_types` 不是数组。
+- `next_batch` 仅在 `rooms.len() == limit` 时返回；POST 且带 `generic_search_term` 时**不返回** `next_batch`（搜索结果不分页）。
+- `chunk[].room_type` 在本后端恒为 `null`，不能用于识别 space。
+
+### 房间别名与目录可见性
+
+- `GET /directory/room/{room_alias}` 只返回 `{"room_id"}`，**没有 `servers`** 字段；按规范读取 `servers` 只会拿到 `undefined`。
+- `PUT /directory/room/{room_alias}` 的请求体必须含 `room_id` 且以 `!` 开头；`servers` 即使传入也被忽略。成功返回 `{"room_id", "alias", "created_ts"}`。
+- 别名格式为 `#localpart:server`；格式非法 → 400 `M_INVALID_PARAM`；已被占用 → 400 `M_ROOM_IN_USE`。
+- `DELETE /directory/room/{room_alias}` 返回 `{"removed": true, "alias"}`；`GET /directory/room/{room_id}/alias` 返回 `{"aliases": [...]}`，需要成员身份，房间不存在 → 404。
+- `PUT /directory/list/room/{room_id}` 只接受 `{"visibility": "public"}` 或 `{"visibility": "private"}`：缺字段或其它取值 → 400 `M_BAD_JSON`；调用者必须是房间成员且为创建者，否则 403 `M_FORBIDDEN`。
+- **没有 `DELETE /directory/list/room/{room_id}`**；取消公开发布用 `PUT` + `{"visibility": "private"}`。
+
+### thirdparty
+
+- 6 条端点全部只在 `/_matrix/client/v3/thirdparty/*`，且全部需要认证。
+- `GET /thirdparty/location`、`GET /thirdparty/location/{protocol}`、`GET /thirdparty/user`、`GET /thirdparty/user/{protocol}` **恒返回 404 `M_UNRECOGNIZED`**，这是设计行为（无对应桥接），不是路由缺失；不要计入错误率监控，也不要在启动时探测。
+- `GET /thirdparty/protocol/{protocol}` 在协议未注册时返回 404 `M_NOT_FOUND`，与上一条的 `M_UNRECOGNIZED` 不同；两者都是 404，SDK 应按端点语义分支，而不是只按 errcode 分支。
+- Query 参数严格校验（`deny_unknown_fields`，多传任何键 → 400）：`/thirdparty/location` 只允许 `alias`、`search`、`server`、`channel`；`/thirdparty/user` 只允许 `userid`、`search`、`nickname`、`server`。
+
+### 举报响应形状
+
+- `POST /rooms/{room_id}/report/{event_id}` → `{"report_id"}`；事件举报需要房间成员，事件不属于该房间 → 404。
+- `POST /rooms/{room_id}/report` → `{"report_id", "room_id", "status": "submitted"}`。
+- `POST /users/{user_id}/report` → `{}`；`reason` 字段必须存在（可为空串），缺失 → 400 `M_BAD_JSON`；用户不存在 → 404 `M_NOT_FOUND`；允许举报自己。
+- 三种响应形状不同，不要统一按 `{}` 处理。
+
+### Profile 路径与可见性
+
+- Profile 的真实路径是 **`/profile/{user_id}`**；`/account/profile/{user_id}` 及其子路径在本后端**不存在**（404）。上方账户端点表中的 `/account/profile/*` 行应视为历史记录，实际调用一律走 `/profile/*`。
+- 没有 `PUT /profile/{user_id}`（整体替换），只支持按字段写 `displayname` / `avatar_url`。
+- Profile 可见性同时作用于全量 profile、`displayname` / `avatar_url` 子字段、`user_directory/profiles/{user_id}` 以及 `/search` 的 users 结果，子字段端点不能绕过可见性限制。
+- 不可见 → 403 `M_FORBIDDEN`（`Profile is private or not visible to you`）；用户不存在 → 404；可见性判定的内部错误按 **fail-closed** 处理，同样返回 403，不要降级为可见。
+- 默认构建（未启用 `privacy-ext`）下 profile 恒为可见，403 分支只有在启用隐私扩展后才可能触发；SDK 仍应按 403 走通用「无权限」分支。

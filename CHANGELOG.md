@@ -12,6 +12,17 @@ All notable changes to the Matrix JS SDK will be documented in this file.
 
 ### Changed
 
+- **BREAKING** `dehydrated-device`: 移除 `getDeviceEvent()`。它打的
+  `GET /_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/initial_device`
+  在本后端、上游 Synapse（`rest/client/devices.py` 带 `device_id` 的路由只有 `…/events`）、
+  上游 matrix-js-sdk（`rust-crypto/DehydratedDeviceManager.ts`）与 MSC3814 四处**均不存在**
+  ⇒ 调用必然 404。该路径段系「把请求体字段名 `initial_device_display_name` 误当路径段」所致。
+  其能力已被 `getDevice()`（读 `device_data`）与 `claimDevice()`（`POST …/{device_id}/events`，规范形态）覆盖。
+- **BREAKING** `external-service`: 移除 `triggerOpenclawWebhook()` 与 `triggerTrendradarWebhook()`。
+  后端已下线 `openclaw` 相关功能（同类服务 `trendradar` 一并移除），这两个封装所打的路由
+  `/_synapse/external/openclaw/{id}/webhook` 与 `/_synapse/external/trendradar/{id}/webhook`
+  在后端已不存在 ⇒ 继续调用必然 404。保留通用入口 `triggerWebhook()`
+  （`/_synapse/external/webhook/{id}`，后端仍注册）。
 - **BREAKING** `voice`: 列表/详情 DTO 与端点路径按 synapse-rust 真实实现对齐。路径去掉错误的 `/messages` 后缀（正确路径为 `/_matrix/{client/v3,vendor/v1}/voice/room/{roomId}` 与 `/voice/user/{userId}`）；`IVoiceMessage` 收敛为后端真实 8 字段（`media_id`/`user_id`/`room_id`/`content_uri`/`content_type`/`duration_ms`/`size_bytes`/`created_ts`）；`IVoiceMessageList` 删除后端并不返回的 `has_more`，`next_batch` 改为毫秒时间戳游标 `number | null`；`IVoiceListQueryParams.from` 由 `string` 改为 `number`；`IVoiceUploadResponse` 按后端返回形状修正。`getRoomVoice`/`getUserVoice` 改为委托列表方法，不再各自打一遍 HTTP。
 - **BREAKING** `device-trust`: `TrustLevel` 由 `verified | cross_signed | unverified | blacklisted` 收敛为后端枚举 `verified | unverified | blocked`；`ISecuritySummary` 字段改为后端真实形状（`verified_devices` / `unverified_devices` / `blocked_devices` / `has_cross_signing_master` / `security_score` / `recommendations`）；新增 `IVerificationStatusResponse`（状态字段为 `status` 而非 `state`）。
 - `device-keys` 与 `e2ee` 子路径不再各自维护一份设备信任 DTO：类型改为从 `device-trust` re-export，方法改为委托 `DeviceTrustManager`，消除同一契约三处并行封装（此前 `device-keys`/`e2ee` 的字段声明与后端完全不符且长期未被发现）。

@@ -52,6 +52,20 @@ import type {
     ICreateRoomResponse,
 } from "./dm-room-creation-types";
 
+import type { DmPath } from "../__generated__/route-table";
+import type { PathAssert, StripVendor } from "../../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `DmPath` 上。
+ *
+ * 契约表的路径带 API 前缀、实现侧写相对路径（前缀由 `prefix:` 字段提供），故先
+ * `StripVendor` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （`http-api/strip-prefix.ts` 的 `PathAssert`），改契约而没跟上 manager 会先炸 tsc。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripVendor<DmPath>>): P {
+    return path;
+}
+
 export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageManagerEventMap> {
     constructor(
         client: MatrixClient,
@@ -170,6 +184,9 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      *
      * @param roomId - 房间 ID
      * @param userId - DM 伙伴用户 ID
+     * @throws {ValidationError} 当 roomId 或 userId 为空时抛出
+     * @example
+     * await client.getDirectMessageManager().creation.setDmRoom("!room:example.com", "@alice:example.com");
      */
     async setDmRoom(roomId: string, userId: string): Promise<void> {
         if (!roomId) {
@@ -206,6 +223,9 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      *
      * @param roomId - 房间 ID
      * @param userId - DM 伙伴用户 ID
+     * @throws {ValidationError} 当 roomId 或 userId 为空时抛出
+     * @example
+     * await client.getDirectMessageManager().creation.removeDmRoom("!room:example.com", "@alice:example.com");
      */
     async removeDmRoom(roomId: string, userId: string): Promise<void> {
         if (!roomId) {
@@ -249,6 +269,13 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      * @param userId - 对端用户 ID
      * @param options - 可选配置
      * @returns 后端原始响应
+     * @throws {ValidationError} 当 userId 为空或格式无效时抛出
+     * @example
+     * const response = await client.getDirectMessageManager().creation.createDmRoomDetailed(
+     *     "@alice:example.com",
+     *     { name: "Chat with Alice" },
+     * );
+     * console.log("新房间:", response.room_id);
      */
     async createDmRoomDetailed(userId: string, options?: CreateDmRoomOptions): Promise<CreateDmRoomResponse> {
         if (!userId) {
@@ -263,7 +290,7 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
                 const invite = options?.invite?.length ? Array.from(new Set([userId, ...options.invite])) : undefined;
                 return await this.request<CreateDmRoomResponse>({
                     method: Method.Post,
-                    path: "/create_dm",
+                    path: dp("/create_dm"),
                     body: {
                         user_id: userId,
                         invite,
@@ -288,6 +315,10 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
      * @param userId - 对端用户 ID
      * @param options - 可选配置
      * @returns 新创建的 DM 房间 ID
+     * @throws {Error} 当创建 DM 房间失败时抛出
+     * @example
+     * const roomId = await client.getDirectMessageManager().creation.createDmRoom("@alice:example.com");
+     * console.log("新 DM 房间:", roomId);
      */
     async createDmRoom(userId: string, options?: CreateDmRoomOptions): Promise<string> {
         try {
@@ -312,6 +343,21 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
         }
     }
 
+    /**
+     * 更新房间的 DM 关系（synapse-rust 私有端点）。
+     * PUT /_matrix/client/v3/direct/{room_id}
+     *
+     * @param roomId - 房间 ID
+     * @param userIds - DM 伙伴用户 ID 列表，或包含 userIds / content 的配置对象
+     * @returns 后端更新的 DM 关系响应
+     * @throws {ValidationError} 当 roomId 为空或用户 ID 格式无效时抛出
+     * @example
+     * const result = await client.getDirectMessageManager().creation.updateDirectRoom(
+     *     "!room:example.com",
+     *     ["@alice:example.com"],
+     * );
+     * console.log("更新结果:", result);
+     */
     async updateDirectRoom(roomId: string, userIds: string[]): Promise<UpdateDirectRoomResponse>;
     async updateDirectRoom(roomId: string, options: UpdateDirectRoomOptions): Promise<UpdateDirectRoomResponse>;
     async updateDirectRoom(
@@ -335,7 +381,7 @@ export class DmRoomCreationManager extends BaseManager<DMEvent, DirectMessageMan
             const response = await this.withRetry(async () => {
                 return await this.request<UpdateDirectRoomResponse>({
                     method: Method.Put,
-                    path: `/direct/${encodeURIComponent(roomId)}`,
+                    path: dp(`/direct/${encodeURIComponent(roomId)}`),
                     body: body,
                     prefix: VendorPrefix,
                 });

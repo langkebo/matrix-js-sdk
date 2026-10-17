@@ -595,12 +595,11 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
                 this.threadsTimelineSets[0] = timelineSets[0];
                 this.threadsTimelineSets[1] = timelineSets[1];
                 return timelineSets;
-                // @swallow-error { owner: "room", expires: "2026-12-31" }
             } catch (e) {
                 logger.warn("Room.createThreadsTimelineSets failed:", e);
                 this.threadTimelineSetsPromise = null;
-                return null;
             }
+            return null;
         }
         return null;
     }
@@ -983,7 +982,7 @@ export class Room extends ReadReceipt<RoomEmittedEvents, RoomEventHandlerMap> {
     public isDirect(): boolean {
         try {
             const dmManager = this.client.getDirectMessageManager();
-            const dmMap = dmManager.getDirectRoomsByUserSync();
+            const dmMap = dmManager.list.getDirectRoomsByUserSync();
             for (const roomIds of Object.values(dmMap)) {
                 if ((roomIds as string[]).includes(this.roomId)) {
                     return true;

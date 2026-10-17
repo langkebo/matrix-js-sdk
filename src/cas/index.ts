@@ -24,7 +24,7 @@ limitations under the License.
  * ✅ 后端路由挂载（2026-10-01 复核）:
  * 后端 `cas.rs::routes()` 已把 CAS 协议面收敛到 `/_synapse/cas` 前缀
  * （`Router::new().nest("/_synapse/cas", cas_protocol_routes)`），
- * 与 SDK 的 `CAS_API_PREFIX.cas` 一致：
+ * 与 SDK 的 `CAS_PROTOCOL_PREFIX` 一致：
  * - `/_synapse/cas/login`、`/_synapse/cas/logout`
  * - `/_synapse/cas/serviceValidate`、`proxyValidate`、`p3/serviceValidate`、`proxy`
  *
@@ -39,34 +39,33 @@ import { Method } from "../http-api/method";
 import { AdminPrefix } from "../http-api/prefix";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
-/**
- * CAS **协议面**前缀（`serviceValidate` / `proxyValidate` / `p3/serviceValidate` / `proxy` /
- * `login` / `logout` 走 `/_synapse/cas`）。
- */
-export type CasApiPrefix = "synapse_admin" | "cas";
-
-const CAS_API_PREFIX: Record<CasApiPrefix, string> = {
-    synapse_admin: AdminPrefix.V1,
-    cas: "/_synapse/cas",
-};
+import type { CasPath } from "./__generated__/route-table";
+import type { PathAssert, StripAdminV1, StripCasProtocol } from "../http-api/strip-prefix";
 
 /**
- * CAS **服务/用户属性管理面**的前缀。
+ * 契约路径断言（**按 prefix 分设两个助手**）。
  *
- * ⚠️ 这里刻意**只有一个取值**（P-13，2026-10-10 回源实测）：
- * 后端把服务与用户属性管理**只**注册在 `/_synapse/admin/v1/cas/…`
- * （`cas.rs` 的路由表里 `/_synapse/cas` 下**只有协议面**）。全仓 grep
- * `/_synapse/cas/services`、`/_synapse/cas/users` **零命中** ⇒ 传 `"cas"` 必然 **404**。
- *
- * 旧版本此处类型是 `CasApiPrefix`（含 `"cas"`），于是
- * `listServices("cas")` / `createService(…, "cas")` / `deleteService(…, "cas")` /
- * `setUserAttributes(…, "cas")` / `getUserAttributes(…, "cas")` 五个方法**全部不可用**，
- * 且 `cas.spec.ts` 还把该坏行为断言成了"预期"。
- *
- * 收窄成单一取值后，传 `"cas"` 变成**编译错误**（这才是这类缺陷该有的下场）。
- * 参数本身保留以维持调用形状（`listServices("synapse_admin")` 仍可编译）。
+ * 本模块的路径横跨两个前缀：服务管理面 `AdminPrefix.V1`（`/_synapse/admin/v1`）与
+ * CAS SSO 协议面 `CAS_PROTOCOL_PREFIX`（`/_synapse/cas`）。分开断言可避免跨命名空间误匹配。
  */
-export type CasServicePrefix = "synapse_admin";
+function apu<const P extends string>(path: P & PathAssert<P, StripAdminV1<CasPath>>): P {
+    return path;
+}
+function cpu<const P extends string>(path: P & PathAssert<P, StripCasProtocol<CasPath>>): P {
+    return path;
+}
+
+/**
+ * CAS 协议端点前缀（`/_synapse/cas`）。
+ *
+ * 历史上这里还有一层 `CasApiPrefix = "synapse_admin" | "cas"` 的二选一：
+ * `"cas"` 变体会把管理端点拼成 `/_synapse/cas/admin/services`（**后端从未注册**，
+ * 必然 404），对应后端 `cas.rs` 里自我声明的 `legacy_admin_routes`（根级
+ * `/admin/services*`）。后端已按铁律 1 整段删除该兼容层，SDK 侧同步收敛为
+ * 唯一形态 —— 管理端点固定打 `/_synapse/admin/v1/cas/*`，此处常量只服务
+ * CAS 协议端点（serviceValidate / proxyValidate / proxy / login / logout）。
+ */
+const CAS_PROTOCOL_PREFIX = "/_synapse/cas";
 
 export interface CasService {
     id: string;
@@ -196,47 +195,25 @@ export class CasManager extends BaseManager {
         super(client, opts);
     }
 
-    private resolvePrefix(prefix: CasServicePrefix): string {
-        return CAS_API_PREFIX[prefix];
-    }
-
-    /**
-     * 解析 API 路径（**服务管理面**，只有 `/_synapse/admin/v1/cas/…` 一种）
-     *
-     * 后端路由契约（ROUTE_CONTRACT.md）：
-     * - `/_synapse/admin/v1/cas/services`（服务与用户属性管理**唯一**的注册面）
-     *
-     * ⚠️ `/_synapse/cas/services` **后端不存在** ⇒ 不再接受 `"cas"` 前缀（见 `CasServicePrefix`）。
-     *
-     * @param prefix 前缀类型（当前只有 `"synapse_admin"`）
-     * @param basePath 基础路径（如 /services, /users/{id}/attributes）
-     */
-    private resolvePath(prefix: CasServicePrefix, basePath: string): string {
-        // /_synapse/admin/v1 + /cas/services → /cas/services
-        return `/cas${basePath}`;
-    }
-
     /**
      * 获取 CAS 服务列表
      * 对应 GET /_synapse/admin/v1/cas/services（服务管理的**唯一**注册面；`/_synapse/cas` 下只有协议面）
      *
      * @example
      * ```typescript
-     * const services = await client.getCasManager().listServices("synapse_admin");
+     * const services = await client.getCasManager().listServices();
      * console.log(services.services.length, 'services found');
      * ```
      */
-    public async listServices(prefix: CasServicePrefix = "synapse_admin"): Promise<CasServiceListResponse> {
-        const prefixValue = this.resolvePrefix(prefix);
-        // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
-        const path = this.resolvePath(prefix, "/services");
+    public async listServices(): Promise<CasServiceListResponse> {
+        const path = apu("/cas/services");
         return await this.withRetry(async () => {
             // 后端 `cas.rs::list_services` 返回**裸数组**（`Json(Vec<ServiceResponse>)`），
             // 不是 `{ services }` ⇒ 此前 `.services` 恒 undefined。
             const raw = await this.request<CasService[] | CasServiceListResponse>({
                 method: Method.Get,
                 path: path,
-                prefix: prefixValue,
+                prefix: AdminPrefix.V1,
             });
             if (Array.isArray(raw)) {
                 return { services: raw, total: raw.length };
@@ -260,19 +237,14 @@ export class CasManager extends BaseManager {
      * console.log(service);
      * ```
      */
-    public async createService(
-        data: CasServiceCreateRequest,
-        prefix: CasServicePrefix = "synapse_admin",
-    ): Promise<CasServiceCreateResponse> {
-        const prefixValue = this.resolvePrefix(prefix);
-        // synapse_admin → /_synapse/admin/v1/cas/services, cas → /_synapse/cas/services
-        const path = this.resolvePath(prefix, "/services");
+    public async createService(data: CasServiceCreateRequest): Promise<CasServiceCreateResponse> {
+        const path = apu("/cas/services");
         return await this.withRetry(async () => {
             return await this.request<CasServiceCreateResponse>({
                 method: Method.Post,
                 path: path,
                 body: data,
-                prefix: prefixValue,
+                prefix: AdminPrefix.V1,
             });
         }, "createService");
     }
@@ -280,20 +252,21 @@ export class CasManager extends BaseManager {
     /**
      * 删除 CAS 服务
      * 对应 DELETE /_synapse/admin/v1/cas/services/{id}（服务管理的**唯一**注册面）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().deleteService("my-service");
+     * console.log(result.id);
+     * ```
      */
-    public async deleteService(
-        serviceId: string,
-        prefix: CasServicePrefix = "synapse_admin",
-    ): Promise<CasServiceDeleteResponse> {
+    public async deleteService(serviceId: string): Promise<CasServiceDeleteResponse> {
         this.requireNonEmptyString(serviceId, "serviceId");
-        const prefixValue = this.resolvePrefix(prefix);
-        // synapse_admin → /_synapse/admin/v1/cas/services/{id}, cas → /_synapse/cas/services/{id}
-        const path = this.resolvePath(prefix, `/services/${encodeURIComponent(serviceId)}`);
+        const path = apu(`/cas/services/${encodeURIComponent(serviceId)}`);
         return await this.withRetry(async () => {
             return await this.request<CasServiceDeleteResponse>({
                 method: Method.Delete,
                 path: path,
-                prefix: prefixValue,
+                prefix: AdminPrefix.V1,
             });
         }, "deleteService");
     }
@@ -301,20 +274,21 @@ export class CasManager extends BaseManager {
     /**
      * 获取用户属性
      * 对应 GET /_synapse/admin/v1/cas/users/{id}/attributes（服务管理的**唯一**注册面）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().getUserAttributes("@alice:example.org");
+     * console.log(result.attributes);
+     * ```
      */
-    public async getUserAttributes(
-        userId: string,
-        prefix: CasServicePrefix = "synapse_admin",
-    ): Promise<CasUserAttributesResponse> {
+    public async getUserAttributes(userId: string): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
-        const prefixValue = this.resolvePrefix(prefix);
-        // synapse_admin → /_synapse/admin/v1/cas/users/{id}/attributes, cas → /_synapse/cas/users/{id}/attributes
-        const path = this.resolvePath(prefix, `/users/${encodeURIComponent(userId)}/attributes`);
+        const path = apu(`/cas/users/${encodeURIComponent(userId)}/attributes`);
         return await this.withRetry(async () => {
             return await this.request<CasUserAttributesResponse>({
                 method: Method.Get,
                 path: path,
-                prefix: prefixValue,
+                prefix: AdminPrefix.V1,
             });
         }, "getUserAttributes");
     }
@@ -322,26 +296,43 @@ export class CasManager extends BaseManager {
     /**
      * 设置用户属性
      * 对应 POST /_synapse/admin/v1/cas/users/{id}/attributes（服务管理的**唯一**注册面）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().setUserAttributes("@alice:example.org", {
+     *     attributes: { role: ["admin"] },
+     * });
+     * console.log(result.attributes);
+     * ```
      */
-    public async setUserAttributes(
-        userId: string,
-        data: CasUserAttributes,
-        prefix: CasServicePrefix = "synapse_admin",
-    ): Promise<CasUserAttributesResponse> {
+    public async setUserAttributes(userId: string, data: CasUserAttributes): Promise<CasUserAttributesResponse> {
         this.requireNonEmptyString(userId, "userId");
-        const prefixValue = this.resolvePrefix(prefix);
-        // synapse_admin → /_synapse/admin/v1/cas/users/{id}/attributes, cas → /_synapse/cas/users/{id}/attributes
-        const path = this.resolvePath(prefix, `/users/${encodeURIComponent(userId)}/attributes`);
+        const path = apu(`/cas/users/${encodeURIComponent(userId)}/attributes`);
         return await this.withRetry(async () => {
             return await this.request<CasUserAttributesResponse>({
                 method: Method.Post,
                 path: path,
                 body: data,
-                prefix: prefixValue,
+                prefix: AdminPrefix.V1,
             });
         }, "setUserAttributes");
     }
 
+    /**
+     * CAS 2.0 serviceValidate：校验 service ticket（返回 text/plain，SDK 解析为结构化结果）。
+     *
+     * @param service - 目标服务 URL
+     * @param ticket - 可选 service ticket
+     * @param pgtUrl - 可选代理回调 URL（对应 `pgt_url`）
+     * @param renew - 是否强制重新认证
+     * @returns 校验结果（含 authenticationSuccess / authenticationFailure）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().serviceValidate("https://app.example.com", "ST-abc");
+     * console.log(result.serviceResponse.authenticationSuccess?.user);
+     * ```
+     */
     public async serviceValidate(
         service: string,
         ticket?: string,
@@ -356,15 +347,30 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const text = await this.request<string>({
                 method: Method.Get,
-                path: "/serviceValidate",
+                path: cpu("/serviceValidate"),
                 queryParams: queryParams,
-                prefix: CAS_API_PREFIX.cas,
+                prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
             });
             return parseServiceValidateText(text);
         }, "serviceValidate");
     }
 
+    /**
+     * CAS 2.0 proxyValidate：校验 service ticket 与 proxy ticket（返回 XML，SDK 解析为结构化结果）。
+     *
+     * @param service - 目标服务 URL
+     * @param ticket - 可选 service ticket
+     * @param pgtUrl - 可选代理回调 URL（对应 `pgt_url`）
+     * @param renew - 是否强制重新认证
+     * @returns 校验结果（含 authenticationSuccess / authenticationFailure）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().proxyValidate("https://app.example.com", "ST-abc");
+     * console.log(result.serviceResponse.authenticationSuccess?.user);
+     * ```
+     */
     public async proxyValidate(
         service: string,
         ticket?: string,
@@ -379,15 +385,30 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const xml = await this.request<string>({
                 method: Method.Get,
-                path: "/proxyValidate",
+                path: cpu("/proxyValidate"),
                 queryParams: queryParams,
-                prefix: CAS_API_PREFIX.cas,
+                prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
             });
             return parseCasXmlResponse(xml);
         }, "proxyValidate");
     }
 
+    /**
+     * CAS 3.0 p3/serviceValidate：校验 service ticket 并返回属性（返回 XML，SDK 解析为结构化结果）。
+     *
+     * @param service - 目标服务 URL
+     * @param ticket - 可选 service ticket
+     * @param pgtUrl - 可选代理回调 URL（对应 `pgt_url`）
+     * @param renew - 是否强制重新认证
+     * @returns 校验结果（含 authenticationSuccess / authenticationFailure）
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getCasManager().p3ServiceValidate("https://app.example.com", "ST-abc");
+     * console.log(result.serviceResponse.authenticationSuccess?.attributes);
+     * ```
+     */
     public async p3ServiceValidate(
         service: string,
         ticket?: string,
@@ -402,9 +423,9 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const xml = await this.request<string>({
                 method: Method.Get,
-                path: "/p3/serviceValidate",
+                path: cpu("/p3/serviceValidate"),
                 queryParams: queryParams,
-                prefix: CAS_API_PREFIX.cas,
+                prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
             });
             return parseCasXmlResponse(xml);
@@ -433,9 +454,9 @@ export class CasManager extends BaseManager {
         return await this.withRetry(async () => {
             const xml = await this.request<string>({
                 method: Method.Get,
-                path: "/proxy",
+                path: cpu("/proxy"),
                 queryParams: queryParams,
-                prefix: CAS_API_PREFIX.cas,
+                prefix: CAS_PROTOCOL_PREFIX,
                 textResponse: true,
             });
             const parsed = parseCasXmlResponse(xml);
@@ -449,17 +470,37 @@ export class CasManager extends BaseManager {
         }, "proxy");
     }
 
+    /**
+     * 构造 CAS 登录跳转 URL（`/_synapse/cas/login`）。
+     *
+     * @param redirectUrl - 可选登录成功后的重定向地址
+     * @returns 拼接好的登录 URL
+     *
+     * @example
+     * ```typescript
+     * const url = client.getCasManager().getLoginUrl("https://app.example.com/callback");
+     * window.location.href = url;
+     * ```
+     */
     public getLoginUrl(redirectUrl?: string): string {
         const baseUrl = this.client.getHomeserverUrl();
         const params = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
-        return `${baseUrl}${CAS_API_PREFIX.cas}/login${params}`;
+        return `${baseUrl}${CAS_PROTOCOL_PREFIX}/login${params}`;
     }
 
+    /**
+     * 执行 CAS 登出（调用 `/_synapse/cas/logout`）。
+     *
+     * @example
+     * ```typescript
+     * await client.getCasManager().handleLogout();
+     * ```
+     */
     public async handleLogout(): Promise<void> {
         await this.request<Record<string, unknown> /* Dynamic: CAS logout response varies by server */>({
             method: Method.Get,
-            path: "/logout",
-            prefix: CAS_API_PREFIX.cas,
+            path: cpu("/logout"),
+            prefix: CAS_PROTOCOL_PREFIX,
         });
     }
 }

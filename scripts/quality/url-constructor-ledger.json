@@ -1,0 +1,140 @@
+{
+    "schema_version": 1,
+    "note": "URL/路径构造器登记表（批次 K2）。entries 逐条登记『返回 URL/路径字符串』的方法：guards 是该符号体内必须出现的源码子串（源码漂移即报 stale-guard），paths 是该符号能拼出的 (method, path)。expect:\"manifest\" 表示归一化后必须命中镜像 route-manifest；expect:\"bucket:<name>\" 表示当前认不出（identity-server 无路由 / 模板槽位无法静态定值），计入具名桶——桶计数只降不升。覆盖率守卫（R1 new URL(`…`) / R2 .getUrl( / R3 return `…${baseUrl…}`）保证新构造点必须登记，非构造点在 ignoredSites 说明原因。",
+    "generatedAt": "2026-10-10T00:00:00.000Z",
+    "entries": [
+        {
+            "file": "src/account/index.ts",
+            "symbol": "getSsoLoginUrl",
+            "method": "GET",
+            "guards": ["\"/login/sso/redirect\"", "`/login/sso/redirect/${loginType}`"],
+            "paths": [
+                { "path": "/_matrix/client/v3/login/sso/redirect", "expect": "manifest" },
+                { "path": "/_matrix/client/v3/login/sso/redirect/${loginType}", "expect": "bucket:template-slot" }
+            ]
+        },
+        {
+            "file": "src/account/index.ts",
+            "symbol": "getCasLoginUrl",
+            "method": "GET",
+            "guards": ["this.getSsoLoginUrl(redirectUrl, \"cas\")"],
+            "paths": [{ "path": "/_matrix/client/v3/login/sso/redirect/cas", "expect": "manifest" }]
+        },
+        {
+            "file": "src/account/index.ts",
+            "symbol": "getFallbackAuthUrl",
+            "method": "GET",
+            "guards": ["\"/auth/$loginType/fallback/web\""],
+            "paths": [{ "path": "/_matrix/client/v3/auth/${loginType}/fallback/web", "expect": "manifest" }]
+        },
+        {
+            "file": "src/cas/index.ts",
+            "symbol": "getLoginUrl",
+            "method": "GET",
+            "guards": ["CAS_PROTOCOL_PREFIX", "/login${params}"],
+            "paths": [{ "path": "/_synapse/cas/login", "expect": "manifest" }]
+        },
+        {
+            "file": "src/content-repo.ts",
+            "symbol": "getHttpUriForMxc",
+            "method": "GET",
+            "guards": ["/_matrix/client/v1/media/${verb}", "/_matrix/media/v3/${verb}"],
+            "paths": [
+                { "path": "/_matrix/client/v1/media/download/${serverName}/${mediaId}", "expect": "manifest" },
+                { "path": "/_matrix/client/v1/media/thumbnail/${serverName}/${mediaId}", "expect": "manifest" },
+                { "path": "/_matrix/media/v3/download/${serverName}/${mediaId}", "expect": "manifest" },
+                { "path": "/_matrix/media/v3/thumbnail/${serverName}/${mediaId}", "expect": "manifest" }
+            ]
+        },
+        {
+            "file": "src/http-api/index.ts",
+            "symbol": "uploadContent",
+            "method": "POST",
+            "guards": ["this.getUrl(\"/upload\", undefined, MediaPrefix.V3)"],
+            "paths": [{ "path": "/_matrix/media/v3/upload", "expect": "manifest" }]
+        },
+        {
+            "file": "src/identity-server/index.ts",
+            "symbol": "registerWithIdentityServer",
+            "method": "POST",
+            "guards": ["\"/account/register\"", "IdentityPrefix.V2"],
+            "paths": [{ "path": "/_matrix/identity/v2/account/register", "expect": "bucket:identity-server" }]
+        },
+        {
+            "file": "src/identity-server/index.ts",
+            "symbol": "termsUrlForService",
+            "method": "GET",
+            "guards": ["\"/terms\"", "IdentityPrefix.V2", "\"/_matrix/integrations/v1\""],
+            "paths": [
+                { "path": "/_matrix/identity/v2/terms", "expect": "bucket:identity-server" },
+                { "path": "/_matrix/integrations/v1/terms", "expect": "bucket:identity-server" }
+            ]
+        },
+        {
+            "file": "src/media/index.ts",
+            "symbol": "getDownloadUrl",
+            "method": "GET",
+            "guards": ["\"/_matrix/client/v1/media/download\"", "/_matrix/media/${version}/"],
+            "paths": [
+                { "path": "/_matrix/media/v3/download/${serverName}/${mediaId}", "expect": "manifest" },
+                { "path": "/_matrix/media/v3/download_signed/${serverName}/${mediaId}", "expect": "manifest" },
+                { "path": "/_matrix/client/v1/media/download/${serverName}/${mediaId}", "expect": "manifest" }
+            ]
+        },
+        {
+            "file": "src/media/index.ts",
+            "symbol": "getThumbnailUrl",
+            "method": "GET",
+            "guards": ["\"/_matrix/client/v1/media/thumbnail\"", "\"/_matrix/media/v3/thumbnail\""],
+            "paths": [
+                { "path": "/_matrix/client/v1/media/thumbnail/${serverName}/${mediaId}", "expect": "manifest" },
+                { "path": "/_matrix/media/v3/thumbnail/${serverName}/${mediaId}", "expect": "manifest" }
+            ]
+        },
+        {
+            "file": "src/oidc/manager.ts",
+            "symbol": "ssoRedirect",
+            "method": "GET",
+            "guards": ["/_matrix/client/v3${path}"],
+            "paths": [{ "path": "/_matrix/client/v3/login/sso/redirect", "expect": "manifest" }]
+        },
+        {
+            "file": "src/oidc/manager.ts",
+            "symbol": "buildCallbackUrl",
+            "method": "GET",
+            "guards": ["/_matrix/client/v3${path}?code="],
+            "paths": [{ "path": "/_matrix/client/v3/oidc/callback", "expect": "manifest" }]
+        },
+        {
+            "file": "src/rendezvous/transports/MSC4108RendezvousSession.ts",
+            "symbol": "getPostEndpoint",
+            "method": "POST",
+            "guards": ["\"/org.matrix.msc4108/rendezvous\"", "ClientPrefix.Unstable"],
+            "paths": [{ "path": "/_matrix/client/unstable/org.matrix.msc4108/rendezvous", "expect": "manifest" }]
+        },
+        {
+            "file": "src/saml/index.ts",
+            "symbol": "getLoginRedirectUrl",
+            "method": "GET",
+            "guards": ["/_matrix/client/v3/login/sso/redirect/saml${params}"],
+            "paths": [{ "path": "/_matrix/client/v3/login/sso/redirect/saml", "expect": "manifest" }]
+        },
+        {
+            "file": "src/saml/index.ts",
+            "symbol": "getLogoutRedirectUrl",
+            "method": "GET",
+            "guards": ["/_matrix/client/v3/logout/saml${params}"],
+            "paths": [{ "path": "/_matrix/client/v3/logout/saml", "expect": "manifest" }]
+        }
+    ],
+    "buckets": {
+        "template-slot": 1,
+        "identity-server": 3
+    },
+    "ignoredSites": [
+        {
+            "file": "src/http-api/fetch.ts",
+            "reason": "HTTP 传输层（plumbing）：getUrl 的实现体（new URL 组装）与 request() 内部对 getUrl 的调用都在此。K 类『返回 URL 的方法』都经它落地；这些调用点由 verify-path-contract 的 request() 视角覆盖，非本门禁的构造点。"
+        }
+    ]
+}

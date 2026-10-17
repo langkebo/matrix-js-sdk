@@ -62,6 +62,19 @@ export class MatrixRTCSessionManager extends TypedEventEmitter<MatrixRTCSessionM
         this.logger = rootLogger.getChild("[MatrixRTCSessionManager]");
     }
 
+    /**
+     * 启动 session 管理器：为当前所有房间惰性建立 RTC session 对象（仅保留已有参与者的），
+     * 并订阅房间、事件与房间状态事件以持续跟踪入会 / 离会。
+     *
+     * @example
+     * ```typescript
+     * // MatrixClient 内部（构造于 src/client.ts），对外不暴露公共 getter
+     * const manager = new MatrixRTCSessionManager(this.logger, this);
+     * manager.start();
+     * const session = manager.getRoomSession(room);
+     * manager.stop();
+     * ```
+     */
     public start(): void {
         // We shouldn't need to null-check here, but matrix-client.spec.ts mocks getRooms
         // returning nothing, and breaks tests if you change it to return an empty array :'(
@@ -77,6 +90,18 @@ export class MatrixRTCSessionManager extends TypedEventEmitter<MatrixRTCSessionM
         this.client.on(RoomStateEvent.Events, this.onRoomState);
     }
 
+    /**
+     * 停止 session 管理器：停止并清空所有已跟踪的房间会话，并取消对房间、事件与房间状态事件的订阅。
+     *
+     * @example
+     * ```typescript
+     * // MatrixClient 内部（构造于 src/client.ts），对外不暴露公共 getter
+     * const manager = new MatrixRTCSessionManager(this.logger, this);
+     * manager.start();
+     * // ... 客户端停止时
+     * manager.stop();
+     * ```
+     */
     public stop(): void {
         for (const sess of this.roomSessions.values()) {
             void sess.stop();
@@ -91,6 +116,17 @@ export class MatrixRTCSessionManager extends TypedEventEmitter<MatrixRTCSessionM
     /**
      * Gets the main MatrixRTC session for a room, or undefined if there is
      * no current session
+     *
+     * @example
+     * ```typescript
+     * // MatrixClient 内部（构造于 src/client.ts），对外不暴露公共 getter
+     * const manager = new MatrixRTCSessionManager(this.logger, this);
+     * manager.start();
+     * const active = manager.getActiveRoomSession(room);
+     * if (active === undefined) {
+     *     // 该房间当前没有活动的 MatrixRTC session
+     * }
+     * ```
      */
     public getActiveRoomSession(room: Room): MatrixRTCSession | undefined {
         return this.roomSessions.get(room.roomId)!;
@@ -99,6 +135,15 @@ export class MatrixRTCSessionManager extends TypedEventEmitter<MatrixRTCSessionM
     /**
      * Gets the main MatrixRTC session for a room, returning an empty session
      * if no members are currently participating
+     *
+     * @example
+     * ```typescript
+     * // MatrixClient 内部（构造于 src/client.ts），对外不暴露公共 getter
+     * const manager = new MatrixRTCSessionManager(this.logger, this);
+     * manager.start();
+     * // 即使房间内暂无参与者，也会惰性创建并返回唯一的会话对象
+     * const session = manager.getRoomSession(room);
+     * ```
      */
     public getRoomSession(room: Room): MatrixRTCSession {
         if (!this.roomSessions.has(room.roomId)) {

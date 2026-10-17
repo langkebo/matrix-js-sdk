@@ -1,7 +1,7 @@
 {
-    "generatedAt": "2026-10-07T11:29:49.917Z",
+    "generatedAt": "2026-10-11T06:22:53.317Z",
     "note": "SDK source MSC reference snapshot. Update with --update-baseline after registering new MSCs in docs/MSC_SDK_MAPPING.md.",
-    "total": 63,
+    "total": 64,
     "entries": {
         "1767": ["src/@types/extensible_events.ts"],
         "1772": ["src/models/room.ts"],
@@ -12,11 +12,11 @@
         "2676": ["src/models/event.ts"],
         "2716": ["src/@types/event.ts", "src/models/room-state.ts", "src/models/room.ts", "src/sync.ts"],
         "2746": ["src/web-rtc/call.ts"],
-        "2965": ["src/client-auth.ts"],
         "2966": ["src/oidc/register.ts"],
         "3088": ["src/@types/event.ts"],
         "3089": [
             "src/@types/event.ts",
+            "src/client.ts",
             "src/matrix-client-extensions.ts",
             "src/models/MSC3089Branch.ts",
             "src/models/MSC3089TreeSpace.ts"
@@ -31,7 +31,7 @@
         "3417": ["src/models/room.ts"],
         "3488": ["src/@types/beacon.ts", "src/@types/event.ts", "src/@types/location.ts"],
         "3531": ["src/models/event.ts", "src/models/room.ts"],
-        "3575": ["src/room/RoomManager.ts"],
+        "3575": ["src/client.ts", "src/room/RoomManager.ts"],
         "3672": ["src/@types/beacon.ts", "src/@types/event.ts", "src/beacon/index.ts"],
         "3720": [
             "src/account-status/index.ts",
@@ -51,6 +51,7 @@
         "3916": ["src/content-repo.ts"],
         "3925": ["src/event-mapper.ts"],
         "3946": ["src/client.ts", "src/models/room-state.ts", "src/models/room.ts"],
+        "3952": ["src/client.ts"],
         "3981": ["src/@types/requests.ts", "src/models/thread.ts"],
         "4023": ["src/client-receipts.ts"],
         "4033": ["src/models/compare-event-ordering.ts", "src/models/event.ts", "src/models/room.ts"],
@@ -90,6 +91,7 @@
             "src/rust-crypto/rust-crypto.ts"
         ],
         "4284": ["src/@types/event.ts", "src/admin/index.ts", "src/admin/sub-managers/admin-policy-manager.ts"],
+        "4291": ["src/admin/validators.ts", "src/common/validators.ts"],
         "4310": ["src/matrix-rtc/types.ts"],
         "4312": ["src/interactive-auth.ts"],
         "4341": ["src/oidc/register.ts", "src/oidc/validate.ts"],
@@ -97,7 +99,10 @@
             "src/client.ts",
             "src/embedded.ts",
             "src/matrix-rtc/MatrixRTCSession.ts",
-            "src/sliding-sync/__generated__/dto.ts"
+            "src/room-summary/room-summary-base-manager.ts",
+            "src/room/RoomManager.ts",
+            "src/sliding-sync/__generated__/dto.ts",
+            "src/thread/index.ts"
         ],
         "4362": ["src/client.ts", "src/models/event.ts", "src/rust-crypto/rust-crypto.ts"],
         "4380": ["src/invite-blocklist/index.ts"],

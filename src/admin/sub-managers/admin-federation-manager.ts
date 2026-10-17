@@ -47,6 +47,12 @@ export class AdminFederationManager extends AdminBaseManager {
      *
      * @param options - 可选分页参数
      * @returns 黑名单页（含游标）
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().federation.getFederationBlacklist({ limit: 50 });
+     * console.log(page.blacklist.length);
+     * ```
      */
     async getFederationBlacklist(options?: { from?: string; limit?: number }): Promise<FederationBlacklistPage> {
         const queryParams = buildPaginationParams(options?.limit, options?.from);
@@ -54,7 +60,7 @@ export class AdminFederationManager extends AdminBaseManager {
             blacklist?: FederationBlacklistEntry[];
             total?: number;
             next_batch?: string | null;
-        }>(Method.Get, "/federation/blacklist", queryParams);
+        }>(Method.Get, apu("/federation/blacklist"), queryParams);
         const blacklist = response.blacklist ?? [];
         return { blacklist, total: response.total ?? blacklist.length, next_batch: response.next_batch ?? null };
     }
@@ -64,6 +70,13 @@ export class AdminFederationManager extends AdminBaseManager {
      *
      * @param serverName - 服务器名称
      * @param reason - 原因
+     *
+     * @throws {ValidationError} 如果 serverName 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.addFederationBlacklistEntry("evil.example.org", "spam");
+     * ```
      */
     async addFederationBlacklistEntry(serverName: string, reason?: string): Promise<void> {
         if (!serverName) {
@@ -77,7 +90,7 @@ export class AdminFederationManager extends AdminBaseManager {
         // 忽略（`reason` 保留在签名中以兼容调用方与将来扩展）。
         await this.adminRequest(
             Method.Post,
-            `/federation/blacklist/${encodeURIComponent(serverName)}`,
+            apu(`/federation/blacklist/${encodeURIComponent(serverName)}`),
             undefined,
             reason ? { reason } : undefined,
         );
@@ -87,23 +100,36 @@ export class AdminFederationManager extends AdminBaseManager {
      * 从联邦黑名单移除
      *
      * @param serverName - 服务器名称
+     *
+     * @throws {ValidationError} 如果 serverName 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.removeFederationBlacklistEntry("evil.example.org");
+     * ```
      */
     async removeFederationBlacklistEntry(serverName: string): Promise<void> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
         }
-        await this.adminRequest(Method.Delete, `/federation/blacklist/${encodeURIComponent(serverName)}`);
+        await this.adminRequest(Method.Delete, apu(`/federation/blacklist/${encodeURIComponent(serverName)}`));
     }
 
     /**
      * 获取联邦目的地列表
      *
      * @returns 联邦目的地列表
+     *
+     * @example
+     * ```typescript
+     * const destinations = await client.getAdminManager().federation.getFederationDestinations();
+     * console.log(destinations.length);
+     * ```
      */
     async getFederationDestinations(): Promise<FederationDestination[]> {
         const response = await this.adminRequest<{ destinations: FederationDestination[] }>(
             Method.Get,
-            "/federation/destinations",
+            apu("/federation/destinations"),
         );
         return response.destinations || [];
     }
@@ -114,6 +140,14 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param serverName - 服务器名称
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 目的地详情或 null
+     *
+     * @throws {Error} 当 throwOnError 为 true 且请求失败时，原样抛出底层错误
+     *
+     * @example
+     * ```typescript
+     * const detail = await client.getAdminManager().federation.getFederationDestination("matrix.org");
+     * console.log(detail?.failure_count);
+     * ```
      */
     async getFederationDestination(
         serverName: string,
@@ -122,7 +156,7 @@ export class AdminFederationManager extends AdminBaseManager {
         try {
             return await this.adminRequest<AdminFederationDestinationDetail>(
                 Method.Get,
-                `/federation/destinations/${encodeURIComponent(serverName)}`,
+                apu(`/federation/destinations/${encodeURIComponent(serverName)}`),
             );
             // @swallow-error { owner: "admin", expires: "2026-12-31" }
         } catch (e) {
@@ -137,11 +171,16 @@ export class AdminFederationManager extends AdminBaseManager {
      * 断开联邦连接
      *
      * @param serverName - 服务器名称
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.disconnectFederation("matrix.org");
+     * ```
      */
     async disconnectFederation(serverName: string): Promise<void> {
         await this.adminRequest(
             Method.Post,
-            `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`),
             {},
             undefined,
         );
@@ -151,38 +190,41 @@ export class AdminFederationManager extends AdminBaseManager {
      * 重置联邦连接（委托给 disconnectFederation）
      *
      * @param serverName - 服务器名称
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.resetFederationConnection("matrix.org");
+     * ```
      */
     async resetFederationConnection(serverName: string): Promise<void> {
         await this.disconnectFederation(serverName);
     }
 
     /**
-     * 重置联邦目的地（尝试 /reset，404 时回退到 /reset_connection）
+     * 重置联邦目的地（**直接**打 `POST …/destinations/{server}/reset_connection`）。
+     *
+     * ⚠️ 修复（2026-10-15）：此前实现先尝试 `/reset`、仅在 404 时回退到 `/reset_connection`。
+     * 后端**从未注册过** `/reset`（`synapse-web/src/routes/admin/federation.rs:23-37` 只有
+     * `{destination}/reset_connection`）⇒ 每次调用都会先发出一个必然 404 的请求，再打真正
+     * 的端点（与 delayed_events 曾经的 action-in-PATH 试探同型）。现改为单请求。
      *
      * @param serverName - 服务器名称
+     *
+     * @throws {ValidationError} 如果 serverName 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.resetFederationDestination("matrix.org");
+     * ```
      */
     async resetFederationDestination(serverName: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
-        try {
-            await this.adminRequest(
-                Method.Post,
-                `/federation/destinations/${encodeURIComponent(serverName)}/reset`,
-                {},
-                undefined,
-            );
-        } catch (e) {
-            const err = e as MatrixError;
-            if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                await this.adminRequest(
-                    Method.Post,
-                    `/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`,
-                    {},
-                    undefined,
-                );
-                return;
-            }
-            throw e;
-        }
+        await this.adminRequest(
+            Method.Post,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}/reset_connection`),
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -191,6 +233,12 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param serverName - 服务器名称
      * @param options - 分页选项
      * @returns 房间列表
+     *
+     * @example
+     * ```typescript
+     * const rooms = await client.getAdminManager().federation.getFederationDestinationRooms("matrix.org", { limit: 20 });
+     * console.log(rooms.total);
+     * ```
      */
     async getFederationDestinationRooms(
         serverName: string,
@@ -201,7 +249,7 @@ export class AdminFederationManager extends AdminBaseManager {
         if (options?.limit !== undefined) query.limit = String(options.limit);
         return await this.adminRequest(
             Method.Get,
-            `/federation/destinations/${encodeURIComponent(serverName)}/rooms`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}/rooms`),
             query,
         );
     }
@@ -210,11 +258,16 @@ export class AdminFederationManager extends AdminBaseManager {
      * 删除联邦目的地
      *
      * @param serverName - 服务器名称
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.deleteFederationDestination("matrix.org");
+     * ```
      */
     async deleteFederationDestination(serverName: string): Promise<void> {
         await this.adminRequest(
             Method.Delete,
-            `/federation/destinations/${encodeURIComponent(serverName)}`,
+            apu(`/federation/destinations/${encodeURIComponent(serverName)}`),
             {},
             undefined,
         );
@@ -225,6 +278,12 @@ export class AdminFederationManager extends AdminBaseManager {
      *
      * 对应 `GET /_synapse/admin/v1/federation/cache`，后端返回 `{cache, total}`。
      * ⚠️ 列表键是 `cache`（不是 `entries`）。
+     *
+     * @example
+     * ```typescript
+     * const cache = await client.getAdminManager().federation.getFederationCache();
+     * console.log(cache.total);
+     * ```
      */
     async getFederationCache(): Promise<AdminFederationCache> {
         return await this.adminRequest(Method.Get, apu("/federation/cache"));
@@ -233,6 +292,11 @@ export class AdminFederationManager extends AdminBaseManager {
     /**
      * 清除联邦缓存
      * 对接: POST /_synapse/admin/v1/federation/cache/clear
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.clearFederationCache();
+     * ```
      */
     async clearFederationCache(): Promise<void> {
         await this.adminRequest(Method.Post, apu("/federation/cache/clear"));
@@ -243,6 +307,13 @@ export class AdminFederationManager extends AdminBaseManager {
      * 对接: DELETE /_synapse/admin/v1/federation/cache/{key}
      *
      * @param key - 缓存条目的键
+     *
+     * @throws {ValidationError} 如果 key 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.deleteFederationCacheEntry("my-cache-key");
+     * ```
      */
     async deleteFederationCacheEntry(key: string): Promise<void> {
         if (!key) {
@@ -258,11 +329,17 @@ export class AdminFederationManager extends AdminBaseManager {
      *
      * ⚠️ 旧实现读的是 `admissions` / `pending` 两个**后端从不返回**的键 ⇒ 恒返回 `[]`
      * （与 {@link getPendingFederationServers} 打同一端点、但取错键）。
+     *
+     * @example
+     * ```typescript
+     * const servers = await client.getAdminManager().federation.getFederationAdmissionList();
+     * console.log(servers.length);
+     * ```
      */
     async getFederationAdmissionList(): Promise<PendingFederationServer[]> {
         const response = await this.adminRequest<{ servers?: PendingFederationServer[] }>(
             Method.Get,
-            "/federation/pending",
+            apu("/federation/pending"),
         );
         return response.servers ?? [];
     }
@@ -273,11 +350,17 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param from - 分页起点
      * @param limit - 数量限制
      * @returns 待处理联邦服务器列表
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().federation.getPendingFederationServers(undefined, 50);
+     * console.log(page.servers.length, page.next_batch);
+     * ```
      */
     async getPendingFederationServers(from?: string, limit?: number): Promise<PendingFederationList> {
         // `/federation/pending_servers` 回退分支已删除：后端只注册 `/federation/pending`。
         const queryParams = buildPaginationParams(limit, from);
-        return await this.adminRequest<PendingFederationList>(Method.Get, "/federation/pending", queryParams);
+        return await this.adminRequest<PendingFederationList>(Method.Get, apu("/federation/pending"), queryParams);
     }
 
     /**
@@ -285,9 +368,15 @@ export class AdminFederationManager extends AdminBaseManager {
      *
      * @param serverName - 服务器名称
      * @returns 解析结果
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().federation.resolveFederation("matrix.org");
+     * console.log(res.resolved);
+     * ```
      */
     async resolveFederation(serverName: string): Promise<FederationResolveResponse> {
-        return await this.adminRequest(Method.Post, "/federation/resolve", {}, { server_name: serverName });
+        return await this.adminRequest(Method.Post, apu("/federation/resolve"), {}, { server_name: serverName });
     }
 
     /**
@@ -296,10 +385,18 @@ export class AdminFederationManager extends AdminBaseManager {
      * @param from - 源服务器名称
      * @param to - 目标服务器名称
      * @returns 重写结果
+     *
+     * @throws {ValidationError} 如果 from 或 to 为空
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().federation.rewriteFederation("old.example.org", "new.example.org");
+     * console.log(res);
+     * ```
      */
     async rewriteFederation(from: string, to: string): Promise<FederationRewriteResponse> {
         if (!from || !to) throw new ValidationError("from and to are required");
-        return await this.adminRequest(Method.Post, "/federation/rewrite", {}, { from, to });
+        return await this.adminRequest(Method.Post, apu("/federation/rewrite"), {}, { from, to });
     }
 
     /**
@@ -316,10 +413,21 @@ export class AdminFederationManager extends AdminBaseManager {
      * @returns 准入结果
      *
      * @throws {ValidationError} 如果 serverName 为空
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().federation.confirmFederation("remote.example.org", true);
+     * console.log(res.status);
+     * ```
      */
     async confirmFederation(serverName: string, accept: boolean): Promise<FederationAdmissionResult> {
         if (!serverName) throw new ValidationError("serverName is required");
-        return await this.adminRequest(Method.Post, "/federation/confirm", {}, { server_name: serverName, accept });
+        return await this.adminRequest(
+            Method.Post,
+            apu("/federation/confirm"),
+            {},
+            { server_name: serverName, accept },
+        );
     }
 
     /**
@@ -327,12 +435,19 @@ export class AdminFederationManager extends AdminBaseManager {
      *
      * @param serverName - 服务器名称
      * @param reason - 原因
+     *
+     * @throws {ValidationError} 如果 serverName 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.addToFederationBlacklist("evil.example.org", "spam");
+     * ```
      */
     async addToFederationBlacklist(serverName: string, reason?: string): Promise<void> {
         if (!serverName) throw new ValidationError("Server name is required");
         await this.adminRequest(
             Method.Post,
-            `/federation/blacklist/${encodeURIComponent(serverName)}`,
+            apu(`/federation/blacklist/${encodeURIComponent(serverName)}`),
             {},
             reason ? { reason } : undefined,
         );
@@ -342,6 +457,11 @@ export class AdminFederationManager extends AdminBaseManager {
      * 从联邦黑名单移除（委托给 removeFederationBlacklistEntry）
      *
      * @param serverName - 服务器名称
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().federation.removeFromFederationBlacklist("evil.example.org");
+     * ```
      */
     async removeFromFederationBlacklist(serverName: string): Promise<void> {
         await this.removeFederationBlacklistEntry(serverName);

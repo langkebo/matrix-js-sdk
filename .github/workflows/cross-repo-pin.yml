@@ -1,9 +1,14 @@
 name: Cross-Repo Pin
 
 # Verifies Tjg/meta/sdk-pin.json against the live HEADs of all three repos:
-#   pin.sdk_commit          == matrix-js-sdk HEAD
-#   pin.synapse_rust_commit == synapse-rust HEAD
+#   pin.sdk_commit          == matrix-js-sdk HEAD  (或 HEAD 前进但 src/ + package.json 内容未变)
+#   pin.synapse_rust_commit == synapse-rust HEAD   (或 HEAD 前进但 SDK 车道 ledger 快照内容未变)
 #   pin.tarball_sha256      == sha256(Tjg/vendor/matrix-js-sdk.tgz)
+#
+# 2026-10-14：两条 commit 判据由「严格等于 HEAD」改为「pin 的 commit 是 HEAD 的祖先
+# **且**内容载体未变」（与 Tjg 的 verify-sdk-pin 同口径）。理由：后端/SDK 的纯文档或
+# 纯脚本提交也会推进 HEAD，严格相等会把它们判成 drift（实测假阳性：`ed09854e5` 只往
+# ledger 目录新增 sidecar `manifest.json`，三个 profile JSON 一字未改）。
 #
 # Why release branches only: the pin is documented as a *release-branch* artifact
 # ("CI blocks merges to release/* unless every field here matches the actually

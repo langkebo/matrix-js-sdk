@@ -2,7 +2,7 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "federation",
-  "synapse_rust_commit": "14f892e356c3ea259781bc5b6b202bab2b6c8dc4",
+  "synapse_rust_commit": "c7c9116db5c462b49f5dae5abbf5e606f3244d21",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
   "entry_count": 55,

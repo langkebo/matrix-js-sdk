@@ -1,14 +1,14 @@
 ---
 module: dm
 generated_from: docs/api-contract/generated/modules/dm.json
-generated_hash: sha256-7bcdac1525d3eb51da232907578e7d86838b0d907f6d6d79dcec626429730294
+generated_hash: sha256-eb9a4d4af8fac9746a463ed166121e1a4c0cceb32d1eeb35547e78d46c79a30f
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # DM 模块契约
 
-> 审查来源: `synapse-rust/src/web/routes/dm.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/dm.rs`
 > 对应 SDK 模块: `src/dm/index.ts`
 
 ## 本次复核结论
@@ -37,11 +37,81 @@ last_reviewed: 2026-05-11
 | `POST` | `/_matrix/vendor/v1/create_dm`                  | 创建私聊房间兼容前缀         | SDK 默认走 `v3`              |
 | `POST` | `/_matrix/vendor/v1/create_dm`                  | 创建私聊房间                 | `createDmRoom()`             |
 | `GET`  | `/_matrix/vendor/v1/direct`                     | 获取 `m.direct` 映射兼容前缀 | SDK 默认走 `v3`              |
-| `PUT`  | `/_matrix/client/r0/direct/{room_id}`           | 更新 direct map 兼容前缀     | SDK 默认走 `v3`              |
+| `PUT`  | `/_matrix/vendor/v1/direct/{room_id}`           | 更新 direct map 兼容前缀     | SDK 默认走 `v3`              |
 | `GET`  | `/_matrix/vendor/v1/direct`                     | 获取当前用户 direct map      | `getDirectRoomsFromServer()` |
-| `PUT`  | `/_matrix/client/v3/direct/{room_id}`           | 更新某房间的 direct map      | `updateDirectRoom()`         |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/dm`         | 判断房间是否为 DM            | `isDmRoomFromServer()`       |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/dm/partner` | 获取 DM 对端资料             | `getDmPartnerFromServer()`   |
+| `PUT`  | `/_matrix/vendor/v1/direct/{room_id}`           | 更新某房间的 direct map      | `updateDirectRoom()`         |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm`         | 判断房间是否为 DM            | `isDmRoomFromServer()`       |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm/partner` | 获取 DM 对端资料             | `getDmPartnerFromServer()`   |
+
+## 结构化类型（codegen 源）
+
+> 本节是 `scripts/sdk-contract-codegen.mjs` 的 DTO 提取源，也是 `src/dm/__generated__/dto.ts`
+> 的权威来源。形状逐条对照 `synapse-rust/synapse-web/src/routes/dm.rs` 的实现，**不凭印象**：
+> `create_dm_room` 返回 `json!({ "room_id": … })`；`get_dm_rooms` 返回 `json!({ "rooms": … })`；
+> `update_dm_room` 返回 `json!({ "room_id", "users", "direct_map", "updated_ts" })`；
+> `check_room_dm` **仅在是 DM 时**返回 `json!({ "room_id", "m.direct": true })`、否则 404；
+> `get_dm_partner_route` 返回 `json!({ "room_id", "user_id", "display_name", "avatar_url" })`。
+> 两个请求体都是「字段全可选」形态（`CreateDmRequest` 6 个 `Option<…>`；`UpdateDmRequest` 的
+> `content` / `users` 都是 `Option<Value>`，**不是** `Vec<String>`）。
+> 这些声明与 `src/dm/sub-managers/*-types.ts` 的手写类型一一对应，后者的权威由本节接管。
+
+```typescript
+/** `POST /_matrix/vendor/v1/create_dm` 请求体（后端 `CreateDmRequest`，字段全可选）。 */
+export interface CreateDmRequest {
+    user_id?: string;
+    invite?: string[];
+    is_direct?: boolean;
+    name?: string;
+    topic?: string;
+    visibility?: string;
+}
+
+/** `POST /_matrix/vendor/v1/create_dm` 响应。 */
+export interface CreateDmResponse {
+    room_id: string;
+}
+
+/** `GET /_matrix/vendor/v1/direct` 响应：`user_id → room_id[]` 的 direct map。 */
+export interface DirectRoomsResponse {
+    rooms: Record<string, string[]>;
+}
+
+/**
+ * `PUT /_matrix/vendor/v1/direct/{room_id}` 请求体（后端 `UpdateDmRequest` + `parse_direct_map_update`）。
+ *
+ * 两个字段二选一：
+ * - `users`：目标用户 ID 列表 ⇒ 后端 `parse_dm_users` 解析为「本房间的这些用户」；
+ * - `content`：一个 `m.direct` 对象。后端先尝试取其中的 `user_id` / `users` 简写，
+ *   取不到就把整个对象当作完整 direct map 覆盖（`OverwriteMap`）。
+ *   注意后端 `content` 必须是 JSON **object**，否则返回 400 `content must be an m.direct object`。
+ */
+export interface UpdateDmRequest {
+    content?: Record<string, string[] | string>;
+    users?: string[];
+}
+
+/** `PUT /_matrix/vendor/v1/direct/{room_id}` 响应。 */
+export interface UpdateDirectRoomResponse {
+    room_id: string;
+    users: string[];
+    direct_map: Record<string, string[]>;
+    updated_ts: number;
+}
+
+/** `GET /_matrix/vendor/v1/rooms/{room_id}/dm` 响应；**不是** DM 时后端返回 404。 */
+export interface DmRoomCheckResponse {
+    room_id: string;
+    "m.direct": boolean;
+}
+
+/** `GET /_matrix/vendor/v1/rooms/{room_id}/dm/partner` 响应。 */
+export interface DmPartnerResponse {
+    room_id: string;
+    user_id: string;
+    display_name: string;
+    avatar_url: string;
+}
+```
 
 ## 参数与返回值对齐
 
@@ -176,3 +246,9 @@ last_reviewed: 2026-05-11
 - `updateDirectRoom()` 已扩展，返回后端完整响应。
 - `rooms/{room_id}/dm` 的返回字段口径已修正为 `"m.direct"`。
 - `updateDirectRoom()` 已同时支持 `{ users }` 和 `{ content }` 两种写法。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- direct 扩展路由中属于其他模块的端点（例如好友模块的 `GET|POST /_matrix/vendor/v1/friends/dm/{user_id}`）归各自模块页说明，本页不重复登记。
+- `GET /_matrix/vendor/v1/rooms/{room_id}/dm` 返回 `404 M_NOT_FOUND` 仅表示该房间不是 DM，不表示房间不存在；两种情形在响应上不可区分，调用方不应据此推断房间是否已删除。
+- `PUT /_matrix/vendor/v1/direct/{room_id}` 的 `content` 必须是 `m.direct` 对象（JSON object）；传入非 object 时返回 `400`，错误文本为 `content must be an m.direct object`。

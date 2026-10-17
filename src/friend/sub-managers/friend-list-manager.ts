@@ -197,6 +197,19 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 获取推荐好友列表。
+     *
+     * @param limit - 返回的推荐数量上限，默认 10。
+     * @returns 归一化后的推荐好友数组；服务端未返回 `suggestions` 时为空数组。
+     * @throws {ValidationError} `limit` 非正整数时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const suggestions = await client.getFriendManager().list.getFriendSuggestions(5);
+     * console.log(`推荐 ${suggestions.length} 位好友`);
+     * ```
+     */
     async getFriendSuggestions(limit: number = 10): Promise<Friend[]> {
         validateLimit(limit);
         try {
@@ -215,6 +228,21 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 搜索 =====
 
+    /**
+     * 按关键词搜索用户。
+     *
+     * @param q - 搜索关键词，不能为空或纯空白。
+     * @param mode - 匹配模式：`"fuzzy"` 模糊匹配或 `"exact"` 精确匹配；省略由服务端决定。
+     * @param limit - 返回结果数量上限；省略由服务端决定。
+     * @returns 搜索结果（`results` 为命中的用户数组）。
+     * @throws {ValidationError} `q` 为空或仅含空白字符时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const result = await client.getFriendManager().list.searchUsers("alice", "fuzzy", 20);
+     * console.log(`命中 ${result.results?.length ?? 0} 个用户`);
+     * ```
+     */
     async searchUsers(q: string, mode?: "fuzzy" | "exact", limit?: number): Promise<FriendSearchResponse> {
         if (!q || q.trim().length === 0) {
             throw new InvalidParamError("Search term cannot be empty");
@@ -238,6 +266,19 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 以结构化条件进行高级好友搜索（POST /friends/search）。
+     *
+     * @param query - 搜索条件对象（如 `q`、`mode`、`limit`、`filters` 等），不能是空对象。
+     * @returns 搜索结果（`results` 为命中的用户数组）。
+     * @throws {ValidationError} `query` 为空对象时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const result = await client.getFriendManager().list.searchFriendsAdvanced({ q: "alice", mode: "fuzzy", limit: 20 });
+     * console.log(`命中 ${result.results?.length ?? 0} 个用户`);
+     * ```
+     */
     async searchFriendsAdvanced(query: FriendSearchQuery): Promise<FriendSearchResponse> {
         if (!query || Object.keys(query).length === 0) {
             throw new InvalidParamError("Search query cannot be empty");
@@ -261,6 +302,19 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 好友关系检查 =====
 
+    /**
+     * 检查与指定用户之间的好友关系。
+     *
+     * @param userId - 目标用户的 Matrix ID，如 `@alice:example.com`。
+     * @returns 好友关系检查结果（`user_id` / `is_friend` / `are_friends`）。
+     * @throws {ValidationError} `userId` 为空时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const { are_friends } = await client.getFriendManager().list.checkFriendship("@alice:example.com");
+     * console.log(are_friends ? "已是好友" : "不是好友");
+     * ```
+     */
     async checkFriendship(userId: string): Promise<FriendshipCheckResponse> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -278,12 +332,36 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 判断指定用户是否存在于本地好友缓存中（同步方法，不发起网络请求）。
+     *
+     * @param userId - 目标用户的 Matrix ID。
+     * @returns 缓存中命中该用户时返回 `true`。
+     * @example
+     * ```typescript
+     * const cached = client.getFriendManager().list.hasCachedFriend("@alice:example.com");
+     * console.log(cached ? "缓存命中" : "缓存中无此人");
+     * ```
+     */
     hasCachedFriend(userId: string): boolean {
         return this.sharedState.friends.has(userId);
     }
 
     // ===== r0 兼容接口 =====
 
+    /**
+     * 获取好友关系列表（r0 兼容接口，带重试）。
+     *
+     * 与 `getFriends()` 不同，本方法不写入共享缓存。
+     *
+     * @returns 归一化后的好友数组。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const friends = await client.getFriendManager().list.getFriendships();
+     * console.log(`共 ${friends.length} 位好友`);
+     * ```
+     */
     async getFriendships(): Promise<Friend[]> {
         try {
             const response = await this.withRetry(async () => {
@@ -302,6 +380,19 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 创建好友关系（r0 兼容接口，带重试）。
+     *
+     * @param userId - 要添加为好友的用户 Matrix ID。
+     * @returns 服务端返回的好友关系信息（`user_id` / `status`）。
+     * @throws {ValidationError} `userId` 为空或格式非法时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const { status } = await client.getFriendManager().list.createFriendship("@alice:example.com");
+     * console.log(`关系状态：${status}`);
+     * ```
+     */
     async createFriendship(userId: string): Promise<{ user_id?: string; status?: string }> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -326,6 +417,17 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 好友分组 =====
 
+    /**
+     * 获取全部好友分组，并刷新共享缓存中的分组。
+     *
+     * @returns 好友分组数组；服务端未返回 `groups` 时为空数组。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const groups = await client.getFriendManager().list.getFriendGroups();
+     * for (const g of groups) console.log(g.id, g.name);
+     * ```
+     */
     async getFriendGroups(): Promise<FriendGroup[]> {
         try {
             const response = await this.request<IFriendGroupsResponse>({
@@ -353,6 +455,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 创建好友分组。
+     *
+     * @param name - 分组名称，长度 1–50 个字符。
+     * @returns 新建的分组（同时写入共享缓存）。
+     * @throws {ValidationError} `name` 为空或超过 50 个字符时抛出。
+     * @example
+     * ```typescript
+     * const group = await client.getFriendManager().list.createFriendGroup("同事");
+     * console.log(`已创建分组 ${group.id}`);
+     * ```
+     */
     async createFriendGroup(name: string): Promise<FriendGroup> {
         if (!name || name.length === 0) {
             throw new InvalidParamError("Group name is required");
@@ -380,6 +494,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         return group;
     }
 
+    /**
+     * 将用户加入指定好友分组，并同步更新本地缓存。
+     *
+     * @param groupId - 目标分组 ID。
+     * @param userId - 要加入分组的用户 Matrix ID。
+     * @returns 无返回值。
+     * @throws {ValidationError} `userId` 为空或格式非法时抛出。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.addToFriendGroup("grp_1", "@alice:example.com");
+     * ```
+     */
     async addToFriendGroup(groupId: string, userId: string): Promise<void> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -397,6 +523,17 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 将用户移出指定好友分组，并同步更新本地缓存。
+     *
+     * @param groupId - 目标分组 ID。
+     * @param userId - 要移出分组的用户 Matrix ID。
+     * @returns 无返回值。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.removeFromFriendGroup("grp_1", "@alice:example.com");
+     * ```
+     */
     async removeFromFriendGroup(groupId: string, userId: string): Promise<void> {
         await this.request({
             method: Method.Delete,
@@ -410,6 +547,16 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 删除指定好友分组，并从本地缓存中移除。
+     *
+     * @param groupId - 要删除的分组 ID。
+     * @returns 无返回值。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.deleteFriendGroup("grp_1");
+     * ```
+     */
     async deleteFriendGroup(groupId: string): Promise<void> {
         await this.request({
             method: Method.Delete,
@@ -420,6 +567,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         delete this.sharedState.groups[groupId];
     }
 
+    /**
+     * 重命名好友分组，并同步更新本地缓存。
+     *
+     * @param groupId - 目标分组 ID。
+     * @param name - 新分组名称，长度 1–50 个字符。
+     * @returns 无返回值。
+     * @throws {ValidationError} `name` 为空或超过 50 个字符时抛出。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.renameFriendGroup("grp_1", "老同事");
+     * ```
+     */
     async renameFriendGroup(groupId: string, name: string): Promise<void> {
         if (!name || name.length === 0) {
             throw new InvalidParamError("Group name is required");
@@ -441,6 +600,17 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 获取指定分组内的好友。
+     *
+     * @param groupId - 目标分组 ID。
+     * @returns 归一化后的好友数组；服务端未返回 `friends` 时为空数组。
+     * @example
+     * ```typescript
+     * const friends = await client.getFriendManager().list.getFriendsInGroup("grp_1");
+     * console.log(`分组内有 ${friends.length} 位好友`);
+     * ```
+     */
     async getFriendsInGroup(groupId: string): Promise<Friend[]> {
         const response = await this.request<{ friends: Friend[] }>({
             method: Method.Get,
@@ -451,6 +621,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         return (response.friends || []).map(normalizeFriend);
     }
 
+    /**
+     * 获取指定用户所属的全部分组。
+     *
+     * @param userId - 目标用户的 Matrix ID。
+     * @returns 该用户所属的分组数组；服务端未返回 `groups` 时为空数组。
+     * @throws {ValidationError} `userId` 为空时抛出。
+     * @example
+     * ```typescript
+     * const groups = await client.getFriendManager().list.getGroupsForUser("@alice:example.com");
+     * console.log(groups.map((g) => g.name).join("、"));
+     * ```
+     */
     async getGroupsForUser(userId: string): Promise<FriendGroup[]> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -467,6 +649,16 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 好友操作 =====
 
+    /**
+     * 删除好友，并同步清理本地缓存、派发 `Removed` / `FriendRemoved` / `ListUpdated` 事件。
+     *
+     * @param userId - 要删除的好友 Matrix ID。
+     * @returns 无返回值。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.removeFriend("@alice:example.com");
+     * ```
+     */
     async removeFriend(userId: string): Promise<void> {
         validateUserId(userId);
 
@@ -482,6 +674,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         this.emit(FriendListManagerEvent.ListUpdated);
     }
 
+    /**
+     * 设置好友的备注名（仅对自己可见）。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @param displayName - 备注名，长度 1–256 个字符。
+     * @returns 无返回值。
+     * @throws {ValidationError} `displayName` 为空或超过 256 个字符时抛出。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.setFriendDisplayName("@alice:example.com", "Alice（同事）");
+     * ```
+     */
     async setFriendDisplayName(userId: string, displayName: string): Promise<void> {
         if (!displayName || displayName.length < 1 || displayName.length > 256) {
             throw new InvalidParamError("Display name must be between 1 and 256 characters");
@@ -494,6 +698,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         });
     }
 
+    /**
+     * 更新好友备注（note），并同步本地缓存、派发 `FriendUpdated` 事件。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @param note - 备注内容，最长 1000 个字符。
+     * @returns 无返回值。
+     * @throws {ValidationError} `userId` 为空或 `note` 超过 1000 个字符时抛出。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.updateFriendNote("@alice:example.com", "在 2024 年产品会上认识");
+     * ```
+     */
     async updateFriendNote(userId: string, note: string): Promise<void> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -519,6 +735,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 好友信息 =====
 
+    /**
+     * 获取好友状态详情。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @returns 好友状态信息（`user_id` / `status` / `is_friend` 等）。
+     * @throws {ValidationError} `userId` 为空时抛出。
+     * @example
+     * ```typescript
+     * const info = await client.getFriendManager().list.getFriendStatusInfo("@alice:example.com");
+     * console.log(info.status);
+     * ```
+     */
     async getFriendStatusInfo(userId: string): Promise<FriendStatusInfo> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -531,11 +759,37 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         });
     }
 
+    /**
+     * 获取好友状态字符串（`getFriendStatusInfo()` 的便捷封装）。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @returns 好友状态字符串。
+     * @example
+     * ```typescript
+     * const status = await client.getFriendManager().list.getFriendStatus("@alice:example.com");
+     * console.log(status);
+     * ```
+     */
     async getFriendStatus(userId: string): Promise<string> {
         const response = await this.getFriendStatusInfo(userId);
         return response.status;
     }
 
+    /**
+     * 获取单个好友的详细信息。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @param throwOnError - 为 `true`（默认）时请求出错直接抛出；为 `false` 时好友不存在
+     *   （`NotFoundError`）返回 `null`，其他错误仍抛出。
+     * @returns 归一化后的好友信息；`throwOnError` 为 `false` 且好友不存在时为 `null`。
+     * @throws {ValidationError} `userId` 为空时抛出。
+     * @throws {Error} 请求失败（且 `throwOnError` 为 `true`）时抛出。
+     * @example
+     * ```typescript
+     * const friend = await client.getFriendManager().list.getFriendInfo("@alice:example.com");
+     * if (friend) console.log(friend.display_name ?? friend.user_id);
+     * ```
+     */
     async getFriendInfo(userId: string, throwOnError = true): Promise<Friend | null> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -563,6 +817,19 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== DM 房间 =====
 
+    /**
+     * 获取与指定好友的私聊（DM）房间 ID。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @returns 包含 `room_id` 的对象；尚未建立私聊时 `room_id` 为 `null`。
+     * @throws {ValidationError} `userId` 为空或格式非法时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getFriendManager().list.getFriendDm("@alice:example.com");
+     * console.log(room_id ?? "还没有私聊房间");
+     * ```
+     */
     async getFriendDm(userId: string): Promise<{ room_id: string | null }> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -581,6 +848,19 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         }
     }
 
+    /**
+     * 创建（或获取已存在的）与指定好友的私聊（DM）房间。
+     *
+     * @param userId - 目标好友 Matrix ID。
+     * @returns 包含 `room_id` 的对象。
+     * @throws {ValidationError} `userId` 为空或格式非法时抛出。
+     * @throws {Error} 请求失败时抛出。
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getFriendManager().list.createFriendDm("@alice:example.com");
+     * console.log(`私聊房间：${room_id}`);
+     * ```
+     */
     async createFriendDm(userId: string): Promise<{ room_id: string }> {
         if (!userId) {
             throw new InvalidParamError("User ID is required");
@@ -601,28 +881,87 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
 
     // ===== 缓存访问 =====
 
+    /**
+     * 获取已缓存的好友列表房间 ID（同步方法，不发起网络请求）。
+     *
+     * @returns 好友列表房间 ID；尚未解析或未知时为 `null`。
+     * @example
+     * ```typescript
+     * const roomId = client.getFriendManager().list.getFriendListRoomId();
+     * if (roomId) console.log(`好友列表房间：${roomId}`);
+     * ```
+     */
     getFriendListRoomId(): string | null {
         return this.sharedState.friendListRoomId;
     }
 
+    /**
+     * 读取本地缓存的好友列表（同步方法，不发起网络请求）。
+     *
+     * @returns 缓存中的好友数组；缓存为空时为空数组。
+     * @example
+     * ```typescript
+     * const cached = client.getFriendManager().list.getCachedFriends();
+     * console.log(`缓存中有 ${cached.length} 位好友`);
+     * ```
+     */
     getCachedFriends(): Friend[] {
         return this.sharedState.friends.values();
     }
 
+    /**
+     * 获取本地缓存的好友数量（同步方法，不发起网络请求）。
+     *
+     * @returns 缓存中的好友数量。
+     * @example
+     * ```typescript
+     * const count = client.getFriendManager().list.getFriendCount();
+     * console.log(`好友数：${count}`);
+     * ```
+     */
     getFriendCount(): number {
         return this.sharedState.friends.size();
     }
 
+    /**
+     * 获取好友缓存的命中统计信息。
+     *
+     * @returns 统计对象，包含 `size`、`hits`、`misses`、`hitRate`。
+     * @example
+     * ```typescript
+     * const stats = client.getFriendManager().list.getCacheStats();
+     * console.log(`命中率 ${(stats.hitRate * 100).toFixed(1)}%`);
+     * ```
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.sharedState.friends.getStats();
     }
 
+    /**
+     * 清空本地好友缓存（同步方法，不发起网络请求）。
+     *
+     * @returns 无返回值。
+     * @example
+     * ```typescript
+     * client.getFriendManager().list.clearCache();
+     * ```
+     */
     clearCache(): void {
         this.sharedState.friends.clear();
     }
 
     // ===== 生命周期 =====
 
+    /**
+     * 同步好友列表数据，完成后派发 `SyncComplete` 事件。
+     *
+     * @returns 同步完成时 resolve 的 Promise。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.sync();
+     * console.log("好友列表已同步");
+     * ```
+     */
     async sync(): Promise<void> {
         await Promise.all([
             this.getFriends(),
@@ -641,6 +980,18 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
      */
     private initPromise: Promise<void> | null = null;
 
+    /**
+     * 启动（初始化）好友列表管理器：加载好友列表与好友分组。
+     *
+     * 并发调用会复用同一次进行中的初始化 Promise（S-12）；初始化失败时不抛出，
+     * 仅记录警告，并允许下一次调用重试。
+     *
+     * @returns 初始化完成时 resolve 的 Promise。
+     * @example
+     * ```typescript
+     * await client.getFriendManager().list.start();
+     * ```
+     */
     async start(): Promise<void> {
         if (this.sharedState.initialized) return;
         if (this.initPromise) return this.initPromise;
@@ -660,6 +1011,15 @@ export class FriendListManager extends BaseManager<FriendListManagerEvent, Frien
         return this.initPromise;
     }
 
+    /**
+     * 停止（重置）好友列表管理器：清空好友缓存与分组，并标记为未初始化。
+     *
+     * @returns 无返回值。
+     * @example
+     * ```typescript
+     * client.getFriendManager().list.stop();
+     * ```
+     */
     stop(): void {
         this.sharedState.friends.clear();
         this.sharedState.groups = {};

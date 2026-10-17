@@ -1,14 +1,14 @@
 ---
 module: saml
 generated_from: docs/api-contract/generated/modules/saml.json
-generated_hash: sha256-ef87f609cd8b611868769402e52d361fd371357b6a6fa6beec0d4fc6c8493f2f
+generated_hash: sha256-0b5c2cc7366903cc0464a100c284d581cf240ca23071ae84d8317e091b13b36e
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # SAML 契约
 
-> 审查来源: `synapse-rust/src/web/routes/saml.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/saml.rs`
 
 ## 真实后端路由
 
@@ -185,3 +185,38 @@ export interface SamlRefreshResult {
     [key: string]: unknown;
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 运行时未启用时的行为
+
+- 编译了 `saml-sso` 但运行时未启用 SAML 时，下列端点全部返回 `403` `M_FORBIDDEN`（`SAML authentication is not enabled`），不是 `404`：路由已注册，功能未开启。客户端应回退密码登录。
+
+### 登录重定向
+
+- `GET /login/sso/redirect/saml?redirectUrl=` 返回 **307**，`Location` 指向 IdP SSO URL；不是 302，也不返回 JSON。
+- `POST /login/sso/redirect/saml` 返回 `200` + `{ "redirect_url": "<IdP SSO URL>" }`，由调用方自行跳转。
+
+### 回调响应
+
+- `GET|POST /login/saml/callback` 成功直接返回 Matrix 凭据，不经过 UIA：`{ user_id, access_token, device_id, expires_in, refresh_token }`。
+- `expires_in` 固定 `3600`（秒）。
+- `device_id` 由服务端生成，前缀固定为 `SAML_`，不要自行构造。
+- `refresh_token` 可能为 `null`（生成失败时仅记日志，access_token 仍有效），不要假定其必存在。
+- 缺少 `SAMLResponse` 返回 `400` `M_BAD_JSON`（`Missing SAML response`）。
+
+### 登出
+
+- `GET /logout/saml` **需要认证**（`Authorization` 头），不是公开跳转端点；有活动会话时返回 `{ "redirect_url": "..." }`，否则返回 `{ "message": "No active SAML session found" }`，由前端自行跳转。
+- 真正的 SLO 回调是 `GET /logout/saml/callback?SAMLResponse=`，成功返回 `{ "message": "Logout successful" }`。
+
+### 元数据
+
+- `GET /saml/metadata` 返回 IdP 元数据 JSON：`{ entity_id, sso_url, slo_url, certificate }`。
+- `GET /saml/sp_metadata` 返回 `application/xml; charset=utf-8` 的 SP 元数据（交给 IdP 登记），不是 JSON。
+
+### 请求体校验
+
+- 所有相关请求体均启用 `deny_unknown_fields`：多传未知键直接 `400`。
+- 重定向请求字段：`redirectUrl`（兼容 `redirect_url`）。
+- 回调字段：`SAMLResponse`（别名 `saml_response`，必填）、`SAMLRequest`（别名 `saml_request`）、`RelayState`（别名 `relay_state`）。

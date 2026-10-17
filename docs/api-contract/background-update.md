@@ -1,15 +1,15 @@
 ---
 module: background_update
 generated_from: docs/api-contract/generated/modules/background_update.json
-generated_hash: sha256-101b7dfd0b8726612ecad588367bce1a7d19636c7e238e338a416f2b5864affb
+generated_hash: sha256-c5acc92281064253e8877ed33cd0dbcde21e5067e9ff14c593a96bc3f33399c3
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # Background Update API 契约文档
 
-> 后端代码: `synapse-rust/src/web/routes/background_update.rs`  
-> 装配入口: `synapse-rust/src/web/routes/admin/mod.rs`  
+> 后端代码: `synapse-rust/synapse-web/src/routes/background_update.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/admin/mod.rs`  
 > SDK 入口: `src/background-update/index.ts`  
 > 更新日期: 2026-05-11  
 > 挂载版本: `v1` (Admin)
@@ -154,3 +154,43 @@ interface BackgroundUpdateStatusResponse {
 | ---------- | ------------------------------------------------------------------------------ | ------------------ |
 | 2026-05-11 | 按后端真实 19 条路由重写文档，并补齐 `BackgroundUpdateManager`、测试与路径绑定 | 修复旧文档长期漂移 |
 | 2026-04-27 | 初版                                                                           | -                  |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### `/{job_name}` 的写方法
+
+- 后端注册 `GET` / `POST` / `DELETE /_synapse/admin/v1/background_updates/{job_name}`；
+  `POST` 用于直接创建或更新单个任务记录。
+- 本仓 ledger（`generated/modules/background_update.json`）目前只登记了 `GET` 与 `DELETE`，
+  因此 SDK 的 `createBackgroundUpdate()` 仍走集合路径 `POST /background_updates`。
+  在 ledger 补齐 `POST /{job_name}` 之前，不要新增单任务写封装。
+
+### 清理 / 验证码 / 保留策略 / 回调
+
+下列端点在后端 `background_update.rs` 同文件注册，但**不属于** `background_updates` 前缀，
+也未登记在 `background_update.json`：
+
+- `POST /_synapse/admin/v1/cleanup/all`
+- `POST /_synapse/admin/v1/cleanup/rooms`
+- `POST /_synapse/admin/v1/cleanup/tokens`
+- `POST /_synapse/admin/v1/captcha/cleanup`
+- `GET|POST|DELETE /_synapse/admin/v1/retention/policy`
+- `GET|POST|DELETE /_synapse/admin/v1/retention/policy/{room_id}`
+- `GET /_synapse/admin/v1/retention/status`
+- `POST /_synapse/admin/v1/retention/run`
+- `GET|POST /_synapse/admin/v1/account_data_callbacks`
+- `GET|POST /_synapse/admin/v1/media_callbacks`
+
+其中 retention 与 callbacks 的响应形状见 `admin.md` 的对应小节。
+这些路由属于 `admin.json`（或独立模块）的 ledger 视图，需先确认归属再宣告封装。
+
+### manifest 只有 19 条
+
+`generated/modules/background_update.json` 精确登记 19 条（与本文路由表一致），
+其中清理类只有 `POST /background_updates/cleanup_locks`。
+后端 `background_update.rs` 实际注册的路由多于 19 条（如上面的 cleanup / captcha 家族），
+差异属于 **ledger 未收编**，不是后端缺失：
+
+- 未登记端点不计入覆盖率，也不要在 SDK 中宣告封装。
+- 新增封装前先补 ledger，再跑 codegen；手写路径会触发 `PathAssert` 编译失败。
+- `cleanup_locks` 是唯一已登记的锁清理端点，响应键为 `{ cleaned_count }`。

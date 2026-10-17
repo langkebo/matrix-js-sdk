@@ -123,7 +123,6 @@ export default {
         // Additional manager modules with extendMatrixClient but not yet wired
         // into manager-extensions/index.ts MANAGER_EXTENSION_MODULES list:
         "src/event/index.ts",
-        "src/widgets/index.ts",
         // worker / room-alias 的 extendMatrixClient 已于 2026-10-05 补入
         // MODULE_DEFS 并接线（此前 client.getWorkerManager() /
         // getRoomAliasManager() 在运行时是 undefined，调用即 TypeError）。
@@ -157,6 +156,7 @@ export default {
         "src/core.ts",
         "src/advanced.ts",
         "src/legacy.ts",
+        "src/contract/index.ts",
         // Vitest configs invoked via CLI `--config` flag (not statically imported):
         "vitest.real-backend.config.ts",
         // XXX: these should be re-exported by one of the supported exports
@@ -170,8 +170,6 @@ export default {
     ignoreDependencies: [
         // Required for `action-validator`
         "@action-validator/*",
-        // Used for git pre-commit hooks
-        "husky",
         // Used by `vitest` (referenced as string in vitest.config.ts reporters array)
         "vitest-sonar-reporter",
         // ESLint plugins referenced in eslint.config.mjs (knip doesn't parse ESLint config):

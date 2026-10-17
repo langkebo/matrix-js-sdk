@@ -136,6 +136,14 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      * @param opts.reason - 附言。⚠️ **只影响线上键名的取值**：后端 `AddFriendRequest`
      *   是 `#[serde(deny_unknown_fields)]` 且字段名为 `message`，故这里必须下发 `message`
      *   （发 `reason` 会被判为未知字段并**直接 400**，2026-10-09 实测）。
+     *
+     * @example
+     * ```typescript
+     * // 直接添加好友（跳过请求/审批流程）
+     * await client.getFriendManager().requests.addFriend("@alice:example.com", { reason: "老同学" });
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空、格式无效或尝试添加自己为好友
      */
     async addFriend(userId: string, opts?: { reason?: string }): Promise<{ user_id?: string; status?: string }> {
         if (!userId) {
@@ -171,6 +179,12 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 接受好友请求
+     *
+     * @example
+     * ```typescript
+     * const { room_id } = await client.getFriendManager().requests.acceptFriendRequest("@alice:example.com");
+     * console.log("已接受好友请求，房间：", room_id);
+     * ```
      */
     async acceptFriendRequest(userId: string): Promise<{ room_id?: string }> {
         validateUserId(userId);
@@ -203,6 +217,11 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 拒绝好友请求
+     *
+     * @example
+     * ```typescript
+     * await client.getFriendManager().requests.rejectFriendRequest("@alice:example.com");
+     * ```
      */
     async rejectFriendRequest(userId: string): Promise<void> {
         validateUserId(userId);
@@ -220,6 +239,11 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 取消已发送的好友请求
+     *
+     * @example
+     * ```typescript
+     * await client.getFriendManager().requests.cancelFriendRequest("@alice:example.com");
+     * ```
      */
     async cancelFriendRequest(userId: string): Promise<void> {
         validateUserId(userId);
@@ -242,6 +266,16 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
      * /friends/requests/incoming（复数）。但后端两个路径都返回 200，fallback
      * 永不触发。现统一使用 route_ledger 规范路径 /friends/requests/incoming，
      * 与 getOutgoingRequests 的 /friends/requests/outgoing 保持一致。
+     *
+     * @example
+     * ```typescript
+     * const incoming = await client.getFriendManager().requests.getIncomingRequests();
+     * for (const req of incoming) {
+     *     console.log(`${req.user_id}: ${req.reason ?? "(无附言)"}`);
+     * }
+     * ```
+     *
+     * @throws {SdkError} 请求失败时抛出（后端未实现好友能力时通常是 404）
      */
     async getIncomingRequests(): Promise<FriendRequest[]> {
         try {
@@ -267,6 +301,14 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 获取发出的好友请求
+     *
+     * @example
+     * ```typescript
+     * const outgoing = await client.getFriendManager().requests.getOutgoingRequests();
+     * console.log(`共 ${outgoing.length} 条已发出的好友请求`);
+     * ```
+     *
+     * @throws {SdkError} 请求失败时抛出（后端未实现好友能力时通常是 404）
      */
     async getOutgoingRequests(): Promise<FriendRequest[]> {
         try {
@@ -289,6 +331,12 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 获取缓存的收到的请求
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getFriendManager().requests.getCachedIncomingRequests();
+     * console.log(`缓存中有 ${cached.length} 条收到的请求`);
+     * ```
      */
     getCachedIncomingRequests(): FriendRequest[] {
         return Array.from(this.sharedState.incomingRequests.values());
@@ -296,6 +344,12 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 获取缓存的发出的请求
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getFriendManager().requests.getCachedOutgoingRequests();
+     * console.log(`缓存中有 ${cached.length} 条已发出的请求`);
+     * ```
      */
     getCachedOutgoingRequests(): FriendRequest[] {
         return Array.from(this.sharedState.outgoingRequests.values());
@@ -303,6 +357,11 @@ export class FriendRequestManager extends BaseManager<FriendRequestManagerEvent,
 
     /**
      * 清除请求缓存
+     *
+     * @example
+     * ```typescript
+     * client.getFriendManager().requests.clearCache();
+     * ```
      */
     clearCache(): void {
         this.sharedState.incomingRequests.clear();

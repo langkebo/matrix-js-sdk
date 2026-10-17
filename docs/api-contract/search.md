@@ -1,14 +1,14 @@
 ---
 module: search
 generated_from: docs/api-contract/generated/modules/search.json
-generated_hash: sha256-962e014516e67469e77e1cefb3110d7492781254e7b92ab21647701f2568223f
+generated_hash: sha256-40e21f15ed9f0d08f19215a0d2c75fc5a19e9f808d32e439909aa2e525ee3029
 ledger_schema: 4
 last_reviewed: 2026-05-11
 ---
 
 # 搜索契约
 
-> 审查来源: `synapse-rust/src/web/routes/handlers/search.rs`
+> 审查来源: `synapse-rust/synapse-web/src/routes/handlers/search/mod.rs`
 > SDK 入口: `src/search/index.ts`、`src/client.ts`、`src/event/EventManager.ts`、`src/room/RoomManager.ts`
 
 ## 当前审计结论
@@ -138,3 +138,46 @@ interface SearchRecipientsOrRoomsResponse {
 | 日期       | 变更                                                                                                  | 影响                |
 | ---------- | ----------------------------------------------------------------------------------------------------- | ------------------- |
 | 2026-05-11 | 按后端 ledger 扩展为 11 条路由口径，新增 `search_recipients` SDK 入口，并补充多入口映射与路径绑定说明 | 修复文档与 SDK 漂移 |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 房间内搜索：vendor 路径，归 `room.json`
+
+- 房间内搜索的真实端点是 `POST /_matrix/vendor/v1/rooms/{room_id}/search`，不是 `/_matrix/client/v3/rooms/{room_id}/search`。
+- 该路由在 ledger 中 `registered_by: room`，计入 `generated/modules/room.json`；`generated/modules/search.json` 的 `entry_count` 为 **8**，本页既有“11 条”为历史人工口径（含 `v1` / `v3` 双前缀重复计数），此处不改写既有计数与覆盖率。
+- SDK 对应入口是 `RoomSummarySearchManager.searchRoom()`（`src/room-summary/sub-managers/room-search-manager.ts`），不是 `MatrixClient.search()`。
+
+### 房间内搜索的请求与响应
+
+- 请求体接受以下写法，按顺序取第一个非空 `search_term`：顶层 `search_term` → `search_categories.room_events.search_term` → `search_categories.room_events.search.term` → `search.term`。
+- `limit` 取顶层 `limit`，其次 `search_categories.room_events.filter.limit`，缺省 10、上限 100。
+- `search_term` 必填且 `trim()` 后不得为空，否则返回 400。
+- 响应固定为 `{"search_categories":{"room_events":{"count":N,"results":[...],"highlights":["<term>"]}}}`；**没有** `next_batch` 与 `groups`，因此该端点不能翻页。
+- 房间不存在返回 404；房间存在但调用方无权查看返回 403。
+
+### `POST /search` 请求体
+
+- `search_categories.room_events` 字段：
+    - `search_term`：必填，长度上限 256，`trim()` 后不得为空。
+    - `keys`：字符串数组，缺省为空。
+    - `filter`：`limit`（≤100，缺省 10）、`rooms`（≤50）、`not_rooms`、`types`（≤20）、`not_types`、`senders`（≤50）、`not_senders`。
+    - `groupings.group_by[].key`：分组键，可传但不影响当前返回。
+    - `order_by`：缺省 `rank`；`recent` 可传，但当前 handler 不据此改变排序，结果 `rank` 固定为 `0.5`。
+    - `next_batch`：增量游标，可放在请求体，也可用 query `?next_batch=`；两者同时存在时请求体优先。
+- `search_categories.users` 字段：`search_term`（长度上限 256）、`limit`（≤100，缺省 10）。
+- `limit` **不在 query 上**：查询串只识别 `next_batch`；房间事件条数请传 `search_categories.room_events.filter.limit`。
+- `event_context`（`before_limit` / `after_limit` / `include_profile`）当前被后端忽略，结果不携带 `context`；需要上下文请另行调用 `/rooms/{room_id}/context/{event_id}`。
+
+### `POST /search` 响应形状
+
+- `search_categories.room_events`：`results`（每项为 `{result:{event_id,room_id,sender,type,content,origin_server_ts}, rank:0.5}`）、`count`、`highlights: []`、`state: {"rooms":{}}`、`groups: {"room_id":{},"sender":{}}`、`next_batch`。
+- `groups` 恒存在但内容为空对象，按房间/发送者分组尚未实现。
+- `next_batch` 是 `origin_server_ts|event_id` 形态的游标，不是 offset；翻页时原样回传。
+- `search_categories.users`：`{results, limited}`，`limited` 表示结果数是否已达 `limit`。
+
+### 事件上下文
+
+- `GET /_matrix/client/{v1,v3}/rooms/{room_id}/context/{event_id}`。
+- `limit` 是 query 参数，缺省 10、夹在 1..100。
+- 响应为 `{event, events_before, events_after, state: [], start, end}`；`start` / `end` 取前后窗口最后一条事件的 `event_id`，窗口为空时回退为目标 `event_id`。
+- 仅房间成员可调用（否则 403）；若目标事件早于调用方加入房间，按不存在处理（404）。

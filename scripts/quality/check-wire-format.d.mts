@@ -8,6 +8,51 @@
 export function splitTopLevelObjectProps(inner: string): string[];
 
 /**
+ * 剥掉一段文本里的 TS 注释，**保留字符串与模板字面量的内容**（`path: "/a//b"` 不受影响）。
+ * 属性块必须先过它再判形态，否则「注释紧贴某属性」会让该属性整块被当注释丢掉：
+ * 粘 `method`/`path` ⇒ 调用点被静默丢弃；粘 `body`/`queryParams` ⇒ 被读成「确定不发」。
+ */
+export function stripCommentsInChunk(text: string): string;
+
+/**
+ * 用**本门禁的** `normalizePath` 重建后端路由 key。
+ *
+ * 存在的唯一理由：仓里有两个 `normalizePath` 实现，占位符大小写（`{x}` vs `{X}`）
+ * 与尾斜杠处理（保留 vs 去掉）都不同。不做这一步，含动态段的路由两侧 key 永远不相等，
+ * 会静默落进 `route-contract-unavailable`。
+ */
+export function gateRouteKey(route: string): string;
+
+/**
+ * 台账 `entries`（后端收集器拼写）→ 门禁 key 空间。读取侧必经此步：
+ * 否则漂移比较把每条动态段路由误报成 `backend-route-new`，且 CI 半场（`effective = 台账`）
+ * 的动态段调用点静默失去可比性。幂等（`--refresh` 写出的已是门禁拼写）。
+ */
+/**
+ * 门禁的路径归一化 = 共享 `normalizePath` + **保留尾斜杠**。
+ *
+ * `/a/` 与 `/a` 在 Matrix 里是两条不同路由（`state/{event_type}/` 表示 state key 为空，
+ * 由另一个处理器服务、契约不同），共享 `normalizePath` 去尾斜杠会把它们折叠。
+ * 后端 key / manifest key / SDK 候选 key **三侧都要走它**。
+ */
+export function wirePathKey(rawPath: string): string;
+
+export function rebaseLedgerKeys(entries: Record<string, unknown> | undefined | null): Map<string, unknown>;
+
+/**
+ * 把「后端路由 → 契约」按门禁 key 折叠，并把折叠显式化。
+ *
+ * 门禁的 `normalizePath` 会去尾斜杠 ⇒ 后端把同一处理器注册在 `GET /pushers` 与
+ * `GET /pushers/` 两条上时，门禁里**永远无法区分**。契约逐字段相同 ⇒ 折叠无害；
+ * 契约不同 ⇒ 必须报错（`Map.set` 会让后写者静默胜出 = 用错契约校验调用点）。
+ */
+export function collapseContractEntries(routeEntries: Array<[string, unknown]>): {
+    entries: Map<string, unknown>;
+    collapsedIdentical: Array<{ key: string; routes: string[] }>;
+    conflicts: Array<{ key: string; routes: string[] }>;
+};
+
+/**
  * 从对象字面量取顶层键集。fail-closed：`keys === null` 表示判不出来（`reason` 给出原因），
  * **绝不返回半份键集**。
  */

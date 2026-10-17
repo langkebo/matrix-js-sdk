@@ -239,6 +239,46 @@ describe("ThreadManager", () => {
             expect(result.unread_count).toBe(0);
         });
 
+        // ⚠️ 以下 3 条钉住 §P1-② 的修复：后端 `MarkReadBody { event_id, origin_server_ts: i64 }`
+        // 要的是**该事件的真实时间戳**，此前固定发 `Date.now()`（客户端时钟）⇒ 多设备已读水位打架。
+        it("优先使用本地缓存里该事件的真实 origin_server_ts（不再伪造 Date.now）", async () => {
+            mockClient.getRoom = vi.fn().mockReturnValue({ findEventById: () => ({ getTs: () => 1_700_000_000_000 }) });
+            mockAuthedRequest.mockResolvedValueOnce({ unread_count: 0 });
+
+            await threadManager.markThreadRead("!room:example.com", "t1", "$ev99");
+
+            expect(mockAuthedRequest).toHaveBeenCalledWith(
+                Method.Post,
+                "/rooms/!room%3Aexample.com/threads/t1/read",
+                undefined,
+                { event_id: "$ev99", origin_server_ts: 1_700_000_000_000 },
+                { prefix: "/_matrix/vendor/v1" },
+            );
+        });
+
+        it("显式传入的 originServerTs 优先级最高", async () => {
+            mockClient.getRoom = vi.fn().mockReturnValue({ findEventById: () => ({ getTs: () => 111 }) });
+            mockAuthedRequest.mockResolvedValueOnce({ unread_count: 0 });
+
+            await threadManager.markThreadRead("!room:example.com", "t1", "$ev99", 222);
+
+            expect(mockAuthedRequest.mock.calls[0][3]).toEqual({ event_id: "$ev99", origin_server_ts: 222 });
+        });
+
+        it("client 未提供 getRoom 时退化为当前时间且不抛错（防 `getRoom is not a function`）", async () => {
+            // `mockClient` 默认就没有 getRoom —— 这正是精简 client / 嵌入式场景的真实形态，
+            // 也是本次改动第一版把 spec 打红的原因（`this.client.getRoom is not a function`）。
+            delete mockClient.getRoom;
+            mockAuthedRequest.mockResolvedValueOnce({ unread_count: 0 });
+            const before = Date.now();
+
+            await threadManager.markThreadRead("!room:example.com", "t1", "$ev99");
+
+            const sent = mockAuthedRequest.mock.calls[0][3] as { origin_server_ts: number };
+            expect(sent.origin_server_ts).toBeGreaterThanOrEqual(before);
+            expect(sent.origin_server_ts).toBeLessThan(before + 10_000);
+        });
+
         it("should throw if readUpTo is missing", async () => {
             await expect(threadManager.markThreadRead("!room:example.com", "t1", "")).rejects.toThrow(
                 "readUpTo is required",

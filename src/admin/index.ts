@@ -182,6 +182,14 @@ import {
     type ThirdPartyRuleCheckResult,
     type ThirdPartyRuleResult,
     type MediaQuarantineChangesResponse,
+    type GlobalMediaQuarantineChangesResponse,
+    type RoomMediaPage,
+    type RoomMediaQuarantineResponse,
+    type RoomMediaUnquarantineResponse,
+    type UserMediaQuarantineResponse,
+    type RateLimitStatusResponse,
+    type RoomBackfillResponse,
+    type CascadeRedactResponse,
     type WhoamiResponse,
 } from "./types";
 import type { ISynapseAdminWhoisResponse, ISynapseAdminDeactivateResponse } from "../@types/synapse";
@@ -325,7 +333,6 @@ export interface AdminManager {
     resetPassword(userId: string, newPassword: string): Promise<void>;
     setAdmin(userId: string, admin: boolean): Promise<void>;
     getUserDevices(userId: string): Promise<DeviceInfo[]>;
-    deleteUserDevices(userId: string, deviceIds: string[]): Promise<void>;
     deleteUserDevice(userId: string, deviceId: string): Promise<void>;
     getUserTokens(userId: string): Promise<UserTokensResponse>;
     deleteUserToken(userId: string, tokenId: string): Promise<void>;
@@ -431,6 +438,13 @@ export interface AdminManager {
     getSpaceRooms(spaceId: string, from?: string, limit?: number): Promise<SpaceRoomsResponse>;
     getSpaceStats(spaceId: string): Promise<SpaceStats>;
     getSpaceUsers(spaceId: string, from?: string, limit?: number): Promise<SpaceUsersResponse>;
+    /** 联邦回填房间历史（`limit` = 每个候选对端请求的事件数，后端默认 100） */
+    backfillRoom(roomId: string, options?: { limit?: number }): Promise<RoomBackfillResponse>;
+    /** 递归级联删除引用事件（不落 m.room.redaction，归属只记审计日志） */
+    cascadeRedactEvent(
+        roomId: string,
+        options: { eventId: string; maxDepth?: number; reason?: string },
+    ): Promise<CascadeRedactResponse>;
 
     // ----- 服务器管理（→ server） -----
     whoami(): Promise<WhoamiResponse>;
@@ -479,6 +493,8 @@ export interface AdminManager {
     cleanupAll(payload?: { min_age_ms?: number }): Promise<CleanupAllResponse>;
     cleanupRooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse>;
     cleanupTokens(): Promise<CleanupTokensResponse>;
+    /** 限流运行状态（配置来源 + 运行时计数；诊断"配置没生效"的第一现场） */
+    getRateLimitStatus(): Promise<RateLimitStatusResponse>;
 
     // ----- 联邦管理（→ federation） -----
     getFederationBlacklist(options?: { from?: string; limit?: number }): Promise<FederationBlacklistPage>;
@@ -528,6 +544,26 @@ export interface AdminManager {
         mediaId: string,
         options?: { from?: string; limit?: number },
     ): Promise<MediaQuarantineChangesResponse>;
+    /** 按 server_name + media_id 取详情（upstream 两段形态，server_name 段被后端忽略） */
+    getMediaInfoByServer(serverName: string, mediaId: string): Promise<MediaInfo>;
+    /** 按 server_name + media_id 删除（upstream 两段形态，server_name 段被后端忽略） */
+    deleteMediaByServer(serverName: string, mediaId: string): Promise<void>;
+    /** 按策略批量删除本地媒体（`beforeTs` / `maxSize` 均可选，省略即该条件不过滤） */
+    deleteMediaByPolicy(options?: { beforeTs?: number; maxSize?: number }): Promise<{ deleted: number }>;
+    /** 全局隔离变更流（数值游标；与 getMediaQuarantineChanges 是两个端点） */
+    getGlobalMediaQuarantineChanges(options?: {
+        from?: number | string;
+    }): Promise<GlobalMediaQuarantineChangesResponse>;
+    /** 列出房间媒体（后端 limit clamp 1..500） */
+    getRoomMedia(roomId: string, options?: { from?: string; limit?: number }): Promise<RoomMediaPage>;
+    /** 删除房间内某条媒体 */
+    deleteRoomMedia(roomId: string, mediaId: string): Promise<void>;
+    /** 隔离房间媒体（`userId` 可选：只处理该用户在房内上传的媒体） */
+    quarantineRoomMedia(roomId: string, options?: { userId?: string }): Promise<RoomMediaQuarantineResponse>;
+    /** 解除房间媒体隔离（body 同 quarantineRoomMedia） */
+    unquarantineRoomMedia(roomId: string, options?: { userId?: string }): Promise<RoomMediaUnquarantineResponse>;
+    /** 隔离某用户上传的全部媒体（⚠️ 路径是单数 `user`） */
+    quarantineUserMedia(userId: string): Promise<UserMediaQuarantineResponse>;
 
     // ----- 配置管理（→ config） -----
     getRetentionPolicy(): Promise<RetentionPolicy>;
@@ -778,7 +814,14 @@ export class AdminManager extends AdminBaseManager<AdminEvent, AdminManagerEvent
         this.server.on(AdminServerEvent.ServerStatsUpdated, (stats) => this.emit(AdminEvent.ServerStatsUpdated, stats));
     }
 
-    /** 停止 AdminManager，清理所有 sub-manager 的转发监听器 */
+    /**
+     * 停止 AdminManager，清理所有 sub-manager 的转发监听器
+     *
+     * @example
+     * ```typescript
+     * client.getAdminManager().stop();
+     * ```
+     */
     stop(): void {
         // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
         this.users.removeAllListeners();

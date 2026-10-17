@@ -59,13 +59,12 @@ const CONTRACT_INDEX_PATH = path.join(repoRoot, "docs", "api-contract", "CONTRAC
  * module is silent — prefer migrating the manager onto the generated table instead.
  */
 const SKIP_ROUTE_TABLE_MODULES = new Set([
-    "admin",
-    "app-service",
-    "dm",
-    "feature-flags",
+    // 注（2026-10-15）：`dm` / `feature-flags` / `key-rotation` 已从此表移除 —— 三者的 manager
+    // 都是「自持前缀 + 字面量相对路径」（dm/key-rotation 走 `VendorPrefix`、feature-flags 走
+    // `AdminPrefix.V1`，与契约表前缀一致），已改为消费生成的 route-table（PathAssert 编译期断言），
+    // 故不再需要"有意不生成表"。剩余 1 个：federation（服务端面、本口径不适用，
+    // 已单列为 SERVER_ONLY 类别）。
     "federation",
-    "key-rotation",
-    "reactions",
 ]);
 
 const SDK_DIR_ALIASES = {
@@ -244,7 +243,7 @@ const CONTRACT_MODULE_MAP = {
     密钥轮转: "key-rotation",
     小组件: "widget",
     应用服务: "app-service",
-    延迟事件: null,
+    延迟事件: "delayed-events",
     房间: "room",
     推送: "push",
     搜索: "search",
@@ -535,19 +534,6 @@ function prettyModuleName(value) {
         .join(" ");
 }
 
-function parseFrontmatter(text) {
-    if (!text.startsWith("---\n")) return {};
-    const end = text.indexOf("\n---\n", 4);
-    if (end < 0) return {};
-    const out = {};
-    for (const line of text.slice(4, end).split("\n")) {
-        const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*?)\s*$/);
-        if (!match) continue;
-        out[match[1]] = match[2];
-    }
-    return out;
-}
-
 function extractDocHeading(text) {
     const headingMatch = text.match(/^#\s+(.+)$/m);
     return headingMatch ? headingMatch[1].trim() : null;
@@ -571,7 +557,6 @@ export function discoverSupportedModules(contractMdText) {
     if (contractMdText === undefined) {
         contractMdText = fs.existsSync(BACKEND_CONTRACT_MD) ? fs.readFileSync(BACKEND_CONTRACT_MD, "utf8") : "";
     }
-    const byLabel = parseBackendContractMd(contractMdText);
     // Reverse map: sdkDir -> [backend contract labels]
     const sdkToLabels = new Map();
     for (const [label, sdkDir] of Object.entries(CONTRACT_MODULE_MAP)) {
@@ -589,6 +574,13 @@ export function discoverSupportedModules(contractMdText) {
         const sdkDir = SDK_DIR_ALIASES[docBasename] ?? docBasename;
         const heading = extractDocHeading(docText);
         const humanName = heading ? heading.replace(/\s+API.*$/, "").trim() : prettyModuleName(docBasename);
+        // ledger 模块名 = 文档 frontmatter 的 `module:`（contract-sync 用它做镜像文件名）；
+        // 与 `sdkDir`（SDK 源码目录）**不是同一个东西**：`thirdparty.md` 的 sdkDir 是
+        // `third-party`，而镜像文件是 `thirdparty.json`。
+        const ledgerModule = docText.match(/^---\n[\s\S]*?^module:\s*(\S+)/m)?.[1];
+        const ledgerModuleFile = ledgerModule
+            ? path.join("docs", "api-contract", "generated", "modules", `${ledgerModule}.json`)
+            : null;
         modules.push({
             sdkDir,
             docBasename,
@@ -597,7 +589,11 @@ export function discoverSupportedModules(contractMdText) {
             typePrefix: toPascalCase(docBasename),
             humanName: humanName || prettyModuleName(docBasename),
             contractLabels: sdkToLabels.get(sdkDir) ?? [],
-            sourceLabel: "docs/synapse-rust/ROUTE_CONTRACT.md",
+            // 溯源标签必须是**本仓真实存在**的机器可读来源。
+            // 旧值 `docs/synapse-rust/ROUTE_CONTRACT.md` 是后端人工文档：本仓不含该路径，
+            // 且同文件注释已声明它与 ledger 漂移（13 个模块双向差集）—— 拿它当
+            // `Source:` 会让 79 个生成文件指错来源（见同步报告 F-12）。
+            sourceLabel: ledgerModuleFile ?? "docs/api-contract/generated/modules/",
         });
     }
     return modules;
@@ -801,21 +797,6 @@ function extractJsonDtoDeclarations(module, contractDocText, existingTypeNames =
     return declarations;
 }
 
-function parseMarkdownTableRows(text) {
-    const rows = [];
-    for (const line of text.split(/\r?\n/)) {
-        if (!line.trim().startsWith("|")) continue;
-        const cells = line
-            .split("|")
-            .slice(1, -1)
-            .map((cell) => cell.trim());
-        if (cells.length < 2) continue;
-        if (cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s+/g, "")))) continue;
-        rows.push(cells);
-    }
-    return rows;
-}
-
 function extractMarkdownTables(text) {
     const lines = text.split(/\r?\n/);
     const tables = [];
@@ -850,15 +831,35 @@ function extractMarkdownTables(text) {
         .filter(Boolean);
 }
 
+/**
+ * 从模块契约文档抽取 HTTP 状态码场景。
+ *
+ * ⚠️ 判据收窄（2026-10-12 修复）：此前对文档里**所有**表格取「第一列含三位数字」的行当状态码，
+ * 于是两类非状态码表格会持续注入**幻影状态码**：
+ *   ① 挂载版本表的前缀列（`/_matrix/client/unstable/org.matrix.msc3575` → `357`、
+ *      `uk.half-shot.msc2666` → `266`、`org.matrix.msc4354` → `435`）；
+ *   ② 变更记录表的第一列日期（`2026-04-27` → `202`）。
+ * 后果不止是噪声：`__generated__/acceptance.spec.ts` 的「2xx happy-path」取
+ * `STATUS_SCENARIOS` 里第一个 2xx —— 模块若只被幻影 202 命中，happy-path 断言就
+ * **锚在一条日期行上**（moderation 实测如此）。
+ *
+ * 现改为：只认**表头首列明确标注状态码**的表（`状态码` / `HTTP` / `Status`），
+ * 与同文件的 `extractErrorScenarios` 保持同一口径。首列仍是状态码所在列，
+ * 故既有状态码表的产出逐字不变。
+ */
 function extractStatusScenarios(text) {
     const scenarios = [];
-    for (const row of parseMarkdownTableRows(text)) {
-        const statusText = row[0]?.replace(/`/g, "").trim();
-        if (!statusText || !/\d{3}/.test(statusText)) continue;
-        const firstStatus = Number.parseInt(statusText.match(/\d{3}/)?.[0] ?? "", 10);
-        if (Number.isNaN(firstStatus)) continue;
-        const note = row.slice(1).join(" | ").replace(/`/g, "").trim();
-        scenarios.push({ status: firstStatus, note });
+    for (const { header, rows } of extractMarkdownTables(text)) {
+        const head0 = (header[0] ?? "").replace(/`/g, "").trim();
+        if (!/状态码|HTTP|Status/i.test(head0)) continue;
+        for (const row of rows) {
+            const statusText = row[0]?.replace(/`/g, "").trim();
+            if (!statusText || !/^\d{3}\b/.test(statusText)) continue;
+            const firstStatus = Number.parseInt(statusText.match(/^\d{3}/)?.[0] ?? "", 10);
+            if (Number.isNaN(firstStatus)) continue;
+            const note = row.slice(1).join(" | ").replace(/`/g, "").trim();
+            scenarios.push({ status: firstStatus, note });
+        }
     }
     const deduped = [];
     const seen = new Set();
@@ -1050,7 +1051,7 @@ function renderAcceptanceTest(module) {
     lines.push("/*");
     lines.push(" * AUTO-GENERATED by scripts/sdk-contract-codegen.mjs — DO NOT EDIT.");
     lines.push(` * Regenerate via \`pnpm run contract:codegen\`.`);
-    lines.push(` * Source: docs/api-contract/generated/modules/${module.sdkDir}.json`);
+    lines.push(` * Source: ${module.sourceLabel}`);
     lines.push(" */");
     lines.push("");
     lines.push(`import { describe, it, expect, vi, beforeEach } from "vitest";`);
@@ -1221,7 +1222,12 @@ function render(module, lookups) {
         const kept = [];
         for (const e of entries) {
             const key = `${e.method} ${e.path}`;
-            if (globalLedgerKeys.has(key) || contractKeys.has(key)) {
+            // 判据收紧（2026-10-15）：原用 **全局** `globalLedgerKeys`（只要该路径在 ledger 的
+            // **任意**模块里存在就保留）⇒「路径从 A 桶迁到 B 桶」时，A 的旧条目**永远剪不掉**，
+            // 造成两表重复（`contract-entrypoint` 报「重复路由」）。改用 `ownedByThisDir`
+            // （= ledger 把该路径**归给本目录**）⇒ 迁移会自然收敛。
+            // 仍需 `contractKeys` 兜住「ledger 未导出、但 ROUTE_CONTRACT.md 有声明」的历史路由。
+            if (ownedByThisDir.has(key) || contractKeys.has(key)) {
                 kept.push(e);
             } else {
                 prunedStale.push(key);

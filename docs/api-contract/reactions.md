@@ -1,7 +1,7 @@
 ---
 module: reactions
 generated_from: docs/api-contract/generated/modules/reactions.json
-generated_hash: sha256-fac3eb546ecaa15ae00e37445135ce5daf7f8599ca84d365461afd99d85349a1
+generated_hash: sha256-d0b9b38e537f196ad411455be54385fc49a683b16ef43ffc4e19bf522f3bc05b
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -9,7 +9,7 @@ last_reviewed: 2026-05-03
 # Reactions API 契约文档
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/reactions.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v3`
 
@@ -21,7 +21,7 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ### 1.2 路由前缀
 
-- `/_matrix/client/{r0,v3}/rooms/{room_id}/send/m.reaction/{txn_id}`
+- `/_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}`
 
 ### 1.3 认证要求
 
@@ -83,15 +83,42 @@ Reactions API 提供消息反应（emoji 表情回应）功能，是 Relations A
 
 ## 四、常见错误码
 
-| 状态码 | 错误码            | 说明                 |
-| ------ | ----------------- | -------------------- |
-| 400    | `M_INVALID_PARAM` | 参数无效             |
-| 401    | `M_UNAUTHORIZED`  | 未认证               |
-| 403    | `M_FORBIDDEN`     | 非房间成员           |
-| 404    | `M_NOT_FOUND`     | 目标事件或房间不存在 |
+| 状态码 | 错误码           | 说明                                                |
+| ------ | ---------------- | --------------------------------------------------- |
+| 400    | `M_BAD_JSON`     | 缺失 `m.relates_to` 或 `rel_type` 非 `m.annotation` |
+| 401    | `M_UNAUTHORIZED` | 未认证                                              |
+| 403    | `M_FORBIDDEN`    | 非房间成员                                          |
+| 404    | `M_NOT_FOUND`    | 目标事件或房间不存在                                |
 
 ## 五、变更历史
 
 | 日期       | 变更 | 影响 |
 | ---------- | ---- | ---- |
 | 2026-04-27 | 初版 | -    |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 挂载版本
+
+- 该路由只挂在 `v3`；`r0` 前缀没有对应路由，调用 `r0` 会返回 404。
+
+### 请求体与校验
+
+- 必须携带 `m.relates_to`，其中 `rel_type` 必须为 `m.annotation`、`event_id` 指向目标事件；缺失 `m.relates_to` 或 `rel_type` 不符均返回 400 `M_BAD_JSON`。
+- 后端同时接受 `m.relates_to` 与不带点号的 `relates_to` 两种键名（兼容旧客户端），两者同时存在时以标准键 `m.relates_to` 为准。
+
+### `key` 的回退顺序
+
+- 反应内容按 `key` → `body` → `👍` 依次取值：先读 `m.relates_to.key`，缺失时读顶层 `body`，两者都没有则落为 `👍`。
+- 因此 SDK 未显式传 `key` 时，服务端不会报错，而是写入默认表情。
+
+### 权限与错误
+
+- 调用方不是房间成员返回 403 `M_FORBIDDEN`；房间存在但用户无权限时同样是 403，不是 404。
+- 目标事件或房间不存在返回 404 `M_NOT_FOUND`。
+- 发送路径使用 `(user, device, txn_id, event_type)` 作为幂等键，重试时需保持 `txn_id` 与 `event_type` 不变，否则会产生重复反应事件。
+
+### 撤回反应
+
+- 撤回一条 reaction 不是删除接口，而是对反应事件本身执行 redact：`PUT|POST /_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}`（`txn_id` 必填）。
+- 撤回后目标消息的聚合计数随之减少，聚合结果以 Relations API 的 `m.annotation` 聚合为准。

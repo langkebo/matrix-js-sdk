@@ -20,7 +20,6 @@ limitations under the License.
  * 提供 Matrix widget 的创建、查询、配置、权限管理功能
  * 对应后端: synapse-rust widget 模块
  *
- * Note: 此模块区别于 src/widgets/（WidgetsManager，历史兼容层）。
  * 本模块使用 __generated__ route-table 路径常量，提供 Ledger 对齐的 widget API。
  */
 
@@ -157,6 +156,13 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取房间内所有小组件
      * GET /_matrix/vendor/v1/rooms/{room_id}/widgets
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const list = await widgets.getRoomWidgets(roomId);
+     * console.log(list.widgets);
+     * ```
      */
     async getRoomWidgets(roomId: string): Promise<IWidgetsListResponse> {
         validateRoomId(roomId);
@@ -175,6 +181,13 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取房间 Jitsi 配置
      * GET /_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const config = await widgets.getJitsiConfig(roomId);
+     * console.log(config.domain);
+     * ```
      */
     async getJitsiConfig(roomId: string): Promise<IJitsiConfig> {
         validateRoomId(roomId);
@@ -195,6 +208,19 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 创建小组件
      * POST /_matrix/vendor/v1/widgets
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const created = await widgets.createWidget({
+     *     room_id: roomId,
+     *     widget_type: "m.custom",
+     *     url: "https://example.org/widget",
+     *     name: "My Widget",
+     * });
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widget_type、url 或 name 缺失时抛出
      */
     async createWidget(body: {
         room_id?: string;
@@ -222,6 +248,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取小组件详情
      * GET /_matrix/vendor/v1/widgets/{widget_id}
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const widget = await widgets.getWidget(widgetId);
+     * console.log(widget.widget.name);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async getWidget(widgetId: string): Promise<IWidgetResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
@@ -240,6 +275,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 更新小组件
      * PUT /_matrix/vendor/v1/widgets/{widget_id}
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const updated = await widgets.updateWidget(widgetId, { name: "Renamed" });
+     * console.log(updated.widget.name);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async updateWidget(
         widgetId: string,
@@ -262,6 +306,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 删除小组件
      * DELETE /_matrix/vendor/v1/widgets/{widget_id}
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * await widgets.deleteWidget(widgetId);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async deleteWidget(widgetId: string): Promise<void> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
@@ -282,6 +334,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取小组件配置
      * GET /_matrix/vendor/v1/widgets/{widget_id}/config
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const config = await widgets.getWidgetConfig(widgetId);
+     * console.log(config.url);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async getWidgetConfig(widgetId: string): Promise<IWidgetConfig> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
@@ -302,6 +363,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取小组件权限列表
      * GET /_matrix/vendor/v1/widgets/{widget_id}/permissions
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const perms = await widgets.getWidgetPermissions(widgetId);
+     * console.log(perms.permissions.length);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async getWidgetPermissions(widgetId: string): Promise<IWidgetPermissionListResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
@@ -320,6 +390,18 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 设置小组件权限
      * POST /_matrix/vendor/v1/widgets/{widget_id}/permissions
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const result = await widgets.setWidgetPermissions(widgetId, {
+     *     user_id: userId,
+     *     permissions: ["read", "write"],
+     * });
+     * console.log(result.permission_id);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 或 user_id 为空、permissions 为空数组时抛出
      */
     async setWidgetPermissions(
         widgetId: string,
@@ -346,6 +428,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 移除用户的小组件权限
      * DELETE /_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * await widgets.removeWidgetPermission(widgetId, userId);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 或 userId 为空时抛出
      */
     async removeWidgetPermission(widgetId: string, userId: string): Promise<void> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
@@ -368,6 +458,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取小组件的所有会话
      * GET /_matrix/vendor/v1/widgets/{widget_id}/sessions
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const sessions = await widgets.getWidgetSessions(widgetId);
+     * console.log(sessions.total);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async getWidgetSessions(widgetId: string): Promise<IWidgetSessionsListResponse> {
         if (!widgetId) throw new InvalidParamError("widget_id is required");
@@ -386,6 +485,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 创建小组件会话
      * POST /_matrix/vendor/v1/widgets/{widget_id}/sessions
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const session = await widgets.createWidgetSession(widgetId, { expires_in_ms: 3600000 });
+     * console.log(session.session.session_id);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async createWidgetSession(
         widgetId: string,
@@ -408,6 +516,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取小组件会话详情
      * GET /_matrix/vendor/v1/widgets/sessions/{session_id}
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const session = await widgets.getWidgetSession(sessionId);
+     * console.log(session.session.widget_id);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 sessionId 为空时抛出
      */
     async getWidgetSession(sessionId: string): Promise<IWidgetSessionResponse> {
         if (!sessionId) throw new InvalidParamError("session_id is required");
@@ -426,6 +543,14 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 删除小组件会话
      * DELETE /_matrix/vendor/v1/widgets/sessions/{session_id}
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * await widgets.deleteWidgetSession(sessionId);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 sessionId 为空时抛出
      */
     async deleteWidgetSession(sessionId: string): Promise<void> {
         if (!sessionId) throw new InvalidParamError("session_id is required");
@@ -446,6 +571,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 获取小组件能力
      * GET /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const caps = await widgets.getWidgetCapabilities(roomId, widgetId);
+     * console.log(caps.capabilities);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空时抛出
      */
     async getWidgetCapabilities(roomId: string, widgetId: string): Promise<IWidgetCapabilities> {
         validateRoomId(roomId);
@@ -465,6 +599,15 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
     /**
      * 设置小组件能力
      * PUT /_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * const caps = await widgets.setWidgetCapabilities(roomId, widgetId, ["read", "write"]);
+     * console.log(caps.capabilities);
+     * ```
+     *
+     * @throws {InvalidParamError} 当 widgetId 为空或 capabilities 为空数组时抛出
      */
     async setWidgetCapabilities(
         roomId: string,
@@ -489,41 +632,30 @@ export class WidgetManager extends BaseManager<WidgetEvent, WidgetManagerEventMa
         );
     }
 
-    /**
-     * 创建小组件（v3 端点）
-     *
-     * ⚠️ 后端 ledger 中**不存在** `/_matrix/vendor/v1/widgets/create`。与
-     * `src/widgets/index.ts` 的同名方法一样属于后端未实现的超前封装，已登记在
-     * `scripts/quality/path-contract-waivers.json`（category: `backend-missing`）。
-     */
-    async createWidgetV3(body: {
-        room_id?: string;
-        widget_type: string;
-        url: string;
-        name: string;
-        data?: Record<string, unknown>;
-    }): Promise<IWidgetResponse> {
-        if (!body.widget_type) throw new InvalidParamError("widget_type is required");
-        if (!body.url) throw new InvalidParamError("url is required");
-        const path = wpv("/widgets/create");
-        return this.withRetry(
-            () =>
-                this.request<IWidgetResponse>({
-                    method: Method.Post,
-                    path,
-                    body,
-                    prefix: WIDGET_PREFIX_VENDOR,
-                }),
-            "createWidgetV3",
-        );
-    }
-
     // ============ Lifecycle ============
 
+    /**
+     * 启动小组件管理器（初始化小组件状态）
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * widgets.start();
+     * ```
+     */
     start(): void {
         // Initialize widget state
     }
 
+    /**
+     * 停止小组件管理器（清理小组件状态）
+     *
+     * @example
+     * ```typescript
+     * const widgets = client.getWidgetManager();
+     * widgets.stop();
+     * ```
+     */
     stop(): void {
         // Clean up widget state
     }

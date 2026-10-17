@@ -148,24 +148,13 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][2]).toEqual({ from: "10", limit: "5" });
         });
 
-        it("resetFederationDestination prefers /reset path", async () => {
+        it("resetFederationDestination 直接打 /reset_connection（不再试探 /reset）", async () => {
             await manager.resetFederationDestination("example.org");
+            // 后端从未注册过 /reset（admin/federation.rs 只有 {destination}/reset_connection）
+            // ⇒ 不应再发出必然 404 的试探请求：有且仅有一次调用
+            expect(req.mock.calls).toHaveLength(1);
             expect(req.mock.calls[0][0]).toBe("POST");
-            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset");
-        });
-
-        it("resetFederationDestination falls back to /reset_connection on 404", async () => {
-            req.mockRejectedValueOnce(
-                new MatrixError({
-                    errcode: "M_NOT_FOUND",
-                    httpStatus: 404,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                } as any),
-            );
-            req.mockResolvedValueOnce({});
-            await manager.resetFederationDestination("example.org");
-            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset");
-            expect(req.mock.calls[1][1]).toBe("/federation/destinations/example.org/reset_connection");
+            expect(req.mock.calls[0][1]).toBe("/federation/destinations/example.org/reset_connection");
         });
     });
 
@@ -365,6 +354,44 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(req.mock.calls[0][1]).toBe("/invite/allowlist");
             expect(req.mock.calls[1][1]).toBe("/invite/blocklist");
             expect(req.mock.calls[2][1]).toBe("/jitsi/config");
+        });
+
+        it("addToInviteBlocklist POSTs the per-user route and sends reason", async () => {
+            await manager.addToInviteBlocklist("@spam:example.org", "批量注册");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/invite/blocklist/${encodeURIComponent("@spam:example.org")}`);
+            expect(req.mock.calls[0][3]).toEqual({ reason: "批量注册" });
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
+        });
+
+        it("addToInviteBlocklist 不带 reason 时**不发请求体**（后端 body 可整体缺）", async () => {
+            await manager.addToInviteBlocklist("@spam:example.org");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][3]).toBeUndefined();
+        });
+
+        it("removeFromInviteBlocklist DELETEs the per-user route", async () => {
+            await manager.removeFromInviteBlocklist("@spam:example.org");
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe(`/invite/blocklist/${encodeURIComponent("@spam:example.org")}`);
+        });
+
+        it("addToInviteAllowlist POSTs the allowlist per-user route", async () => {
+            await manager.addToInviteAllowlist("@alice:example.org");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/invite/allowlist/${encodeURIComponent("@alice:example.org")}`);
+        });
+
+        it("removeFromInviteAllowlist DELETEs the allowlist per-user route", async () => {
+            await manager.removeFromInviteAllowlist("@alice:example.org");
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe(`/invite/allowlist/${encodeURIComponent("@alice:example.org")}`);
+        });
+
+        it("per-user 邀请名单方法仍校验 userId（不发请求）", async () => {
+            await expect(manager.addToInviteBlocklist("")).rejects.toThrow(ValidationError);
+            await expect(manager.removeFromInviteAllowlist("")).rejects.toThrow(ValidationError);
+            expect(req.mock.calls).toHaveLength(0);
         });
 
         it("posts cleanupAll and cleanupTokens to v1 cleanup routes", async () => {
@@ -1760,6 +1787,185 @@ describe("AdminManager extended endpoints (retention/audit/feature-flags/federat
             expect(page).not.toHaveProperty("next_token");
             expect(page.reports[0]).not.toHaveProperty("name");
             expect(page.reports[0]).not.toHaveProperty("sender");
+        });
+    });
+
+    /*
+     * 缺口报告（artifacts/sdk-route-contract-gap-2026-10-15.md §2.C）补齐的 admin 面 12 条端点。
+     *
+     * 断言口径：**逐条钉 (method, path, body)** —— 只断言返回值抓不到"路径/字段写错"，
+     * 而这批端点的后端形状都是 2026-10-15 逐个实读 handler 得来的（含两处易错点：
+     * 用户级隔离是**单数** `user` 路径、全局隔离流的游标是**数值**而非字符串）。
+     */
+    describe("admin 媒体面缺口补齐（2026-10-15）", () => {
+        it("getMediaInfoByServer / deleteMediaByServer 用 upstream 两段形态", async () => {
+            await manager.media.getMediaInfoByServer("example.org", "m1");
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe("/media/example.org/m1");
+            expect(req.mock.calls[0][4]).toMatchObject({ prefix: "/_synapse/admin/v1" });
+
+            await manager.media.deleteMediaByServer("example.org", "m1");
+            expect(req.mock.calls[1][0]).toBe("DELETE");
+            expect(req.mock.calls[1][1]).toBe("/media/example.org/m1");
+        });
+
+        it("两条 alias 方法都校验参数（不发请求）", async () => {
+            await expect(manager.media.getMediaInfoByServer("", "m1")).rejects.toThrow(ValidationError);
+            await expect(manager.media.deleteMediaByServer("example.org", "")).rejects.toThrow(ValidationError);
+            expect(req).not.toHaveBeenCalled();
+        });
+
+        it("deleteMediaByPolicy POST /media/delete，两条件都用 snake_case 键", async () => {
+            req.mockResolvedValueOnce({ deleted: 7 });
+            const res = await manager.media.deleteMediaByPolicy({ beforeTs: 1700000000000, maxSize: 1048576 });
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe("/media/delete");
+            expect(req.mock.calls[0][3]).toEqual({ before_ts: 1700000000000, max_size: 1048576 });
+            expect(res).toEqual({ deleted: 7 });
+        });
+
+        it("deleteMediaByPolicy 省略选项时 body 为空对象（= 后端不过滤任何条件）", async () => {
+            await manager.media.deleteMediaByPolicy();
+            expect(req.mock.calls[0][3]).toEqual({});
+        });
+
+        it("getGlobalMediaQuarantineChanges 走 /media/quarantine_changes，from 以字符串下发、next_batch 数值回传", async () => {
+            req.mockResolvedValueOnce({
+                next_batch: 42,
+                changes: [{ origin: "example.org", media_id: "m1", quarantined: true }],
+            });
+            const res = await manager.media.getGlobalMediaQuarantineChanges({ from: 41 });
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe("/media/quarantine_changes");
+            expect(req.mock.calls[0][2]).toEqual({ from: "41" });
+            expect(res.next_batch).toBe(42);
+            expect(res.changes[0]!.quarantined).toBe(true);
+        });
+
+        it("getGlobalMediaQuarantineChanges 无 from 时不带 query；缺字段时回落 0/[]", async () => {
+            req.mockResolvedValueOnce({});
+            const res = await manager.media.getGlobalMediaQuarantineChanges();
+            expect(req.mock.calls[0][2]).toBeUndefined();
+            expect(res).toEqual({ next_batch: 0, changes: [] });
+        });
+
+        it("getRoomMedia 走 /rooms/{id}/media，limit/from 作为 query 下发", async () => {
+            req.mockResolvedValueOnce({
+                media: [
+                    { media_id: "m1", media_type: "image/png", upload_name: "a.png", created_ts: 1, media_length: 2 },
+                ],
+                total: 1,
+                next_batch: "1|m1",
+            });
+            const page = await manager.media.getRoomMedia("!r:example.org", { limit: 10, from: "0|z" });
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!r:example.org")}/media`);
+            expect(req.mock.calls[0][2]).toEqual({ limit: "10", from: "0|z" });
+            expect(page.total).toBe(1);
+            expect(page.next_batch).toBe("1|m1");
+        });
+
+        it("getRoomMedia 校验 roomId；后端缺 total 时以本页条数回落", async () => {
+            await expect(manager.media.getRoomMedia("")).rejects.toThrow(ValidationError);
+            req.mockResolvedValueOnce({ media: [{ media_id: "m1" }] });
+            const page = await manager.media.getRoomMedia("!r:example.org");
+            expect(page.total).toBe(1);
+            expect(page.next_batch).toBeNull();
+        });
+
+        it("deleteRoomMedia 走 /rooms/{id}/media/{media_id} 且校验两个参数", async () => {
+            await manager.media.deleteRoomMedia("!r:example.org", "m1");
+            expect(req.mock.calls[0][0]).toBe("DELETE");
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!r:example.org")}/media/m1`);
+            await expect(manager.media.deleteRoomMedia("!r:example.org", "")).rejects.toThrow(ValidationError);
+        });
+
+        it("quarantineRoomMedia / unquarantineRoomMedia：user_id 可选、以 body 下发", async () => {
+            req.mockResolvedValueOnce({
+                stream_id: 5,
+                room_id: "!r:example.org",
+                quarantined: true,
+                changed_by: "@admin:example.org",
+            });
+            const res = await manager.media.quarantineRoomMedia("!r:example.org", { userId: "@bob:example.org" });
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!r:example.org")}/media/quarantine`);
+            expect(req.mock.calls[0][3]).toEqual({ user_id: "@bob:example.org" });
+            expect(res.quarantined).toBe(true);
+
+            await manager.media.unquarantineRoomMedia("!r:example.org");
+            expect(req.mock.calls[1][1]).toBe(`/rooms/${encodeURIComponent("!r:example.org")}/media/unquarantine`);
+            expect(req.mock.calls[1][3]).toEqual({});
+        });
+
+        it("quarantineUserMedia 用**单数** user 路径（与该域复数 /users/ 端点不同）", async () => {
+            await manager.media.quarantineUserMedia("@bob:example.org");
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/user/${encodeURIComponent("@bob:example.org")}/media/quarantine`);
+            await expect(manager.media.quarantineUserMedia("")).rejects.toThrow(ValidationError);
+        });
+
+        it("backfillRoom POST /rooms/{id}/backfill，limit 在 body", async () => {
+            req.mockResolvedValueOnce({
+                room_id: "!r:example.org",
+                source_server: "remote.example",
+                persisted_events: 42,
+                candidates_tried: 3,
+            });
+            const res = await manager.rooms.backfillRoom("!r:example.org", { limit: 200 });
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!r:example.org")}/backfill`);
+            expect(req.mock.calls[0][3]).toEqual({ limit: 200 });
+            expect(res.persisted_events).toBe(42);
+            expect(res.source_server).toBe("remote.example");
+        });
+
+        it("backfillRoom 省略 limit 时 body 为空对象（后端用默认 100）", async () => {
+            await manager.rooms.backfillRoom("!r:example.org");
+            expect(req.mock.calls[0][3]).toEqual({});
+        });
+
+        it("cascadeRedactEvent POST /cascade_redact，event_id 必填、可选字段按需下发", async () => {
+            req.mockResolvedValueOnce({ event_id: "$e", redacted_count: 4, max_depth: 8 });
+            const res = await manager.rooms.cascadeRedactEvent("!r:example.org", {
+                eventId: "$e",
+                maxDepth: 8,
+                reason: "spam",
+            });
+            expect(req.mock.calls[0][0]).toBe("POST");
+            expect(req.mock.calls[0][1]).toBe(`/rooms/${encodeURIComponent("!r:example.org")}/cascade_redact`);
+            expect(req.mock.calls[0][3]).toEqual({ event_id: "$e", max_depth: 8, reason: "spam" });
+            expect(res.max_depth).toBe(8);
+        });
+
+        it("cascadeRedactEvent 缺 event_id 时抛 ValidationError（不发请求）", async () => {
+            await expect(manager.rooms.cascadeRedactEvent("!r:example.org", { eventId: "" })).rejects.toThrow(
+                ValidationError,
+            );
+            expect(req).not.toHaveBeenCalled();
+        });
+
+        it("getRateLimitStatus GET /rate-limit-status", async () => {
+            req.mockResolvedValueOnce({
+                enabled: true,
+                backend: "Auto",
+                redis_available: false,
+                active_rules: 3,
+                exempt_paths: 1,
+                metrics: {
+                    requests_total: 10,
+                    rejected_total: 2,
+                    allowed_total: 8,
+                    exempt_total: 0,
+                    fail_open_total: 0,
+                    fail_closed_total: 0,
+                    rejected_ratio_percent: 20,
+                },
+            });
+            const status = await manager.server.getRateLimitStatus();
+            expect(req.mock.calls[0][0]).toBe("GET");
+            expect(req.mock.calls[0][1]).toBe("/rate-limit-status");
+            expect(status.metrics.rejected_ratio_percent).toBe(20);
         });
     });
 });

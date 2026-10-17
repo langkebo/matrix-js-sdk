@@ -36,14 +36,47 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
         super(client, opts);
     }
 
+    /**
+     * 获取当前同步 token。
+     *
+     * @returns 同步 token；尚未开始同步时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const token = client.getSyncManager().getSyncToken();
+     * console.log(token);
+     * ```
+     */
     public getSyncToken(): string | undefined {
         return this.client.syncToken ?? undefined;
     }
 
+    /**
+     * 获取当前同步状态。
+     *
+     * @returns 同步状态；同步未启动时返回 null
+     *
+     * @example
+     * ```typescript
+     * const state = client.getSyncManager().getSyncState();
+     * console.log(state);
+     * ```
+     */
     public getSyncState(): SyncState | null {
         return this.internalClient.syncApi?.getSyncState() ?? null;
     }
 
+    /**
+     * 获取当前同步状态的附加数据。
+     *
+     * @returns 同步状态数据；同步未启动时返回 null
+     *
+     * @example
+     * ```typescript
+     * const data = client.getSyncManager().getSyncStateData();
+     * console.log(data);
+     * ```
+     */
     public getSyncStateData(): ISyncStateData | null {
         const syncApi = this.internalClient.syncApi;
         if (!syncApi) {
@@ -52,14 +85,47 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
         return syncApi.getSyncStateData();
     }
 
+    /**
+     * 判断客户端当前是否正在同步。
+     *
+     * @returns 正在同步返回 true，否则返回 false
+     *
+     * @example
+     * ```typescript
+     * const syncing = client.getSyncManager().isSyncing();
+     * console.log(syncing);
+     * ```
+     */
     public isSyncing(): boolean {
         return this.client.syncing || false;
     }
 
+    /**
+     * 获取已存储的所有房间。
+     *
+     * @returns 本地存储中的房间列表
+     *
+     * @example
+     * ```typescript
+     * const rooms = client.getSyncManager().getRooms();
+     * console.log(rooms.length);
+     * ```
+     */
     public getRooms(): Room[] {
         return this.client.store.getRooms();
     }
 
+    /**
+     * 获取当前用户已加入的房间 ID 列表。
+     *
+     * @returns 已加入的房间 ID 数组
+     *
+     * @example
+     * ```typescript
+     * const joinedRoomIds = await client.getSyncManager().getJoinedRooms();
+     * console.log(joinedRoomIds);
+     * ```
+     */
     public async getJoinedRooms(): Promise<string[]> {
         return this.withRetry(async () => {
             const response = await this.client.getJoinedRooms();
@@ -67,14 +133,49 @@ export class SyncManager extends BaseManager<keyof SyncManagerEvents, SyncManage
         }, "getJoinedRooms");
     }
 
+    /**
+     * 获取当前用户被邀请加入的房间列表。
+     *
+     * @returns 成员状态为 invite 的房间列表
+     *
+     * @example
+     * ```typescript
+     * const invited = client.getSyncManager().getInvitedRooms();
+     * console.log(invited.length);
+     * ```
+     */
     public getInvitedRooms(): Room[] {
         return this.client.store.getRooms().filter((r) => r.getMyMembership() === "invite");
     }
 
+    /**
+     * 获取当前用户已离开的房间列表。
+     *
+     * @returns 成员状态为 leave 的房间列表
+     *
+     * @example
+     * ```typescript
+     * const left = client.getSyncManager().getLeftRooms();
+     * console.log(left.length);
+     * ```
+     */
     public getLeftRooms(): Room[] {
         return this.client.store.getRooms().filter((r) => r.getMyMembership() === "leave");
     }
 
+    /**
+     * 同步已离开房间的初始状态。
+     *
+     * 重复调用时：首次成功后直接返回空数组，进行中的请求则复用同一个 Promise。
+     *
+     * @returns 同步得到的房间列表
+     *
+     * @example
+     * ```typescript
+     * const leftRooms = await client.getSyncManager().syncLeftRooms();
+     * console.log(leftRooms.length);
+     * ```
+     */
     public syncLeftRooms(): Promise<Room[]> {
         // Guard against multiple calls whilst ongoing and multiple calls post success
         if (this.syncedLeftRooms) {

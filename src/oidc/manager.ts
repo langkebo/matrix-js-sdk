@@ -145,6 +145,26 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         super(client, opts);
     }
 
+    /**
+     * 生成 OIDC 授权请求（`GET /_matrix/client/v3/oidc/authorize`），返回授权 URL 或授权码。
+     *
+     * @param params - 授权参数，`client_id` / `redirect_uri` / `response_type` / `scope` 必填
+     * @returns 后端返回的授权 URL（拿不到时为空字符串）
+     * @throws {InvalidParamError} 当必需参数缺失时抛出
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const url = await mgr.authorize({
+     *     client_id: "my-client",
+     *     redirect_uri: "https://app.example/callback",
+     *     response_type: "code",
+     *     scope: "openid profile",
+     * });
+     * window.location.href = url;
+     * ```
+     */
     async authorize(params: IOidcAuthorizationParams): Promise<string> {
         if (!params.client_id) {
             throw new InvalidParamError("client_id is required");
@@ -182,6 +202,24 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         }, "authorize");
     }
 
+    /**
+     * 动态注册 OIDC 客户端（`POST /_matrix/client/v3/oidc/register`）。
+     *
+     * @param request - 客户端注册信息，`redirect_uris` 必填且非空
+     * @returns 注册结果（含 client_id，可能含 client_secret）
+     * @throws {InvalidParamError} 当 redirect_uris 缺失或为空数组时抛出
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const reg = await mgr.registerClient({
+     *     client_name: "My App",
+     *     redirect_uris: ["https://app.example/callback"],
+     * });
+     * console.log(reg.client_id);
+     * ```
+     */
     async registerClient(request: IOidcRegisterRequest): Promise<IOidcClientRegistration> {
         if (!request.redirect_uris || request.redirect_uris.length === 0) {
             throw new InvalidParamError("redirect_uris is required and must be non-empty");
@@ -205,6 +243,24 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         );
     }
 
+    /**
+     * 请求 OIDC 令牌（`POST /_matrix/client/v3/oidc/token`）。
+     *
+     * @param request - 令牌请求，`grant_type` 必填（如 `authorization_code` / `refresh_token`）
+     * @returns 令牌响应（access_token / token_type / expires_in，可能含 refresh_token / id_token）
+     * @throws {InvalidParamError} 当 grant_type 缺失时抛出
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const tokens = await mgr.token({
+     *     grant_type: "authorization_code",
+     *     code: "auth-code",
+     *     redirect_uri: "https://app.example/callback",
+     * });
+     * ```
+     */
     async token(request: IOidcTokenRequest): Promise<IOidcTokenResponse> {
         if (!request.grant_type) {
             throw new InvalidParamError("grant_type is required");
@@ -230,6 +286,19 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         );
     }
 
+    /**
+     * 获取当前访问令牌对应的 OIDC 用户信息（`GET /_matrix/client/v3/oidc/userinfo`）。
+     *
+     * @returns 用户信息（sub 及可选的 name / picture / email）
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const info = await mgr.getUserInfo();
+     * console.log(info.sub);
+     * ```
+     */
     async getUserInfo(): Promise<IOidcUserInfo> {
         return this.withRetry(
             () =>
@@ -242,6 +311,20 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         );
     }
 
+    /**
+     * 使用 refresh_token 刷新令牌，成功后触发 `oidcTokenRefreshed` 事件。
+     *
+     * @param refreshToken - 刷新令牌
+     * @returns 新的令牌响应
+     * @throws {InvalidParamError} 当 refreshToken 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const tokens = await mgr.refreshToken("refresh-token");
+     * ```
+     */
     async refreshToken(refreshToken: string): Promise<IOidcTokenResponse> {
         if (!refreshToken) {
             throw new InvalidParamError("refreshToken is required");
@@ -255,6 +338,18 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         return response;
     }
 
+    /**
+     * 登出 OIDC 会话（`POST /_matrix/client/v3/oidc/logout`），成功后触发 `oidcLoggedOut` 事件。
+     *
+     * @param request - 可选的登出参数（client_id / post_logout_redirect_uri / id_token_hint）
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * await mgr.logout({ post_logout_redirect_uri: "https://app.example" });
+     * ```
+     */
     async logout(request?: IOidcLogoutRequest): Promise<void> {
         return this.withRetry(
             () =>
@@ -270,6 +365,25 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         });
     }
 
+    /**
+     * 内置 OIDC 登录（`POST /_matrix/client/v3/oidc/login`），以用户名/密码换取授权码。
+     *
+     * @param request - 登录请求，`client_id` / `redirect_uri` / `username` / `password` 必填
+     * @returns 登录响应（含授权码 code）
+     * @throws {InvalidParamError} 当 client_id、redirect_uri、username 或 password 缺失时抛出
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const { code } = await mgr.builtinLogin({
+     *     client_id: "my-client",
+     *     redirect_uri: "https://app.example/callback",
+     *     username: "alice",
+     *     password: "s3cret",
+     * });
+     * ```
+     */
     async builtinLogin(request: IOidcLoginRequest): Promise<IOidcLoginResponse> {
         if (!request.client_id) {
             throw new InvalidParamError("client_id is required");
@@ -306,6 +420,24 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         );
     }
 
+    /**
+     * OIDC 登录别名，等价于 {@link builtinLogin}。
+     *
+     * @param body - 登录请求，字段同 {@link builtinLogin}
+     * @returns 登录响应（含授权码 code）
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const { code } = await mgr.oidcLogin({
+     *     client_id: "my-client",
+     *     redirect_uri: "https://app.example/callback",
+     *     username: "alice",
+     *     password: "s3cret",
+     * });
+     * ```
+     */
     async oidcLogin(body: IOidcLoginRequest): Promise<IOidcLoginResponse> {
         return this.builtinLogin(body);
     }
@@ -343,6 +475,12 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
      * 构造 OIDC 回调 URL。
      * @param code - 授权码
      * @param state - 状态
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const url = mgr.buildCallbackUrl("auth-code", "xyz-state");
+     * ```
      */
     public buildCallbackUrl(code: string, state: string): string {
         const baseUrl = this.client.baseUrl.replace(/\/+$/, "");
@@ -350,6 +488,19 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         return `${baseUrl}/_matrix/client/v3${path}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
     }
 
+    /**
+     * 获取 SSO 登录用户信息（`GET /_matrix/client/v3/login/sso/userinfo`）。
+     *
+     * @returns 用户信息（sub 及可选的 name / picture / email）
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const info = await mgr.ssoUserInfo();
+     * console.log(info.sub);
+     * ```
+     */
     async ssoUserInfo(): Promise<IOidcUserInfo> {
         return this.withRetry(
             () =>
@@ -362,14 +513,49 @@ export class OidcManager extends BaseManager<keyof OidcManagerEvents, OidcManage
         );
     }
 
+    /**
+     * 获取当前 OIDC 提供方标识。
+     *
+     * @returns 当前提供方，未设置时返回 null
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * console.log(mgr.getProvider());
+     * ```
+     */
     getProvider(): string | null {
         return this.currentProvider;
     }
 
+    /**
+     * 获取已缓存的 OIDC Discovery 文档。
+     *
+     * @returns 缓存的发现文档，未缓存时返回 null
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * const discovery = mgr.getCachedDiscovery();
+     * console.log(discovery?.issuer);
+     * ```
+     */
     getCachedDiscovery(): IOidcDiscovery | null {
         return this.discoveryCache;
     }
 
+    /**
+     * 清空缓存的 Discovery 文档与当前提供方，重置管理器内部状态。
+     *
+     * @example
+     * ```typescript
+     * const client = createClient({ baseUrl, accessToken });
+     * const mgr = client.getOidcManager();
+     * mgr.stop();
+     * ```
+     */
     stop(): void {
         this.discoveryCache = null;
         this.currentProvider = null;

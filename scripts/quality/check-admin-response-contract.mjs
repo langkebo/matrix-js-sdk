@@ -99,7 +99,9 @@ const EMIT_JSON = process.argv.includes("--json");
  * @returns {"body-required-missing" | "body-sent-ignored" | null}
  */
 function bodyPresence(cs, be) {
-    if (be.io.hasJson && !cs.hasBodyArg) return "body-required-missing";
+    // ⚠️ `Option<Json<T>>` ⇒ body 可整体缺（`invite_lists.rs` 的 per-user 端点即如此）：
+    // 此时"不发 body"是**符合契约**的，不是 415 风险。
+    if (be.io.hasJson && !be.io.jsonOptional && !cs.hasBodyArg) return "body-required-missing";
     if (!be.io.hasJson && cs.hasBodyArg) return "body-sent-ignored";
     return null;
 }

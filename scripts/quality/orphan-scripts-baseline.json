@@ -36,6 +36,11 @@
             "file": "scripts/update-doc-hashes.mjs",
             "kind": "keep-manual",
             "reason": "脚本自述『One-shot helper』：contract:check 报 generated_hash 过期时，手工重算各 module .md 的 frontmatter hash。设计上就是一次性工具。"
+        },
+        {
+            "file": "scripts/audit/route-wrapper-coverage.mjs",
+            "kind": "keep-manual",
+            "reason": "审计诊断工具：复用 quality:path-contract 的抽取机，复算 CONTRACT_INDEX.md 里长期手写、会腐烂的『已封装路由数』。**明确不是判据** —— 脚本自述只给下限（2026-10-15 实测 54.0%，admin 176/179 与手工吻合），并自陈 5 处失明与一条自检判据（『表内>0 但已封装=0』即抽取器失明）。挂进 lint 会把一个已知低估的诊断数字变成阻断项，故有意保留为人工工具；抽取器质量由 quality:path-contract 单独守。"
         }
     ]
 }

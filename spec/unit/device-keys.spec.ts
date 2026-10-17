@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { DeviceKeysManager, DeviceKeysEvent } from "../../src/device-keys";
+import type { Transport } from "../../src/managers/base-manager";
+import { Method } from "../../src/http-api/method";
 
 describe("DeviceKeysManager", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,7 +58,6 @@ describe("DeviceKeysManager", () => {
                 stream_id: 1,
             })
             .mockResolvedValueOnce({})
-            .mockResolvedValueOnce({})
             .mockResolvedValueOnce({ request_id: "r1" })
             .mockResolvedValueOnce({ requests: [{ request_id: "r1" }] })
             .mockResolvedValueOnce({})
@@ -69,7 +70,6 @@ describe("DeviceKeysManager", () => {
             left: [],
             stream_id: 1,
         });
-        await manager.uploadSignatures({ "@a:hs": { D1: { k: "v" } } });
         await manager.uploadDeviceSigning({});
         await expect(
             manager.createRoomKeyRequest({ room_id: "!r:hs", session_id: "s1", algorithm: "m.megolm.v1.aes-sha2" }),
@@ -97,5 +97,37 @@ describe("DeviceKeysManager", () => {
         await expect(manager.getUserDevices("@a:hs")).resolves.toHaveProperty("D1");
         expect(manager.hasDevice("D1")).toBe(true);
         await expect(manager.getDevice("D1")).resolves.toHaveProperty("device_id", "D1");
+    });
+
+    /*
+     * R-06（缺口报告 2026-10-15）：后端满页时返回 `next_batch` 游标，而 SDK 此前
+     * **未在响应类型里声明**该字段 ⇒ 游标被丢弃、翻页只能重复首页（静默截断）。
+     * 同一用例顺带钉住 P-11：`limit`/`from` 必须真的下发（否则"声明了但没发"不会被发现）。
+     *
+     * 这里注入 fake Transport 而不是断言 `client.http.authedRequest` 的入参：
+     * Transport 接口是本仓为「测试可注入」设计的（见 `src/managers/base-manager.ts`），
+     * 断言 (method, path, query) 三者比反推 authedRequest 的参数顺序稳得多。
+     */
+    it("surfaces next_batch and forwards limit/from as query params (R-06 / P-11)", async () => {
+        // 房内范式（见 spec/unit/base-manager-request.spec.ts:195-197）：Transport 的 request
+        // 是泛型方法，直接写实现会与泛型签名不兼容 ⇒ 统一用 `as unknown as Transport["request"]` 注入。
+        const requestMock = vi.fn().mockResolvedValue({ requests: [{ request_id: "r1" }], next_batch: "cursor-1" });
+        const fakeTransport: Transport = {
+            request: requestMock as unknown as Transport["request"],
+        };
+        const managerWithFakeTransport = new DeviceKeysManager(mockClient, { transport: fakeTransport });
+
+        const res = await managerWithFakeTransport.getRoomKeyRequests({
+            status: "pending",
+            limit: 1,
+            from: "cursor-0",
+        });
+
+        expect(res.next_batch).toBe("cursor-1");
+        expect(requestMock).toHaveBeenCalledTimes(1);
+        const [method, path, query] = requestMock.mock.calls[0];
+        expect(method).toBe(Method.Get);
+        expect(path).toBe("/room_keys/request");
+        expect(query).toEqual({ status: "pending", limit: "1", from: "cursor-0" });
     });
 });

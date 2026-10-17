@@ -149,6 +149,14 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     /**
      * 创建 Rendezvous 会话
      * POST /_matrix/client/v1/rendezvous
+     *
+     * @example
+     * ```typescript
+     * const session = await client.getRendezvousManager().createSession({
+     *     intent: "login.start",
+     *     transport: "http.v1",
+     * });
+     * ```
      */
     async createSession(options: {
         intent: RendezvousSessionIntent;
@@ -171,6 +179,13 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     /**
      * 获取 Rendezvous 会话
      * GET /_matrix/client/v1/rendezvous/{session_id}
+     *
+     * @throws {SdkError} 请求失败且非 NotFoundError 时原样抛出
+     *
+     * @example
+     * ```typescript
+     * const session = await client.getRendezvousManager().getSession("session-id");
+     * ```
      */
     async getSession(sessionId: string, sessionKey?: string): Promise<RendezvousSession | null> {
         try {
@@ -193,6 +208,11 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     /**
      * 更新 Rendezvous 会话
      * PUT /_matrix/client/v1/rendezvous/{session_id}
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getRendezvousManager().updateSession("session-id", "connected");
+     * ```
      */
     async updateSession(
         sessionId: string,
@@ -219,6 +239,11 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     /**
      * 删除 Rendezvous 会话
      * DELETE /_matrix/client/v1/rendezvous/{session_id}
+     *
+     * @example
+     * ```typescript
+     * await client.getRendezvousManager().deleteSession("session-id");
+     * ```
      */
     async deleteSession(sessionId: string, sessionKey?: string): Promise<void> {
         await this.rendezvousRequest<void>(
@@ -236,6 +261,14 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     /**
      * 发送消息到 Rendezvous 会话
      * POST /_matrix/client/v1/rendezvous/{session_id}/messages
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getRendezvousManager().sendMessage("session-id", {
+     *     type: "m.login",
+     *     content: {},
+     * });
+     * ```
      */
     async sendMessage(
         sessionId: string,
@@ -257,6 +290,11 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
     /**
      * 获取 Rendezvous 会话的消息
      * GET /_matrix/client/v1/rendezvous/{session_id}/messages
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getRendezvousManager().getMessages("session-id");
+     * ```
      */
     async getMessages(sessionId: string, sessionKey?: string): Promise<GetMessagesResponse> {
         const response = await this.rendezvousRequest<GetMessagesResponse>(
@@ -276,6 +314,11 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
 
     /**
      * 连接到现有会话（辅助方法）
+     *
+     * @example
+     * ```typescript
+     * const response = await client.getRendezvousManager().connectToSession("session-id");
+     * ```
      */
     async connectToSession(sessionId: string, sessionKey?: string): Promise<UpdateSessionResponse> {
         return await this.updateSession(sessionId, "connected", sessionKey);
@@ -283,6 +326,11 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
 
     /**
      * 完成会话并获取登录凭证（辅助方法）
+     *
+     * @example
+     * ```typescript
+     * const login = await client.getRendezvousManager().completeSession("session-id");
+     * ```
      */
     async completeSession(
         sessionId: string,
@@ -298,6 +346,16 @@ export class RendezvousManager extends BaseManager<RendezvousEvent, RendezvousMa
 
     /**
      * 轮询获取消息直到会话完成
+     *
+     * @throws {Error} 当会话不存在或已过期时抛出
+     *
+     * @example
+     * ```typescript
+     * const messages = await client.getRendezvousManager().pollForMessages("session-id", {
+     *     interval: 1000,
+     *     maxAttempts: 60,
+     * });
+     * ```
      */
     async pollForMessages(
         sessionId: string,

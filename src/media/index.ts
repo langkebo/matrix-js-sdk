@@ -138,7 +138,14 @@ export interface ChunkUploadRequest {
 export interface ChunkUploadResponse {
     upload_id: string;
     chunk_index: number;
-    received_bytes: number;
+    /** 已接收分块数（后端键 `uploaded_chunks`，R-04：此前误声明 `received_bytes`，后端从不返回） */
+    uploaded_chunks: number;
+    /** 总分块数（后端键 `total_chunks`） */
+    total_chunks?: number;
+    /** 已接收字节数（后端键 `uploaded_size`） */
+    uploaded_size: number;
+    /** 上传状态（后端 `status`） */
+    status?: string;
     [key: string]: unknown;
 }
 
@@ -197,6 +204,12 @@ export class MediaManager extends BaseManager {
      * Note that the server's support for authenticated media will *not* be checked -
      * it is the caller's responsibility to do so before calling this function.
      * @returns Promise which resolves with an object containing the config.
+     *
+     * @example
+     * ```typescript
+     * const config = await client.getMediaManager().getMediaConfig(true);
+     * console.log("Max upload size:", config["m.upload.size"]);
+     * ```
      */
     public getMediaConfig(useAuthenticatedMedia: boolean = false): Promise<IMediaConfig> {
         const path = useAuthenticatedMedia ? "/media/config" : "/config";
@@ -215,6 +228,12 @@ export class MediaManager extends BaseManager {
      *
      * Returns information about the server's media upload capabilities,
      * including supported upload modes and size limits.
+     *
+     * @example
+     * ```typescript
+     * const provider = await client.getMediaManager().getUploadProvider();
+     * console.log("Supports chunked upload:", provider.supports_chunked_upload);
+     * ```
      */
     public getUploadProvider(): Promise<UploadProviderInfo> {
         return this.withRetry(async () => {
@@ -233,6 +252,12 @@ export class MediaManager extends BaseManager {
      * @param filename - The name of the file to upload.
      * @param contentType - The MIME type of the file.
      * @returns Upload token and related metadata for the upload session.
+     *
+     * @example
+     * ```typescript
+     * const token = await client.getMediaManager().getUploadToken("photo.png", "image/png");
+     * console.log("Upload URL:", token.upload_url);
+     * ```
      */
     public getUploadToken(filename: string, contentType: string): Promise<UploadTokenResponse> {
         return this.withRetry(async () => {
@@ -337,6 +362,15 @@ export class MediaManager extends BaseManager {
     /**
      * Upload content with a specific media ID
      * PUT /_matrix/media/v3/upload/{server_name}/{media_id}
+     *
+     * @example
+     * ```typescript
+     * const data = new Blob(["Hello"], { type: "text/plain" });
+     * const result = await client
+     *     .getMediaManager()
+     *     .uploadContentWithId("example.org", "media-id", data, "text/plain");
+     * console.log("Uploaded:", result.content_uri);
+     * ```
      */
     public async uploadContentWithId(
         serverName: string,
@@ -356,17 +390,40 @@ export class MediaManager extends BaseManager {
 
     /**
      * Cancel an upload
+     *
+     * @example
+     * ```typescript
+     * const promise = client.getMediaManager().uploadContent(file);
+     * client.getMediaManager().cancelUpload(promise);
+     * ```
      */
     public cancelUpload(upload: Promise<UploadResponse>): boolean {
         return this.client.http.cancelUpload?.(upload) ?? false;
     }
 
+    /**
+     * 获取当前正在进行的上传任务列表。
+     *
+     * @returns 上传任务数组，每项包含已上传字节数、总字节数与上传 Promise
+     *
+     * @example
+     * ```typescript
+     * const uploads = client.getMediaManager().getCurrentUploads();
+     * console.log("Active uploads:", uploads.length);
+     * ```
+     */
     public getCurrentUploads(): Array<{ loaded: number; total: number; promise: Promise<UploadResponse> }> {
         return this.client.http.getCurrentUploads?.() ?? [];
     }
 
     /**
      * Get content repository URI
+     *
+     * @example
+     * ```typescript
+     * const baseUrl = client.getMediaManager().getHomeserverUrl();
+     * console.log("Homeserver:", baseUrl);
+     * ```
      */
     public getHomeserverUrl(): string {
         return this.client.baseUrl;
@@ -374,6 +431,12 @@ export class MediaManager extends BaseManager {
 
     /**
      * Get content repository URI
+     *
+     * @example
+     * ```typescript
+     * const uri = client.getMediaManager().getContentRepositoryUri();
+     * console.log("Content repository:", uri);
+     * ```
      */
     public getContentRepositoryUri(): string | null {
         return this.client.getClientWellKnown()?.["m.homeserver"]?.["base_url"] || null;
@@ -382,6 +445,11 @@ export class MediaManager extends BaseManager {
     /**
      * Delete media
      * POST /_matrix/media/v1/delete/{server_name}/{media_id}
+     *
+     * @example
+     * ```typescript
+     * await client.getMediaManager().deleteMedia("example.org", "media-id");
+     * ```
      */
     public async deleteMedia(serverName: string, mediaId: string): Promise<void> {
         await this.request({
@@ -441,6 +509,22 @@ export class MediaManager extends BaseManager {
         });
     }
 
+    /**
+     * 根据 `mxc://` URI 构建媒体下载 URL。
+     *
+     * @param mxcUrl - 媒体内容 URI（`mxc://serverName/mediaId`）
+     * @param options - 下载选项，可指定文件名、版本、认证方式与签名参数
+     * @returns 构建好的下载 URL；URI 非法时返回空字符串
+     *
+     * @example
+     * ```typescript
+     * const url = client.getMediaManager().getDownloadUrl("mxc://example.org/media-id", {
+     *     filename: "photo.png",
+     *     useAuthentication: true,
+     * });
+     * console.log("Download URL:", url);
+     * ```
+     */
     public getDownloadUrl(mxcUrl: string, options: MediaDownloadUrlOptions = {}): string {
         if (!mxcUrl.startsWith("mxc://")) {
             return options.allowDirectLinks ? mxcUrl : "";
@@ -479,6 +563,22 @@ export class MediaManager extends BaseManager {
         return url.href;
     }
 
+    /**
+     * 开始一个分块上传会话。
+     *
+     * @param filename - 文件名
+     * @param contentType - 文件的 MIME 类型
+     * @param totalSize - 文件总字节数（可选）
+     * @returns 包含 `upload_id` 的启动结果
+     *
+     * @example
+     * ```typescript
+     * const session = await client
+     *     .getMediaManager()
+     *     .startChunkUpload("video.mp4", "video/mp4", 10485760);
+     * console.log("Upload ID:", session.upload_id);
+     * ```
+     */
     public async startChunkUpload(
         filename: string,
         contentType: string,
@@ -496,6 +596,20 @@ export class MediaManager extends BaseManager {
         }, "startChunkUpload");
     }
 
+    /**
+     * 上传分块上传会话中的一个分块。
+     *
+     * @param uploadId - 分块上传会话 ID
+     * @param chunkIndex - 分块序号
+     * @param data - 分块数据
+     * @returns 包含已接收字节数的分块上传结果
+     *
+     * @example
+     * ```typescript
+     * const chunk = new Blob([new ArrayBuffer(1024)]);
+     * await client.getMediaManager().uploadChunk(session.upload_id, 0, chunk);
+     * ```
+     */
     public async uploadChunk(
         uploadId: string,
         chunkIndex: number,
@@ -516,6 +630,18 @@ export class MediaManager extends BaseManager {
         }, "uploadChunk");
     }
 
+    /**
+     * 完成分块上传会话并合并所有分块。
+     *
+     * @param uploadId - 分块上传会话 ID
+     * @returns 包含最终 `content_uri` 的完成结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getMediaManager().completeChunkUpload(session.upload_id);
+     * console.log("Content URI:", result.content_uri);
+     * ```
+     */
     public async completeChunkUpload(uploadId: string): Promise<ChunkUploadCompleteResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
@@ -528,6 +654,17 @@ export class MediaManager extends BaseManager {
         }, "completeChunkUpload");
     }
 
+    /**
+     * 取消指定的分块上传会话。
+     *
+     * @param uploadId - 分块上传会话 ID
+     * @returns 表示取消结果的响应
+     *
+     * @example
+     * ```typescript
+     * await client.getMediaManager().cancelChunkUpload(session.upload_id);
+     * ```
+     */
     public async cancelChunkUpload(uploadId: string): Promise<ChunkUploadCancelResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
@@ -540,6 +677,18 @@ export class MediaManager extends BaseManager {
         }, "cancelChunkUpload");
     }
 
+    /**
+     * 查询指定分块上传会话的进度。
+     *
+     * @param uploadId - 分块上传会话 ID
+     * @returns 包含已上传分块数、字节数与状态的上传进度
+     *
+     * @example
+     * ```typescript
+     * const progress = await client.getMediaManager().getChunkUploadProgress(session.upload_id);
+     * console.log("Uploaded chunks:", progress.uploaded_chunks);
+     * ```
+     */
     public async getChunkUploadProgress(uploadId: string): Promise<ChunkUploadProgressResponse> {
         this.requireNonEmptyString(uploadId, "uploadId");
         return this.withRetry(async () => {
@@ -555,6 +704,12 @@ export class MediaManager extends BaseManager {
     /**
      * Check media quota status
      * GET /_matrix/media/v1/quota/check
+     *
+     * @example
+     * ```typescript
+     * const quota = await client.getMediaManager().checkMediaQuota();
+     * console.log("Remaining bytes:", quota.remaining);
+     * ```
      */
     public async checkMediaQuota(): Promise<MediaQuotaCheckResponse> {
         return this.withRetry(async () => {
@@ -569,6 +724,12 @@ export class MediaManager extends BaseManager {
     /**
      * Get media quota statistics
      * GET /_matrix/media/v1/quota/stats
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getMediaManager().getMediaQuotaStats();
+     * console.log("Storage bytes:", stats.storage_bytes);
+     * ```
      */
     public async getMediaQuotaStats(): Promise<MediaQuotaStatsResponse> {
         return this.withRetry(async () => {
@@ -583,6 +744,12 @@ export class MediaManager extends BaseManager {
     /**
      * Get media quota alerts
      * GET /_matrix/media/v1/quota/alerts
+     *
+     * @example
+     * ```typescript
+     * const { alerts } = await client.getMediaManager().getMediaQuotaAlerts();
+     * console.log("Pending alerts:", alerts.length);
+     * ```
      */
     public async getMediaQuotaAlerts(): Promise<MediaQuotaAlertsResponse> {
         return this.withRetry(async () => {
@@ -594,6 +761,23 @@ export class MediaManager extends BaseManager {
         }, "getMediaQuotaAlerts");
     }
 
+    /**
+     * 根据 `mxc://` URI 构建媒体缩略图 URL。
+     *
+     * @param mxcUrl - 媒体内容 URI（`mxc://serverName/mediaId`）
+     * @param options - 缩略图选项，可指定宽高、缩放方式、认证方式与签名参数
+     * @returns 构建好的缩略图 URL；URI 非法时返回空字符串
+     *
+     * @example
+     * ```typescript
+     * const url = client.getMediaManager().getThumbnailUrl("mxc://example.org/media-id", {
+     *     width: 128,
+     *     height: 128,
+     *     method: "crop",
+     * });
+     * console.log("Thumbnail URL:", url);
+     * ```
+     */
     public getThumbnailUrl(mxcUrl: string, options: MediaThumbnailUrlOptions = {}): string {
         if (!mxcUrl.startsWith("mxc://")) {
             return options.allowDirectLinks ? mxcUrl : "";

@@ -19,6 +19,10 @@
  * - `hasMethod`：owner 文件里"方法存在"= 满足以下任一形态——
  *   调用 `foo(` / 泛型调用 `foo<T>(` / 属性简写 `foo:` / 委托调用 `.foo(`，
  *   均带词边界（`resetFoo(` 不会误命中 `foo`）。
+ *   ⚠️ 副作用（已知、可接受）：文档注释里的**用法示例**（`sm.lifecycle.createSpace(...)`）
+ *   也会命中 `委托调用` 形态 ⇒ 注释能"顶替"实现。判据不剥注释，改注释时留意。
+ * - `owner` 文件：历史形态是单文件 `ownerFile`；sub-manager 重构后同一职责面会跨多个
+ *   文件，故支持 `ownerFiles: string[]`（取并集，见 `ownerFilesOf`）。
  * - 测试命中：测试文件文本里出现 `` `foo(` `` 即算（沿用原语义，宽松是有意的——
  *   测试里常见 `expect(vm.foo).toHaveBeenCalled()` 这类非调用形态）。
  *
@@ -72,6 +76,21 @@ export function collectMissing(items, predicate) {
 }
 
 /**
+ * 一个 group 的 owner 文件集合。
+ *
+ * 历史形态是**单文件** `ownerFile`；但 manager 拆成 sub-manager 之后，同一个**职责面**
+ * 的实现在物理上会分散到多个文件（实测：`SpaceManager` 的 24 个语义端点被 `f728df035`
+ * 拆到 5 个 sub-manager，`src/space/index.ts` 只剩文档注释里的用法示例）。
+ * 此时把 `ownerFile` 指向旧文件是**陈旧判据** —— 它报的"缺失方法"其实都在，只是换了家。
+ * 故支持 `ownerFiles: string[]`（取并集）；`ownerFile` 仍兼容，二者同时给时以
+ * `ownerFiles` 为准。
+ */
+export function ownerFilesOf(group) {
+    if (Array.isArray(group.ownerFiles) && group.ownerFiles.length > 0) return group.ownerFiles;
+    return [group.ownerFile];
+}
+
+/**
  * 纯求值：跑完整个 CHECKS 结构，返回 `{ failures, totalGroups, passedGroups }`。
  * 不打印、不碰退出码——供 spec 与自定义报告复用。
  *
@@ -90,10 +109,13 @@ export function evaluateGranularCoverage(checks, opts = {}) {
     for (const moduleCheck of checks) {
         for (const group of moduleCheck.groups) {
             totalGroups += 1;
-            const ownerContent = read(group.ownerFile);
+            const ownerFiles = ownerFilesOf(group);
+            const ownerContents = ownerFiles.map((file) => read(file));
             const testContents = group.testFiles.map((file) => ({ file, content: read(file) }));
 
-            const missingMethods = collectMissing(group.methods, (method) => hasMethod(ownerContent, method));
+            const missingMethods = collectMissing(group.methods, (method) =>
+                ownerContents.some((content) => hasMethod(content, method)),
+            );
             const methodsWithoutTests = collectMissing(group.methods, (method) =>
                 testContents.some(({ content }) => hasTestHit(content, method)),
             );
@@ -106,7 +128,8 @@ export function evaluateGranularCoverage(checks, opts = {}) {
             failures.push({
                 module: moduleCheck.module,
                 group: group.name,
-                ownerFile: group.ownerFile,
+                ownerFile: ownerFiles.length === 1 ? ownerFiles[0] : null,
+                ownerFiles,
                 missingMethods,
                 methodsWithoutTests,
             });
@@ -142,10 +165,13 @@ export function runGranularCoverage({ title, checks, rootDir } = {}) {
 
         for (const group of moduleCheck.groups) {
             totalGroups += 1;
-            const ownerContent = read(group.ownerFile);
+            const ownerFiles = ownerFilesOf(group);
+            const ownerContents = ownerFiles.map((file) => read(file));
             const testContents = group.testFiles.map((file) => ({ file, content: read(file) }));
 
-            const missingMethods = collectMissing(group.methods, (method) => hasMethod(ownerContent, method));
+            const missingMethods = collectMissing(group.methods, (method) =>
+                ownerContents.some((content) => hasMethod(content, method)),
+            );
             const methodsWithoutTests = collectMissing(group.methods, (method) =>
                 testContents.some(({ content }) => hasTestHit(content, method)),
             );
@@ -158,7 +184,8 @@ export function runGranularCoverage({ title, checks, rootDir } = {}) {
 
             console.log(`  FAIL: ${group.name}`);
             if (missingMethods.length > 0) {
-                console.log(`    missing methods in ${group.ownerFile}: ${missingMethods.join(", ")}`);
+                // 单 owner 组下 `join(", ")` 与该文件路径**逐字相同** ⇒ stdout 与重构前一致
+                console.log(`    missing methods in ${ownerFiles.join(", ")}: ${missingMethods.join(", ")}`);
             }
             if (methodsWithoutTests.length > 0) {
                 console.log(`    methods without test hits: ${methodsWithoutTests.join(", ")}`);
@@ -167,7 +194,8 @@ export function runGranularCoverage({ title, checks, rootDir } = {}) {
             failures.push({
                 module: moduleCheck.module,
                 group: group.name,
-                ownerFile: group.ownerFile,
+                ownerFile: ownerFiles.length === 1 ? ownerFiles[0] : null,
+                ownerFiles,
                 missingMethods,
                 methodsWithoutTests,
             });

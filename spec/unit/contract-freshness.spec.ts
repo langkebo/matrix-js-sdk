@@ -32,8 +32,8 @@ describe("check-contract-freshness", () => {
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain("RESULT: fresh");
         expect(result.stdout).toContain("age source: mirror refresh");
-        // mirror age 可能是今天或几天前（只要在阈值内就算 fresh）
-        expect(result.stdout).toMatch(/mirror age: (\d+ day\(s\) ago|today)/);
+        // mirror age 可能是今天/昨天/几天前（只要在阈值内就算 fresh）
+        expect(result.stdout).toMatch(/mirror age: (\d+ day\(s\) ago|today|yesterday)/);
     });
 
     it("stale mirror fails with explicit --now in the far future", () => {

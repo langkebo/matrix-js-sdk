@@ -58,9 +58,6 @@ export type StripInternalSummary<P extends string> = StripPrefix<P, "/_synapse/r
 /** 剥离 `/_synapse/worker`。 */
 export type StripWorkerPrefix<P extends string> = StripPrefix<P, "/_synapse/worker">;
 
-/** 剥离 `/_matrix/admin/v1`。 */
-export type StripMatrixAdminV1<P extends string> = StripPrefix<P, "/_matrix/admin/v1">;
-
 /** 剥离 `/_matrix/client/unstable/org.matrix.simplified_msc3575`。 */
 export type StripSimplifiedSlidingSync<P extends string> = StripPrefix<
     P,
@@ -69,6 +66,15 @@ export type StripSimplifiedSlidingSync<P extends string> = StripPrefix<
 
 /** 剥离 `/_matrix/client/unstable/org.matrix.msc4354`（sticky events）。 */
 export type StripMsc4354<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc4354">;
+
+/** 剥离 `/_synapse/cas`（CAS SSO 协议面）。 */
+export type StripCasProtocol<P extends string> = StripPrefix<P, "/_synapse/cas">;
+
+/** 剥离 `/_matrix/client/unstable/org.matrix.msc4140`（delayed events）。 */
+export type StripMsc4140<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc4140">;
+
+/** 剥离 `/_matrix/client/unstable/org.matrix.msc3814.v1`（dehydrated devices / MSC3814）。 */
+export type StripMsc3814<P extends string> = StripPrefix<P, "/_matrix/client/unstable/org.matrix.msc3814.v1">;
 
 // ---------------------------------------------------------------------------
 // 多前缀形态：按列出的顺序依次匹配（TS 条件类型按书写顺序求值）。

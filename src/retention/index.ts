@@ -93,6 +93,16 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 获取服务器的默认消息保留策略。
+     *
+     * @returns 服务器保留策略
+     *
+     * @example
+     * ```typescript
+     * const policy = await client.getRetentionManager().getServerRetentionPolicy();
+     * ```
+     */
     public async getServerRetentionPolicy(): Promise<RetentionPolicy> {
         return await this.adminRequest<RetentionPolicy>(
             Method.Get,
@@ -103,6 +113,17 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         );
     }
 
+    /**
+     * 设置服务器的默认消息保留策略。
+     *
+     * @param policy - 要设置的保留策略
+     * @returns 服务端确认后的保留策略
+     *
+     * @example
+     * ```typescript
+     * const policy = await client.getRetentionManager().setServerRetentionPolicy({ max_lifetime: 604800000 });
+     * ```
+     */
     public async setServerRetentionPolicy(policy: RetentionPolicy): Promise<RetentionPolicy> {
         const response = await this.adminRequest<RetentionPolicy>(
             Method.Post,
@@ -119,6 +140,18 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         return response;
     }
 
+    /**
+     * 获取指定房间的保留策略。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间保留策略
+     * @throws {InvalidParamError} 当 roomId 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const policy = await client.getRetentionManager().getRoomRetentionPolicy("!room:example.org");
+     * ```
+     */
     public async getRoomRetentionPolicy(roomId: string): Promise<RetentionPolicy & { room_id: string }> {
         if (!roomId) {
             throw new InvalidParamError("roomId is required");
@@ -133,6 +166,21 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         );
     }
 
+    /**
+     * 设置指定房间的保留策略。
+     *
+     * @param roomId - 房间 ID
+     * @param policy - 要设置的保留策略
+     * @returns 服务端确认后的房间保留策略
+     * @throws {InvalidParamError} 当 roomId 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const policy = await client
+     *     .getRetentionManager()
+     *     .setRoomRetentionPolicy("!room:example.org", { max_lifetime: 604800000 });
+     * ```
+     */
     public async setRoomRetentionPolicy(
         roomId: string,
         policy: RetentionPolicy,
@@ -156,6 +204,17 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         return response;
     }
 
+    /**
+     * 触发保留策略的清理执行。
+     *
+     * @param roomId - 仅对指定房间执行，可选；不传则对全部房间执行
+     * @returns 执行结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getRetentionManager().runRetention();
+     * ```
+     */
     public async runRetention(roomId?: string): Promise<IRetentionRunResult> {
         const body: IContent = {};
         if (roomId) {
@@ -173,6 +232,16 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         return response;
     }
 
+    /**
+     * 获取保留策略的执行状态。
+     *
+     * @returns 保留状态信息
+     *
+     * @example
+     * ```typescript
+     * const status = await client.getRetentionManager().getRetentionStatus();
+     * ```
+     */
     public async getRetentionStatus(): Promise<IRetentionStatus> {
         return await this.adminRequest<IRetentionStatus>(
             Method.Get,
@@ -183,6 +252,18 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         );
     }
 
+    /**
+     * 读取房间当前的保留状态（来自 `m.room.retention` 状态事件）。
+     *
+     * @param roomId - 房间 ID
+     * @returns 房间保留状态；房间不存在或未配置时 enabled 为 false
+     * @throws {InvalidParamError} 当 roomId 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const state = client.getRetentionManager().getRoomRetentionState("!room:example.org");
+     * ```
+     */
     public getRoomRetentionState(roomId: string): RetentionState {
         if (!roomId) {
             throw new InvalidParamError("roomId is required");
@@ -204,6 +285,16 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         return { enabled: false };
     }
 
+    /**
+     * 获取所有已配置保留策略的房间的策略映射。
+     *
+     * @returns 房间 ID 到保留策略的映射
+     *
+     * @example
+     * ```typescript
+     * const policies = client.getRetentionManager().getAllRoomRetentionPolicies();
+     * ```
+     */
     public getAllRoomRetentionPolicies(): Record<string, RetentionPolicy> {
         const rooms = this.client.getRooms();
         const policies: Record<string, RetentionPolicy> = {};
@@ -218,6 +309,19 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         return policies;
     }
 
+    /**
+     * 判断给定时间戳的消息是否仍在保留期内。
+     *
+     * @param roomId - 房间 ID
+     * @param timestamp - 消息时间戳（毫秒）
+     * @returns 在保留期内返回 true，否则返回 false
+     * @throws {InvalidParamError} 当 roomId 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const within = client.getRetentionManager().isMessageWithinRetention("!room:example.org", Date.now());
+     * ```
+     */
     public isMessageWithinRetention(roomId: string, timestamp: number): boolean {
         if (!roomId) {
             throw new InvalidParamError("roomId is required");
@@ -233,6 +337,19 @@ export class RetentionManager extends BaseManager<keyof RetentionManagerEvents, 
         return age < state.policy.max_lifetime;
     }
 
+    /**
+     * 计算给定时间戳的消息剩余保留时长。
+     *
+     * @param roomId - 房间 ID
+     * @param timestamp - 消息时间戳（毫秒）
+     * @returns 剩余毫秒数；无保留策略时返回 null，已过期返回 0
+     * @throws {InvalidParamError} 当 roomId 为空时抛出
+     *
+     * @example
+     * ```typescript
+     * const remaining = client.getRetentionManager().getMessageRemainingLifetime("!room:example.org", Date.now());
+     * ```
+     */
     public getMessageRemainingLifetime(roomId: string, timestamp: number): number | null {
         if (!roomId) {
             throw new InvalidParamError("roomId is required");

@@ -4,7 +4,7 @@
  * 为什么需要这个文件
  * ------------------
  * 契约码表由 `pnpm run contract:codegen` 生成到 `src/<module>/__generated__/route-table.ts`，
- * 共 39 张表、853 条路由。此前消费者若要用这些常量，只能绕过 `package.json#exports`
+ * 共 40 张表、736 条路由。此前消费者若要用这些常量，只能绕过 `package.json#exports`
  * 深度导入源文件（例如 `matrix-js-sdk/src/room/__generated__/route-table`）——
  * 那会把消费者绑死在 SDK 的**源码目录布局**上，且在同一份产物里混入另一个 SDK 检出。
  *
@@ -14,7 +14,7 @@
  * import { SDK_CONTRACT_ROUTE_TABLES, SDK_CONTRACT_ROUTES } from "matrix-js-sdk/contract";
  *
  * SDK_CONTRACT_ROUTE_TABLES.room;   // 单模块路由表（literal-typed）
- * SDK_CONTRACT_ROUTES;              // 全部 853 条，按模块拼接
+ * SDK_CONTRACT_ROUTES;              // 全部 736 条，按模块拼接
  * ```
  *
  * 维护约定
@@ -25,19 +25,27 @@
  */
 
 import { ACCOUNT_DATA_ROUTES } from "../account-data/__generated__/route-table";
+import { ADMIN_ROUTES } from "../admin/__generated__/route-table";
+import { APP_SERVICE_ROUTES } from "../app-service/__generated__/route-table";
 import { AUTH_ROUTES } from "../auth/__generated__/route-table";
 import { BACKGROUND_UPDATE_ROUTES } from "../background-update/__generated__/route-table";
 import { BURN_AFTER_READ_ROUTES } from "../burn-after-read/__generated__/route-table";
 import { CAPTCHA_ROUTES } from "../captcha/__generated__/route-table";
 import { CAS_ROUTES } from "../cas/__generated__/route-table";
+import { DELAYED_EVENTS_ROUTES } from "../delayed-events/__generated__/route-table";
+import { DEHYDRATED_DEVICE_ROUTES } from "../dehydrated-device/__generated__/route-table";
 import { DEVICE_ROUTES } from "../device/__generated__/route-table";
+import { DM_ROUTES } from "../dm/__generated__/route-table";
 import { E2EE_ROUTES } from "../e2ee/__generated__/route-table";
 import { EPHEMERAL_ROUTES } from "../ephemeral/__generated__/route-table";
 import { EVENT_REPORT_ROUTES } from "../event-report/__generated__/route-table";
 import { EXTERNAL_SERVICE_ROUTES } from "../external-service/__generated__/route-table";
+import { FEATURE_FLAGS_ROUTES } from "../feature-flags/__generated__/route-table";
 import { FRIEND_ROUTES } from "../friend/__generated__/route-table";
 import { GUEST_ROUTES } from "../guest/__generated__/route-table";
+import { INVITE_BLOCKLIST_ROUTES } from "../invite-blocklist/__generated__/route-table";
 import { KEY_BACKUP_ROUTES } from "../key-backup/__generated__/route-table";
+import { KEY_ROTATION_ROUTES } from "../key-rotation/__generated__/route-table";
 import { MEDIA_ROUTES } from "../media/__generated__/route-table";
 import { MODERATION_ROUTES } from "../moderation/__generated__/route-table";
 import { MODULE_ROUTES } from "../module/__generated__/route-table";
@@ -45,6 +53,7 @@ import { NOTIFICATIONS_ROUTES } from "../notifications/__generated__/route-table
 import { OIDC_ROUTES } from "../oidc/__generated__/route-table";
 import { PRESENCE_ROUTES } from "../presence/__generated__/route-table";
 import { PUSH_ROUTES } from "../push/__generated__/route-table";
+import { REACTIONS_ROUTES } from "../reactions/__generated__/route-table";
 import { RELATIONS_ROUTES } from "../relations/__generated__/route-table";
 import { RENDEZVOUS_ROUTES } from "../rendezvous/__generated__/route-table";
 import { ROOM_ROUTES } from "../room/__generated__/route-table";
@@ -78,19 +87,27 @@ export interface SdkContractRoute {
  */
 export const SDK_CONTRACT_ROUTE_TABLES = {
     "account-data": ACCOUNT_DATA_ROUTES,
+    admin: ADMIN_ROUTES,
+    "app-service": APP_SERVICE_ROUTES,
     auth: AUTH_ROUTES,
     "background-update": BACKGROUND_UPDATE_ROUTES,
     "burn-after-read": BURN_AFTER_READ_ROUTES,
     captcha: CAPTCHA_ROUTES,
     cas: CAS_ROUTES,
+    "delayed-events": DELAYED_EVENTS_ROUTES,
+    "dehydrated-device": DEHYDRATED_DEVICE_ROUTES,
     device: DEVICE_ROUTES,
+    dm: DM_ROUTES,
     e2ee: E2EE_ROUTES,
     ephemeral: EPHEMERAL_ROUTES,
     "event-report": EVENT_REPORT_ROUTES,
     "external-service": EXTERNAL_SERVICE_ROUTES,
+    "feature-flags": FEATURE_FLAGS_ROUTES,
     friend: FRIEND_ROUTES,
     guest: GUEST_ROUTES,
+    "invite-blocklist": INVITE_BLOCKLIST_ROUTES,
     "key-backup": KEY_BACKUP_ROUTES,
+    "key-rotation": KEY_ROTATION_ROUTES,
     media: MEDIA_ROUTES,
     moderation: MODERATION_ROUTES,
     module: MODULE_ROUTES,
@@ -98,6 +115,7 @@ export const SDK_CONTRACT_ROUTE_TABLES = {
     oidc: OIDC_ROUTES,
     presence: PRESENCE_ROUTES,
     push: PUSH_ROUTES,
+    reactions: REACTIONS_ROUTES,
     relations: RELATIONS_ROUTES,
     rendezvous: RENDEZVOUS_ROUTES,
     room: ROOM_ROUTES,
@@ -146,6 +164,7 @@ export {
     BURN_AFTER_READ_ROUTES,
     CAPTCHA_ROUTES,
     CAS_ROUTES,
+    DEHYDRATED_DEVICE_ROUTES,
     DEVICE_ROUTES,
     E2EE_ROUTES,
     EPHEMERAL_ROUTES,

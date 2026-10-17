@@ -1,7 +1,7 @@
 ---
 module: thirdparty
 generated_from: docs/api-contract/generated/modules/thirdparty.json
-generated_hash: sha256-b0203411c5c2c13bf8af2b51e20be115c4f3cfb964d6a9b117cb7fc60b2798c5
+generated_hash: sha256-15b99700c15c2e52970a2735874121ec65db83877dd08d101060f7709dc6f1f8
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -9,9 +9,9 @@ last_reviewed: 2026-05-03
 # Thirdparty Integration API 契约文档
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/thirdparty.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
-> 挂载版本: `r0`, `v3`
+> 挂载版本: `v3`
 
 ## 一、模块概述
 
@@ -26,7 +26,7 @@ Thirdparty API 提供第三方协议集成功能，用于：
 
 ### 1.2 路由前缀
 
-- `/_matrix/client/{r0,v3}/thirdparty/*`
+- `/_matrix/client/v3/thirdparty/*`
 
 ### 1.3 认证要求
 
@@ -36,9 +36,9 @@ Thirdparty API 提供第三方协议集成功能，用于：
 
 ### 2.1 查询所有协议
 
-**路径**: `GET /_matrix/client/{r0,v3}/thirdparty/protocols`  
+**路径**: `GET /_matrix/client/v3/thirdparty/protocols`  
 **认证**: `AuthenticatedUser`  
-**挂载版本**: `r0`, `v3`
+**挂载版本**: `v3`
 
 **响应**: `200 OK`
 
@@ -65,9 +65,9 @@ interface ProtocolsResponse {
 
 ### 2.2 查询单个协议
 
-**路径**: `GET /_matrix/client/{r0,v3}/thirdparty/protocol/{protocol}`  
+**路径**: `GET /_matrix/client/v3/thirdparty/protocol/{protocol}`  
 **认证**: `AuthenticatedUser`  
-**挂载版本**: `r0`, `v3`
+**挂载版本**: `v3`
 
 **路径参数**:
 | 参数 | 类型 | 说明 |
@@ -78,9 +78,9 @@ interface ProtocolsResponse {
 
 ### 2.3 查询协议位置
 
-**路径**: `GET /_matrix/client/{r0,v3}/thirdparty/location/{protocol}`  
+**路径**: `GET /_matrix/client/v3/thirdparty/location/{protocol}`  
 **认证**: `AuthenticatedUser`  
-**挂载版本**: `r0`, `v3`
+**挂载版本**: `v3`
 
 **查询参数**:
 | 参数 | 类型 | 必填 | 说明 |
@@ -100,9 +100,9 @@ interface LocationResponse {
 
 ### 2.4 查询协议用户
 
-**路径**: `GET /_matrix/client/{r0,v3}/thirdparty/user/{protocol}`  
+**路径**: `GET /_matrix/client/v3/thirdparty/user/{protocol}`  
 **认证**: `AuthenticatedUser`  
-**挂载版本**: `r0`, `v3`
+**挂载版本**: `v3`
 
 **查询参数**: 同 2.3
 
@@ -189,3 +189,27 @@ interface UserResponse {
 | ---------- | ---------------------------------------------- | ----------------- |
 | 2026-04-27 | 初版                                           | -                 |
 | 2026-05-11 | 补齐 thirdparty 直连协议查询与 v3 通用查询封装 | 覆盖率更新为 100% |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 版本前缀
+
+- 6 条 thirdparty 端点全部只注册在 `/_matrix/client/v3`，没有 `r0` / `v1` 别名；调用 `r0` 路径会 404。
+- 全部端点要求认证（`AuthenticatedUser`）。
+
+### location / user 四条端点恒 404
+
+- `GET /thirdparty/location/{protocol}`、`GET /thirdparty/location`、`GET /thirdparty/user/{protocol}`、`GET /thirdparty/user` 均恒返回 `404`，errcode 为 `M_UNRECOGNIZED`。
+- 这是设计行为（未配置第三方桥接），不是路由缺失；不要计入错误率监控，也不要在启动时探测。
+- 与 `GET /thirdparty/protocol/{protocol}` 未注册时的 `404` `M_NOT_FOUND` 不同：两者都是 404，必须按端点语义分支，不能只按 errcode 判断。
+
+### 查询参数严格校验
+
+- `location` 家族允许的 query 键为 `alias`、`search`、`server`、`channel`；`user` 家族允许 `userid`、`search`、`nickname`、`server`。
+- DTO 使用 `deny_unknown_fields`：多传任何键即返回 `400`，不要把 `limit`、`since`、`filter` 等内部状态塞进 query。
+
+### 协议查询
+
+- `GET /thirdparty/protocols` 聚合所有已注册 Application Service 的协议对象；无注册时返回 `{}`。
+- `GET /thirdparty/protocol/{protocol}` 未注册时返回 `404` `M_NOT_FOUND`。
+- 建议启动时只调一次 `protocols`；返回空对象即隐藏 thirdparty 入口，不做后续探测。

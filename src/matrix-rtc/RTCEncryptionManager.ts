@@ -154,6 +154,22 @@ export class RTCEncryptionManager implements IEncryptionManager {
         return this.ownRtcBackendIdentityCache;
     }
 
+    /**
+     * 获取当前已跟踪的所有参与者的加密密钥环。
+     * 返回内部存储的一个 Map 副本，调用方增删返回的 Map 不会影响内部状态。
+     *
+     * @returns 以参与者标识为键、密钥信息数组为值的只读 Map。
+     *
+     * @example
+     * ```typescript
+     * // MatrixRTCSession 内部（见 src/matrix-rtc/MatrixRTCSession.ts）
+     * this.encryptionManager?.getEncryptionKeys().forEach((keyRing, _key) => {
+     *     keyRing.forEach((keyInfo) => {
+     *         // 使用 keyInfo.key / keyInfo.keyIndex / keyInfo.membership 等
+     *     });
+     * });
+     * ```
+     */
     public getEncryptionKeys(): ReadonlyMap<
         EncryptionKeyMapKey,
         ReadonlyArray<{
@@ -213,6 +229,26 @@ export class RTCEncryptionManager implements IEncryptionManager {
         this.onEncryptionKeysChanged(key, keyIndex, membership, rtcBackendIdentity);
     }
 
+    /**
+     * 加入会话：按配置初始化密钥管理行为（是否管理媒体密钥、key 延迟、轮换宽限期等），
+     * 订阅密钥传输事件并启动密钥传输。
+     *
+     * @param joinConfig - 加密与成员相关配置；为 undefined 时使用默认值（默认管理媒体密钥）。
+     *
+     * @example
+     * ```typescript
+     * // MatrixRTCSession 内部（见 src/matrix-rtc/MatrixRTCSession.ts）
+     * this.encryptionManager = new RTCEncryptionManager(
+     *     ownMembershipIdentity,
+     *     () => this.memberships,
+     *     transport,
+     *     this.statistics,
+     *     onEncryptionKeysChanged,
+     *     this.logger,
+     * );
+     * this.encryptionManager.join(joinConfig);
+     * ```
+     */
     public join(joinConfig: (EncryptionConfig & MembershipConfig) | undefined): void {
         this.manageMediaKeys = joinConfig?.manageMediaKeys ?? true; // default to true
         this.useHashedRtcBackendIdentity = joinConfig?.unstableSendStickyEvents ?? false;
@@ -226,6 +262,15 @@ export class RTCEncryptionManager implements IEncryptionManager {
         this.transport.start();
     }
 
+    /**
+     * 离开会话：取消密钥传输事件订阅、停止密钥传输，并清空本地缓存的密钥环。
+     *
+     * @example
+     * ```typescript
+     * // MatrixRTCSession 内部（见 src/matrix-rtc/MatrixRTCSession.ts）
+     * this.encryptionManager!.leave();
+     * ```
+     */
     public leave(): void {
         this.transport.off(KeyTransportEvents.ReceivedKeys, this.onNewKeyReceived);
         this.transport.stop();
@@ -304,6 +349,12 @@ export class RTCEncryptionManager implements IEncryptionManager {
      * Called when the ownMembership of the call changes.
      * This encryption manager is very basic, it will rotate the key everytime this is called.
      * @param oldMemberships - This parameter is not used here, but it is kept for compatibility with the interface.
+     *
+     * @example
+     * ```typescript
+     * // MatrixRTCSession 内部（见 src/matrix-rtc/MatrixRTCSession.ts）
+     * void this.encryptionManager?.onMembershipsUpdate(oldMemberships);
+     * ```
      */
     public onMembershipsUpdate(_oldMemberships: CallMembership[] = []): void {
         this.logger?.trace(`onMembershipsUpdate`);

@@ -69,7 +69,7 @@ import {
     resolvePrefixExpression,
     stripTsAssertion,
 } from "./verify-path-contract.mjs";
-import { collectRustAdminContract, parseSerdeStructs, stripRustComments } from "./lib/admin-contract.mjs";
+import { blankTsComments, collectRustAdminContract } from "./lib/admin-contract.mjs";
 import { writeJsonFormatted } from "./lib/write-json.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -113,6 +113,68 @@ export function splitTopLevelObjectProps(inner) {
 }
 
 /**
+ * 剥掉一段文本里的 TS 注释（**保留字符串与模板字面量的内容**）。
+ *
+ * 为什么需要它（2026-10-15 实测的静默盲区）：
+ * 本文件按**顶层逗号**把对象字面量切成属性块，块首是 `//` 时整块被当纯注释跳过 ——
+ * 于是被注释「粘住」的那个属性**直接消失**，后果双向且都不报错：
+ *
+ *   · 粘 `method:` / `path:` ⇒ 该调用点**静默丢弃**（不进 `calls` 也不进 `unchecked`，
+ *     覆盖面以「分母变小」的方式缩水 —— 正是本脚本头注释警告的那种失效）；
+ *   · 粘 `body:` / `queryParams:` ⇒ 被读成「确定不发该字段」⇒ 凭空报缺必填。
+ *
+ * ⚠️ 只剥注释、**不碰字符串内容**：`path: "/a//b"` 里的 `//` 必须原样保留
+ * （否则会把路径读成截断值）。带引号与模板字面量的扫描负责这一点；也因此不需要
+ * 处理正则字面量（正则里的 `//` 不在字符串态，但把整段源码一起剥会更危险，故只在
+ * **属性块**这一层做）。
+ *
+ * 空注释块 `/** … *​/`（含 JSDoc）会被整体抹掉，于是注释里的用法示例不会再被当成调用点。
+ */
+export function stripCommentsInChunk(text) {
+    let out = "";
+    let i = 0;
+    while (i < text.length) {
+        const c = text[i];
+        const next = text[i + 1];
+        // 行注释：吃掉到行尾（保留换行，让调用方的 trim / 行号直觉不被破坏）
+        if (c === "/" && next === "/") {
+            const nl = text.indexOf("\n", i);
+            i = nl < 0 ? text.length : nl;
+            continue;
+        }
+        // 块注释：整体抹掉，用一个空格代替以免两侧 token 粘连
+        if (c === "/" && next === "*") {
+            const end = text.indexOf("*/", i + 2);
+            i = end < 0 ? text.length : end + 2;
+            out += " ";
+            continue;
+        }
+        // 字符串 / 模板字面量：**原样搬运**（含转义），确保内容里的 `//` 不被误剥
+        if (c === '"' || c === "'" || c === "`") {
+            out += c;
+            i += 1;
+            while (i < text.length) {
+                if (text[i] === "\\") {
+                    out += text[i] + (text[i + 1] ?? "");
+                    i += 2;
+                    continue;
+                }
+                out += text[i];
+                if (text[i] === c) {
+                    i += 1;
+                    break;
+                }
+                i += 1;
+            }
+            continue;
+        }
+        out += c;
+        i += 1;
+    }
+    return out;
+}
+
+/**
  * 从**对象字面量**取顶层键集。fail-closed：任一情形判不出来就返回 `null`（附 `reason`），
  * **绝不返回半份键集** —— 半份键集会凭空造出"少字段/多字段"的假缺陷。
  *
@@ -128,10 +190,10 @@ export function objectLiteralKeys(text) {
     if (!inner.trim()) return { keys: [], reason: null };
     const keys = [];
     for (const raw of splitTopLevelObjectProps(inner)) {
-        const prop = raw.replace(/^\s+|\s+$/g, "");
+        // 先剥注释再看属性：否则「注释紧贴某属性」会让该属性整块被当注释丢掉
+        const prop = stripCommentsInChunk(raw).replace(/^\s+|\s+$/g, "");
         if (!prop) continue;
         if (prop.startsWith("...")) return { keys: null, reason: "spread" };
-        if (prop.startsWith("//") || prop.startsWith("/*")) continue;
         const kv = /^(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][\w$]*))\s*:/.exec(prop);
         if (kv) {
             keys.push(kv[1] ?? kv[2] ?? kv[3]);
@@ -241,9 +303,11 @@ export function extractObjectFormCalls(source, relFile, options = {}) {
 
         // 顶层属性（只取 depth===1）。`{ method, path, body, prefix }` 这种**简写**必须一起认，
         // 否则 `body` 会被当成"没这个属性" ⇒ 报"缺必填"的假缺陷。
+        // ⚠️ 必须先剥注释：块首是 `//` 时下面两条正则都匹配不上，该属性会**直接消失**；
+        // 落在 `method`/`path` 上 ⇒ 整个调用点被第 260 行的 `continue` **静默丢弃**。
         const propText = new Map();
         for (const raw of splitTopLevelObjectProps(literal.slice(1, -1))) {
-            const p = raw.replace(/^\s+|\s+$/g, "");
+            const p = stripCommentsInChunk(raw).replace(/^\s+|\s+$/g, "");
             if (!p) continue;
             const kv = /^([A-Za-z_$][\w$]*)\s*:\s*([\s\S]*)$/.exec(p);
             if (kv) {
@@ -507,7 +571,12 @@ async function collectSdkCalls() {
     const options = { identityHelpers, templateBuilders };
     const calls = [];
     const badPath = [];
-    for (const [rel, source] of sourcesByFile) {
+    for (const [rel, sourceRaw] of sourcesByFile) {
+        // ⚠️ 抽取前先把注释**原地抹成空格**（保长 ⇒ 下标与行号不变）。
+        // 不这么做，JSDoc `@example` 里的用法示例会被当成真调用点 —— 实测
+        // `src/friend/paths.ts` 的示例产生了一条假的 `request-required-missing`。
+        // 注释不是代码；下游的 `resolveKeySet` / `indexOf(pathRaw)` 必须吃同一份文本。
+        const source = blankTsComments(sourceRaw);
         const { calls: positional } = extractWrapperCalls(source, rel, options);
         const { calls: object, unchecked } = extractObjectFormCalls(source, rel, options);
         const all = [...positional.map((c) => ({ ...c, form: "positional" })), ...object];
@@ -524,7 +593,7 @@ async function collectSdkCalls() {
                 c.form === "object"
                     ? (resolvePrefixExpression(c.prefixExpr)?.candidates ?? [DEFAULT_PREFIX])
                     : (c.prefixCandidates ?? [DEFAULT_PREFIX]);
-            const fullPaths = [...new Set(candidates.map((p) => normalizePath(p + inner)))];
+            const fullPaths = [...new Set(candidates.map((p) => wirePathKey(p + inner)))];
             const callIndex = c.callIndex ?? source.indexOf(String(c.pathRaw));
             calls.push({
                 file: rel,
@@ -541,27 +610,87 @@ async function collectSdkCalls() {
     return { calls, badPath };
 }
 
-/** 抽后端每个路由的请求契约（body + query）。 */
+/**
+ * 门禁的路径归一化 = 共享 `normalizePath` + **保留尾斜杠**。
+ *
+ * ⚠️ 必须保留尾斜杠：Matrix 里 `/rooms/{room_id}/state/{event_type}` 与
+ * `/rooms/{room_id}/state/{event_type}/` 是**两条不同的路由** —— 后者表示 state key 为空，
+ * 由另一个处理器服务（`get_state_event` vs `get_state_event_empty_key`），**契约不同**。
+ * 共享的 `normalizePath`（`check-url-constructors.mjs`）会 `.replace(/\/+$/, "")`，
+ * 把两者折叠成一个 key ⇒ 合并成一个"契约冲突"（实测 3 组：`state/{event_type}`、
+ * `state/{event_type}/`、`pushrules`）。这里只在**本门禁**补回尾斜杠，
+ * **不动共享函数**（`path-contract` / `url-check` 依赖它去尾斜杠的宽松语义）。
+ *
+ * 后端 key、manifest key、SDK 候选 key **三侧都要过它**，否则又会出现"两侧拼写不同"的老问题。
+ */
+export function wirePathKey(rawPath) {
+    const raw = String(rawPath ?? "");
+    const norm = normalizePath(raw);
+    // `normalizePath` 会吞 query（`.split("?")[0]`）并去尾斜杠；尾斜杠要从**去 query 后**的原串判
+    return /\/+$/.test(raw.split("?")[0]) && norm !== "/" ? `${norm}/` : norm;
+}
+
+/**
+ * 用**本门禁的** `normalizePath` 重建路由 key。
+ *
+ * ⚠️ 必须做这一步，因为仓里有**两个 `normalizePath` 实现**，差的不只是占位符大小写：
+ *
+ * | | `lib/admin-contract.mjs`（`normalizeRoute` 用它建 `byRoute`） | `check-url-constructors.mjs`（本门禁的候选 key / manifest key） |
+ * |---|---|---|
+ * | 占位符 | `{x}`（小写） | `{X}`（大写） |
+ * | 尾斜杠 | 保留 | 去掉（`.replace(/\/+$/,"")`）—— 本门禁用 `wirePathKey` **补回**（见下） |
+ * | query | 保留 | 吞掉（`.split("?")[0]`） |
+ * | 其它形态 | 只认 `${…}` / `{…}` | 还认 `$var` / `:param` |
+ *
+ * 不重建就直接比对 ⇒ 含动态段的路由两侧 key 永远不相等，实测 263 个调用点被静默归进
+ * `route-contract-unavailable`（`comparable` 因此长期只有 24）—— 那不是"覆盖率上限"，
+ * 是拼写不一致造成的**假上限**。
+ *
+ * 只重建 key、不改共享库：`check-admin-response-contract` 也用 `collectRustAdminContract`，
+ * 它的两侧 key 都出自同一个库（拼写自洽），改库会波及它。
+ */
+export function gateRouteKey(route) {
+    const m = /^([A-Z]+)\s+(.*)$/.exec(String(route));
+    return m ? `${m[1]} ${wirePathKey(m[2])}` : wirePathKey(String(route));
+}
+
+/**
+ * 台账 `entries`（**后端收集器的拼写**）→ **门禁 key 空间**。
+ *
+ * ⚠️ 与 `gateRouteKey` 是**同一个不变式的两半**，缺一不可：台账是 `--refresh` 用 lib 拼写写的
+ * （真实存在 `GET /user/{x}/account_data/` 这种"小写占位符 + 尾斜杠"的 key），而候选 key 全是
+ * 门禁拼写。只重建后端一侧而不重建台账一侧，会同时踩两个坑：
+ *   1. **漂移假报告**：`frozen.get(gateKey)` 恒不命中 ⇒ 每条动态段路由都被报成
+ *      `backend-route-new`（实测 406 条，而实际内容与台账**逐条一致**）；
+ *   2. **CI 半场静默变弱**：无后端时 `effective = frozen`，动态段调用点两侧永远对不上 ⇒
+ *      那些调用点悄悄失去可比性（"分母变小"的翻版：门禁照旧绿，只是查得更少）。
+ *
+ * 幂等：`--refresh` 写出的 key 已是门禁拼写，再过一次不变。
+ *
+ * 注：尾斜杠**不再**被同化（`wirePathKey` 三侧统一保留），故台账里 `/a` 与 `/a/` 会各留一条；
+ * 只有**占位符拼写**（`{x}` vs `{X}`）需要重建。
+ */
+export function rebaseLedgerKeys(entries) {
+    return new Map(Object.entries(entries ?? {}).map(([route, entry]) => [gateRouteKey(route), entry]));
+}
+
+/**
+ * 抽后端每个路由的请求契约（body + query）。
+ *
+ * @returns {{ entries: Map<string, object>, collapsedIdentical: Array<{key: string, routes: string[]}>, conflicts: Array<{key: string, routes: string[]}> }}
+ *   `entries` 的 key 已由 `collapseContractEntries` 归一到门禁 key 空间。
+ */
 async function collectBackendContract() {
-    const { byRoute } = await collectRustAdminContract({ routesDir: RUST_ROUTES_ROOT, sinkDirs: RUST_SINK_DIRS });
-    // 建全局 struct 索引（Query<T> 的字段集要从定义处取；collectRustAdminContract 只回传 body 的）
-    const structs = new Map();
-    const walk = (dir) => {
-        if (!fs.existsSync(dir)) return [];
-        const out = [];
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, e.name);
-            if (e.isDirectory()) out.push(...walk(full));
-            else if (e.name.endsWith(".rs")) out.push(full);
-        }
-        return out;
-    };
-    for (const f of [...walk(RUST_ROUTES_ROOT), ...RUST_SINK_DIRS.flatMap(walk)]) {
-        const src = stripRustComments(fs.readFileSync(f, "utf8"));
-        for (const [name, info] of parseSerdeStructs(src)) {
-            if (!structs.has(name)) structs.set(name, info);
-        }
-    }
+    const { byRoute, structs } = await collectRustAdminContract({
+        routesDir: RUST_ROUTES_ROOT,
+        sinkDirs: RUST_SINK_DIRS,
+    });
+    // ⚠️ **不能自己重建 struct 索引**（曾在 682-687 行重建过）：那样会丢掉采集器的
+    // **撞车标记** —— 同名 struct 在两处定义且字段不同时，采集器会标 `opaque` 表示
+    // "键集不是全貌"，而"只留首个定义"的重建会把这个标记抹掉，于是拿**其中一份**字段集
+    // 去比对。实测 `SearchQuery`（thread 的 `{q,limit}` vs space 的 `{query(alias
+    // search_term),limit}`）因此对 `GET /_matrix/vendor/v1/spaces/search` 造出两条假违规
+    // （`query-required-missing:q` + `query-unknown-key:search_term`）。
     const shapeOf = (name) => {
         if (!name) return null;
         const s = structs.get(name);
@@ -577,7 +706,7 @@ async function collectBackendContract() {
             opaque: Boolean(s.opaque || s.flatten),
         };
     };
-    const backend = new Map();
+    const raw = [];
     for (const [route, e] of byRoute) {
         const body = e.bodyStruct
             ? {
@@ -588,15 +717,60 @@ async function collectBackendContract() {
                   opaque: Boolean(e.bodyStruct.opaque),
               }
             : null;
-        backend.set(route, {
-            handler: e.handler,
-            hasJson: Boolean(e.io?.hasJson),
-            hasQuery: Boolean(e.io?.hasQuery),
-            body,
-            query: shapeOf(e.io?.queryType),
-        });
+        raw.push([
+            route,
+            {
+                handler: e.handler,
+                hasJson: Boolean(e.io?.hasJson),
+                hasQuery: Boolean(e.io?.hasQuery),
+                body,
+                query: shapeOf(e.io?.queryType),
+            },
+        ]);
     }
-    return backend;
+    return collapseContractEntries(raw);
+}
+
+/**
+ * 把「后端路由 → 契约」按**门禁 key** 折叠，并把折叠**显式化**。
+ *
+ * 门禁的判据（候选 key / manifest key / 后端 key）全在门禁 key 空间里比较，而门禁的
+ * `normalizePath` 会**去掉尾斜杠** ⇒ 后端若把同一处理器注册在两个同形路径下，门禁里
+ * **永远无法区分**它们。实测后端就有这种注册（`routes/push.rs` 的 `GET /pushers` 与
+ * `GET /pushers/`、`POST` 同），故 `--refresh` 后台账从 655 条变 653 条（不是路由消失）。
+ *
+ * 折叠本身没错，**错在静默**：若两条契约不同，`Map.set` 会让"后写的那条"胜出，
+ * 等于拿**错的契约**去校验调用点（库注释里那句「错的形状比未知更危险」）。
+ * 故这里把折叠分成两类返回，由调用方决定：
+ *   · `collapsedIdentical` —— 契约逐字段相同（实测两个 `/pushers` 形态就是这种）⇒ 折叠无害；
+ *   · `conflicts` —— 同形但契约不同 ⇒ 调用方**必须报错**，不许折叠。
+ *
+ * @returns {{ entries: Map<string, object>, collapsedIdentical: Array<{key: string, routes: string[]}>, conflicts: Array<{key: string, routes: string[]}> }}
+ */
+export function collapseContractEntries(routeEntries) {
+    const entries = new Map();
+    const seen = new Map(); // key -> { entry, routes }
+    const collapsedIdentical = [];
+    const conflicts = [];
+    for (const [route, entry] of routeEntries) {
+        const key = gateRouteKey(route);
+        const prev = seen.get(key);
+        if (!prev) {
+            seen.set(key, { entry, routes: [route] });
+            entries.set(key, entry);
+            continue;
+        }
+        prev.routes.push(route);
+        if (JSON.stringify(prev.entry) === JSON.stringify(entry)) {
+            // 后见者与先见者契约一致 ⇒ 折叠（保留先见者，结论相同）
+            if (!collapsedIdentical.some((c) => c.key === key)) {
+                collapsedIdentical.push({ key, routes: prev.routes });
+            }
+            continue;
+        }
+        if (!conflicts.some((c) => c.key === key)) conflicts.push({ key, routes: prev.routes });
+    }
+    return { entries, collapsedIdentical, conflicts };
 }
 
 function loadWaivers() {
@@ -618,10 +792,19 @@ async function main() {
     const today = new Date().toISOString().slice(0, 10);
     const sdk = await collectSdkCalls();
     const backendAvailable = fs.existsSync(RUST_ROUTES_ROOT);
-    const backend = backendAvailable ? await collectBackendContract() : null;
+    const collected = backendAvailable ? await collectBackendContract() : null;
+    const backend = collected?.entries ?? null;
+    /** 后端同一路由拿到**契约不一致**的多份定义 ⇒ 比对不可信（见 lib 的 `routeContractConflicts`）。 */
+    const contractConflicts = collected?.contractConflicts ?? { count: 0, samples: [] };
+    /** 后端把同一处理器注册在两个「门禁归一化后同形」的路径下（如 `GET /pushers` 与 `GET /pushers/`）。 */
+    const collapsedIdentical = collected?.collapsedIdentical ?? [];
+    const conflicting = collected?.conflicts ?? [];
 
     const ledger = readJsonIfExists(LEDGER_PATH, { entries: {} });
-    const frozen = new Map(Object.entries(ledger.entries ?? {}));
+    // 必须重建 key：台账是后端收集器的拼写（`{x}` + 保留尾斜杠），候选 key 是门禁拼写
+    // （`{X}` + 去尾斜杠）。不重建 ⇒ 漂移假报告 406 条 + CI 半场动态段调用点静默失去可比性。
+    // 详见 `rebaseLedgerKeys` 的注释。
+    const frozen = rebaseLedgerKeys(ledger.entries);
     const effective = backend ?? frozen;
     const hasRoute = (key) => effective.has(key);
     // 镜像 manifest 只作**路由存在性**的第二判据：把"路由压根不存在"（真问题）与
@@ -631,7 +814,7 @@ async function main() {
     const manifestPath = path.join(SDK_ROOT, "docs", "api-contract", "generated", "route-manifest.all.json");
     if (fs.existsSync(manifestPath)) {
         for (const e of readJsonIfExists(manifestPath, { entries: [] }).entries ?? []) {
-            manifestRoutes.add(`${e.method} ${normalizePath(e.path)}`);
+            manifestRoutes.add(`${e.method} ${wirePathKey(e.path)}`);
         }
     }
 
@@ -738,6 +921,23 @@ async function main() {
             console.error(`❌ --refresh 需要后端仓，未找到 ${RUST_ROUTES_ROOT}`);
             return 2;
         }
+        // 门禁归一化会把「同形但不同的注册路径」折叠（实测 `GET /pushers` 与 `GET /pushers/`）。
+        // 契约一致时折叠无害；**契约不同时绝不能折叠** —— 那会让"后写的那条"静默胜出，
+        // 等于拿错的契约去校验调用点。检测到就拒绝写入（宁可让人来看）。
+        if (collected.conflicts.length > 0) {
+            console.error("❌ 门禁归一化后出现**契约不同**的同形路由，拒绝折叠写入台账：");
+            for (const c of collected.conflicts) {
+                console.error(`   ${c.key}  ←  ${c.routes.join(" , ")}`);
+            }
+            console.error("   （判据全在门禁 key 空间里比较 ⇒ 这两条在门禁里永远无法区分；请先在后端消歧）");
+            return 2;
+        }
+        if (collected.collapsedIdentical.length > 0) {
+            console.log(
+                `ℹ️ 折叠 ${collected.collapsedIdentical.length} 组同形路由（契约逐字段相同 ⇒ 无害）：` +
+                    collected.collapsedIdentical.map((c) => c.routes.join(" | ")).join("；"),
+            );
+        }
         const entries = {};
         for (const [route, be] of [...backend].sort((a, b) => a[0].localeCompare(b[0]))) {
             entries[route] = {
@@ -753,7 +953,10 @@ async function main() {
             generatedAt: new Date().toISOString(),
             generatedBy: "node scripts/quality/check-wire-format.mjs --refresh",
             backendCommit: backendCommit(),
-            notice: "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。",
+            notice:
+                "本台账由 --refresh 冻结后端请求契约；手工编辑会掩盖后端漂移。" +
+                " key 的拼写是**门禁**归一化（`METHOD + normalizePath(路径)`：占位符 `{X}`、去尾斜杠），" +
+                "读取侧再过一次 `rebaseLedgerKeys` ⇒ 幂等；手工改成 `{x}` 或加回尾斜杠也仍能对上。",
             entries,
         });
         writeJsonFormatted(COVERAGE_PATH, { schemaVersion: 1, buckets, totalCalls: sdk.calls.length });
@@ -770,6 +973,12 @@ async function main() {
         buckets,
         bucketRegressions,
         drift,
+        /** 门禁归一化后折叠掉的后端同形路由（契约相同才允许折叠；见 `collapseContractEntries`）。 */
+        mergedSameShapeRoutes: collected?.collapsedIdentical ?? [],
+        /** 同形但契约不同 ⇒ 应当为空；非空说明后端有两条门禁无法区分的注册。 */
+        conflictingSameShapeRoutes: collected?.conflicts ?? [],
+        /** 同一路由拿到契约不一致的多份 handler 定义 ⇒ 应当为空。 */
+        contractConflicts,
         sampleViolations: unwaived.slice(0, 25),
         sampleBuckets: unresolved
             .slice(0, 15)
@@ -806,6 +1015,25 @@ async function main() {
         console.log(`  覆盖桶         : ${JSON.stringify(buckets)}`);
         if (drift.length) {
             console.log(`  ⚠️ 后端契约漂移 : ${drift.length}（需 --refresh 重新冻结台账）`);
+        }
+        if (collapsedIdentical.length) {
+            console.log(
+                `  ℹ️ 同形路由折叠 : ${collapsedIdentical.length} 组（契约逐字段相同 ⇒ 无害）：` +
+                    collapsedIdentical.map((c) => c.routes.join(" | ")).join("；"),
+            );
+        }
+        if (contractConflicts.count) {
+            console.log("---------------------------------------------------------------");
+            for (const c of contractConflicts.samples) console.log(`  ❌ 同一路由契约冲突 ${c}`);
+            console.log(`     共 ${contractConflicts.count} 条：同名 handler 跨模块撞车未被归属 ⇒ 比对会拿错契约。`);
+        }
+        if (conflicting.length) {
+            console.log("---------------------------------------------------------------");
+            for (const c of conflicting) {
+                console.log(`  ❌ 同形路由契约冲突 ${c.key}  ←  ${c.routes.join(" , ")}`);
+            }
+            console.log("     门禁的判据全在门禁 key 空间（占位符 `{X}`、去尾斜杠）里比较 ⇒ 这两条**永远无法区分**。");
+            console.log("     现在只有「先见者」参与校验，另一条的契约被静默丢弃 ⇒ 需后端消歧（或改归一化口径）。");
         }
         if (unwaived.length) {
             console.log("---------------------------------------------------------------");
@@ -844,7 +1072,11 @@ async function main() {
         bucketRegressions.length > 0 ||
         expired.length > 0 ||
         unusedWaivers.length > 0 ||
-        (!REFRESH && drift.length > 0);
+        (!REFRESH && drift.length > 0) ||
+        // 后端有两条门禁无法区分的同形路由 ⇒ 其中一条的契约被静默丢弃，此时"绿"不可信。
+        (!REFRESH && conflicting.length > 0) ||
+        // 同一路由拿到契约不一致的多份定义 ⇒ 归属守卫失效，比对不可信。
+        (!REFRESH && contractConflicts.count > 0);
     if (!failed) {
         if (!EMIT_JSON)
             console.log(

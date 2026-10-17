@@ -62,26 +62,98 @@ export class PushRulesManager extends BaseManager<keyof PushRulesManagerEvents, 
     // **运行时并不存在**的方法 ⇒ 调用即 TypeError（类型表却声明了它们）。
     // 委托后不再套 `withRetry`：PushManager 内部已经重试，套两层只会让重试次数平方级放大。
 
+    /**
+     * 获取当前用户的全部推送规则。
+     *
+     * 委托给底层 `PushManager`，scope 固定为 `global`。
+     *
+     * @returns 全部推送规则（按 scope / kind 分组）
+     * @example
+     * ```typescript
+     * const rules = await client.getPushRulesManager().getPushRules();
+     * console.log(rules.global.content?.length ?? 0);
+     * ```
+     */
     public async getPushRules(): Promise<IPushRules> {
         return this.client.getPushManager().getPushRules();
     }
 
+    /**
+     * 获取单条推送规则。
+     *
+     * @param kind - 规则类别（如 `PushRuleKind.ContentSpecific`）
+     * @param ruleId - 规则 ID
+     * @returns 匹配的推送规则；不存在时返回 `null`
+     * @example
+     * ```typescript
+     * const rule = await client.getPushRulesManager().getPushRule(PushRuleKind.ContentSpecific, "keyword.hello");
+     * console.log(rule?.rule_id);
+     * ```
+     */
     public async getPushRule(kind: PushRuleKind, ruleId: string): Promise<IPushRule | null> {
         return this.client.getPushManager().getPushRule(PUSH_RULE_SCOPE, kind, ruleId);
     }
 
+    /**
+     * 设置（新增或更新）一条推送规则。
+     *
+     * @param kind - 规则类别（如 `PushRuleKind.ContentSpecific`）
+     * @param ruleId - 规则 ID
+     * @param body - 规则内容（`actions` 必填）
+     * @returns 设置完成后 resolve
+     * @example
+     * ```typescript
+     * await client.getPushRulesManager().setPushRule(PushRuleKind.ContentSpecific, "keyword.hello", {
+     *     actions: ["notify"],
+     *     pattern: "hello",
+     * });
+     * ```
+     */
     public async setPushRule(kind: PushRuleKind, ruleId: string, body: ISetPushRuleBody): Promise<void> {
         return this.client.getPushManager().updatePushRule(PUSH_RULE_SCOPE, kind, ruleId, body);
     }
 
+    /**
+     * 删除一条推送规则。
+     *
+     * @param kind - 规则类别（如 `PushRuleKind.ContentSpecific`）
+     * @param ruleId - 规则 ID
+     * @returns 删除完成后 resolve
+     * @example
+     * ```typescript
+     * await client.getPushRulesManager().deletePushRule(PushRuleKind.ContentSpecific, "keyword.hello");
+     * ```
+     */
     public async deletePushRule(kind: PushRuleKind, ruleId: string): Promise<void> {
         return this.client.getPushManager().deletePushRule(PUSH_RULE_SCOPE, kind, ruleId);
     }
 
+    /**
+     * 启用或禁用一条推送规则。
+     *
+     * @param kind - 规则类别（如 `PushRuleKind.ContentSpecific`）
+     * @param ruleId - 规则 ID
+     * @param enabled - `true` 启用，`false` 禁用
+     * @returns 更新完成后 resolve
+     * @example
+     * ```typescript
+     * await client.getPushRulesManager().enablePushRule(PushRuleKind.ContentSpecific, "keyword.hello", true);
+     * ```
+     */
     public async enablePushRule(kind: PushRuleKind, ruleId: string, enabled: boolean): Promise<void> {
         return this.client.getPushManager().setPushRuleEnabled(PUSH_RULE_SCOPE, kind, ruleId, enabled);
     }
 
+    /**
+     * 同步读取客户端缓存的推送规则。
+     *
+     * @returns 缓存的推送规则；尚未同步时返回 `null`
+     * @example
+     * ```typescript
+     * const cached = client.getPushRulesManager().getPushRulesCached();
+     * console.log(cached?.global.override?.length ?? 0);
+     * ```
+     */
     public getPushRulesCached(): IPushRules | null {
         return this.client.pushRules ?? null;
     }

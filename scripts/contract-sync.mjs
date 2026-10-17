@@ -1138,7 +1138,6 @@ function renderDrafts(beforeProfiles, afterProfiles) {
 
     for (const diff of moduleDiffs) {
         const sdkSnippet = buildSdkSnippet(diff.moduleName);
-        const snippetLines = sdkSnippet.split(/\r?\n/).length;
 
         for (const [changeType, entries] of Object.entries(diff.byChangeType)) {
             if (entries.length === 0) continue;

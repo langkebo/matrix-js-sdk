@@ -33,7 +33,7 @@ limitations under the License.
  */
 
 import { Method } from "../../http-api/method";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { MatrixClient } from "../../client";
 
 /**
@@ -107,10 +107,19 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      *
      * @param serviceType - 可选服务类型过滤；传 "all" 或省略则不过滤
      * @returns 外部服务列表
+     * @example
+     * ```typescript
+     * const services = await client.getAdminManager().externalService.listServices("webhook");
+     * console.log(services.map((s) => s.as_id));
+     * ```
      */
     async listServices(serviceType?: string): Promise<BackendExternalService[]> {
         const queryParams = serviceType && serviceType !== "all" ? { service_type: serviceType } : undefined;
-        const result = await this.adminRequest<BackendExternalService[]>(Method.Get, "/external_services", queryParams);
+        const result = await this.adminRequest<BackendExternalService[]>(
+            Method.Get,
+            apu("/external_services"),
+            queryParams,
+        );
         return result ?? [];
     }
 
@@ -119,9 +128,21 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      *
      * @param payload - 服务注册信息
      * @returns 创建后的外部服务对象
+     * @example
+     * ```typescript
+     * const svc = await client
+     *     .getAdminManager()
+     *     .externalService.registerService({ service_type: "webhook", service_id: "audit", display_name: "Audit" });
+     * console.log(svc.as_id);
+     * ```
      */
     async registerService(payload: RegisterExternalServicePayload): Promise<BackendExternalService> {
-        return await this.adminRequest<BackendExternalService>(Method.Post, "/external_services", undefined, payload);
+        return await this.adminRequest<BackendExternalService>(
+            Method.Post,
+            apu("/external_services"),
+            undefined,
+            payload,
+        );
     }
 
     /**
@@ -130,11 +151,16 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * @param asId - 外部服务的 as_id
      * @param payload - 更新字段
      * @returns 更新后的外部服务对象
+     * @example
+     * ```typescript
+     * const svc = await client.getAdminManager().externalService.updateService("as-1", { is_enabled: false });
+     * console.log(svc.is_enabled);
+     * ```
      */
     async updateService(asId: string, payload: UpdateExternalServicePayload): Promise<BackendExternalService> {
         return await this.adminRequest<BackendExternalService>(
             Method.Put,
-            `/external_services/${encodeURIComponent(asId)}`,
+            apu(`/external_services/${encodeURIComponent(asId)}`),
             undefined,
             payload,
         );
@@ -144,18 +170,30 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      * 删除外部服务。
      *
      * @param asId - 外部服务的 as_id
+     * @example
+     * ```typescript
+     * await client.getAdminManager().externalService.deleteService("as-1");
+     * ```
      */
     async deleteService(asId: string): Promise<void> {
-        await this.adminRequest(Method.Delete, `/external_services/${encodeURIComponent(asId)}`);
+        await this.adminRequest(Method.Delete, apu(`/external_services/${encodeURIComponent(asId)}`));
     }
 
     /**
      * 获取所有外部服务的健康状态。
      *
      * @returns 健康状态列表
+     * @example
+     * ```typescript
+     * const health = await client.getAdminManager().externalService.getAllHealth();
+     * console.log(health.filter((h) => !h.is_healthy).map((h) => h.service_id));
+     * ```
      */
     async getAllHealth(): Promise<BackendExternalServiceHealth[]> {
-        const result = await this.adminRequest<BackendExternalServiceHealth[]>(Method.Get, "/external_services/health");
+        const result = await this.adminRequest<BackendExternalServiceHealth[]>(
+            Method.Get,
+            apu("/external_services/health"),
+        );
         return result ?? [];
     }
 
@@ -164,12 +202,18 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      *
      * @param asId - 外部服务的 as_id
      * @returns 健康状态；若服务不存在返回 null
+     * @throws {Error} 请求失败且非 404（服务不存在）时，透传底层错误
+     * @example
+     * ```typescript
+     * const health = await client.getAdminManager().externalService.getServiceHealth("as-1");
+     * console.log(health?.is_healthy);
+     * ```
      */
     async getServiceHealth(asId: string): Promise<BackendExternalServiceHealth | null> {
         try {
             return await this.adminRequest<BackendExternalServiceHealth>(
                 Method.Get,
-                `/external_services/${encodeURIComponent(asId)}/health`,
+                apu(`/external_services/${encodeURIComponent(asId)}/health`),
             );
             // 404 表示服务不存在，是"查无此服务"的预期结果；其余错误继续向上抛出。
             // @swallow-error { owner: "admin-external-service", expires: "2026-12-31" }
@@ -185,11 +229,16 @@ export class AdminExternalServiceManager extends AdminBaseManager {
      *
      * @param asId - 外部服务的 as_id
      * @returns 健康检查结果
+     * @example
+     * ```typescript
+     * const result = await client.getAdminManager().externalService.checkServiceHealth("as-1");
+     * console.log(result.is_healthy);
+     * ```
      */
     async checkServiceHealth(asId: string): Promise<HealthCheckResult> {
         return await this.adminRequest<HealthCheckResult>(
             Method.Post,
-            `/external_services/${encodeURIComponent(asId)}/health/check`,
+            apu(`/external_services/${encodeURIComponent(asId)}/health/check`),
         );
     }
 }

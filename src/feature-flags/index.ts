@@ -13,6 +13,20 @@ import { AdminPrefix } from "../http-api/prefix";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { FeatureFlagsPath } from "./__generated__/route-table";
+import type { PathAssert, StripAdminV1 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到生成的 `FeatureFlagsPath` 上。
+ *
+ * 契约表的路径带 API 前缀、实现侧写相对路径（前缀由 `prefix:` 字段提供），故先
+ * `StripAdminV1` 剥离再**逐段比较**。拼错尾段 / 凭空多段会在**编译期**报 TS2345
+ * （`http-api/strip-prefix.ts` 的 `PathAssert`），改契约而没跟上 manager 会先炸 tsc。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripAdminV1<FeatureFlagsPath>>): P {
+    return path;
+}
+
 export interface FeatureFlag {
     key: string;
     target_scope: string;
@@ -58,13 +72,27 @@ export class FeatureFlagManager extends BaseManager {
     /**
      * 创建功能开关
      * 对应 POST /_synapse/admin/v1/feature-flags
+     *
+     * @param body - 功能开关创建请求体
+     * @returns 创建后的功能开关
+     * @throws 请求失败时抛出归一化后的错误
+     * @example
+     * ```typescript
+     * const flag = await client.getFeatureFlagManager().createFlag({
+     *     key: "new_feature",
+     *     target_scope: "global",
+     *     status: "enabled",
+     *     description: "试用新功能",
+     * });
+     * console.log(flag.key, flag.status);
+     * ```
      */
     async createFlag(body: CreateFeatureFlagRequest): Promise<FeatureFlag> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlag>({
                     method: Method.Post,
-                    path: "/feature-flags",
+                    path: dp("/feature-flags"),
                     body: body,
                     prefix: AdminPrefix.V1,
                 });
@@ -77,13 +105,25 @@ export class FeatureFlagManager extends BaseManager {
     /**
      * 更新功能开关
      * 对应 PATCH /_synapse/admin/v1/feature-flags/{flag_key}
+     *
+     * @param key - 功能开关的键
+     * @param body - 需要更新的字段
+     * @returns 更新后的功能开关
+     * @throws 请求失败时抛出归一化后的错误
+     * @example
+     * ```typescript
+     * const flag = await client.getFeatureFlagManager().updateFlag("new_feature", {
+     *     status: "disabled",
+     * });
+     * console.log(flag.status);
+     * ```
      */
     async updateFlag(key: string, body: UpdateFeatureFlagRequest): Promise<FeatureFlag> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlag>({
                     method: Method.Patch,
-                    path: `/feature-flags/${encodeURIComponent(key)}`,
+                    path: dp(`/feature-flags/${encodeURIComponent(key)}`),
                     body: body,
                     prefix: AdminPrefix.V1,
                 });
@@ -96,13 +136,22 @@ export class FeatureFlagManager extends BaseManager {
     /**
      * 获取功能开关详情
      * 对应 GET /_synapse/admin/v1/feature-flags/{flag_key}
+     *
+     * @param key - 功能开关的键
+     * @returns 功能开关详情
+     * @throws 请求失败时抛出归一化后的错误
+     * @example
+     * ```typescript
+     * const flag = await client.getFeatureFlagManager().getFlag("new_feature");
+     * console.log(flag.target_scope);
+     * ```
      */
     async getFlag(key: string): Promise<FeatureFlag> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlag>({
                     method: Method.Get,
-                    path: `/feature-flags/${encodeURIComponent(key)}`,
+                    path: dp(`/feature-flags/${encodeURIComponent(key)}`),
                     prefix: AdminPrefix.V1,
                 });
             }, "getFlag");
@@ -114,13 +163,22 @@ export class FeatureFlagManager extends BaseManager {
     /**
      * 获取功能开关列表
      * 对应 GET /_synapse/admin/v1/feature-flags
+     *
+     * @param query - 可选的过滤与分页条件
+     * @returns 功能开关列表与总数
+     * @throws 请求失败时抛出归一化后的错误
+     * @example
+     * ```typescript
+     * const { flags, total } = await client.getFeatureFlagManager().listFlags({ limit: 20 });
+     * console.log(total, flags.length);
+     * ```
      */
     async listFlags(query?: FeatureFlagListQuery): Promise<FeatureFlagListResponse> {
         try {
             return await this.withRetry(async () => {
                 return await this.request<FeatureFlagListResponse>({
                     method: Method.Get,
-                    path: "/feature-flags",
+                    path: dp("/feature-flags"),
                     queryParams: query,
                     prefix: AdminPrefix.V1,
                 });

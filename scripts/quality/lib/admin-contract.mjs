@@ -397,7 +397,10 @@ export function jsonMacroTopLevelKeys(src, jsonBangIndex) {
  */
 export function findRustFunctions(src) {
     const out = [];
-    for (const m of src.matchAll(/\n(?:pub\s+)?async\s+fn\s+([A-Za-z_]\w*)\s*[(<]/g)) {
+    // ⚠️ 必须接受 `pub(crate)` / `pub(super)` 等**带括号的可见性**：只写 `pub\s+` 会让
+    // 该可见性的处理器整批不可见 —— 实测 `routes/handlers/room/members.rs` 全族的
+    // `pub(crate) async fn` 一个都抓不到（连带把同名撞车判据骗成"唯一候选"）。
+    for (const m of src.matchAll(/\n(?:pub(?:\s*\([^)]*\))?\s+)?async\s+fn\s+([A-Za-z_]\w*)\s*[(<]/g)) {
         const brace = src.indexOf("{", m.index);
         if (brace < 0) continue;
         const slice = balancedSlice(src, brace);
@@ -652,13 +655,41 @@ function containerAttributes(head) {
  * @returns {string | null}
  */
 export function extractReturnType(sig) {
-    const paren = sig.indexOf("(");
-    if (paren < 0) return null;
-    const params = balancedSlice(sig, paren);
-    if (!params) return null;
-    const rest = sig.slice(params.end).trim();
+    const slice = paramSliceOf(sig);
+    if (!slice) return null;
+    const rest = sig.slice(slice.end).trim();
     const m = rest.match(/^->\s*([\s\S]+)$/);
     return m ? m[1].replace(/\s+/g, " ").trim() : null;
+}
+
+/**
+ * 取函数签名里**参数表**的那对括号切片。
+ *
+ * ⚠️ 锚点是 `fn <name>` **之后**那个 `(`，不是 `sig.indexOf("(")`：`pub(crate)` 自带的
+ * 那个括号会先被命中，于是整个参数表变成 `crate` —— 实测让**整族 `pub(crate)` 处理器**
+ * 的 `hasJson` 恒为 `false`（造出 25 条 `body-sent-ignored` 假阳性），
+ * 而 `extractReturnType` 对它们恒返回 `null`（连带 `findRustFunctions` 过滤掉整批）。
+ *
+ * @param {string} sig
+ * @returns {{ text: string, end: number } | null}
+ */
+function paramSliceOf(sig) {
+    const text = String(sig);
+    const fnMatch = /\bfn\s+[A-Za-z_]\w*\s*[(<]/.exec(text);
+    if (!fnMatch) return null;
+    // 命中字符可能是 `(`，也可能是泛型参数表的 `<`
+    const paren = text.indexOf("(", fnMatch.index + fnMatch[0].length - 1);
+    return paren < 0 ? null : balancedSlice(text, paren);
+}
+
+/**
+ * 取函数签名里**参数表**的内文（供提取器识别用）。
+ *
+ * @param {string} sig
+ * @returns {string} 参数表内文（取不到时为空串）
+ */
+export function paramListOf(sig) {
+    return paramSliceOf(sig)?.text.slice(1, -1) ?? "";
 }
 
 /**
@@ -1600,19 +1631,36 @@ export function createResponseResolver({
  * @returns {{ hasQuery: boolean, hasPath: boolean, hasJson: boolean, queryType: string|null, pathType: string|null, jsonType: string|null }}
  */
 export function extractHandlerIo(sig) {
-    const paren = sig.indexOf("(");
-    const params = paren < 0 ? "" : (balancedSlice(sig, paren)?.text.slice(1, -1) ?? "");
-    const pick = (wrapper) => {
-        const m = params.match(new RegExp(`${wrapper}\\s*<\\s*([A-Za-z_][\\w:]*)`));
-        return { present: new RegExp(`${wrapper}\\s*<`).test(params), type: m ? m[1].split("::").pop() : null };
+    const params = paramListOf(sig);
+    // ⚠️ `Json` 与后端自研的 `MatrixJson` **都是 JSON 请求体提取器**：
+    // `routes/extractors/json.rs` 里 `MatrixJson<'_'>` 的 `FromRequest` 直接转调
+    // `axum::extract::Json::<T>::from_request`，只把错误码映射成 Matrix errcode。
+    // 只认 `Json` 会把 `MatrixJson(body): MatrixJson<Value>` 的处理器误判成"不读 body"
+    // ⇒ 造出 `body-sent-ignored` 假阳性（实测 `create_secure_backup` 等）。
+    // 负向后顾是必需的：`MatrixJson<…>` 里也含子串 `Json<`。
+    const pick = (names) => {
+        for (const name of names) {
+            // ⚠️ `Option<Json<T>>` ⇒ **请求体可整体缺**（axum 只在带了 body 时才解析）。
+            // 不区分这一点，会让"按契约**不该**发 body"的调用点被误判成
+            // `body-required-missing`（假 415）—— 实测 per-user 邀请名单端点就是
+            // `body: Option<Json<InviteListEntryBody>>`（`admin/invite_lists.rs`）。
+            const optional = new RegExp(`Option\\s*<\\s*${name}\\s*<`).test(params);
+            const m = params.match(new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<\\s*([A-Za-z_][\\w:]*)`));
+            if (m) return { present: true, type: m[1].split("::").pop(), optional };
+            if (new RegExp(`(?<![A-Za-z0-9_])${name}\\s*<`).test(params))
+                return { present: true, type: null, optional };
+        }
+        return { present: false, type: null, optional: false };
     };
-    const q = pick("Query");
-    const p = pick("Path");
-    const j = pick("Json");
+    const q = pick(["Query"]);
+    const p = pick(["Path"]);
+    const j = pick(["Json", "MatrixJson"]);
     return {
         hasQuery: q.present,
         hasPath: p.present,
         hasJson: j.present,
+        /** 提取器被 `Option<…>` 包裹 ⇒ 该参数**可整体缺**（body 可完全不发）。 */
+        jsonOptional: j.optional,
         queryType: q.type,
         pathType: p.type,
         jsonType: j.type,
@@ -1704,6 +1752,228 @@ export function parseRouteTable(src) {
 }
 
 /**
+ * 解析后端**生成的路由表**（`derived_route_table_{always,worker,oidc}.inc.rs`）。
+ *
+ * 那是后端的**权威路由面**：由 `scripts/contract/gen_derived_routes.py` 从真实 `.route(...)`
+ * 面导出，每条形如
+ *
+ * ```text
+ * RouteEntry::new(axum::http::Method::GET, "/_matrix/client/v3/user/{user_id}/account_data/", "account_data")
+ * ```
+ *
+ * ⚠️ 必须容忍**多行 + 尾逗号**形态（本仓绝大多数条目是这种写法）：只按单行正则匹配会
+ * 静默漏掉 1/3 的条目（实测 702/1034），看起来"表里没有"。
+ *
+ * @param {string} src 已剥注释的 Rust 源码
+ * @returns {Array<{ method: string, path: string, registeredBy: string }>}
+ */
+export function parseGeneratedRouteTable(src) {
+    const out = [];
+    const re = /RouteEntry::new\(\s*axum::http::Method::([A-Z]+)\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,?\s*\)/g;
+    for (const m of src.matchAll(re)) out.push({ method: m[1], path: m[2], registeredBy: m[3] });
+    return out;
+}
+
+/**
+ * 由「routes 目录相对路径」推出该文件的模块键（用于与 `registered_by` 比同族）。
+ *
+ * `room.rs` → `room`；`room/mod.rs` → `room`；`admin/room.rs` → `admin::room`；
+ * `handlers/dehydrated_device.rs` → `handlers::dehydrated_device`。
+ *
+ * ⚠️ **要去掉前导 `routes` 段**：生成表里的 `registered_by` 是**相对 `routes/` 模块根**
+ * 的模块路径（`e2ee`、`admin::room`、`handlers::dehydrated_device`），而调用点通常以
+ * `synapse-web/src` 为扫描根 ⇒ 不去掉就会算出 `routes::e2ee::keys`，与 rb `e2ee`
+ * 判不成同族（实测 `e2ee` / `space` / `search` 三个模块整体漏掉）。
+ *
+ * @param {string} relFile 相对扫描根的路径（用 `/` 分隔）
+ * @returns {string}
+ */
+export function routeModuleKeyOf(relFile) {
+    const segs = String(relFile)
+        .replace(/\.rs$/, "")
+        .replace(/\/mod$/, "")
+        .split("/")
+        .filter(Boolean);
+    if (segs[0] === "routes") segs.shift();
+    return segs.join("::");
+}
+
+/**
+ * 「同族」：两侧在 `::` 边界上互为前后缀。
+ *
+ * 覆盖四种真实形态：`room`（同名）、`admin/room.rs` ↔ `admin::room`、
+ * `handlers/dehydrated_device.rs` ↔ `dehydrated_device`（rb 只写末段）、
+ * `assembly.rs` ↔ `assembly::account_compat`（rb 比文件更细）。
+ * **不做**子串匹配：`room` 与 `room_summary` 不同族（后者是不同模块，
+ * 实测把两者混在一起会造出假连接）。
+ *
+ * ⚠️ 试过放宽成「一侧的段序列是另一侧的**连续段**」（想给 `handlers/room/members.rs`
+ * ↔ `room` 这种"处理器住在 `handlers/` 下"的形态放行）：覆盖 96.0% → 97.3%，
+ * **但重新打开了 C-S ↔ admin 跨面挂载**（`room` 同样是 `admin::room::management` 的连续段）
+ * ⇒ 实测 3 条路由重新拿到契约不一致的两份定义、**多出 5 条假违规**。
+ * 正确性优先 ⇒ 保持边界判据，让那批路由落"未知"桶（可见），而非拿可能错的契约比对。
+ *
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function sameRouteModuleFamily(a, b) {
+    if (!a || !b) return false;
+    return a === b || a.endsWith(`::${b}`) || b.endsWith(`::${a}`) || a.startsWith(`${b}::`) || b.startsWith(`${a}::`);
+}
+
+/**
+ * 同名 handler 撞车时，是否允许把**本定义**的契约挂到该路由上（fail-closed）。
+ *
+ * `handlerRoutes` 是按**裸函数名**索引的，同名跨模块在本仓很常见（`kick_user` 在 C-S 与
+ * admin 各一份、契约不同）。规则：
+ *   · 名字唯一 ⇒ 允许（这条路径上没有归属风险）；
+ *   · 名字有多份定义 ⇒ 只在该路由 owner（生成表的 `registered_by`）与**本定义模块同族**时允许。
+ *
+ * ⚠️ 调用方传的 `definitionCount` 必须是**所有**被路由引用的同名定义数，**不能**先按
+ * "返回类型像响应"过滤：`impl IntoResponse` 的处理器会被滤掉 ⇒ 计数恒 1 ⇒ 判据失效
+ * ⇒ 两份契约被挂到同一个 key 上（实测 `/register`、`/rendezvous`、`/cas/p3/serviceValidate`
+ * 共 8 个 key 成了"合并垃圾"）。
+ *
+ * @param {{ definitionCount: number, owner: string | null, definitionModuleKey: string }} options
+ * @returns {boolean} 允许挂上
+ */
+/**
+ * 「同一个路由 key 拿到**契约不一致**的多份定义」的条目（应为空）。
+ *
+ * 起因：`handlerRoutes` 按裸函数名索引 ⇒ 多条 `.route()` 声明会落到同一个 key 上
+ * （`byRoute.set` 合并 ⇒ `entry.merged`）。若各份的**门禁可见契约**不同，门禁比对时
+ * 只能"先见者胜出"，等于拿错的契约校验调用点。
+ *
+ * 签名**不含 handler 名**：名字不同但契约等价（实测 `download_media` /
+ * `download_media_v1` / `download_media_authenticated` 都是"无 body、无 query"）不算冲突，
+ * 否则会把无害合并报成问题。
+ *
+ * 调用方（门禁）应把非空视为**失败**：撞车归属守卫一旦失效（例如误把"返回类型像响应"
+ * 当成定义数阈值），这里立刻变红 —— 这就是该守卫的回归判据。
+ *
+ * @param {Map<string, object>} byRoute
+ * @returns {{ count: number, samples: string[], routes: string[] }}
+ */
+export function routeContractConflicts(byRoute) {
+    const sigOf = (e) =>
+        JSON.stringify({
+            hasJson: e.io?.hasJson ?? null,
+            jsonType: e.io?.jsonType ?? null,
+            hasQuery: e.io?.hasQuery ?? null,
+            queryType: e.io?.queryType ?? null,
+            bodyType: e.bodyStruct?.name ?? null,
+            bodyFields: e.bodyStruct?.fields ?? null,
+            bodyOptional: e.bodyStruct?.optional ?? null,
+            denyUnknown: e.bodyStruct?.denyUnknownFields ?? null,
+            opaque: e.bodyStruct?.opaque ?? null,
+        });
+    const samples = [];
+    const routes = [];
+    for (const [route, entry] of byRoute) {
+        const parts = [entry, ...(entry.merged ?? [])];
+        if (parts.length < 2) continue;
+        if (new Set(parts.map(sigOf)).size < 2) continue;
+        routes.push(route);
+        if (samples.length < 8) samples.push(`${route} ← ${parts.map((x) => `${x.handler}@${x.file}`).join(" | ")}`);
+    }
+    return { count: routes.length, samples, routes };
+}
+
+export function handlerAttributionAllowed({ definitionCount, owner, definitionModuleKey }) {
+    if (definitionCount <= 1) return true;
+    return Boolean(owner) && sameRouteModuleFamily(owner, definitionModuleKey);
+}
+
+/**
+ * 把 `.route("…")` 里写的路径解析成**绝对路径**。
+ *
+ * ## 为什么需要
+ *
+ * 嵌套/合并的 router 里 `.route()` 写的是**相对路径**（`/user/{user_id}/account_data/`），
+ * 前缀由挂载点决定；而挂载链**静态推不出来**（`create_room_v3_router` 被 `merge` 后
+ * 全仓没有任何地方按名字引用它 ⇒ `.nest` 重建只覆盖 164 个 key）。生成表则给出全部绝对路径。
+ *
+ * ## 三条约束（缺一不可）
+ *
+ * 1. **方法相同**；
+ * 2. **`registered_by` 与调用点文件同族**（同族判据见 `sameRouteModuleFamily`）；
+ * 3. **段对齐后缀**（`abs` 以 `rel` 结尾；`rel` 以 `/` 开头 ⇒ 拼接点天然是段边界）。
+ *
+ * ⚠️ **去掉第 2 条会过生成**：纯后缀连接下 818 个唯一路径会连出 1052 个 key（`/login` 命中 4 条），
+ * 等于把某个处理器的必填体挂到它并不服务的路由上 —— 正是本模块反复强调的
+ * 「错的形状比未知更危险」。故候选 >1 时**只在同族且 `registered_by` 一致**时才全部采纳
+ * （那对应「同一个 router 被挂到多个前缀」，实测就是 v1/v3 兼容对），否则**拒绝解析**。
+ *
+ * ## fail-closed
+ *
+ * 判不出来就**原样返回相对路径**（下游照旧落进"路由契约不可用"桶），绝不猜；
+ * 生成表缺席（老后端/部分检出）时同样原样返回。
+ *
+ * @param {{ routePath: string, method: string, moduleKey: string, generated: Array<{method: string, path: string, registeredBy: string}> }} options
+ * @returns {{ paths: string[], via: "absolute"|"unique"|"multi"|"unresolved"|"refused", candidates?: string[] }}
+ */
+export function resolveRoutePath({ routePath, method, moduleKey, generated, siblingPaths = [] }) {
+    const unchanged = { paths: [routePath], via: "unresolved" };
+    if (!routePath || !method) return unchanged;
+    if (!generated || generated.length === 0) return unchanged;
+    // 已经是绝对路径：命中生成表就用它；没命中就**不回落**（`/_matrix/...` 定义上就是绝对的，
+    // 再去后缀匹配只会造出跨前缀的假连接）。
+    if (routePath.startsWith("/_")) {
+        const hit = generated.some((g) => g.method === method && g.path === routePath);
+        return hit ? { paths: [routePath], via: "absolute" } : unchanged;
+    }
+    // axum 路径都以 `/` 开头 ⇒ `endsWith` 即段对齐；不以 `/` 开头时才要求前一个字符是 `/`
+    // （防止 `/rooms` 匹配到 `/admin/rooms` 这种粘段）。
+    const segTail = (abs) => {
+        if (!abs.endsWith(routePath)) return false;
+        if (routePath.startsWith("/")) return true;
+        const cut = abs.length - routePath.length;
+        return cut === 0 || abs[cut - 1] === "/";
+    };
+    const cands = generated.filter(
+        (g) => g.method === method && sameRouteModuleFamily(g.registeredBy, moduleKey) && segTail(g.path),
+    );
+    if (cands.length === 1) return { paths: [cands[0].path], via: "unique" };
+    if (cands.length === 0) return unchanged;
+    // 先按「owner 与文件模块**精确相等**」收窄：`routes/room.rs` 的 `.route("/rooms/{room_id}")`
+    // 只可能属于 `room`，而不属于同族但更远的 `admin::room`（实测 10 条本想拒绝的都能这样定下来）。
+    const exactOwners = cands.filter((c) => c.registeredBy === moduleKey);
+    if (exactOwners.length === 1) return { paths: [exactOwners[0].path], via: "unique" };
+    const distinctOwners = [...new Set(cands.map((c) => c.registeredBy))];
+    if (distinctOwners.length === 1) {
+        // 「同一个 router 被挂到多个前缀」才对 —— 那些前缀必须**深度相同**（v1/v3 兼容对的形态）。
+        // 深度不同 ⇒ 命中的多半是**相邻但不同的路由**：实测 `routes/cas.rs` 的
+        // `.route("/serviceValidate")` 后缀同时匹配 `/_synapse/cas/serviceValidate`（前缀深度 2）
+        // 与 `/_synapse/cas/p3/serviceValidate`（深度 3），而后者其实是**另一条** `.route()`
+        // （`/p3/serviceValidate` → `p3_service_validate`，query 类型都不同）。
+        // 全解会把两条不同路由的契约都挂上去（"合并垃圾"）⇒ 深度不一致就拒绝，不猜。
+    }
+    // 「更长的**兄弟**相对路径更能解释这个候选」⇒ 该候选不属于本条 `routePath`。
+    // 实测 `routes/cas.rs` 同时声明 `/serviceValidate` 与 `/p3/serviceValidate`：前者的候选里
+    // 混进了 `/_synapse/cas/p3/serviceValidate`，而它显然是**后者**的挂载结果
+    // （两条 query 类型都不同 ⇒ 全解会把两份契约挂到同一个 key 上）。
+    // ⚠️ **不能用"前缀深度相同"当判据**：`media` 路由正当挂在 `/_matrix/media/{r0,v1,v3}`
+    // （深度 3）与 `/_matrix/client/v1/media`（深度 4）下 —— 深度不同但都是真挂载。
+    const betterExplained = (abs) =>
+        siblingPaths.some(
+            (r2) => r2 !== routePath && r2.length > routePath.length && r2.endsWith(routePath) && abs.endsWith(r2),
+        );
+    const kept = cands.filter((c) => !betterExplained(c.path));
+    if (kept.length === 1) return { paths: [kept[0].path], via: "unique" };
+    const keptOwners = [...new Set(kept.map((c) => c.registeredBy))];
+    if (kept.length > 1 && keptOwners.length === 1) return { paths: kept.map((c) => c.path), via: "multi" };
+    if (kept.length !== cands.length) {
+        return {
+            ...unchanged,
+            via: "refused",
+            candidates: kept.map((c) => `${c.method} ${c.path} [${c.registeredBy}]`),
+        };
+    }
+    return { ...unchanged, via: "refused", candidates: cands.map((c) => `${c.method} ${c.path} [${c.registeredBy}]`) };
+}
+
+/**
  * 收集后端 admin 契约：路由 → { handler, responseShapes, responseVariants, io, bodyStruct }。
  *
  * `sinkDirs` 是**响应形状的下沉目录**：响应 struct 常常定义在 `synapse-storage/src` /
@@ -1789,18 +2059,64 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             rawFunctions.set(fn.name, list);
         }
     }
+    // 「同一模块族里声明过的全部相对路径」——`resolveRoutePath` 用它做
+    // "更长的兄弟路径优先解释"的消歧（见该函数注释）。
+    const declaredByModule = new Map();
+    for (const [f, src] of perFile) {
+        const k = routeModuleKeyOf(path.relative(routesDir, f));
+        const list = declaredByModule.get(k) ?? [];
+        for (const r of parseRouteTable(src)) list.push(r.path);
+        declaredByModule.set(k, list);
+    }
+    const siblingPathsOf = (moduleKey) => {
+        const out = new Set();
+        for (const [k, list] of declaredByModule) {
+            if (!sameRouteModuleFamily(k, moduleKey)) continue;
+            for (const x of list) out.add(x);
+        }
+        return [...out];
+    };
     const handlerRoutes = new Map();
-    for (const src of perFile.values()) {
+    // 后端**生成表**（权威绝对路径面）：用来把相对 `.route()` 路径解析成绝对路径。
+    // 缺席（老后端/部分检出）时 `resolveRoutePath` 原样返回相对路径 ⇒ 退化为旧行为。
+    const generated = [];
+    for (const [f, src] of perFile) {
+        if (/derived_route_table_[^/]*\.inc\.rs$/.test(f)) generated.push(...parseGeneratedRouteTable(src));
+    }
+    const routeResolution = { absolute: 0, unique: 0, multi: 0, unresolved: 0, refused: 0 };
+    const refusedRoutes = [];
+    for (const [f, src] of perFile) {
+        const moduleKey = routeModuleKeyOf(path.relative(routesDir, f));
         for (const r of parseRouteTable(src)) {
             for (let i = 0; i < r.handlers.length; i++) {
                 // 路由里可能写限定路径（`management::block_room`），而函数定义在
                 // 该文件的子模块里 ⇒ 按**最后一段**建索引（函数名）。
                 const fnName = r.handlers[i].split("::").pop();
-                const key = `${r.methods[i]} ${r.path}`;
-                handlerRoutes.set(fnName, [...(handlerRoutes.get(fnName) ?? []), key]);
+                const res = resolveRoutePath({
+                    routePath: r.path,
+                    method: r.methods[i],
+                    moduleKey,
+                    generated,
+                    siblingPaths: siblingPathsOf(moduleKey),
+                });
+                routeResolution[res.via] += 1;
+                if (res.via === "refused") {
+                    refusedRoutes.push({
+                        file: path.relative(routesDir, f),
+                        path: `${r.methods[i]} ${r.path}`,
+                        candidates: res.candidates,
+                    });
+                }
+                for (const p of res.paths) {
+                    const key = `${r.methods[i]} ${p}`;
+                    handlerRoutes.set(fnName, [...(handlerRoutes.get(fnName) ?? []), key]);
+                }
             }
         }
     }
+    // 生成表给出的**路由 owner**（`registered_by`）：同名 handler 撞车时用它做归属判据。
+    const routeOwner = new Map();
+    for (const g of generated) routeOwner.set(`${g.method} ${g.path}`, g.registeredBy);
 
     /**
      * 按名字挑出**唯一**可下沉的函数定义。
@@ -1838,10 +2154,30 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
     let responseKnown = 0;
     let requestKnown = 0;
     let ambiguous = 0;
+    /** 因「同名 handler 撞车且无法按 owner 归属」而未挂契约的 (路由, 函数) 数。 */
+    let collisionRefused = 0;
+    const collisionRefusedSamples = [];
     for (const [f, src] of perFile) {
+        const defModuleKey = routeModuleKeyOf(path.relative(routesDir, f));
         for (const fn of findRustFunctions(src)) {
             const routes = handlerRoutes.get(fn.name);
             if (!routes) continue;
+            // 同名 handler 撞车时**必须做归属**，不能靠"最后写的那份胜出"：
+            // `handlerRoutes` 是按**裸函数名**建的，而本仓同名跨模块很常见
+            // （`kick_user` 在 `handlers/room/members.rs` 用 `Json<Value>` 读 body 里的 `user_id`，
+            //  而 `admin/room/management.rs` 用 `Json<BanRequest>` + 路径参数 —— 契约完全不同）。
+            // 判据（fail-closed）：名字在扫描根内有**多份**定义时，只在该路由的 owner
+            // （生成表的 `registered_by`）与**本定义的模块同族**时才挂；否则跳过落"未知"桶。
+            //
+            // ⚠️ 阈值必须用**所有**被路由引用的同名定义，**不能**加"返回类型像响应"的过滤：
+            // 那样会让 `impl IntoResponse` 的处理器不被计入 —— 实测 `create_session`
+            // 在 `routes/msc4108_rendezvous.rs` 与 `routes/rendezvous.rs` 各一份，而只有一份是
+            // `Result<Json<…>>` ⇒ 阈值恒 1 ⇒ 守卫不触发 ⇒ **两份契约都被挂到同一个 key 上**
+            // （`/rendezvous`、`/register`、`/cas/p3/serviceValidate` 共 8 个 key 成了"合并垃圾"）。
+            // 名字唯一时照旧挂（那条路径上没有归属风险，不动它以免白丢覆盖）。
+            const defsOfName = (rawFunctions.get(fn.name) ?? []).filter(
+                (d) => d.file.startsWith(routesDir + path.sep) && !isTestishPath(d.file),
+            );
             handlerCount++;
             const responseShapes = resolver.resolveHandler({
                 name: fn.name,
@@ -1861,6 +2197,23 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             if (responseVariants) responseKnown++;
             if (bodyStruct) requestKnown++;
             for (const rawRoute of routes) {
+                if (defsOfName.length > 1) {
+                    const owner = routeOwner.get(rawRoute) ?? null;
+                    if (
+                        !handlerAttributionAllowed({
+                            definitionCount: defsOfName.length,
+                            owner,
+                            definitionModuleKey: defModuleKey,
+                        })
+                    ) {
+                        collisionRefused++;
+                        if (collisionRefusedSamples.length < 12)
+                            collisionRefusedSamples.push(
+                                `${rawRoute} ← ${fn.name} @ ${path.relative(routesDir, f)}（owner=${owner ?? "?"}）`,
+                            );
+                        continue;
+                    }
+                }
                 const route = normalizeRoute(rawRoute);
                 const prev = byRoute.get(route);
                 if (prev) ambiguous++;
@@ -1901,9 +2254,22 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             }
         }
     }
+    // fail-closed：合并后**契约不一致**的条目一律**丢弃** —— 其调用点会落
+    // `route-contract-unavailable`（门禁可见），绝不"先见者胜出"拿可能错的契约去比对。
+    const conflicting = routeContractConflicts(byRoute);
+    for (const route of conflicting.routes) byRoute.delete(route);
+
     return {
         byRoute,
         files: files.map((f) => path.relative(routesDir, f)),
+        /**
+         * 全局 struct 索引（**带撞车标记**：同名多定义且字段/可选性不同 ⇒ `opaque`）。
+         *
+         * 回传它是因为调用方（`check-wire-format` 等）需要按 struct 名取字段集；
+         * 若各自"重建只留首个"，就会**抹掉撞车标记**，拿其中一份字段集去比对，
+         * 对跨模块同名 struct（如 `SearchQuery`）造出假违规。
+         */
+        structs,
         stats: {
             fileCount: files.length,
             sinkFileCount: sinkFiles.length,
@@ -1912,6 +2278,20 @@ export async function collectRustAdminContract({ routesDir, sinkDirs = [] }) {
             requestKnown,
             structCount: structs.size,
             ambiguous,
+            /** .route() 路径解析结果：absolute/unique/multi/unresolved/refused 各多少 */
+            routeResolution,
+            /** 被拒绝的（同族候选 >1 且 registered_by 不同）—— 应当为空，非空说明后端有歧义注册 */
+            refusedRoutes,
+            generatedRouteCount: generated.length,
+            /** 同名 handler 撞车且无法按 owner 归属 ⇒ 未挂契约（落"未知"桶，不猜） */
+            collisionRefused,
+            collisionRefusedSamples,
+            /** 合并后**契约不一致**的条目（应为 0；非 0 = 归属守卫失效，门禁计为失败） */
+            contractConflicts: {
+                count: routeContractConflicts(byRoute).count,
+                samples: conflicting.samples,
+                dropped: conflicting.count,
+            },
         },
     };
 }
@@ -2007,6 +2387,99 @@ export function stripTsComments(src) {
         i++;
     }
     return out;
+}
+
+/**
+ * 把 TS 注释**原地抹成空格**（保长）：只剥注释，字符串 / 模板 / 正则内容一律原样保留。
+ *
+ * 与 `stripTsComments` 的关系：扫描器**逐条镜像**它（含正则字面量启发式），唯一区别是
+ * `stripTsComments` **丢弃**注释字符会改变长度，而本函数把注释字符换成空格 ⇒
+ * **下标与行号完全不变**。这一点是硬要求：调用方拿它处理源码后仍要按**原下标**做
+ * `source.indexOf(pathRaw)` 与 `findConstObjectBinding(source, callIndex, …)`。
+ *
+ * 为什么需要它（2026-10-16 实测）：多个抽取器直接吃原文 ⇒ 它们会看见 JSDoc 里的
+ * 用法示例。实测 `src/friend/paths.ts` 的 `@example`（`await this.request({ method: Method.Put,
+ * path: friendPath(...), prefix: VendorPrefix });`）被当成**真调用点**，于是门禁报出一条
+ * 假的 `request-required-missing`。注释不是代码，先抹掉再抽取是唯一彻底的解法。
+ *
+ * ⚠️ 保留换行（注释内的换行也保留）——否则行号会漂，而门禁的报错全靠行号定位。
+ *
+ * @param {string} src
+ * @returns {string} 与入参**等长**的文本
+ */
+export function blankTsComments(src) {
+    const out = src.split("");
+    const n = src.length;
+    /** 把 `[from, to)` 之间除换行外的字符抹成空格。 */
+    const blank = (from, to) => {
+        for (let k = from; k < to && k < n; k++) if (src[k] !== "\n") out[k] = " ";
+    };
+    let i = 0;
+    let prevSignificant = "";
+    while (i < n) {
+        const c = src[i];
+        // 字符串 / 模板字面量：**原样保留**（内含的 `//` 与 `/*` 不是注释）
+        if (c === '"' || c === "'" || c === "`") {
+            const quote = c;
+            i++;
+            while (i < n) {
+                if (src[i] === "\\") {
+                    i += 2;
+                    continue;
+                }
+                if (src[i] === quote) {
+                    i++;
+                    break;
+                }
+                i++;
+            }
+            continue;
+        }
+        if (c === "/" && src[i + 1] === "/") {
+            let k = i;
+            while (k < n && src[k] !== "\n") k++;
+            blank(i, k);
+            i = k;
+            continue;
+        }
+        if (c === "/" && src[i + 1] === "*") {
+            let k = i + 2;
+            while (k < n && !(src[k] === "*" && src[k + 1] === "/")) k++;
+            const stop = Math.min(n, k + 2);
+            blank(i, stop);
+            i = stop;
+            continue;
+        }
+        // 正则字面量：仅当上一有效字符不是标识符/右括号时才可能是除法
+        if (c === "/" && !/[\w$)\]]/.test(prevSignificant)) {
+            let k = i + 1;
+            let inClass = false;
+            let closed = false;
+            while (k < n) {
+                if (src[k] === "\\") {
+                    k += 2;
+                    continue;
+                }
+                if (src[k] === "[") inClass = true;
+                else if (src[k] === "]") inClass = false;
+                else if (src[k] === "/" && !inClass) {
+                    closed = true;
+                    k++;
+                    break;
+                } else if (src[k] === "\n") break;
+                k++;
+            }
+            if (closed) {
+                while (k < n && /[a-z]/.test(src[k])) k++;
+                i = k;
+                prevSignificant = "/";
+                continue;
+            }
+        }
+        if (!/\s/.test(c)) prevSignificant = c;
+        i++;
+    }
+    return out.join("");
 }
 
 /**

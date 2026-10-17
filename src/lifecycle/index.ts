@@ -38,14 +38,44 @@ export class LifecycleManager extends BaseManager<keyof LifecycleManagerEvents, 
         super(client, opts);
     }
 
+    /**
+     * 启动客户端同步循环。
+     *
+     * @returns 启动完成后的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.getLifecycleManager().startClient();
+     * ```
+     */
     public async startClient(): Promise<void> {
         return this.withRetry(() => this.client.startClient(), "startClient");
     }
 
+    /**
+     * 停止客户端同步循环。
+     *
+     * @returns 停止完成后的 Promise
+     *
+     * @example
+     * ```typescript
+     * await client.getLifecycleManager().stopClient();
+     * ```
+     */
     public async stopClient(): Promise<void> {
         await this.client.stopClient();
     }
 
+    /**
+     * 客户端同步循环是否正在运行。
+     *
+     * @returns 正在运行返回 true，否则返回 false
+     *
+     * @example
+     * ```typescript
+     * const running = client.getLifecycleManager().isClientRunning();
+     * ```
+     */
     public isClientRunning(): boolean {
         return this.client.clientRunning ?? false;
     }

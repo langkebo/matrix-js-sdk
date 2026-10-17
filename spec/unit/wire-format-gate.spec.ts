@@ -19,17 +19,23 @@ import { describe, expect, it } from "vitest";
 
 import {
     classifyWire,
+    collapseContractEntries,
     countBuckets,
     diffBuckets,
     extractObjectFormCalls,
+    gateRouteKey,
     objectLiteralKeys,
+    wirePathKey,
+    rebaseLedgerKeys,
     resolveKeySet,
     splitTopLevelObjectProps,
+    stripCommentsInChunk,
     violationKey,
     waiverCovers,
     waiverMatch,
 } from "../../scripts/quality/check-wire-format.mjs";
 import { resolveWrapperIoPositions } from "../../scripts/quality/verify-path-contract.mjs";
+import { blankTsComments } from "../../scripts/quality/lib/admin-contract.mjs";
 
 const NO_OPTS = { identityHelpers: null, templateBuilders: null };
 
@@ -153,6 +159,340 @@ describe("extractObjectFormCalls", () => {
         const r = extractObjectFormCalls(bad, "src/x.ts", NO_OPTS);
         expect(r.calls).toHaveLength(0);
         expect(r.unchecked).toHaveLength(1);
+    });
+});
+
+/**
+ * 「注释粘住属性」的回归守卫（2026-10-15 实测的静默盲区）。
+ *
+ * 判据按**顶层逗号**切块，块首是 `//` 时整块被当纯注释跳过 ⇒ 被粘住的那个属性消失。
+ * 后果双向且都不报错，所以必须逐条钉死：
+ *   · 粘 `method`/`path` ⇒ 该调用点被第 260 行 `continue` **静默丢弃**
+ *     （不进 `calls` 也不进 `unchecked`，覆盖面以"分母变小"的方式缩水）；
+ *   · 粘 `body`/`queryParams` ⇒ 被读成"确定不发"⇒ 凭空报缺必填。
+ * 真实命中：4 处纯丢弃 + 3 处读成"确定不发"（crypto-keys / media / room-state）。
+ */
+describe("stripCommentsInChunk / 注释不得改变判定", () => {
+    it("剥行注释与块注释（含 JSDoc），并保留换行", () => {
+        expect(stripCommentsInChunk("// c\nfoo").trim()).toBe("foo");
+        expect(stripCommentsInChunk("/* c */ foo").trim()).toBe("foo");
+        expect(stripCommentsInChunk("/** @example x */ foo").trim()).toBe("foo");
+        expect(stripCommentsInChunk("// a\n/** b */ foo").trim()).toBe("foo");
+    });
+
+    it('**不碰**字符串与模板字面量内容（`path: "/a//b"` 的 `//` 必须原样保留）', () => {
+        expect(stripCommentsInChunk('foo: "/a//b"')).toBe('foo: "/a//b"');
+        expect(stripCommentsInChunk("foo: '/x//y'")).toBe("foo: '/x//y'");
+        expect(stripCommentsInChunk("foo: `/a//b`")).toBe("foo: `/a//b`");
+        // 转义引号不提前结束字符串
+        expect(stripCommentsInChunk('foo: "a\\"//b"')).toBe('foo: "a\\"//b"');
+    });
+
+    it("objectLiteralKeys：注释不能吃掉它粘住的那个键", () => {
+        expect(objectLiteralKeys("{ // note\n a: 1, b: 2 }").keys).toEqual(["a", "b"]);
+        expect(objectLiteralKeys("{ /* note */ a: 1, b: 2 }").keys).toEqual(["a", "b"]);
+    });
+
+    it("注释紧贴 `method:` 时，调用点仍被抽出（原先被静默丢弃）", () => {
+        const src = [
+            "class M { m() {",
+            "  this.request({",
+            "    // 后端形状说明",
+            "    method: Method.Get,",
+            '    path: "/rooms",',
+            "    prefix: ClientPrefix.V3,",
+            "  });",
+            "} }",
+        ].join("\n");
+        const r = extractObjectFormCalls(src, "src/x.ts", NO_OPTS);
+        expect(r.calls).toHaveLength(1);
+        expect(r.calls[0].method).toBe("GET");
+        expect(r.unchecked).toHaveLength(0);
+    });
+
+    it("注释紧贴 `path:` 时，调用点仍被抽出（原先被静默丢弃）", () => {
+        const src = [
+            "class M { m() {",
+            "  this.request({",
+            "    method: Method.Post,",
+            "    // 路径说明",
+            '    path: "/rooms/create",',
+            "    prefix: ClientPrefix.V3,",
+            "  });",
+            "} }",
+        ].join("\n");
+        expect(extractObjectFormCalls(src, "src/x.ts", NO_OPTS).calls).toHaveLength(1);
+    });
+
+    it("注释紧贴 `body:` 时，body 不得被读成「确定不发」（原先会报假的缺必填）", () => {
+        const src = [
+            "class M { m() {",
+            "  this.request({",
+            "    method: Method.Post,",
+            '    path: "/keys/signatures/upload",',
+            "    // 请求体直接是签名映射",
+            "    body: { signatures: sigs },",
+            "    prefix: ClientPrefix.V3,",
+            "  });",
+            "} }",
+        ].join("\n");
+        const r = extractObjectFormCalls(src, "src/x.ts", NO_OPTS);
+        expect(r.calls).toHaveLength(1);
+        expect(r.calls[0].bodyArg).not.toBe("undefined");
+        // 键集确实解得出来，而不是"不可知"
+        expect(resolveKeySet(r.calls[0].bodyArg, src, r.calls[0].callIndex).keys).toEqual(["signatures"]);
+    });
+});
+
+/**
+ * `gateRouteKey`：后端路由 key 必须用**本门禁的** `normalizePath` 重建。
+ *
+ * 真实事故（2026-10-16 实测）：仓里有两个 `normalizePath`，差的**不只是大小写** ——
+ * `lib/admin-contract.mjs` 自己的那个（`normalizeRoute` 用它建 `byRoute`）产出 `{x}` 且**保留尾斜杠**；
+ * 本文件从 `verify-path-contract.mjs` 转出的那个（候选 key 与 manifest key 都用它）产出 `{X}`、
+ * **去掉尾斜杠**、还会吞 query 与认 `$var`/`:param`。
+ *
+ * 不重建就直接 `effective.has(key)` ⇒ **任何含动态段的路由两侧 key 永远不相等**，
+ * 于是被静默归进 `route-contract-unavailable`：实测 599 个未解析调用点里有 **263** 个
+ * 只要把 `{X}` 换成 `{x}` 就能命中 ⇒ 那不是"覆盖率上限"，是拼写不一致造成的**假上限**。
+ * （`comparable` 长期只有 24，正是这个原因。）
+ *
+ * ⚠️ 只修后端一侧是不够的：台账（`frozen`）那一侧必须一起重建，否则漂移比较与 CI 半场都会失真
+ * —— 见下面 `rebaseLedgerKeys` 的用例。
+ */
+describe("gateRouteKey（后端 key 必须用本门禁的归一化）", () => {
+    it("占位符统一成 `{X}`（大写）—— 与候选 key / manifest key 的拼写一致", () => {
+        expect(gateRouteKey("GET /_matrix/client/v3/rooms/{room_id}/state")).toBe(
+            "GET /_matrix/client/v3/rooms/{X}/state",
+        );
+    });
+
+    it("已是 `{x}`（小写）的 byRoute key 也要被重新拼成 `{X}`", () => {
+        // 这正是修复点：byRoute 里存的是小写形态，直接比对必然失配
+        expect(gateRouteKey("PUT /_matrix/vendor/v1/friends/{x}/status")).toBe(
+            "PUT /_matrix/vendor/v1/friends/{X}/status",
+        );
+    });
+
+    it("静态路径（无占位符）不受影响", () => {
+        expect(gateRouteKey("POST /_matrix/client/v3/login")).toBe("POST /_matrix/client/v3/login");
+        expect(gateRouteKey("POST /_synapse/admin/v1/cleanup/all")).toBe("POST /_synapse/admin/v1/cleanup/all");
+    });
+
+    it("key 里不得残留小写 `{x}`（残留 = 比较必然失配）", () => {
+        for (const k of ["GET /a/{x}/b", "GET /a/{user_id}/b", "GET /a/{x}/b/{y}"]) {
+            expect(gateRouteKey(k)).not.toContain("{x}");
+        }
+    });
+});
+
+/**
+ * `wirePathKey`：门禁的路径 key 必须**保留尾斜杠**。
+ *
+ * 真实事故（2026-10-16 实测）：共享的 `normalizePath` 会 `.replace(/\\/+$/, "")`，把
+ * `/rooms/{room_id}/state/{event_type}`（`get_state_event`）与
+ * `/rooms/{room_id}/state/{event_type}/`（`get_state_event_empty_key`，state key 为空）
+ * 折叠成**同一个 key** —— 两条契约不同的真路由被合并成一组"同形冲突"
+ * （实测 3 组：`state/{event_type}`、`state/{event_type}/`、`pushrules`）。
+ * 后端 key / manifest key / SDK 候选 key 三侧都必须走它，否则又回到"两侧拼写不同"。
+ */
+describe("wirePathKey（尾斜杠是语义，不是装饰）", () => {
+    it("`/a/` 与 `/a` 是**两个** key", () => {
+        expect(wirePathKey("/x/a/")).toBe("/x/a/");
+        expect(wirePathKey("/x/a")).toBe("/x/a");
+        expect(wirePathKey("/x/a/")).not.toBe(wirePathKey("/x/a"));
+    });
+
+    it("Matrix 的真实两形态都要保留", () => {
+        expect(wirePathKey("/_matrix/client/v3/rooms/{room_id}/state/{event_type}/")).toBe(
+            "/_matrix/client/v3/rooms/{X}/state/{X}/",
+        );
+        expect(wirePathKey("/_matrix/client/v3/rooms/{room_id}/state/{event_type}")).toBe(
+            "/_matrix/client/v3/rooms/{X}/state/{X}",
+        );
+    });
+
+    it("query 仍被吞掉；根路径不重复加斜杠", () => {
+        expect(wirePathKey("/x/a/?q=1")).toBe("/x/a/");
+        expect(wirePathKey("/")).toBe("/");
+    });
+
+    it("`gateRouteKey` 也走它（三侧同一 key 空间）", () => {
+        expect(gateRouteKey("GET /x/a/")).toBe("GET /x/a/");
+        expect(gateRouteKey("GET /x/a")).toBe("GET /x/a");
+    });
+});
+
+/**
+ * `rebaseLedgerKeys`：与 `gateRouteKey` 是**同一个不变式的两半**，缺一不可。
+ *
+ * 真实事故（2026-10-16 实测，只修了一半时）：把 `backend` 的 key 重建了、却把**台账**那一侧
+ * 留在原拼写 ⇒ 两个后果同时发生，且都不报错：
+ *   1. **漂移假报告**：`frozen.get(gateKey)` 恒不命中 ⇒ 每条动态段路由都被报成
+ *      `backend-route-new`（实测 406 条，而实时收集与台账其实**逐条一致**、差集为 0）；
+ *   2. **CI 半场静默变弱**：无后端时 `effective = frozen`，动态段调用点两侧永远对不上 ⇒
+ *      可比对条目从 50 掉回 24、违规 2 → 0（**门禁照旧绿，只是查得更少**）。
+ */
+describe("rebaseLedgerKeys（台账 key 必须进同一个 key 空间）", () => {
+    it("`{x}`（台账拼写）→ `{X}`（门禁拼写）", () => {
+        const m = rebaseLedgerKeys({ "GET /a/{x}/b": { handler: "h" } });
+        expect([...m.keys()]).toEqual(["GET /a/{X}/b"]);
+        expect(m.get("GET /a/{X}/b")).toEqual({ handler: "h" });
+    });
+
+    it("**尾斜杠不是拼写差异**：要保留，不能对齐掉", () => {
+        // 台账里真实存在 `GET /user/{x}/account_data/`（带尾斜杠）。早期版本以为这是
+        // "又一处拼写差异"并用 normalizePath 同化，结果把 `/state/{event_type}` 与
+        // `/state/{event_type}/` 两条**契约不同**的真路由折叠成一组冲突 ⇒ 改成保留（见 `wirePathKey`）。
+        expect(gateRouteKey("GET /user/{x}/account_data/")).toBe("GET /user/{X}/account_data/");
+        expect(gateRouteKey("GET /user/{x}/account_data")).toBe("GET /user/{X}/account_data");
+    });
+
+    it("幂等：`--refresh` 写出的门禁拼写再过一次不变", () => {
+        const once = rebaseLedgerKeys({ "GET /user/{x}/account_data/": 1 });
+        const twice = rebaseLedgerKeys(Object.fromEntries(once));
+        expect([...twice.keys()]).toEqual([...once.keys()]);
+    });
+
+    it("静态 key 与空输入都安全", () => {
+        expect([...rebaseLedgerKeys({ "POST /_matrix/client/v3/login": 1 }).keys()]).toEqual([
+            "POST /_matrix/client/v3/login",
+        ]);
+        expect([...rebaseLedgerKeys(undefined).keys()]).toEqual([]);
+        expect([...rebaseLedgerKeys({}).keys()]).toEqual([]);
+    });
+
+    it("**不变式**：台账 key 重建后必须落在 backend key 的同一空间（真实的一对）", () => {
+        // 这两条是同一路由的两种写法：左=台账（lib 拼写），右=后端收集器重建后的 key。
+        const pairs: Array<[string, string]> = [
+            ["POST /_synapse/admin/v1/federation/blacklist/{x}", "POST /_synapse/admin/v1/federation/blacklist/{X}"],
+            ["PUT /_matrix/vendor/v1/friends/{x}/status", "PUT /_matrix/vendor/v1/friends/{X}/status"],
+            ["GET /user/{x}/account_data/", "GET /user/{X}/account_data/"],
+            ["GET /state/{event_type}/", "GET /state/{X}/"],
+        ];
+        for (const [ledgerKey, backendKey] of pairs) {
+            expect(rebaseLedgerKeys({ [ledgerKey]: 1 }).has(backendKey)).toBe(true);
+        }
+    });
+});
+
+/**
+ * `collapseContractEntries`：门禁归一化造成的**同形折叠**必须显式。
+ *
+ * 真实事故（2026-10-16 实测）：后端 `routes/push.rs:15` 把 `get_pushers` 同时注册在
+ * `GET /pushers` 与 `GET /pushers/`（`POST` 同 `set_pusher`）⇒ 门禁的 `normalizePath` 去尾斜杠后
+ * 两条同形，`--refresh` 后台账 655 → **653** 条（那不是"路由消失"）。
+ * 这一对契约恰好逐字段相同 ⇒ 折叠无害；但**契约不同的同形路由绝不能折叠** ——
+ * `Map.set` 会让后写者静默胜出，等于拿错的契约去校验调用点。
+ */
+describe("collapseContractEntries（同形折叠必须显式，冲突必须报错）", () => {
+    const c = { handler: "get_pushers", hasJson: false, hasQuery: false, body: null, query: null };
+
+    it("契约相同的同形路由 ⇒ 折叠成一条，并登记为 collapsedIdentical", () => {
+        // 同形的来源是**占位符拼写**（早期版本里 `GET /pushers` 与 `GET /pushers/` 也算同形，
+        // 但那两条是契约可能不同的真路由 ⇒ 已改为保留尾斜杠，见 `wirePathKey`）。
+        const r = collapseContractEntries([
+            ["GET /a/{x}/b", c],
+            ["GET /a/{X}/b", c],
+        ]);
+        expect([...r.entries.keys()]).toEqual(["GET /a/{X}/b"]);
+        expect(r.collapsedIdentical).toEqual([{ key: "GET /a/{X}/b", routes: ["GET /a/{x}/b", "GET /a/{X}/b"] }]);
+        expect(r.conflicts).toEqual([]);
+    });
+
+    it("契约不同的同形路由 ⇒ 进 conflicts，且**先见者**留在 entries（不静默换掉）", () => {
+        const other = { ...c, handler: "other_handler" };
+        const r = collapseContractEntries([
+            ["GET /a/{x}/b", c],
+            ["GET /a/{room_id}/b", other],
+        ]);
+        expect(r.conflicts).toEqual([{ key: "GET /a/{X}/b", routes: ["GET /a/{x}/b", "GET /a/{room_id}/b"] }]);
+        expect(r.entries.get("GET /a/{X}/b")).toEqual(c);
+    });
+
+    it("占位符拼写不同也算同形（`{x}` vs `{X}` vs `{room_id}`）", () => {
+        const r = collapseContractEntries([
+            ["GET /_matrix/client/v3/rooms/{room_id}/state", c],
+            ["GET /_matrix/client/v3/rooms/{X}/state", c],
+        ]);
+        expect(r.entries.size).toBe(1);
+        expect(r.collapsedIdentical).toHaveLength(1);
+    });
+
+    it("不同路由之间互不影响", () => {
+        const r = collapseContractEntries([
+            ["GET /a", c],
+            ["POST /a", c],
+        ]);
+        expect([...r.entries.keys()]).toEqual(["GET /a", "POST /a"]);
+        expect(r.collapsedIdentical).toEqual([]);
+        expect(r.conflicts).toEqual([]);
+    });
+});
+
+/**
+ * `blankTsComments`：抽调用前先把注释**原地抹成空格**（保长）。
+ *
+ * 真实事故（2026-10-16 实测）：抽取器直接吃原文 ⇒ 会看见 JSDoc `@example` 里的用法示例。
+ * `src/friend/paths.ts:24` 的示例（`await this.request({ method: Method.Put, path: friendPath(...) })`）
+ * 与 `src/errors.ts:290` 的示例都被当成**真调用点**，前者还让门禁报出一条假的
+ * `request-required-missing`（后端 `UpdateStatusRequest.status` 必填，而"示例"没传）。
+ *
+ * 保长是**硬要求**：下游要按**原下标**做 `indexOf(pathRaw)` 与
+ * `findConstObjectBinding(source, callIndex, …)`，长度一变这些就全错位。
+ */
+describe("blankTsComments（保长空白化注释）", () => {
+    it("输出与输入**等长**，且换行数量不变（行号不漂）", () => {
+        const src = "// a\nconst x = 1; /* b\nc */\nconst y = 2;\n";
+        const out = blankTsComments(src);
+        expect(out).toHaveLength(src.length);
+        expect(out.split("\n")).toHaveLength(src.split("\n").length);
+    });
+
+    it("行注释 / 块注释 / JSDoc 都被抹成空格，代码本身保留", () => {
+        const src = [
+            "/**",
+            " * @example",
+            ' * await this.request({ method: Method.Get, path: "/rooms/123" });',
+            " */",
+            "function f() { return 1; } // tail",
+        ].join("\n");
+        const out = blankTsComments(src);
+        expect(out).not.toContain("request(");
+        expect(out).not.toContain("@example");
+        expect(out).not.toContain("// tail");
+        expect(out).toContain("function f() { return 1; }");
+    });
+
+    it("**不碰**字符串与模板字面量里的 `//` / `/*`", () => {
+        expect(blankTsComments('const a = "http://x";')).toBe('const a = "http://x";');
+        expect(blankTsComments("const a = '/* not a comment */';")).toBe("const a = '/* not a comment */';");
+        expect(blankTsComments("const a = `a//b`;")).toBe("const a = `a//b`;");
+    });
+
+    it("正则字面量里的 `//` 不被当行注释（沿用已验证的启发式）", () => {
+        const out = blankTsComments('const a = "x//y".replace(/\\/\\//g, "-");');
+        expect(out).toContain("replace(");
+        expect(out).toContain("-");
+    });
+
+    it("**回归守卫**：JSDoc 里的 `this.request({…})` 不再被抽成调用点", () => {
+        // 必须复刻**单行**示例的形态（`{` 落在行中）—— 多行示例的首块以 `*` 开头，
+        // 会被属性解析偶然丢掉，复现不出真事故。`src/friend/paths.ts:24` 就是单行形态。
+        // （真实站点用的是恒等助手 `friendPath(...)`；这里用字面量路径，机制相同。）
+        const src = [
+            "/**",
+            " * 校验并返回 friends 路径。",
+            " *",
+            " * @example",
+            ' * await this.request({ method: Method.Put, path: "/friends/x/status", prefix: VendorPrefix });',
+            " */",
+            "export function friendPath(p) { return p; }",
+        ].join("\n");
+        // 不空白化 ⇒ 会被当成真调用点（这就是那个假阳性）
+        expect(extractObjectFormCalls(src, "src/friend/paths.ts", NO_OPTS).calls).toHaveLength(1);
+        // 空白化后 ⇒ 不认得
+        expect(extractObjectFormCalls(blankTsComments(src), "src/friend/paths.ts", NO_OPTS).calls).toHaveLength(0);
     });
 });
 

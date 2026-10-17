@@ -3,7 +3,7 @@
  * Regenerate via `pnpm run contract:codegen`.
  *
  * Module:        Typing Indicators
- * Source:        docs/synapse-rust/ROUTE_CONTRACT.md
+ * Source:        docs/api-contract/generated/modules/typing.json
  * Entries:       5 (既有条目 ∪ ledger 清单 ∪ ROUTE_CONTRACT.md，按 (method, path) 去重)
  */
 

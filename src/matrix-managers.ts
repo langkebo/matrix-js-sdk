@@ -50,7 +50,6 @@ export { GuestManager } from "./guest";
 export { InviteBlocklistManager } from "./invite-blocklist";
 export {
     CasManager,
-    type CasApiPrefix,
     type CasService,
     type CasServiceListResponse,
     type CasServiceCreateRequest,
@@ -88,7 +87,6 @@ export {
     RoomSummaryThreadManager,
     RoomSummarySearchManager,
     RoomSummaryKeyManager,
-    RoomSummaryInvitePolicyManager,
     RoomSummaryEventOperationManager,
 } from "./room-summary";
 export { ThirdPartyManager } from "./third-party";
@@ -237,4 +235,3 @@ export type {
     IVoiceMessage,
     IVoiceDeleteResponse,
 } from "./voice";
-export { WidgetsManager } from "./widgets";

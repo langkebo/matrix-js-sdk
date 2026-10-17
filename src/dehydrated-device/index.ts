@@ -4,6 +4,26 @@ import { Method } from "../http-api/method";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 import { doesClientAdvertiseSynapseRustFeature, SynapseRustFeature } from "../server-capabilities";
 
+import type { DehydratedDevicePath } from "./__generated__/route-table";
+import type { PathAssert, StripMsc3814 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的相对路径绑到**本模块自己的**契约表上。
+ *
+ * 历史：该族原先由 `assembly::create_router` 直挂 ⇒ 在 ledger 里归 `assembly` 桶 ⇒
+ * 本目录没有自己的 route-table（当时曾**借用 `auth` 表**做断言）。后端 2026-10-15 把该族
+ * 改为独立 sub-router（`registered_by: dehydrated_device`）后，ledger 独立成桶，
+ * 于是 `src/dehydrated-device/__generated__/route-table.ts` 得以生成（6 条），本函数随之
+ * 改为消费**自己的表**（断言面因此从"assembly 桶里带该前缀的条目"收窄为"本模块的 6 条"）。
+ *
+ * `StripMsc3814` 剥离 `/_matrix/client/unstable/org.matrix.msc3814.v1`（表中存的是完整路径），
+ * 故断言比较的是**相对路径**。拼错尾段 / 凭空增删段（例如曾经存在过的 `initial_device`）
+ * 会在**编译期**报 TS2345。
+ */
+function dp<const P extends string>(path: P & PathAssert<P, StripMsc3814<DehydratedDevicePath>>): P {
+    return path;
+}
+
 const MSC3814_PREFIX = "/_matrix/client/unstable/org.matrix.msc3814.v1";
 
 export interface DehydratedDeviceData {
@@ -63,11 +83,39 @@ export class DehydratedDeviceManager extends BaseManager {
         super(client, opts);
     }
 
+    /**
+     * 判断后端是否声明支持 dehydrated device 能力。
+     *
+     * 能力探测失败时按 `false` 处理（fail-closed），避免误判导致后续请求 404。
+     *
+     * @returns 后端支持 dehydrated device 时返回 `true`，否则 `false`。
+     * @example
+     * ```ts
+     * const client = matrix.createClient({ baseUrl, accessToken });
+     * await client.whenManagerExtensionsReady();
+     * const supported = await client.getDehydratedDeviceManager().isSupported();
+     * ```
+     */
     public async isSupported(): Promise<boolean> {
         // 后端未实 DehydratedDevice：探测失败时绝不能误判支持（FT-S13）
         return doesClientAdvertiseSynapseRustFeature(this.client, SynapseRustFeature.DehydratedDevice, false);
     }
 
+    /**
+     * 创建 dehydrated device。
+     *
+     * @param data - 设备数据，需包含 `device_data.algorithm` 与 `device_data.account`。
+     * @returns 新建设备的 `device_id`。
+     * @throws 当 `device_data` / `algorithm` / `account` 缺失或为空时抛出校验错误。
+     * @example
+     * ```ts
+     * const client = matrix.createClient({ baseUrl, accessToken });
+     * await client.whenManagerExtensionsReady();
+     * const res = await client.getDehydratedDeviceManager().createDevice({
+     *     device_data: { algorithm: "m.dehydration.v1.olm", account: "..." },
+     * });
+     * ```
+     */
     public async createDevice(data: CreateDehydratedDeviceRequest): Promise<CreateDehydratedDeviceResponse> {
         this.requireNonNull(data.device_data, "device_data");
         this.requireNonEmptyString(data.device_data.algorithm, "device_data.algorithm");
@@ -76,45 +124,88 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<CreateDehydratedDeviceResponse>({
                 method: Method.Put,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
         }, "createDevice");
     }
 
+    /**
+     * 获取指定 dehydrated device 的信息。
+     *
+     * @param deviceId - 目标 dehydrated device 的 ID。
+     * @returns 设备信息（`DeviceInfo`）。
+     * @throws 当 `deviceId` 为空时抛出校验错误。
+     * @example
+     * ```ts
+     * const info = await client.getDehydratedDeviceManager().getDevice("DEHYDRATED_DEVICE_ID");
+     * ```
+     */
     public async getDevice(deviceId: string): Promise<DeviceInfo> {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
             return await this.request<DeviceInfo>({
                 method: Method.Get,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 prefix: MSC3814_PREFIX,
             });
         }, "getDevice");
     }
 
+    /**
+     * 列出当前账户下的所有 dehydrated device。
+     *
+     * @returns 设备列表（`GetDevicesResponse`）。
+     * @example
+     * ```ts
+     * const { devices } = await client.getDehydratedDeviceManager().getDevices();
+     * ```
+     */
     public async getDevices(): Promise<GetDevicesResponse> {
         return await this.withRetry(async () => {
             return await this.request<GetDevicesResponse>({
                 method: Method.Get,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 prefix: MSC3814_PREFIX,
             });
         }, "getDevices");
     }
 
+    /**
+     * 查询 dehydrated device 的存在状态。
+     *
+     * @returns 含 `exists` 字段的状态响应。
+     * @example
+     * ```ts
+     * const status = await client.getDehydratedDeviceManager().getDeviceStatus();
+     * ```
+     */
     public async getDeviceStatus(): Promise<DeviceStatusResponse> {
         return await this.withRetry(async () => {
             return await this.request<DeviceStatusResponse>({
                 method: Method.Get,
-                path: "/dehydrated_device/status",
+                path: dp("/dehydrated_device/status"),
                 prefix: MSC3814_PREFIX,
             });
         }, "getDeviceStatus");
     }
 
+    /**
+     * 认领（claim）一个 dehydrated device，并使用 `rehydrate_data` 完成重水化。
+     *
+     * @param deviceId - 目标 dehydrated device 的 ID。
+     * @param data - 重水化数据，需包含 `rehydrate_data.algorithm` 与 `rehydrate_data.account`。
+     * @returns 后端返回的认领结果。
+     * @throws 当 `deviceId` 为空或 `rehydrate_data` 相关字段缺失时抛出校验错误。
+     * @example
+     * ```ts
+     * const res = await client.getDehydratedDeviceManager().claimDevice("DEHYDRATED_DEVICE_ID", {
+     *     rehydrate_data: { algorithm: "m.dehydration.v1.olm", account: "..." },
+     * });
+     * ```
+     */
     public async claimDevice(
         deviceId: string,
         data: ClaimDehydratedDeviceRequest,
@@ -127,13 +218,27 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<ClaimDehydratedDeviceResponse>({
                 method: Method.Post,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/events`,
+                path: dp(`/dehydrated_device/${encodeURIComponent(deviceId)}/events`),
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
         }, "claimDevice");
     }
 
+    /**
+     * 更新 dehydrated device 的设备数据。
+     *
+     * @param deviceId - 目标 dehydrated device 的 ID。
+     * @param data - 新的设备数据，需包含 `device_data.algorithm` 与 `device_data.account`。
+     * @returns 更新后的 `device_id`。
+     * @throws 当 `deviceId` 为空或 `device_data` 相关字段缺失时抛出校验错误。
+     * @example
+     * ```ts
+     * await client.getDehydratedDeviceManager().updateDeviceData("DEHYDRATED_DEVICE_ID", {
+     *     device_data: { algorithm: "m.dehydration.v1.olm", account: "..." },
+     * });
+     * ```
+     */
     public async updateDeviceData(
         deviceId: string,
         data: UpdateDehydratedDeviceRequest,
@@ -146,37 +251,34 @@ export class DehydratedDeviceManager extends BaseManager {
         return await this.withRetry(async () => {
             return await this.request<UpdateDehydratedDeviceResponse>({
                 method: Method.Put,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 body: data,
                 prefix: MSC3814_PREFIX,
             });
         }, "updateDeviceData");
     }
 
+    /**
+     * 删除指定 dehydrated device。
+     *
+     * @param deviceId - 目标 dehydrated device 的 ID。
+     * @returns 空对象。
+     * @throws 当 `deviceId` 为空时抛出校验错误。
+     * @example
+     * ```ts
+     * await client.getDehydratedDeviceManager().deleteDevice("DEHYDRATED_DEVICE_ID");
+     * ```
+     */
     public async deleteDevice(deviceId: string): Promise<Record<string, never>> {
         this.requireNonEmptyString(deviceId, "deviceId");
 
         return await this.withRetry(async () => {
             return await this.request<Record<string, never>>({
                 method: Method.Delete,
-                path: "/dehydrated_device",
+                path: dp("/dehydrated_device"),
                 prefix: MSC3814_PREFIX,
             });
         }, "deleteDevice");
-    }
-
-    public async getDeviceEvent(
-        deviceId: string,
-    ): Promise<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */> {
-        this.requireNonEmptyString(deviceId, "deviceId");
-
-        return await this.withRetry(async () => {
-            return await this.request<Record<string, unknown> /* Dynamic: dehydrated device event shape varies */>({
-                method: Method.Get,
-                path: `/dehydrated_device/${encodeURIComponent(deviceId)}/initial_device`,
-                prefix: MSC3814_PREFIX,
-            });
-        }, "getDeviceEvent");
     }
 }
 

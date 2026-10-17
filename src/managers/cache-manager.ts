@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { LRUCache, CacheStats, CacheRegistry } from "../utils/lru-cache";
+import { LRUCache, CacheStats, CacheRegistry, AggregatedCacheStats } from "../utils/lru-cache";
 import { logger } from "../logger";
 
 /**
@@ -131,6 +131,11 @@ export class UnifiedCacheManager {
      * 从缓存获取数据
      * @param key 缓存键
      * @returns 缓存的值，如果不存在或已过期则返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const value = cacheManager.get<string>("space:hierarchy");
+     * ```
      */
     get<T>(key: string): T | undefined {
         const normalizedKey = this.normalizeKey(key);
@@ -141,6 +146,11 @@ export class UnifiedCacheManager {
      * 设置缓存
      * @param key 缓存键
      * @param value 缓存值
+     *
+     * @example
+     * ```typescript
+     * cacheManager.set("room:name", "General");
+     * ```
      */
     set<T>(key: string, value: T): void {
         if (!value && !this.config.cacheEmpty) {
@@ -154,6 +164,11 @@ export class UnifiedCacheManager {
      * 检查缓存是否存在
      * @param key 缓存键
      * @returns 是否存在有效缓存
+     *
+     * @example
+     * ```typescript
+     * const exists = cacheManager.has("room:name");
+     * ```
      */
     has(key: string): boolean {
         const normalizedKey = this.normalizeKey(key);
@@ -164,6 +179,11 @@ export class UnifiedCacheManager {
      * 删除缓存
      * @param key 缓存键
      * @returns 是否成功删除
+     *
+     * @example
+     * ```typescript
+     * const removed = cacheManager.delete("room:name");
+     * ```
      */
     delete(key: string): boolean {
         const normalizedKey = this.normalizeKey(key);
@@ -175,6 +195,11 @@ export class UnifiedCacheManager {
      * @param key 缓存键
      * @param fetchFn 获取数据的函数
      * @returns 缓存数据或新获取的数据
+     *
+     * @example
+     * ```typescript
+     * const hierarchy = await cacheManager.getOrFetch("space:hierarchy", () => fetchSpaceHierarchy());
+     * ```
      */
     async getOrFetch<T>(key: string, fetchFn: () => Promise<T>): Promise<T> {
         const cached = this.get<T>(key);
@@ -198,10 +223,14 @@ export class UnifiedCacheManager {
     /**
      * 批量无效化缓存（支持通配符）
      * @param patterns 缓存键模式，支持 "*" 通配符
+     *
+     * @example
+     * ```typescript
+     * cacheManager.invalidate(["space:*"]);
+     * ```
      */
     invalidate(patterns: string[]): void {
         const keysToDelete: string[] = [];
-        const prefix = `${this.config.namespace}:`;
 
         for (const pattern of patterns) {
             // Pattern 可能已包含或不包含前缀，统一加上前缀进行匹配
@@ -228,6 +257,11 @@ export class UnifiedCacheManager {
 
     /**
      * 清空所有缓存
+     *
+     * @example
+     * ```typescript
+     * cacheManager.clear();
+     * ```
      */
     clear(): void {
         this.cache.clear();
@@ -235,6 +269,11 @@ export class UnifiedCacheManager {
 
     /**
      * 获取缓存统计信息
+     *
+     * @example
+     * ```typescript
+     * const stats = cacheManager.getStats();
+     * ```
      */
     getStats(): CacheStats {
         return this.cache.getStats();
@@ -242,6 +281,11 @@ export class UnifiedCacheManager {
 
     /**
      * 获取缓存大小
+     *
+     * @example
+     * ```typescript
+     * const size = cacheManager.getSize();
+     * ```
      */
     getSize(): number {
         return this.cache.size();
@@ -249,8 +293,13 @@ export class UnifiedCacheManager {
 
     /**
      * 获取缓存快照
+     *
+     * @example
+     * ```typescript
+     * const entries = cacheManager.snapshot();
+     * ```
      */
-    snapshot(): Map<string, any> {
+    snapshot(): Map<string, unknown> {
         return new Map(this.cache.entries());
     }
 }
@@ -350,7 +399,7 @@ export class CacheManagerFactory {
 export class CacheMonitor {
     private static instance: CacheMonitor | null = null;
     private enabled: boolean = false;
-    private statsLog: Array<{ timestamp: number; stats: any }> = [];
+    private statsLog: Array<{ timestamp: number; stats: AggregatedCacheStats }> = [];
 
     static getInstance(): CacheMonitor {
         if (!CacheMonitor.instance) {

@@ -53,6 +53,18 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
         super(client, opts);
     }
 
+    /**
+     * 上传文件内容到服务器
+     *
+     * @param file - 要上传的文件（`File` / `Blob` / 字符串）
+     * @param opts - 上传选项（名称、类型、进度回调等）
+     * @returns 上传结果，包含内容 URI（`content_uri`）
+     * @example
+     * ```typescript
+     * const res = await client.getUploadsManager().uploadContent(file, { name: "photo.png" });
+     * console.log(res.content_uri);
+     * ```
+     */
     public async uploadContent(file: File | Blob | string, opts?: IUploadOptions): Promise<IUploadResponse> {
         return this.withRetry(() => this.client.uploadContent(file, opts as UploadOpts), "uploadContent");
     }
@@ -61,10 +73,33 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
     // 本 fork 没有 `client.uploadFile` —— 它本就是 `uploadContent` 的别名
     // （`uploadContent` 的第一个参数已经是 `File | Blob | string`）。此前这里转发给
     // 不存在的方法 ⇒ 调用即 TypeError。
+    /**
+     * 上传文件（`uploadContent` 的别名）
+     *
+     * @param file - 要上传的文件
+     * @param opts - 上传选项
+     * @returns 上传结果，包含内容 URI（`content_uri`）
+     * @example
+     * ```typescript
+     * const res = await client.getUploadsManager().uploadFile(file);
+     * console.log(res.content_uri);
+     * ```
+     */
     public async uploadFile(file: File | Blob, opts?: IUploadOptions): Promise<IUploadResponse> {
         return this.withRetry(() => this.client.uploadContent(file, opts as UploadOpts), "uploadFile");
     }
 
+    /**
+     * 取消指定的上传
+     *
+     * @param upload - 由上传方法返回的 Promise
+     * @returns 是否成功取消
+     * @example
+     * ```typescript
+     * const uploadPromise = client.getUploadsManager().uploadFile(file);
+     * client.getUploadsManager().cancelUpload(uploadPromise);
+     * ```
+     */
     public cancelUpload(upload: Promise<unknown>): boolean {
         return this.client.cancelUpload(upload as Promise<UploadResponse>);
     }
@@ -75,6 +110,14 @@ export class UploadsManager extends BaseManager<keyof UploadsManagerEvents, Uplo
     // `src/http-api/interface.ts:246`），进度应通过 `IUploadOptions.progress` 回调或
     // `getCurrentUploads()` 的 `{loaded, total}` 获取。原实现转发给不存在的
     // `client.getUploadProgress()`，调用即 TypeError。
+    /**
+     * 中止所有进行中的上传
+     *
+     * @example
+     * ```typescript
+     * client.getUploadsManager().abortAllUploads();
+     * ```
+     */
     public abortAllUploads(): void {
         for (const upload of this.client.getCurrentUploads()) {
             this.client.cancelUpload(upload.promise);

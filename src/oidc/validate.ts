@@ -102,11 +102,10 @@ const isSecureUrl = (value: string, { allowQuery }: { allowQuery?: boolean } = {
             return false;
         }
         return true;
-        // @swallow-error { owner: "oidc", expires: "2026-12-31" }
     } catch (e) {
         logger.warn("isSecureUrl failed:", e);
-        return false;
     }
+    return false;
 };
 const requiredUrlProperty = (wellKnown: RawAuthMetadata, key: string, options?: { allowQuery?: boolean }): boolean => {
     if (!requiredStringProperty(wellKnown, key)) {

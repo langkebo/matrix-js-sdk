@@ -17,7 +17,7 @@ limitations under the License.
 import { Method } from "../../http-api/method";
 import { MatrixError } from "../../http-api/errors";
 import { NotFoundError, ValidationError } from "../../errors";
-import { AdminBaseManager, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
+import { AdminBaseManager, apu, type AdminErrorCallback, type ManagerOpts } from "../admin-base-manager";
 import { buildPaginationParams } from "../utils";
 import type {
     CleanupAllRequest,
@@ -50,6 +50,7 @@ import type {
     RestartServerResponse,
     PurgeRoomResponse,
     WhoamiResponse,
+    RateLimitStatusResponse,
 } from "../types";
 import type { CreateNotificationRequest, UpdateNotificationRequest } from "./admin-notification-manager";
 import { MatrixClient } from "../../client";
@@ -74,21 +75,33 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * GET /_synapse/admin/v1/whoami
      *
      * @returns 当前管理员身份信息
+     *
+     * @example
+     * ```typescript
+     * const who = await client.getAdminManager().server.whoami();
+     * console.log(who.user_id, who.is_admin);
+     * ```
      */
     async whoami(): Promise<WhoamiResponse> {
-        return await this.adminRequest<WhoamiResponse>(Method.Get, "/whoami", undefined, undefined, "whoami");
+        return await this.adminRequest<WhoamiResponse>(Method.Get, apu("/whoami"), undefined, undefined, "whoami");
     }
 
     /**
      * 获取服务器统计信息
      *
      * @returns 服务器统计信息
+     *
+     * @example
+     * ```typescript
+     * const stats = await client.getAdminManager().server.getServerStats();
+     * console.log(stats.total_users, stats.total_rooms);
+     * ```
      */
     async getServerStats(): Promise<ServerStats> {
         // 后端只注册 `GET /_synapse/admin/v1/statistics`。
         // 早期版本在 404 时会回退到 `/server_stats`，而后端从未注册该路径 —— 那是条死分支
         // （由 `quality:path-contract` 门禁发现），已移除。
-        const stats = await this.adminRequest<ServerStats>(Method.Get, "/statistics");
+        const stats = await this.adminRequest<ServerStats>(Method.Get, apu("/statistics"));
         this.serverStats = stats;
         this.emit(AdminServerEvent.ServerStatsUpdated, stats);
         return stats;
@@ -98,6 +111,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * 获取缓存的服务器统计信息
      *
      * @returns 缓存的服务器统计信息，如果不存在则为 null
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getAdminManager().server.getServerStatsCached();
+     * console.log(cached?.total_users);
+     * ```
      */
     getServerStatsCached(): ServerStats | null {
         return this.serverStats;
@@ -107,25 +126,43 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * 获取服务器状态
      *
      * @returns 服务器状态
+     *
+     * @example
+     * ```typescript
+     * const status = await client.getAdminManager().server.getServerStatus();
+     * console.log(status.up, status.db_ok);
+     * ```
      */
     async getServerStatus(): Promise<ServerStatus> {
-        return await this.adminRequest<ServerStatus>(Method.Get, "/status");
+        return await this.adminRequest<ServerStatus>(Method.Get, apu("/status"));
     }
 
     /**
      * 获取服务器健康检查
      *
      * @returns 服务器健康检查结果
+     *
+     * @example
+     * ```typescript
+     * const health = await client.getAdminManager().server.getServerHealth();
+     * console.log(health.status, health.database);
+     * ```
      */
     async getServerHealth(): Promise<ServerHealth> {
         // `/server_health` 回退分支已删除：后端从未注册该路径（只注册 `/health`）。
-        return await this.adminRequest<ServerHealth>(Method.Get, "/health");
+        return await this.adminRequest<ServerHealth>(Method.Get, apu("/health"));
     }
 
     /**
      * 获取服务器信息
      *
      * @returns 服务器信息
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getAdminManager().server.getServerInfo();
+     * console.log(info.server_name, info.server_version);
+     * ```
      */
     async getServerInfo(): Promise<ServerInfo> {
         // 后端注册的是**无 `/v1` 段**的 `GET /_synapse/admin/info`
@@ -150,12 +187,18 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param options - 清理选项（仅 `min_age_ms` 生效）
      * @returns 清理结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getAdminManager().server.cleanupDatabase({ min_age_ms: 86_400_000 });
+     * console.log(result.rooms.deleted_empty_rooms);
+     * ```
      */
     async cleanupDatabase(options?: CleanupAllRequest): Promise<CleanupAllResponse> {
         // 后端注册的是 `/cleanup/all`、`/cleanup/rooms`、`/cleanup/tokens`
         // （synapse-web/src/routes/admin/cleanup.rs），**没有**裸 `/cleanup`。
         // 本方法语义上做全量清理，故走 `/cleanup/all`。
-        return await this.adminRequest<CleanupAllResponse>(Method.Post, "/cleanup/all", undefined, options || {});
+        return await this.adminRequest<CleanupAllResponse>(Method.Post, apu("/cleanup/all"), undefined, options || {});
     }
 
     /**
@@ -166,6 +209,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param fromOrLimit - 分页起点或数量限制
      * @param limit - 数量限制
      * @returns 服务器通知页（含游标）
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().server.getServerNotices(50);
+     * console.log(page.notices.length, page.next_batch);
+     * ```
      */
     async getServerNotices(fromOrLimit?: string | number, limit?: number): Promise<ServerNoticePage> {
         let from: string | undefined;
@@ -180,7 +229,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             notices?: ServerNotice[];
             total?: number;
             next_batch?: string | null;
-        }>(Method.Get, "/server_notices", queryParams);
+        }>(Method.Get, apu("/server_notices"), queryParams);
         const notices = response.notices ?? [];
         return { notices, total: response.total ?? notices.length, next_batch: response.next_batch ?? null };
     }
@@ -201,6 +250,14 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @returns 投递结果（`{event_id, room_id, notice_id}`）
      *
      * @throws {ValidationError} 如果未传内容对象（字符串形态已不再支持）
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().server.sendServerNotice("@alice:example.org", {
+     *     msgtype: "m.text",
+     *     body: "维护通知",
+     * });
+     * ```
      */
     async sendServerNotice(
         arg1: string,
@@ -213,19 +270,26 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
             );
         }
         const body = { user_id: arg1, content: arg2 };
-        return await this.adminRequest<SendServerNoticeResult>(Method.Post, "/send_server_notice", {}, body);
+        return await this.adminRequest<SendServerNoticeResult>(Method.Post, apu("/send_server_notice"), {}, body);
     }
 
     /**
      * 删除服务器通知
      *
      * @param notificationId - 通知 ID
+     *
+     * @throws {ValidationError} 如果 notificationId 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().server.deleteServerNotice("notice-123");
+     * ```
      */
     async deleteServerNotice(notificationId: string): Promise<void> {
         if (!notificationId) {
             throw new ValidationError("Notification ID is required");
         }
-        await this.adminRequest(Method.Delete, `/server_notices/${encodeURIComponent(notificationId)}`);
+        await this.adminRequest(Method.Delete, apu(`/server_notices/${encodeURIComponent(notificationId)}`));
     }
 
     /**
@@ -233,10 +297,18 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param noticeId - 通知 ID
      * @returns 服务器通知详情
+     *
+     * @throws {ValidationError} 如果 noticeId 为空
+     *
+     * @example
+     * ```typescript
+     * const notice = await client.getAdminManager().server.getServerNotice("notice-123");
+     * console.log(notice.id, notice.user_id);
+     * ```
      */
     async getServerNotice(noticeId: string): Promise<ServerNotice> {
         if (!noticeId) throw new ValidationError("Notice ID is required");
-        return await this.adminRequest(Method.Get, `/server_notices/${encodeURIComponent(noticeId)}`);
+        return await this.adminRequest(Method.Get, apu(`/server_notices/${encodeURIComponent(noticeId)}`));
     }
 
     /**
@@ -245,10 +317,20 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param from - 分页起点
      * @param limit - 数量限制
      * @returns 系统通知分页结果
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getAdminManager().server.listNotifications(undefined, 20);
+     * console.log(page.notifications.length);
+     * ```
      */
     async listNotifications(from?: string, limit?: number): Promise<SystemNotificationPage> {
         const queryParams = buildPaginationParams(limit, from);
-        const response = await this.adminRequest<SystemNotificationPage>(Method.Get, "/notifications", queryParams);
+        const response = await this.adminRequest<SystemNotificationPage>(
+            Method.Get,
+            apu("/notifications"),
+            queryParams,
+        );
         return {
             notifications: response.notifications || [],
             next_batch: response.next_batch ?? null,
@@ -265,9 +347,15 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 通知内容（`title` / `content` 必填）
      * @returns 创建的通知信息
+     *
+     * @example
+     * ```typescript
+     * const created = await client.getAdminManager().server.createNotification({ title: "维护", content: "今晚 23:00 维护" });
+     * console.log(created.id);
+     * ```
      */
     async createNotification(payload: CreateNotificationRequest): Promise<ServerNotification> {
-        return await this.adminRequest<ServerNotification>(Method.Post, "/notifications", {}, payload);
+        return await this.adminRequest<ServerNotification>(Method.Post, apu("/notifications"), {}, payload);
     }
 
     /**
@@ -286,7 +374,7 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async listActiveNotifications(): Promise<ServerNotification[]> {
-        return await this.adminRequest<ServerNotification[]>(Method.Get, "/notifications/active");
+        return await this.adminRequest<ServerNotification[]>(Method.Get, apu("/notifications/active"));
     }
 
     /**
@@ -294,12 +382,20 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param notificationId - 通知 ID
      * @returns 通知详情
+     *
+     * @throws {ValidationError} 如果 notificationId 为空
+     *
+     * @example
+     * ```typescript
+     * const notification = await client.getAdminManager().server.getNotification("notice-123");
+     * console.log(notification.id, notification.title);
+     * ```
      */
     async getNotification(notificationId: string): Promise<ServerNotification> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<ServerNotification>(
             Method.Get,
-            `/notifications/${encodeURIComponent(notificationId)}`,
+            apu(`/notifications/${encodeURIComponent(notificationId)}`),
         );
     }
 
@@ -309,12 +405,20 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * @param notificationId - 通知 ID
      * @param payload - 更新内容
      * @returns 更新后的通知信息
+     *
+     * @throws {ValidationError} 如果 notificationId 为空
+     *
+     * @example
+     * ```typescript
+     * const updated = await client.getAdminManager().server.updateNotification("notice-123", { title: "已更新" });
+     * console.log(updated.id);
+     * ```
      */
     async updateNotification(notificationId: string, payload: UpdateNotificationRequest): Promise<ServerNotification> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
         return await this.adminRequest<ServerNotification>(
             Method.Put,
-            `/notifications/${encodeURIComponent(notificationId)}`,
+            apu(`/notifications/${encodeURIComponent(notificationId)}`),
             {},
             payload,
         );
@@ -324,12 +428,19 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * 停用系统通知
      *
      * @param notificationId - 通知 ID
+     *
+     * @throws {ValidationError} 如果 notificationId 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().server.deactivateNotification("notice-123");
+     * ```
      */
     async deactivateNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
         await this.adminRequest(
             Method.Put,
-            `/notifications/${encodeURIComponent(notificationId)}/deactivate`,
+            apu(`/notifications/${encodeURIComponent(notificationId)}/deactivate`),
             {},
             undefined,
         );
@@ -339,10 +450,22 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * 删除系统通知
      *
      * @param notificationId - 通知 ID
+     *
+     * @throws {ValidationError} 如果 notificationId 为空
+     *
+     * @example
+     * ```typescript
+     * await client.getAdminManager().server.deleteNotification("notice-123");
+     * ```
      */
     async deleteNotification(notificationId: string): Promise<void> {
         if (!notificationId) throw new ValidationError("Notification ID is required");
-        await this.adminRequest(Method.Delete, `/notifications/${encodeURIComponent(notificationId)}`, {}, undefined);
+        await this.adminRequest(
+            Method.Delete,
+            apu(`/notifications/${encodeURIComponent(notificationId)}`),
+            {},
+            undefined,
+        );
     }
 
     /**
@@ -350,12 +473,20 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 服务器配置
+     *
+     * @throws {Error} 当 throwOnError 为 true 且请求失败时，原样抛出底层错误
+     *
+     * @example
+     * ```typescript
+     * const config = await client.getAdminManager().server.getServerConfig();
+     * console.log(config.server_name);
+     * ```
      */
     async getServerConfig(throwOnError = true): Promise<AdminServerConfig> {
         // `/server_config` 回退分支已删除：后端只注册 `GET /_synapse/admin/v1/config`，
         // 从未注册 `/server_config`（死分支，由 quality:path-contract 门禁发现）。
         try {
-            return await this.adminRequest(Method.Get, "/config");
+            return await this.adminRequest(Method.Get, apu("/config"));
         } catch (e) {
             if (!throwOnError) return {} as AdminServerConfig;
             throw e;
@@ -366,6 +497,12 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * 获取管理员信息
      *
      * @returns 管理员信息
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getAdminManager().server.getAdminInfo();
+     * console.log(info.server_name, info.server_version);
+     * ```
      */
     async getAdminInfo(): Promise<AdminInfoResponse> {
         // 与 getServerInfo 同理：后端是**无 `/v1` 段**的 `GET /_synapse/admin/info`，
@@ -378,10 +515,18 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param throwOnError - 是否抛出错误（默认 true）
      * @returns 服务器版本信息
+     *
+     * @throws {Error} 当 throwOnError 为 true 且请求失败时，原样抛出底层错误
+     *
+     * @example
+     * ```typescript
+     * const version = await client.getAdminManager().server.getServerVersion();
+     * console.log(version.server_version);
+     * ```
      */
     async getServerVersion(throwOnError = true): Promise<{ server_version: string; python_version: string }> {
         try {
-            return await this.adminRequest(Method.Get, "/server_version");
+            return await this.adminRequest(Method.Get, apu("/server_version"));
         } catch (e) {
             if (!throwOnError) return { server_version: "unknown", python_version: "unknown" };
             throw e;
@@ -392,9 +537,15 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * 获取注册 nonce
      *
      * @returns nonce 字符串
+     *
+     * @example
+     * ```typescript
+     * const { nonce } = await client.getAdminManager().server.getRegisterNonce();
+     * console.log(nonce);
+     * ```
      */
     async getRegisterNonce(): Promise<{ nonce: string }> {
-        return await this.adminRequest(Method.Get, "/register/nonce");
+        return await this.adminRequest(Method.Get, apu("/register/nonce"));
     }
 
     /**
@@ -402,9 +553,16 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 注册信息
      * @returns 注册结果
+     *
+     * @example
+     * ```typescript
+     * const { nonce } = await client.getAdminManager().server.getRegisterNonce();
+     * const res = await client.getAdminManager().server.registerAdmin({ nonce, username: "alice", password: "s3cret", admin: true, mac: "ABCDEF..." });
+     * console.log(res.user_id);
+     * ```
      */
     async registerAdmin(payload: AdminRegisterRequest): Promise<AdminRegisterResult> {
-        return await this.adminRequest(Method.Post, "/register", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/register"), {}, payload);
     }
 
     /**
@@ -412,18 +570,30 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 重启选项
      * @returns 重启结果
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().server.restartServer({ timeout_ms: 5000 });
+     * console.log(res.restarted);
+     * ```
      */
     async restartServer(payload?: RestartServerPayload): Promise<RestartServerResponse> {
-        return await this.adminRequest(Method.Post, "/restart", {}, payload ?? {});
+        return await this.adminRequest(Method.Post, apu("/restart"), {}, payload ?? {});
     }
 
     /**
      * 获取实验性功能列表
      *
      * @returns 实验性功能信息
+     *
+     * @example
+     * ```typescript
+     * const features = await client.getAdminManager().server.getExperimentalFeatures();
+     * console.log(features.total);
+     * ```
      */
     async getExperimentalFeatures(): Promise<AdminExperimentalFeatures> {
-        return await this.adminRequest(Method.Get, "/experimental_features");
+        return await this.adminRequest(Method.Get, apu("/experimental_features"));
     }
 
     /**
@@ -431,9 +601,15 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 清除选项
      * @returns 清除结果
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().server.purgeRoom({ room_id: "!room:example.org" });
+     * console.log(res);
+     * ```
      */
     async purgeRoom(payload: { room_id: string }): Promise<PurgeRoomResponse> {
-        return await this.adminRequest(Method.Post, "/purge_room", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/purge_room"), {}, payload);
     }
 
     /**
@@ -441,9 +617,15 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 清除选项
      * @returns 清除结果
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().server.purgeHistory({ room_id: "!room:example.org", purge_up_to_ts: 1_600_000_000_000 });
+     * console.log(res.deleted_events);
+     * ```
      */
     async purgeHistory(payload: PurgeHistoryRequest): Promise<AdminPurgeHistoryResult> {
-        return await this.adminRequest(Method.Post, "/purge_history", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/purge_history"), {}, payload);
     }
 
     /**
@@ -451,9 +633,15 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 关闭选项
      * @returns 关闭结果
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().server.shutdownRoom({ room_id: "!room:example.org" });
+     * console.log(res.closed_room);
+     * ```
      */
     async shutdownRoom(payload: ShutdownRoomRequest): Promise<AdminShutdownRoomResult> {
-        return await this.adminRequest(Method.Post, "/shutdown_room", {}, payload);
+        return await this.adminRequest(Method.Post, apu("/shutdown_room"), {}, payload);
     }
 
     /**
@@ -476,16 +664,22 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      * ```
      */
     async cleanupAll(payload?: { min_age_ms?: number }): Promise<CleanupAllResponse> {
-        return await this.adminRequest(Method.Post, "/cleanup/all", {}, payload ?? {});
+        return await this.adminRequest(Method.Post, apu("/cleanup/all"), {}, payload ?? {});
     }
 
     /**
      * 清理令牌
      *
      * @returns 清理结果
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().server.cleanupTokens();
+     * console.log(res.access_tokens_deleted);
+     * ```
      */
     async cleanupTokens(): Promise<CleanupTokensResponse> {
-        return await this.adminRequest(Method.Post, "/cleanup/tokens", {}, undefined);
+        return await this.adminRequest(Method.Post, apu("/cleanup/tokens"), {}, undefined);
     }
 
     /**
@@ -493,16 +687,44 @@ export class AdminServerManager extends AdminBaseManager<AdminServerEvent, Admin
      *
      * @param payload - 清理选项
      * @returns 清理结果
+     *
+     * @throws {Error} 当主端点非 404 失败时，原样抛出底层错误
+     *
+     * @example
+     * ```typescript
+     * const res = await client.getAdminManager().server.cleanupRooms({ min_age_ms: 604800000 });
+     * console.log(res.deleted_empty_rooms);
+     * ```
      */
     async cleanupRooms(payload?: CleanupRoomsRequest): Promise<CleanupRoomsResponse> {
         try {
-            return await this.adminRequest(Method.Post, "/rooms/cleanup", {}, payload ?? {});
+            return await this.adminRequest(Method.Post, apu("/rooms/cleanup"), {}, payload ?? {});
         } catch (e) {
             const err = e as MatrixError;
             if (e instanceof NotFoundError || (err instanceof MatrixError && err.httpStatus === 404)) {
-                return await this.adminRequest(Method.Post, "/cleanup/rooms", {}, payload ?? {});
+                return await this.adminRequest(Method.Post, apu("/cleanup/rooms"), {}, payload ?? {});
             }
             throw e;
         }
+    }
+
+    /**
+     * 读取限流运行状态
+     *
+     * 对应 `GET /_synapse/admin/v1/rate-limit-status`（`admin/server.rs::get_rate_limit_status`）。
+     * 返回当前生效的限流配置与**运行时计数**：配置来自文件管理器（缺失则回落 env 配置），
+     * `metrics` 是进程内累计值（`rejected_ratio_percent` 由后端算好后 round）。
+     *
+     * 运维用途：确认限流是否真的启用、后端选到哪一档（`backend`）、Redis 是否可用，
+     * 以及拒绝率是否异常 —— 这些都是"配置文件里写了但运行时没生效"类问题的第一诊断点。
+     *
+     * @example
+     * ```typescript
+     * const st = await client.getAdminManager().server.getRateLimitStatus();
+     * console.log(st.enabled, st.backend, st.metrics.rejected_ratio_percent + "%");
+     * ```
+     */
+    async getRateLimitStatus(): Promise<RateLimitStatusResponse> {
+        return await this.adminRequest<RateLimitStatusResponse>(Method.Get, apu("/rate-limit-status"));
     }
 }

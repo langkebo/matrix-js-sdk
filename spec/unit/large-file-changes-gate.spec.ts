@@ -14,13 +14,17 @@
  *     （`ARCH_REVIEW_APPROVED`）、没有 per-change 批准。
  *   · **fail-closed**：改动行数取不到 ⇒ 一律要求评审（判据不确定时不许放行）。
  *   · **push 事件不能只看 tip**：否则多提交推送里非 tip 提交的改动可绕过门禁。
+ *   · **存量棘轮**（2026-10-11 新增）：两道 diff 判据都看不见"存量体量"本身，
+ *     故补一条「只降不升」的棘轮 —— 基线外的新超限文件、或基线内文件行数增长，都失败。
  */
 
 import { describe, expect, it } from "vitest";
 
 import {
+    LARGE_FILE_RATCHET_BASELINE,
     filterOversized,
     parseNumstat,
+    planRatchet,
     resolveDiffRange,
     selectReviewRequired,
 } from "../../scripts/quality/check-large-file-changes.mjs";
@@ -174,5 +178,96 @@ describe("selectReviewRequired（第二道判据：改动行数 ≥ minDiffLines
             "src/huge.ts",
             "src/unknown.ts",
         ]);
+    });
+});
+
+describe("planRatchet（存量巨型文件棘轮：只降不升）", () => {
+    it("current 与 baseline 一致 → 既不新增也不增长，refuse 为假", () => {
+        const plan = planRatchet({
+            baseline: { "src/a.ts": 2000 },
+            current: { "src/a.ts": 2000 },
+            allowGrowth: false,
+        });
+        expect(plan.added).toEqual([]);
+        expect(plan.grown).toEqual([]);
+        expect(plan.shrunk).toEqual([]);
+        expect(plan.refuse).toBe(false);
+    });
+
+    it("变小（lines < baseline）→ 放行（只降不升，降下去永远安全）", () => {
+        const plan = planRatchet({
+            baseline: { "src/a.ts": 2000 },
+            current: { "src/a.ts": 1501 },
+            allowGrowth: false,
+        });
+        expect(plan.grown).toEqual([]);
+        expect(plan.refuse).toBe(false);
+    });
+
+    it("**基线外出现新的超限文件** → added，且未 accept 时 refuse", () => {
+        const plan = planRatchet({
+            baseline: {},
+            current: { "src/new.ts": 1600 },
+            allowGrowth: false,
+        });
+        expect(plan.added).toEqual([{ relPath: "src/new.ts", lines: 1600 }]);
+        expect(plan.refuse).toBe(true);
+    });
+
+    it("**同行数增长** → grown（记录 baseline 与当前值），且未 accept 时 refuse", () => {
+        const plan = planRatchet({
+            baseline: { "src/client.ts": 4383 },
+            current: { "src/client.ts": 4400 },
+            allowGrowth: false,
+        });
+        expect(plan.grown).toEqual([{ relPath: "src/client.ts", lines: 4400, baseline: 4383 }]);
+        expect(plan.added).toEqual([]);
+        expect(plan.refuse).toBe(true);
+    });
+
+    it("正好等于基线上限 → 不算增长（判据是 `>` 不是 `>=`）", () => {
+        const plan = planRatchet({
+            baseline: { "src/a.ts": 2000 },
+            current: { "src/a.ts": 2000 },
+            allowGrowth: false,
+        });
+        expect(plan.grown).toEqual([]);
+        expect(plan.refuse).toBe(false);
+    });
+
+    it("allowGrowth 为真（--accept-new）→ 即使有新增/增长也不 refuse", () => {
+        const plan = planRatchet({
+            baseline: {},
+            current: { "src/new.ts": 1600 },
+            allowGrowth: true,
+        });
+        expect(plan.added).toHaveLength(1);
+        expect(plan.refuse).toBe(false);
+    });
+
+    it("基线里已降到阈值以下的条目 → shrunk（可 --update-baseline 收编），不触发失败", () => {
+        const plan = planRatchet({
+            baseline: { "src/shrunk.ts": 2000, "src/kept.ts": 1800 },
+            current: { "src/kept.ts": 1750 },
+            allowGrowth: false,
+        });
+        expect(plan.shrunk).toEqual(["src/shrunk.ts"]);
+        expect(plan.refuse).toBe(false);
+    });
+
+    it("空集 → 全空且放行", () => {
+        const plan = planRatchet({ baseline: {}, current: {}, allowGrowth: false });
+        expect(plan).toEqual({ added: [], grown: [], shrunk: [], refuse: false });
+    });
+
+    it("**内嵌基线常量**：非空、值都是正整数、路径为仓库相对 `.ts`", () => {
+        const entries = Object.entries(LARGE_FILE_RATCHET_BASELINE);
+        expect(entries.length).toBeGreaterThan(0);
+        for (const [relPath, lines] of entries) {
+            expect(relPath.startsWith("src/")).toBe(true);
+            expect(relPath.endsWith(".ts")).toBe(true);
+            expect(Number.isInteger(lines)).toBe(true);
+            expect(lines).toBeGreaterThan(1500);
+        }
     });
 });

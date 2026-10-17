@@ -1,7 +1,7 @@
 ---
 module: relations
 generated_from: docs/api-contract/generated/modules/relations.json
-generated_hash: sha256-b7f5cc64e03b7ce6bb0c0f352b51e5ecdde9f529e2e2908a5e02750fbaad42eb
+generated_hash: sha256-23b0d81344d596d15e80bfc5b5c94babb5fd10ca73af365f8453b969af20b059
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
@@ -9,7 +9,7 @@ last_reviewed: 2026-05-03
 # Relations API 契约文档
 
 > 后端代码: `synapse-rust/synapse-web/src/routes/relations.rs`  
-> 装配入口: `synapse-rust/src/web/routes/assembly.rs`  
+> 装配入口: `synapse-rust/synapse-web/src/routes/assembly.rs`  
 > 更新日期: 2026-04-27  
 > 挂载版本: `v1`, `v3`
 
@@ -205,3 +205,34 @@ interface AggregationsResponse {
 | 2026-04-27 | 初版                                                                                                                                                                                                                                          | -                                  |
 | 2026-05-11 | 补齐 RelationsManager 的聚合查询与关系发送专用封装                                                                                                                                                                                            | 覆盖率更新为 100%                  |
 | 2026-10-02 | 关系写入端点拆到 `/_matrix/vendor/v1`（第 4 段为显式 `txn_id`，接 `room_event_txn_dedup` 真幂等）；client 4 段路径只留 `GET`；`sendRelationViaSendRelation` 删除（与 `sendRelation` 重复且 body 形状不符），`sendRelation` 收敛为唯一写入入口 | 写入端点与 `sendRelation` 签名对齐 |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 依据：`synapse-rust/docs/sdk/messages.md` 与 `docs/api-contract/generated/modules/relations.json`。
+> 本节只补充口径，不覆盖上文既有路由行、端点计数与覆盖率数字。
+
+### 缺失的 `{eventType}` 过滤路由
+
+上文只写到 `/{rel_type}` 两级过滤，实际 ledger 还登记了第三级事件类型过滤（`v1` 与 `v3` 各一条）：
+
+- `GET /_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}`
+- `GET /_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}`
+
+语义是在 `rel_type` 基础上再按事件 `type` 精确过滤（如 `m.room.message`）。查询参数与两级版本一致（`from` / `to` / `limit` / `dir` / `recurse`）。
+
+### `recurse`（MSC3981）
+
+- 所有 relations 读取端点额外接受 `recurse` 查询参数（布尔），用于递归展开子关系。
+- 该参数只影响读取结果集合，不改变写入端点；不传时按非递归处理。
+
+### 聚合响应的固定形状
+
+- `GET /{room_id}/aggregations/{event_id}/{rel_type}` 的响应**没有 `next_batch`**，聚合是一次性返回的，不要按分页接口重试翻页。
+- `chunk[]` 元素 `type` 固定为 `m.annotation`，`key` 为 annotation 键，`count` 为去重后的发送者数。
+- 聚合列表中的 `sender` 与 `origin_server_ts` 为 `null`；它们只在某些内部单条聚合视图下填充，客户端不应依赖这两个字段。
+
+### `txn_id` 幂等键口径待确认
+
+- 本页 2.3 写的是 `(user, room, txn_id) → event_id`（`room_event_txn_dedup`）。
+- 后端 `docs/sdk/messages.md` 对发送路径写的是 `(user, device, txn_id, event_type)`。
+- 两处描述不一致，尚未确认关系写入是否也按设备与事件类型分桶。在确认前，客户端重试应**同时保持 `txn_id`、`event_type` 与设备不变**，避免依赖单一维度导致重复写入。

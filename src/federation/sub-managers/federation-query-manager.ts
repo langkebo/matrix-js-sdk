@@ -54,8 +54,19 @@ export class FederationQueryManager extends BaseManager<FederationQueryEvent, Fe
     }
 
     /**
-     * 通过联邦查询用户资料
-     * @param userId - 用户 ID
+     * 通过联邦查询用户资料（server-to-server 接口，无需 access token）。
+     *
+     * @param userId - 用户 ID（如 `@user:example.com`）。
+     * @returns 用户资料。
+     *
+     * @example
+     * ```typescript
+     * const profile = await client.getFederationManager().query.queryProfile("@user:example.com");
+     * console.log(profile.display_name);
+     * ```
+     *
+     * @throws {ValidationError} 当 userId 为空时抛出。
+     * @throws {Error} 当联邦请求失败时抛出。
      */
     async queryProfile(userId: string): Promise<IUserProfile> {
         if (!userId) {
@@ -69,8 +80,19 @@ export class FederationQueryManager extends BaseManager<FederationQueryEvent, Fe
     }
 
     /**
-     * 通过联邦查询房间别名
-     * @param roomAlias - 房间别名
+     * 通过联邦查询房间别名的解析结果（server-to-server 接口，无需 access token）。
+     *
+     * @param roomAlias - 房间别名（如 `#room:example.com`）。
+     * @returns 房间 ID 及参与该房间的服务器列表。
+     *
+     * @example
+     * ```typescript
+     * const { room_id, servers } = await client.getFederationManager().query.queryDirectory("#room:example.com");
+     * console.log(room_id, servers);
+     * ```
+     *
+     * @throws {ValidationError} 当 roomAlias 为空时抛出。
+     * @throws {Error} 当联邦请求失败时抛出。
      */
     async queryDirectory(roomAlias: string): Promise<{ room_id: string; servers: string[] }> {
         if (!roomAlias) {
@@ -85,8 +107,18 @@ export class FederationQueryManager extends BaseManager<FederationQueryEvent, Fe
     }
 
     /**
-     * 通过联邦查询目的地
-     * @param destination - 目标 server name
+     * 通过联邦查询目标服务器的连接信息（server-to-server 接口，无需 access token）。
+     *
+     * @param destination - 目标服务器名（如 `example.com`）。
+     * @returns 目标服务器的联邦连接信息。
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getFederationManager().query.queryDestination("example.com");
+     * ```
+     *
+     * @throws {ValidationError} 当 destination 为空时抛出。
+     * @throws {Error} 当联邦请求失败时抛出。
      */
     async queryDestination(destination: string): Promise<unknown> {
         if (!destination) {
@@ -129,7 +161,14 @@ export class FederationQueryManager extends BaseManager<FederationQueryEvent, Fe
     }
 
     /**
-     * 获取联邦发现信息
+     * 获取联邦发现信息（对应 GET /_matrix/federation/v1）。
+     *
+     * @returns 联邦服务发现信息。
+     *
+     * @example
+     * ```typescript
+     * const info = await client.getFederationManager().query.getFederationInfo();
+     * ```
      */
     async getFederationInfo(): Promise<unknown> {
         return this.request<unknown>({
@@ -139,6 +178,23 @@ export class FederationQueryManager extends BaseManager<FederationQueryEvent, Fe
         });
     }
 
+    /**
+     * 通过联邦查询指定服务器上的公开房间列表（server-to-server 接口，无需 access token）。
+     *
+     * @param serverName - 目标服务器名（如 `example.com`）。
+     * @param limit - 单页返回的最大房间数，可选。
+     * @param since - 分页游标，传入上一页返回的 `next_batch` 以获取下一页，可选。
+     * @returns 公开房间分页结果，`chunk` 为房间列表，`next_batch` / `prev_batch` 为分页游标。
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getFederationManager().query.getPublicRoomsOnServer("example.com", 20);
+     * console.log(page.chunk.length, page.next_batch);
+     * ```
+     *
+     * @throws {ValidationError} 当 serverName 为空时抛出。
+     * @throws {Error} 当联邦请求失败时抛出。
+     */
     async getPublicRoomsOnServer(
         serverName: string,
         limit?: number,

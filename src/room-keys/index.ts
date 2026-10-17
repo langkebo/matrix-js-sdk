@@ -87,6 +87,12 @@ export class RoomKeysManager extends BaseManager {
     /**
      * 获取房间密钥请求列表
      * GET /_matrix/client/v3/room_keys/request
+     *
+     * @throws {SdkError} 当请求失败时抛出规范化后的错误
+     * @example
+     * ```typescript
+     * const { requests } = await client.getRoomKeysManager().getRoomKeyRequests(true);
+     * ```
      */
     async getRoomKeyRequests(
         forceRefresh = false,
@@ -131,6 +137,17 @@ export class RoomKeysManager extends BaseManager {
      *
      * 后端 `CreateRoomKeyRequestBody` 的 `algorithm` / `room_id` / `session_id` 均必填，
      * 缺失会直接 400 ⇒ 此处**本地先校验**，把 400 提前成可读的 `ValidationError`。
+     *
+     * @throws {ValidationError} 当 `algorithm`、`room_id` 或 `session_id` 缺失时抛出
+     * @throws {SdkError} 当请求失败时抛出规范化后的错误
+     * @example
+     * ```typescript
+     * await client.getRoomKeysManager().createRoomKeyRequest({
+     *     algorithm: "m.megolm.v1.aes-sha2",
+     *     room_id: "!room:example.org",
+     *     session_id: "sessionId",
+     * });
+     * ```
      */
     async createRoomKeyRequest(request: CreateRoomKeyRequest): Promise<void> {
         if (!request?.algorithm) {
@@ -164,6 +181,10 @@ export class RoomKeysManager extends BaseManager {
      *
      * @param requestId - 要删除的请求 ID
      * @throws {ValidationError} 如果 requestId 为空
+     * @example
+     * ```typescript
+     * await client.getRoomKeysManager().deleteRoomKeyRequest("requestId");
+     * ```
      */
     async deleteRoomKeyRequest(requestId: string): Promise<void> {
         if (!requestId || requestId.trim().length === 0) {
@@ -185,10 +206,27 @@ export class RoomKeysManager extends BaseManager {
         }
     }
 
+    /**
+     * 清空房间密钥请求的本地缓存。
+     *
+     * @example
+     * ```typescript
+     * client.getRoomKeysManager().clearCache();
+     * ```
+     */
     clearCache(): void {
         this.requestsCache.clear();
     }
 
+    /**
+     * 获取房间密钥请求缓存统计信息。
+     *
+     * @returns 缓存统计，包含条目数、命中数、未命中数与命中率
+     * @example
+     * ```typescript
+     * const stats = client.getRoomKeysManager().getCacheStats();
+     * ```
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.requestsCache.getStats();
     }

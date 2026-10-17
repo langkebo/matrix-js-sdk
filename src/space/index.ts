@@ -26,8 +26,7 @@ limitations under the License.
  * - member: 成员管理
  * - hierarchy: 层级管理
  *
- * 所有原有方法保持向后兼容（委托到 sub-manager，`@deprecated` 标注迁移路径）。
- * 推荐新代码直接使用 sub-manager：`spaceManager.lifecycle.createSpace(...)`。
+ * 通过 sub-manager 访问具体能力：`spaceManager.lifecycle.createSpace(...)`。
  */
 
 import { MatrixClient } from "../client";
@@ -35,20 +34,7 @@ import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
 import { SpaceEvent, type SpaceManagerEventMap } from "./events";
-import type {
-    AddChildOptions,
-    CreateSpaceOptions,
-    Space,
-    SpaceChild,
-    SpaceHierarchy,
-    SpaceHierarchyPage,
-    SpaceListResponse,
-    SpaceManagerMetrics,
-    SpaceMember,
-    SpaceQueryOptions,
-    SpaceStatistics,
-    UpdateSpaceOptions,
-} from "./types";
+import type { SpaceManagerMetrics } from "./types";
 
 import { SpaceLifecycleManager } from "./sub-managers/space-lifecycle-manager";
 import { SpaceQueryManager } from "./sub-managers/space-query-manager";
@@ -71,14 +57,10 @@ export { SpaceHierarchyManager } from "./sub-managers/space-hierarchy-manager";
 /**
  * Space Manager - Space 空间管理统一入口
  *
- * 通过组合模式将功能委托到 sub-managers，同时保持完全向后兼容。
+ * 通过组合模式将功能委托到 sub-managers。
  *
  * @example
  * ```typescript
- * // 向后兼容：直接在 SpaceManager 上调用方法
- * const space = await spaceManager.getSpace("!abc:example.com");
- *
- * // 推荐新方式：通过 sub-manager 访问
  * const space = await spaceManager.lifecycle.getSpace("!abc:example.com");
  * const children = await spaceManager.child.getSpaceChildren("!abc:example.com");
  * ```
@@ -136,6 +118,17 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
 
     // ===== 顶层协调方法 =====
 
+    /**
+     * 聚合所有 sub-manager 的缓存与请求统计，用于性能监控。
+     *
+     * 缓存维度分别汇总 query（高/低频、space、总计）与 hierarchy 的命中率；请求维度
+     * 汇总 5 个 sub-manager 的 total / successful / failed / retried 计数。
+     *
+     * @returns SpaceManagerMetrics —— 缓存统计与请求统计的快照。
+     * @example
+     * const metrics = client.getSpaceManager().getMetrics();
+     * console.log(`${metrics.requests.total} 次请求，失败 ${metrics.requests.failed} 次`);
+     */
     public getMetrics(): SpaceManagerMetrics {
         const queryAggregated = this.query.getAggregatedCacheStats();
         const hierarchyCache = this.hierarchy.getCacheStats();
@@ -164,15 +157,36 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         };
     }
 
+    /**
+     * 清空 query 与 hierarchy 两个 sub-manager 的缓存。
+     *
+     * 适用于缓存数据可能已过期、需要强制重新拉取的场景（如切换账号或长时间离线后）。
+     *
+     * @example
+     * client.getSpaceManager().clearCache();
+     */
     clearCache(): void {
         this.query.clearCache();
         this.hierarchy.clearHierarchyCache();
     }
 
+    /**
+     * 启动 SpaceManager —— 当前实现为清空 query 缓存，确保以干净状态开始。
+     *
+     * @example
+     * client.getSpaceManager().start();
+     */
     start(): void {
         this.query.clearCache();
     }
 
+    /**
+     * 停止 SpaceManager：清空 query 缓存，并移除所有 sub-manager 上的事件转发监听器，
+     * 防止 stop() 之后仍收到事件回调（监听器泄漏）。
+     *
+     * @example
+     * client.getSpaceManager().stop();
+     */
     stop(): void {
         this.query.clearCache();
         // 清理 forwardSubManagerEvents 注册的转发监听器，防止 stop() 后事件泄漏
@@ -183,92 +197,7 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
         this.hierarchy.removeAllListeners();
     }
 
-    // ===== 向后兼容委托方法（@deprecated，推荐直接使用 sub-manager） =====
-
-    /** @deprecated 使用 `spaceManager.lifecycle.createSpace()` 替代 */
-    async createSpace(options: CreateSpaceOptions): Promise<Space> {
-        return this.lifecycle.createSpace(options);
-    }
-
-    /** @deprecated 使用 `spaceManager.lifecycle.getSpace()` 替代 */
-    async getSpace(spaceId: string): Promise<Space> {
-        return this.lifecycle.getSpace(spaceId);
-    }
-
-    /** @deprecated 使用 `spaceManager.lifecycle.updateSpace()` 替代 */
-    async updateSpace(spaceId: string, options: UpdateSpaceOptions): Promise<Space> {
-        return this.lifecycle.updateSpace(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.lifecycle.deleteSpace()` 替代 */
-    async deleteSpace(spaceId: string): Promise<void> {
-        return this.lifecycle.deleteSpace(spaceId);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.getPublicSpaces()` 替代 */
-    async getPublicSpaces(options: SpaceQueryOptions = {}): Promise<SpaceListResponse> {
-        return this.query.getPublicSpaces(options);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.searchSpaces()` 替代 */
-    async searchSpaces(query: string, limit: number = 10): Promise<Space[]> {
-        return this.query.searchSpaces(query, limit);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.getSpaceStatistics()` 替代 */
-    async getSpaceStatistics(): Promise<SpaceStatistics> {
-        return this.query.getSpaceStatistics();
-    }
-
-    /** @deprecated 使用 `spaceManager.query.getUserSpaces()` 替代 */
-    async getUserSpaces(forceRefresh = false): Promise<Space[]> {
-        return this.query.getUserSpaces(forceRefresh);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.getSpaceByRoom()` 替代 */
-    async getSpaceByRoom(roomId: string): Promise<Space> {
-        return this.query.getSpaceByRoom(roomId);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.getRoomParentSpaces()` 替代 */
-    async getRoomParentSpaces(roomId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
-        return this.query.getRoomParentSpaces(roomId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.isSpace()` 替代 */
-    async isSpace(roomId: string): Promise<boolean> {
-        return this.query.isSpace(roomId);
-    }
-
-    /** @deprecated 使用 `spaceManager.query.getSpaceStats()` 替代 */
-    async getSpaceStats(spaceId: string): Promise<{ memberCount: number; childCount: number }> {
-        return this.query.getSpaceStats(spaceId);
-    }
-
-    /** @deprecated 使用 `spaceManager.child.getSpaceChildren()` 替代 */
-    async getSpaceChildren(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceChild[]> {
-        return this.child.getSpaceChildren(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.child.addChild()` 替代 */
-    async addChild(spaceId: string, options: AddChildOptions): Promise<void> {
-        return this.child.addChild(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.child.removeChild()` 替代 */
-    async removeChild(spaceId: string, roomId: string): Promise<void> {
-        return this.child.removeChild(spaceId, roomId);
-    }
-
-    /** @deprecated 使用 `spaceManager.child.getSpaceRooms()` 替代 */
-    async getSpaceRooms(spaceId: string, options: SpaceQueryOptions = {}): Promise<Space[]> {
-        return this.child.getSpaceRooms(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.child.getSpaceState()` 替代 */
-    async getSpaceState(spaceId: string): Promise<unknown[]> {
-        return this.child.getSpaceState(spaceId);
-    }
+    // ===== 顶层工具方法 =====
 
     /**
      * Get all state events for a room via the standard Matrix /rooms/{roomId}/state endpoint.
@@ -277,6 +206,9 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
      *
      * @param roomId - The room ID (typically a space room)
      * @returns Array of raw state event objects
+     * @example
+     * const events = await client.getSpaceManager().getRoomStateEventsRaw("!abc:example.com");
+     * console.log(`${events.length} 个状态事件`);
      */
     public async getRoomStateEventsRaw(roomId: string): Promise<Array<Record<string, unknown>>> {
         const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
@@ -286,59 +218,6 @@ export class SpaceManager extends BaseManager<SpaceEvent, SpaceManagerEventMap> 
                 path: path,
             });
         }, "getRoomStateEventsRaw");
-    }
-
-    /** @deprecated 使用 `spaceManager.member.getSpaceMembers()` 替代 */
-    async getSpaceMembers(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceMember[]> {
-        return this.member.getSpaceMembers(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.member.inviteToSpace()` 替代 */
-    async inviteToSpace(spaceId: string, userId: string, body: Record<string, unknown> = {}): Promise<void> {
-        return this.member.inviteToSpace(spaceId, userId, body);
-    }
-
-    /** @deprecated 使用 `spaceManager.member.joinSpace()` 替代 */
-    async joinSpace(spaceId: string, body: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-        return this.member.joinSpace(spaceId, body);
-    }
-
-    /** @deprecated 使用 `spaceManager.member.leaveSpace()` 替代 */
-    async leaveSpace(spaceId: string, body: Record<string, unknown> = {}): Promise<void> {
-        return this.member.leaveSpace(spaceId, body);
-    }
-
-    /** @deprecated 使用 `spaceManager.hierarchy.getSpaceHierarchy()` 替代 */
-    async getSpaceHierarchy(spaceId: string): Promise<SpaceHierarchy> {
-        return this.hierarchy.getSpaceHierarchy(spaceId);
-    }
-
-    /** @deprecated 使用 `spaceManager.hierarchy.getSpaceHierarchyPage()` 替代 */
-    async getSpaceHierarchyPage(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
-        return this.hierarchy.getSpaceHierarchyPage(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.hierarchy.getSpaceHierarchyV1()` 替代 */
-    async getSpaceHierarchyV1(spaceId: string, options: SpaceQueryOptions = {}): Promise<SpaceHierarchyPage> {
-        return this.hierarchy.getSpaceHierarchyV1(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.hierarchy.getSpaceSummary()` 替代 */
-    async getSpaceSummary(spaceId: string, options: SpaceQueryOptions = {}): Promise<Record<string, unknown>> {
-        return this.hierarchy.getSpaceSummary(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.hierarchy.getSpaceSummaryWithChildren()` 替代 */
-    async getSpaceSummaryWithChildren(
-        spaceId: string,
-        options: SpaceQueryOptions = {},
-    ): Promise<Record<string, unknown>> {
-        return this.hierarchy.getSpaceSummaryWithChildren(spaceId, options);
-    }
-
-    /** @deprecated 使用 `spaceManager.hierarchy.getSpaceTreePath()` 替代 */
-    async getSpaceTreePath(spaceId: string, options: SpaceQueryOptions = {}): Promise<Record<string, unknown>> {
-        return this.hierarchy.getSpaceTreePath(spaceId, options);
     }
 }
 

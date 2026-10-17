@@ -9,4 +9,43 @@
  * These declarations make prompt-reviewed request/response shapes importable from a stable path.
  */
 
-export type DmContractDtoPlaceholder = never;
+export interface CreateDmRequest {
+    user_id?: string;
+    invite?: string[];
+    is_direct?: boolean;
+    name?: string;
+    topic?: string;
+    visibility?: string;
+}
+
+export interface CreateDmResponse {
+    room_id: string;
+}
+
+export interface DirectRoomsResponse {
+    rooms: Record<string, string[]>;
+}
+
+export interface UpdateDmRequest {
+    content?: Record<string, string[] | string>;
+    users?: string[];
+}
+
+export interface UpdateDirectRoomResponse {
+    room_id: string;
+    users: string[];
+    direct_map: Record<string, string[]>;
+    updated_ts: number;
+}
+
+export interface DmRoomCheckResponse {
+    room_id: string;
+    "m.direct": boolean;
+}
+
+export interface DmPartnerResponse {
+    room_id: string;
+    user_id: string;
+    display_name: string;
+    avatar_url: string;
+}

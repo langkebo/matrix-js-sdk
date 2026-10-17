@@ -192,6 +192,18 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
     }
 
+    /**
+     * 获取指定事件的 `m.annotation`（例如表情回应）关系。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @returns 关系结果；请求失败时返回空事件列表
+     *
+     * @example
+     * ```typescript
+     * const annotations = await client.getRelationsManager().getAnnotations("!room:example.org", "$event");
+     * ```
+     */
     public async getAnnotations(roomId: string, eventId: string): Promise<RelationResult> {
         try {
             const response = await this.fetchRelations(roomId, eventId, "m.annotation", "m.room.message");
@@ -208,6 +220,18 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
     }
 
+    /**
+     * 判断指定事件是否存在 `m.reference` 引用关系。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @returns 存在引用时返回 true，否则返回 false
+     *
+     * @example
+     * ```typescript
+     * const hasReference = await client.getRelationsManager().hasReference("!room:example.org", "$event");
+     * ```
+     */
     public async hasReference(roomId: string, eventId: string): Promise<boolean> {
         const references = await this.getReferences(roomId, eventId);
         return (references.events?.length ?? 0) > 0;
@@ -223,6 +247,18 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         };
     }
 
+    /**
+     * 判断指定事件是否存在 `m.thread` 线索关系。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @returns 存在线索时返回 true，否则返回 false
+     *
+     * @example
+     * ```typescript
+     * const hasThread = await client.getRelationsManager().hasThread("!room:example.org", "$event");
+     * ```
+     */
     public async hasThread(roomId: string, eventId: string): Promise<boolean> {
         const thread = await this.getThread(roomId, eventId);
         return (thread.events?.length ?? 0) > 0;
@@ -238,17 +274,42 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         };
     }
 
+    /**
+     * 获取指定事件在给定关系类型下的关系数量。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @param relationType - 关系类型
+     * @returns 关系数量；请求失败时返回 0
+     *
+     * @example
+     * ```typescript
+     * const count = await client.getRelationsManager().getRelationCount("!room:example.org", "$event", "m.annotation");
+     * ```
+     */
     public async getRelationCount(roomId: string, eventId: string, relationType: string): Promise<number> {
         try {
             const result = await this.fetchRelations(roomId, eventId, relationType);
             return result.total || 0;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("RelationsManager.getRelationCount failed", e);
-            return 0;
         }
+        return 0;
     }
 
+    /**
+     * 获取指定事件在给定关系类型下最新的一条关系事件。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @param relationType - 关系类型
+     * @returns 最新的关系事件；不存在或请求失败时返回 null
+     *
+     * @example
+     * ```typescript
+     * const latest = await client.getRelationsManager().getLatestRelation("!room:example.org", "$event", "m.annotation");
+     * ```
+     */
     public async getLatestRelation(roomId: string, eventId: string, relationType: string): Promise<MatrixEvent | null> {
         try {
             const result = await this.fetchRelations(roomId, eventId, relationType);
@@ -256,13 +317,24 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
                 return this.client.getEventMapper()(result.chunk[0]);
             }
             return null;
-            // @swallow-error { owner: "refactor-bot", expires: "2026-12-31" }
         } catch (e) {
             logger.warn("RelationsManager.getLatestRelation failed", e);
-            return null;
         }
+        return null;
     }
 
+    /**
+     * 获取指定事件存在的关系类型列表。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @returns 关系类型字符串数组
+     *
+     * @example
+     * ```typescript
+     * const types = await client.getRelationsManager().getRelationTypes("!room:example.org", "$event");
+     * ```
+     */
     public async getRelationTypes(roomId: string, eventId: string): Promise<string[]> {
         const types: string[] = [];
 
@@ -330,6 +402,26 @@ export class RelationsManager extends BaseManager<RelationsEvent, RelationsManag
         }
     }
 
+    /**
+     * 获取指定事件的关系事件列表，可选地支持加密事件解密依赖。
+     *
+     * @param roomId - 事件所在房间
+     * @param eventId - 目标事件 ID
+     * @param relationType - 关系类型
+     * @param eventType - 事件类型，可选
+     * @param opts - 关系请求选项，默认向后翻页
+     * @param deps - 加密支持相关依赖；不传时退化为不处理加密的简单实现
+     * @returns 包含原始事件、关系事件列表及分页游标的结果
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getRelationsManager().relations(
+     *     "!room:example.org",
+     *     "$event:example.org",
+     *     "m.annotation",
+     * );
+     * ```
+     */
     public async relations(
         roomId: string,
         eventId: string,

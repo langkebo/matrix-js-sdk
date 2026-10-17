@@ -28,6 +28,24 @@ import { type IEphemeralEventData } from "../ephemeral/index";
 import { BaseManager, type ManagerOpts } from "../managers/base-manager";
 import { registerManagerClass, getOrCreateManager } from "../client-infra/manager-registry";
 
+import type { ReactionsPath } from "../reactions/__generated__/route-table";
+import type { PathAssert, StripV3 } from "../http-api/strip-prefix";
+
+/**
+ * 契约路径断言：把本文件手写的路径模板绑到 **reactions** 模块的契约表上。
+ *
+ * 为什么借 reactions 的表：`sendReaction` 构造的路由在 ledger 里归 `reactions` 模块
+ * （`registered_by`），而本目录（`room-events`）不是 codegen 模块；同 `room-summary` 借
+ * `RoomPath`、`app-service` 借 `ThirdpartyPath` 之例。
+ *
+ * 本方法不发 `prefix`（走 `BaseManager` 默认 `ClientPrefix.V3`），故断言前用 `StripV3`
+ * 剥掉 `/_matrix/client/v3`。契约里的 `{room_id}` / `{txn_id}` 是占位段，
+ * `utils.encodeUri` 的 `$roomId` / `$txnId` 单段替换与之逐段对应 ⇒ 编译期可验。
+ */
+function rp<const P extends string>(path: P & PathAssert<P, StripV3<ReactionsPath>>): P {
+    return path;
+}
+
 export interface IRoomEventResponse {
     event_id: string;
 }
@@ -59,6 +77,18 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
     // 只会把同一个同步查询重做三遍，还会把 `Promise` 包装成"看起来是网络操作"。
 
     // 房间直播时间线上的事件；传 `limit` 则取**最近** limit 条。
+    /**
+     * 获取房间直播时间线上的事件
+     *
+     * @param roomId - 房间 ID
+     * @param limit - 可选的数量限制，传入时返回最近 limit 条
+     * @returns 事件列表
+     * @example
+     * ```typescript
+     * const events = await client.getRoomEventsManager().getRoomEvents("!room:example.com", 50);
+     * console.log(events.length);
+     * ```
+     */
     public async getRoomEvents(roomId: string, limit?: number): Promise<MatrixEvent[]> {
         const events = this.client.getRoom(roomId)?.getLiveTimeline().getEvents() ?? [];
         return limit === undefined ? events : events.slice(-limit);
@@ -68,6 +98,17 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
     // `RoomState.getStateEvents()` 必须指定 `eventType`，没有 all-getter；
     // 而 `RoomState.events` 是公开字段（`Map<eventType, Map<stateKey, MatrixEvent>>`，
     // 见 `src/models/room-state.ts:163`），故在此摊平。
+    /**
+     * 获取房间当前状态中的全部 state 事件
+     *
+     * @param roomId - 房间 ID
+     * @returns state 事件列表
+     * @example
+     * ```typescript
+     * const stateEvents = await client.getRoomEventsManager().getStateEventsForRoom("!room:example.com");
+     * console.log(stateEvents.length);
+     * ```
+     */
     public async getStateEventsForRoom(roomId: string): Promise<MatrixEvent[]> {
         const state = this.client.getRoom(roomId)?.currentState;
         if (!state) return [];
@@ -79,22 +120,80 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         return events;
     }
 
+    /**
+     * 获取房间直播时间线上的事件
+     *
+     * @param roomId - 房间 ID
+     * @returns 事件列表
+     * @example
+     * ```typescript
+     * const events = client.getRoomEventsManager().getTimelineEvents("!room:example.com");
+     * console.log(events.length);
+     * ```
+     */
     public getTimelineEvents(roomId: string): MatrixEvent[] {
         return this.client.getRoom(roomId)?.getLiveTimeline().getEvents() ?? [];
     }
 
+    /**
+     * 获取房间的临时事件（typing、receipt 等）
+     *
+     * @param roomId - 房间 ID
+     * @returns 临时事件列表
+     * @example
+     * ```typescript
+     * const ephemeral = client.getRoomEventsManager().getEphemeralEvents("!room:example.com");
+     * console.log(ephemeral.length);
+     * ```
+     */
     public getEphemeralEvents(roomId: string): IEphemeralEventData[] {
         return this.client.getEphemeralManager().getEphemeralEvents(roomId);
     }
 
+    /**
+     * 判断房间直播时间线中是否存在指定事件
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 是否存在该事件
+     * @example
+     * ```typescript
+     * const exists = client.getRoomEventsManager().hasTimelineEvent("!room:example.com", "$event");
+     * console.log(exists);
+     * ```
+     */
     public hasTimelineEvent(roomId: string, eventId: string): boolean {
         return this.getTimelineEvents(roomId).some((event) => event.getId() === eventId);
     }
 
+    /**
+     * 在房间中按事件 ID 查找事件
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 找到的事件，未找到时返回 null
+     * @example
+     * ```typescript
+     * const event = client.getRoomEventsManager().findEventById("!room:example.com", "$event");
+     * console.log(event?.getId());
+     * ```
+     */
     public findEventById(roomId: string, eventId: string): MatrixEvent | null {
         return this.client.getRoom(roomId)?.findEventById(eventId) ?? null;
     }
 
+    /**
+     * 从服务端获取单个事件
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 事件数据
+     * @example
+     * ```typescript
+     * const event = await client.getRoomEventsManager().getEvent("!room:example.com", "$event");
+     * console.log(event);
+     * ```
+     */
     public async getEvent(roomId: string, eventId: string): Promise<IEvent> {
         return this.withRetry(async () => {
             const path = utils.encodeUri("/rooms/$roomId/event/$eventId", {
@@ -108,6 +207,20 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         }, "getEvent");
     }
 
+    /**
+     * 获取房间的历史消息
+     *
+     * @param roomId - 房间 ID
+     * @param direction - 分页方向（`b` 向前，`f` 向后）
+     * @param limit - 返回的消息数量
+     * @param from - 可选的分页起始令牌
+     * @returns 消息分页结果
+     * @example
+     * ```typescript
+     * const page = await client.getRoomEventsManager().getMessages("!room:example.com", "b", 20);
+     * console.log(page.chunk.length);
+     * ```
+     */
     public async getMessages(
         roomId: string,
         direction: string,
@@ -133,11 +246,24 @@ export class RoomEventsManager extends BaseManager<keyof RoomEventsManagerEvents
         }, "getMessages");
     }
 
+    /**
+     * 给指定事件发送表情回应（reaction）
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 被回应的事件 ID
+     * @param key - 回应内容（如 emoji）
+     * @returns 发送结果，包含事件 ID
+     * @example
+     * ```typescript
+     * const response = await client.getRoomEventsManager().sendReaction("!room:example.com", "$event", "👍");
+     * console.log(response.event_id);
+     * ```
+     */
     public async sendReaction(roomId: string, eventId: string, key: string): Promise<IRoomEventResponse> {
         // 事务 ID 从闭包里提出来：withRetry 重跑闭包时若重新取 Date.now()，每次重试都会
         // 变成一个新事务，服务端便无法去重 —— 提到外面才能声明幂等键（P3-1）。
         const txnId = "m" + Date.now();
-        const reactionPath = utils.encodeUri("/rooms/$roomId/send/m.reaction/$txnId", {
+        const reactionPath = utils.encodeUri(rp("/rooms/$roomId/send/m.reaction/$txnId"), {
             $roomId: roomId,
             $txnId: txnId,
         });

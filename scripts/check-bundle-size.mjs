@@ -26,7 +26,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 const projectRoot = process.cwd();
-const packageJsonPath = path.join(projectRoot, "package.json");
 const baselinePath = path.join(projectRoot, "scripts", "quality", "bundle-size-baseline.json");
 
 /** Headroom applied when (re)writing the baseline: 2% growth is tolerated. */

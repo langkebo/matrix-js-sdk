@@ -2,10 +2,10 @@
   "schema_version": "1",
   "ledger_schema": "4",
   "module": "assembly",
-  "synapse_rust_commit": "14f892e356c3ea259781bc5b6b202bab2b6c8dc4",
+  "synapse_rust_commit": "c7c9116db5c462b49f5dae5abbf5e606f3244d21",
   "generated_at": "2026-05-02T00:00:00Z",
   "source_profile": "all",
-  "entry_count": 104,
+  "entry_count": 99,
   "entries": [
     {
       "method": "GET",
@@ -54,43 +54,6 @@
       "path": "/_matrix/client/unstable/org.matrix.msc3720/account_status",
       "registered_by": "assembly::create_router",
       "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "DELETE",
-      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-      "registered_by": "assembly::create_router",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-      "registered_by": "assembly::create_router",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "PUT",
-      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device",
-      "registered_by": "assembly::create_router",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status",
-      "registered_by": "assembly::create_router",
-      "path_params": [],
-      "query_params": []
-    },
-    {
-      "method": "GET",
-      "path": "/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events",
-      "registered_by": "assembly::create_router",
-      "path_params": [
-        "device_id"
-      ],
       "query_params": []
     },
     {

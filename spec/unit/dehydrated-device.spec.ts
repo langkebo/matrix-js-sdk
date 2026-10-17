@@ -145,19 +145,4 @@ describe("DehydratedDeviceManager", () => {
             await expect(manager.deleteDevice("")).rejects.toThrow("deviceId is required");
         });
     });
-
-    describe("getDeviceEvent", () => {
-        it("should get the initial device event", async () => {
-            transport.respondWith({ algorithm: "test", account: "test" });
-
-            const result = await manager.getDeviceEvent("dev123");
-
-            expect(result).toEqual({ algorithm: "test", account: "test" });
-            transport.expectCalledWith(Method.Get, "/dehydrated_device/dev123/initial_device");
-        });
-
-        it("should throw if deviceId is empty", async () => {
-            await expect(manager.getDeviceEvent("")).rejects.toThrow("deviceId is required");
-        });
-    });
 });

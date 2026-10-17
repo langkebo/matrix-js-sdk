@@ -1,14 +1,14 @@
 ---
 module: worker_body
 generated_from: docs/api-contract/generated/modules/worker_body.json
-generated_hash: sha256-76540507ba09c5bc0d4d4b111d9f0bc295dc6df79c5e540b37264dc3dec14115
+generated_hash: sha256-4cd3f7c3b9b1dcc29f188f8bf8eb1d3c65085b9dec107b7aec3f3bc3a7b41ac5
 ledger_schema: 4
 last_reviewed: 2026-05-03
 ---
 
 # Worker Body 契约
 
-> 审查来源: `synapse-rust/src/web/routes/worker.rs` (body section)
+> 审查来源: `synapse-rust/synapse-web/src/routes/worker.rs` (body section)
 
 ## 真实后端路由
 

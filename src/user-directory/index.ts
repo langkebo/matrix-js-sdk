@@ -76,10 +76,32 @@ export class UserDirectoryManager extends BaseManager {
         super(client, opts);
     }
 
+    /**
+     * 按关键词搜索用户目录。
+     *
+     * @param term - 搜索关键词
+     * @param limit - 返回结果上限，可选
+     * @returns 匹配到的用户列表
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getUserDirectoryManager().searchUserDirectory("alice", 10);
+     * ```
+     */
     public async searchUserDirectory(term: string, limit?: number): Promise<IUserDirectorySearchResult> {
         return this.client.searchUserDirectory({ term, limit });
     }
 
+    /**
+     * 列出用户目录中的全部用户。
+     *
+     * @returns 用户列表
+     *
+     * @example
+     * ```typescript
+     * const result = await client.getUserDirectoryManager().listUserDirectory();
+     * ```
+     */
     public async listUserDirectory(): Promise<IUserDirectoryListResult> {
         const path = ap("/user_directory/list");
         return this.withRetry(async () => {
@@ -90,6 +112,18 @@ export class UserDirectoryManager extends BaseManager {
         }, "listUserDirectory");
     }
 
+    /**
+     * 分页列出用户目录中的用户。
+     *
+     * @param limit - 每页返回数量，可选
+     * @param since - 分页游标，可选
+     * @returns 分页后的用户列表及下一页游标
+     *
+     * @example
+     * ```typescript
+     * const page = await client.getUserDirectoryManager().listUserDirectoryPaginated(20, "next-cursor");
+     * ```
+     */
     public async listUserDirectoryPaginated(
         limit?: number,
         since?: string,
@@ -116,6 +150,17 @@ export class UserDirectoryManager extends BaseManager {
         }, "listUserDirectoryPaginated");
     }
 
+    /**
+     * 获取指定用户的资料。
+     *
+     * @param userId - 用户 ID
+     * @returns 用户资料
+     *
+     * @example
+     * ```typescript
+     * const profile = await client.getUserDirectoryManager().getProfile("@alice:example.org");
+     * ```
+     */
     public async getProfile(userId: string): Promise<IUserProfile> {
         const path = ap(`/user_directory/profiles/${encodeURIComponent(userId)}`);
         return this.withRetry(async () => {
@@ -126,14 +171,46 @@ export class UserDirectoryManager extends BaseManager {
         }, "getProfile");
     }
 
+    /**
+     * 从本地商店获取指定用户。
+     *
+     * @param userId - 用户 ID
+     * @returns 对应的 User；不存在时返回 null
+     *
+     * @example
+     * ```typescript
+     * const user = client.getUserDirectoryManager().getUser("@alice:example.org");
+     * ```
+     */
     public getUser(userId: string): User | null {
         return this.client.getUser(userId);
     }
 
+    /**
+     * 获取本地商店中的全部用户。
+     *
+     * @returns 用户列表
+     *
+     * @example
+     * ```typescript
+     * const users = client.getUserDirectoryManager().getUsers();
+     * ```
+     */
     public getUsers(): User[] {
         return this.client.getUsers();
     }
 
+    /**
+     * 按显示名称查找用户。
+     *
+     * @param displayName - 用户显示名称
+     * @returns 匹配到的 User；不存在时返回 undefined
+     *
+     * @example
+     * ```typescript
+     * const user = client.getUserDirectoryManager().getUserByDisplayName("Alice");
+     * ```
+     */
     public getUserByDisplayName(displayName: string): User | undefined {
         const users = this.client.getUsers();
         return users.find((u) => u.displayName === displayName);

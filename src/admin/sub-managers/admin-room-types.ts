@@ -514,3 +514,36 @@ export interface AdminPurgeHistoryResult {
     /** 后端回显请求里的 `dry_run`（默认 `false`） */
     dry_run: boolean;
 }
+
+/**
+ * 房间历史回填结果（`POST /_synapse/admin/v1/rooms/{room_id}/backfill`）。
+ *
+ * 后端向"房间内有 joined 成员的联邦对端"请求该房间**最近本地已知事件之前**的历史事件，
+ * 并以完整 DAG 元数据落库（`admin/room/management.rs::backfill_room`）。
+ * `limit` 为**每个候选对端**请求的事件数（默认 100）。
+ */
+export interface RoomBackfillResponse {
+    room_id: string;
+    /** 实际取到事件的对端服务器名；无候选或全部失败时为 `null` */
+    source_server: string | null;
+    /** 落库的事件数 */
+    persisted_events: number;
+    /** 尝试过的候选对端数 */
+    candidates_tried: number;
+}
+
+/**
+ * 级联删除结果（`POST /_synapse/admin/v1/rooms/{room_id}/cascade_redact`）。
+ *
+ * 后端递归删除所有通过关系字段（`m.in_reply_to` / `m.relates_to` / `m.replace`）
+ * 引用目标事件的事件（`admin/room/mod.rs::cascade_redact_event`）。**不落 `m.room.redaction`
+ * 事件**（管理员可能不是房间成员，合成事件会过不了房间鉴权），归属记录在审计日志里。
+ */
+export interface CascadeRedactResponse {
+    /** 级联起点事件 id */
+    event_id: string;
+    /** 被删除的事件数（含起点自身） */
+    redacted_count: number;
+    /** 后端实际生效的递归深度（请求值被 clamp 到 ≤10，默认 5） */
+    max_depth: number;
+}

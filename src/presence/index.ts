@@ -85,6 +85,23 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         });
     }
 
+    /**
+     * 批量获取多个用户的在线状态
+     *
+     * @param userIds - 用户 ID 列表
+     * @returns 用户 ID 到在线状态的映射（仅包含成功获取的用户）
+     *
+     * @example
+     * ```typescript
+     * const presences = await client.getPresenceManager().getPresences([
+     *     "@alice:example.com",
+     *     "@bob:example.com",
+     * ]);
+     * presences.forEach((presence, userId) => {
+     *     console.log(`${userId}: ${presence.presence}`);
+     * });
+     * ```
+     */
     async getPresences(userIds: string[]): Promise<Map<string, IPresenceState>> {
         const result = new Map<string, IPresenceState>();
         for (const id of userIds ?? []) {
@@ -176,6 +193,14 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
      * @param userId - 用户 ID（格式：@localpart:homeserver）
      * @param state - 在线状态（online, offline, unavailable, away, busy）
      * @param statusMsg - 状态消息（可选）
+     *
+     * @example
+     * ```typescript
+     * await client.getPresenceManager().postPresence("@alice:example.com", "online", "Available");
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 为空或状态值无效
+     * @throws {SdkError} 如果 API 调用失败
      */
     async postPresence(userId: string, state: PresenceState, statusMsg?: string): Promise<void> {
         if (!userId) {
@@ -436,6 +461,14 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
      * @param userIds - 用户 ID 列表
      * @param throwOnError - 是否抛出错误（默认 true，传 false 时保留兼容 fallback）
      * @returns 在线状态列表
+     *
+     * @example
+     * ```typescript
+     * const presences = await client.getPresenceManager().getPresenceListByIds([
+     *     "@alice:example.com",
+     *     "@bob:example.com",
+     * ]);
+     * ```
      */
     async getPresenceListByIds(userIds: string[], throwOnError = true): Promise<IPresenceEvent[]> {
         if (!userIds || userIds.length === 0) return [];
@@ -457,26 +490,91 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         return presences.filter((presence): presence is IPresenceEvent => presence !== null);
     }
 
+    /**
+     * 获取当前已订阅在线状态的用户 ID 列表
+     *
+     * @returns 已订阅的用户 ID 数组
+     *
+     * @example
+     * ```typescript
+     * const users = client.getPresenceManager().getSubscribedUsers();
+     * console.log("Subscribed users:", users);
+     * ```
+     */
     getSubscribedUsers(): string[] {
         return Array.from(this.subscribedUsers);
     }
 
+    /**
+     * 判断给定用户是否已被订阅在线状态
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @returns 如果已订阅则返回 true
+     *
+     * @example
+     * ```typescript
+     * const subscribed = client.getPresenceManager().isSubscribed("@alice:example.com");
+     * ```
+     */
     isSubscribed(userId: string): boolean {
         return this.subscribedUsers.has(userId);
     }
 
+    /**
+     * 获取在线状态缓存的统计信息
+     *
+     * @returns 缓存大小、命中次数、未命中次数与命中率
+     *
+     * @example
+     * ```typescript
+     * const stats = client.getPresenceManager().getCacheStats();
+     * console.log(`Hit rate: ${stats.hitRate}`);
+     * ```
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.presenceCache.getStats();
     }
 
+    /**
+     * 清空在线状态缓存
+     *
+     * @example
+     * ```typescript
+     * client.getPresenceManager().clearCache();
+     * ```
+     */
     clearCache(): void {
         this.presenceCache.clear();
     }
 
+    /**
+     * 从缓存中获取指定用户的在线状态
+     *
+     * @param userId - 用户 ID（格式：@localpart:homeserver）
+     * @returns 缓存的在线状态，如果不存在则返回 null
+     *
+     * @example
+     * ```typescript
+     * const presence = client.getPresenceManager().getCachedPresence("@alice:example.com");
+     * ```
+     */
     getCachedPresence(userId: string): IPresenceState | null {
         return this.presenceCache.get(userId) ?? null;
     }
 
+    /**
+     * 获取缓存中的所有在线状态
+     *
+     * @returns 用户 ID 到在线状态的映射
+     *
+     * @example
+     * ```typescript
+     * const cached = client.getPresenceManager().getCachedPresences();
+     * cached.forEach((presence, userId) => {
+     *     console.log(`${userId}: ${presence.presence}`);
+     * });
+     * ```
+     */
     getCachedPresences(): Map<string, IPresenceState> {
         const out = new Map<string, IPresenceState>();
         for (const [k, v] of this.presenceCache.entries()) {
@@ -485,6 +583,22 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         return out;
     }
 
+    /**
+     * 订阅指定用户列表的在线状态
+     *
+     * @param userIds - 用户 ID 列表
+     *
+     * @example
+     * ```typescript
+     * await client.getPresenceManager().subscribeToPresence([
+     *     "@alice:example.com",
+     *     "@bob:example.com",
+     * ]);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 列表为空
+     * @throws {SdkError} 如果 API 调用失败
+     */
     async subscribeToPresence(userIds: string[]): Promise<void> {
         if (!Array.isArray(userIds) || userIds.length === 0) {
             throw new InvalidParamError("userIds cannot be empty");
@@ -525,6 +639,14 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
      * @param subscribe - User IDs to subscribe to (optional)
      * @param unsubscribe - User IDs to unsubscribe from (optional)
      * @returns The presence list response with current presence states
+     *
+     * @example
+     * ```typescript
+     * const list = await client.getPresenceManager().updatePresenceList(
+     *     ["@alice:example.com"],
+     *     ["@bob:example.com"],
+     * );
+     * ```
      *
      * @throws {InvalidParamError} If both subscribe and unsubscribe are empty/missing
      * @throws {ApiError} If the API call fails
@@ -568,6 +690,22 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         }
     }
 
+    /**
+     * 取消订阅指定用户列表的在线状态
+     *
+     * @param userIds - 用户 ID 列表
+     *
+     * @example
+     * ```typescript
+     * await client.getPresenceManager().unsubscribeFromPresence([
+     *     "@alice:example.com",
+     *     "@bob:example.com",
+     * ]);
+     * ```
+     *
+     * @throws {InvalidParamError} 如果用户 ID 列表为空
+     * @throws {SdkError} 如果 API 调用失败
+     */
     async unsubscribeFromPresence(userIds: string[]): Promise<void> {
         if (!Array.isArray(userIds) || userIds.length === 0) {
             throw new InvalidParamError("userIds cannot be empty");
@@ -602,6 +740,16 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         }
     }
 
+    /**
+     * 获取所有已订阅用户的在线状态
+     *
+     * @returns 已订阅用户的在线状态列表
+     *
+     * @example
+     * ```typescript
+     * const presences = await client.getPresenceManager().getSubscribedPresence();
+     * ```
+     */
     async getSubscribedPresence(): Promise<IPresenceEvent[]> {
         return this.getPresenceList(undefined, false);
     }
@@ -677,10 +825,33 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         await this.setPresence("unavailable", status);
     }
 
+    /**
+     * 设置为忙碌状态
+     *
+     * @param status - 状态消息（可选）
+     *
+     * @example
+     * ```typescript
+     * await client.getPresenceManager().setBusy("In a meeting");
+     * ```
+     */
     async setBusy(status?: string): Promise<void> {
         await this.setPresence("busy", status);
     }
 
+    /**
+     * 使用同步事件更新在线状态缓存并广播更新
+     *
+     * @param event - 在线状态事件
+     *
+     * @example
+     * ```typescript
+     * client.getPresenceManager().updatePresenceFromSync({
+     *     user_id: "@alice:example.com",
+     *     presence: "online",
+     * });
+     * ```
+     */
     updatePresenceFromSync(event: IPresenceEvent): void {
         const state: IPresenceState = {
             presence: event.presence,
@@ -692,6 +863,14 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         this.emit(PresenceEvent.PresenceUpdated, event.user_id, state);
     }
 
+    /**
+     * 启动在线状态管理器（加载初始在线状态列表，当前为占位实现）
+     *
+     * @example
+     * ```typescript
+     * await client.getPresenceManager().start();
+     * ```
+     */
     async start(): Promise<void> {
         if (this.initialized) return;
 
@@ -704,6 +883,14 @@ export class PresenceManager extends BaseManager<PresenceEvent, PresenceManagerE
         }
     }
 
+    /**
+     * 停止在线状态管理器（清空缓存与订阅列表，当前为占位实现）
+     *
+     * @example
+     * ```typescript
+     * client.getPresenceManager().stop();
+     * ```
+     */
     stop(): void {
         this.presenceCache.clear();
         this.subscribedUsers.clear();

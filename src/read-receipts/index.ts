@@ -69,6 +69,10 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
      * @param unthreaded - An unthreaded receipt will clear room+thread notifications
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().sendReceipt(event, ReceiptType.Read);
+     * ```
      */
     public async sendReceipt(
         event: MatrixEvent,
@@ -145,6 +149,11 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
      * @param receiptType - other than ReceiptType.Read are experimental! Optional.
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
+     * @throws {Error} 当尝试为尚未发送的 pending 事件设置已读回执时抛出
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().sendReadReceipt(event);
+     * ```
      */
     public async sendReadReceipt(
         event: MatrixEvent | null,
@@ -174,6 +183,10 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
      * @param rpEvent - the m.read.private read receipt event for when we don't
      * want other users to see the read receipts. This is experimental. Optional.
      * @returns Promise which resolves: the empty object, `{}`.
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().setRoomReadMarkers(roomId, rmEventId);
+     * ```
      */
     public async setRoomReadMarkers(
         roomId: string,
@@ -200,6 +213,10 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
      * @param rrEventId - ID of the event tracked by the read receipt. Optional.
      * @param rpEventId - ID of the m.read.private read receipt event. Optional.
      * @returns Promise which resolves: the empty object, `{}`.
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().setRoomReadMarkersHttpRequest(roomId, rmEventId);
+     * ```
      */
     public async setRoomReadMarkersHttpRequest(
         roomId: string,
@@ -219,6 +236,19 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
         );
     }
 
+    /**
+     * 通过房间 ID 与事件 ID 发送已读回执。
+     *
+     * 仅当该事件已加载到本地房间存储时才会发送。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 需要确认的事件 ID
+     *
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().sendReadReceiptByEventId("!room:example.org", "$event");
+     * ```
+     */
     public async sendReadReceiptByEventId(roomId: string, eventId: string): Promise<void> {
         const room = this.client.getRoom(roomId);
         const event = room?.findEventById(eventId);
@@ -235,6 +265,10 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
      * @param roomId - The room ID
      * @param receiptType - The receipt type (e.g. "m.read")
      * @param eventId - The event ID to acknowledge
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().sendReceiptForce("!room:example.org", "m.read", "$event");
+     * ```
      */
     public async sendReceiptForce(roomId: string, receiptType: string, eventId: string): Promise<void> {
         const path = utils.encodeUri("/rooms/$roomId/receipt/$receiptType/$eventId", {
@@ -249,16 +283,52 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
         });
     }
 
+    /**
+     * 设置房间的已读标记与已读回执。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 已读回执对应的事件 ID
+     * @param fullyReadEventId - 可选，完全已读标记对应的事件 ID；未提供时使用 eventId
+     *
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().setReadMarkers("!room:example.org", "$event");
+     * ```
+     */
     public async setReadMarkers(roomId: string, eventId: string, fullyReadEventId?: string): Promise<void> {
         const room = this.client.getRoom(roomId);
         const rrEvent = eventId ? room?.findEventById(eventId) : undefined;
         await this.setRoomReadMarkers(roomId, fullyReadEventId || eventId, rrEvent);
     }
 
+    /**
+     * 设置房间的完全已读标记。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 完全已读标记对应的事件 ID
+     *
+     * @example
+     * ```typescript
+     * await client.getReadReceiptsManager().setReadMarker("!room:example.org", "$event");
+     * ```
+     */
     public async setReadMarker(roomId: string, eventId: string): Promise<void> {
         await this.setRoomReadMarkers(roomId, eventId, undefined);
     }
 
+    /**
+     * 获取指定事件的已读回执列表。
+     *
+     * @param roomId - 房间 ID
+     * @param eventId - 事件 ID
+     * @returns 已读回执列表；房间或事件不存在时返回空数组
+     *
+     * @example
+     * ```typescript
+     * const receipts = client.getReadReceiptsManager().getReceipt("!room:example.org", "$event");
+     * console.log(receipts.length);
+     * ```
+     */
     public getReceipt(roomId: string, eventId: string): IReadReceipt[] {
         const room = this.client.getRoom(roomId);
         if (!room) return [];
@@ -275,6 +345,18 @@ export class ReadReceiptsManager extends BaseManager<keyof ReadReceiptsManagerEv
         }));
     }
 
+    /**
+     * 获取房间的已读标记（m.read / m.fully_read）。
+     *
+     * @param roomId - 房间 ID
+     * @returns 已读标记对象；房间不存在时返回空对象
+     *
+     * @example
+     * ```typescript
+     * const markers = client.getReadReceiptsManager().getReadMarkers("!room:example.org");
+     * console.log(markers.m_read, markers.m_fully_read);
+     * ```
+     */
     public getReadMarkers(roomId: string): IReadMarkers {
         const room = this.client.getRoom(roomId);
         if (!room) return {};

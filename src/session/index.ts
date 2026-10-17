@@ -32,6 +32,11 @@ export class SessionManager extends BaseManager {
 
     /**
      * Logout
+     *
+     * @example
+     * ```typescript
+     * await client.getSessionManager().logout();
+     * ```
      */
     public async logout(stopClient = false): Promise<EmptyObject> {
         return this.client.logout(stopClient);
@@ -39,6 +44,11 @@ export class SessionManager extends BaseManager {
 
     /**
      * Deactivate account
+     *
+     * @example
+     * ```typescript
+     * await client.getSessionManager().deactivateAccount();
+     * ```
      */
     public async deactivateAccount(): Promise<{ id_server_unbind_result: string }> {
         return this.client.deactivateAccount();
@@ -46,6 +56,12 @@ export class SessionManager extends BaseManager {
 
     /**
      * Get access token
+     *
+     * @example
+     * ```typescript
+     * const token = client.getSessionManager().getAccessToken();
+     * console.log(token);
+     * ```
      */
     public getAccessToken(): string | null {
         return this.client.getAccessToken();
@@ -53,6 +69,12 @@ export class SessionManager extends BaseManager {
 
     /**
      * Check if logged in
+     *
+     * @example
+     * ```typescript
+     * const loggedIn = client.getSessionManager().isLoggedIn();
+     * console.log(loggedIn);
+     * ```
      */
     public isLoggedIn(): boolean {
         return !!this.client.credentials.userId && !!this.getAccessToken();
@@ -60,6 +82,12 @@ export class SessionManager extends BaseManager {
 
     /**
      * Get session ID
+     *
+     * @example
+     * ```typescript
+     * const sessionId = client.getSessionManager().getSessionId();
+     * console.log(sessionId);
+     * ```
      */
     public getSessionId(): string | null {
         return this.client.getSessionId() || null;
@@ -67,6 +95,12 @@ export class SessionManager extends BaseManager {
 
     /**
      * Who am I
+     *
+     * @example
+     * ```typescript
+     * const whoami = await client.getSessionManager().whoami();
+     * console.log(whoami);
+     * ```
      */
     public async whoami(): Promise<unknown> {
         return this.client.whoami();

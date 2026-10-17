@@ -90,6 +90,16 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
 
     /**
      * Return whether the server supports dehydrated devices.
+     *
+     * @returns 服务器支持 dehydrated device 时返回 `true`。
+     * @throws {MatrixError} 当探测请求返回 `M_UNRECOGNIZED` 与 `M_NOT_FOUND` 之外的错误码时原样抛出。
+     * @example
+     * ```ts
+     * // 内部类：实例由 RustCrypto 在 initRustCrypto() 之后持有（this.dehydratedDeviceManager）。
+     * // 对外 CryptoApi 通过 isDehydrationSupported() 转发到此方法。
+     * await client.initRustCrypto();
+     * const supported = await client.getCrypto()!.isDehydrationSupported();
+     * ```
      */
     public async isSupported(): Promise<boolean> {
         // call the endpoint to get a dehydrated device.  If it returns an
@@ -134,6 +144,12 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
      * @param opts - options for device dehydration. For backwards compatibility
      *     with old code, a boolean can be given here, which will be treated as
      *     the `createNewKey` option. However, this is deprecated.
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 在 initRustCrypto() 之后通过 startDehydration() 调用。
+     * await client.initRustCrypto();
+     * await client.getCrypto()!.startDehydration({ createNewKey: false });
+     * ```
      */
     public async start(opts: StartDehydrationOpts | boolean = {}): Promise<void> {
         if (typeof opts === "boolean") {
@@ -162,6 +178,13 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
 
     /**
      * Return whether the dehydration key is stored in Secret Storage.
+     *
+     * @returns Secret Storage 中已存储脱水密钥时返回 `true`。
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 在 initRustCrypto() 之后持有，仅供其内部调用，无公开访问器。
+     * const stored = await this.dehydratedDeviceManager.isKeyStored();
+     * ```
      */
     public async isKeyStored(): Promise<boolean> {
         return Boolean(await this.secretStorage.isStored(SECRET_STORAGE_NAME));
@@ -173,6 +196,11 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
      * Creates a new key and stores it in secret storage.
      *
      * @returns The newly-generated key.
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 持有；start({ createNewKey: true }) 会经此重建并缓存密钥。
+     * const key = await this.dehydratedDeviceManager.resetKey();
+     * ```
      */
     public async resetKey(): Promise<RustSdkCryptoJs.DehydratedDeviceKey> {
         const key = RustSdkCryptoJs.DehydratedDeviceKey.createRandomKey();
@@ -219,6 +247,14 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
      * the device and processes the to-device events.
      *
      * Returns whether or not a dehydrated device was found.
+     *
+     * @returns 找到并成功重水化了服务器上的 dehydrated device 时返回 `true`，否则 `false`。
+     * @throws {MatrixError} 查询 dehydrated device 返回 `M_NOT_FOUND` / `M_UNRECOGNIZED` 之外的错误时原样抛出。
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 持有；start({ rehydrate: true }) 内部会调用此方法。
+     * const found = await this.dehydratedDeviceManager.rehydrateDeviceIfAvailable();
+     * ```
      */
     public async rehydrateDeviceIfAvailable(): Promise<boolean> {
         const key = await this.getKey(false);
@@ -300,6 +336,12 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
      * Creates and uploads a new dehydrated device.
      *
      * Creates and stores a new key in secret storage if none is available.
+     *
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 持有；scheduleDeviceDehydration() 首次执行即调用此方法。
+     * await this.dehydratedDeviceManager.createAndUploadDehydratedDevice();
+     * ```
      */
     public async createAndUploadDehydratedDevice(): Promise<void> {
         const key = (await this.getKey(true))!;
@@ -316,6 +358,12 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
 
     /**
      * Schedule periodic creation of dehydrated devices.
+     *
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 持有；start() 末尾会调用此方法启动周期任务。
+     * await this.dehydratedDeviceManager.scheduleDeviceDehydration();
+     * ```
      */
     public async scheduleDeviceDehydration(): Promise<void> {
         // cancel any previously-scheduled tasks
@@ -334,6 +382,12 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
      * Stop the dehydrated device manager.
      *
      * Cancels any scheduled dehydration tasks.
+     *
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 在 dispose 时调用，用于清理周期定时器。
+     * this.dehydratedDeviceManager.stop();
+     * ```
      */
     public stop(): void {
         if (this.intervalId) {
@@ -344,6 +398,13 @@ export class DehydratedDeviceManager extends TypedEventEmitter<DehydratedDevices
 
     /**
      * Delete the current dehydrated device and stop the dehydrated device manager.
+     *
+     * @throws {MatrixError} 删除请求返回 `M_UNRECOGNIZED` / `M_NOT_FOUND` 之外的错误时原样抛出（这两者视为成功）。
+     * @example
+     * ```ts
+     * // 内部类：由 RustCrypto 持有；deleteDehydration() 路径会调用此方法。
+     * await this.dehydratedDeviceManager.delete();
+     * ```
      */
     public async delete(): Promise<void> {
         this.stop();

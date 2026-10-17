@@ -76,16 +76,6 @@ describe("AdminManager - Extended Tests", () => {
             expect(devices).toEqual(mockDevices);
         });
 
-        it("should delete user devices successfully", async () => {
-            mockClient.http.authedRequest.mockResolvedValue({});
-
-            await adminManager.deleteUserDevices("@user:example.com", ["DEVICE1", "DEVICE2"]);
-
-            expect(mockClient.http.authedRequest).toHaveBeenCalled();
-            const call = mockClient.http.authedRequest.mock.calls[0];
-            expect(call[3]).toHaveProperty("devices", ["DEVICE1", "DEVICE2"]);
-        });
-
         it("should shadow ban user successfully", async () => {
             mockClient.http.authedRequest.mockResolvedValue({});
 

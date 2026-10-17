@@ -236,4 +236,131 @@ describe("DelayedEventsManager", () => {
             expect(transport.request).not.toHaveBeenCalled();
         });
     });
+
+    // ==================== 列表查询 (2026-10-14 后端新增 GET /delayed_events) ====================
+    // 后端: synapse-rust synapse-web/src/routes/delayed_events.rs list_delayed_events
+    //   GET /_matrix/client/unstable/org.matrix.msc4140/delayed_events
+    //   → { "delayed_events": [DelayedEventInfo] }（按调用者过滤，仅返回本人 pending 事件）
+
+    describe("listScheduledDelayedEvents (列表查询)", () => {
+        it("GET /delayed_events 并解包 delayed_events 数组", async () => {
+            const events = [
+                {
+                    delay_id: 42,
+                    room_id: "!room:example.com",
+                    type: "m.room.message",
+                    delay_ms: 5000,
+                    delayed_since_ts: 1_700_000_000_000,
+                    content: { body: "later" },
+                },
+            ];
+            transport.respondWith({ delayed_events: events });
+
+            await expect(manager.listScheduledDelayedEvents()).resolves.toEqual(events);
+
+            transport.expectCalledWithArgs(Method.Get, "/delayed_events", undefined, undefined, {
+                prefix: EXPECTED_PREFIX,
+            });
+        });
+
+        it("容忍后端省略包裹键（返回空数组而非 undefined）", async () => {
+            transport.respondWith({});
+
+            await expect(manager.listScheduledDelayedEvents()).resolves.toEqual([]);
+        });
+
+        it("服务端未声明 MSC4140 时抛 UnsupportedDelayedEventsEndpointError 且不发请求", async () => {
+            client.doesServerSupportUnstableFeature.mockResolvedValue(false);
+
+            await expect(manager.listScheduledDelayedEvents()).rejects.toBeInstanceOf(
+                UnsupportedDelayedEventsEndpointError,
+            );
+            expect(transport.request).not.toHaveBeenCalled();
+        });
+    });
+
+    // ==================== 专用调度端点 (2026-10-14 后端新增 PUT /rooms/{roomId}/delayed_event/...) ====================
+    // 后端: synapse-rust synapse-web/src/routes/delayed_events.rs schedule_delayed_event
+    //   PUT /_matrix/client/unstable/org.matrix.msc4140/rooms/{room_id}/delayed_event/{event_type}/{txn_id}
+    //   body { delay_ms: i64, content: object, state_key?: string|null } → { "delay_id": i64 number }
+    //   sticky 字段（MSC4354）后端返回 501（无法在一次调用中调度并置钉）
+
+    describe("scheduleDelayedEvent (专用调度端点)", () => {
+        // encodeURIComponent 不编码 `!`（unreserved mark），仅编码 `:` → %3A
+        const SCHEDULE_PATH = "/rooms/!room%3Aexample.com/delayed_event/m.room.message/txn-1";
+
+        it("PUT 专用端点并发送 {delay_ms, content} body，返回 delay_id", async () => {
+            transport.respondWith({ delay_id: 42 });
+
+            const result = await manager.scheduleDelayedEvent("!room:example.com", "m.room.message", "txn-1", {
+                delay_ms: 5000,
+                content: { body: "later" },
+            });
+
+            expect(result.delay_id).toBe(42);
+            transport.expectCalledWithArgs(
+                Method.Put,
+                SCHEDULE_PATH,
+                undefined,
+                { delay_ms: 5000, content: { body: "later" } },
+                {
+                    prefix: EXPECTED_PREFIX,
+                },
+            );
+        });
+
+        it("透传可选 state_key（字符串或显式 null）", async () => {
+            transport.respondWith({ delay_id: 7 });
+
+            await manager.scheduleDelayedEvent("!room:example.com", "m.room.topic", "txn-2", {
+                delay_ms: 1000,
+                content: { topic: "t" },
+                state_key: "",
+            });
+
+            expect(transport.request.mock.calls[0][3]).toEqual(expect.objectContaining({ state_key: "" }));
+        });
+
+        it("未提供 state_key 时不下发该键（后端视为消息事件）", async () => {
+            transport.respondWith({ delay_id: 8 });
+
+            await manager.scheduleDelayedEvent("!room:example.com", "m.room.message", "txn-3", {
+                delay_ms: 1000,
+                content: { body: "b" },
+            });
+
+            const body = transport.request.mock.calls[0][3] as Record<string, unknown>;
+            expect("state_key" in body).toBe(false);
+        });
+
+        it("拒绝非法参数（空 roomId/eventType/txnId、非正 delay_ms、非对象 content）", async () => {
+            const valid = { delay_ms: 1000, content: { body: "b" } };
+            await expect(manager.scheduleDelayedEvent("", "m.room.message", "t", valid)).rejects.toThrow();
+            await expect(manager.scheduleDelayedEvent("!r:e", "", "t", valid)).rejects.toThrow();
+            await expect(manager.scheduleDelayedEvent("!r:e", "m.room.message", "", valid)).rejects.toThrow();
+            await expect(
+                manager.scheduleDelayedEvent("!r:e", "m.room.message", "t", { delay_ms: 0, content: { body: "b" } }),
+            ).rejects.toThrow(/positive/);
+            await expect(
+                manager.scheduleDelayedEvent("!r:e", "m.room.message", "t", {
+                    delay_ms: 1000,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    content: "not-an-object" as any,
+                }),
+            ).rejects.toThrow();
+            expect(transport.request).not.toHaveBeenCalled();
+        });
+
+        it("服务端未声明 MSC4140 时抛 UnsupportedDelayedEventsEndpointError 且不发请求", async () => {
+            client.doesServerSupportUnstableFeature.mockResolvedValue(false);
+
+            await expect(
+                manager.scheduleDelayedEvent("!room:example.com", "m.room.message", "txn-1", {
+                    delay_ms: 1000,
+                    content: { body: "b" },
+                }),
+            ).rejects.toBeInstanceOf(UnsupportedDelayedEventsEndpointError);
+            expect(transport.request).not.toHaveBeenCalled();
+        });
+    });
 });

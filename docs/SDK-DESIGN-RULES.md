@@ -1,7 +1,7 @@
 # Matrix-JS-SDK 封装与设计规则
 
 > **生效日期**：2026-09-24  
-> **适用范围**：matrix-js-sdk 40.2.0-langkebo.5 及后续版本  
+> **适用范围**：matrix-js-sdk 40.2.0-langkebo.6 及后续版本（Tjg pin `sdk_commit=0824bb23adb3`，2026-10-13）  
 > **约束对象**：后端开发团队、SDK 开发团队、前端开发团队（Tjg/HuLa）
 
 ---

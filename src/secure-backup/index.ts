@@ -112,6 +112,13 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 列出所有安全备份
      * GET /_matrix/client/v3/keys/backup/secure
+     *
+     * @returns 后端返回的备份列表（结构随算法变化）。
+     * @throws 当后端返回错误时，抛出经 normalizeError 归一化后的错误。
+     * @example
+     * ```ts
+     * const backups = await client.getSecureBackupManager().listSecureBackups();
+     * ```
      */
     async listSecureBackups(): Promise<Record<string, unknown>> {
         // Dynamic: backup list structure varies by algorithm
@@ -157,6 +164,15 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 获取安全备份
      * GET /_matrix/client/v3/keys/backup/secure/{backup_id}
+     *
+     * @param backupId - 备份 ID。
+     * @param forceRefresh - 为 `true` 时跳过本地缓存，强制从后端拉取。
+     * @returns 备份信息（`SecureBackupInfo`）。
+     * @throws 当后端返回错误时，抛出经 normalizeError 归一化后的错误。
+     * @example
+     * ```ts
+     * const backup = await client.getSecureBackupManager().getSecureBackup("BACKUP_ID");
+     * ```
      */
     async getSecureBackup(backupId: string, forceRefresh = false): Promise<SecureBackupInfo> {
         if (!forceRefresh) {
@@ -185,6 +201,13 @@ export class SecureBackupManager extends BaseManager {
     /**
      * 删除安全备份
      * DELETE /_matrix/client/v3/keys/backup/secure/{backup_id}
+     *
+     * @param backupId - 备份 ID。
+     * @throws 当后端返回错误时，抛出经 normalizeError 归一化后的错误。
+     * @example
+     * ```ts
+     * await client.getSecureBackupManager().deleteSecureBackup("BACKUP_ID");
+     * ```
      */
     async deleteSecureBackup(backupId: string): Promise<void> {
         try {
@@ -277,10 +300,27 @@ export class SecureBackupManager extends BaseManager {
         }
     }
 
+    /**
+     * 清空本地备份缓存。
+     *
+     * @example
+     * ```ts
+     * client.getSecureBackupManager().clearCache();
+     * ```
+     */
     clearCache(): void {
         this.backupCache.clear();
     }
 
+    /**
+     * 获取备份缓存的统计信息。
+     *
+     * @returns 含 `size` / `hits` / `misses` / `hitRate` 的统计对象。
+     * @example
+     * ```ts
+     * const stats = client.getSecureBackupManager().getCacheStats();
+     * ```
+     */
     getCacheStats(): { size: number; hits: number; misses: number; hitRate: number } {
         return this.backupCache.getStats();
     }

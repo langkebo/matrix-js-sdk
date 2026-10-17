@@ -46,10 +46,18 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
     }
 
     /**
-     * 获取联邦黑名单
+     * 获取联邦黑名单，并以返回结果刷新本地缓存、广播更新事件。
      *
-     * @param throwOnError - 是否抛出错误（默认 true）
-     * @returns 黑名单列表
+     * @param throwOnError - 是否抛出错误（默认 true）；为 false 时失败返回本地缓存。
+     * @returns 黑名单条目列表；当 `throwOnError` 为 false 且请求失败时返回本地缓存的黑名单。
+     *
+     * @example
+     * ```typescript
+     * const blacklist = await client.getFederationManager().blacklist.getBlacklist();
+     * console.log(blacklist.map((entry) => entry.serverName));
+     * ```
+     *
+     * @throws {Error} 当请求失败且 `throwOnError` 为 true 时抛出。
      */
     async getBlacklist(throwOnError = true): Promise<IBlacklistEntry[]> {
         return this.request<{
@@ -73,6 +81,21 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
         );
     }
 
+    /**
+     * 将某服务器加入联邦黑名单（不会向该服务器发起联邦请求），并广播更新事件。
+     *
+     * @param serverName - 要拉黑的服务器名称（如 `example.com`）。
+     * @param reason - 可选，拉黑原因。
+     * @returns 无返回值；成功后本地缓存同步更新。
+     *
+     * @example
+     * ```typescript
+     * await client.getFederationManager().blacklist.addToBlacklist("evil.example.com", "spam");
+     * ```
+     *
+     * @throws {ValidationError} 当 serverName 为空时抛出。
+     * @throws {Error} 当请求失败时抛出。
+     */
     async addToBlacklist(serverName: string, reason?: string): Promise<void> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
@@ -104,6 +127,20 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
         }
     }
 
+    /**
+     * 将某服务器从联邦黑名单中移除，并广播更新事件。
+     *
+     * @param serverName - 要解除拉黑的服务器名称（如 `example.com`）。
+     * @returns 无返回值；成功后本地缓存同步更新。
+     *
+     * @example
+     * ```typescript
+     * await client.getFederationManager().blacklist.removeFromBlacklist("evil.example.com");
+     * ```
+     *
+     * @throws {ValidationError} 当 serverName 为空时抛出。
+     * @throws {Error} 当请求失败时抛出。
+     */
     async removeFromBlacklist(serverName: string): Promise<void> {
         if (!serverName) {
             throw new ValidationError("Server name is required");
@@ -127,6 +164,20 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
         }
     }
 
+    /**
+     * 判断某服务器是否在联邦黑名单中；本地缓存未命中时会静默刷新一次黑名单。
+     *
+     * 静默刷新失败时不会抛出错误，仅以当前本地缓存为准。
+     *
+     * @param serverName - 服务器名称（如 `example.com`）。
+     * @returns 该服务器是否已被拉黑。
+     *
+     * @example
+     * ```typescript
+     * const blocked = await client.getFederationManager().blacklist.isBlacklisted("evil.example.com");
+     * console.log(blocked);
+     * ```
+     */
     async isBlacklisted(serverName: string): Promise<boolean> {
         if (this.blacklist.has(serverName)) {
             return true;
@@ -136,10 +187,31 @@ export class FederationBlacklistManager extends BaseManager<FederationBlacklistE
         return this.blacklist.has(serverName);
     }
 
+    /**
+     * 列出本地缓存中的全部黑名单条目，不会发起网络请求。
+     *
+     * @returns 缓存的黑名单条目列表；缓存为空时返回空数组。
+     *
+     * @example
+     * ```typescript
+     * const entries = client.getFederationManager().blacklist.getCachedBlacklist();
+     * console.log(entries.map((entry) => entry.serverName));
+     * ```
+     */
     getCachedBlacklist(): IBlacklistEntry[] {
         return Array.from(this.blacklist.values());
     }
 
+    /**
+     * 清空本地黑名单缓存。
+     *
+     * @returns 无返回值。
+     *
+     * @example
+     * ```typescript
+     * client.getFederationManager().blacklist.clearCache();
+     * ```
+     */
     clearCache(): void {
         this.blacklist.clear();
     }
