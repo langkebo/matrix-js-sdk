@@ -1,8 +1,8 @@
 # SDK 契约缺口报告：后端路由 ↔ SDK 封装面
 
-> 生成时间：2026-10-11 11:01:42
+> 生成时间：2026-10-17 22:38:34
 > 后端事实来源：`synapse-rust/tests/unit/fixtures/ledger_export_sdk/all.json`（RouteLedger schema v4，profile=`all`）
-> SDK 镜像底座：`docs/api-contract/generated/route-manifest.all.json` @ `14f892e3`
+> SDK 镜像底座：`docs/api-contract/generated/route-manifest.all.json` @ `c7c9116d`
 > 生成器：`matrix-js-sdk/scripts/audit/compare-routes.mjs`（可重跑，无人工维护的映射表）
 
 ## 0. 方法论：为什么"后端有 / SDK 未封装"需要三级证据
@@ -28,14 +28,14 @@
 
 | 惯用法                                | 条数 |
 | ------------------------------------- | ---- |
-| `adminRequest()`                      | 196  |
-| `object-literal {path}`               | 131  |
-| `builder: utils.encodeUri()`          | 53   |
-| `authedRequest(Method, path)`         | 24   |
+| `object-literal {path}`               | 86   |
+| `builder: utils.encodeUri()`          | 52   |
+| `authedRequest(Method, path)`         | 27   |
 | `builder: friendPath()`               | 23   |
 | `builder: encodeUri()`                | 17   |
 | `builder: spacePath()`                | 13   |
 | `builder: sp()`                       | 10   |
+| `adminRequest()`                      | 6    |
 | `v2Request()`                         | 5    |
 | `builder: srp()`                      | 3    |
 | `builder: this.client.http.getUrl()`  | 3    |
@@ -58,47 +58,61 @@
 
 | 维度                                  | 数量                  | 说明                                                     |
 | ------------------------------------- | --------------------- | -------------------------------------------------------- |
-| 后端注册路由（事实面）                | **1027**              | distinct 1022                                            |
-| └ 客户端面 `CLIENT_FACING`            | **634**               | 前端 SDK 应封装的面                                      |
-| └ 服务端/运维面 `SERVER_ONLY`         | 390                   | federation / appservice / key 交换 / admin，**不应**封装 |
+| 后端注册路由（事实面）                | **1038**              | distinct 1033                                            |
+| └ 客户端面 `CLIENT_FACING`            | **641**               | 前端 SDK 应封装的面                                      |
+| └ 服务端/运维面 `SERVER_ONLY`         | 394                   | federation / appservice / key 交换 / admin，**不应**封装 |
 | └ 根级与 SSO `ROOT_OR_SSO`            | 2                     | 探活、CAS/SSO 重定向，浏览器处理                         |
 | └ 非 Matrix 命名空间 `NON_NAMESPACED` | 1                     | —                                                        |
-| **实现面覆盖（T1∪T2，客户端面）**     | **587 / 634 = 92.6%** | 主指标                                                   |
-| └ 其中 T1 有真实调用点                | 108                   | 最强证据                                                 |
-| └ 其中 T2 仅构造证据                  | 479                   | 见 §3 需复核                                             |
-| **声明面覆盖（T3，全后端）**          | **71.3%**             | 729/1022                                                 |
-| **缺口（三级证据全无）**              | **62**                | 其中客户端面 0                                           |
+| **实现面覆盖（T1∪T2，客户端面）**     | **589 / 641 = 91.9%** | 主指标                                                   |
+| └ 其中 T1 有真实调用点                | 78                    | 最强证据                                                 |
+| └ 其中 T2 仅构造证据                  | 511                   | 见 §3 需复核                                             |
+| **声明面覆盖（T3，全后端）**          | **95.2%**             | 983/1033                                                 |
+| **缺口（三级证据全无）**              | **30**                | 其中客户端面 0                                           |
 | 版本/前缀漂移                         | 0                     | 签名相同、前缀不同                                       |
 
 ### 1.1 后端路由的证据分布（全量）
 
 | 证据等级      | 条数 | 含义                             |
 | ------------- | ---- | -------------------------------- |
-| T1 调用点命中 | 338  | Manager 真实发起请求             |
-| T2 构造命中   | 572  | 有路径构造器，无精确调用点       |
-| T3 仅声明     | 54   | route-table 有常量、仓内无调用方 |
+| T1 调用点命中 | 118  | Manager 真实发起请求             |
+| T2 构造命中   | 810  | 有路径构造器，无精确调用点       |
+| T3 仅声明     | 79   | route-table 有常量、仓内无调用方 |
 | 漂移          | 0    | 末段签名一致、前缀/版本不同      |
-| 缺口          | 62   | 三级证据全无                     |
+| 缺口          | 30   | 三级证据全无                     |
 
 ### 1.2 处置清单（按优先级）
 
 | 优先级 | 动作                                                         | 为什么                                                                                                                                  | 验证方式                                               |
 | ------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
-| **P0** | 刷新 SDK 底座：`pnpm contract:sync && pnpm contract:codegen` | SDK 镜像已落后后端 **0** 条（镜像停留在 `14f892e3`）。底座不刷新时，codegen 渲染的 route-table 与"真相"不一致，任何覆盖率数字都不可信。 | 重跑本脚本，§1.4 归零                                  |
+| **P0** | 刷新 SDK 底座：`pnpm contract:sync && pnpm contract:codegen` | SDK 镜像已落后后端 **2** 条（镜像停留在 `c7c9116d`）。底座不刷新时，codegen 渲染的 route-table 与"真相"不一致，任何覆盖率数字都不可信。 | 重跑本脚本，§1.4 归零                                  |
 | **P1** | 补 0 条客户端面真缺口（§2）                                  | 已被人工核实为「后端有、SDK 完全无」。其中 `admin/room/{id}/redact` 属运维面，可先确认是否由前端直连。                                  | 补完后 §2 归零；`pnpm quality:manager-codegen` 仍绿    |
 | **P1** | 对照 Sprint 4 交付范围核实 MSC4155 / MSC4156（§7）           | 两个不稳定端点在本仓 `src` 中 **0 命中**，与「Sprint 4 已交付」的记忆不一致；需确认是只交付了后端，还是前端走了 `relations` 自建实现。  | `grep -rn "msc4155\\                                   | msc4156" src --include='\*.ts' \| grep -v **generated**` |
-| **P2** | 清理 §3 的 479 条 T2 弱证据                                  | 这些端点只有构造点、没有可静态求值的调用点，混着「变量路径（真已封装）」与「死构造器（真问题）」两类。                                  | 按 §3 结论逐模块抽查，把确认已封装的补进 §7 人工复核表 |
+| **P2** | 清理 §3 的 511 条 T2 弱证据                                  | 这些端点只有构造点、没有可静态求值的调用点，混着「变量路径（真已封装）」与「死构造器（真问题）」两类。                                  | 按 §3 结论逐模块抽查，把确认已封装的补进 §7 人工复核表 |
 | **P3** | 把 §7 人工复核结论回写进 `contract-module-map`/审计文档      | 让下轮审计不必重复人工判断；同时 §7.1 的解析器盲区可作为下一版生成器的待办。                                                            | 本轮结束后重跑，§7 结论与 §2/§3.5 不冲突               |
 
 ### 1.3 缺口按范围拆分（决定该不该补）
 
 | 范围          | 条数   | 是否应在 SDK 封装     |
 | ------------- | ------ | --------------------- |
-| `SERVER_ONLY` | **62** | ❌ 否 — 服务端/运维面 |
+| `SERVER_ONLY` | **30** | ❌ 否 — 服务端/运维面 |
 
 ### 1.4 底座漂移（后端已注册、SDK 镜像未收录）
 
-✅ 无漂移。
+SDK 镜像落后后端 **2** 条（镜像 1036 条 @ `c7c9116d`，`generated_at=2026-05-02T00:00:00Z`）。
+后果：这些路由在 SDK 侧连**声明**都没有，codegen 也渲染不出来。修复：`pnpm contract:sync && pnpm contract:codegen`。
+
+| 后端模块      | 条数 |
+| ------------- | ---- |
+| `app_service` | 2    |
+
+<details><summary>展开逐条（2 条）</summary>
+
+| Method | Path                                                               | registered_by | 范围            |
+| ------ | ------------------------------------------------------------------ | ------------- | --------------- |
+| `POST` | `/_matrix/client/unstable/io.element.msc4512/appservice/fed_proxy` | `app_service` | `CLIENT_FACING` |
+| `POST` | `/_matrix/client/v1/appservice/fed_proxy`                          | `app_service` | `CLIENT_FACING` |
+
+</details>
 
 ---
 
@@ -108,7 +122,7 @@
 
 ---
 
-## 3. 仅构造证据（T2，无精确调用点）— 客户端面 479 条
+## 3. 仅构造证据（T2，无精确调用点）— 客户端面 511 条
 
 这些路由在 `src` 里有路径构造器，但解析器**没有**看到把对应前缀用上去的调用点。两种可能：
 (a) 调用点路径是变量（L2 无法静态求值）→ **实际已封装**，属解析误报；
@@ -124,7 +138,7 @@
 | 后端模块             | 条数 |
 | -------------------- | ---- |
 | `room`               | 87   |
-| `assembly`           | 59   |
+| `assembly`           | 58   |
 | `key_backup`         | 46   |
 | `friend_room`        | 28   |
 | `space`              | 26   |
@@ -141,20 +155,25 @@
 | `search`             | 8    |
 | `saml`               | 8    |
 | `oidc`               | 7    |
+| `cas`                | 7    |
+| `key_rotation`       | 7    |
 | `burn_after_read`    | 7    |
 | `rendezvous`         | 6    |
 | `moderation`         | 6    |
 | `device`             | 6    |
 | `typing`             | 5    |
+| `thirdparty`         | 5    |
+| `dm`                 | 5    |
 | `sliding_sync`       | 4    |
+| `dehydrated_device`  | 4    |
+| `delayed_events`     | 4    |
 | `tags`               | 4    |
 | `push_notification`  | 4    |
+| `invite_blocklist`   | 4    |
+| `app_service`        | 3    |
 | `guest`              | 3    |
 | `captcha`            | 3    |
 | `external_service`   | 3    |
-| `delayed_events`     | 2    |
-| `cas`                | 2    |
-| `thirdparty`         | 2    |
 | `msc4108_rendezvous` | 1    |
 | `sync`               | 1    |
 | `ephemeral`          | 1    |
@@ -164,27 +183,27 @@
 
 | Method   | Path                                                                                     | 构造证据                                                                                                            |
 | -------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events`              | `src/room-summary/sub-managers/room-event-operation-manager.ts:773` (/rooms/$roomId/sticky_events)                  |
-| `POST`   | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events`              | `src/room-summary/sub-managers/room-event-operation-manager.ts:773` (/rooms/$roomId/sticky_events)                  |
-| `DELETE` | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events/{event_type}` | `src/room-summary/sub-managers/room-event-operation-manager.ts:811` (/rooms/$roomId/sticky_events/$eventType)       |
-| `GET`    | `/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms`                        | `src/server-capabilities/index.ts:424` (/uk.half-shot.msc2666/user/mutual_rooms)                                    |
-| `GET`    | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:825` (/rooms/$roomId/state/m.room.power_levels/)     |
-| `PUT`    | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:825` (/rooms/$roomId/state/m.room.power_levels/)     |
+| `GET`    | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events`              | `src/room-summary/sub-managers/room-event-operation-manager.ts:944` (/rooms/$roomId/sticky_events)                  |
+| `POST`   | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events`              | `src/room-summary/sub-managers/room-event-operation-manager.ts:944` (/rooms/$roomId/sticky_events)                  |
+| `DELETE` | `/_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events/{event_type}` | `src/room-summary/sub-managers/room-event-operation-manager.ts:991` (/rooms/$roomId/sticky_events/$eventType)       |
+| `GET`    | `/_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms`                        | `src/server-capabilities/index.ts:536` (/uk.half-shot.msc2666/user/mutual_rooms)                                    |
+| `GET`    | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:1010` (/rooms/$roomId/state/m.room.power_levels/)    |
+| `PUT`    | `/_matrix/client/v1/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:1010` (/rooms/$roomId/state/m.room.power_levels/)    |
 | `POST`   | `/_matrix/client/v3/createRoom`                                                          | ⚠️ `src/http-api/fetch.ts:139` (/createRoom)                                                                        |
-| `POST`   | `/_matrix/client/v3/join/{room_id_or_alias}`                                             | `src/room/RoomManager.ts:434` (/join/{})                                                                            |
-| `POST`   | `/_matrix/client/v3/knock/{room_id_or_alias}`                                            | `src/room/RoomManager.ts:465` (/knock/{})                                                                           |
-| `GET`    | `/_matrix/client/v3/rooms/{room_id}`                                                     | `src/admin/sub-managers/admin-room-manager.ts:147` (/rooms/{})                                                      |
-| `GET`    | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}`                                 | `src/room/RoomManager.ts:1017` (/rooms/$roomId/account_data/$type)                                                  |
-| `PUT`    | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}`                                 | `src/room/RoomManager.ts:1017` (/rooms/$roomId/account_data/$type)                                                  |
-| `POST`   | `/_matrix/client/v3/rooms/{room_id}/ban`                                                 | `src/room-member/index.ts:108` (/rooms/$roomId/ban)                                                                 |
+| `POST`   | `/_matrix/client/v3/join/{room_id_or_alias}`                                             | `src/room/RoomManager.ts:556` (/join/{})                                                                            |
+| `POST`   | `/_matrix/client/v3/knock/{room_id_or_alias}`                                            | `src/room/RoomManager.ts:601` (/knock/{})                                                                           |
+| `GET`    | `/_matrix/client/v3/rooms/{room_id}`                                                     | `src/admin/sub-managers/admin-room-manager.ts:188` (/rooms/{})                                                      |
+| `GET`    | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}`                                 | `src/room/RoomManager.ts:1502` (/rooms/$roomId/account_data/$type)                                                  |
+| `PUT`    | `/_matrix/client/v3/rooms/{room_id}/account_data/{type}`                                 | `src/room/RoomManager.ts:1502` (/rooms/$roomId/account_data/$type)                                                  |
+| `POST`   | `/_matrix/client/v3/rooms/{room_id}/ban`                                                 | `src/room-member/index.ts:153` (/rooms/$roomId/ban)                                                                 |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/event/{event_id}`                                    | `src/client-batch-requests.ts:68` (/rooms/$roomId/event/$eventId)                                                   |
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/forget`                                              | `src/client-membership.ts:54` (/rooms/$room_id/forget)                                                              |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/initialSync`                                         | `src/client-batch-requests.ts:119` (/rooms/$roomId/initialSync)                                                     |
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/invite`                                              | `src/client-membership.ts:43` (/rooms/$roomId/invite)                                                               |
-| `POST`   | `/_matrix/client/v3/rooms/{room_id}/join`                                                | `src/admin/sub-managers/admin-room-manager.ts:599` (/rooms/{}/join)                                                 |
+| `POST`   | `/_matrix/client/v3/rooms/{room_id}/join`                                                | `src/admin/sub-managers/admin-room-manager.ts:903` (/rooms/{}/join)                                                 |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/joined_members`                                      | `src/client-batch-requests.ts:91` (/rooms/$roomId/joined_members)                                                   |
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/kick`                                                | `src/client-membership.ts:62` (/rooms/$roomId/kick)                                                                 |
-| `POST`   | `/_matrix/client/v3/rooms/{room_id}/leave`                                               | `src/room/RoomManager.ts:510` (/rooms/{}/leave)                                                                     |
+| `POST`   | `/_matrix/client/v3/rooms/{room_id}/leave`                                               | `src/room/RoomManager.ts:650` (/rooms/{}/leave)                                                                     |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/members`                                             | `src/client-batch-requests.ts:83` (/rooms/$roomId/members?)                                                         |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/messages`                                            | `src/client-timeline-requests.ts:7` (/rooms/$roomId/messages)                                                       |
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/read_markers`                                        | `src/client-batch-requests.ts:103` (/rooms/$roomId/read_markers)                                                    |
@@ -194,8 +213,8 @@
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`                          | `src/client-send-paths.ts:43` (/rooms/$roomId/send/$eventType/$txnId)                                               |
 | `PUT`    | `/_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`                          | `src/client-send-paths.ts:43` (/rooms/$roomId/send/$eventType/$txnId)                                               |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/state`                                               | `src/client-batch-requests.ts:39` (/rooms/$roomId/state)                                                            |
-| `GET`    | `/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:825` (/rooms/$roomId/state/m.room.power_levels/)     |
-| `PUT`    | `/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:825` (/rooms/$roomId/state/m.room.power_levels/)     |
+| `GET`    | `/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:1010` (/rooms/$roomId/state/m.room.power_levels/)    |
+| `PUT`    | `/_matrix/client/v3/rooms/{room_id}/state/m.room.power_levels/`                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:1010` (/rooms/$roomId/state/m.room.power_levels/)    |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/state/{event_type}`                                  | `src/client-batch-requests.ts:51` (/rooms/$roomId/state/$eventType)                                                 |
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/state/{event_type}`                                  | `src/client-batch-requests.ts:51` (/rooms/$roomId/state/$eventType)                                                 |
 | `PUT`    | `/_matrix/client/v3/rooms/{room_id}/state/{event_type}`                                  | `src/client-batch-requests.ts:51` (/rooms/$roomId/state/$eventType)                                                 |
@@ -203,120 +222,119 @@
 | `PUT`    | `/_matrix/client/v3/rooms/{room_id}/state/{event_type}/`                                 | `src/client-batch-requests.ts:51` (/rooms/$roomId/state/$eventType)                                                 |
 | `GET`    | `/_matrix/client/v3/rooms/{room_id}/state/{event_type}/{state_key}`                      | `src/client-send-paths.ts:31` (/rooms/$roomId/state/$eventType/$stateKey)                                           |
 | `PUT`    | `/_matrix/client/v3/rooms/{room_id}/state/{event_type}/{state_key}`                      | `src/client-send-paths.ts:31` (/rooms/$roomId/state/$eventType/$stateKey)                                           |
-| `GET`    | `/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}`                                 | `src/room-summary/sub-managers/room-thread-manager.ts:110` (/rooms/$roomId/threads/$threadId)                       |
+| `GET`    | `/_matrix/client/v3/rooms/{room_id}/threads/{thread_id}`                                 | `src/room-summary/sub-managers/room-thread-manager.ts:131` (/rooms/$roomId/threads/$threadId)                       |
 | `POST`   | `/_matrix/client/v3/rooms/{room_id}/unban`                                               | `src/client-membership.ts:58` (/rooms/$roomId/unban)                                                                |
-| `POST`   | `/_matrix/client/v3/rooms/{room_id}/upgrade`                                             | `src/room/RoomManager.ts:1235` (/rooms/{}/upgrade)                                                                  |
-| `POST`   | `/_matrix/vendor/v1/rooms/create_private`                                                | `src/room/RoomManager.ts:392` (/rooms/create_private)                                                               |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/capabilities`                                        | `src/room-summary/sub-managers/room-event-operation-manager.ts:186` (/rooms/$roomId/capabilities)                   |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/convert/{event_id}`                                  | `src/room-summary/sub-managers/room-event-operation-manager.ts:649` (/rooms/$roomId/convert/$eventId)               |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/device/{device_id}`                                  | `src/room-summary/sub-managers/room-event-operation-manager.ts:568` (/rooms/$roomId/device/$deviceId)               |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/encrypted_events`                                    | `src/room-summary/sub-managers/room-key-manager.ts:165` (/rooms/$roomId/encrypted_events)                           |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/event/{event_id}/url`                                | `src/room-summary/sub-managers/room-event-operation-manager.ts:590` (/rooms/$roomId/event/$eventId/url)             |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/event_perspective`                                   | `src/room-summary/sub-managers/room-event-operation-manager.ts:442` (/rooms/$roomId/event_perspective)              |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/external_ids`                                        | `src/room-summary/sub-managers/room-event-operation-manager.ts:408` (/rooms/$roomId/external_ids)                   |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/fragments/{user_id}`                                 | `src/room-summary/sub-managers/room-event-operation-manager.ts:546` (/rooms/$roomId/fragments/$userId)              |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/get_membership_events`                               | `src/room-member/index.ts:155` (/rooms/$roomId/get_membership_events)                                               |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/invites`                                             | `src/room-summary/sub-managers/room-event-operation-manager.ts:260` (/rooms/$roomId/invites)                        |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys`                                                | `src/room-summary/sub-managers/room-key-manager.ts:107` (/rooms/$roomId/keys)                                       |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/keys/claim`                                          | `src/room-summary/sub-managers/room-key-manager.ts:62` (/rooms/$roomId/keys/claim)                                  |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys/count`                                          | `src/room-summary/sub-managers/room-key-manager.ts:80` (/rooms/$roomId/keys/count)                                  |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys/version`                                        | `src/room-summary/sub-managers/room-key-manager.ts:123` (/rooms/$roomId/keys/version)                               |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys/{event_id}`                                     | `src/room-summary/sub-managers/room-thread-manager.ts:56` (/rooms/$roomId/keys/$eventId)                            |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/members/recent`                                      | `src/room-summary/sub-managers/room-member-manager.ts:202` (/rooms/$roomId/members/recent)                          |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/membership/{user_id}`                                | `src/room/RoomManager.ts:621` (/rooms/{}/membership/{})                                                             |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/message_queue`                                       | `src/room-summary/sub-managers/room-event-operation-manager.ts:492` (/rooms/$roomId/message_queue)                  |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/metadata`                                            | `src/room-summary/sub-managers/room-event-operation-manager.ts:344` (/rooms/$roomId/metadata)                       |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/notifications`                                       | `src/room-summary/sub-managers/room-event-operation-manager.ts:159` (/rooms/$roomId/notifications)                  |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/permissions`                                         | `src/room-summary/sub-managers/room-event-operation-manager.ts:459` (/rooms/$roomId/permissions)                    |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/receipts/{receipt_type}/{event_id}`                  | `src/room-summary/sub-managers/room-event-operation-manager.ts:278` (/rooms/$roomId/receipts/$receiptType/$eventId) |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/reduced_events`                                      | `src/room-summary/sub-managers/room-event-operation-manager.ts:518` (/rooms/$roomId/reduced_events)                 |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/rendered/`                                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:530` (/rooms/$roomId/rendered/)                      |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/resolve`                                             | `src/room-summary/sub-managers/room-event-operation-manager.ts:471` (/rooms/$roomId/resolve)                        |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/retention`                                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:396` (/rooms/$roomId/retention)                      |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/room_keys/keys`                                      | `src/room-summary/sub-managers/room-key-manager.ts:140` (/rooms/$roomId/room_keys/keys)                             |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/search`                                              | `src/room-summary/sub-managers/room-search-manager.ts:240` (/rooms/$roomId/search)                                  |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/service_types`                                       | `src/room-summary/sub-managers/room-event-operation-manager.ts:506` (/rooms/$roomId/service_types)                  |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/sign/{event_id}`                                     | `src/room-summary/sub-managers/room-event-operation-manager.ts:674` (/rooms/$roomId/sign/$eventId)                  |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/spaces`                                              | `src/room-summary/sub-managers/room-event-operation-manager.ts:420` (/rooms/$roomId/spaces)                         |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/sync`                                                | `src/room-summary/sub-managers/room-event-operation-manager.ts:209` (/rooms/$roomId/sync)                           |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/thread/{event_id}`                                   | `src/room-summary/sub-managers/room-thread-manager.ts:83` (/rooms/$roomId/thread/$eventId)                          |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/timeline`                                            | `src/room-summary/sub-managers/room-event-operation-manager.ts:307` (/rooms/$roomId/timeline)                       |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/translate/{event_id}`                                | `src/room-summary/sub-managers/room-event-operation-manager.ts:620` (/rooms/$roomId/translate/$eventId)             |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/turn_server`                                         | `src/room-summary/sub-managers/room-event-operation-manager.ts:721` (/rooms/$roomId/turn_server)                    |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/unread_count`                                        | `src/room-summary/sub-managers/room-event-operation-manager.ts:323` (/rooms/$roomId/unread_count)                   |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/vault_data`                                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:364` (/rooms/$roomId/vault_data)                     |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/vault_data`                                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:364` (/rooms/$roomId/vault_data)                     |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/verify/{event_id}`                                   | `src/room-summary/sub-managers/room-event-operation-manager.ts:703` (/rooms/$roomId/verify/$eventId)                |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/version`                                             | `src/admin/sub-managers/admin-room-manager.ts:496` (/rooms/{}/version)                                              |
-| `POST`   | `/_matrix/vendor/v1/translate`                                                           | ⚠️ `src/room/RoomManager.ts:896` (/translate)                                                                       |
-| `GET`    | `/_matrix/vendor/v1/user/mutual_rooms`                                                   | `src/room/RoomManager.ts:1124` (/user/mutual_rooms)                                                                 |
-| `GET`    | `/_matrix/vendor/v1/user/{user_id}/rooms`                                                | `src/room/RoomManager.ts:1082` (/user/{}/rooms)                                                                     |
+| `POST`   | `/_matrix/client/v3/rooms/{room_id}/upgrade`                                             | `src/room/RoomManager.ts:1833` (/rooms/{}/upgrade)                                                                  |
+| `POST`   | `/_matrix/vendor/v1/rooms/create_private`                                                | `src/room/RoomManager.ts:497` (/\_matrix/vendor/v1/rooms/create_private)                                            |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/capabilities`                                        | `src/room-summary/sub-managers/room-event-operation-manager.ts:196` (/rooms/$roomId/capabilities)                   |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/convert/{event_id}`                                  | `src/room-summary/sub-managers/room-event-operation-manager.ts:789` (/rooms/$roomId/convert/$eventId)               |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/device/{device_id}`                                  | `src/room-summary/sub-managers/room-event-operation-manager.ts:690` (/rooms/$roomId/device/$deviceId)               |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/encrypted_events`                                    | `src/room-summary/sub-managers/room-key-manager.ts:196` (/rooms/$roomId/encrypted_events)                           |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/event/{event_id}/url`                                | `src/room-summary/sub-managers/room-event-operation-manager.ts:718` (/rooms/$roomId/event/$eventId/url)             |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/event_perspective`                                   | `src/room-summary/sub-managers/room-event-operation-manager.ts:523` (/rooms/$roomId/event_perspective)              |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/external_ids`                                        | `src/room-summary/sub-managers/room-event-operation-manager.ts:479` (/rooms/$roomId/external_ids)                   |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/fragments/{user_id}`                                 | `src/room-summary/sub-managers/room-event-operation-manager.ts:662` (/rooms/$roomId/fragments/$userId)              |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/get_membership_events`                               | `src/room-member/index.ts:225` (/rooms/$roomId/get_membership_events)                                               |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/invites`                                             | `src/room-summary/sub-managers/room-event-operation-manager.ts:291` (/rooms/$roomId/invites)                        |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys`                                                | `src/room-summary/sub-managers/room-key-manager.ts:119` (/rooms/$roomId/keys)                                       |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/keys/claim`                                          | `src/room-summary/sub-managers/room-key-manager.ts:69` (/rooms/$roomId/keys/claim)                                  |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys/count`                                          | `src/room-summary/sub-managers/room-key-manager.ts:92` (/rooms/$roomId/keys/count)                                  |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys/version`                                        | `src/room-summary/sub-managers/room-key-manager.ts:140` (/rooms/$roomId/keys/version)                               |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/keys/{event_id}`                                     | `src/room-summary/sub-managers/room-thread-manager.ts:63` (/rooms/$roomId/keys/$eventId)                            |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/members/recent`                                      | `src/room-summary/sub-managers/room-member-manager.ts:235` (/rooms/$roomId/members/recent)                          |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/membership/{user_id}`                                | `src/room/RoomManager.ts:818` (/rooms/{}/membership/{})                                                             |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/message_queue`                                       | `src/room-summary/sub-managers/room-event-operation-manager.ts:588` (/rooms/$roomId/message_queue)                  |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/metadata`                                            | `src/room-summary/sub-managers/room-event-operation-manager.ts:396` (/rooms/$roomId/metadata)                       |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/notifications`                                       | `src/room-summary/sub-managers/room-event-operation-manager.ts:164` (/rooms/$roomId/notifications)                  |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/permissions`                                         | `src/room-summary/sub-managers/room-event-operation-manager.ts:545` (/rooms/$roomId/permissions)                    |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/receipts/{receipt_type}/{event_id}`                  | `src/room-summary/sub-managers/room-event-operation-manager.ts:315` (/rooms/$roomId/receipts/$receiptType/$eventId) |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/reduced_events`                                      | `src/room-summary/sub-managers/room-event-operation-manager.ts:624` (/rooms/$roomId/reduced_events)                 |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/rendered/`                                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:641` (/rooms/$roomId/rendered/)                      |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/resolve`                                             | `src/room-summary/sub-managers/room-event-operation-manager.ts:562` (/rooms/$roomId/resolve)                        |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/retention`                                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:462` (/rooms/$roomId/retention)                      |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/room_keys/keys`                                      | `src/room-summary/sub-managers/room-key-manager.ts:164` (/rooms/$roomId/room_keys/keys)                             |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/search`                                              | `src/room-summary/sub-managers/room-search-manager.ts:275` (/rooms/$roomId/search)                                  |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/service_types`                                       | `src/room-summary/sub-managers/room-event-operation-manager.ts:607` (/rooms/$roomId/service_types)                  |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/sign/{event_id}`                                     | `src/room-summary/sub-managers/room-event-operation-manager.ts:820` (/rooms/$roomId/sign/$eventId)                  |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/spaces`                                              | `src/room-summary/sub-managers/room-event-operation-manager.ts:496` (/rooms/$roomId/spaces)                         |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/sync`                                                | `src/room-summary/sub-managers/room-event-operation-manager.ts:224` (/rooms/$roomId/sync)                           |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/thread/{event_id}`                                   | `src/room-summary/sub-managers/room-thread-manager.ts:97` (/rooms/$roomId/thread/$eventId)                          |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/timeline`                                            | `src/room-summary/sub-managers/room-event-operation-manager.ts:349` (/rooms/$roomId/timeline)                       |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/translate/{event_id}`                                | `src/room-summary/sub-managers/room-event-operation-manager.ts:754` (/rooms/$roomId/translate/$eventId)             |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/turn_server`                                         | `src/room-summary/sub-managers/room-event-operation-manager.ts:878` (/rooms/$roomId/turn_server)                    |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/unread_count`                                        | `src/room-summary/sub-managers/room-event-operation-manager.ts:370` (/rooms/$roomId/unread_count)                   |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/vault_data`                                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:421` (/rooms/$roomId/vault_data)                     |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/vault_data`                                          | `src/room-summary/sub-managers/room-event-operation-manager.ts:421` (/rooms/$roomId/vault_data)                     |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/verify/{event_id}`                                   | `src/room-summary/sub-managers/room-event-operation-manager.ts:855` (/rooms/$roomId/verify/$eventId)                |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/version`                                             | `src/admin/sub-managers/admin-room-manager.ts:692` (/rooms/{}/version)                                              |
+| `POST`   | `/_matrix/vendor/v1/translate`                                                           | ⚠️ `src/room/RoomManager.ts:1316` (/translate)                                                                      |
+| `GET`    | `/_matrix/vendor/v1/user/mutual_rooms`                                                   | `src/room/RoomManager.ts:1636` (/user/mutual_rooms)                                                                 |
+| `GET`    | `/_matrix/vendor/v1/user/{user_id}/rooms`                                                | `src/room/RoomManager.ts:1594` (/user/{}/rooms)                                                                     |
 
 </details>
 
-<details><summary><code>assembly</code> — 59 条</summary>
+<details><summary><code>assembly</code> — 58 条</summary>
 
-| Method   | Path                                                                                  | 构造证据                                                                                |
-| -------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `GET`    | `/.well-known/matrix/client`                                                          | `src/discovery/index.ts:140` (/.well-known/matrix/client)                               |
-| `GET`    | `/.well-known/matrix/server`                                                          | `src/discovery/index.ts:162` (/.well-known/matrix/server)                               |
-| `GET`    | `/.well-known/matrix/support`                                                         | `src/discovery/index.ts:173` (/.well-known/matrix/support)                              |
-| `GET`    | `/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events` | `src/rust-crypto/DehydratedDeviceManager.ts:269` (/dehydrated_device/$device_id/events) |
-| `GET`    | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}`                         | `src/client-profile-requests.ts:25` (/profile/$userId)                                  |
-| `DELETE` | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}`              | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `GET`    | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}`              | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `PUT`    | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}`              | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `GET`    | `/_matrix/client/v1/account/3pid`                                                     | `src/client-profile-requests.ts:136` (/account/3pid)                                    |
-| `POST`   | `/_matrix/client/v1/account/3pid`                                                     | `src/client-profile-requests.ts:136` (/account/3pid)                                    |
-| `POST`   | `/_matrix/client/v1/account/3pid/add`                                                 | `src/client-profile-requests.ts:143` (/account/3pid/add)                                |
-| `POST`   | `/_matrix/client/v1/account/3pid/bind`                                                | `src/client-profile-requests.ts:147` (/account/3pid/bind)                               |
-| `POST`   | `/_matrix/client/v1/account/3pid/delete`                                              | `src/client-profile-requests.ts:175` (/account/3pid/delete)                             |
-| `POST`   | `/_matrix/client/v1/account/3pid/email/requestToken`                                  | `src/auth/index.ts:630` (/account/3pid/email/requestToken)                              |
-| `POST`   | `/_matrix/client/v1/account/3pid/email/submitToken`                                   | `src/account/index.ts:54` (/account/3pid/email/submitToken)                             |
-| `POST`   | `/_matrix/client/v1/account/3pid/unbind`                                              | `src/client-profile-requests.ts:158` (/account/3pid/unbind)                             |
-| `POST`   | `/_matrix/client/v1/account/deactivate`                                               | `src/account/index.ts:327` (/account/deactivate)                                        |
-| `POST`   | `/_matrix/client/v1/account/password`                                                 | `src/guest/index.ts:299` (/account/password)                                            |
-| `POST`   | `/_matrix/client/v1/account/password/email/requestToken`                              | `src/password-reset/index.ts:51` (/account/password/email/requestToken)                 |
-| `POST`   | `/_matrix/client/v1/account/password/email/submitToken`                               | `src/account/index.ts:53` (/account/password/email/submitToken)                         |
-| `GET`    | `/_matrix/client/v1/account/whoami`                                                   | `src/auth/index.ts:551` (/account/whoami)                                               |
-| `GET`    | `/_matrix/client/v1/media/config`                                                     | `src/media/index.ts:202` (/media/config)                                                |
-| `GET`    | `/_matrix/client/v1/profile/{user_id}`                                                | `src/client-profile-requests.ts:25` (/profile/$userId)                                  |
-| `GET`    | `/_matrix/client/v1/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
-| `PUT`    | `/_matrix/client/v1/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
-| `GET`    | `/_matrix/client/v1/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
-| `PUT`    | `/_matrix/client/v1/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
-| `POST`   | `/_matrix/client/v3/account/3pid`                                                     | `src/client-profile-requests.ts:136` (/account/3pid)                                    |
-| `POST`   | `/_matrix/client/v3/account/3pid/email/requestToken`                                  | `src/auth/index.ts:630` (/account/3pid/email/requestToken)                              |
-| `POST`   | `/_matrix/client/v3/account/3pid/email/submitToken`                                   | `src/account/index.ts:54` (/account/3pid/email/submitToken)                             |
-| `POST`   | `/_matrix/client/v3/account/deactivate`                                               | `src/account/index.ts:327` (/account/deactivate)                                        |
-| `POST`   | `/_matrix/client/v3/account/password/email/requestToken`                              | `src/password-reset/index.ts:51` (/account/password/email/requestToken)                 |
-| `POST`   | `/_matrix/client/v3/account/password/email/submitToken`                               | `src/account/index.ts:53` (/account/password/email/submitToken)                         |
-| `GET`    | `/_matrix/client/v3/auth/{auth_type}/fallback/web`                                    | `src/account/index.ts:381` (/auth/$loginType/fallback/web)                              |
-| `GET`    | `/_matrix/client/v3/directory/list/room/{room_id}`                                    | `src/room/RoomManager.ts:1030` (/directory/list/room/{roomId})                          |
-| `PUT`    | `/_matrix/client/v3/directory/list/room/{room_id}`                                    | `src/room/RoomManager.ts:1030` (/directory/list/room/{roomId})                          |
-| `GET`    | `/_matrix/client/v3/directory/room/{room_id}/alias`                                   | `src/discovery/index.ts:348` (/directory/room/{}/alias)                                 |
-| `DELETE` | `/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}`                      | `src/discovery/index.ts:358` (/directory/room/{}/alias/{})                              |
-| `PUT`    | `/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}`                      | `src/discovery/index.ts:358` (/directory/room/{}/alias/{})                              |
-| `GET`    | `/_matrix/client/v3/login`                                                            | ⚠️ `src/account/index.ts:156` (/login)                                                  |
-| `POST`   | `/_matrix/client/v3/logout/all`                                                       | `src/account/index.ts:268` (/logout/all)                                                |
-| `GET`    | `/_matrix/client/v3/media/config`                                                     | `src/media/index.ts:202` (/media/config)                                                |
-| `GET`    | `/_matrix/client/v3/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
-| `PUT`    | `/_matrix/client/v3/profile/{user_id}/avatar_url`                                     | `src/profile/index.ts:147` (/profile/{}/avatar_url)                                     |
-| `GET`    | `/_matrix/client/v3/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
-| `PUT`    | `/_matrix/client/v3/profile/{user_id}/displayname`                                    | `src/profile/index.ts:148` (/profile/{}/displayname)                                    |
-| `DELETE` | `/_matrix/client/v3/profile/{user_id}/{key_name}`                                     | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `GET`    | `/_matrix/client/v3/profile/{user_id}/{key_name}`                                     | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `PUT`    | `/_matrix/client/v3/profile/{user_id}/{key_name}`                                     | `src/client-profile-requests.ts:29` (/profile/$userId/$field)                           |
-| `GET`    | `/_matrix/client/v3/register`                                                         | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:407` (/register)                     |
-| `POST`   | `/_matrix/client/v3/register/email/requestToken`                                      | `src/auth/index.ts:596` (/register/email/requestToken)                                  |
-| `POST`   | `/_matrix/client/v3/register/email/submitToken`                                       | `src/account/index.ts:52` (/register/email/submitToken)                                 |
-| `GET`    | `/_matrix/client/v3/rooms/{room_id}/call/{call_id}`                                   | `src/room/RoomManager.ts:876` (/rooms/{}/call/{})                                       |
-| `POST`   | `/_matrix/client/v3/user_directory/list`                                              | `src/discovery/index.ts:256` (/user_directory/list)                                     |
-| `GET`    | `/_matrix/client/v3/user_directory/profiles/{user_id}`                                | `src/discovery/index.ts:262` (/user_directory/profiles/{})                              |
-| `GET`    | `/_matrix/client/v3/voip/config`                                                      | `src/turn-server/index.ts:104` (/voip/config)                                           |
-| `POST`   | `/_matrix/client/v3/voip/turnServer`                                                  | `src/client.ts:3282` (/voip/turnServer)                                                 |
-| `GET`    | `/_matrix/client/v3/voip/turnServer/guest`                                            | `src/turn-server/index.ts:129` (/voip/turnServer/guest)                                 |
-| `GET`    | `/_matrix/server_version`                                                             | `src/discovery/index.ts:188` (/\_matrix/server_version)                                 |
+| Method   | Path                                                                     | 构造证据                                                                |
+| -------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `GET`    | `/.well-known/matrix/client`                                             | `src/discovery/index.ts:173` (/.well-known/matrix/client)               |
+| `GET`    | `/.well-known/matrix/server`                                             | `src/discovery/index.ts:217` (/.well-known/matrix/server)               |
+| `GET`    | `/.well-known/matrix/support`                                            | `src/discovery/index.ts:239` (/.well-known/matrix/support)              |
+| `GET`    | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}`            | `src/client-profile-requests.ts:25` (/profile/$userId)                  |
+| `DELETE` | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}` | `src/client-profile-requests.ts:29` (/profile/$userId/$field)           |
+| `GET`    | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}` | `src/client-profile-requests.ts:29` (/profile/$userId/$field)           |
+| `PUT`    | `/_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{key_name}` | `src/client-profile-requests.ts:29` (/profile/$userId/$field)           |
+| `GET`    | `/_matrix/client/v1/account/3pid`                                        | `src/client-profile-requests.ts:136` (/account/3pid)                    |
+| `POST`   | `/_matrix/client/v1/account/3pid`                                        | `src/client-profile-requests.ts:136` (/account/3pid)                    |
+| `POST`   | `/_matrix/client/v1/account/3pid/add`                                    | `src/client-profile-requests.ts:143` (/account/3pid/add)                |
+| `POST`   | `/_matrix/client/v1/account/3pid/bind`                                   | `src/client-profile-requests.ts:147` (/account/3pid/bind)               |
+| `POST`   | `/_matrix/client/v1/account/3pid/delete`                                 | `src/client-profile-requests.ts:175` (/account/3pid/delete)             |
+| `POST`   | `/_matrix/client/v1/account/3pid/email/requestToken`                     | `src/auth/index.ts:740` (/account/3pid/email/requestToken)              |
+| `POST`   | `/_matrix/client/v1/account/3pid/email/submitToken`                      | `src/account/index.ts:54` (/account/3pid/email/submitToken)             |
+| `POST`   | `/_matrix/client/v1/account/3pid/unbind`                                 | `src/client-profile-requests.ts:158` (/account/3pid/unbind)             |
+| `POST`   | `/_matrix/client/v1/account/deactivate`                                  | `src/account/index.ts:395` (/account/deactivate)                        |
+| `POST`   | `/_matrix/client/v1/account/password`                                    | `src/guest/index.ts:341` (/account/password)                            |
+| `POST`   | `/_matrix/client/v1/account/password/email/requestToken`                 | `src/password-reset/index.ts:69` (/account/password/email/requestToken) |
+| `POST`   | `/_matrix/client/v1/account/password/email/submitToken`                  | `src/account/index.ts:53` (/account/password/email/submitToken)         |
+| `GET`    | `/_matrix/client/v1/account/whoami`                                      | `src/auth/index.ts:632` (/account/whoami)                               |
+| `GET`    | `/_matrix/client/v1/media/config`                                        | `src/media/index.ts:215` (/media/config)                                |
+| `GET`    | `/_matrix/client/v1/profile/{user_id}`                                   | `src/client-profile-requests.ts:25` (/profile/$userId)                  |
+| `GET`    | `/_matrix/client/v1/profile/{user_id}/avatar_url`                        | `src/profile/index.ts:147` (/profile/{}/avatar_url)                     |
+| `PUT`    | `/_matrix/client/v1/profile/{user_id}/avatar_url`                        | `src/profile/index.ts:147` (/profile/{}/avatar_url)                     |
+| `GET`    | `/_matrix/client/v1/profile/{user_id}/displayname`                       | `src/profile/index.ts:148` (/profile/{}/displayname)                    |
+| `PUT`    | `/_matrix/client/v1/profile/{user_id}/displayname`                       | `src/profile/index.ts:148` (/profile/{}/displayname)                    |
+| `POST`   | `/_matrix/client/v3/account/3pid`                                        | `src/client-profile-requests.ts:136` (/account/3pid)                    |
+| `POST`   | `/_matrix/client/v3/account/3pid/email/requestToken`                     | `src/auth/index.ts:740` (/account/3pid/email/requestToken)              |
+| `POST`   | `/_matrix/client/v3/account/3pid/email/submitToken`                      | `src/account/index.ts:54` (/account/3pid/email/submitToken)             |
+| `POST`   | `/_matrix/client/v3/account/deactivate`                                  | `src/account/index.ts:395` (/account/deactivate)                        |
+| `POST`   | `/_matrix/client/v3/account/password/email/requestToken`                 | `src/password-reset/index.ts:69` (/account/password/email/requestToken) |
+| `POST`   | `/_matrix/client/v3/account/password/email/submitToken`                  | `src/account/index.ts:53` (/account/password/email/submitToken)         |
+| `GET`    | `/_matrix/client/v3/auth/{auth_type}/fallback/web`                       | `src/account/index.ts:463` (/auth/$loginType/fallback/web)              |
+| `GET`    | `/_matrix/client/v3/directory/list/room/{room_id}`                       | `src/room/RoomManager.ts:1515` (/directory/list/room/{roomId})          |
+| `PUT`    | `/_matrix/client/v3/directory/list/room/{room_id}`                       | `src/room/RoomManager.ts:1515` (/directory/list/room/{roomId})          |
+| `GET`    | `/_matrix/client/v3/directory/room/{room_id}/alias`                      | `src/discovery/index.ts:591` (/directory/room/{}/alias)                 |
+| `DELETE` | `/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}`         | `src/discovery/index.ts:612` (/directory/room/{}/alias/{})              |
+| `PUT`    | `/_matrix/client/v3/directory/room/{room_id}/alias/{room_alias}`         | `src/discovery/index.ts:612` (/directory/room/{}/alias/{})              |
+| `GET`    | `/_matrix/client/v3/login`                                               | ⚠️ `src/account/index.ts:186` (/login)                                  |
+| `POST`   | `/_matrix/client/v3/logout/all`                                          | `src/account/index.ts:327` (/logout/all)                                |
+| `GET`    | `/_matrix/client/v3/media/config`                                        | `src/media/index.ts:215` (/media/config)                                |
+| `GET`    | `/_matrix/client/v3/profile/{user_id}/avatar_url`                        | `src/profile/index.ts:147` (/profile/{}/avatar_url)                     |
+| `PUT`    | `/_matrix/client/v3/profile/{user_id}/avatar_url`                        | `src/profile/index.ts:147` (/profile/{}/avatar_url)                     |
+| `GET`    | `/_matrix/client/v3/profile/{user_id}/displayname`                       | `src/profile/index.ts:148` (/profile/{}/displayname)                    |
+| `PUT`    | `/_matrix/client/v3/profile/{user_id}/displayname`                       | `src/profile/index.ts:148` (/profile/{}/displayname)                    |
+| `DELETE` | `/_matrix/client/v3/profile/{user_id}/{key_name}`                        | `src/client-profile-requests.ts:29` (/profile/$userId/$field)           |
+| `GET`    | `/_matrix/client/v3/profile/{user_id}/{key_name}`                        | `src/client-profile-requests.ts:29` (/profile/$userId/$field)           |
+| `PUT`    | `/_matrix/client/v3/profile/{user_id}/{key_name}`                        | `src/client-profile-requests.ts:29` (/profile/$userId/$field)           |
+| `GET`    | `/_matrix/client/v3/register`                                            | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:565` (/register)     |
+| `POST`   | `/_matrix/client/v3/register/email/requestToken`                         | `src/auth/index.ts:694` (/register/email/requestToken)                  |
+| `POST`   | `/_matrix/client/v3/register/email/submitToken`                          | `src/account/index.ts:52` (/register/email/submitToken)                 |
+| `GET`    | `/_matrix/client/v3/rooms/{room_id}/call/{call_id}`                      | `src/room/RoomManager.ts:1292` (/rooms/{}/call/{})                      |
+| `POST`   | `/_matrix/client/v3/user_directory/list`                                 | `src/discovery/index.ts:413` (/user_directory/list)                     |
+| `GET`    | `/_matrix/client/v3/user_directory/profiles/{user_id}`                   | `src/discovery/index.ts:431` (/user_directory/profiles/{})              |
+| `GET`    | `/_matrix/client/v3/voip/config`                                         | `src/turn-server/index.ts:126` (/voip/config)                           |
+| `POST`   | `/_matrix/client/v3/voip/turnServer`                                     | `src/client.ts:4335` (/voip/turnServer)                                 |
+| `GET`    | `/_matrix/client/v3/voip/turnServer/guest`                               | `src/turn-server/index.ts:151` (/voip/turnServer/guest)                 |
+| `GET`    | `/_matrix/server_version`                                                | `src/discovery/index.ts:276` (/\_matrix/server_version)                 |
 
 </details>
 
@@ -324,35 +342,35 @@
 
 | Method   | Path                                                                    | 构造证据                                                                              |
 | -------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `POST`   | `/_matrix/client/v1/room_keys/batch_recover`                            | `src/key-backup/index.ts:544` (/room_keys/batch_recover)                              |
-| `GET`    | `/_matrix/client/v1/room_keys/export`                                   | `src/key-backup/index.ts:587` (/room_keys/export)                                     |
-| `GET`    | `/_matrix/client/v1/room_keys/export/{version}`                         | `src/key-backup/index.ts:587` (/room_keys/export/{})                                  |
-| `POST`   | `/_matrix/client/v1/room_keys/import`                                   | `src/key-backup/index.ts:602` (/room_keys/import)                                     |
-| `POST`   | `/_matrix/client/v1/room_keys/import/{version}`                         | `src/key-backup/index.ts:602` (/room_keys/import/{})                                  |
-| `DELETE` | `/_matrix/client/v1/room_keys/keys`                                     | `src/key-backup/index.ts:352` (/room_keys/keys)                                       |
-| `GET`    | `/_matrix/client/v1/room_keys/keys`                                     | `src/key-backup/index.ts:352` (/room_keys/keys)                                       |
-| `PUT`    | `/_matrix/client/v1/room_keys/keys`                                     | `src/key-backup/index.ts:352` (/room_keys/keys)                                       |
+| `POST`   | `/_matrix/client/v1/room_keys/batch_recover`                            | `src/key-backup/index.ts:819` (/room_keys/batch_recover)                              |
+| `GET`    | `/_matrix/client/v1/room_keys/export`                                   | `src/key-backup/index.ts:904` (/room_keys/export)                                     |
+| `GET`    | `/_matrix/client/v1/room_keys/export/{version}`                         | `src/key-backup/index.ts:904` (/room_keys/export/{})                                  |
+| `POST`   | `/_matrix/client/v1/room_keys/import`                                   | `src/key-backup/index.ts:934` (/room_keys/import)                                     |
+| `POST`   | `/_matrix/client/v1/room_keys/import/{version}`                         | `src/key-backup/index.ts:934` (/room_keys/import/{})                                  |
+| `DELETE` | `/_matrix/client/v1/room_keys/keys`                                     | `src/key-backup/index.ts:451` (/room_keys/keys)                                       |
+| `GET`    | `/_matrix/client/v1/room_keys/keys`                                     | `src/key-backup/index.ts:451` (/room_keys/keys)                                       |
+| `PUT`    | `/_matrix/client/v1/room_keys/keys`                                     | `src/key-backup/index.ts:451` (/room_keys/keys)                                       |
 | `DELETE` | `/_matrix/client/v1/room_keys/keys/{room_id}`                           | `src/key-backup-paths.ts:26` (/room_keys/keys/$roomId)                                |
 | `GET`    | `/_matrix/client/v1/room_keys/keys/{room_id}`                           | `src/key-backup-paths.ts:26` (/room_keys/keys/$roomId)                                |
 | `PUT`    | `/_matrix/client/v1/room_keys/keys/{room_id}`                           | `src/key-backup-paths.ts:26` (/room_keys/keys/$roomId)                                |
 | `DELETE` | `/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}`              | `src/key-backup-paths.ts:21` (/room_keys/keys/$roomId/$sessionId)                     |
 | `GET`    | `/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}`              | `src/key-backup-paths.ts:21` (/room_keys/keys/$roomId/$sessionId)                     |
 | `PUT`    | `/_matrix/client/v1/room_keys/keys/{room_id}/{session_id}`              | `src/key-backup-paths.ts:21` (/room_keys/keys/$roomId/$sessionId)                     |
-| `POST`   | `/_matrix/client/v1/room_keys/recover`                                  | `src/key-backup/index.ts:501` (/room_keys/recover)                                    |
-| `GET`    | `/_matrix/client/v1/room_keys/recover/{version}/{room_id}`              | `src/key-backup/index.ts:559` (/room_keys/recover/{}/{})                              |
-| `GET`    | `/_matrix/client/v1/room_keys/recover/{version}/{room_id}/{session_id}` | `src/key-backup/index.ts:574` (/room_keys/recover/{}/{}/{})                           |
-| `GET`    | `/_matrix/client/v1/room_keys/recovery/{version}/progress`              | `src/key-backup/index.ts:516` (/room_keys/recovery/{}/progress)                       |
-| `GET`    | `/_matrix/client/v1/room_keys/verify/{version}`                         | `src/key-backup/index.ts:530` (/room_keys/verify/{})                                  |
-| `GET`    | `/_matrix/client/v1/room_keys/version`                                  | `src/key-backup/index.ts:203` (/room_keys/version)                                    |
-| `POST`   | `/_matrix/client/v1/room_keys/version`                                  | `src/key-backup/index.ts:203` (/room_keys/version)                                    |
-| `DELETE` | `/_matrix/client/v1/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:691` (/room_keys/version/$version)                         |
-| `GET`    | `/_matrix/client/v1/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:691` (/room_keys/version/$version)                         |
-| `PUT`    | `/_matrix/client/v1/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:691` (/room_keys/version/$version)                         |
-| `POST`   | `/_matrix/client/v3/room_keys/batch_recover`                            | `src/key-backup/index.ts:544` (/room_keys/batch_recover)                              |
-| `GET`    | `/_matrix/client/v3/room_keys/export`                                   | `src/key-backup/index.ts:587` (/room_keys/export)                                     |
-| `GET`    | `/_matrix/client/v3/room_keys/export/{version}`                         | `src/key-backup/index.ts:587` (/room_keys/export/{})                                  |
-| `POST`   | `/_matrix/client/v3/room_keys/import`                                   | `src/key-backup/index.ts:602` (/room_keys/import)                                     |
-| `POST`   | `/_matrix/client/v3/room_keys/import/{version}`                         | `src/key-backup/index.ts:602` (/room_keys/import/{})                                  |
+| `POST`   | `/_matrix/client/v1/room_keys/recover`                                  | `src/key-backup/index.ts:735` (/room_keys/recover)                                    |
+| `GET`    | `/_matrix/client/v1/room_keys/recover/{version}/{room_id}`              | `src/key-backup/index.ts:848` (/room_keys/recover/{}/{})                              |
+| `GET`    | `/_matrix/client/v1/room_keys/recover/{version}/{room_id}/{session_id}` | `src/key-backup/index.ts:878` (/room_keys/recover/{}/{}/{})                           |
+| `GET`    | `/_matrix/client/v1/room_keys/recovery/{version}/progress`              | `src/key-backup/index.ts:763` (/room_keys/recovery/{}/progress)                       |
+| `GET`    | `/_matrix/client/v1/room_keys/verify/{version}`                         | `src/key-backup/index.ts:790` (/room_keys/verify/{})                                  |
+| `GET`    | `/_matrix/client/v1/room_keys/version`                                  | `src/key-backup/index.ts:212` (/room_keys/version)                                    |
+| `POST`   | `/_matrix/client/v1/room_keys/version`                                  | `src/key-backup/index.ts:212` (/room_keys/version)                                    |
+| `DELETE` | `/_matrix/client/v1/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:802` (/room_keys/version/$version)                         |
+| `GET`    | `/_matrix/client/v1/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:802` (/room_keys/version/$version)                         |
+| `PUT`    | `/_matrix/client/v1/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:802` (/room_keys/version/$version)                         |
+| `POST`   | `/_matrix/client/v3/room_keys/batch_recover`                            | `src/key-backup/index.ts:819` (/room_keys/batch_recover)                              |
+| `GET`    | `/_matrix/client/v3/room_keys/export`                                   | `src/key-backup/index.ts:904` (/room_keys/export)                                     |
+| `GET`    | `/_matrix/client/v3/room_keys/export/{version}`                         | `src/key-backup/index.ts:904` (/room_keys/export/{})                                  |
+| `POST`   | `/_matrix/client/v3/room_keys/import`                                   | `src/key-backup/index.ts:934` (/room_keys/import)                                     |
+| `POST`   | `/_matrix/client/v3/room_keys/import/{version}`                         | `src/key-backup/index.ts:934` (/room_keys/import/{})                                  |
 | `DELETE` | `/_matrix/client/v3/room_keys/keys`                                     | `src/rust-crypto/OutgoingRequestProcessor.ts:78` (/\_matrix/client/v3/room_keys/keys) |
 | `PUT`    | `/_matrix/client/v3/room_keys/keys`                                     | `src/rust-crypto/OutgoingRequestProcessor.ts:78` (/\_matrix/client/v3/room_keys/keys) |
 | `DELETE` | `/_matrix/client/v3/room_keys/keys/{room_id}`                           | `src/key-backup-paths.ts:26` (/room_keys/keys/$roomId)                                |
@@ -361,15 +379,15 @@
 | `DELETE` | `/_matrix/client/v3/room_keys/keys/{room_id}/{session_id}`              | `src/key-backup-paths.ts:21` (/room_keys/keys/$roomId/$sessionId)                     |
 | `GET`    | `/_matrix/client/v3/room_keys/keys/{room_id}/{session_id}`              | `src/key-backup-paths.ts:21` (/room_keys/keys/$roomId/$sessionId)                     |
 | `PUT`    | `/_matrix/client/v3/room_keys/keys/{room_id}/{session_id}`              | `src/key-backup-paths.ts:21` (/room_keys/keys/$roomId/$sessionId)                     |
-| `POST`   | `/_matrix/client/v3/room_keys/recover`                                  | `src/key-backup/index.ts:501` (/room_keys/recover)                                    |
-| `GET`    | `/_matrix/client/v3/room_keys/recover/{version}/{room_id}`              | `src/key-backup/index.ts:559` (/room_keys/recover/{}/{})                              |
-| `GET`    | `/_matrix/client/v3/room_keys/recover/{version}/{room_id}/{session_id}` | `src/key-backup/index.ts:574` (/room_keys/recover/{}/{}/{})                           |
-| `GET`    | `/_matrix/client/v3/room_keys/recovery/{version}/progress`              | `src/key-backup/index.ts:516` (/room_keys/recovery/{}/progress)                       |
-| `GET`    | `/_matrix/client/v3/room_keys/verify/{version}`                         | `src/key-backup/index.ts:530` (/room_keys/verify/{})                                  |
-| `GET`    | `/_matrix/client/v3/room_keys/version`                                  | `src/key-backup/index.ts:203` (/room_keys/version)                                    |
-| `DELETE` | `/_matrix/client/v3/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:691` (/room_keys/version/$version)                         |
-| `GET`    | `/_matrix/client/v3/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:691` (/room_keys/version/$version)                         |
-| `PUT`    | `/_matrix/client/v3/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:691` (/room_keys/version/$version)                         |
+| `POST`   | `/_matrix/client/v3/room_keys/recover`                                  | `src/key-backup/index.ts:735` (/room_keys/recover)                                    |
+| `GET`    | `/_matrix/client/v3/room_keys/recover/{version}/{room_id}`              | `src/key-backup/index.ts:848` (/room_keys/recover/{}/{})                              |
+| `GET`    | `/_matrix/client/v3/room_keys/recover/{version}/{room_id}/{session_id}` | `src/key-backup/index.ts:878` (/room_keys/recover/{}/{}/{})                           |
+| `GET`    | `/_matrix/client/v3/room_keys/recovery/{version}/progress`              | `src/key-backup/index.ts:763` (/room_keys/recovery/{}/progress)                       |
+| `GET`    | `/_matrix/client/v3/room_keys/verify/{version}`                         | `src/key-backup/index.ts:790` (/room_keys/verify/{})                                  |
+| `GET`    | `/_matrix/client/v3/room_keys/version`                                  | `src/key-backup/index.ts:212` (/room_keys/version)                                    |
+| `DELETE` | `/_matrix/client/v3/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:802` (/room_keys/version/$version)                         |
+| `GET`    | `/_matrix/client/v3/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:802` (/room_keys/version/$version)                         |
+| `PUT`    | `/_matrix/client/v3/room_keys/version/{version}`                        | `src/rust-crypto/backup.ts:802` (/room_keys/version/$version)                         |
 
 </details>
 
@@ -379,30 +397,30 @@
 | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `GET`    | `/_matrix/vendor/v1/friends`                                    | ⚠️ `src/friend/sub-managers/friend-list-manager.ts:119` (/friends)                   |
 | `POST`   | `/_matrix/vendor/v1/friends`                                    | ⚠️ `src/friend/sub-managers/friend-list-manager.ts:119` (/friends)                   |
-| `GET`    | `/_matrix/vendor/v1/friends/check/{user_id}`                    | `src/friend/sub-managers/friend-list-manager.ts:272` (/friends/check/{})             |
-| `GET`    | `/_matrix/vendor/v1/friends/dm/{user_id}`                       | `src/friend/sub-managers/friend-list-manager.ts:575` (/friends/dm/{})                |
-| `POST`   | `/_matrix/vendor/v1/friends/dm/{user_id}`                       | `src/friend/sub-managers/friend-list-manager.ts:575` (/friends/dm/{})                |
-| `GET`    | `/_matrix/vendor/v1/friends/groups`                             | `src/friend/sub-managers/friend-list-manager.ts:333` (/friends/groups)               |
-| `POST`   | `/_matrix/vendor/v1/friends/groups`                             | `src/friend/sub-managers/friend-list-manager.ts:333` (/friends/groups)               |
-| `DELETE` | `/_matrix/vendor/v1/friends/groups/{group_id}`                  | `src/friend/sub-managers/friend-list-manager.ts:416` (/friends/groups/{})            |
-| `POST`   | `/_matrix/vendor/v1/friends/groups/{group_id}/add/{user_id}`    | `src/friend/sub-managers/friend-list-manager.ts:390` (/friends/groups/{}/add/{})     |
-| `GET`    | `/_matrix/vendor/v1/friends/groups/{group_id}/friends`          | `src/friend/sub-managers/friend-list-manager.ts:447` (/friends/groups/{}/friends)    |
-| `PUT`    | `/_matrix/vendor/v1/friends/groups/{group_id}/name`             | `src/friend/sub-managers/friend-list-manager.ts:433` (/friends/groups/{}/name)       |
-| `DELETE` | `/_matrix/vendor/v1/friends/groups/{group_id}/remove/{user_id}` | `src/friend/sub-managers/friend-list-manager.ts:403` (/friends/groups/{}/remove/{})  |
+| `GET`    | `/_matrix/vendor/v1/friends/check/{user_id}`                    | `src/friend/sub-managers/friend-list-manager.ts:326` (/friends/check/{})             |
+| `GET`    | `/_matrix/vendor/v1/friends/dm/{user_id}`                       | `src/friend/sub-managers/friend-list-manager.ts:842` (/friends/dm/{})                |
+| `POST`   | `/_matrix/vendor/v1/friends/dm/{user_id}`                       | `src/friend/sub-managers/friend-list-manager.ts:842` (/friends/dm/{})                |
+| `GET`    | `/_matrix/vendor/v1/friends/groups`                             | `src/friend/sub-managers/friend-list-manager.ts:435` (/friends/groups)               |
+| `POST`   | `/_matrix/vendor/v1/friends/groups`                             | `src/friend/sub-managers/friend-list-manager.ts:435` (/friends/groups)               |
+| `DELETE` | `/_matrix/vendor/v1/friends/groups/{group_id}`                  | `src/friend/sub-managers/friend-list-manager.ts:563` (/friends/groups/{})            |
+| `POST`   | `/_matrix/vendor/v1/friends/groups/{group_id}/add/{user_id}`    | `src/friend/sub-managers/friend-list-manager.ts:516` (/friends/groups/{}/add/{})     |
+| `GET`    | `/_matrix/vendor/v1/friends/groups/{group_id}/friends`          | `src/friend/sub-managers/friend-list-manager.ts:617` (/friends/groups/{}/friends)    |
+| `PUT`    | `/_matrix/vendor/v1/friends/groups/{group_id}/name`             | `src/friend/sub-managers/friend-list-manager.ts:592` (/friends/groups/{}/name)       |
+| `DELETE` | `/_matrix/vendor/v1/friends/groups/{group_id}/remove/{user_id}` | `src/friend/sub-managers/friend-list-manager.ts:540` (/friends/groups/{}/remove/{})  |
 | `POST`   | `/_matrix/vendor/v1/friends/request`                            | `src/friend/sub-managers/friend-request-manager.ts:113` (/friends/request)           |
-| `POST`   | `/_matrix/vendor/v1/friends/request/{user_id}/accept`           | `src/friend/sub-managers/friend-request-manager.ts:180` (/friends/request/{}/accept) |
-| `POST`   | `/_matrix/vendor/v1/friends/request/{user_id}/cancel`           | `src/friend/sub-managers/friend-request-manager.ts:229` (/friends/request/{}/cancel) |
-| `POST`   | `/_matrix/vendor/v1/friends/request/{user_id}/reject`           | `src/friend/sub-managers/friend-request-manager.ts:212` (/friends/request/{}/reject) |
-| `GET`    | `/_matrix/vendor/v1/friends/requests/incoming`                  | `src/friend/sub-managers/friend-request-manager.ts:250` (/friends/requests/incoming) |
-| `GET`    | `/_matrix/vendor/v1/friends/requests/outgoing`                  | `src/friend/sub-managers/friend-request-manager.ts:275` (/friends/requests/outgoing) |
-| `GET`    | `/_matrix/vendor/v1/friends/search`                             | `src/friend/sub-managers/friend-list-manager.ts:230` (/friends/search)               |
-| `POST`   | `/_matrix/vendor/v1/friends/search`                             | `src/friend/sub-managers/friend-list-manager.ts:230` (/friends/search)               |
-| `GET`    | `/_matrix/vendor/v1/friends/suggestions`                        | `src/friend/sub-managers/friend-list-manager.ts:205` (/friends/suggestions)          |
-| `DELETE` | `/_matrix/vendor/v1/friends/{user_id}`                          | `src/friend/sub-managers/friend-list-manager.ts:475` (/friends/{})                   |
-| `PUT`    | `/_matrix/vendor/v1/friends/{user_id}/displayname`              | `src/friend/sub-managers/friend-list-manager.ts:491` (/friends/{}/displayname)       |
-| `GET`    | `/_matrix/vendor/v1/friends/{user_id}/groups`                   | `src/friend/sub-managers/friend-list-manager.ts:461` (/friends/{}/groups)            |
-| `GET`    | `/_matrix/vendor/v1/friends/{user_id}/info`                     | `src/friend/sub-managers/friend-list-manager.ts:547` (/friends/{}/info)              |
-| `PUT`    | `/_matrix/vendor/v1/friends/{user_id}/note`                     | `src/friend/sub-managers/friend-list-manager.ts:507` (/friends/{}/note)              |
+| `POST`   | `/_matrix/vendor/v1/friends/request/{user_id}/accept`           | `src/friend/sub-managers/friend-request-manager.ts:194` (/friends/request/{}/accept) |
+| `POST`   | `/_matrix/vendor/v1/friends/request/{user_id}/cancel`           | `src/friend/sub-managers/friend-request-manager.ts:253` (/friends/request/{}/cancel) |
+| `POST`   | `/_matrix/vendor/v1/friends/request/{user_id}/reject`           | `src/friend/sub-managers/friend-request-manager.ts:231` (/friends/request/{}/reject) |
+| `GET`    | `/_matrix/vendor/v1/friends/requests/incoming`                  | `src/friend/sub-managers/friend-request-manager.ts:284` (/friends/requests/incoming) |
+| `GET`    | `/_matrix/vendor/v1/friends/requests/outgoing`                  | `src/friend/sub-managers/friend-request-manager.ts:317` (/friends/requests/outgoing) |
+| `GET`    | `/_matrix/vendor/v1/friends/search`                             | `src/friend/sub-managers/friend-list-manager.ts:258` (/friends/search)               |
+| `POST`   | `/_matrix/vendor/v1/friends/search`                             | `src/friend/sub-managers/friend-list-manager.ts:258` (/friends/search)               |
+| `GET`    | `/_matrix/vendor/v1/friends/suggestions`                        | `src/friend/sub-managers/friend-list-manager.ts:218` (/friends/suggestions)          |
+| `DELETE` | `/_matrix/vendor/v1/friends/{user_id}`                          | `src/friend/sub-managers/friend-list-manager.ts:667` (/friends/{})                   |
+| `PUT`    | `/_matrix/vendor/v1/friends/{user_id}/displayname`              | `src/friend/sub-managers/friend-list-manager.ts:695` (/friends/{}/displayname)       |
+| `GET`    | `/_matrix/vendor/v1/friends/{user_id}/groups`                   | `src/friend/sub-managers/friend-list-manager.ts:643` (/friends/{}/groups)            |
+| `GET`    | `/_matrix/vendor/v1/friends/{user_id}/info`                     | `src/friend/sub-managers/friend-list-manager.ts:801` (/friends/{}/info)              |
+| `PUT`    | `/_matrix/vendor/v1/friends/{user_id}/note`                     | `src/friend/sub-managers/friend-list-manager.ts:723` (/friends/{}/note)              |
 | `GET`    | `/_matrix/vendor/v1/friends/{user_id}/status`                   | `src/friend/paths.ts:24` (/friends/{}/status)                                        |
 | `PUT`    | `/_matrix/vendor/v1/friends/{user_id}/status`                   | `src/friend/paths.ts:24` (/friends/{}/status)                                        |
 
@@ -410,34 +428,34 @@
 
 <details><summary><code>space</code> — 26 条</summary>
 
-| Method   | Path                                                         | 构造证据                                                                                         |
-| -------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `GET`    | `/_matrix/client/v1/spaces/{space_id}/hierarchy`             | `src/space/sub-managers/space-hierarchy-manager.ts:145` (/spaces/$spaceId/hierarchy)             |
-| `GET`    | `/_matrix/client/v1/spaces/{space_id}/hierarchy/v1`          | `src/space/sub-managers/space-hierarchy-manager.ts:160` (/spaces/$spaceId/hierarchy/v1)          |
-| `GET`    | `/_matrix/client/v3/spaces/{space_id}/hierarchy`             | `src/space/sub-managers/space-hierarchy-manager.ts:145` (/spaces/$spaceId/hierarchy)             |
-| `GET`    | `/_matrix/client/v3/spaces/{space_id}/hierarchy/v1`          | `src/space/sub-managers/space-hierarchy-manager.ts:160` (/spaces/$spaceId/hierarchy/v1)          |
-| `POST`   | `/_matrix/vendor/v1/spaces`                                  | ⚠️ `src/admin/sub-managers/admin-room-manager.ts:660` (/spaces)                                  |
-| `GET`    | `/_matrix/vendor/v1/spaces/public`                           | `src/space/sub-managers/space-query-manager.ts:208` (/spaces/public)                             |
-| `GET`    | `/_matrix/vendor/v1/spaces/room/{room_id}`                   | `src/space/sub-managers/space-query-manager.ts:294` (/spaces/room/{})                            |
-| `GET`    | `/_matrix/vendor/v1/spaces/room/{room_id}/parents`           | `src/space/sub-managers/space-query-manager.ts:308` (/spaces/room/{}/parents)                    |
-| `GET`    | `/_matrix/vendor/v1/spaces/search`                           | `src/space/sub-managers/space-query-manager.ts:243` (/spaces/search)                             |
-| `GET`    | `/_matrix/vendor/v1/spaces/statistics`                       | `src/space/sub-managers/space-query-manager.ts:262` (/spaces/statistics)                         |
-| `GET`    | `/_matrix/vendor/v1/spaces/user`                             | `src/space/sub-managers/space-query-manager.ts:279` (/spaces/user)                               |
-| `DELETE` | `/_matrix/vendor/v1/spaces/{space_id}`                       | `src/space/sub-managers/space-lifecycle-manager.ts:153` (/spaces/$spaceId)                       |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}`                       | `src/space/sub-managers/space-lifecycle-manager.ts:153` (/spaces/$spaceId)                       |
-| `PUT`    | `/_matrix/vendor/v1/spaces/{space_id}`                       | `src/space/sub-managers/space-lifecycle-manager.ts:153` (/spaces/$spaceId)                       |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/children`              | `src/space/sub-managers/space-child-manager.ts:78` (/spaces/$spaceId/children)                   |
-| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/children`              | `src/space/sub-managers/space-child-manager.ts:78` (/spaces/$spaceId/children)                   |
-| `DELETE` | `/_matrix/vendor/v1/spaces/{space_id}/children/{room_id}`    | `src/space/sub-managers/space-child-manager.ts:167` (/spaces/{}/children/{})                     |
-| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/invite`                | `src/space/sub-managers/space-member-manager.ts:75` (/spaces/$spaceId/invite)                    |
-| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/join`                  | `src/space/sub-managers/space-member-manager.ts:93` (/spaces/$spaceId/join)                      |
-| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/leave`                 | `src/space/sub-managers/space-member-manager.ts:111` (/spaces/$spaceId/leave)                    |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/members`               | `src/space/sub-managers/space-member-manager.ts:59` (/spaces/$spaceId/members)                   |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/rooms`                 | `src/space/sub-managers/space-child-manager.ts:203` (/spaces/$spaceId/rooms)                     |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/state`                 | `src/space/sub-managers/space-child-manager.ts:215` (/spaces/{spaceId}/state)                    |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/summary`               | `src/space/sub-managers/space-hierarchy-manager.ts:175` (/spaces/$spaceId/summary)               |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/summary/with_children` | `src/space/sub-managers/space-hierarchy-manager.ts:190` (/spaces/$spaceId/summary/with_children) |
-| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/tree_path`             | `src/space/sub-managers/space-hierarchy-manager.ts:205` (/spaces/$spaceId/tree_path)             |
+| Method   | Path                                                         | 构造证据                                                                                               |
+| -------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/_matrix/client/v1/spaces/{space_id}/hierarchy`             | `src/space/sub-managers/space-hierarchy-manager.ts:180` (/spaces/$spaceId/hierarchy)                   |
+| `GET`    | `/_matrix/client/v1/spaces/{space_id}/hierarchy/v1`          | `src/space/sub-managers/space-hierarchy-manager.ts:213` (/spaces/$spaceId/hierarchy/v1)                |
+| `GET`    | `/_matrix/client/v3/spaces/{space_id}/hierarchy`             | `src/space/sub-managers/space-hierarchy-manager.ts:180` (/spaces/$spaceId/hierarchy)                   |
+| `GET`    | `/_matrix/client/v3/spaces/{space_id}/hierarchy/v1`          | `src/space/sub-managers/space-hierarchy-manager.ts:213` (/spaces/$spaceId/hierarchy/v1)                |
+| `POST`   | `/_matrix/vendor/v1/spaces`                                  | ⚠️ `src/admin/sub-managers/admin-room-manager.ts:1033` (/spaces)                                       |
+| `GET`    | `/_matrix/vendor/v1/spaces/public`                           | `src/space/sub-managers/space-query-manager.ts:267` (/spaces/public)                                   |
+| `GET`    | `/_matrix/vendor/v1/spaces/room/{room_id}`                   | `src/space/sub-managers/space-query-manager.ts:399` (/spaces/room/{})                                  |
+| `GET`    | `/_matrix/vendor/v1/spaces/room/{room_id}/parents`           | `src/space/sub-managers/space-query-manager.ts:428` (/spaces/room/{}/parents)                          |
+| `GET`    | `/_matrix/vendor/v1/spaces/search`                           | `src/space/sub-managers/space-query-manager.ts:302` (/spaces/search)                                   |
+| `GET`    | `/_matrix/vendor/v1/spaces/statistics`                       | `src/space/sub-managers/space-query-manager.ts:334` (/spaces/statistics)                               |
+| `GET`    | `/_matrix/vendor/v1/spaces/user`                             | `src/space/sub-managers/space-query-manager.ts:370` (/spaces/user)                                     |
+| `DELETE` | `/_matrix/vendor/v1/spaces/{space_id}`                       | `src/space/sub-managers/space-lifecycle-manager.ts:153` (/spaces/$spaceId)                             |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}`                       | `src/space/sub-managers/space-lifecycle-manager.ts:153` (/spaces/$spaceId)                             |
+| `PUT`    | `/_matrix/vendor/v1/spaces/{space_id}`                       | `src/space/sub-managers/space-lifecycle-manager.ts:153` (/spaces/$spaceId)                             |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/children`              | `src/space/sub-managers/space-child-manager.ts:78` (/spaces/$spaceId/children)                         |
+| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/children`              | `src/space/sub-managers/space-child-manager.ts:78` (/spaces/$spaceId/children)                         |
+| `DELETE` | `/_matrix/vendor/v1/spaces/{space_id}/children/{room_id}`    | `src/space/sub-managers/space-child-manager.ts:167` (/spaces/{}/children/{})                           |
+| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/invite`                | `src/space/sub-managers/space-member-manager.ts:103` (/spaces/$spaceId/invite)                         |
+| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/join`                  | `src/space/sub-managers/space-member-manager.ts:135` (/spaces/$spaceId/join)                           |
+| `POST`   | `/_matrix/vendor/v1/spaces/{space_id}/leave`                 | `src/space/sub-managers/space-member-manager.ts:165` (/spaces/$spaceId/leave)                          |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/members`               | `src/space/sub-managers/space-member-manager.ts:73` (/spaces/$spaceId/members)                         |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/rooms`                 | `src/space/sub-managers/space-child-manager.ts:203` (/spaces/$spaceId/rooms)                           |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/state`                 | `src/space/sub-managers/space-child-manager.ts:215` (/spaces/{spaceId}/state)                          |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/summary`               | `src/space/sub-managers/space-hierarchy-manager.ts:224` (/\_matrix/vendor/v1/spaces/{spaceId}/summary) |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/summary/with_children` | `src/space/sub-managers/space-hierarchy-manager.ts:279` (/spaces/$spaceId/summary/with_children)       |
+| `GET`    | `/_matrix/vendor/v1/spaces/{space_id}/tree_path`             | `src/space/sub-managers/space-hierarchy-manager.ts:311` (/spaces/$spaceId/tree_path)                   |
 
 </details>
 
@@ -445,18 +463,18 @@
 
 | Method   | Path                                                            | 构造证据                                                                          |
 | -------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `GET`    | `/_matrix/client/v1/keys/changes`                               | `src/crypto-keys/index.ts:218` (/keys/changes)                                    |
-| `POST`   | `/_matrix/client/v1/keys/claim`                                 | `src/crypto-keys/index.ts:201` (/keys/claim)                                      |
-| `POST`   | `/_matrix/client/v1/keys/device_list/update`                    | `src/crypto-keys/index.ts:235` (/keys/device_list/update)                         |
+| `GET`    | `/_matrix/client/v1/keys/changes`                               | `src/crypto-keys/index.ts:278` (/keys/changes)                                    |
+| `POST`   | `/_matrix/client/v1/keys/claim`                                 | `src/crypto-keys/index.ts:246` (/keys/claim)                                      |
+| `POST`   | `/_matrix/client/v1/keys/device_list/update`                    | `src/crypto-keys/index.ts:308` (/keys/device_list/update)                         |
 | `POST`   | `/_matrix/client/v1/keys/device_signing/upload`                 | `src/client-crypto-requests.ts:40` (/keys/device_signing/upload)                  |
-| `POST`   | `/_matrix/client/v1/keys/query`                                 | `src/client.ts:1368` (/keys/query)                                                |
-| `POST`   | `/_matrix/client/v1/keys/signatures/upload`                     | `src/crypto-keys/index.ts:250` (/keys/signatures/upload)                          |
-| `POST`   | `/_matrix/client/v1/keys/upload`                                | `src/crypto-keys/index.ts:120` (/keys/upload)                                     |
-| `POST`   | `/_matrix/client/v1/keys/upload/{device_id}`                    | `src/e2ee/index.ts:204` (/keys/upload/{})                                         |
+| `POST`   | `/_matrix/client/v1/keys/query`                                 | `src/client.ts:1600` (/keys/query)                                                |
+| `POST`   | `/_matrix/client/v1/keys/signatures/upload`                     | `src/crypto-keys/index.ts:337` (/keys/signatures/upload)                          |
+| `POST`   | `/_matrix/client/v1/keys/upload`                                | `src/crypto-keys/index.ts:134` (/keys/upload)                                     |
+| `POST`   | `/_matrix/client/v1/keys/upload/{device_id}`                    | `src/e2ee/index.ts:222` (/keys/upload/{})                                         |
 | `GET`    | `/_matrix/client/v1/room_keys/request`                          | `src/client-crypto-requests.ts:46` (/room_keys/request)                           |
 | `POST`   | `/_matrix/client/v1/room_keys/request`                          | `src/client-crypto-requests.ts:46` (/room_keys/request)                           |
 | `DELETE` | `/_matrix/client/v1/room_keys/request/{request_id}`             | `src/client-crypto-requests.ts:58` (/room_keys/request/$requestId)                |
-| `GET`    | `/_matrix/client/v1/rooms/{room_id}/keys/distribution`          | `src/crypto-keys/index.ts:296` (/rooms/{}/keys/distribution)                      |
+| `GET`    | `/_matrix/client/v1/rooms/{room_id}/keys/distribution`          | `src/crypto-keys/index.ts:407` (/rooms/{}/keys/distribution)                      |
 | `POST`   | `/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId)                    |
 | `PUT`    | `/_matrix/client/v1/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId)                    |
 | `GET`    | `/_matrix/client/v3/keys/backup/secure`                         | `src/secure-backup/index.ts:90` (/\_matrix/client/v3/keys/backup/secure)          |
@@ -465,8 +483,8 @@
 | `POST`   | `/_matrix/client/v3/keys/backup/secure/{backup_id}/keys`        | `src/client-secure-backup-requests.ts:39` (/keys/backup/secure/$backupId/keys)    |
 | `POST`   | `/_matrix/client/v3/keys/backup/secure/{backup_id}/restore`     | `src/client-secure-backup-requests.ts:43` (/keys/backup/secure/$backupId/restore) |
 | `POST`   | `/_matrix/client/v3/keys/backup/secure/{backup_id}/verify`      | `src/client-secure-backup-requests.ts:35` (/keys/backup/secure/$backupId/verify)  |
-| `GET`    | `/_matrix/client/v3/keys/history`                               | `src/e2ee/index.ts:455` (/keys/history)                                           |
-| `POST`   | `/_matrix/client/v3/keys/upload/{device_id}`                    | `src/e2ee/index.ts:204` (/keys/upload/{})                                         |
+| `GET`    | `/_matrix/client/v3/keys/history`                               | `src/e2ee/index.ts:707` (/keys/history)                                           |
+| `POST`   | `/_matrix/client/v3/keys/upload/{device_id}`                    | `src/e2ee/index.ts:222` (/keys/upload/{})                                         |
 | `POST`   | `/_matrix/client/v3/sendToDevice/{event_type}/{transaction_id}` | `src/client-to-device.ts:37` (/sendToDevice/$eventType/$txnId)                    |
 
 </details>
@@ -476,25 +494,25 @@
 | Method   | Path                                                                 | 构造证据                                                                                      |
 | -------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `GET`    | `/_matrix/client/v1/rooms/{room_id}/threads`                         | `src/client-timeline-requests.ts:11` (/rooms/$roomId/threads)                                 |
-| `GET`    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}`             | `src/room-summary/sub-managers/room-thread-manager.ts:110` (/rooms/$roomId/threads/$threadId) |
-| `GET`    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | `src/thread/index.ts:444` (/rooms/{}/threads/{}/replies)                                      |
-| `POST`   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | `src/thread/index.ts:444` (/rooms/{}/threads/{}/replies)                                      |
-| `POST`   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe`   | `src/thread/index.ts:398` (/rooms/{}/threads/{}/subscribe)                                    |
-| `POST`   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe` | `src/thread/index.ts:418` (/rooms/{}/threads/{}/unsubscribe)                                  |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/replies/{event_id}/redact`       | `src/thread/index.ts:491` (/rooms/{}/replies/{}/redact)                                       |
+| `GET`    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}`             | `src/room-summary/sub-managers/room-thread-manager.ts:131` (/rooms/$roomId/threads/$threadId) |
+| `GET`    | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | `src/thread/index.ts:561` (/rooms/{}/threads/{}/replies)                                      |
+| `POST`   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/replies`     | `src/thread/index.ts:561` (/rooms/{}/threads/{}/replies)                                      |
+| `POST`   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/subscribe`   | `src/thread/index.ts:501` (/rooms/{}/threads/{}/subscribe)                                    |
+| `POST`   | `/_matrix/client/v1/rooms/{room_id}/threads/{thread_id}/unsubscribe` | `src/thread/index.ts:528` (/rooms/{}/threads/{}/unsubscribe)                                  |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/replies/{event_id}/redact`       | `src/thread/index.ts:626` (/rooms/{}/replies/{}/redact)                                       |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads`                         | `src/client-timeline-requests.ts:11` (/rooms/$roomId/threads)                                 |
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/threads/search`                  | `src/threading/index.ts:261` (/rooms/{r}/threads/search)                                      |
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/threads/unread`                  | `src/threading/index.ts:262` (/rooms/{r}/threads/unread)                                      |
-| `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}`             | `src/room-summary/sub-managers/room-thread-manager.ts:110` (/rooms/$roomId/threads/$threadId) |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze`      | `src/thread/index.ts:317` (/rooms/{}/threads/{}/freeze)                                       |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute`        | `src/thread/index.ts:357` (/rooms/{}/threads/{}/mute)                                         |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read`        | `src/thread/index.ts:378` (/rooms/{}/threads/{}/read)                                         |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/stats`       | `src/thread/index.ts:517` (/rooms/{}/threads/{}/stats)                                        |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze`    | `src/thread/index.ts:337` (/rooms/{}/threads/{}/unfreeze)                                     |
-| `GET`    | `/_matrix/vendor/v1/threads`                                         | ⚠️ `src/thread/index.ts:536` (/threads)                                                       |
-| `POST`   | `/_matrix/vendor/v1/threads`                                         | ⚠️ `src/thread/index.ts:536` (/threads)                                                       |
-| `GET`    | `/_matrix/vendor/v1/threads/subscribed`                              | `src/thread/index.ts:574` (/threads/subscribed)                                               |
-| `GET`    | `/_matrix/vendor/v1/threads/unread`                                  | `src/thread/index.ts:592` (/threads/unread)                                                   |
+| `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}`             | `src/room-summary/sub-managers/room-thread-manager.ts:131` (/rooms/$roomId/threads/$threadId) |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/freeze`      | `src/thread/index.ts:381` (/rooms/{}/threads/{}/freeze)                                       |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/mute`        | `src/thread/index.ts:435` (/rooms/{}/threads/{}/mute)                                         |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/read`        | `src/thread/index.ts:474` (/rooms/{}/threads/{}/read)                                         |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/stats`       | `src/thread/index.ts:659` (/rooms/{}/threads/{}/stats)                                        |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/threads/{thread_id}/unfreeze`    | `src/thread/index.ts:408` (/rooms/{}/threads/{}/unfreeze)                                     |
+| `GET`    | `/_matrix/vendor/v1/threads`                                         | ⚠️ `src/thread/index.ts:683` (/threads)                                                       |
+| `POST`   | `/_matrix/vendor/v1/threads`                                         | ⚠️ `src/thread/index.ts:683` (/threads)                                                       |
+| `GET`    | `/_matrix/vendor/v1/threads/subscribed`                              | `src/thread/index.ts:737` (/threads/subscribed)                                               |
+| `GET`    | `/_matrix/vendor/v1/threads/unread`                                  | `src/thread/index.ts:760` (/threads/unread)                                                   |
 | `GET`    | `/_matrix/vendor/v1/user/{user_id}/rooms/{room_id}/threads`          | `src/threading/index.ts:269` (/user/{u}/rooms/{r}/threads)                                    |
 
 </details>
@@ -508,7 +526,7 @@
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
 | `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/summary`                                | `src/room-summary/index.ts:328` (/rooms/{}/summary)                                              |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/heroes/recalculate`             | `src/room-summary/sub-managers/room-stats-manager.ts:129` (/rooms/{}/summary/heroes/recalculate) |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/heroes/recalculate`             | `src/room-summary/sub-managers/room-stats-manager.ts:167` (/rooms/{}/summary/heroes/recalculate) |
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary/members`                        | `src/room-summary/sub-managers/room-member-manager.ts:55` (/rooms/{}/summary/members)            |
 | `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/members`                        | `src/room-summary/sub-managers/room-member-manager.ts:55` (/rooms/{}/summary/members)            |
 | `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/summary/members/{user_id}`              | `src/room-summary/sub-managers/room-member-manager.ts:62` (/rooms/{}/summary/members/{})         |
@@ -517,10 +535,10 @@
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}` | `src/room-summary/sub-managers/room-state-manager.ts:59` (/rooms/{}/summary/state/{}/{})         |
 | `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/summary/state/{event_type}/{state_key}` | `src/room-summary/sub-managers/room-state-manager.ts:59` (/rooms/{}/summary/state/{}/{})         |
 | `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/summary/stats`                          | `src/room-summary/sub-managers/room-stats-manager.ts:65` (/rooms/{}/summary/stats)               |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/stats/recalculate`              | `src/room-summary/sub-managers/room-stats-manager.ts:107` (/rooms/{}/summary/stats/recalculate)  |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/sync`                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:927` (/rooms/{}/summary/sync)     |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/unread/clear`                   | `src/room-summary/sub-managers/room-stats-manager.ts:144` (/rooms/{}/summary/unread/clear)       |
-| `POST`   | `/_synapse/room_summary/v1/summaries/batch`                                 | `src/room-summary/index.ts:443` (/\_synapse/room_summary/v1/summaries/batch)                     |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/stats/recalculate`              | `src/room-summary/sub-managers/room-stats-manager.ts:133` (/rooms/{}/summary/stats/recalculate)  |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/sync`                           | `src/room-summary/sub-managers/room-event-operation-manager.ts:1149` (/rooms/{}/summary/sync)    |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/summary/unread/clear`                   | `src/room-summary/sub-managers/room-stats-manager.ts:194` (/rooms/{}/summary/unread/clear)       |
+| `POST`   | `/_synapse/room_summary/v1/summaries/batch`                                 | `src/room-summary/index.ts:525` (/\_synapse/room_summary/v1/summaries/batch)                     |
 
 </details>
 
@@ -528,22 +546,22 @@
 
 | Method   | Path                                                                  | 构造证据                                                      |
 | -------- | --------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets`                          | `src/widget/index.ts:162` (/rooms/{}/widgets)                 |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`             | `src/widget/index.ts:180` (/rooms/{}/widgets/jitsi/config)    |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:452` (/rooms/{}/widgets/{}/capabilities) |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:452` (/rooms/{}/widgets/{}/capabilities) |
-| `POST`   | `/_matrix/vendor/v1/widgets`                                          | ⚠️ `src/widget/index.ts:208` (/widgets)                       |
-| `DELETE` | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:413` (/widgets/sessions/{})              |
-| `GET`    | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:413` (/widgets/sessions/{})              |
-| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:227` (/widgets/{})                       |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:227` (/widgets/{})                       |
-| `PUT`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:227` (/widgets/{})                       |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/config`                       | `src/widget/index.ts:287` (/widgets/{}/config)                |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:307` (/widgets/{}/permissions)           |
-| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:307` (/widgets/{}/permissions)           |
-| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}`        | `src/widget/index.ts:353` (/widgets/{}/permissions/{})        |
-| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:373` (/widgets/{}/sessions)              |
-| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:373` (/widgets/{}/sessions)              |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets`                          | `src/widget/index.ts:169` (/rooms/{}/widgets)                 |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/jitsi/config`             | `src/widget/index.ts:194` (/rooms/{}/widgets/jitsi/config)    |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:587` (/rooms/{}/widgets/{}/capabilities) |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/widgets/{widget_id}/capabilities` | `src/widget/index.ts:587` (/rooms/{}/widgets/{}/capabilities) |
+| `POST`   | `/_matrix/vendor/v1/widgets`                                          | ⚠️ `src/widget/index.ts:235` (/widgets)                       |
+| `DELETE` | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:531` (/widgets/sessions/{})              |
+| `GET`    | `/_matrix/vendor/v1/widgets/sessions/{session_id}`                    | `src/widget/index.ts:531` (/widgets/sessions/{})              |
+| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:263` (/widgets/{})                       |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:263` (/widgets/{})                       |
+| `PUT`    | `/_matrix/vendor/v1/widgets/{widget_id}`                              | `src/widget/index.ts:263` (/widgets/{})                       |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/config`                       | `src/widget/index.ts:349` (/widgets/{}/config)                |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:378` (/widgets/{}/permissions)           |
+| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/permissions`                  | `src/widget/index.ts:378` (/widgets/{}/permissions)           |
+| `DELETE` | `/_matrix/vendor/v1/widgets/{widget_id}/permissions/{user_id}`        | `src/widget/index.ts:444` (/widgets/{}/permissions/{})        |
+| `GET`    | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:473` (/widgets/{}/sessions)              |
+| `POST`   | `/_matrix/vendor/v1/widgets/{widget_id}/sessions`                     | `src/widget/index.ts:473` (/widgets/{}/sessions)              |
 
 </details>
 
@@ -556,16 +574,16 @@
 | `POST`   | `/_matrix/client/v3/pushers`                                    | `src/push-notifications/index.ts:42` (/\_matrix/client/v3/pushers)                    |
 | `GET`    | `/_matrix/client/v3/pushers/`                                   | `src/push-notifications/index.ts:42` (/\_matrix/client/v3/pushers)                    |
 | `POST`   | `/_matrix/client/v3/pushers/`                                   | `src/push-notifications/index.ts:42` (/\_matrix/client/v3/pushers)                    |
-| `POST`   | `/_matrix/client/v3/pushers/set`                                | `src/push/index.ts:199` (/pushers/set)                                                |
-| `GET`    | `/_matrix/client/v3/pushrules/{scope}`                          | `src/push/index.ts:276` (/pushrules/{})                                               |
-| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}`                   | `src/push/index.ts:296` (/pushrules/{}/{})                                            |
+| `POST`   | `/_matrix/client/v3/pushers/set`                                | `src/push/index.ts:220` (/pushers/set)                                                |
+| `GET`    | `/_matrix/client/v3/pushrules/{scope}`                          | `src/push/index.ts:331` (/pushrules/{})                                               |
+| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}`                   | `src/push/index.ts:360` (/pushrules/{}/{})                                            |
 | `DELETE` | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
 | `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
 | `POST`   | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
 | `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}`         | `src/push-rules/index.ts:60` (/\_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}) |
-| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions` | `src/push/index.ts:495` (/pushrules/{}/{}/{}/actions)                                 |
-| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:437` (/pushrules/{}/{}/{}/enabled)                                 |
-| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:437` (/pushrules/{}/{}/{}/enabled)                                 |
+| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/actions` | `src/push/index.ts:634` (/pushrules/{}/{}/{}/actions)                                 |
+| `GET`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:556` (/pushrules/{}/{}/{}/enabled)                                 |
+| `PUT`    | `/_matrix/client/v3/pushrules/{scope}/{kind}/{rule_id}/enabled` | `src/push/index.ts:556` (/pushrules/{}/{}/{}/enabled)                                 |
 
 </details>
 
@@ -595,18 +613,18 @@
 
 | Method | Path                                                | 构造证据                                           |
 | ------ | --------------------------------------------------- | -------------------------------------------------- |
-| `GET`  | `/_matrix/vendor/v1/voice/config`                   | `src/voice/index.ts:353` (/voice/config)           |
-| `POST` | `/_matrix/vendor/v1/voice/register`                 | `src/voice/index.ts:655` (/voice/register)         |
+| `GET`  | `/_matrix/vendor/v1/voice/config`                   | `src/voice/index.ts:412` (/voice/config)           |
+| `POST` | `/_matrix/vendor/v1/voice/register`                 | `src/voice/index.ts:831` (/voice/register)         |
 | `GET`  | `/_matrix/vendor/v1/voice/room/{room_id}`           | `src/voice/index.ts:11` (/voice/room/{room_id})    |
-| `GET`  | `/_matrix/vendor/v1/voice/room/{room_id}/stats`     | `src/voice/index.ts:313` (/voice/room/{}/stats)    |
-| `GET`  | `/_matrix/vendor/v1/voice/stats`                    | `src/voice/index.ts:298` (/voice/stats)            |
-| `POST` | `/_matrix/vendor/v1/voice/upload`                   | `src/voice/index.ts:376` (/voice/upload)           |
+| `GET`  | `/_matrix/vendor/v1/voice/room/{room_id}/stats`     | `src/voice/index.ts:348` (/voice/room/{}/stats)    |
+| `GET`  | `/_matrix/vendor/v1/voice/stats`                    | `src/voice/index.ts:320` (/voice/stats)            |
+| `POST` | `/_matrix/vendor/v1/voice/upload`                   | `src/voice/index.ts:451` (/voice/upload)           |
 | `GET`  | `/_matrix/vendor/v1/voice/user/{user_id}`           | `src/voice/index.ts:11` (/voice/user/{user_id})    |
-| `GET`  | `/_matrix/vendor/v1/voice/user/{user_id}/stats`     | `src/voice/index.ts:328` (/voice/user/{}/stats)    |
-| `GET`  | `/_matrix/vendor/v1/voice/{media_id}`               | `src/voice/index.ts:437` (/voice/{})               |
-| `POST` | `/_matrix/vendor/v1/voice/{media_id}/convert`       | `src/voice/index.ts:577` (/voice/{}/convert)       |
-| `POST` | `/_matrix/vendor/v1/voice/{media_id}/optimize`      | `src/voice/index.ts:597` (/voice/{}/optimize)      |
-| `POST` | `/_matrix/vendor/v1/voice/{media_id}/transcription` | `src/voice/index.ts:617` (/voice/{}/transcription) |
+| `GET`  | `/_matrix/vendor/v1/voice/user/{user_id}/stats`     | `src/voice/index.ts:376` (/voice/user/{}/stats)    |
+| `GET`  | `/_matrix/vendor/v1/voice/{media_id}`               | `src/voice/index.ts:535` (/voice/{})               |
+| `POST` | `/_matrix/vendor/v1/voice/{media_id}/convert`       | `src/voice/index.ts:714` (/voice/{}/convert)       |
+| `POST` | `/_matrix/vendor/v1/voice/{media_id}/optimize`      | `src/voice/index.ts:748` (/voice/{}/optimize)      |
+| `POST` | `/_matrix/vendor/v1/voice/{media_id}/transcription` | `src/voice/index.ts:782` (/voice/{}/transcription) |
 
 </details>
 
@@ -614,17 +632,17 @@
 
 | Method | Path                                                | 构造证据                                                          |
 | ------ | --------------------------------------------------- | ----------------------------------------------------------------- |
-| `GET`  | `/_matrix/media/r0/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:358` (/config) |
-| `POST` | `/_matrix/media/r0/delete/{server_name}/{media_id}` | `src/media/index.ts:389` (/delete/{}/{})                          |
-| `GET`  | `/_matrix/media/r0/preview_url`                     | ⚠️ `src/media/index.ts:438` (/preview_url)                        |
+| `GET`  | `/_matrix/media/r0/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:489` (/config) |
+| `POST` | `/_matrix/media/r0/delete/{server_name}/{media_id}` | `src/media/index.ts:457` (/delete/{}/{})                          |
+| `GET`  | `/_matrix/media/r0/preview_url`                     | ⚠️ `src/media/index.ts:506` (/preview_url)                        |
 | `POST` | `/_matrix/media/r0/upload`                          | ⚠️ `src/http-api/index.ts:122` (/upload)                          |
-| `GET`  | `/_matrix/media/v1/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:358` (/config) |
-| `POST` | `/_matrix/media/v1/delete/{server_name}/{media_id}` | `src/media/index.ts:389` (/delete/{}/{})                          |
-| `GET`  | `/_matrix/media/v1/preview_url`                     | ⚠️ `src/media/index.ts:438` (/preview_url)                        |
+| `GET`  | `/_matrix/media/v1/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:489` (/config) |
+| `POST` | `/_matrix/media/v1/delete/{server_name}/{media_id}` | `src/media/index.ts:457` (/delete/{}/{})                          |
+| `GET`  | `/_matrix/media/v1/preview_url`                     | ⚠️ `src/media/index.ts:506` (/preview_url)                        |
 | `POST` | `/_matrix/media/v1/upload`                          | ⚠️ `src/http-api/index.ts:122` (/upload)                          |
-| `GET`  | `/_matrix/media/v3/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:358` (/config) |
-| `POST` | `/_matrix/media/v3/delete/{server_name}/{media_id}` | `src/media/index.ts:389` (/delete/{}/{})                          |
-| `PUT`  | `/_matrix/media/v3/upload/{server_name}/{media_id}` | `src/media/index.ts:349` (/upload/{}/{})                          |
+| `GET`  | `/_matrix/media/v3/config`                          | ⚠️ `src/admin/sub-managers/admin-server-manager.ts:489` (/config) |
+| `POST` | `/_matrix/media/v3/delete/{server_name}/{media_id}` | `src/media/index.ts:457` (/delete/{}/{})                          |
+| `PUT`  | `/_matrix/media/v3/upload/{server_name}/{media_id}` | `src/media/index.ts:383` (/upload/{}/{})                          |
 
 </details>
 
@@ -632,15 +650,15 @@
 
 | Method | Path                                           | 构造证据                                          |
 | ------ | ---------------------------------------------- | ------------------------------------------------- |
-| `GET`  | `/_matrix/client/v1/presence/{user_id}/status` | `src/presence/index.ts:145` (/presence/{}/status) |
-| `POST` | `/_matrix/client/v1/presence/{user_id}/status` | `src/presence/index.ts:145` (/presence/{}/status) |
-| `PUT`  | `/_matrix/client/v1/presence/{user_id}/status` | `src/presence/index.ts:145` (/presence/{}/status) |
-| `GET`  | `/_matrix/client/v3/presence/list`             | `src/presence/index.ts:396` (/presence/list)      |
-| `POST` | `/_matrix/client/v3/presence/list`             | `src/presence/index.ts:396` (/presence/list)      |
-| `GET`  | `/_matrix/client/v3/presence/list/{user_id}`   | `src/presence/index.ts:386` (/presence/list/{})   |
-| `GET`  | `/_matrix/client/v3/presence/{user_id}/status` | `src/presence/index.ts:145` (/presence/{}/status) |
-| `POST` | `/_matrix/client/v3/presence/{user_id}/status` | `src/presence/index.ts:145` (/presence/{}/status) |
-| `PUT`  | `/_matrix/client/v3/presence/{user_id}/status` | `src/presence/index.ts:145` (/presence/{}/status) |
+| `GET`  | `/_matrix/client/v1/presence/{user_id}/status` | `src/presence/index.ts:162` (/presence/{}/status) |
+| `POST` | `/_matrix/client/v1/presence/{user_id}/status` | `src/presence/index.ts:162` (/presence/{}/status) |
+| `PUT`  | `/_matrix/client/v1/presence/{user_id}/status` | `src/presence/index.ts:162` (/presence/{}/status) |
+| `GET`  | `/_matrix/client/v3/presence/list`             | `src/presence/index.ts:421` (/presence/list)      |
+| `POST` | `/_matrix/client/v3/presence/list`             | `src/presence/index.ts:421` (/presence/list)      |
+| `GET`  | `/_matrix/client/v3/presence/list/{user_id}`   | `src/presence/index.ts:411` (/presence/list/{})   |
+| `GET`  | `/_matrix/client/v3/presence/{user_id}/status` | `src/presence/index.ts:162` (/presence/{}/status) |
+| `POST` | `/_matrix/client/v3/presence/{user_id}/status` | `src/presence/index.ts:162` (/presence/{}/status) |
+| `PUT`  | `/_matrix/client/v3/presence/{user_id}/status` | `src/presence/index.ts:162` (/presence/{}/status) |
 
 </details>
 
@@ -648,11 +666,11 @@
 
 | Method | Path                                                                              | 构造证据                                                                                  |
 | ------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `GET`  | `/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}`           | `src/relations/index.ts:316` (/rooms/$roomId/aggregations/$eventId/$relType)              |
+| `GET`  | `/_matrix/client/v1/rooms/{room_id}/aggregations/{event_id}/{rel_type}`           | `src/relations/index.ts:388` (/rooms/$roomId/aggregations/$eventId/$relType)              |
 | `GET`  | `/_matrix/client/v1/rooms/{room_id}/relations/{event_id}`                         | `src/relations/index.ts:168` (/rooms/$roomId/relations/$eventId)                          |
 | `GET`  | `/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}`              | `src/relations/index.ts:167` (/rooms/$roomId/relations/$eventId/$relationType)            |
 | `GET`  | `/_matrix/client/v1/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}` | `src/relations/index.ts:165` (/rooms/$roomId/relations/$eventId/$relationType/$eventType) |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}`           | `src/relations/index.ts:316` (/rooms/$roomId/aggregations/$eventId/$relType)              |
+| `GET`  | `/_matrix/client/v3/rooms/{room_id}/aggregations/{event_id}/{rel_type}`           | `src/relations/index.ts:388` (/rooms/$roomId/aggregations/$eventId/$relType)              |
 | `GET`  | `/_matrix/client/v3/rooms/{room_id}/relations/{event_id}`                         | `src/relations/index.ts:168` (/rooms/$roomId/relations/$eventId)                          |
 | `GET`  | `/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}`              | `src/relations/index.ts:167` (/rooms/$roomId/relations/$eventId/$relationType)            |
 | `GET`  | `/_matrix/client/v3/rooms/{room_id}/relations/{event_id}/{rel_type}/{event_type}` | `src/relations/index.ts:165` (/rooms/$roomId/relations/$eventId/$relationType/$eventType) |
@@ -677,16 +695,16 @@
 
 <details><summary><code>saml</code> — 8 条</summary>
 
-| Method | Path                                         | 构造证据                                          |
-| ------ | -------------------------------------------- | ------------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:160` (/login/saml/callback)    |
-| `POST` | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:160` (/login/saml/callback)    |
-| `GET`  | `/_matrix/client/v3/login/sso/redirect/saml` | `src/saml/index.ts:87` (/login/sso/redirect/saml) |
-| `POST` | `/_matrix/client/v3/login/sso/redirect/saml` | `src/saml/index.ts:87` (/login/sso/redirect/saml) |
-| `GET`  | `/_matrix/client/v3/logout/saml`             | `src/saml/index.ts:149` (/logout/saml)            |
-| `GET`  | `/_matrix/client/v3/logout/saml/callback`    | `src/saml/index.ts:220` (/logout/saml/callback)   |
-| `GET`  | `/_matrix/client/v3/saml/metadata`           | `src/saml/index.ts:230` (/saml/metadata)          |
-| `GET`  | `/_matrix/client/v3/saml/sp_metadata`        | `src/saml/index.ts:240` (/saml/sp_metadata)       |
+| Method | Path                                         | 构造证据                                           |
+| ------ | -------------------------------------------- | -------------------------------------------------- |
+| `GET`  | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:222` (/login/saml/callback)     |
+| `POST` | `/_matrix/client/v3/login/saml/callback`     | `src/saml/index.ts:222` (/login/saml/callback)     |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect/saml` | `src/saml/index.ts:101` (/login/sso/redirect/saml) |
+| `POST` | `/_matrix/client/v3/login/sso/redirect/saml` | `src/saml/index.ts:101` (/login/sso/redirect/saml) |
+| `GET`  | `/_matrix/client/v3/logout/saml`             | `src/saml/index.ts:197` (/logout/saml)             |
+| `GET`  | `/_matrix/client/v3/logout/saml/callback`    | `src/saml/index.ts:321` (/logout/saml/callback)    |
+| `GET`  | `/_matrix/client/v3/saml/metadata`           | `src/saml/index.ts:343` (/saml/metadata)           |
+| `GET`  | `/_matrix/client/v3/saml/sp_metadata`        | `src/saml/index.ts:365` (/saml/sp_metadata)        |
 
 </details>
 
@@ -694,13 +712,41 @@
 
 | Method | Path                                    | 构造证据                                         |
 | ------ | --------------------------------------- | ------------------------------------------------ |
-| `GET`  | `/_matrix/client/v3/login/sso/redirect` | `src/account/index.ts:179` (/login/sso/redirect) |
-| `GET`  | `/_matrix/client/v3/oidc/authorize`     | `src/oidc/manager.ts:176` (/oidc/authorize)      |
-| `GET`  | `/_matrix/client/v3/oidc/callback`      | `src/oidc/manager.ts:349` (/oidc/callback)       |
-| `POST` | `/_matrix/client/v3/oidc/login`         | `src/oidc/manager.ts:291` (/oidc/login)          |
-| `POST` | `/_matrix/client/v3/oidc/logout`        | `src/oidc/manager.ts:263` (/oidc/logout)         |
-| `POST` | `/_matrix/client/v3/oidc/token`         | `src/oidc/manager.ts:217` (/oidc/token)          |
-| `GET`  | `/_matrix/client/v3/oidc/userinfo`      | `src/oidc/manager.ts:238` (/oidc/userinfo)       |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect` | `src/account/index.ts:214` (/login/sso/redirect) |
+| `GET`  | `/_matrix/client/v3/oidc/authorize`     | `src/oidc/manager.ts:196` (/oidc/authorize)      |
+| `GET`  | `/_matrix/client/v3/oidc/callback`      | `src/oidc/manager.ts:487` (/oidc/callback)       |
+| `POST` | `/_matrix/client/v3/oidc/login`         | `src/oidc/manager.ts:405` (/oidc/login)          |
+| `POST` | `/_matrix/client/v3/oidc/logout`        | `src/oidc/manager.ts:358` (/oidc/logout)         |
+| `POST` | `/_matrix/client/v3/oidc/token`         | `src/oidc/manager.ts:273` (/oidc/token)          |
+| `GET`  | `/_matrix/client/v3/oidc/userinfo`      | `src/oidc/manager.ts:307` (/oidc/userinfo)       |
+
+</details>
+
+<details><summary><code>cas</code> — 7 条</summary>
+
+| Method | Path                                        | 构造证据                                                                |
+| ------ | ------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET`  | `/_matrix/client/v3/login/sso/redirect/cas` | `src/account/index.ts:195` (/\_matrix/client/v3/login/sso/redirect/cas) |
+| `GET`  | `/_synapse/cas/login`                       | `src/cas/index.ts:28` (/\_synapse/cas/login)                            |
+| `GET`  | `/_synapse/cas/logout`                      | `src/cas/index.ts:28` (/\_synapse/cas/logout)                           |
+| `GET`  | `/_synapse/cas/p3/serviceValidate`          | `src/cas/index.ts:426` (/p3/serviceValidate)                            |
+| `GET`  | `/_synapse/cas/proxy`                       | ⚠️ `src/cas/index.ts:457` (/proxy)                                      |
+| `GET`  | `/_synapse/cas/proxyValidate`               | ⚠️ `src/cas/index.ts:388` (/proxyValidate)                              |
+| `GET`  | `/_synapse/cas/serviceValidate`             | `src/cas/index.ts:29` (/\_synapse/cas/serviceValidate)                  |
+
+</details>
+
+<details><summary><code>key_rotation</code> — 7 条</summary>
+
+| Method | Path                                                   | 构造证据                                                    |
+| ------ | ------------------------------------------------------ | ----------------------------------------------------------- |
+| `POST` | `/_matrix/vendor/v1/keys/rotation/config`              | `src/key-rotation/index.ts:426` (/keys/rotation/config)     |
+| `PUT`  | `/_matrix/vendor/v1/keys/rotation/config`              | `src/key-rotation/index.ts:426` (/keys/rotation/config)     |
+| `GET`  | `/_matrix/vendor/v1/keys/rotation/history/{device_id}` | `src/key-rotation/index.ts:332` (/keys/rotation/history/{}) |
+| `POST` | `/_matrix/vendor/v1/keys/rotation/revoke`              | `src/key-rotation/index.ts:372` (/keys/rotation/revoke)     |
+| `POST` | `/_matrix/vendor/v1/keys/rotation/rotate`              | `src/key-rotation/index.ts:282` (/keys/rotation/rotate)     |
+| `GET`  | `/_matrix/vendor/v1/keys/rotation/status`              | `src/key-rotation/index.ts:237` (/keys/rotation/status)     |
+| `POST` | `/_matrix/vendor/v1/keys/rotation/status`              | `src/key-rotation/index.ts:237` (/keys/rotation/status)     |
 
 </details>
 
@@ -708,13 +754,13 @@
 
 | Method   | Path                                                 | 构造证据                                                    |
 | -------- | ---------------------------------------------------- | ----------------------------------------------------------- |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/burn`            | `src/burn-after-read/index.ts:190` (/rooms/{}/burn)         |
-| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/burn`            | `src/burn-after-read/index.ts:190` (/rooms/{}/burn)         |
-| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/burn/pending`    | `src/burn-after-read/index.ts:272` (/rooms/{}/burn/pending) |
-| `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` | `src/burn-after-read/index.ts:299` (/rooms/{}/burn/{})      |
-| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` | `src/burn-after-read/index.ts:299` (/rooms/{}/burn/{})      |
-| `PUT`    | `/_matrix/vendor/v1/user/burn/config`                | `src/burn-after-read/index.ts:372` (/user/burn/config)      |
-| `GET`    | `/_matrix/vendor/v1/user/burn/stats`                 | `src/burn-after-read/index.ts:393` (/user/burn/stats)       |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/burn`            | `src/burn-after-read/index.ts:203` (/rooms/{}/burn)         |
+| `PUT`    | `/_matrix/vendor/v1/rooms/{room_id}/burn`            | `src/burn-after-read/index.ts:203` (/rooms/{}/burn)         |
+| `GET`    | `/_matrix/vendor/v1/rooms/{room_id}/burn/pending`    | `src/burn-after-read/index.ts:321` (/rooms/{}/burn/pending) |
+| `DELETE` | `/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` | `src/burn-after-read/index.ts:362` (/rooms/{}/burn/{})      |
+| `POST`   | `/_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` | `src/burn-after-read/index.ts:362` (/rooms/{}/burn/{})      |
+| `PUT`    | `/_matrix/vendor/v1/user/burn/config`                | `src/burn-after-read/index.ts:459` (/user/burn/config)      |
+| `GET`    | `/_matrix/vendor/v1/user/burn/stats`                 | `src/burn-after-read/index.ts:490` (/user/burn/stats)       |
 
 </details>
 
@@ -722,12 +768,12 @@
 
 | Method   | Path                                                  | 构造证据                                                            |
 | -------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
-| `POST`   | `/_matrix/client/v1/rendezvous`                       | ⚠️ `src/rendezvous/RendezvousManager.ts:161` (/rendezvous)          |
-| `DELETE` | `/_matrix/client/v1/rendezvous/{session_id}`          | `src/rendezvous/RendezvousManager.ts:179` (/rendezvous/{})          |
-| `GET`    | `/_matrix/client/v1/rendezvous/{session_id}`          | `src/rendezvous/RendezvousManager.ts:179` (/rendezvous/{})          |
-| `PUT`    | `/_matrix/client/v1/rendezvous/{session_id}`          | `src/rendezvous/RendezvousManager.ts:179` (/rendezvous/{})          |
-| `GET`    | `/_matrix/client/v1/rendezvous/{session_id}/messages` | `src/rendezvous/RendezvousManager.ts:247` (/rendezvous/{}/messages) |
-| `POST`   | `/_matrix/client/v1/rendezvous/{session_id}/messages` | `src/rendezvous/RendezvousManager.ts:247` (/rendezvous/{}/messages) |
+| `POST`   | `/_matrix/client/v1/rendezvous`                       | ⚠️ `src/rendezvous/RendezvousManager.ts:169` (/rendezvous)          |
+| `DELETE` | `/_matrix/client/v1/rendezvous/{session_id}`          | `src/rendezvous/RendezvousManager.ts:194` (/rendezvous/{})          |
+| `GET`    | `/_matrix/client/v1/rendezvous/{session_id}`          | `src/rendezvous/RendezvousManager.ts:194` (/rendezvous/{})          |
+| `PUT`    | `/_matrix/client/v1/rendezvous/{session_id}`          | `src/rendezvous/RendezvousManager.ts:194` (/rendezvous/{})          |
+| `GET`    | `/_matrix/client/v1/rendezvous/{session_id}/messages` | `src/rendezvous/RendezvousManager.ts:280` (/rendezvous/{}/messages) |
+| `POST`   | `/_matrix/client/v1/rendezvous/{session_id}/messages` | `src/rendezvous/RendezvousManager.ts:280` (/rendezvous/{}/messages) |
 
 </details>
 
@@ -735,12 +781,12 @@
 
 | Method | Path                                                                | 构造证据                                                                   |
 | ------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `POST` | `/_matrix/client/v1/rooms/{room_id}/report/{event_id}`              | `src/reporting/index.ts:61` (/rooms/$roomId/report/$eventId)               |
+| `POST` | `/_matrix/client/v1/rooms/{room_id}/report/{event_id}`              | `src/reporting/index.ts:88` (/rooms/$roomId/report/$eventId)               |
 | `POST` | `/_matrix/client/v3/rooms/{room_id}/report`                         | `src/room/RoomManager.ts:60` (/rooms/{room_id}/report)                     |
-| `POST` | `/_matrix/client/v3/rooms/{room_id}/report/{event_id}`              | `src/reporting/index.ts:61` (/rooms/$roomId/report/$eventId)               |
-| `POST` | `/_matrix/client/v3/users/{user_id}/report`                         | `src/reporting/index.ts:72` (/users/$userId/report)                        |
-| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info` | `src/reporting/index.ts:112` (/rooms/$roomId/report/$eventId/scanner_info) |
-| `PUT`  | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/score`        | `src/reporting/index.ts:93` (/rooms/$roomId/report/$eventId/score)         |
+| `POST` | `/_matrix/client/v3/rooms/{room_id}/report/{event_id}`              | `src/reporting/index.ts:88` (/rooms/$roomId/report/$eventId)               |
+| `POST` | `/_matrix/client/v3/users/{user_id}/report`                         | `src/reporting/index.ts:111` (/users/$userId/report)                       |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info` | `src/reporting/index.ts:156` (/rooms/$roomId/report/$eventId/scanner_info) |
+| `PUT`  | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/score`        | `src/reporting/index.ts:132` (/rooms/$roomId/report/$eventId/score)        |
 
 </details>
 
@@ -748,12 +794,12 @@
 
 | Method   | Path                                          | 构造证据                                              |
 | -------- | --------------------------------------------- | ----------------------------------------------------- |
-| `POST`   | `/_matrix/client/v3/delete_devices`           | ⚠️ `src/device/index.ts:490` (/delete_devices)        |
+| `POST`   | `/_matrix/client/v3/delete_devices`           | ⚠️ `src/device/index.ts:525` (/delete_devices)        |
 | `GET`    | `/_matrix/client/v3/devices`                  | ⚠️ `src/device/index.ts:240` (/devices)               |
 | `DELETE` | `/_matrix/client/v3/devices/{device_id}`      | `src/device/index.ts:304` (/devices/{})               |
 | `GET`    | `/_matrix/client/v3/devices/{device_id}`      | `src/device/index.ts:304` (/devices/{})               |
 | `PUT`    | `/_matrix/client/v3/devices/{device_id}`      | `src/device/index.ts:304` (/devices/{})               |
-| `POST`   | `/_matrix/client/v3/keys/device_list_updates` | `src/device/index.ts:529` (/keys/device_list_updates) |
+| `POST`   | `/_matrix/client/v3/keys/device_list_updates` | `src/device/index.ts:588` (/keys/device_list_updates) |
 
 </details>
 
@@ -761,11 +807,35 @@
 
 | Method | Path                                                  | 构造证据                                          |
 | ------ | ----------------------------------------------------- | ------------------------------------------------- |
-| `POST` | `/_matrix/client/v3/rooms/typing`                     | `src/room/RoomManager.ts:1324` (/rooms/typing)    |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/typing`           | `src/room/RoomManager.ts:1314` (/rooms/{}/typing) |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}` | `src/typing/index.ts:89` (/rooms/{}/typing/{})    |
-| `POST` | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}` | `src/typing/index.ts:89` (/rooms/{}/typing/{})    |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}` | `src/typing/index.ts:89` (/rooms/{}/typing/{})    |
+| `POST` | `/_matrix/client/v3/rooms/typing`                     | `src/room/RoomManager.ts:2010` (/rooms/typing)    |
+| `GET`  | `/_matrix/client/v3/rooms/{room_id}/typing`           | `src/room/RoomManager.ts:1988` (/rooms/{}/typing) |
+| `GET`  | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}` | `src/typing/index.ts:94` (/rooms/{}/typing/{})    |
+| `POST` | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}` | `src/typing/index.ts:94` (/rooms/{}/typing/{})    |
+| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/typing/{user_id}` | `src/typing/index.ts:94` (/rooms/{}/typing/{})    |
+
+</details>
+
+<details><summary><code>thirdparty</code> — 5 条</summary>
+
+| Method | Path                                                | 构造证据                                                        |
+| ------ | --------------------------------------------------- | --------------------------------------------------------------- |
+| `GET`  | `/_matrix/client/v3/thirdparty/location`            | `src/third-party/index.ts:307` (/thirdparty/location)           |
+| `GET`  | `/_matrix/client/v3/thirdparty/location/{protocol}` | `src/client-third-party.ts:16` (/thirdparty/location/$protocol) |
+| `GET`  | `/_matrix/client/v3/thirdparty/protocol/{protocol}` | `src/app-service/index.ts:627` (/thirdparty/protocol/{})        |
+| `GET`  | `/_matrix/client/v3/thirdparty/user`                | `src/third-party/index.ts:345` (/thirdparty/user)               |
+| `GET`  | `/_matrix/client/v3/thirdparty/user/{protocol}`     | `src/client-third-party.ts:25` (/thirdparty/user/$protocol)     |
+
+</details>
+
+<details><summary><code>dm</code> — 5 条</summary>
+
+| Method | Path                                            | 构造证据                                                                 |
+| ------ | ----------------------------------------------- | ------------------------------------------------------------------------ |
+| `POST` | `/_matrix/vendor/v1/create_dm`                  | ⚠️ `src/dm/sub-managers/dm-room-creation-manager.ts:293` (/create_dm)    |
+| `GET`  | `/_matrix/vendor/v1/direct`                     | ⚠️ `src/dm/sub-managers/dm-room-list-manager.ts:557` (/direct)           |
+| `PUT`  | `/_matrix/vendor/v1/direct/{room_id}`           | `src/dm/sub-managers/dm-room-creation-manager.ts:384` (/direct/{})       |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm`         | `src/dm/sub-managers/dm-room-list-manager.ts:597` (/rooms/{}/dm)         |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/dm/partner` | `src/dm/sub-managers/dm-room-list-manager.ts:657` (/rooms/{}/dm/partner) |
 
 </details>
 
@@ -780,6 +850,28 @@
 
 </details>
 
+<details><summary><code>dehydrated_device</code> — 4 条</summary>
+
+| Method | Path                                                                                  | 构造证据                                                                                |
+| ------ | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `PUT`  | `/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device`                    | ⚠️ `src/dehydrated-device/index.ts:127` (/dehydrated_device)                            |
+| `GET`  | `/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/status`             | `src/dehydrated-device/index.ts:189` (/dehydrated_device/status)                        |
+| `GET`  | `/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events` | `src/rust-crypto/DehydratedDeviceManager.ts:305` (/dehydrated_device/$device_id/events) |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc3814.v1/dehydrated_device/{device_id}/events` | `src/rust-crypto/DehydratedDeviceManager.ts:305` (/dehydrated_device/$device_id/events) |
+
+</details>
+
+<details><summary><code>delayed_events</code> — 4 条</summary>
+
+| Method | Path                                                                                              | 构造证据                                                          |
+| ------ | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `GET`  | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events`                                      | ⚠️ `src/delayed-events/index.ts:268` (/delayed_events)            |
+| `GET`  | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}`                           | `src/client-delayed-events.ts:35` (/delayed_events/{})            |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}`                           | `src/client-delayed-events.ts:35` (/delayed_events/{})            |
+| `PUT`  | `/_matrix/client/unstable/org.matrix.msc4140/rooms/{room_id}/delayed_event/{event_type}/{txn_id}` | `src/client-delayed-events.ts:46` (/rooms/{}/delayed_event/{}/{}) |
+
+</details>
+
 <details><summary><code>tags</code> — 4 条</summary>
 
 | Method   | Path                                                           | 构造证据                                                                         |
@@ -787,7 +879,7 @@
 | `GET`    | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags`       | `src/client-account-data-requests.ts:43` (/user/$userId/rooms/$roomId/tags)      |
 | `DELETE` | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}` | `src/client-account-data-requests.ts:50` (/user/$userId/rooms/$roomId/tags/$tag) |
 | `PUT`    | `/_matrix/client/v3/user/{user_id}/rooms/{room_id}/tags/{tag}` | `src/client-account-data-requests.ts:50` (/user/$userId/rooms/$roomId/tags/$tag) |
-| `GET`    | `/_matrix/client/v3/user/{user_id}/tags`                       | `src/http-api/strip-prefix.ts:180` (/user/$userId/tags)                          |
+| `GET`    | `/_matrix/client/v3/user/{user_id}/tags`                       | `src/http-api/strip-prefix.ts:186` (/user/$userId/tags)                          |
 
 </details>
 
@@ -797,8 +889,29 @@
 | -------- | --------------------------------------------- | --------------------------------------------------- |
 | `GET`    | `/_matrix/vendor/v1/push/devices`             | `src/notifications/index.ts:38` (/push/devices)     |
 | `POST`   | `/_matrix/vendor/v1/push/devices`             | `src/notifications/index.ts:38` (/push/devices)     |
-| `DELETE` | `/_matrix/vendor/v1/push/devices/{device_id}` | `src/notifications/index.ts:292` (/push/devices/{}) |
+| `DELETE` | `/_matrix/vendor/v1/push/devices/{device_id}` | `src/notifications/index.ts:347` (/push/devices/{}) |
 | `POST`   | `/_matrix/vendor/v1/push/send`                | `src/notifications/index.ts:38` (/push/send)        |
+
+</details>
+
+<details><summary><code>invite_blocklist</code> — 4 条</summary>
+
+| Method | Path                                                  | 构造证据                                                             |
+| ------ | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist` | `src/invite-blocklist/index.ts:241` (/rooms/{}/invite_allowlist)     |
+| `POST` | `/_matrix/vendor/v1/rooms/{room_id}/invite_allowlist` | `src/invite-blocklist/index.ts:241` (/rooms/{}/invite_allowlist)     |
+| `GET`  | `/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist` | `src/http-api/strip-prefix.ts:118` (/rooms/$roomId/invite_blocklist) |
+| `POST` | `/_matrix/vendor/v1/rooms/{room_id}/invite_blocklist` | `src/http-api/strip-prefix.ts:118` (/rooms/$roomId/invite_blocklist) |
+
+</details>
+
+<details><summary><code>app_service</code> — 3 条</summary>
+
+| Method | Path                                           | 构造证据                                             |
+| ------ | ---------------------------------------------- | ---------------------------------------------------- |
+| `GET`  | `/_matrix/client/v1/user/{user_id}/appservice` | `src/app-service/index.ts:570` (/user/{}/appservice) |
+| `GET`  | `/_matrix/client/v3/appservice/alias`          | `src/app-service/index.ts:539` (/appservice/alias)   |
+| `GET`  | `/_matrix/client/v3/appservice/user`           | `src/app-service/index.ts:505` (/appservice/user)    |
 
 </details>
 
@@ -806,9 +919,9 @@
 
 | Method | Path                                       | 构造证据                                          |
 | ------ | ------------------------------------------ | ------------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/account/guest`         | `src/guest/index.ts:403` (/account/guest)         |
-| `POST` | `/_matrix/client/v3/account/guest/upgrade` | `src/guest/index.ts:439` (/account/guest/upgrade) |
-| `POST` | `/_matrix/client/v3/register/guest`        | `src/guest/index.ts:473` (/register/guest)        |
+| `GET`  | `/_matrix/client/v3/account/guest`         | `src/guest/index.ts:495` (/account/guest)         |
+| `POST` | `/_matrix/client/v3/account/guest/upgrade` | `src/guest/index.ts:542` (/account/guest/upgrade) |
+| `POST` | `/_matrix/client/v3/register/guest`        | `src/guest/index.ts:586` (/register/guest)        |
 
 </details>
 
@@ -816,9 +929,9 @@
 
 | Method | Path                                         | 构造证据                                              |
 | ------ | -------------------------------------------- | ----------------------------------------------------- |
-| `POST` | `/_matrix/client/v3/register/captcha/send`   | `src/captcha/index.ts:109` (/register/captcha/send)   |
-| `GET`  | `/_matrix/client/v3/register/captcha/status` | `src/captcha/index.ts:159` (/register/captcha/status) |
-| `POST` | `/_matrix/client/v3/register/captcha/verify` | `src/captcha/index.ts:137` (/register/captcha/verify) |
+| `POST` | `/_matrix/client/v3/register/captcha/send`   | `src/captcha/index.ts:124` (/register/captcha/send)   |
+| `GET`  | `/_matrix/client/v3/register/captcha/status` | `src/captcha/index.ts:201` (/register/captcha/status) |
+| `POST` | `/_matrix/client/v3/register/captcha/verify` | `src/captcha/index.ts:166` (/register/captcha/verify) |
 
 </details>
 
@@ -826,36 +939,9 @@
 
 | Method   | Path                                                | 构造证据                                                                                   |
 | -------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `GET`    | `/_matrix/vendor/v1/external_services/health`       | `src/admin/sub-managers/admin-external-service-manager.ts:158` (/external_services/health) |
-| `DELETE` | `/_matrix/vendor/v1/external_services/{service_id}` | `src/admin/sub-managers/admin-external-service-manager.ts:137` (/external_services/{})     |
-| `PUT`    | `/_matrix/vendor/v1/external_services/{service_id}` | `src/admin/sub-managers/admin-external-service-manager.ts:137` (/external_services/{})     |
-
-</details>
-
-<details><summary><code>delayed_events</code> — 2 条</summary>
-
-| Method | Path                                                                    | 构造证据                                               |
-| ------ | ----------------------------------------------------------------------- | ------------------------------------------------------ |
-| `GET`  | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}` | `src/client-delayed-events.ts:16` (/delayed_events/{}) |
-| `POST` | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}` | `src/client-delayed-events.ts:16` (/delayed_events/{}) |
-
-</details>
-
-<details><summary><code>cas</code> — 2 条</summary>
-
-| Method | Path                                        | 构造证据                                                                |
-| ------ | ------------------------------------------- | ----------------------------------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/login/sso/redirect/cas` | `src/account/index.ts:165` (/\_matrix/client/v3/login/sso/redirect/cas) |
-| `GET`  | `/_synapse/cas/login`                       | `src/cas/index.ts:28` (/\_synapse/cas/login)                            |
-
-</details>
-
-<details><summary><code>thirdparty</code> — 2 条</summary>
-
-| Method | Path                                     | 构造证据                                              |
-| ------ | ---------------------------------------- | ----------------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/thirdparty/location` | `src/third-party/index.ts:287` (/thirdparty/location) |
-| `GET`  | `/_matrix/client/v3/thirdparty/user`     | `src/third-party/index.ts:325` (/thirdparty/user)     |
+| `GET`    | `/_matrix/vendor/v1/external_services/health`       | `src/admin/sub-managers/admin-external-service-manager.ts:195` (/external_services/health) |
+| `DELETE` | `/_matrix/vendor/v1/external_services/{service_id}` | `src/admin/sub-managers/admin-external-service-manager.ts:163` (/external_services/{})     |
+| `PUT`    | `/_matrix/vendor/v1/external_services/{service_id}` | `src/admin/sub-managers/admin-external-service-manager.ts:163` (/external_services/{})     |
 
 </details>
 
@@ -879,7 +965,7 @@
 
 | Method | Path                                           | 构造证据                                           |
 | ------ | ---------------------------------------------- | -------------------------------------------------- |
-| `GET`  | `/_matrix/client/v3/rooms/{room_id}/ephemeral` | `src/ephemeral/index.ts:160` (/rooms/{}/ephemeral) |
+| `GET`  | `/_matrix/client/v3/rooms/{room_id}/ephemeral` | `src/ephemeral/index.ts:209` (/rooms/{}/ephemeral) |
 
 </details>
 
@@ -887,7 +973,7 @@
 
 | Method | Path                                                          | 构造证据                                                               |
 | ------ | ------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` | `src/room-events/index.ts:140` (/rooms/$roomId/send/m.reaction/$txnId) |
+| `PUT`  | `/_matrix/client/v3/rooms/{room_id}/send/m.reaction/{txn_id}` | `src/room-events/index.ts:266` (/rooms/$roomId/send/m.reaction/$txnId) |
 
 </details>
 
@@ -901,7 +987,7 @@
 
 | Method | Path                                                             | 模板证据                                                          | 范围          |
 | ------ | ---------------------------------------------------------------- | ----------------------------------------------------------------- | ------------- |
-| `POST` | `/_matrix/federation/unstable/org.matrix.msc3720/account_status` | `src/account/index.ts:370` (`/org.matrix.msc3720/account_status`) | `SERVER_ONLY` |
+| `POST` | `/_matrix/federation/unstable/org.matrix.msc3720/account_status` | `src/account/index.ts:447` (`/org.matrix.msc3720/account_status`) | `SERVER_ONLY` |
 
 ---
 
@@ -913,13 +999,42 @@
 
 ---
 
-## 5. 仅声明面命中（T3）— 54 条
+## 5. 仅声明面命中（T3）— 79 条
 
 **不是缺口**：后端路由已进入 SDK 的 route-table 声明面，但仓内没有调用方。
 已知系统性成因（来自 `pnpm quality:manager-codegen`）：admin / federation / voice / feature_flags /
 moderation / key_rotation / app_service / dm / reactions / vendor / push_notification / delayed_events
 共 12 个模块被标记为 `WAIVED — no route-table consumer`。若前端 `Tjg` 需要其中能力，
 须**回前端仓库查消费情况**后才能定性为"待补封装"。
+
+<details><summary><code>app_service</code> — 22 条</summary>
+
+| Method    | Path                                                               | 范围            |
+| --------- | ------------------------------------------------------------------ | --------------- |
+| `POST`    | `/_matrix/app/v1/ping`                                             | `SERVER_ONLY`   |
+| `DELETE`  | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `GET`     | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `HEAD`    | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `OPTIONS` | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `PATCH`   | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `POST`    | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `PUT`     | `/_matrix/app/v1/proxy/{as_id}/{*path}`                            | `SERVER_ONLY`   |
+| `GET`     | `/_matrix/app/v1/rooms/{alias}`                                    | `SERVER_ONLY`   |
+| `PUT`     | `/_matrix/app/v1/transactions/{as_id}/{txn_id}`                    | `SERVER_ONLY`   |
+| `GET`     | `/_matrix/app/v1/users/{user_id}`                                  | `SERVER_ONLY`   |
+| `GET`     | `/_matrix/app/v1/{as_id}`                                          | `SERVER_ONLY`   |
+| `POST`    | `/_matrix/client/unstable/io.element.msc4512/appservice/fed_proxy` | `CLIENT_FACING` |
+| `POST`    | `/_matrix/client/v1/appservice/fed_proxy`                          | `CLIENT_FACING` |
+| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}`                         | `SERVER_ONLY`   |
+| `GET`     | `/_synapse/admin/v1/appservices/{as_id}/state/{state_key}`         | `SERVER_ONLY`   |
+
+</details>
 
 <details><summary><code>key_backup</code> — 18 条</summary>
 
@@ -1005,6 +1120,16 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 </details>
 
+<details><summary><code>delayed_events</code> — 3 条</summary>
+
+| Method | Path                                                                            | 范围            |
+| ------ | ------------------------------------------------------------------------------- | --------------- |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/cancel`  | `CLIENT_FACING` |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/restart` | `CLIENT_FACING` |
+| `POST` | `/_matrix/client/unstable/org.matrix.msc4140/delayed_events/{delay_id}/send`    | `CLIENT_FACING` |
+
+</details>
+
 <details><summary><code>room_summary</code> — 3 条</summary>
 
 | Method | Path                                        | 范围            |
@@ -1026,7 +1151,7 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 ---
 
-## 6. 服务端/非产品面缺口（登记，**不应**封装）— 62 条
+## 6. 服务端/非产品面缺口（登记，**不应**封装）— 30 条
 
 <details><summary><code>federation</code> — 30 条</summary>
 
@@ -1065,69 +1190,23 @@ moderation / key_rotation / app_service / dm / reactions / vendor / push_notific
 
 </details>
 
-<details><summary><code>app_service</code> — 20 条</summary>
-
-| Method    | Path                                                       | 范围          |
-| --------- | ---------------------------------------------------------- | ------------- |
-| `POST`    | `/_matrix/app/v1/ping`                                     | `SERVER_ONLY` |
-| `DELETE`  | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `GET`     | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `HEAD`    | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `OPTIONS` | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `PATCH`   | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `POST`    | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `PUT`     | `/_matrix/app/v1/proxy/{as_id}/{*path}`                    | `SERVER_ONLY` |
-| `GET`     | `/_matrix/app/v1/rooms/{alias}`                            | `SERVER_ONLY` |
-| `PUT`     | `/_matrix/app/v1/transactions/{as_id}/{txn_id}`            | `SERVER_ONLY` |
-| `GET`     | `/_matrix/app/v1/users/{user_id}`                          | `SERVER_ONLY` |
-| `GET`     | `/_matrix/app/v1/{as_id}`                                  | `SERVER_ONLY` |
-| `DELETE`  | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `GET`     | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `HEAD`    | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `OPTIONS` | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `PATCH`   | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `POST`    | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `PUT`     | `/_matrix/client/v1/proxy/{as_id}/{*path}`                 | `SERVER_ONLY` |
-| `GET`     | `/_synapse/admin/v1/appservices/{as_id}/state/{state_key}` | `SERVER_ONLY` |
-
-</details>
-
-<details><summary><code>admin</code> — 12 条</summary>
-
-| Method   | Path                                                    | 范围          |
-| -------- | ------------------------------------------------------- | ------------- |
-| `POST`   | `/_synapse/admin/v1/media/delete`                       | `SERVER_ONLY` |
-| `GET`    | `/_synapse/admin/v1/media/quarantine_changes`           | `SERVER_ONLY` |
-| `DELETE` | `/_synapse/admin/v1/media/{server_name}/{media_id}`     | `SERVER_ONLY` |
-| `GET`    | `/_synapse/admin/v1/media/{server_name}/{media_id}`     | `SERVER_ONLY` |
-| `GET`    | `/_synapse/admin/v1/rate-limit-status`                  | `SERVER_ONLY` |
-| `POST`   | `/_synapse/admin/v1/rooms/{room_id}/backfill`           | `SERVER_ONLY` |
-| `POST`   | `/_synapse/admin/v1/rooms/{room_id}/cascade_redact`     | `SERVER_ONLY` |
-| `GET`    | `/_synapse/admin/v1/rooms/{room_id}/media`              | `SERVER_ONLY` |
-| `POST`   | `/_synapse/admin/v1/rooms/{room_id}/media/quarantine`   | `SERVER_ONLY` |
-| `POST`   | `/_synapse/admin/v1/rooms/{room_id}/media/unquarantine` | `SERVER_ONLY` |
-| `DELETE` | `/_synapse/admin/v1/rooms/{room_id}/media/{media_id}`   | `SERVER_ONLY` |
-| `POST`   | `/_synapse/admin/v1/user/{user_id}/media/quarantine`    | `SERVER_ONLY` |
-
-</details>
-
 ---
 
-## 7. 人工复核记录（本轮，2026-10-11）
+## 7. 人工复核记录（本轮，2026-10-17）
 
 > 本表由审计者人工维护，**重跑生成器不会覆盖**。机器只能给出"证据有几级"，
 > "该不该补"必须开源码看实现意图——这是本仓历史审计反复踩过的坑
 > （2026-08-17 那次曾把 8 个已实现的 `room-summary` 端点误判为待补）。
 
-| 端点（版本不敏感）                                       | 复核结论                        | 证据                                                                                                                                                                                                                                                                                                                                                                                                     | 处置                                                                                                                                                                                         |
-| -------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/client/unstable/org.matrix.msc2965/auth_issuer`        | 🔴 真缺口（已核实）             | `grep -rn "auth_issuer\\                                                                                                                                                                                                                                                                                                                                                                                 | msc2965" src --include='\*.ts' \| grep -v **generated**`→ **0 命中**；SDK 的 OIDC 走`src/oidc/discovery.ts`直接请求`.well-known/openid-configuration`，从不调用后端的 MSC2965 委派认证入口。 | 确认前端是否启用 MSC2965 委派认证；若启用，需补 `OidcManager.getAuthIssuer()`（`GET /_matrix/client/unstable/org.matrix.msc2965/auth_issuer`）；若不启用，登记为「后端有、前端不走」并保持缺口。                           |
-| `/client/v3/admin/room/{}/redact`                        | 🔴 真缺口（已核实）             | `grep -rn "redact" src/admin` → **0 命中**；SDK 仅有用户态 `PUT /_matrix/client/{v1,v3}/rooms/{roomId}/redact/{eventId}/{txnId}`，无 admin 房间级 redact。                                                                                                                                                                                                                                               | 若运营后台需要房间级 redact：`AdminRoomManager` 补 `redactRoomEvent(roomId, eventId, reason)`；若由前端 `AdminFacadeService` 直连（C 类运维面），则登记不补。                                |
-| `/media/{}/download/{}/{}`                               | 🟡 版本别名（已核实，非缺口）   | `src/media/index.ts:461-462` `getDownloadUrl()`：`const version = options.version ?? "v3"` → `/_matrix/media/${version}/download/...`。r0 需调用方显式传 `version: "r0"`（默认 v3）。                                                                                                                                                                                                                    | 无需补封装。可选：在 `MediaDownloadUrlOptions.version` 处加 JSDoc 说明「r0 为兼容别名，默认 v3」，避免调用方误以为覆盖 r0。                                                                  |
-| `/client/unstable/org.matrix.msc4108/rendezvous/{}`      | 🟢 已实现（解析器盲区，非缺口） | `src/rendezvous/transports/MSC4108RendezvousSession.ts:106` `.getUrl("/org.matrix.msc4108/rendezvous", undefined, ClientPrefix.Unstable)`；GET/PUT/DELETE 三方法共用该基址，`{session_id}` 由 transport 追加。                                                                                                                                                                                           | 无需改动。这是本解析器的已知盲区（`getUrl(relativePath, ..., prefix)` 形态 + 尾部参数后拼），已在 §7.1 登记。                                                                                |
-| `/client/unstable/org.matrix.msc4155/rooms/{}/threads`   | 🔴 真缺口（已核实）             | `grep -rn "msc4155\\                                                                                                                                                                                                                                                                                                                                                                                     | msc4156" src --include='\*.ts' \| grep -v **generated**`→ **0 命中**；全仓除`**generated**/route-table.ts`外**没有任何`/threads` 路径字面量\*\*。                                            | **须与 Sprint 4 交付范围对照**：MSC4155（房间线程列表）在 SDK 侧无任何调用点。若该 ticket 只交付了后端，则前端线程能力仍走 `relations`（`m.thread`）自建；若要启用不稳定端点，需在 `ThreadManager` 补 `getRoomThreads()`。 |
-| `/client/unstable/org.matrix.msc4156/threads/subscribed` | 🔴 真缺口（已核实）             | 同上，`msc4156` 在 `src` 中 0 命中（仅存在于 `src/thread/__generated__/route-table.ts` 声明面）。                                                                                                                                                                                                                                                                                                        | 同上：补 `getSubscribedThreads()`，或明确该能力不在本期前端范围内。                                                                                                                          |
-| `/client/v1/proxy/{as_id}/{*path}`                       | ⚪ 非前端面（已核实，登记豁免） | 后端 ledger `registered_by=app_service`；与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（7 方法，已在 `SERVER_ONLY_RE` 命中 `/_matrix/app/` → 归 §6）为**孪生路由**，仅前缀不同。`{*path}` 通配符使 codegen 无法生成 route-table；`grep -rn "/proxy/" src --include='*.ts'` 无任何消费点。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 明确裁定该 7 条「移出客户端面，归入 AS/服务端排除组（不封装）」。 | **不封装**。已在 `scopeOf` 的 `SERVER_ONLY_RE` 增补 `/^\/_matrix\/client\/v\d+\/proxy\//`，这 7 条从 §2（客户端面缺口）移入 §6（服务端/非产品面缺口）。                                      |
+| 端点（版本不敏感）                                       | 复核结论                                                        | 证据                                                                                                                                                                                                                                                                                                                                                                                                     | 处置                                                                                                                                                    |
+| -------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/client/unstable/org.matrix.msc2965/auth_issuer`        | ⚪ 非缺口（后端**无**此路由；2026-10-17 订正）                  | `grep -rn "auth_issuer" ../synapse-rust/synapse-web/src` → **0 命中**；后端 fixture `ledger_export_sdk/default.json` 与 SDK `route-manifest.default.json` 同样 **0 命中** ⇒ 该路由**不在任何路由契约里**，故「后端有、SDK 无」的前提不成立。SDK 在 `src/client-auth.ts:55-61` 已按「回退即 404 的死路径」删除该分支并注明原因（与 `ROUTE_CONTRACT.md` 附录 B M-07 一致）。                               | **无需补**。若将来后端真的注册该路由（MSC2965 委派认证），再评估是否改用 `.well-known` 而非该端点。                                                     |
+| `/client/v3/admin/room/{}/redact`                        | 🟢 已实现（原判「真缺口」为**误报**，2026-10-17 订正）          | `src/admin/sub-managers/admin-room-manager.ts:640` 有 `redactRoomEvents(roomId, payload)`：`POST {prefix}/admin/room/{roomId}/redact`（`:652`），返回 `AdminRoomRedactResult`。原文「`grep -rn "redact" src/admin` → 0 命中」不成立 —— 该文件位于 `sub-managers/` 子目录，`grep` 未递归或当时方法尚未落地。                                                                                              | **无需补**。按 `event_id` 单条撤回用 `POST /_synapse/admin/v1/rooms/{room_id}/cascade_redact`（`cascadeRedactEvent`，`:1146`）。                        |
+| `/media/{}/download/{}/{}`                               | 🟡 版本别名（已核实，非缺口）                                   | `src/media/index.ts:461-462` `getDownloadUrl()`：`const version = options.version ?? "v3"` → `/_matrix/media/${version}/download/...`。r0 需调用方显式传 `version: "r0"`（默认 v3）。                                                                                                                                                                                                                    | 无需补封装。可选：在 `MediaDownloadUrlOptions.version` 处加 JSDoc 说明「r0 为兼容别名，默认 v3」，避免调用方误以为覆盖 r0。                             |
+| `/client/unstable/org.matrix.msc4108/rendezvous/{}`      | 🟢 已实现（解析器盲区，非缺口）                                 | `src/rendezvous/transports/MSC4108RendezvousSession.ts:106` `.getUrl("/org.matrix.msc4108/rendezvous", undefined, ClientPrefix.Unstable)`；GET/PUT/DELETE 三方法共用该基址，`{session_id}` 由 transport 追加。                                                                                                                                                                                           | 无需改动。这是本解析器的已知盲区（`getUrl(relativePath, ..., prefix)` 形态 + 尾部参数后拼），已在 §7.1 登记。                                           |
+| `/client/unstable/org.matrix.msc4155/rooms/{}/threads`   | 🔴 仅缺 **unstable 变体**（v1 稳定版已封；2026-10-17 订正表述） | SDK 已封 **v1 稳定版**：`src/thread/index.ts:192` `getRoomThreads()` → `tp("/rooms/{roomId}/threads")` + `THREAD_PREFIX_V1` = `/_matrix/client/v1/rooms/{id}/threads`。原文「全仓除 route-table 外**没有任何 `/threads` 路径字面量**」**与事实不符**；真正的缺口只是 MSC4155 的 **unstable 变体**（`/_matrix/client/unstable/org.matrix.msc4155/rooms/{}/threads`）。                                    | v1 稳定版已够用，**无需补**。仅当需要 MSC4155 unstable 的独有能力（或后端只在 unstable 下提供）时，再给 `ThreadManager` 加 unstable 变体入口。          |
+| `/client/unstable/org.matrix.msc4156/threads/subscribed` | 🔴 仅缺 **unstable 变体**（vendor 版已封；2026-10-17 订正表述） | SDK 已封 **vendor 版**：`src/thread/index.ts:704` `getSubscribedThreads()` → `/threads/subscribed`（`VendorPrefix`）= `/_matrix/vendor/v1/threads/subscribed`。缺口仅指 MSC4156 的 unstable 变体。                                                                                                                                                                                                       | vendor 版已够用，**无需补**。                                                                                                                           |
+| `/client/v1/proxy/{as_id}/{*path}`                       | ⚪ 非前端面（已核实，登记豁免）                                 | 后端 ledger `registered_by=app_service`；与 `/_matrix/app/v1/proxy/{as_id}/{*path}`（7 方法，已在 `SERVER_ONLY_RE` 命中 `/_matrix/app/` → 归 §6）为**孪生路由**，仅前缀不同。`{*path}` 通配符使 codegen 无法生成 route-table；`grep -rn "/proxy/" src --include='*.ts'` 无任何消费点。后端《前缀命名空间治理方案-2026-10-08》§9.2 G-01 明确裁定该 7 条「移出客户端面，归入 AS/服务端排除组（不封装）」。 | **不封装**。已在 `scopeOf` 的 `SERVER_ONLY_RE` 增补 `/^\/_matrix\/client\/v\d+\/proxy\//`，这 7 条从 §2（客户端面缺口）移入 §6（服务端/非产品面缺口）。 |
 
 ### 7.1 本解析器的已知盲区（重跑时必须人工兜底）
 

@@ -173,6 +173,21 @@ interface ThreadManagerEventMap {
 
 // ============ Manager ============
 
+/**
+ * 从本地缓存取事件的真实 `origin_server_ts`。
+ *
+ * **防御式**：`ThreadManager` 的 `client` 在单测 / 嵌入式场景常是精简 mock，不一定带
+ * `getRoom`（实测 spec 里会抛 `this.client.getRoom is not a function`）。因此这里先探测
+ * 方法存在性，取不到就返回 `undefined`，由调用方决定退化策略 —— 不假设 client 一定完整。
+ */
+function localEventTs(client: MatrixClient, roomId: string, eventId: string): number | undefined {
+    const getRoom = (client as Partial<MatrixClient> | undefined)?.getRoom;
+    if (typeof getRoom !== "function") return undefined;
+    const room = getRoom.call(client, roomId);
+    const ts = room?.findEventById?.(eventId)?.getTs?.();
+    return typeof ts === "number" ? ts : undefined;
+}
+
 export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMap> {
     constructor(client: MatrixClient, opts?: ManagerOpts) {
         super(client, opts);
@@ -229,6 +244,10 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
                 this.request<IThreadRoot>({
                     method: Method.Post,
                     path: path,
+                    // ⚠️ `name` 实际**不生效**：后端 `CreateThreadBody.content` 声明为 `_content`
+                    // （`thread.rs:21-22`，下划线前缀 ⇒ Rust 侧**不读取**），仅用于接受该键
+                    // ⇒ 传 `name` 既不报错也无效果。需要"线程标题"请在该线程内发一条
+                    // `m.room.message` 承载（或在后端实现 content 落库后再启用）。
                     body: { root_event_id: body.event_id, content: body.name ?? {} },
                     prefix: VendorPrefix,
                 }),
@@ -437,17 +456,28 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
      *
      * @throws {InvalidParamError} 如果 `thread_id` 或 `readUpTo` 为空
      */
-    async markThreadRead(roomId: string, threadId: string, readUpTo: string): Promise<IThreadReadReceipt> {
+    async markThreadRead(
+        roomId: string,
+        threadId: string,
+        readUpTo: string,
+        originServerTs?: number,
+    ): Promise<IThreadReadReceipt> {
         validateRoomId(roomId);
         if (!threadId) throw new InvalidParamError("thread_id is required");
         if (!readUpTo) throw new InvalidParamError("readUpTo is required");
+        // ⚠️ 后端 `MarkReadBody { event_id, origin_server_ts: i64 }`（`thread.rs:51-54`）要求
+        // 的是**该事件的真实时间戳**。此前固定发 `Date.now()`（客户端时钟）⇒ 同一事件在不同
+        // 设备上报出不同 ts，多设备的已读水位会互相打架。取值优先级：
+        //   ① 调用方显式传入 → ② 本地缓存该事件的 `getTs()` → ③ 退化 `Date.now()`（近似值，
+        //   调用方若在意一致性应显式传入）。
+        const ts = originServerTs ?? localEventTs(this.client, roomId, readUpTo) ?? Date.now();
         const path = tpv(`/rooms/${encodeURIComponent(roomId)}/threads/${encodeURIComponent(threadId)}/read`);
         return this.withRetry(
             () =>
                 this.request<IThreadReadReceipt>({
                     method: Method.Post,
                     path: path,
-                    body: { event_id: readUpTo, origin_server_ts: Date.now() },
+                    body: { event_id: readUpTo, origin_server_ts: ts },
                     prefix: VendorPrefix,
                 }),
             "markThreadRead",
@@ -685,6 +715,8 @@ export class ThreadManager extends BaseManager<ThreadEvent, ThreadManagerEventMa
                 this.request<IThreadRoot>({
                     method: Method.Post,
                     path: path,
+                    // ⚠️ 同 `createThread`：`name` 映射到的 `content` 在后端是 `_content`（不读取）
+                    // ⇒ 该参数静默无效，不报错也无效果。
                     body: { room_id: body.room_id, root_event_id: body.event_id, content: body.name ?? {} },
                     prefix: VendorPrefix,
                 }),
