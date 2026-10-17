@@ -250,3 +250,26 @@ interface KeyCheckResponse {
 | 2026-04-27 | 初版                                             | -                           |
 | 2026-04-27 | 新增 `KeyRotationManager` SDK 封装并补齐单元测试 | SDK 封装覆盖率提升至 100%   |
 | 2026-05-26 | 修正类型定义以对齐后端实际响应                   | 修正所有端点的请求/响应类型 |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 本节依据 `synapse-rust/docs/sdk/e2ee.md` 的 Megolm 轮换章节回灌。正文的路由表、端点计数、覆盖率与日期保持不变；若正文与本节冲突，以本节为准。
+
+### status 的 GET 与 POST 变体
+
+- `GET /_matrix/vendor/v1/keys/rotation/status` 与 `POST /_matrix/vendor/v1/keys/rotation/status` 均可用，返回同一结构。
+- SDK 的 `getStatus()` 只封装 GET 变体；需要 POST 形态时须走低层请求。
+
+### config 的写方法
+
+- 后端口径列出 `GET` / `PUT` / `POST /_matrix/vendor/v1/keys/rotation/config` 三种形态。
+- 当前 ledger 只登记 POST 与 PUT，`GET /keys/rotation/config` 尚未纳入契约；在补齐 ledger 前不应宣告 GET 变体已被契约覆盖。
+
+### 开关与 `/sync` 对接
+
+- 服务端自动轮换由配置项 `server.megolm_device_id` 控制；未配置时不启用轮换服务，行为与未引入该能力前一致。
+- `/sync` 的 `key_rotation_needed.rooms` 给出需要客户端轮换 megolm 会话的房间列表；服务端只给建议，轮换动作在客户端完成。
+
+### 轮换判定
+
+- 轮换判定只看每个 `(room_id, sender_key)` 的最新记录（`DISTINCT ON`），不会因历史行超期而反复要求轮换。

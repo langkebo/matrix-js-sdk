@@ -120,6 +120,50 @@ last_reviewed: 2026-05-03
 - 对复杂响应体，只记录代码中稳定可见的字段；若由 service 直接序列化返回，会在备注中标明。
 - 版本兼容路由必须拆开描述，不把 `v1` / `r0` / `v3` 混写为一个虚构端点。
 
+## 跨切面契约
+
+本节汇总后端 `synapse-rust/docs/sdk` 的跨模块事实；模块页只描述模块特有差异，通用口径以本节为准。
+
+### 响应形态
+
+- 后端不返回 `{status, data}` 信封，响应体即业务对象或数组。
+- 无响应体存在两种并存形态：`204 No Content` 与 `200 + {}`；`DELETE` 不必然无 body，需按端点文档判断。
+
+### 认证与错误
+
+- 只接受 `Authorization: Bearer <token>`；`?access_token=` 查询参数会被忽略并导致 `401`。
+- `401` 按三码分派：`M_UNAUTHORIZED`、`M_MISSING_TOKEN`、`M_UNKNOWN_TOKEN`；`M_UNKNOWN_TOKEN` 仅出现在 whoami 等少数端点。
+- 除 `M_MISSING_TOKEN` 外，可 refresh 一次后重试。
+- 错误体标准形态为 `{errcode, error}`；UIA 类响应可能只有 `flows` / `params` / `session` 而无 `errcode`。
+- `400` 与 `401` 的清理语义不同：`400` 只清分页游标，`401` 才清 token。
+
+### 限流
+
+- `429` 响应头：`X-RateLimit-Retry-After-Ms`（毫秒，优先）、`Retry-After`（秒，向上取整）、`X-RateLimit-Remaining: 0`；无 `X-RateLimit-Limit`；响应体含 `retry_after_ms`。
+- `429` 在写入前拒绝，可安全重试；`5xx` 与网络超时不可重试。
+
+### 分页
+
+- 无统一分页模型，按端点族区分：
+    - sync：`since` / `next_batch`
+    - messages：`from` / `to` / `dir`
+    - friends：keyset `from` / `next_batch`
+    - admin：`since_ts` / `since_id` / `since_score`
+    - publicRooms：`since`
+- `next_batch` 通常仅在结果数达到 `limit` 时出现，`null` 表示到底。
+
+### 服务事实与能力探测
+
+- 产品版本 `6.2.0`，协议版本 v1.1–v1.17，默认房间版本 `12`，单文件上传上限 52428800 字节（50 MiB），服务端语言仅 `en`。
+- 健康检查：`GET /health` 返回 `{status, rate_limit_config, timestamp}`；`GET /_health` 返回 `{checks: {...}}`。
+- 能力探测 fail-closed：`/versions` 的 `unstable_features` 由路由存在性推导；`/capabilities` 认证可选。
+- 5 项 token-only 能力：`io.hula.friends`、`m.sso`、`external_services`、`io.hula.voice_extended`、`io.hula.burn_after_read`。
+- `m.room.summary` 无 v3 前缀（实际走 vendor）；`preview_url` / `account_status` 在未启用时返回 `403`。
+
+### 幂等
+
+- `txn_id` 的作用域后端口径为用户 + 设备 + 端点（与后端 `messages.md` 一致）；本仓库部分页面写作用户 + 房间 + `txn_id`，存在口径冲突，使用时应以后端实现为准，并在页面中标注待确认。
+
 ## 当前明确排除
 
 以下路由文件存在实现，但当前未在主装配入口挂载，不计入“可达 API 契约”：

@@ -149,3 +149,38 @@ last_reviewed: 2026-05-03
 - 路由与处理器: `synapse-rust/synapse-web/src/routes/handlers/thread.rs`
 - SDK 线程能力: `matrix-js-sdk/src/threading/index.ts`
 - SDK 路径构造: `matrix-js-sdk/src/client-timeline-requests.ts`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 线程内发消息仍走普通 send
+
+- 在线程里发消息不经过上表任一接口，而是复用普通发送路由：`PUT /_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`（也接受 `POST`）。
+- 上表的 `POST /rooms/{room_id}/threads/{thread_id}/replies` 是 SDK 侧仓库化的线程回复入口，不是 Matrix 客户端协议里线程消息的传输路径；两者不要混用理解。
+
+### `m.relates_to` 形状
+
+- 线程消息的 content 必须携带：
+
+```json
+{
+    "m.relates_to": {
+        "rel_type": "m.thread",
+        "event_id": "$thread_root_event_id",
+        "is_falling_back": true,
+        "m.in_reply_to": { "event_id": "$last_related_event_id" }
+    }
+}
+```
+
+- `rel_type` 固定为 `m.thread`；`event_id` 指向线程根事件，不是线程 ID。
+- `m.in_reply_to.event_id` 指向线程内最近一条相关事件；缺省时按根事件处理。
+
+### `is_falling_back` 与能力门控
+
+- `is_falling_back: true` 表示该消息同时可作为普通回复展示，供不支持线程的客户端降级渲染；支持线程的客户端应忽略该回退语义。
+- 线程能力由 `GET /_matrix/client/v3/capabilities` 的 `capabilities.m.thread.enabled` 门控，当前后端返回 `true`。为 `false` 时不要发送线程关系，应退化为普通消息 + `m.in_reply_to`。
+
+### 线程内撤回
+
+- 撤回线程消息使用普通撤回路由：`PUT|POST /_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}`，`txn_id` 必填。
+- 撤回后的消息保留 `m.relates_to`，服务端在 `unsigned.redacted_because` 中给出撤回事件，线程回复计数据此递减。

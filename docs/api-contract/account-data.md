@@ -359,14 +359,16 @@ CREATE TABLE IF NOT EXISTS room_tags (
 
 ## 错误语义
 
-| 场景                                             | HTTP  | 说明                                              |
-| ------------------------------------------------ | ----- | ------------------------------------------------- |
-| 访问他人资源                                     | `403` | `account_data.rs` 与 `tags.rs` 都先比较 `user_id` |
-| account data / room account data / filter 不存在 | `404` | 读取或删除未命中时返回                            |
-| `m.push_rules` 缺失                              | `200` | 返回默认骨架，不走 `404`                          |
-| `data_type` 过长                                 | `400` | 仅用户级 `PUT /account_data/{type}` 明确校验      |
-| 用户级 account data body 超 64KB                 | `400` | 错误文本为 `Account data too large (max 64KB)`    |
-| 数据库写入/查询失败                              | `500` | 统一走 `ApiError::internal(...)`                  |
+| 场景                                         | HTTP  | 说明                                              |
+| -------------------------------------------- | ----- | ------------------------------------------------- |
+| 访问他人资源                                 | `403` | `account_data.rs` 与 `tags.rs` 都先比较 `user_id` |
+| 读取 account data / room account data 不存在 | `404` | 仅读取路径未命中时返回                            |
+| 读取 filter 不存在                           | `404` | `GET /filter/{filter_id}` 未命中时返回            |
+| 删除 account data / room account data 不存在 | `200` | 删除幂等，返回 `{}`，不返回 `404`                 |
+| `m.push_rules` 缺失                          | `200` | 返回默认骨架，不走 `404`                          |
+| `data_type` 过长                             | `400` | 仅用户级 `PUT /account_data/{type}` 明确校验      |
+| 用户级 account data body 超 64KB             | `400` | 错误文本为 `Account data too large (max 64KB)`    |
+| 数据库写入/查询失败                          | `500` | 统一走 `ApiError::internal(...)`                  |
 
 - 文档只对路由层显式可见的状态码和错误分支做承诺。
 - `Axum` JSON 反序列化失败也会导致 `400`，但错误体细节由框架与统一错误封装共同决定，不在此文档中虚构固定文案。
@@ -408,3 +410,30 @@ CREATE TABLE IF NOT EXISTS room_tags (
 - 标签路由: `synapse-rust/synapse-web/src/routes/tags.rs`
 - 数据库迁移: `synapse-rust/migrations/00000000_unified_schema_v12.sql`
 - 动态建表补充: `synapse-rust/synapse-services/src/database_initializer/mod.rs`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 依据：`docs/api-contract/generated/modules/account_data.json` 与 `synapse-rust/docs/sdk/sync.md`。
+> 本节只补充口径，不覆盖上文既有路由表行与统计数字。
+
+### 写入路由的 POST 形态
+
+Ledger 除 `PUT` 外还登记了 account data 的 `POST` 写入路由，语义与同路径 `PUT` 等价（写入体就是该类型的 `content` 原文）：
+
+- `POST /_matrix/client/v3/user/{user_id}/account_data/{type}`
+- `POST /_matrix/client/v3/user/{user_id}/rooms/{room_id}/account_data/{type}`
+
+两者成功均返回 `{}` + `200`，且同样是 upsert 语义；原有路由表未列出这两行，以本节为准。
+
+### 用户级写入约束与越权
+
+- `data_type.len() <= 128`，超长返回 `400`。
+- 请求体序列化后长度 `<= 65536` 字节（64KB），超限返回 `400`，错误文本为 `Account data too large (max 64KB)`。
+- 路径中的 `user_id` 必须等于当前 access token 对应用户；读写他人数据统一 `403`，不做静默降级。
+- 房间级写入（`/user/{user_id}/rooms/{room_id}/account_data/{type}`）在路由层没有额外校验 `data_type` 长度与 body 大小；SDK 侧主动对齐了同一套约束。
+
+### 删除幂等
+
+- 删除用户级或房间级 account data 时，记录不存在也返回 `{}` + `200`，**不是 `404`**。
+- 只有读取路径（`GET /account_data/{type}`、`GET /rooms/{room_id}/account_data/{type}`）未命中才返回 `404`。
+- SDK 的 `deleteAccountData()` / `deleteRoomAccountData()` 不应把未命中当作错误分支处理。

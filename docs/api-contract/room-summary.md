@@ -69,7 +69,7 @@ last_reviewed: 2026-05-03
 ## 认证与状态码
 
 - 客户端路由默认需要用户认证
-- 所有 `/_matrix/client/{r0,v3}/rooms/{room_id}/summary*` 路由现统一要求调用方为目标房间成员或管理员；非成员越权读取、刷新、重算、清理未读或写入摘要均返回 `403 M_FORBIDDEN`
+- 摘要路由现统一要求调用方为目标房间成员或管理员：只读面为 `GET /_matrix/client/v1/rooms/{room_id}/summary`，写维护面位于 `/_matrix/vendor/v1/rooms/{room_id}/summary*`；非成员越权读取、刷新、重算、清理未读或写入摘要均返回 `403 M_FORBIDDEN`
 - 内部 `/_synapse/room_summary/v1/*` 路由由当前服务内部逻辑使用
 - 常见状态码: `200` `400` `401` `404`
 
@@ -104,7 +104,7 @@ last_reviewed: 2026-05-03
 
 - `src/room-summary/index.ts` 已将本页 Ledger 统计的 summary/internal 主路径绑定到生成的 `RoomSummaryPathPattern`。
 - `GET|POST|PUT|DELETE /_matrix/vendor/v1/rooms/{room_id}/summary*` 路由族已由 `RoomSummaryManager` 显式封装。
-- `GET /_matrix/client/{r0,v3}/rooms/{room_id}/summary*` 中的 `r0` 读路径视为兼容别名，SDK 默认走 `v3` 主路径。
+- 客户端只读面仅有 `GET /_matrix/client/v1/rooms/{room_id}/summary`；`/_matrix/client/r0` 与 `/_matrix/client/v3` 下没有任何 summary 路由，旧版“`r0` 读路径为兼容别名”的说法不成立。
 - `GET|POST /_synapse/room_summary/v1/summaries` 与 `POST /_synapse/room_summary/v1/updates/process` 已通过 `requestInternal()` 统一封装。
 - `RoomSummaryManager` 中的 `notifications`、`capabilities`、`timeline`、`vault_data`、`thread` 等额外能力属于 room 扩展接口，不计入本页 23 条 summary 契约覆盖率。
 
@@ -113,7 +113,7 @@ last_reviewed: 2026-05-03
 - **Ledger 契约端点数**: 23
 - **SDK 已封装**: 23/23
 - **契约覆盖率**: 100%
-- **默认主路径策略**: 优先 `v3`，兼容 `r0` 读别名
+- **默认主路径策略**: 只读面 `/_matrix/client/v1`，写维护面 `/_matrix/vendor/v1`
 
 ## 本轮补充
 
@@ -122,3 +122,15 @@ last_reviewed: 2026-05-03
   `updateSummaryMember()`、`deleteSummaryMember()`、`updateSummaryState()`、`recalculateSummaryStats()`、
   `recalculateSummaryHeroes()`、`clearSummaryUnread()` 已绑定生成 `v3` 路由模板。
 - `listUserSummaries()`、`createInternalSummary()`、`processSummaryUpdates()` 已绑定内部 `/_synapse/room_summary/v1` 路由模板。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- 本页「客户端路由」表中的 4 行 `/_matrix/client/{r0,v3}/rooms/{room_id}/summary*` 为历史写法。后端只注册了 `GET /_matrix/client/v1/rooms/{room_id}/summary` 一条客户端只读路由，`summary/members`、`summary/state`、`summary/stats` 的读取路径实际位于 `/_matrix/vendor/v1`；`/_matrix/client/r0` 与 `/_matrix/client/v3` 下均为 0 条。
+- 后端另注册了 `POST /_synapse/room_summary/v1/summaries/batch`（批量获取摘要）；本页「内部路由」表尚未列出该行，调用方以 ledger 为准。
+- `allowed_room_ids` 仅在 `join_rule` 为 `restricted` / `knock_restricted` 的房间出现；其余房间该字段直接缺省，不是 `null`。
+- `heroes` 不包含调用者自己。
+- `last_message_ts` 只统计消息事件，不包含状态事件。
+- `is_encrypted` 等价于房间状态中存在 `m.room.encryption`。
+- 摘要由后端异步重算，写入接口返回成功不代表摘要已即时更新。
+- 内部列表响应的 `next_batch` 恒为 `null`。
+- `generated/modules/room_summary.json` 的 `entry_count` 为 21，本页覆盖率口径写的 23 为历史统计值；本页数字按约束保持不变，差异以 ledger 为准。

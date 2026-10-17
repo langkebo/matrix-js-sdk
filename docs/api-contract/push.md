@@ -23,7 +23,7 @@ last_reviewed: 2026-05-03
 | ---- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------- |
 | GET  | `/_matrix/client/{r0,v3}/pushers`     | 无                                                                                                      | `{ "pushers": [...] }` |
 | POST | `/_matrix/client/{r0,v3}/pushers`     | `pushkey` `kind` `app_id` `app_display_name` `device_display_name` `device_id` `lang` `data?` `append?` | 空对象                 |
-| POST | `/_matrix/client/{r0,v3}/pushers/set` | 同上，`kind: null` 时删除；**device_id 必填（P2 #32 鉴权要求）**                                        | 空对象                 |
+| POST | `/_matrix/client/{r0,v3}/pushers/set` | 同上，`kind: null` 时删除；设备由认证态确定，body 传 `device_id` 不生效                                 | 空对象                 |
 
 ## Push Rules
 
@@ -93,7 +93,7 @@ last_reviewed: 2026-05-03
   `createPushRule()`、`updatePushRule()`、`deletePushRule()`、`getPushRuleEnabled()`、`setPushRuleEnabled()`、
   `setPushRuleActions()` 均已受 codegen 路径模板约束。
 - `muteRoom()`、`unmuteRoom()`、`addKeywordHighlight()`、`ignoreSender()` 等便捷方法继续复用上述 REST 主路径，不额外引入未审计的接口面。
-- **v10 对齐 (2026-06-09)**: `setPusher()` 新增 `device_id` 必填校验（P2 #32），缺少时抛出 `InvalidParamError`；`IPusherRequest` 新增 `device_id?: string` 字段。
+- **v10 对齐 (2026-06-09)**: 原 `setPusher()` 的 `device_id` 必填校验已按后端契约取消；设备由认证态 `auth_user.device_id` 确定，body 中的 `device_id` 不参与判定（SDK 发送前会剥离该字段）。
 
 ## 覆盖率口径
 
@@ -105,3 +105,23 @@ last_reviewed: 2026-05-03
 ## 代码定位
 
 - 路由与处理器: `synapse-rust/synapse-web/src/routes/push.rs`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### `POST /pushers/set` 请求体
+
+- `pushkey`、`app_id` 必填且非空；`kind` 键必须存在，取值可以是 `null`。任一缺失或为空返回 `400` `M_BAD_JSON`。
+- `kind` 非 `null` 时，`app_display_name`、`lang` 必填且非空；`kind: null` 表示删除该 pusher，此时这两个字段可省略。
+- `append: true` 表示追加而非替换已有 pusher。
+- 设备由认证态 `auth_user.device_id` 确定；token 未绑定设备时返回 `403`。请求体中的 `device_id` 不参与判定（后端按未知字段忽略，SDK 发送前会剥离）。
+
+### `GET /pushers`
+
+- 同时兼容 `/pushers` 与 `/pushers/`，返回 `{ "pushers": [...] }`。
+- 列表按当前 token 所属设备过滤，只返回该设备的 pusher。
+
+### 启用状态写入
+
+- 后端不存在 `PUT /pushers/{app_id}/{pushkey}/enabled`；pusher 的启用状态通过 push rule 写入。
+- 实际端点为 `PUT /pushrules/{scope}/{kind}/{rule_id}/enabled`，请求体 `{ "enabled": boolean }`，成功响应为 `{ "rule_id", "enabled", "updated_ts" }`（不是空对象）。
+- 目标规则不存在时返回 `404` `M_NOT_FOUND`。

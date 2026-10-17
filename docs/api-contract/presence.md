@@ -33,7 +33,7 @@ last_reviewed: 2026-05-03
 - `PUT /presence/{user_id}/status` 请求体要求 `presence`，可选 `status_msg`
 - `POST /presence/list` 请求体可包含 `subscribe`、`unsubscribe` 两个数组，响应为 `{ "presences": [...] }`
 - `GET /presence/list/{user_id}` 返回 `{ "presences": [...] }`，元素稳定字段为 `user_id`、`presence`、`status_msg`、`last_active_ago`
-- `presence/list` 路由是 v3 专有扩展，其中当前仅 `POST /presence/list` 与 `GET /presence/list/{user_id}` 已挂载，未提供 `GET /presence/list`
+- `presence/list` 是 v3 专有扩展；`GET /presence/list`、`POST /presence/list` 与 `GET /presence/list/{user_id}` 均已挂载，GET/POST 都返回 `{ "presences": [...] }`
 
 ## 常见状态码
 
@@ -130,3 +130,26 @@ export interface UnsubscribePresenceRequest {
     unsubscribe: string[];
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 服务开关与可见性
+
+- `server.presence_enabled=false` 时全部 presence 端点返回 **403 `M_FORBIDDEN`**（`Presence is not supported on this server`），属于行政关闭，客户端不应重试。
+- `GET /presence/{user_id}/status`：目标用户不存在 → 404 `M_NOT_FOUND`（服务端先判存在，避免用 403 探测用户是否存在）；读自己 → 允许；读他人 → 必须与其共享至少一个房间，否则 403 `M_FORBIDDEN`。
+- `PUT /presence/{user_id}/status`：只能设置自己，`user_id` 非本人 → 403 `M_FORBIDDEN`。
+
+### 字段语义
+
+- `presence` 服务端只接受三值：`online` / `unavailable` / `offline`。DTO 中的 `away` / `busy` 只是 SDK 高层兼容值，服务端不接受；`setPresence()` 的前端校验同样只允许三值，其它值抛 `InvalidParamError`。
+- `last_active_ago` 单位为**毫秒**；`presence=offline` 或无记录时为 `null`。
+- `currently_active` 仅在近 5 分钟内有活动且 `presence=online` 时为 `true`，其余情况为 `null`（不是 `false`）。
+- 用户存在但从未写入状态时，固定返回 `{ "presence": "offline", "status_msg": null, "last_active_ago": null, "currently_active": null }`；这是 200 的正常回落，不要与 404 混为一谈。
+- `status_msg` 可为 `null`；超长 → 400（与消息体上限一致）。
+
+### 请求体与订阅列表
+
+- `POST /presence/list` 的请求体键是 **`subscribe` / `unsubscribe`**（不是 `invite` / `drop`）；响应为 `{ "presences": [...] }`。
+- `GET /presence/list` 也返回 `{ "presences": [...] }` 状态快照（不是 user_id 数组），与 POST 同形；不要把它当成分页列表或 ID 列表。
+- `GET /presence/list`、`POST /presence/list`、`GET /presence/list/{user_id}` 的元素字段均为 `user_id`、`presence`、`status_msg`、`last_active_ago`、`currently_active`。
+- 订阅与返回都按「共享房间」过滤：不可见用户不会被订阅，也不会出现在结果中；已订阅但查不到状态的用户会以 `presence: "offline"` 补齐一条，保证结果数量与订阅一致。

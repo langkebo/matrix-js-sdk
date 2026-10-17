@@ -123,3 +123,19 @@ export interface CasSetAttributeResponse {
     - 后端曾保留的 5 条**无前缀**兼容别名（`/admin/services*`、`/admin/users/{user_id}/attributes`）
       已按铁律 1 连同 `cas.rs` 的 `legacy_admin_routes` 与专用 deprecation 中间件整段删除
       （2026-10-08，C6 第四批）；SDK 侧同步收敛为唯一的 `/_synapse/admin/v1/cas/*` 形态。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### SSO 重定向
+
+- `GET /_matrix/client/v3/login/sso/redirect/cas?redirect_after=` 返回 **302**，`Location: /login?service=<urlencoded redirect_after>`。
+- 该重定向不指向外部 IdP，而是回到本服务自己的 `/login?service=...`。
+- `CasLoginRedirectResponse` 不是响应体：后端不返回 JSON，应读取 `Location` 响应头并解析其中的 `service` 参数，不要对响应做 `res.json()`。
+- 未配置 CAS 时返回 **500** `M_UNKNOWN`（由配置中间件拦截），不是 400 / 403。
+
+### CAS 协议端点响应格式
+
+- `GET /_synapse/cas/serviceValidate?service=&ticket=` 返回 `text/plain`：成功为 `yes\n{user_id}\n`，失败为 `no\n\n`。不要按 JSON 或 XML 解析。
+- `GET /_synapse/cas/proxyValidate`、`/proxy`、`/p3/serviceValidate` 返回 `application/xml; charset=utf-8`：成功含 `<cas:user>`，失败为 `INVALID_TICKET`。
+- `GET /_synapse/cas/login?service=` 返回 302 到 `/cas/login?service=...`；`GET /_synapse/cas/logout?service=` 带 `service` 时 302 到该地址，否则返回 200 HTML 页面。
+- CAS 协议面未配置时由中间件统一返回 **500**（`CAS service is not available...`），与 SAML 的 403 行为不同。

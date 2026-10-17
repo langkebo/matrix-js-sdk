@@ -40,45 +40,45 @@ last_reviewed: 2026-05-11
 
 ## r0 / v3 共享主链路
 
-| 方法         | 路径                                                                         | 主要请求参数                                          | 主要响应字段                                                        |
-| ------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}`                                    | `room_id`                                             | 房间基础信息                                                        |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/messages`                           | `from` `to?` `dir` `limit?` `filter?`                 | `chunk` `start` `end`；要求调用方为房间成员或管理员，越权返回 `403` |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/search`                             | 搜索条件                                              | 搜索结果                                                            |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/membership/{user_id}`               | `user_id`                                             | 成员关系                                                            |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/receipt/{receipt_type}/{event_id}`  | receipt 内容                                          | 空对象                                                              |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/receipts/{receipt_type}/{event_id}` | 路径参数                                              | receipt 列表                                                        |
-| POST/PUT     | `/_matrix/client/{r0,v3}/rooms/{room_id}/read_markers`                       | read marker 内容                                      | 空对象                                                              |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/aliases`                            | `room_id`                                             | 房间别名列表                                                        |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/join`                               | 可选 join body                                        | `room_id`                                                           |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/leave`                              | 可选 reason                                           | 空对象                                                              |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/upgrade`                            | `new_version`                                         | 新房间 ID                                                           |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/forget`                             | 可选 body                                             | 空对象                                                              |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/initialSync`                        | 查询参数                                              | 要求调用方已加入房间；返回基础房间快照                              |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/members`                            | `membership?` 等                                      | `chunk`                                                             |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/members/recent`                     | 查询参数                                              | 最近成员                                                            |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/joined_members`                     | 无                                                    | `joined` 成员映射                                                   |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/version`                            | 无                                                    | `room_version`                                                      |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/invite`                             | `user_id` `reason?`                                   | 空对象                                                              |
-| GET          | `/_matrix/client/{r0,v3}/user/{user_id}/rooms`                               | `user_id`                                             | 用户房间列表                                                        |
-| GET/PUT      | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}/{state_key}`     | 状态事件内容                                          | 状态事件；GET 要求调用方为房间成员或管理员，越权返回 `403`          |
-| GET/PUT      | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}/`                | 空 state key                                          | 状态事件；GET 要求调用方为房间成员或管理员，越权返回 `403`          |
-| GET/POST/PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}`                 | 状态事件内容                                          | 状态事件 / 空对象；GET 要求调用方为房间成员或管理员，越权返回 `403` |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/state`                              | 无                                                    | 房间状态快照；要求调用方为房间成员或管理员，越权返回 `403`          |
-| PUT          | `/_matrix/client/{r0,v3}/rooms/{room_id}/redact/{event_id}/{txn_id}`         | redaction body                                        | `event_id`                                                          |
-| GET          | `/_matrix/client/{v1,v3}/rooms/{room_id}/hierarchy`                          | `limit?` `max_depth?` `suggested_only?` `from_token?` | 房间层级结构                                                        |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/kick`                               | `user_id` `reason?`                                   | 空对象                                                              |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/ban`                                | `user_id` `reason?`                                   | 空对象                                                              |
-| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/unban`                              | `user_id` `reason?`                                   | 空对象                                                              |
-| GET/POST     | `/_matrix/client/{r0,v3}/rooms/{room_id}/pinned_events`                      | POST 时提供事件信息                                   | pinned events                                                       |
-| DELETE       | `/_matrix/client/{r0,v3}/rooms/{room_id}/pinned_events/{event_id}`           | `event_id`                                            | 空对象                                                              |
-| PUT          | `/_matrix/client/{r0,v3}/rooms/{room_id}/send/{event_type}/{txn_id}`         | 事件内容                                              | `event_id`                                                          |
-| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/event/{event_id}`                   | `event_id`                                            | 单个事件                                                            |
-| GET          | `/_matrix/client/{v1,v3}/rooms/{room_id}/context/{event_id}`                 | `event_id` `limit?` `filter?`                         | `event` `events_before` `events_after` `start` `end` `state`        |
-| POST         | `/_matrix/client/v3/rooms/{room_id}/report`                                  | `reason` `score?`                                     | 空对象                                                              |
-| POST         | `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}`               | `reason` `score?`                                     | 空对象                                                              |
-| PUT          | `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}/score`         | `score`                                               | 空对象                                                              |
-| GET          | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info`          | `event_id`                                            | scanner 信息                                                        |
+| 方法         | 路径                                                                         | 主要请求参数                                                                                               | 主要响应字段                                                                |
+| ------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}`                                    | `room_id`                                                                                                  | 房间基础信息                                                                |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/messages`                           | `from` `to?` `dir`（默认 `b`，其他值 400） `limit?`（默认 10，夹在 1..1000） `filter?`（不支持，非空 400） | `chunk` `start` `end` `state`；要求调用方为房间成员或管理员，越权返回 `403` |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/search`                             | 搜索条件                                                                                                   | 搜索结果                                                                    |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/membership/{user_id}`               | `user_id`                                                                                                  | 成员关系                                                                    |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/receipt/{receipt_type}/{event_id}`  | receipt 内容                                                                                               | 空对象                                                                      |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/receipts/{receipt_type}/{event_id}` | 路径参数                                                                                                   | receipt 列表                                                                |
+| POST/PUT     | `/_matrix/client/{r0,v3}/rooms/{room_id}/read_markers`                       | read marker 内容                                                                                           | 空对象                                                                      |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/aliases`                            | `room_id`                                                                                                  | 房间别名列表                                                                |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/join`                               | 可选 join body                                                                                             | `room_id`                                                                   |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/leave`                              | 可选 reason                                                                                                | 空对象                                                                      |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/upgrade`                            | `new_version`                                                                                              | 新房间 ID                                                                   |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/forget`                             | 可选 body                                                                                                  | 空对象                                                                      |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/initialSync`                        | 查询参数                                                                                                   | 要求调用方已加入房间；返回基础房间快照                                      |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/members`                            | `membership?` 等                                                                                           | `chunk`                                                                     |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/members/recent`                     | 查询参数                                                                                                   | 最近成员                                                                    |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/joined_members`                     | 无                                                                                                         | `joined` 成员映射                                                           |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/version`                            | 无                                                                                                         | `room_version`                                                              |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/invite`                             | `user_id` `reason?`                                                                                        | 空对象                                                                      |
+| GET          | `/_matrix/client/{r0,v3}/user/{user_id}/rooms`                               | `user_id`                                                                                                  | 用户房间列表                                                                |
+| GET/PUT      | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}/{state_key}`     | 状态事件内容                                                                                               | 状态事件；GET 要求调用方为房间成员或管理员，越权返回 `403`                  |
+| GET/PUT      | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}/`                | 空 state key                                                                                               | 状态事件；GET 要求调用方为房间成员或管理员，越权返回 `403`                  |
+| GET/POST/PUT | `/_matrix/client/{r0,v3}/rooms/{room_id}/state/{event_type}`                 | 状态事件内容                                                                                               | 状态事件 / 空对象；GET 要求调用方为房间成员或管理员，越权返回 `403`         |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/state`                              | 无                                                                                                         | 房间状态快照；要求调用方为房间成员或管理员，越权返回 `403`                  |
+| PUT          | `/_matrix/client/{r0,v3}/rooms/{room_id}/redact/{event_id}/{txn_id}`         | redaction body                                                                                             | `event_id`                                                                  |
+| GET          | `/_matrix/client/{v1,v3}/rooms/{room_id}/hierarchy`                          | `limit?` `max_depth?` `suggested_only?` `from_token?`                                                      | 房间层级结构                                                                |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/kick`                               | `user_id` `reason?`                                                                                        | 空对象                                                                      |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/ban`                                | `user_id` `reason?`                                                                                        | 空对象                                                                      |
+| POST         | `/_matrix/client/{r0,v3}/rooms/{room_id}/unban`                              | `user_id` `reason?`                                                                                        | 空对象                                                                      |
+| GET/POST     | `/_matrix/client/{r0,v3}/rooms/{room_id}/pinned_events`                      | POST 时提供事件信息                                                                                        | pinned events                                                               |
+| DELETE       | `/_matrix/client/{r0,v3}/rooms/{room_id}/pinned_events/{event_id}`           | `event_id`                                                                                                 | 空对象                                                                      |
+| PUT          | `/_matrix/client/{r0,v3}/rooms/{room_id}/send/{event_type}/{txn_id}`         | 事件内容                                                                                                   | `event_id`                                                                  |
+| GET          | `/_matrix/client/{r0,v3}/rooms/{room_id}/event/{event_id}`                   | `event_id`                                                                                                 | 单个事件                                                                    |
+| GET          | `/_matrix/client/{v1,v3}/rooms/{room_id}/context/{event_id}`                 | `event_id` `limit?` `filter?`                                                                              | `event` `events_before` `events_after` `start` `end` `state`                |
+| POST         | `/_matrix/client/v3/rooms/{room_id}/report`                                  | `reason` `score?`                                                                                          | 空对象                                                                      |
+| POST         | `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}`               | `reason` `score?`                                                                                          | 空对象                                                                      |
+| PUT          | `/_matrix/client/{r0,v1,v3}/rooms/{room_id}/report/{event_id}/score`         | `score`                                                                                                    | 空对象                                                                      |
+| GET          | `/_matrix/vendor/v1/rooms/{room_id}/report/{event_id}/scanner_info`          | `event_id`                                                                                                 | scanner 信息                                                                |
 
 ## r0 专用
 
@@ -163,7 +163,7 @@ last_reviewed: 2026-05-11
 
 - 创建房间: `POST /_matrix/client/{r0,v3}/createRoom`，请求体常见字段为 `name` `topic` `invite` `initial_state`，成功返回 `{ "room_id": "..." }`
 - 发送消息: `PUT /rooms/{room_id}/send/{event_type}/{txn_id}`，请求体为事件 `content`，成功返回 `{ "event_id": "..." }`
-- 拉取消息: `GET /rooms/{room_id}/messages`，核心查询参数为 `from` `dir` `limit?`，返回 `chunk/start/end`，并要求调用方为房间成员或管理员
+- 拉取消息: `GET /rooms/{room_id}/messages`，`dir` 缺省为 `b`（其他取值 400 `M_INVALID_PARAM`，不静默回退）；`limit` 缺省 10、夹在 1..1000；`filter` 不被支持，非空即 400 `M_INVALID_PARAM`。响应为 `{chunk, start, end, state}`，要求调用方为房间成员或管理员
 - 成员管理: `invite` `kick` `ban` `unban` 统一返回空对象
 
 ## SDK 对齐结论
@@ -356,3 +356,96 @@ export interface GuestAccessRequest {
     guest_access: "can_join" | "forbidden";
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 依据：`synapse-rust/docs/sdk/rooms.md`、`messages.md` 与 `docs/api-contract/generated/modules/room.json`。
+> 本节只补充口径，不覆盖上文既有路由表行、端点计数与覆盖率数字。
+
+### 路由归属修正（5 组实际在 vendor）
+
+上文路由表中以下 5 组路径按 `{r0,v3}` 书写，实际注册在 `/_matrix/vendor/v1`，按旧地址调用会 404：
+
+- 房间内搜索：`POST /_matrix/vendor/v1/rooms/{room_id}/search`（不是 `/_matrix/client/{r0,v3}/rooms/{room_id}/search`）。
+- 单人成员状态：`GET /_matrix/vendor/v1/rooms/{room_id}/membership/{user_id}`。
+- 读取回执：`GET /_matrix/vendor/v1/rooms/{room_id}/receipts/{receipt_type}/{event_id}`（发送回执仍是 v3 的 `POST /rooms/{room_id}/receipt/{receipt_type}/{event_id}`，注意单复数不同）。
+- 最近成员：`GET /_matrix/vendor/v1/rooms/{room_id}/members/recent`。
+- 置顶事件：`GET|POST /_matrix/vendor/v1/rooms/{room_id}/pinned_events`、`DELETE /_matrix/vendor/v1/rooms/{room_id}/pinned_events/{event_id}`。
+
+以 `generated/modules/room.json` 的登记路径为准；上表路径列保持原样不改。
+
+### `GET /messages`
+
+- `from` 必填，取上次响应的 `start` / `end` 或 `/sync` 的 `prev_batch`；`to` 可选。
+- `dir` 缺省为 `b`（向后），仅接受 `f` / `b`；其他取值返回 400 `M_INVALID_PARAM`，不会静默回退。
+- `limit` 缺省 10，夹在 `1..=1000`。
+- `filter` **不被支持**：非空值即 400 `M_INVALID_PARAM`；懒加载成员属于 `/sync?filter=` 的能力。
+- 响应固定为 `{chunk, start, end, state}`；`chunk` 内消息事件**不带 `unsigned`**（sticky TTL、`age`、`transaction_id` 均需逐条走 `GET /rooms/{room_id}/event/{event_id}` 读取）。
+- `dir=b` 且本地返回不足 `limit` 时，服务端会异步向联邦节点回填更早事件；客户端不要因“没拿满”立即重复请求。
+
+### `GET /context`
+
+- 路径同时存在 `v3` 与 `v1`：`/_matrix/client/v3/rooms/{room_id}/context/{event_id}`、`/_matrix/client/v1/rooms/{room_id}/context/{event_id}`。
+- 查询参数 `limit` 控制前后各取多少条。
+- 响应为 `{event, events_before, events_after, start, end, state}`，`event` 为单个事件对象，其余为数组。
+
+### `GET /members` 与 `joined_members`
+
+- `at`: MSC4502 分页游标，取上次响应的 `next_batch`。
+- `limit`: 缺省 100，夹在 `1..=1000`。
+- `membership` / `not_membership`: 取值 `join` / `invite` / `leave` / `ban` / `knock`。
+- 响应为 `{chunk: [m.room.member 事件], next_batch?}`；非成员访问私有房间的成员列表返回 403 `M_FORBIDDEN`。
+- `GET /rooms/{room_id}/joined_members` 返回 `{joined: {"@u:x": {display_name, avatar_url}}}`。
+
+### 状态事件
+
+- `GET /rooms/{room_id}/state` 返回的是对象 `{"events": [...]}`，**不是裸数组**；客户端应写 `const events = res.events ?? res;`。
+- `GET /rooms/{room_id}/state?type={event_type}` 为 MSC4497 精确类型过滤。
+- `GET /rooms/{room_id}/state/{event_type}`、`.../{event_type}/`、`.../{event_type}/{state_key}` 只返回该事件的 **content**，不含 `event_id` / `type`；指定 `state_key` 不存在时返回 404 `M_NOT_FOUND`。
+- 写入支持 `PUT` 与 `POST`，响应 `{event_id}`；写路径与 `/send` 一样接受 `org.matrix.msc4354.sticky_duration_ms` / 短名 `sticky_duration_ms`，取值必须为 `1..=3600000`，越界或非整数返回 400 `M_INVALID_PARAM`。
+- `m.room.join_rules` 的 `allow` 是**对象数组**（`{type, room_id}`），不是字符串数组。
+
+### 发送、编辑与撤回
+
+- 发送：`PUT|POST /_matrix/client/v3/rooms/{room_id}/send/{event_type}/{txn_id}`，成功返回 `{event_id}`，不是 `{status, data}`。
+- `txn_id` 幂等键为 `(user, device, txn_id, event_type)`：同设备同会话重放返回同一 `event_id`；换设备重发会真的产生第二条。
+- 编辑不是 `PATCH`，而是再发一条普通 `m.room.message`，带 `m.relates_to: {rel_type: "m.replace", event_id}` 与 `m.new_content`。
+- 撤回：`PUT|POST /_matrix/client/v3/rooms/{room_id}/redact/{event_id}/{txn_id}`，`txn_id` **必须存在**；不存在 `txn_id` 的 `PUT /rooms/{room_id}/redact/{event_id}` 会路由不匹配（404），不是“服务端自动生成”。
+- 撤回请求体为 `{reason?}`，响应 `{event_id}`（撤回事件本身的 ID）；被撤回事件的 `content` 被清空，`unsigned.redacted_because` 给出撤回事件。
+- `/send` 与 `/state` 写路径还接受查询参数 `org.matrix.msc4140.delay`（延迟发送）与 `org.matrix.msc4354.sticky_duration_ms`（sticky 时长）；带 `delay` 时响应是延迟事件对象（含 `delay_id`），不是 `{event_id}`。
+
+### `createRoom`
+
+- `POST /_matrix/client/v3/createRoom`；`room_version` 缺省取 `capabilities.m.room_versions.default`（当前为 `"12"`）。
+- `invite` 最多 100 个，超出返回 400 `M_BAD_JSON`（`Too many invites (max 100)`）。
+- `preset` 仅接受 `private_chat` / `trusted_private_chat` / `public_chat`，非法返回 400 `M_INVALID_PARAM`。
+- `creation_content` **直接就是** `m.room.create` 的 content，不是 `{type, state_key, content}` 三层结构。
+- 房间类型可用 `room_type`（如 `"m.space"`），也可写在 `creation_content.type`。
+- `room_version` 不支持返回 400 `M_UNSUPPORTED_ROOM_VERSION`；与默认不兼容返回 400 `M_INCOMPATIBLE_ROOM_VERSION`；别名占用返回 400 `M_ROOM_IN_USE`。
+
+### 离开与遗忘
+
+- `POST /_matrix/client/v3/rooms/{room_id}/leave`，`forget` 在**请求体**：`{"forget": true}`（MSC4267，能力 `m.forget_forced_upon_leave`）。
+- `forget=true` 时服务端在同一事务内完成 leave + forget，事后单独调 `/forget` 不会与它竞争。
+- 房间不存在返回 404 `M_NOT_FOUND`；被 ban、需要邀请或敲门返回 403 `M_FORBIDDEN`。
+
+### 房间信息
+
+- `GET /_matrix/client/v3/rooms/{room_id}` **要求调用者为房间成员**；非成员返回 **404 `M_NOT_FOUND`**（`Room not found or not a member`），不是 403。
+- 响应字段包含 `room_id`、`name`、`avatar_url`、`topic`、`canonical_alias`、`joined_members_count`、`invited_members_count`、`world_readable`、`guest_can_join`、`membership`。
+- `GET /rooms/{room_id}/aliases` 返回 `{aliases: [...]}`；`GET /rooms/{room_id}/initialSync` 仅为兼容保留。
+
+### 回执与 typing
+
+- 发送回执：`POST /rooms/{room_id}/receipt/{receipt_type}/{event_id}`，`receipt_type` 白名单只有 `m.read` 与 `m.read.private`；传 `m.fully_read` 返回 400 `M_INVALID_PARAM`。
+- 已读书签必须走 `POST|PUT /rooms/{room_id}/read_markers`，请求体可含 `m.read` / `m.read.private` / `m.fully_read`。
+- 回执的 `event_id` 必须是房间内真实存在的事件，否则 404 `M_NOT_FOUND`；回执经 `/sync` 的房间 `ephemeral.events` 中的 `m.receipt` 下发，不产生 timeline 事件。
+- typing：`PUT|POST /rooms/{room_id}/typing/{user_id}`，`user_id` 必须是本人，否则 403 `M_FORBIDDEN`；`timeout` 缺省 30000ms，超时后服务端自动清除，停止输入应显式发 `{"typing": false}`。
+- typing 状态**不落 timeline**，只在 `/sync` 的 `ephemeral` 中出现。
+- `GET /rooms/{room_id}/typing`、`POST /rooms/typing` 均要求调用方具备对应房间访问权。
+
+### 路由归属与覆盖率口径
+
+- `docs/api-contract/generated/modules/room.json` 当前 `entry_count` 为 **95**；本页“132”是历史人工复核口径，不能当作当前 ledger 条目数。
+- 页面审计来源中的 `handlers/search.rs`、`moderation.rs`、`typing.rs` 属于跨文件挂载：房间内搜索、举报、typing 的路径虽由这些文件注册，但仍归 `room` 模块路由树统计。
+- 覆盖率数字维持上文原样；复核时以 `room.json` 的登记条目与 `RoomPathPattern` 绑定关系为准，不以历史结论直接视为已覆盖。

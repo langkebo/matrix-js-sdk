@@ -35,7 +35,7 @@ last_reviewed: 2026-05-03
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /devices`                   | `{ "devices": [{ "device_id", "display_name", "last_seen_ts", "last_seen_ip" }, ...] }`                                                                   |
 | `GET /devices/{device_id}`       | 同时返回扁平字段和嵌套 `device` 对象                                                                                                                      |
-| `PUT /devices/{device_id}`       | 返回 `{ "device_id", "display_name", "updated_ts" }`                                                                                                      |
+| `PUT /devices/{device_id}`       | 返回 `{}`                                                                                                                                                 |
 | `DELETE /devices/{device_id}`    | 空对象                                                                                                                                                    |
 | `POST /delete_devices`           | 空对象                                                                                                                                                    |
 | `POST /keys/device_list_updates` | 不带 `since/from` 时返回 `{ "changed": [...], "left": [...] }`；带游标时返回 `{ "changed": [...], "deleted": [...], "left": [...], "stream_id": number }` |
@@ -44,17 +44,17 @@ last_reviewed: 2026-05-03
 
 | 路径                             | 请求字段                                                                   |
 | -------------------------------- | -------------------------------------------------------------------------- |
-| `POST /delete_devices`           | `device_ids` 或 `devices`，要求提供数组，数组元素不是字符串时返回 `400`    |
+| `POST /delete_devices`           | `devices`（字符串数组，唯一契约字段名）；数组元素不是字符串时返回 `400`    |
 | `PUT /devices/{device_id}`       | `display_name`                                                             |
 | `POST /keys/device_list_updates` | `users` 数组；可选 `since/from` 与 `to`，游标支持数字或带 `s` 前缀的字符串 |
 
 ## 常见状态码
 
-| 状态码 | 说明                                                                                         |
-| ------ | -------------------------------------------------------------------------------------------- |
-| `200`  | 请求成功                                                                                     |
-| `400`  | 缺少 `display_name` 或 `device_ids/users` 格式错误，`display_name` 长度超过 100 字符（m-13） |
-| `404`  | 设备不存在                                                                                   |
+| 状态码 | 说明                                                                                |
+| ------ | ----------------------------------------------------------------------------------- |
+| `200`  | 请求成功                                                                            |
+| `400`  | 缺少 `display_name` 或 `devices` 格式错误，`display_name` 长度超过 100 字符（m-13） |
+| `404`  | 设备不存在                                                                          |
 
 ## 代码定位
 
@@ -166,3 +166,28 @@ export interface DeviceListUpdatesResponse {
     left: string[];
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 版本前缀
+
+- 6 条设备端点（`GET /devices`、`POST /delete_devices`、`GET|PUT|DELETE /devices/{device_id}`、`POST /keys/device_list_updates`）全部注册在 `/_matrix/client/v3` 下；上方路由表中的 `{r0,v3}` 是后端共享处理器的兼容写法，SDK 一律以 v3 为主路径。
+
+### 单设备读写
+
+- `PUT /devices/{device_id}` 成功返回 **`{}`**，不要按 `{device_id, display_name, updated_ts}` 解析。
+- `GET /devices/{device_id}` 同时返回嵌套 `device` 对象与顶层平铺字段，且**不含 `last_seen_ip`**（只有 `GET /devices` 列表才带该字段）。稳妥写法：`const device = resp.device ?? resp`。
+- 设备不存在或不属于调用者 → **404 `M_NOT_FOUND`**。服务端刻意不用 `M_UNKNOWN_DEVICE`（该码属 MSC4326 范围，本服务未启用），客户端不要按该码分支。
+
+### 删除设备
+
+- `DELETE /devices/{device_id}` 与 `POST /delete_devices` 都需要 UIA；不带 `auth` → 401 + `flows`/`session`。
+- 例外：调用者身份是 Application Service（`auth_user.appservice_id` 非空）时跳过 UIA，直接删除设备。
+- 批量删除的请求体字段名是 **`devices`**（字符串数组），不存在 `device_ids` 字段；数组元素不是字符串 → 400。
+- 两个删除端点成功响应均为 `{}`。
+- 删除设备会同时吊销该设备的 token；被删除设备的下一次请求收到 401 `M_UNKNOWN_TOKEN`，客户端应清理本地会话并重新登录。
+- 设备被其它设备删除后，E2EE 客户端必须重新执行 `/keys/query` 同步设备清单（服务端会通过 `/sync` 的 `device_lists.changed` 与 `device_list_changes` 通知）。
+
+### 当前设备保护
+
+- 「禁止删除当前设备」是 SDK `DeviceManager` 的前端策略，不是后端限制；后端只按设备归属做 404 校验。绕过 SDK 直接调用删除端点时，服务端会照常删除该设备并吊销其 token。

@@ -20,7 +20,7 @@ last_reviewed: 2026-05-11
 - SDK 已有 `BurnAfterReadManager`，并已补上生成路由类型绑定，覆盖全部后端管理端点。
 - 旧文档中的多个字段名已与后端实现不符:
     - `timeout_ms` 应为 `burn_after_ms`
-    - `burn_at` 实际为 `created_at` / `delete_at`
+    - `burn_at` 实际为 `created_at` / `delete_ts`
     - 用户配置不是 `default_enabled/default_timeout_ms`，而是 `default_burn_ms`
     - 统计响应包含 `total_pending` 和 `rooms_with_burn_enabled`
 - `DELETE /_matrix/vendor/v1/rooms/{room_id}/burn/{event_id}` 真实存在，但旧文档遗漏了它在覆盖统计中的作用。
@@ -44,7 +44,9 @@ interface BurnSettings {
 interface PendingBurnEvent {
     event_id: string;
     created_at: number;
-    delete_at: number;
+    delete_ts: number;
+    is_processed: boolean;
+    is_dead_letter: boolean;
 }
 ```
 
@@ -79,7 +81,7 @@ interface BurnStats {
 
 - `PUT /rooms/{room_id}/burn` 请求体使用 `{ enabled, burn_after_ms }`。
 - `GET /rooms/{room_id}/burn` 在后端未配置时返回默认值 `{ enabled: false, burn_after_ms: 60000 }`。
-- `GET /rooms/{room_id}/burn/pending` 返回 `{ events }`，每项包含 `created_at` 和 `delete_at`。
+- `GET /rooms/{room_id}/burn/pending` 返回 `{ events }`，每项包含 `event_id`、`created_at`、`delete_ts`、`is_processed`、`is_dead_letter`。
 - `POST /rooms/{room_id}/burn/{event_id}` 语义是“标记已读并触发延迟焚毁”，不是立即删除。
 - `DELETE /rooms/{room_id}/burn/{event_id}` 用于取消待焚毁任务。
 - `PUT /user/burn/config` 只接收并回传 `default_burn_ms`。
@@ -112,3 +114,11 @@ interface BurnStats {
 | ---------- | ------------------------------------------------------------------------ | ---------------- |
 | 2026-05-11 | 按后端真实 7 条路由重写字段、返回体与覆盖率口径，并补充 SDK 路径绑定说明 | 修复长期文档漂移 |
 | 2026-04-27 | 初版                                                                     | -                |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- `POST /rooms/{room_id}/burn/{event_id}` 只能由接收方发起：对 `sender` 为自己的事件操作返回 `403`；房间未启用阅后即焚返回 `400 M_BAD_JSON`；房间不存在返回 `404`；非房间成员返回 `403`。
+- `PUT /rooms/{room_id}/burn` 的 `burn_after_ms` 缺省时按“请求值 → 用户默认值 → 服务端默认值”的顺序回退。
+- `GET /rooms/{room_id}/burn` 在未配置时返回 `{ enabled: false, burn_after_ms: 60000 }`。
+- 能力位 `io.hula.burn_after_read` 仅在认证后出现在 `/capabilities`。
+- 用户级配置只有 `PUT /_matrix/vendor/v1/user/burn/config`，没有 GET 或 POST。

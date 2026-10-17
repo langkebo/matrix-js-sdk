@@ -13,7 +13,7 @@ const _ReactionsEntryCountAssertion: 1 = REACTIONS_ROUTES.length;
 void _ReactionsEntryCountAssertion;
 
 export const REACTIONS_ROUTES_STATUS_SCENARIOS = [
-    { status: 400, note: "M_INVALID_PARAM | 参数无效" },
+    { status: 400, note: "M_BAD_JSON | 缺失 m.relates_to 或 rel_type 非 m.annotation" },
     { status: 401, note: "M_UNAUTHORIZED | 未认证" },
     { status: 403, note: "M_FORBIDDEN | 非房间成员" },
     { status: 404, note: "M_NOT_FOUND | 目标事件或房间不存在" },
@@ -22,7 +22,7 @@ export const REACTIONS_ROUTES_STATUS_SCENARIOS = [
 export type ReactionsStatusScenario = (typeof REACTIONS_ROUTES_STATUS_SCENARIOS)[number];
 
 export const REACTIONS_ROUTES_ERROR_SCENARIOS = [
-    { scenario: "参数无效", httpOrErrcode: "400 / M_INVALID_PARAM", sdkErrorType: "ApiError", handling: "参数无效" },
+    { scenario: "缺失 m.relates_to 或 rel_type 非 m.annotation", httpOrErrcode: "400 / M_BAD_JSON", sdkErrorType: "ApiError", handling: "缺失 m.relates_to 或 rel_type 非 m.annotation" },
     { scenario: "未认证", httpOrErrcode: "401 / M_UNAUTHORIZED", sdkErrorType: "AuthError", handling: "未认证" },
     { scenario: "非房间成员", httpOrErrcode: "403 / M_FORBIDDEN", sdkErrorType: "ApiError", handling: "非房间成员" },
     { scenario: "目标事件或房间不存在", httpOrErrcode: "404 / M_NOT_FOUND", sdkErrorType: "NotFoundError", handling: "目标事件或房间不存在" },
@@ -31,7 +31,7 @@ export const REACTIONS_ROUTES_ERROR_SCENARIOS = [
 export type ReactionsErrorScenario = (typeof REACTIONS_ROUTES_ERROR_SCENARIOS)[number];
 
 export const REACTIONS_ROUTES_ERRCODES = [
-    { errcode: "M_INVALID_PARAM", httpStatus: "400", note: "参数无效" },
+    { errcode: "M_BAD_JSON", httpStatus: "400", note: "缺失 m.relates_to 或 rel_type 非 m.annotation" },
     { errcode: "M_UNAUTHORIZED", httpStatus: "401", note: "未认证" },
     { errcode: "M_FORBIDDEN", httpStatus: "403", note: "非房间成员" },
     { errcode: "M_NOT_FOUND", httpStatus: "404", note: "目标事件或房间不存在" },

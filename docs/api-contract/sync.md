@@ -53,13 +53,13 @@ last_reviewed: 2026-05-03
 
 - 顶层字段
     - `next_batch`: 下一次增量同步令牌；后端编码格式为 `s{stream_id}` 或 `s{stream_id}_{to_device}_{device_lists}`
-    - `rooms`: 房间同步容器，当前实现固定返回 `join` `invite` `leave`
+    - `rooms`: 房间同步容器，按 `join` / `invite` / `knock` / `leave` 四类分区返回
     - `presence.events`: Presence 事件数组
     - `account_data.events`: 账户级 account data 数组
     - `to_device.events`: to-device 事件数组
     - `device_lists.changed`: 设备列表发生变化的用户 ID 数组
     - `device_lists.left`: 已离开视图范围的用户 ID 数组
-    - `device_one_time_keys_count`: 当前实现返回空对象 `{}`，尚未细分算法计数
+    - `device_one_time_keys_count`: 按算法名返回当前设备的剩余 OTK 数量映射（例如 `{"signed_curve25519": 42}`），不是空对象
 - 查询参数行为
     - `set_presence?`: handler 会读取并传入 sync service，默认值为 `"online"`
 - `filter?`: handler 现同时接受已保存 filter id 与 inline JSON filter；当前已支持 `event_fields`、`event_format`、顶层 `presence` 基础事件过滤，以及 `room.rooms` / `room.not_rooms` / `room.include_leave` / `room.timeline.limit`
@@ -152,7 +152,7 @@ last_reviewed: 2026-05-03
 ## SDK 对齐结论
 
 - `src/client-batch-requests.ts` 中的 `getJoinedRoomsRequest()` 已绑定生成的 `SyncPathPattern`，默认走 `GET /_matrix/client/v3/joined_rooms`。
-- `src/client-secure-backup-requests.ts` 中的 `getMyRoomsRequest()` 已绑定生成的 `SyncPathPattern`，默认走 `GET /_matrix/client/v3/my_rooms`。
+- `src/client-secure-backup-requests.ts` 中的 `getMyRoomsRequest()` 已绑定生成的 `SyncPathPattern`，实际调用 `GET /_matrix/vendor/v1/my_rooms`。
 - `src/client.ts` 中的 `slidingSync()` 已绑定生成的 `SlidingSyncPathPattern`，继续使用 `/_matrix/client/unstable/org.matrix.simplified_msc3575/sync` 作为 SDK 主入口。
 - `SyncManager.getJoinedRooms()` 复用 `MatrixClient.getJoinedRooms()`，不再是契约缺口。
 - 传统 `GET /sync` 与 `GET /events` 的核心实现仍位于底层 `SyncApi`/`MatrixClient` 同步栈，本轮未改变行为，只完成稳定入口的显式契约绑定。
@@ -293,3 +293,59 @@ export interface SyncUnreadNotifications {
     notification_count?: number;
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 依据：`synapse-rust/docs/sdk/sync.md`、`synapse-rust/docs/sdk/messages.md` 与
+> `docs/api-contract/generated/modules/sync.json`、`sliding_sync.json`、`room.json`。
+> 本节只补充口径，不覆盖上文既有路由表行与统计数字。
+
+### 房间分区与 stripped state
+
+- `rooms` 恒含 `join` / `invite` / `knock` / `leave` 四个分区；空分区可以省略，但不会出现第五种键名。
+- `rooms.invite.{room_id}` 与 `rooms.knock.{room_id}` **只有 stripped state，没有 timeline**：
+    - invite 用 `invite_state.events`，knock 用 `knock_state.events`，事件形状为 `{content, state_key, type, sender}`。
+    - 必需 stripped state 类型依次为 `m.room.create`、`m.room.join_rules`、`m.room.name`、`m.room.avatar`、
+      `m.room.topic`、`m.room.encryption`、`m.room.canonical_alias`、`m.room.member` 等。
+- **fail-closed**：若既没有邀请方带来的 stripped state，本地房间状态里又没有 `m.room.create`，该房间会被
+  **整体略过**，不会出现在 `rooms.invite` 中。客户端不可假设“收到邀请就能读到房间名”。
+- knock 房间**永远不会**以 `join` 形态出现，避免把敲门误判为已加入。
+- `rooms.leave.{room_id}` 结构与 join 相同，通常只有 `timeline` 尾部与 `account_data`，并同时覆盖主动离开与被踢/被封禁。
+
+### 响应字段
+
+- `device_one_time_keys_count` 是按算法名到剩余 OTK 数量的映射（如 `{"signed_curve25519": 42}`），不是空对象；
+  E2EE 依赖它判断何时补传 `/keys/upload`。
+- `device_unused_fallback_key_types` 是**字符串数组**（如 `["signed_curve25519"]`），不是对象映射。
+- `use_state_after=true`（不稳定拼写 `org.matrix.msc4222.use_state_after`，两者同时出现时以不稳定拼写优先）时：
+    - 房间对象中的 `state` 键**改名为 `state_after`**，且该房间**不再有 `state`**；
+    - 不稳定拼写下键名为 `org.matrix.msc4222.state_after`。
+- 扩展字段（`GET /sync` 顶层）：
+    - `key_rotation_needed.rooms`: 本仓扩展，服务端判定需要轮换 megolm 会话的房间 ID 数组。
+    - `device_list_changes`: 本仓扩展，`{users, changed_count, left_count}` 形式的 `device_lists` 带计数投影；
+      `users[user_id] = {change_type: "changed"|"left", device_count?}`，`device_count` 仅在 changed 且计数查询成功时存在。
+      它不是 `device_lists` 的同义副本：changed 用户若设备数查询失败会从 `users` 缺席，但 `changed_count` 仍计入。
+- 房间级 `sticky_events`（本仓 MSC4354 扩展，可选）：仅当房间存在 sticky 事件时出现，元素为
+  `{event_type, event_id, is_sticky}`，与 `GET /_matrix/client/unstable/org.matrix.msc4354/rooms/{room_id}/sticky_events` 同源。
+- 布尔查询参数接受 `true/false`、`1/0`、`yes/no`（大小写不敏感）。
+
+### 错误、超时与重试
+
+- `since` 无法解析返回 **400 `M_BAD_PAGINATION`**（`Invalid since token`），**不是 401**；客户端应丢弃本地 `since`
+  改走初始同步，**不要**清 token。只有 401 `M_UNKNOWN_TOKEN` 才清 token 并重新登录。
+- `timeout` 为负数返回 400 `M_BAD_JSON`；`timeout=0` 合法，表示立即返回。
+- 超出同步限流返回 429 `M_LIMIT_EXCEEDED`，带 `retry_after_ms` 与 `Retry-After` / `X-RateLimit-*` 头；
+  客户端应按 `retry_after_ms` 退避，不要立即重连（会造成同步风暴）。
+- 初始同步与增量同步**分开限流**（`ratelimit:sync:{user}:{device}:initial|incremental`）；限流后端故障时默认 fail-open。
+- 服务端内部等待上限是客户端 `timeout` **+ 15s** 缓冲；客户端 HTTP 超时应至少设为 `timeout + 20s`。
+- 同一时刻只应保持一个 `since` 请求在飞；需要强制刷新时用 `timeout=0` 重新发起，而不是并发两个请求。
+
+### 路由边界
+
+- `/_matrix/client/v3/sync` **只有 GET**。对 v3 发 `POST /sync` 返回 **405 `M_UNRECOGNIZED`**
+  （`Method not allowed for this endpoint`）。Sliding Sync 只能走 `v1` / `v4` / `unstable/*`。
+- 不存在 `GET /_matrix/client/v1/sync`；`v1` 下的 `/sync` 仅承载 Simplified Sliding Sync 的 `POST`。
+- `GET /_matrix/vendor/v1/my_rooms` 属 `room` 模块注册（`/_matrix/vendor/v1` 私有前缀），不在 `sync.json` 清单内。
+- Ledger 口径：`sync.json` 仅登记 **3** 条经典同步路由（`GET /_matrix/client/v3/events`、
+  `GET /_matrix/client/v3/joined_rooms`、`GET /_matrix/client/v3/sync`）；本页“8”是连同 `sliding_sync.json`
+  的 4 条与 `my_rooms` 的 1 条跨清单合计，统计数字本身不改。

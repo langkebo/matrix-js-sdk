@@ -29,7 +29,9 @@ export interface AppServicesResponse {
     }>;
 }
 
-export type AppServiceASPingResponseDto = Record<string, never>;
+export interface AppServiceASPingResponseDto {
+    as_id: string;
+}
 
 export interface AppServiceASRequestDto {
     events: unknown[];

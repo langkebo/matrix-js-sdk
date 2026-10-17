@@ -277,19 +277,17 @@ export interface AdminServerInfoDto {
 
 export interface AdminServerStatsDto {
     total_users?: number;
-    non_deactivated_user_count?: number;
-    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_rooms?: number;
     daily_active_users?: number;
     monthly_active_users?: number;
     r30_users?: number;
-    r30v2_users?: number;
+    non_deactivated_user_count?: number;
+    non_deactivated_user_count_by_app_service?: Record<string, number>;
     total_messages?: number;
-    daily_messages?: number;
-    active_rooms_7d?: number;
+    active_rooms?: number;
     total_members?: number;
     encrypted_rooms?: number;
-    average_messages_per_room?: number;
+    daily_messages?: number;
 }
 
 export interface AdminServerHealthDto {
@@ -315,14 +313,14 @@ export interface AdminServerStatusDto {
 | `GET /_synapse/admin/info`（及 `/v1/server`，同一处理器） | `synapse-web/src/routes/admin/server.rs::get_admin_info` | `{server_name, server_version, implementation}`                        |
 | `GET /_synapse/admin/v1/status`                           | `…/admin/server.rs::get_status`                          | `{db_ok, server_ok, up}`                                               |
 | `GET /_synapse/admin/v1/health`                           | `…/admin/server.rs::get_health`                          | `{status: "ok"\|"error", database: "ok"\|"error"}`                     |
-| `GET /_synapse/admin/v1/statistics`                       | `…/admin/server.rs::get_statistics`                      | 见 `AdminServerStatsDto`（14 个字段）                                  |
-| `GET /_synapse/admin/v1/server_version`                   | `…/admin/server.rs::get_server_version`                  | `{server_version, python_version: "Rust", server_name}`                |
+| `GET /_synapse/admin/v1/statistics`                       | `…/admin/server.rs::get_statistics`                      | 见 `AdminServerStatsDto`（12 个字段）                                  |
+| `GET /_synapse/admin/v1/server_version`                   | `…/admin/server.rs::get_server_version`                  | `{server_version, implementation}`                                     |
 | `GET /_synapse/admin/v1/config`                           | `…/admin/server.rs::get_config`                          | `{server_name, public_baseurl, registration_enabled, max_upload_size}` |
 | `GET /_synapse/admin/v1/experimental_features`            | `…/admin/server.rs::get_experimental_features`           | `{features: Record<flagKey, boolean>, total}`                          |
 
-> 注：`/server_version` 的 `python_version` 在 Rust 实现里**是存在的**（固定返回字符串 `"Rust"`，为兼容 Synapse 客户端）。
-> `spec/sdk-comprehensive-audit/sdk-accuracy-audit-report.json` 里那条「返回字段包含 python_version，但后端是 Rust 实现 ⚠️ 待验证」
-> 由此**证伪**，可结案。
+> 注：管理端 `/server_version` **不返回 `python_version`**，只有 `server_version` 与 `implementation`。
+> `python_version: "Rust"` 只出现在无鉴权的 `GET /_matrix/server_version` 上，且值为固定字符串 `"Rust"`；
+> 管理端请改用 `implementation` 判断实现类型。
 
 ### User & account
 
@@ -705,3 +703,136 @@ export interface AdminFederationDestinationDto {
 > ⚠️ 批量响应里的失败项键是 **`failed`**（字符串数组），不是 `errors: [{user_id, error}]`。
 > ⚠️ 会话端点是**包装对象** `{user_id, sessions, total}`，不是裸 session；会话条目也没有 `user_agent`。
 > ⚠️ `GET /v1/users/{user_id}/admin` 未注册（只有 PUT），已登记在 waivers 第 18 条。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 联邦连接管理：三条历史路径不存在
+
+上表「令牌、联邦、审计、报表、保留策略、管理员注册」中的
+`GET /v1/federation/status/{server_name}`、`POST /v1/federation/disconnect/{server_name}`、
+`POST /v1/federation/reconnect/{server_name}` 三条在后端**没有注册**。真实端点是：
+
+- `POST /_synapse/admin/v1/federation/destinations/{destination}/reset_connection`
+
+重置连接后由后端重新建立出站连接，没有独立的「查询单个服务器状态 / 断开 / 重连」三件套。
+单个目的端的当前状态仍可通过 `GET /v1/federation/destinations/{destination}` 读取
+（`DestinationInfo`，见上文 `Federation` 小节）。
+
+### 服务器版本
+
+- 管理端 `GET /_synapse/admin/v1/server_version` 返回 `{server_version, implementation}`，
+  **没有 `python_version`**。
+- `python_version: "Rust"` 只出现在无鉴权的 `GET /_matrix/server_version`，且是固定字符串。
+
+### `/statistics` 的 12 个字段
+
+`GET /_synapse/admin/v1/statistics` 返回：
+
+`total_users`、`total_rooms`、`daily_active_users`、`monthly_active_users`、`r30_users`、
+`non_deactivated_user_count`、`non_deactivated_user_count_by_app_service`（映射）、
+`total_messages`、`active_rooms`、`total_members`、`encrypted_rooms`、`daily_messages`。
+
+原先 DTO 中的 `r30v2_users`、`active_rooms_7d`、`average_messages_per_room` 后端**不返回**，
+已从 DTO 删除；真实字段是 `active_rooms`。`/status` 仍只有 `{db_ok, server_ok, up}` 三个布尔，
+没有 `users` / `rooms` / `uptime`。
+
+### 用户列表：name / created_ts / since
+
+- `GET /_synapse/admin/v1/users` 的条目标识键是 **`name`**（不是 `user_id`）；
+  `created_ts` 是**毫秒**时间戳。
+- 分页已收敛为 keyset：`limit`（服务端夹取，默认 100）+ `since`（上一次返回的 `next_batch`）。
+- `offset > 0` 直接 **400 `M_BAD_JSON`**
+  （`Legacy offset pagination is no longer supported; use since cursor`）。
+- 响应 `{users, total, next_batch}`。
+
+### 举报 / event_reports 分页
+
+- `GET /_synapse/admin/v1/event_reports` 的游标是 **`since_ts` / `since_id` / `since_score`**，
+  **不是 `offset`**；深分页传 `offset` 会 400。
+- 旧版兼容入口仍是 `GET /reports`、`GET /reports/{report_id}`、`DELETE /reports/{report_id}`。
+- 举报条目字段：`id`（整数）、`room_id`、`event_id`、`user_id`、`reported_user_id`、
+  `reason`、`content`、`status`、`score`、`received_ts`；列表**无 `next_token`**。
+
+### 邀请黑 / 白名单
+
+- `GET /invite/blocklist` 返回 `{blocklist, total_count, limit, offset}`。
+- `POST /invite/blocklist` 整体设置；`POST` / `DELETE /invite/blocklist/{user_id}` 单个增删。
+- `GET` / `POST /invite/allowlist` 与 `POST` / `DELETE /invite/allowlist/{user_id}` 同构。
+- 写响应是少数带 `status` 的成功响应：`{"status": "ok", "action": "set_global_invite_blocklist"}`；
+  不要把整个管理面都当成 `{"status":"ok"}` 形状。
+
+### 通知与服务器通告
+
+- 本族受编译特性 `server-notifications` 门控；默认特性集下**全部 404**。
+- 站内通知 7 条：`POST/GET /notifications`、`GET/PUT/DELETE /notifications/{id}`、
+  `PUT /notifications/{id}/deactivate`、`GET /notifications/active`。
+- 列表 query 为 `audience` / `limit` / `from`（`deny_unknown_fields`），
+  `limit` 默认 **50**、上限 **100**，`from` 非法 → 400 `Invalid from cursor`。
+- `GET /notifications/active` 返回**裸数组**，没有 `next_batch`。
+- 服务器通告 4 条：`POST /send_server_notice`、`GET /server_notices`、
+  `GET/DELETE /server_notices/{notice_id}`；列表 `limit` 默认 **10**、上限 **50**，
+  响应 `{notices, total, next_batch}`。
+- 用户通知开关读接口返回 `{enabled}`，写接口收发 `{is_enabled}`，两者键名不对称。
+
+### SAML 管理（`saml-sso` 门控，共 8 条）
+
+`POST /saml/metadata/refresh`、`GET/PUT /saml/config`、`GET /saml/mappings`、
+`GET/PUT/DELETE /saml/mapping/{name_id}`、`POST /saml/logout`。
+
+- `GET /saml/mappings`：query 仅 `limit` / `from`；`limit` 默认 50、clamp 1..=500；
+  `from` 是 `name_id` 游标；响应 `{mappings, next_token}`，**仅当返回行数等于 `limit`**
+  时才给 `next_token`。
+- 更新映射体 `{user_id?, attributes?}`；两者都缺 → 400。`DELETE` 返回 `{removed: n}`，
+  `n == 0` 时 404。
+- 登出体 `{user_id}`；空字符串 → 400，SAML 未启用 → 403；
+  响应 `{user_id, redirect_url, sessions_invalidated}`，无会话时 `redirect_url: null`。
+- 默认特性集下整族 404。
+
+### CAS 管理（`cas-sso` 门控，共 5 条）
+
+`POST/GET /cas/services`、`DELETE /cas/services/{service_id}`、
+`POST/GET /cas/users/{user_id}/attributes`。
+
+- 已编译但未配置 CAS 时，这 5 条被中间件拦截并返回 **500**（不是 404/403）。
+- 属性读接口返回裸数组 `[{name, value}]`；写接口体是
+  `{attribute_name, attribute_value}` —— 读写键名不对称。
+- 创建服务返回 201，删除返回 204 无 body。
+
+### 后台任务与清理
+
+- `/background_updates` 家族除列表 / 状态 / 统计外，还有
+  `POST /background_updates`（注册）、`/retry_failed`、`/cleanup_locks`、
+  `GET|POST|DELETE /background_updates/{job_name}`、生命周期
+  `start|complete|fail|progress|cancel`、`GET .../history`。
+- 另有 `POST /cleanup/all`、`/cleanup/rooms`、`/cleanup/tokens`、`/captcha/cleanup`，
+  以及 `GET|POST|DELETE /retention/policy`、`/retention/policy/{room_id}`、
+  `GET /retention/status`、`POST /retention/run`、`GET|POST /account_data_callbacks`、
+  `GET|POST /media_callbacks`。
+- 本仓 ledger 只登记了其中 19 条，且清理类只覆盖 `cleanup_locks` 等一部分；未登记项需先补
+  ledger 才能在 SDK 侧宣告封装（精确清单以 `generated/modules/background_update.json` 为准）。
+
+### 模块 `/modules`
+
+- `POST /modules` 返回 **201**；体必填 `module_name`、`module_type`、`version`，
+  可选 `description`、`is_enabled`、`priority`、`config`。
+- `GET /modules` 返回 `{modules, next_batch}`；`limit` 默认 100、clamp 1..=500。
+- `GET /modules/type/{module_type}` 返回裸数组。
+- `PUT /modules/{module_name}/config` 体 `{config}`（必填）。
+- `POST /modules/{module_name}/enable` 体 `{is_enabled}`。
+- `DELETE /modules/{module_name}` 返回 **204 无 body**（不是 `{}`）。
+- `POST /modules/check_spam` 5 字段全必填；`check_third_party_rule` 6 字段全必填。
+- 全局日志端点不存在；日志只能按模块读取：`GET /modules/logs/{module_name}`。
+
+### 特性门控与 404
+
+- 通知 / 服务器通告族需 `server-notifications`；SAML 管理需 `saml-sso`；CAS 管理需 `cas-sso`。
+- 默认特性集只含 `core-private-chat`、`widgets`、`external-services`、`beacons`，
+  上述端点在默认构建下返回 **404**（不是 403）；SDK 应以运行时探测为准。
+- 例外：CAS 已编译但未配置时返回 **500**（中间件拦截），不是 404。
+
+### 管理路由总数
+
+后端管理面共 **294 条**：`/_synapse/admin/v1/*` 289 条 + `/_synapse/admin/v2/*` 4 条 +
+`/_synapse/admin/info` 1 条。上文「覆盖率口径」的 179 是 SDK lane 的
+`generated/modules/admin.json` 视角（不含特性门控端点与部分扩展家族），两个数字口径不同，
+不要互相换算。

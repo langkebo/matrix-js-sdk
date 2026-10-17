@@ -135,3 +135,50 @@ interface ServerTelemetryHealth {
 - **SDK 主路径覆盖**: 6/6
 - **已绑定生成路由模板**: 6/6
 - **契约覆盖率**: 100%
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### `/telemetry/metrics` 是 JSON 摘要，不是 Prometheus 抓取点
+
+该端点返回给人看的 JSON 摘要；Prometheus 抓取走独立端口 / 路径（见下文
+`prometheus_scrape_target`），不要把本端点配置为 scrape target。
+
+### `appservice_scheduler` 的 12 个子字段
+
+`GET /_synapse/admin/v1/telemetry/metrics` 顶层在 `total_*` / `rendered_bytes` / `snapshot_ts`
+之外，还带一个 `appservice_scheduler` 对象：
+
+| 字段                                 | 含义                 |
+| ------------------------------------ | -------------------- |
+| `total_services`                     | 应用服务总数         |
+| `scheduler_available_services`       | 参与调度的可用服务数 |
+| `services_in_backoff`                | 处于退避状态的服务数 |
+| `services_capacity_limited`          | 受容量限制的服务数   |
+| `services_with_pending_transactions` | 有待推送事务的服务数 |
+| `total_pending_events`               | 待推送事件总数       |
+| `total_pending_transactions`         | 待推送事务总数       |
+| `total_success_count`                | 累计成功次数         |
+| `total_failure_count`                | 累计失败次数         |
+| `total_backoff_count`                | 累计退避次数         |
+| `total_capacity_limited_count`       | 累计容量受限次数     |
+| `total_in_flight_count`              | 当前在途请求数       |
+
+上述 12 个字段在 SDK 的 `ServerTelemetryMetricsSummary` 中尚未声明，按需读取时不要假设
+`appservice_scheduler` 一定存在（未启用应用服务时可能缺省）。
+
+### `prometheus_scrape_target`
+
+同一响应可带 `prometheus_scrape_target`：
+
+```json
+{ "port": 9000, "path": "/metrics", "note": "..." }
+```
+
+- `null` 表示独立抓取端口未监听（`telemetry.prometheus.enabled = false`，默认关闭）。
+- 非 `null` 时 `port` 为监听端口，`path` 为抓取路径；`note` 是说明文本。
+- 它描述的是抓取目标，不是本端点的响应内容。
+
+### `rendered_bytes` 的语义
+
+`rendered_bytes` 是 Prometheus 文本格式的**字节数**，不是指标条数，也不包含文本本身。
+指标条数看 `total_metrics` / `total_counters` / `total_gauges` / `total_histograms`。

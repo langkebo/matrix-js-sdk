@@ -8,6 +8,10 @@
 >
 > 说明: `generated/` 默认来自 `../synapse-rust/tests/unit/fixtures/ledger_export_sdk/`，这套 fixture 由 `synapse_ledger_export` 在 `--features all-extensions` 下导出，用于 SDK 完整扩展面同步。后端默认 golden fixture `tests/unit/fixtures/ledger_export/` 仍保留给 compile-aware 单测使用。
 
+### 跨切面契约入口
+
+跨切面事实统一以 `README.md` 的 `## 跨切面契约` 章节为入口；该章节覆盖响应形态、认证、错误、限流、分页、能力探测 6 个主题，模块页只描述模块特有差异。
+
 ## 核心客户端 API
 
 | 模块     | 文档                                         | 端点数 | SDK 覆盖率 | 优先级                                                                    |
@@ -173,6 +177,12 @@
 > 收编过程本身炸出并修复 **6 条真实 404 缺陷**（`federation/destinations/{server}/reset` 试探、
 > `rooms/{room_id}/messages/{event_id}` DELETE、`invite/{blocklist,allowlist}` 的 per-user 增删 ×4），
 > 详见 `contract-artifacts.md` §六 与 `../artifacts/sdk-backend-handoff-2026-10-15.md`。
+
+### 统计口径说明
+
+- 本页统计来自本地 ledger 镜像：`default` **1017** / `worker` **1028** / `all` **1036**，覆盖率 **95.8%**（993/1036）。
+- 后端 `docs/sdk` 按后端源码统计为 **1019** / **959**，与本页存在口径差异，原因是统计范围不同（是否含 worker 路由、是否含 info/health 等非 Matrix 前缀）。
+- 本页数字以本地 ledger 为准，不在本次文档同步中改动。
 
 ## 图例
 

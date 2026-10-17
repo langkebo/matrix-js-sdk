@@ -88,21 +88,21 @@ last_reviewed: 2026-05-03
 
 - 稳定字段: `supported_formats`、`max_size_bytes`、`max_duration_ms`、`default_sample_rate`、`default_channels`
 
-### `POST /_matrix/client/r0/voice/convert`
+### `POST /_matrix/vendor/v1/voice/{media_id}/convert`
 
 - 请求体必填字段: `message_id`、`target_format`
 - 可选字段: `quality`、`bitrate`
 - 当前实现会在参数校验通过后返回显式未支持错误，不再伪装为成功
 - 错误体使用 `M_UNRECOGNIZED`，错误消息会回显 `message_id`、`target_format`、`quality`、`bitrate`
 
-### `POST /_matrix/client/r0/voice/optimize`
+### `POST /_matrix/vendor/v1/voice/{media_id}/optimize`
 
 - 请求体必填字段: `message_id`
 - 可选字段: `target_size_kb`、`preserve_quality`、`remove_silence`、`normalize_volume`
 - 当前实现会在参数校验通过后返回显式未支持错误，不再伪装为成功
 - 错误体使用 `M_UNRECOGNIZED`，错误消息会回显 `message_id`、`target_size_kb`、`preserve_quality`、`remove_silence`、`normalize_volume`
 
-### `POST /_matrix/client/v1/voice/transcription`
+### `POST /_matrix/vendor/v1/voice/{media_id}/transcription`
 
 - 请求体要求 `event_id` 或 `mxc` 二选一
 - 成功响应稳定字段: `event_id`、`transcription`、`duration_ms`、`status`
@@ -300,3 +300,47 @@ export interface VoiceListQuery {
 
 - 路由与处理器: `synapse-rust/synapse-web/src/routes/voice.rs`
 - SDK 封装: `matrix-js-sdk/src/voice/index.ts`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 本节依据 `synapse-rust/docs/sdk/rtc.md` 回灌。正文的路由表、端点计数、覆盖率与日期保持不变；若正文与本节冲突，以本节为准。
+
+### RTC 与 VoIP
+
+#### TURN 凭据 `/voip/turnServer`
+
+- `GET` 与 `POST /_matrix/client/v3/voip/turnServer` 均可用，需 `Authorization`。
+- 响应 `{username, password, uris, ttl}`，`ttl` 单位是秒；到期前重新调用即可。
+- 服务端未启用 VoIP 时不报错，返回 `{"username":"","password":"","uris":[],"ttl":0}`；客户端必须以 `uris` 为空判断“无 TURN”，不能只看 HTTP 200。
+- 已启用但当前用户是 guest 且禁用 guest 使用 TURN 时返回 `403 M_FORBIDDEN`。
+
+#### `/voip/config`
+
+- `GET /_matrix/client/v3/voip/config` 返回 `turn_servers` 与 `stun_servers`。
+- `turn_servers` 永远是数组，可能是空数组而不是 `null`；`stun_servers` 可能为 `null`，客户端不要假设其一定存在。
+- VoIP 未启用时 `turn_servers` 为 `[]`、`stun_servers` 为 `null`。
+- 已启用但动态凭据生成失败（未配置 shared secret）时 `turn_servers` 静默回退为 `[]`，不报错。
+
+#### guest 凭据
+
+- `GET /_matrix/client/v3/voip/turnServer/guest` 仍需 `Authorization`，名字中的 guest 只表示用 guest 身份签发。
+- 未启用 VoIP 时该端点返回 `404 M_NOT_FOUND`（`VoIP/TURN service is not configured`），与 `/voip/turnServer` 返回空凭据的行为不同。
+- 禁用 guest 使用 TURN 时返回 `403 M_FORBIDDEN`。
+
+#### MSC4143 RTC transports
+
+- `GET /_matrix/client/unstable/org.matrix.msc4143/rtc/transports`，需 `Authorization`。
+- 能力发现读 `/versions` 的 `unstable_features.org.matrix.msc4143`；为 `true` 时才应调用。
+- 响应 `{transports: [{type, ice_servers}]}`，`type` 只有 `org.matrix.msc4403.ice-server-transport`。
+- TURN 凭据字段是 `credential`，不是 `/voip/turnServer` 的 `password`；STUN 项只有 `urls`，没有 `username` / `credential`。
+- `urls` 是数组，即使只有一条。
+- 未启用 VoIP 或未配置出任何一项时返回 `{"transports": []}`（200，不报错）。
+
+#### MSC3079 call 事件（需 `voip-tracking`）
+
+- 5 条写路由：`PUT /rooms/{room_id}/send/m.call.invite/{txn_id}`、`m.call.candidates`、`m.call.answer`、`m.call.hangup`，以及读路由 `GET /rooms/{room_id}/call/{call_id}`。
+- 这些路由由 `voip-tracking` Cargo feature 注册；默认特性集下为 404，参考部署（`all-extensions`）已启用。SDK 应先探测或收到 404 后回退为客户端直连。
+- `m.call.candidates` 的字段名是 `sdpMid` / `sdpMLineIndex`（驼峰），不是 snake_case。
+- `m.call.invite` 的 `invitee` 必须是 user_id 字符串才会写入 `callee_id`；传对象会导致 `callee_id` 为 `null`，随后 `m.call.answer` 必然返回 403。
+- `GET /rooms/{room_id}/call/{call_id}` 返回 `call_id`、`room_id`、`caller_id`、`callee_id`、`state`、`candidates`；`state` 取值 `ringing` / `connected` / `held` / `ended`，无人上报候选时 `candidates` 为 `[]`。
+- 所有 5 条均要求调用者是房间成员，否则 `403 M_FORBIDDEN`。

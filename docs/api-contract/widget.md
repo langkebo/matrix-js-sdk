@@ -47,11 +47,11 @@ last_reviewed: 2026-05-03
 
 - 请求体稳定字段: `room_id?`、`widget_type`、`url`、`name`、`data?`
 - 若传入 `room_id`，处理器会先校验房间存在性
-- 成功时返回 `{ "widget": ... }`
+- 成功时返回扁平的 `WidgetApiResponse`，字段直接位于顶层，不包裹在 `widget` 键内
 
 ### `GET/PUT/DELETE /_matrix/vendor/v1/widgets/{widget_id}`
 
-- `GET` 与 `PUT` 成功时均返回 `{ "widget": ... }`
+- `GET` 与 `PUT` 成功时均返回扁平的 `WidgetApiResponse`，字段直接位于顶层，不包裹在 `widget` 键内
 - `DELETE` 成功时返回 `{ "deleted": true }`
 - `PUT` 请求体可选字段: `url`、`name`、`data`
 - 三个端点都要求登录，并校验请求用户是否为 widget 创建者、房间成员、管理员或显式授权用户
@@ -152,3 +152,44 @@ last_reviewed: 2026-05-03
 
 - 路由与处理器: `synapse-rust/synapse-web/src/routes/widget.rs`
 - SDK 封装: `matrix-js-sdk/src/widget/index.ts`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 本节依据 `synapse-rust/docs/sdk/rtc.md` 的 Widget API 章节回灌。正文的路由表、端点计数、覆盖率与日期保持不变；若正文与本节冲突，以本节为准。
+
+### `POST /widgets` 必填字段
+
+- `room_id`、`widget_type`、`url`、`name` 四个字段都必填，缺失或空串返回 `400 M_BAD_JSON`。
+- `data` 可选，默认 `{}`。
+- 正文“请求体稳定字段: `room_id?`”中的 `room_id` 实际为必填，不能省略。
+
+### URL 与权限
+
+- `url` 只允许 `http` / `https` 且必须有 host；`javascript:`、`data:` 等 scheme 返回 `400 M_BAD_JSON`。
+- 创建者必须是房间成员，且是房间管理员或房间创建者，否则返回 `403 M_FORBIDDEN`。
+- 房间不存在返回 `404 M_NOT_FOUND`。
+- 单条响应 `WidgetApiResponse` 的字段为 `widget_id`、`room_id`、`user_id`、`type`、`url`、`name`、`data`、`creator`、`active`；请求里的 `widget_type` 在响应里叫 `type`。
+
+### 房间列表实体
+
+- `GET /rooms/{room_id}/widgets` 返回 `{total, widgets}`，其中 `widgets` 的实体字段为 `id`（数字）、`widget_id`、`room_id`、`user_id`、`widget_type`、`url`、`name`、`data`、`created_ts`、`updated_ts`、`is_active`。
+- 列表实体与单条响应的命名不一致：单条用 `type` / `creator` / `active`，列表用 `widget_type` / `user_id` / `is_active`，且列表额外带 `id`、`created_ts`、`updated_ts`。
+
+### Jitsi 配置
+
+- `GET /rooms/{room_id}/widgets/jitsi/config` 返回占位值 `{conf_id, name: "Jitsi Conference", domain: "meet.jit.si", app_id: null, jwt: null}`，不读取真实 Jitsi 配置。
+- `conf_id` 由 `room_id` 去掉 `!`、把 `:` 换成 `_` 后拼 `_jitsi_conference` 得到，不是服务端生成的会议 ID。
+
+### 会话
+
+- 创建会话请求 `{widget_id?, device_id?, expires_in_ms?}`；`expires_in_ms` 单位是毫秒。
+- body 中的 `widget_id` 若存在必须与路径一致，否则返回 `400`。
+- 响应为 `{session: {...}}`，会话实体含 `id`、`session_id`、`widget_id`、`user_id`、`device_id`、`created_ts`、`last_active_ts`、`expires_at`、`is_active`；`created_ts`、`last_active_ts`、`expires_at` 均为毫秒。
+- 单会话路径是 `/widgets/sessions/{session_id}`，不是 `/widgets/{widget_id}/sessions/{session_id}`。
+- `GET /widgets/{widget_id}/sessions` 返回 `{sessions, total}`，需要 `write` 权限；`DELETE /widgets/sessions/{session_id}` 返回 `{terminated: true}`。
+
+### 路由归属与能力发现
+
+- Widget 全部挂在 `/_matrix/vendor/v1`，不存在 `/_matrix/client/v1` / `/_matrix/client/v3` 别名；历史上的 `/client/v3/widgets/create`、`/client/v1/widgets` 已被删除。
+- `/versions` 的 `unstable_features` 不声明 widget 能力位；能力探测只能依据 `POST /_matrix/vendor/v1/widgets` 是否存在，或直接调用后按 404 处理。
+- `PUT /rooms/{room_id}/widgets/{widget_id}/capabilities` 只接受 `{"capabilities": [...]}`（`deny_unknown_fields`）；widget 不属于该房间时返回 `400`。

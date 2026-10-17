@@ -27,8 +27,8 @@ last_reviewed: 2026-10-15
   `{"action": ...}`，与 `POST /delayed_events/{delay_id}/{cancel|restart|send}`
   是**同一语义的两个端点**，后端均注册（`delayed_events.rs` 中相邻两行）。SDK
   统一走 body 形态（单请求、无 fallback），故 3 条 action-in-PATH 端点**有意不构造**。
-- 该端点族是 `v1.4` 上游推荐形态之外的扩展面，后端还会拒绝 MSC4354 sticky 字段
-  （501）——本服务把 sticky 建模为按用户置钉（`POST /rooms/{roomId}/sticky_events`）。
+- 该端点族是 `v1.4` 上游推荐形态之外的扩展面。MSC4354 sticky 与 MSC4140 delayed 是原子语义：
+  延迟事件在真正发送那一刻才把 sticky TTL 写入事件的 `unsigned`，不会返回 `501`；本服务另提供按用户置钉的 `POST /rooms/{roomId}/sticky_events`。
 
 ## 二、路由前缀与认证
 
@@ -121,3 +121,10 @@ interface ScheduleDelayedEventResponse {
 | 2026-10-15 | 新收编为 codegen 管辖模块：登记 alias + 章节映射 + `StripMsc4140`，manager 路径改编译期断言，解除 WAIVED | 7 条路由从「无约束」变为受契约表管辖 |
 | 2026-10-14 | 后端补齐 `GET /delayed_events` 与 `PUT /rooms/…/delayed_event/…`；SDK 同步 2 → 7 条                      | 新增列表与专用调度能力               |
 | 2026-04-27 | 初版（`delayed-events` 未独立成页，路由散落在 room 章节）                                                | -                                    |
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- sticky 记录以 `(room_id, user_id, event_type)` 为键，同一用户在同一房间对同一事件类型只保留一条记录。
+- 非排期者本人操作（取消、重发、发送）返回 `404`，不泄露事件是否存在；`POST /delayed_events/{delay_id}` 的 `action` 缺失或非字符串时返回 `400 M_BAD_JSON`。
+- 除专用排期端点外，`/rooms/{id}/send/{event_type}/{txn_id}` 与 `/rooms/{id}/state/{event_type}[/{state_key}]` 也支持 `?org.matrix.msc4140.delay=` 查询参数。
+- sticky 不允许用于状态事件：`state_key` 与 sticky 同时出现时返回 `400 M_INVALID_PARAM`。

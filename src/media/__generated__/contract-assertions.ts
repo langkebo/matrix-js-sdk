@@ -16,7 +16,7 @@ export const MEDIA_ROUTES_STATUS_SCENARIOS = [
     { status: 200, note: "请求成功" },
     { status: 400, note: "上传 body 为空等参数错误" },
     { status: 401, note: "需用户认证的接口未登录" },
-    { status: 409, note: "具名上传使用了已存在 ID" },
+    { status: 409, note: "历史口径；具名上传同名 media_id 为覆盖写，当前不返回 409" },
     { status: 404, note: "媒体不存在" },
 ] as const;
 

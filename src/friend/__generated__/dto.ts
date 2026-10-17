@@ -78,7 +78,7 @@ export interface FriendSearchResponse {
     count?: number;
     mode?: string;
     limited?: boolean;
-    retry_after_seconds?: number;
+    retry_after_ms?: number;
 }
 
 export interface FriendGroup {

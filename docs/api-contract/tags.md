@@ -111,3 +111,27 @@ export type TagWriteResponse = Record<string, never>;
 - **SDK 主路径覆盖**: 8/8
 - **已绑定生成路由模板**: 8/8
 - **契约覆盖率**: 100%
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 依据：`synapse-rust/docs/sdk/sync.md`（Account Data 与 Tags 一节）与
+> `synapse-rust/synapse-web/src/routes/tags.rs`。本节只补充口径，不覆盖上文既有路由表行与统计数字。
+
+### `order` 与排序语义
+
+- `TagEntry.order` 在响应中**恒存在**：后端 `get_tags` / `get_global_tags` 使用 `tag.order.unwrap_or(0.0)`，
+  写入时缺省 `order` 也会以 `NULL` 落库并在读取时归一成 `0.0`。
+- `m.favourite` 的 `order` 通常取 `0.5` 附近；`m.lowpriority` 与自定义 `u.*` 标签同样只靠 `order` 表达优先级。
+- 侧边栏（房间列表）按 `order` **升序**排列，数值越小越靠前；客户端不应自行按标签名或房间名二次排序。
+
+### 改序后的回推路径
+
+- 客户端 `PUT .../tags/{tag}` 改序后，服务端会以 `m.tag` 账户数据经 `/sync` 的
+  `account_data.events` 推回（房间级标签走对应房间的 `account_data.events`）。
+- 因此本地标签状态应以 `/sync` 回推为准，而不是仅依赖 `PUT` 的 `{}` 响应推断最终顺序。
+
+### 删除幂等
+
+- `DELETE .../tags/{tag}` 对不存在的标签也返回 `{}` + `200`，**不是 `404`**；上文状态码表中的 `404`
+  仅适用于房间不存在等场景，不适用于标签删除。
+- `PUT .../tags/{tag}` 通过 `(user_id, room_id, tag)` upsert，重复写入同一标签不会报冲突。

@@ -68,16 +68,16 @@ last_reviewed: 2026-05-11
 
 ## 代码中可见稳定响应
 
-| 路径                | 响应要点                                                                                |
-| ------------------- | --------------------------------------------------------------------------------------- |
-| `GET /config`       | `{ "m.upload.size": 52428800 }`                                                         |
-| `GET /quota/check`  | `limit` `used` `remaining` `rule`                                                       |
-| `GET /quota/stats`  | `user_id` `storage_bytes` `media_count` `limit_bytes` `statistics`                      |
-| `GET /quota/alerts` | `{ "alerts": [...] }`，告警项含 `alert_id` `alert_type` `threshold_percent` 等          |
-| 上传接口            | service 返回上传结果对象；具名上传会保留路径中的 `media_id`，重复 ID 返回冲突           |
-| `GET /preview_url`  | 成功时返回 preview 对象；抓取失败时仍返回 JSON 对象，字段退化为 `url/title/description` |
-| `POST /delete/...`  | 返回 `{ "deleted": true, "media_id": string }`                                          |
-| 下载接口            | 成功时返回二进制响应；失败时返回 JSON 错误体并携带匹配的 HTTP 状态码                    |
+| 路径                | 响应要点                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| `GET /config`       | `{ "m.upload.size": 52428800 }`                                                                 |
+| `GET /quota/check`  | `limit` `used` `remaining` `rule`                                                               |
+| `GET /quota/stats`  | `user_id` `storage_bytes` `media_count` `limit_bytes` `statistics`                              |
+| `GET /quota/alerts` | `{ "alerts": [...] }`，告警项含 `alert_id` `alert_type` `threshold_percent` 等                  |
+| 上传接口            | service 返回上传结果对象；具名上传保留路径中的 `media_id`，同名 `media_id` 为覆盖写（幂等重传） |
+| `GET /preview_url`  | 成功时返回 preview 对象；抓取失败时仍返回 JSON 对象，字段退化为 `url/title/description`         |
+| `POST /delete/...`  | 返回 `{ "deleted": true, "media_id": string }`                                                  |
+| 下载接口            | 成功时返回二进制响应；失败时返回 JSON 错误体并携带匹配的 HTTP 状态码                            |
 
 ## 请求体与请求参数
 
@@ -103,13 +103,13 @@ last_reviewed: 2026-05-11
 
 ## 常见状态码
 
-| 状态码 | 说明                     |
-| ------ | ------------------------ |
-| `200`  | 请求成功                 |
-| `400`  | 上传 body 为空等参数错误 |
-| `401`  | 需用户认证的接口未登录   |
-| `409`  | 具名上传使用了已存在 ID  |
-| `404`  | 媒体不存在               |
+| 状态码 | 说明                                                         |
+| ------ | ------------------------------------------------------------ |
+| `200`  | 请求成功                                                     |
+| `400`  | 上传 body 为空等参数错误                                     |
+| `401`  | 需用户认证的接口未登录                                       |
+| `409`  | 历史口径；具名上传同名 `media_id` 为覆盖写，当前不返回 `409` |
+| `404`  | 媒体不存在                                                   |
 
 ## 本轮复核发现
 
@@ -176,7 +176,7 @@ last_reviewed: 2026-05-11
 
 - 语音相关路由已从本文件拆分到 `voice.md`，避免继续混写 Media 与 Voice 两组契约。
 - `getWaveform()` 已收敛为本地计算能力，不再暗示后端存在独立波形接口。
-- `PUT /_matrix/media/v3/upload/{server_name}/{media_id}` 现已真正使用路径参数，非本机 `server_name` 返回 `400`，重复 `media_id` 返回 `409`。
+- `PUT /_matrix/media/v3/upload/{server_name}/{media_id}` 现已真正使用路径参数，非本机 `server_name` 返回 `400`；同名 `media_id` 为覆盖写（幂等重传），不返回 `409`。
 - `/_matrix/media/{v1,r1}/download/...` 失败时现已返回匹配的 `404` 等错误状态码，不再出现 `200 + JSON 错误体`。
 - `/_matrix/client/v1/media/config` authenticated media 配置入口已通过 `MediaQuotaManager.getMediaConfig(true)` 显式暴露。
 - `quota/check` 与 `quota/stats` 已有端点级 wrapper，不再只是派生 helper。
@@ -236,3 +236,15 @@ export interface MediaThumbnailUrlOptions {
     timestamp?: number; // m-30: HMAC-SHA256 签名 URL 参数
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- 所有 `*/config` 端点都要求 `Authorization` 头；`?access_token=` 不被接受，恒返回 `401`。
+- 上传请求体是原始字节，不是 JSON、base64 或 multipart。文件名优先级为 `?filename=` → `Content-Disposition: filename=`；MIME 优先级为 `?content_type=` → `Content-Type` 头 → `application/octet-stream`；服务端会用 `infer` 嗅探真实类型覆盖声明的 MIME。成功响应为 `{ "content_uri": "mxc://..." }`。
+- 上传错误：空 body 返回 `400 M_BAD_JSON`；超过 `max_upload_size` 返回 `413 M_TOO_LARGE`；超过用户配额返回 `403 M_RESOURCE_LIMIT_EXCEEDED`；内容扫描失败返回 `502 M_CONTENT_SCAN_FAILED`。
+- 分块上传：`start` 请求体为 `{filename, content_type, total_size, total_chunks}`，响应为 `{upload_id, chunk_size_limit: 10485760, max_file_size: 52428800}`；每块响应包含 `upload_id`、`chunk_index`、`uploaded_chunks`、`total_chunks`、`uploaded_size`、`status`；`progress` 响应额外包含 `expires_at`；`complete` 与 `cancel` 请求体均为 `{upload_id}`；`upload_id` 不属于调用者时返回 `403`。
+- 缩略图默认 `width=800`、`height=600`、`method=scale`、`animated=false`。
+- 下载分两个面：`/_matrix/media/v3/*`（含 `r0` / `r1` / `v1` 别名）不要求认证；`/_matrix/client/v1/media/*` 要求 `Authorization` 头。远端媒体拉取失败返回 `502`。
+- `preview_url` 要求认证，并受 `experimental.msc4452_enabled` 门控：关闭时返回 `403 M_FORBIDDEN`；对应能力位为 `capabilities.m.preview_url.enabled`，当前值为 `false`。
+- 删除他人上传的媒体返回 `403 M_FORBIDDEN`；管理员删除走 `POST /_synapse/admin/v1/media/delete`。
+- `generated/modules/media.json` 的 `entry_count` 为 36；`/_matrix/client/v1/media/config` 由 `assembly.json` 单独登记。本页「封装覆盖率」记录的 22 条为历史统计值，按约束保持不变，实际端点数以 ledger 为准。

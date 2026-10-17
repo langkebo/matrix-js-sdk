@@ -15,7 +15,7 @@ last_reviewed: 2026-05-11
 ## 本轮复核发现
 
 - 旧文档的统计口径已经严重过时。当前机器可读契约是 `99` 条前缀展开端点，对应 `33` 条逻辑相对路径，而不是旧版文档中的 `32` 条。
-- 后端 `/_matrix/client/{v1,r0,v3}/room_keys/keys*` 现在完整提供 `GET / PUT / DELETE` 三组读写删除路由；SDK 本轮已补齐原先缺失的房间级 `PUT` 与三组 `DELETE` wrapper。
+- 后端 `/_matrix/client/{v1,v3}/room_keys/keys*` 现在完整提供 `GET / PUT / DELETE` 三组读写删除路由；SDK 本轮已补齐原先缺失的房间级 `PUT` 与三组 `DELETE` wrapper。
 - `getRoomKeys()` 的真实响应是 `{ sessions: ... }`，不是旧文档里暗示的 `{ rooms: ... }`。
 - `getSessionKey()` 的真实响应是单个 `session_data` payload，本轮已把 SDK 返回类型从恢复接口包裹对象修正为原始 session payload。
 - `POST /room_keys/version` 后端仅读 `algorithm` + `auth_data`（`key_backup.rs` `create_backup` 不处理 UIA `auth`）；SDK `createBackupVersion()` 不暴露 `auth` 参数（ISSUE-6.3：口令/令牌不应上送服务端，客户端派生密钥）。
@@ -47,7 +47,7 @@ last_reviewed: 2026-05-11
     - `GET /room_keys/recover/{version}/{room_id}/{session_id}`
     - `GET /room_keys/export[/{version}]`
     - `POST /room_keys/import[/{version}]`
-- `/_matrix/client/{v1,r0}/room_keys/{version}/keys...` 这组 legacy 别名仍由后端同一 handler 承接，SDK 不再额外提供重复方法。
+- `/_matrix/client/v1/room_keys/{version}/keys...` 这组 legacy 别名仍由后端同一 handler 承接，SDK 不再额外提供重复方法。
 
 ## 关键请求与返回
 
@@ -288,3 +288,33 @@ export interface RecoverSessionKeyResult {
     session_data: EncryptedData;
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+> 本节依据 `synapse-rust/docs/sdk/e2ee.md` 的 `room_keys` 口径回灌。正文的路由表、端点计数、覆盖率与日期保持不变；若正文与本节冲突，以本节为准。
+
+### 版本与认证数据
+
+- `POST /room_keys/version` 返回 `{"version": "<Unix 秒时间戳字符串>"}`；`version` 是创建时刻的 Unix 秒时间戳字符串，不是自增序号，后续所有 `/room_keys/*` 调用都用它。
+- `auth_data` 必须存在且包含非空 `public_key`，否则返回 `400 M_INVALID_PARAM`；正文错误语义表中的“缺少 `public_key` 返回 400”与之一致，错误码以 `M_INVALID_PARAM` 为准。
+- `algorithm` 可省略，默认 `m.megolm_backup.v1.curve25519-aes-sha2`；服务端不做白名单校验，原样存储。
+- 无任何备份版本时，`GET /room_keys/version` 返回 `404 M_NOT_FOUND`（`No current backup version`）。
+
+### etag 与写入响应
+
+- `etag` 用于乐观并发：写入时可带 `?version=` 并按 `etag` 校验，冲突时客户端需重新读取最新版本。
+- 三组写入与删除接口统一返回 `{count, etag}`，其中 `count` 是本次影响的会话数；正文 `{etag, count}` 示例的键顺序不影响语义。
+
+### 会话数据
+
+- `session_data` 是客户端加密后的密文，服务端只按 `room_id` / `session_id` 存取，不解包、不索引明文。
+- `is_verified` 由客户端声明，服务端只透传。
+
+### 密钥请求 `/room_keys/request`
+
+- `GET /room_keys/request` 返回 `requests[]`。
+- `POST /room_keys/request` 创建请求并返回 `request_id`。
+- `GET /room_keys/request/{request_id}` 读取单个请求。
+- `POST /room_keys/request/{request_id}` 更新请求状态。
+- `DELETE /room_keys/request/{request_id}` 删除或取消请求。
+- 该组端点在 `/_matrix/client/v1` 与 `/_matrix/client/v3` 下均可用，语义一致。

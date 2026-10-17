@@ -10,17 +10,18 @@ last_reviewed: 2026-05-03
 
 > 审查来源: `synapse-rust/synapse-web/src/routes/space.rs`、`space/lifecycle_query.rs`、`space/children_hierarchy.rs`、`space/membership_state.rs`、`space/summary.rs`、`space/types.rs`
 > 更新日期: 2026-04-27
-> 审计状态: ✅ 核心 `spaces/*` 路由族已与 SDK 对齐，SDK 默认收敛到 `v3` 主路径
+> 审计状态: ✅ 核心 `spaces/*` 路由族已与 SDK 对齐，SDK 默认收敛到 `/_matrix/vendor/v1` 主路径
 
 ## 挂载版本
 
-`create_space_router()` 将同一套路由同时挂到以下前缀：
+后端 ledger 共 26 条 space 路由，按前缀分布如下：
 
-| 前缀                 | 说明                               |
-| -------------------- | ---------------------------------- |
-| `/_matrix/client/v1` | 与 `r0/v3` 共用同一组 space 处理器 |
-| `/_matrix/client/r0` | 与 `v1/v3` 共用同一组 space 处理器 |
-| `/_matrix/client/v3` | 与 `v1/r0` 共用同一组 space 处理器 |
+| 前缀                 | 条数 | 说明                                                               |
+| -------------------- | ---- | ------------------------------------------------------------------ |
+| `/_matrix/client/v1` | 2    | 仅 `spaces/{space_id}/hierarchy` 与其 `hierarchy/v1` 变体          |
+| `/_matrix/client/v3` | 2    | 同上，与 `v1` 共用同一组 hierarchy 处理器                          |
+| `/_matrix/vendor/v1` | 22   | 创建、公开列表、搜索、统计、用户 space、详情、子房间、成员、摘要等 |
+| `/_matrix/client/r0` | 0    | 后端未注册该前缀；本页路由总表中的 `{v1,r0,v3}` 写法为历史口径     |
 
 ## 认证规则
 
@@ -154,14 +155,14 @@ last_reviewed: 2026-05-03
 
 ## SDK 对齐结论
 
-- `src/space/index.ts` 现已将核心 `/_matrix/client/v3/spaces/*` 路由绑定到生成的 `SpacePathPattern`。
+- `src/space/index.ts` 现已将核心 `/_matrix/vendor/v1/spaces/*` 路由绑定到生成的 `SpacePathPattern`。
 - `createSpace()`、`getSpace()`、`updateSpace()`、`deleteSpace()`、`getPublicSpaces()`、`searchSpaces()`、
   `getSpaceStatistics()`、`getUserSpaces()`、`getSpaceChildren()`、`addChild()`、`removeChild()`、
   `getSpaceMembers()`、`getSpaceRooms()`、`getSpaceState()`、`inviteToSpace()`、`joinSpace()`、
   `leaveSpace()`、`getSpaceHierarchyPage()`、`getSpaceHierarchyV1()`、`getSpaceSummary()`、
   `getSpaceSummaryWithChildren()`、`getSpaceTreePath()`、`getSpaceByRoom()`、`getRoomParentSpaces()`
-  已全部走 `v3` 主路径。
-- `r0` 与 `v1` 前缀在后端共享同一组处理器，SDK 默认选择 `v3` 作为主链路，因此 72 条展开路由在语义上已收敛为同一套封装。
+  已全部走 `/_matrix/vendor/v1` 主路径。
+- 后端不存在 `r0` 前缀；`v1` 与 `v3` 仅承载 hierarchy 两条路由（各 2 条），其余 space 路由全部位于 `/_matrix/vendor/v1`。本页历史口径中的 72 条展开路由与当前 ledger 的 26 条不一致，语义差异见文末补充章节。
 - `getRoomSpace()` 继续保留为 `getSpaceByRoom()` 的兼容别名，不影响契约覆盖率。
 
 ## 覆盖率口径
@@ -179,3 +180,11 @@ last_reviewed: 2026-05-03
 - 成员与状态: `synapse-rust/synapse-web/src/routes/space/membership_state.rs`
 - 摘要: `synapse-rust/synapse-web/src/routes/space/summary.rs`
 - DTO: `synapse-rust/synapse-web/src/routes/space/types.rs`
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- 路由前缀：`generated/modules/space.json` 共 26 条，其中 4 条为 client hierarchy（`/_matrix/client/v1` 与 `/_matrix/client/v3` 各 2 条），22 条全部位于 `/_matrix/vendor/v1`；`/_matrix/client/r0` 下没有任何 space 路由。本页「路由总表」中的 `{v1,r0,v3}` 展开写法为历史口径，实际路径以 ledger 为准。
+- `GET /spaces/{space_id}/stats` 不在后端 ledger 中；统计端点为 `GET /spaces/statistics`，两者不是同一路由。
+- `HierarchyQuery.max_depth` 取值范围为 `1..=20`。
+- `validator` 校验失败返回 `400`，错误文本前缀为 `Validation error:`。
+- 覆盖率口径差异：本页「覆盖率口径」记录的 72 条展开路由 / 24 个语义端点组，与当前 ledger 的 26 条不一致；数字按约束保持不变，实际端点数以 `generated/modules/space.json` 为准。

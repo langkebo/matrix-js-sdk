@@ -246,3 +246,9 @@ export interface DmPartnerResponse {
 - `updateDirectRoom()` 已扩展，返回后端完整响应。
 - `rooms/{room_id}/dm` 的返回字段口径已修正为 `"m.direct"`。
 - `updateDirectRoom()` 已同时支持 `{ users }` 和 `{ content }` 两种写法。
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+- direct 扩展路由中属于其他模块的端点（例如好友模块的 `GET|POST /_matrix/vendor/v1/friends/dm/{user_id}`）归各自模块页说明，本页不重复登记。
+- `GET /_matrix/vendor/v1/rooms/{room_id}/dm` 返回 `404 M_NOT_FOUND` 仅表示该房间不是 DM，不表示房间不存在；两种情形在响应上不可区分，调用方不应据此推断房间是否已删除。
+- `PUT /_matrix/vendor/v1/direct/{room_id}` 的 `content` 必须是 `m.direct` 对象（JSON object）；传入非 object 时返回 `400`，错误文本为 `content must be an m.direct object`。

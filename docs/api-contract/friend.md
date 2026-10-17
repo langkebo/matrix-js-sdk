@@ -13,10 +13,10 @@ last_reviewed: 2026-05-11
 
 ## 本次复核结论
 
-- SDK 主链路明确分层:
-    - `GET /_matrix/client/v3/friends` 与 `GET /_matrix/client/v3/friends/search`
-    - `POST /_matrix/client/v1/friends/request` 及其 `accept/reject/cancel`
-    - 分组、详情、状态、备注统一走 `v1`
+- SDK 主链路实际全部收敛到 vendor 前缀:
+    - `GET /_matrix/vendor/v1/friends` 与 `GET|POST /_matrix/vendor/v1/friends/search`
+    - `POST /_matrix/vendor/v1/friends/request` 及其 `accept/reject/cancel`
+    - 分组、详情、状态、备注、私信、建议均在同一 `/_matrix/vendor/v1/friends*` 前缀下
 - 后端好友列表返回字段比 SDK `Friend` / `IFriendsResponse` 类型更丰富，文档以下文“稳定字段 + 实际扩展字段”方式说明。
 - `sendFriendRequest()` 已使用正确请求字段 `message`，但 SDK 目前没有前置校验后端的 `message.len() <= 500` 规则。
 - `sendFriendRequest()` 现已补上 `message.len() <= 500` 的前置校验。
@@ -25,11 +25,12 @@ last_reviewed: 2026-05-11
 
 ## 路由版本
 
-| 前缀                 | 真实后端用途                                     | SDK 当前主入口                  |
-| -------------------- | ------------------------------------------------ | ------------------------------- |
-| `/_matrix/client/v3` | 列表、发送请求别名、搜索、incoming/outgoing 别名 | `getFriends()`、`searchUsers()` |
-| `/_matrix/client/v1` | 请求流转、详情、状态、备注、分组                 | 绝大多数 `FriendManager` 方法   |
-| `/_matrix/client/r0` | 历史兼容别名                                     | SDK 不作为默认主路径            |
+| 前缀                 | 真实后端用途                 | SDK 当前主入口            |
+| -------------------- | ---------------------------- | ------------------------- |
+| `/_matrix/vendor/v1` | 好友 28 条端点全部在此前缀下 | 全部 `FriendManager` 方法 |
+| `/_matrix/client/v1` | `/friends*` 路由 0 条        | 无                        |
+| `/_matrix/client/v3` | `/friends*` 路由 0 条        | 无                        |
+| `/_matrix/client/r0` | `/friends*` 路由 0 条        | 无                        |
 
 ## 真实端点与 SDK 映射
 
@@ -136,7 +137,7 @@ last_reviewed: 2026-05-11
     - `count`
     - `mode`
     - `limited`
-    - `retry_after_seconds`
+    - `retry_after_ms`
 - `results[]` 字段与 SDK `FriendSearchResult` 基本一致，使用 `displayname` 而不是 `display_name`
 
 ### 状态、详情与分组
@@ -167,13 +168,13 @@ last_reviewed: 2026-05-11
 
 ## 错误语义
 
-| 场景                  | 后端典型返回 | SDK 语义                                                            |
-| --------------------- | ------------ | ------------------------------------------------------------------- |
-| 未认证                | `401`        | 统一归一化为鉴权类错误                                              |
-| 请求目标不存在        | `404`        | `getFriendInfo(false)` 会返回 `null`                                |
-| 重复请求 / 已是好友   | `409`        | `sendFriendRequest()` 直接抛错                                      |
-| 搜索限流              | `429`        | `searchUsers()` 抛标准 API 错误，响应中可能带 `retry_after_seconds` |
-| incoming 历史别名缺失 | `404`        | `getIncomingRequests()` 自动降级到 `/friends/requests/incoming`     |
+| 场景                  | 后端典型返回     | SDK 语义                                                        |
+| --------------------- | ---------------- | --------------------------------------------------------------- |
+| 未认证                | `401`            | 统一归一化为鉴权类错误                                          |
+| 请求目标不存在        | `404`            | `getFriendInfo(false)` 会返回 `null`                            |
+| 重复请求 / 已是好友   | `400 M_BAD_JSON` | `sendFriendRequest()` 直接抛错                                  |
+| 搜索限流              | `429`            | `searchUsers()` 抛标准 API 错误，响应中可能带 `retry_after_ms`  |
+| incoming 历史别名缺失 | `404`            | `getIncomingRequests()` 自动降级到 `/friends/requests/incoming` |
 
 ## 事件系统
 
@@ -282,7 +283,7 @@ export interface FriendSearchResponse {
     count?: number;
     mode?: string;
     limited?: boolean;
-    retry_after_seconds?: number;
+    retry_after_ms?: number;
 }
 
 export interface FriendGroup {
@@ -307,3 +308,37 @@ export interface IFriendsResponse {
     generated_ts?: number;
 }
 ```
+
+## 实现口径补充（2026-10-17 后端契约回灌）
+
+### 列表分页与响应
+
+- Keyset 分页：`from` 即上一页响应的 `next_batch`；`limit` 默认 `50`，clamp 到 `1..=200`；`sort_by` 默认 `alphabet`；`offset > 0` 且未提供 `from` 时返回 `400 M_BAD_JSON`（`Legacy offset pagination is no longer supported; use from cursor`）。
+- 响应外层键为 `friends`；`next_batch: null` 表示已到底；`room_id` / `version` / `cached` 是内部实现字段，客户端不要依赖。
+- `status` 是关系状态（`favorite | normal | blocked | hidden`），在线状态看 `presence` / `online`；好友条目还包含 `username`、`sort_letter`、`dm_room_id`、`dm_room_active`、`dm_room_state`。
+
+### 请求流转
+
+- 发送好友请求的请求体为 `{user_id, message?}`；成功响应形如 `{request_id:"42", status:"pending"}`，其中 `request_id` 是字符串。
+- 加自己或重复请求返回 `400`；请求项包含 `displayname` / `avatar_url`。
+- 路径参数是 `{user_id}`，不是 `{request_id}`；拒绝动作是 `reject`，不是 `decline`。
+- `accept` 返回 `{room_id, status:"accepted"}`，并顺带创建私信房间。
+
+### 搜索与建议
+
+- 搜索同时接受 `q` 与 `query`；空白或缺失返回 `400`；搜索限流使用独立 429 预算。
+- 搜索结果仅包含可见用户（共享房间过滤），条目带 `match_score` / `match_type`。
+- 建议接口返回 `{suggestions: [...]}`。
+
+### 私信房间
+
+- `GET /_matrix/vendor/v1/friends/dm/{user_id}` 返回 `{room_id: string | null, user_id}`；没有私信房间时 `room_id` 为 `null`，不是 404。
+- `POST /_matrix/vendor/v1/friends/dm/{user_id}` 返回 `{room_id, user_id, created}`，幂等且不读取请求体。
+- 新建房间固定为 `visibility=private`、`preset=private_chat`、`is_direct=true`，客户端无法覆盖。
+
+### 其他
+
+- 所有请求体都启用 `deny_unknown_fields`，多传字段直接返回 `400 M_BAD_JSON`。
+- 旧 `/friends/requests` 路径不存在；待处理列表使用 `/friends/requests/incoming` 与 `/friends/requests/outgoing`。
+- 本页上方路由表仍保留历史 client 前缀行，实际 `/friends*` 端点全部位于 `/_matrix/vendor/v1`；`client v1/v3/r0` 为 0 条。
+- SDK 生成 DTO `src/friend/__generated__/dto.ts` 已由 `pnpm contract:codegen` 对齐为 `retry_after_ms`。
